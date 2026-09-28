@@ -79,9 +79,18 @@ for (const viewport of [
         .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
         .click();
       await reminder.uncheck();
+      const saved = page.waitForResponse(
+        (response) =>
+          response.request().method() === "PUT" &&
+          response
+            .url()
+            .includes("/api/workspace/young-event-subscriptions/") &&
+          response.status() === 200,
+      );
       await subscription
         .getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ })
         .click();
+      expect((await (await saved).json()).remindDeadline).toBe(false);
       await page.reload();
       await expect(reminder).toBeHidden();
       await subscription

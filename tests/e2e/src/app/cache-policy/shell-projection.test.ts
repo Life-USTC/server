@@ -189,7 +189,10 @@ test("rendering-and-cache.personal-overlays-4", async ({
         baseURL: PLAYWRIGHT_BASE_URL,
       });
       try {
-        await context.addCookies([await createSignedSessionCookie(user.id)]);
+        await context.addCookies([
+          await createSignedSessionCookie(user.id),
+          { name: "NEXT_LOCALE", value: "zh-cn", url: PLAYWRIGHT_BASE_URL },
+        ]);
         const response = await context.request.get(
           "/_internal/shell-bootstrap",
         );

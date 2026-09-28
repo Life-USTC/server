@@ -45,6 +45,7 @@ let remindDeadline = $state(
 );
 let remindStart = $state(untrack(() => initialState?.remindStart ?? true));
 let refresh = $state(0);
+let appliedServerState = "";
 const endpoint = $derived(
   `/api/workspace/young-${kind === "events" ? "event" : "organizer"}-subscriptions/${encodeURIComponent(id)}`,
 );
@@ -65,10 +66,21 @@ const reminderSummary = $derived(
 $effect(() => {
   const url = endpoint;
   if (initialState) {
-    subscribed = initialState.subscribed;
-    remindSignup = initialState.remindSignup ?? true;
-    remindDeadline = initialState.remindDeadline ?? true;
-    remindStart = initialState.remindStart ?? true;
+    const serverState = [
+      id,
+      initialState.subscribed,
+      initialState.remindSignup,
+      initialState.remindDeadline,
+      initialState.remindStart,
+    ].join(":");
+    // A fresh object identity from the parent must not wipe an in-progress edit.
+    if (serverState !== appliedServerState) {
+      appliedServerState = serverState;
+      subscribed = initialState.subscribed;
+      remindSignup = initialState.remindSignup ?? true;
+      remindDeadline = initialState.remindDeadline ?? true;
+      remindStart = initialState.remindStart ?? true;
+    }
     loaded = true;
     signedIn = true;
     failed = false;

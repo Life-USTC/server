@@ -75,7 +75,7 @@ test("admin.primary-admin-navigation", async ({ page }, testInfo) => {
 
     const navigation = adminPrimaryNav(page);
     const adminLinks = navigation.locator('a[href^="/admin"]');
-    await expect(adminLinks).toHaveCount(8);
+    await expect(adminLinks).toHaveCount(path === "/admin/moderation" ? 8 : 4);
     const currentName =
       path === "/admin/moderation" ? /^(评论|Comments)$/ : name;
     await expect(
