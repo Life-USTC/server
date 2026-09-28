@@ -1,25 +1,16 @@
 /**
  * E2E: /catalog/sections/[jwId] — Section comment CRUD, anonymity, and attachments
  */
-import { expect, test as uploadTest } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import {
-  cleanupCommentsForE2e,
-  openCommentComposer,
-} from "../../../../utils/comments";
+import { expect } from "@playwright/test";
+import { test as uploadTest } from "../../../../utils/comment-upload-fixture";
+import { openCommentComposer } from "../../../../utils/comments";
 import { storedComment, test } from "../../../../utils/community-fixture";
-import { DEV_SEED } from "../../../../utils/dev-seed";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { deleteUploadById } from "../../../../utils/uploads";
-import {
-  jumpToSection,
-  openCommentDeleteDialog,
-  SECTION_URL,
-} from "./_helpers";
+import { openCommentDeleteDialog } from "./_helpers";
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test.describe.configure({ mode: "parallel" });
@@ -387,29 +378,16 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  uploadTest("upload.three-step-upload", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
-    const filename = `e2e-attachment-${Date.now()}.txt`;
-    const body = `e2e-attachment-comment-${Date.now()}`;
-    let uploadId: string | undefined;
-    let commentId: string | undefined;
-
-    try {
-      await signInAsDebugUser(page, "/");
-      await gotoAndWaitForReady(page, SECTION_URL);
-
-      await expect(async () => {
-        if (
-          !page.url().includes(`/catalog/sections/${DEV_SEED.section.jwId}`)
-        ) {
-          await gotoAndWaitForReady(page, SECTION_URL);
-        }
-        await jumpToSection(page, /评论|Comments/i, "#comments");
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
-
+  uploadTest(
+    "upload.three-step-upload",
+    async ({ page, account, community, upload }, testInfo) => {
+      const filename = "independent-section-attachment.txt";
+      const body = "Independent section attachment comment";
+      const contents = "section-attachment";
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/sections/${community.section.jwId}#comments`,
+      );
       const comments = page.locator("#comments");
       await openCommentComposer(page, comments);
       const uploadInput = comments.locator('input[type="file"]').first();
@@ -447,7 +425,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await comments.locator('input[type="file"]').setInputFiles({
         name: filename,
         mimeType: "text/plain",
-        buffer: Buffer.from("section-attachment"),
+        buffer: Buffer.from(contents),
       });
       const uploadCreateResponse = await uploadCreate;
       const uploadPutResponse = await uploadPut;
@@ -469,10 +447,54 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         uploadCompleteResponse.request().timing().startTime,
       );
       const uploadCompleteBody = (await uploadCompleteResponse.json()) as {
-        upload?: { id?: string };
+        upload: { id: string };
       };
       expect(typeof uploadCompleteBody.upload?.id).toBe("string");
-      uploadId = uploadCompleteBody.upload?.id;
+      const uploadId = uploadCompleteBody.upload.id;
+
+      expect(upload.steps.map((step) => step.path)).toEqual([
+        "/api/workspace/uploads",
+        "/api/workspace/uploads/object",
+        "/api/workspace/uploads/complete",
+      ]);
+      const [reserved, uploaded, completed] = upload.steps;
+      expect(reserved.state.pending).toEqual([
+        expect.objectContaining({
+          userId: account.id,
+          key: session.key,
+          filename,
+          size: Buffer.byteLength(contents),
+          phase: "reserved",
+        }),
+      ]);
+      expect(reserved.state.uploads).toEqual([]);
+      expect(reserved.state.objects).toEqual([]);
+      expect(uploaded.state.pending).toEqual([
+        expect.objectContaining({
+          userId: account.id,
+          key: session.key,
+          phase: "uploaded",
+        }),
+      ]);
+      expect(uploaded.state.uploads).toEqual([]);
+      expect(uploaded.state.objects).toEqual([
+        { key: session.key, body: Array.from(Buffer.from(contents)) },
+      ]);
+      expect(completed.state.pending).toEqual([]);
+      expect(completed.state.uploads).toEqual([
+        expect.objectContaining({
+          id: uploadId,
+          userId: account.id,
+          key: session.key,
+          filename,
+          size: Buffer.byteLength(contents),
+          contentType: "text/plain",
+        }),
+      ]);
+      expect(completed.state.objects).toEqual([
+        { key: session.key, body: Array.from(Buffer.from(contents)) },
+      ]);
+      expect(completed.state.attachments).toEqual([]);
 
       await comments
         .getByRole("textbox", { name: /评论内容|Comment body/i })
@@ -491,11 +513,20 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await postButton.click();
       const createCommentResponse = await createComment;
       const createCommentBody = (await createCommentResponse.json()) as {
-        id?: string;
+        id: string;
       };
       expect(typeof createCommentBody.id).toBe("string");
-      commentId = createCommentBody.id;
+      const commentId = createCommentBody.id;
       await waitForUiSettled(page);
+      expect(await storedComment(commentId)).toMatchObject({
+        userId: account.id,
+        sectionId: community.section.id,
+        body,
+        status: "active",
+      });
+      expect((await upload.observe()).attachments).toEqual([
+        expect.objectContaining({ commentId, uploadId }),
+      ]);
 
       const commentCard = page
         .locator('[id^="comment-"]')
@@ -529,9 +560,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         `/api/workspace/uploads/${uploadId}/download`,
       );
       expect(download.status()).toBe(200);
-      expect(await download.text()).toBe("section-attachment");
+      expect(await download.text()).toBe(contents);
+      expect((await upload.observe()).objects).toEqual([
+        { key: session.key, body: Array.from(Buffer.from(contents)) },
+      ]);
 
-      // Cleanup
+      // Delete through the UI; fixture teardown owns physical object cleanup.
       const dlg = await openCommentDeleteDialog(page, commentCard);
       const deleteResponse = page.waitForResponse(
         (r) =>
@@ -541,11 +575,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await dlg.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
-    } finally {
-      await cleanupCommentsForE2e([commentId]);
-      if (uploadId) {
-        await deleteUploadById(page, uploadId);
-      }
-    }
-  });
+      expect(await storedComment(commentId)).toMatchObject({
+        status: "deleted",
+        deletedAt: expect.any(Date),
+      });
+      await expect(commentCard).toHaveCount(0);
+    },
+  );
 });
