@@ -86,8 +86,13 @@ export const domainStateTest = test.extend<{
               "Domain work and background work failed",
             );
           }
-          if (failures.length)
+          if (failures.length) {
+            // The runtime cannot wrap a response when this callback throws.
+            // Retain its original body only on this failure path for teardown.
+            if (outcome.value instanceof Response)
+              responses.push(outcome.value);
             throw new AggregateError(failures, "Domain background work failed");
+          }
           return outcome.value;
         },
         {
