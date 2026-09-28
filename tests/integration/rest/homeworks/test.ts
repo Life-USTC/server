@@ -1,246 +1,168 @@
-/**
- * E2E tests for GET /api/community/section-homeworks and POST /api/community/section-homeworks.
- *
- * ## GET /api/community/section-homeworks
- * - Query: sectionId (required)
- * - Response: { viewer, data[], pagination }
- * - Public endpoint: viewer.userId is null when unauthenticated
- * - Returns homeworks with completion status for the current user
- * - Does not load descriptions, detail relations, or audit logs
- *
- * ## GET /api/community/section-homeworks/audit
- * - Loads section-wide audit history only after an explicit request
- *
- * ## POST /api/community/section-homeworks
- * - Body: { title, sectionId, publishedAt, submissionStartAt, submissionDueAt }
- * - Response: { id, homework }
- * - Auth required (401 if unauthenticated)
- * - Creates a homework with an audit log entry (action: "created")
- * - Returns 400 for missing required fields
- *
- * ## Edge cases
- * - Missing sectionId on GET → 400
- * - Unauthenticated POST → 401
- * - Full create → verify in list → cleanup via DELETE
- */
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../e2e/utils/dev-seed";
-import { resolveSeedSectionId } from "../../../e2e/utils/seed-lookups";
-import {
-  assertHomeworkCreateSuccess,
-  assertHomeworkListedByTitle,
-} from "../../../shared/scenarios/homework-create";
-import { signInAsDebugUserApi } from "../_harness/auth";
-import { assertApiContract } from "../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { base, test } from "./_fixture";
 
-/** Resolve the seed section's internal DB id via match-codes. */
-test("/api/community/section-homeworks 接口契约", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/community/section-homeworks",
-  });
-});
-
-test("/api/community/section-homeworks/audit 接口契约", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/community/section-homeworks/audit",
-  });
-});
-
-test("/api/community/section-homeworks GET 返回 summary，详情按需加载", async ({
+test("known homework summary omits detail relations and personalizes only completion", async ({
+  homeworkState,
   request,
 }) => {
-  await signInAsDebugUserApi(request, "/");
-  const sectionId = await resolveSeedSectionId(request);
-
-  const response = await request.get(
-    `/api/community/section-homeworks?sectionId=${sectionId}`,
-  );
+  const { db, owner, other, section, homework } = homeworkState;
+  const completedAt = new Date("2026-09-13T08:00:00Z");
+  await db.homeworkCompletion.create({
+    data: { userId: owner.id, homeworkId: homework.id, completedAt },
+  });
+  const response = await owner.request.get(`${base}?sectionId=${section.id}`);
   expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    meta?: { viewer?: { userId?: string | null } };
-    data?: Array<Record<string, unknown>>;
-    pagination?: { page?: number; pageSize?: number; total?: number };
-  };
-
-  expect(body.meta?.viewer?.userId).toBeTruthy();
-  expect(
-    body.data?.some((item) => item.title === DEV_SEED.homeworks.title),
-  ).toBe(true);
-  expect(body.data?.some((item) => Object.hasOwn(item, "completion"))).toBe(
-    true,
-  );
-  expect(
-    body.data?.every(
-      (item) =>
-        typeof item.commentCount === "number" &&
-        Number.isInteger(item.commentCount as number),
-    ),
-  ).toBe(true);
-
-  // Verify HomeworkItem fields on the seed homework
-  expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
-  const seedHomework = body.data?.find(
-    (item) => item.title === DEV_SEED.homeworks.title,
-  );
-  expect(seedHomework).toBeDefined();
-  if (!seedHomework) return;
-
-  expect(typeof seedHomework.id).toBe("string");
-  expect(seedHomework.id).toBeTruthy();
-  expect(typeof seedHomework.title).toBe("string");
-  expect(Object.hasOwn(seedHomework, "publishedAt")).toBe(true);
-  expect(Object.hasOwn(seedHomework, "submissionStartAt")).toBe(true);
-  expect(Object.hasOwn(seedHomework, "submissionDueAt")).toBe(true);
-  expect(typeof seedHomework.createdAt).toBe("string");
-  expect(Object.hasOwn(seedHomework, "updatedAt")).toBe(true);
-  expect(typeof seedHomework.sectionId).toBe("number");
-  expect(Object.hasOwn(seedHomework, "description")).toBe(false);
-  expect(Object.hasOwn(seedHomework, "section")).toBe(false);
-  expect(Object.hasOwn(seedHomework, "createdBy")).toBe(false);
-  expect(Object.hasOwn(seedHomework, "updatedBy")).toBe(false);
-
-  const detailResponse = await request.get(
-    `/api/community/section-homeworks/${encodeURIComponent(seedHomework.id as string)}`,
-  );
-  expect(detailResponse.status()).toBe(200);
-  const detailBody = (await detailResponse.json()) as {
-    auditLogs?: Array<{ action?: string; titleSnapshot?: string | null }>;
-    homework?: Record<string, unknown>;
-  };
-  expect(detailBody.homework?.description).toBeDefined();
-  expect(detailBody.homework?.section).toBeDefined();
-  expect(Array.isArray(detailBody.auditLogs)).toBe(true);
-
-  const auditResponse = await request.get(
-    `/api/community/section-homeworks/audit?sectionId=${sectionId}`,
-  );
-  expect(auditResponse.status()).toBe(200);
-  const auditBody = (await auditResponse.json()) as {
-    auditLogs?: Array<{ homeworkId?: string | null }>;
-  };
-  expect(Array.isArray(auditBody.auditLogs)).toBe(true);
-
-  const jwResponse = await request.get(
-    `/api/community/section-homeworks?sectionJwId=${DEV_SEED.section.jwId}`,
-  );
-  expect(jwResponse.status()).toBe(200);
-  const jwBody = (await jwResponse.json()) as {
-    data?: Array<Record<string, unknown>>;
-  };
-  expect(
-    jwBody.data?.some((item) => item.title === DEV_SEED.homeworks.title),
-  ).toBe(true);
+  expect(response.headers()["content-type"]).toContain("application/json");
+  const body = await response.json();
+  expect(body.meta.viewer.userId).toBe(owner.id);
+  expect(body.pagination).toMatchObject({ page: 1, pageSize: 20, total: 1 });
+  expect(body.data).toHaveLength(1);
+  expect(body.data[0]).toMatchObject({
+    id: homework.id,
+    title: homework.title,
+    sectionId: section.id,
+    commentCount: 0,
+    createdAt: expect.any(String),
+    updatedAt: expect.any(String),
+    publishedAt: expect.any(String),
+    submissionStartAt: expect.any(String),
+    submissionDueAt: expect.any(String),
+    completion: { completedAt: "2026-09-13T16:00:00+08:00" },
+  });
+  for (const field of ["description", "section", "createdBy", "updatedBy"]) {
+    expect(body.data[0]).not.toHaveProperty(field);
+  }
+  for (const reader of [other.request, request]) {
+    const read = await reader.get(`${base}?sectionJwId=${section.jwId}`);
+    expect(read.status()).toBe(200);
+    expect((await read.json()).data).toEqual([
+      expect.objectContaining({
+        id: homework.id,
+        completion: null,
+      }),
+    ]);
+  }
 });
 
-test("/api/community/section-homeworks GET 未找到 sectionJwId 返回 404", async ({
-  request,
+test("known homework detail and explicit section audit load independently", async ({
+  homeworkState,
 }) => {
-  const response = await request.get(
-    "/api/community/section-homeworks?sectionJwId=999999999",
-  );
-  expect(response.status()).toBe(404);
-});
-
-test("/api/community/section-homeworks GET 拒绝过多班级与越界分页", async ({
-  request,
-}) => {
-  const sectionIds = Array.from({ length: 51 }, (_, index) => index + 1).join(
-    ",",
-  );
-
-  expect(
-    (
-      await request.get(
-        `/api/community/section-homeworks?sectionIds=${sectionIds}`,
-      )
-    ).status(),
-  ).toBe(400);
-  expect(
-    (
-      await request.get("/api/community/section-homeworks?sectionId=1&page=101")
-    ).status(),
-  ).toBe(400);
-  expect(
-    (
-      await request.get(
-        "/api/community/section-homeworks?sectionId=1&pageSize=51",
-      )
-    ).status(),
-  ).toBe(400);
-});
-
-test("/api/community/section-homeworks POST 未登录返回 401", async ({
-  request,
-}) => {
-  const now = new Date();
-  const response = await request.post("/api/community/section-homeworks", {
+  const { db, owner, section, homework } = homeworkState;
+  await db.auditLog.create({
     data: {
-      title: "should fail",
-      sectionId: "1",
-      publishedAt: now.toISOString(),
-      submissionStartAt: now.toISOString(),
-      submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
+      action: "homework_create",
+      userId: owner.id,
+      subjectUserId: owner.id,
+      targetType: "homework",
+      targetId: homework.id,
+      metadata: { sectionId: section.id },
     },
+  });
+  const detail = await owner.request.get(`${base}/${homework.id}`);
+  expect(detail.status()).toBe(200);
+  const body = await detail.json();
+  expect(body.homework).toMatchObject({
+    id: homework.id,
+    description: { content: "known description" },
+    section: { id: section.id },
+  });
+  expect(body.auditLogs).toHaveLength(1);
+  const audit = await owner.request.get(
+    `${base}/audit?sectionId=${section.id}`,
+  );
+  expect(audit.status()).toBe(200);
+  expect(audit.headers()["content-type"]).toContain("application/json");
+  expect((await audit.json()).auditLogs).toEqual([
+    expect.objectContaining({ homeworkId: homework.id }),
+  ]);
+});
+
+for (const [query, status] of [
+  ["sectionJwId=999999999", 404],
+  ["", 400],
+  [
+    `sectionIds=${Array.from({ length: 51 }, (_, index) => index + 1).join(",")}`,
+    400,
+  ],
+  ["sectionId=1&page=101", 400],
+  ["sectionId=1&pageSize=51", 400],
+] as const) {
+  test(`list rejects ${query || "missing section"} with ${status}`, async ({
+    request,
+  }) => {
+    const response = await request.get(`${base}?${query}`);
+    expect(response.status()).toBe(status);
+    expect((await response.json()).error).toEqual(expect.any(String));
+  });
+}
+
+test("audit requires a section and returns JSON", async ({ request }) => {
+  const response = await request.get(`${base}/audit`);
+  expect(response.status()).toBe(400);
+  expect(response.headers()["content-type"]).toContain("application/json");
+});
+
+test("anonymous homework creation is rejected without persistent effects", async ({
+  request,
+  homeworkState,
+}) => {
+  const { db, section } = homeworkState;
+  const before = await db.homework.findMany({
+    where: { sectionId: section.id },
+  });
+  const response = await request.post(base, {
+    data: { title: "denied", sectionId: String(section.id) },
   });
   expect(response.status()).toBe(401);
+  expect((await response.json()).error).toEqual(expect.any(String));
+  expect(
+    await db.homework.findMany({ where: { sectionId: section.id } }),
+  ).toEqual(before);
 });
 
-test("openapi.homework-created-status", async ({ request }) => {
-  await signInAsDebugUserApi(request, "/");
-  const sectionId = await resolveSeedSectionId(request);
-
-  const title = `e2e-homework-create-${Date.now()}`;
-  const now = new Date();
-  const createResponse = await request.post(
-    "/api/community/section-homeworks",
-    {
-      data: {
-        title,
-        sectionId: String(sectionId),
-        publishedAt: now.toISOString(),
-        submissionStartAt: now.toISOString(),
-        submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
-      },
+test("openapi.homework-created-status", async ({ homeworkState }) => {
+  const { db, owner, section } = homeworkState;
+  const response = await owner.request.post(base, {
+    data: {
+      title: "created homework",
+      sectionId: String(section.id),
+      publishedAt: "2026-09-01T00:00:00Z",
+      submissionStartAt: "2026-09-01T00:00:00Z",
+      submissionDueAt: "2100-01-01T00:00:00Z",
     },
-  );
-  expect(createResponse.status()).toBe(201);
-  const createBody = (await createResponse.json()) as {
-    homework?: { commentCount?: number; id?: string; title?: string } | null;
-    id?: string;
-  };
-  assertHomeworkCreateSuccess(createBody);
-  expect(createResponse.headers().location).toBe(
-    `/api/community/section-homeworks/${createBody.id}`,
-  );
-  expect(createBody.homework?.title).toBe(title);
-  expect(createBody.homework?.commentCount).toBe(0);
-
-  // Verify the created homework appears in the list
-  const listResponse = await request.get(
-    `/api/community/section-homeworks?sectionId=${sectionId}`,
-  );
-  expect(listResponse.status()).toBe(200);
-  const listBody = (await listResponse.json()) as {
-    data?: Array<{ id?: string; title?: string }>;
-  };
-  assertHomeworkListedByTitle(listBody.data ?? [], {
-    id: createBody.id,
-    title,
   });
-
-  // The seed data may not include audit history. Verify the explicit audit
-  // request with the homework created by this test instead.
-  const auditResponse = await request.get(
-    `/api/community/section-homeworks/audit?sectionId=${sectionId}`,
-  );
-  expect(auditResponse.status()).toBe(200);
-  const auditBody = (await auditResponse.json()) as {
-    auditLogs?: Array<{ homeworkId?: string | null }>;
-  };
+  expect(response.status()).toBe(201);
+  const body = await response.json();
+  expect(body.id).toEqual(expect.any(String));
+  expect(response.headers().location).toBe(`${base}/${body.id}`);
+  expect(body.homework).toMatchObject({
+    id: body.id,
+    title: "created homework",
+    commentCount: 0,
+  });
   expect(
-    auditBody.auditLogs?.some((item) => item.homeworkId === createBody.id),
-  ).toBe(true);
-
-  // Cleanup
-  await request.delete(`/api/community/section-homeworks/${createBody.id}`);
+    await db.homework.findUniqueOrThrow({ where: { id: body.id } }),
+  ).toMatchObject({
+    title: "created homework",
+    createdById: owner.id,
+    sectionId: section.id,
+    publishedAt: new Date("2026-09-01T00:00:00Z"),
+    submissionStartAt: new Date("2026-09-01T00:00:00Z"),
+    submissionDueAt: new Date("2100-01-01T00:00:00Z"),
+  });
+  expect(await db.auditLog.findMany({ where: { targetId: body.id } })).toEqual([
+    expect.objectContaining({ action: "homework_create", userId: owner.id }),
+  ]);
+  const list = await owner.request.get(`${base}?sectionId=${section.id}`);
+  expect(list.status()).toBe(200);
+  expect((await list.json()).data).toContainEqual(
+    expect.objectContaining({ id: body.id, title: "created homework" }),
+  );
+  const audit = await owner.request.get(
+    `${base}/audit?sectionId=${section.id}`,
+  );
+  expect(audit.status()).toBe(200);
+  expect((await audit.json()).auditLogs).toContainEqual(
+    expect.objectContaining({ homeworkId: body.id }),
+  );
 });

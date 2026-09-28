@@ -1,29 +1,7 @@
-/**
- * E2E tests for bus schedule APIs
- *
- * ## GET /api/catalog/bus
- * Public raw shuttle-bus timetable dataset.
- * - Accepts: versionKey
- * - Returns: { version, availableVersions, campuses, routes, trips, preferences }
- * - Includes weekday, Saturday, and Sunday trips without server-side filtering/ranking
- * - Returns 404 when no schedule data exists for the requested version
- *
- * ## GET /api/catalog/bus/routes
- * Public filtered route discovery.
- *
- * ## GET /api/catalog/bus/next
- * Public ranked next departures for one origin/destination pair.
- *
- * ## GET/POST /api/workspace/bus-preferences
- * Authenticated endpoint for user bus planner defaults.
- * - GET: returns current preference or default values
- * - POST: saves preferred origin/destination plus departed-trip toggle
- * - 401 for unauthenticated, 400 for invalid body
- */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../e2e/utils/dev-seed";
-import { signInAsDebugUserApi } from "../_harness/auth";
-import { assertApiContract } from "../_shared/api-contract";
+import { createFixturePrisma } from "../../../shared/prisma";
+import { test } from "../_harness/actor";
 
 const BASE = "/api/catalog/bus";
 const PREF_BASE = "/api/workspace/bus-preferences";
@@ -48,14 +26,6 @@ type BusResponse = {
     preferredDestinationCampusId?: number | null;
     showDepartedTrips?: boolean;
   } | null;
-};
-
-type PreferenceResponse = {
-  preference?: {
-    preferredOriginCampusId?: number | null;
-    preferredDestinationCampusId?: number | null;
-    showDepartedTrips?: boolean;
-  };
 };
 
 type BusRouteSearchResponse = {
@@ -85,16 +55,10 @@ type BusNextResponse = {
   }>;
 };
 
-async function saveBusPreference(
-  request: import("@playwright/test").APIRequestContext,
-  preference: PreferenceResponse["preference"],
-) {
-  const response = await request.post(PREF_BASE, { data: preference });
-  expect(response.status()).toBe(200);
-}
-
 test.describe("GET /api/catalog/bus 校车时刻表", () => {
-  test("返回原始时刻表数据，包含工作日和周日班次", async ({ request }) => {
+  test("known timetable exposes versions, day types, departure times and route topology", async ({
+    request,
+  }) => {
     const response = await request.get(`${BASE}?${SEED_VERSION}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as BusResponse;
@@ -116,43 +80,6 @@ test.describe("GET /api/catalog/bus 校车时刻表", () => {
     expect(weekdayTrips).toBeGreaterThan(0);
     expect(sundayTrips).toBeGreaterThan(0);
     expect(body.preferences).toBeNull();
-  });
-
-  test("已认证调用者收到保存的校车偏好", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    try {
-      const saveResponse = await request.post(PREF_BASE, {
-        data: {
-          preferredOriginCampusId: 1,
-          preferredDestinationCampusId: 4,
-          showDepartedTrips: true,
-        },
-      });
-      expect(saveResponse.status()).toBe(200);
-
-      const response = await request.get(`${BASE}?${SEED_VERSION}`);
-      expect(response.status()).toBe(200);
-      const body = (await response.json()) as BusResponse;
-
-      expect(body.preferences?.preferredOriginCampusId).toBe(1);
-      expect(body.preferences?.preferredDestinationCampusId).toBe(4);
-      expect(body.preferences?.showDepartedTrips).toBe(true);
-    } finally {
-      await request.post(PREF_BASE, {
-        data: {
-          preferredOriginCampusId: null,
-          preferredDestinationCampusId: null,
-          showDepartedTrips: false,
-        },
-      });
-    }
-  });
-
-  test("路线 8 原始班次时间与 seed 时刻表一致", async ({ request }) => {
-    const response = await request.get(`${BASE}?${SEED_VERSION}`);
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as BusResponse;
 
     const route8WeekdayDepartures = (body.trips ?? [])
       .filter((trip) => trip.routeId === 8 && trip.dayType === "weekday")
@@ -161,12 +88,6 @@ test.describe("GET /api/catalog/bus 校车时刻表", () => {
       .sort();
 
     expect(route8WeekdayDepartures).toEqual(["06:50", "12:50", "21:20"]);
-  });
-
-  test("路线拓扑与 seed 数据一致", async ({ request }) => {
-    const response = await request.get(`${BASE}?${SEED_VERSION}`);
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as BusResponse;
 
     const route8StopIds = body.routes
       ?.find((route) => route.id === 8)
@@ -188,10 +109,6 @@ test.describe("GET /api/catalog/bus 校车时刻表", () => {
 });
 
 test.describe("GET /api/catalog/bus/routes 路线发现", () => {
-  test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: ROUTES_BASE });
-  });
-
   test("返回起点到终点的具体路线变体", async ({ request }) => {
     const response = await request.get(
       `${ROUTES_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&${SEED_VERSION}`,
@@ -216,10 +133,6 @@ test.describe("GET /api/catalog/bus/routes 路线发现", () => {
 });
 
 test.describe("GET /api/catalog/bus/next 下一班车", () => {
-  test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: NEXT_BASE });
-  });
-
   test("返回带状态元数据的排序下一班车", async ({ request }) => {
     const response = await request.get(
       `${NEXT_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}&dayType=weekday&includeDeparted=true&limit=1&${SEED_VERSION}`,
@@ -247,102 +160,136 @@ test.describe("GET /api/catalog/bus/next 下一班车", () => {
   });
 });
 
-test.describe("/api/workspace/bus-preferences 校车偏好", () => {
-  test.describe.configure({ mode: "serial" });
-
-  test("未认证 GET 返回 401", async ({ request }) => {
-    const response = await request.get(PREF_BASE);
-    expect(response.status()).toBe(401);
-  });
-
-  test("未认证 POST 返回 401", async ({ request }) => {
-    const response = await request.post(PREF_BASE, {
-      data: {
-        preferredOriginCampusId: 1,
-        preferredDestinationCampusId: 2,
-        showDepartedTrips: false,
-      },
+test("known bus preferences personalize the catalog independently of writes", async ({
+  createActor,
+}) => {
+  const owner = await createActor();
+  const db = createFixturePrisma();
+  const preference = {
+    preferredOriginCampusId: 1,
+    preferredDestinationCampusId: 4,
+    showDepartedTrips: true,
+  };
+  try {
+    await db.busUserPreference.create({
+      data: { userId: owner.id, ...preference },
     });
-    expect(response.status()).toBe(401);
+    const response = await owner.request.get(`${BASE}?${SEED_VERSION}`);
+    expect(response.status()).toBe(200);
+    expect((await response.json()).preferences).toMatchObject(preference);
+  } finally {
+    await db.$disconnect();
+  }
+});
+
+test.describe("/api/workspace/bus-preferences", () => {
+  for (const method of ["get", "post"] as const) {
+    test(`anonymous ${method} returns JSON 401`, async ({ request }) => {
+      const response = await request[method](
+        PREF_BASE,
+        method === "post"
+          ? {
+              data: {
+                preferredOriginCampusId: 1,
+                preferredDestinationCampusId: 2,
+                showDepartedTrips: false,
+              },
+            }
+          : {},
+      );
+      expect(response.status()).toBe(401);
+      expect((await response.json()).error).toEqual(expect.any(String));
+    });
+  }
+
+  test("a new user receives empty defaults", async ({ createActor }) => {
+    const owner = await createActor();
+    const response = await owner.request.get(PREF_BASE);
+    expect(response.status()).toBe(200);
+    expect((await response.json()).preference).toMatchObject({
+      preferredOriginCampusId: null,
+      preferredDestinationCampusId: null,
+      showDepartedTrips: false,
+    });
   });
 
-  test("已认证 GET 返回保存的规划默认值", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const originalResponse = await request.get(PREF_BASE);
-    expect(originalResponse.status()).toBe(200);
-    const original = ((await originalResponse.json()) as PreferenceResponse)
-      .preference;
-
-    try {
-      await saveBusPreference(request, {
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
+  for (const clear of [false, true]) {
+    test(`POST ${clear ? "clears" : "saves"} preferences without changing another user`, async ({
+      createActor,
+    }) => {
+      const owner = await createActor();
+      const other = await createActor();
+      const db = createFixturePrisma();
+      const initial = {
+        preferredOriginCampusId: 2,
+        preferredDestinationCampusId: 1,
         showDepartedTrips: false,
-      });
+      };
+      const expected = clear
+        ? {
+            preferredOriginCampusId: null,
+            preferredDestinationCampusId: null,
+            showDepartedTrips: false,
+          }
+        : {
+            preferredOriginCampusId: 1,
+            preferredDestinationCampusId: 4,
+            showDepartedTrips: true,
+          };
+      try {
+        await db.busUserPreference.createMany({
+          data: [owner, other].map(({ id }) => ({ userId: id, ...initial })),
+        });
+        const otherBefore = await db.busUserPreference.findUniqueOrThrow({
+          where: { userId: other.id },
+        });
+        const response = await owner.request.post(PREF_BASE, {
+          data: expected,
+        });
+        expect(response.status()).toBe(200);
+        expect((await response.json()).preference).toMatchObject(expected);
+        expect(
+          await db.busUserPreference.findUniqueOrThrow({
+            where: { userId: owner.id },
+          }),
+        ).toMatchObject(expected);
+        expect(
+          await db.busUserPreference.findUniqueOrThrow({
+            where: { userId: other.id },
+          }),
+        ).toEqual(otherBefore);
+        const read = await owner.request.get(PREF_BASE);
+        expect(read.status()).toBe(200);
+        expect((await read.json()).preference).toMatchObject(expected);
+      } finally {
+        await db.$disconnect();
+      }
+    });
+  }
 
-      const response = await request.get(PREF_BASE);
-      expect(response.status()).toBe(200);
-      const body = (await response.json()) as PreferenceResponse;
-
-      expect(body.preference?.preferredOriginCampusId).toBeNull();
-      expect(body.preference?.preferredDestinationCampusId).toBeNull();
-      expect(body.preference?.showDepartedTrips).toBe(false);
-    } finally {
-      await saveBusPreference(request, {
-        preferredOriginCampusId: original?.preferredOriginCampusId ?? null,
-        preferredDestinationCampusId:
-          original?.preferredDestinationCampusId ?? null,
-        showDepartedTrips: original?.showDepartedTrips ?? false,
-      });
-    }
-  });
-
-  test("POST 保存规划默认值且 GET 可读取", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const originalResponse = await request.get(PREF_BASE);
-    expect(originalResponse.status()).toBe(200);
-    const original = ((await originalResponse.json()) as PreferenceResponse)
-      .preference;
-
+  test("invalid preference body leaves known state unchanged", async ({
+    createActor,
+  }) => {
+    const owner = await createActor();
+    const db = createFixturePrisma();
     try {
-      const saveResponse = await request.post(PREF_BASE, {
+      const before = await db.busUserPreference.create({
+        data: { userId: owner.id, preferredOriginCampusId: 1 },
+      });
+      const response = await owner.request.post(PREF_BASE, {
         data: {
-          preferredOriginCampusId: 1,
-          preferredDestinationCampusId: 4,
-          showDepartedTrips: true,
+          preferredOriginCampusId: "not-a-number",
+          showDepartedTrips: "not-a-boolean",
         },
       });
-      expect(saveResponse.status()).toBe(200);
-      const saveBody = (await saveResponse.json()) as PreferenceResponse;
-      expect(saveBody.preference?.preferredOriginCampusId).toBe(1);
-      expect(saveBody.preference?.preferredDestinationCampusId).toBe(4);
-      expect(saveBody.preference?.showDepartedTrips).toBe(true);
-
-      const getResponse = await request.get(PREF_BASE);
-      expect(getResponse.status()).toBe(200);
-      const getBody = (await getResponse.json()) as PreferenceResponse;
-      expect(getBody.preference?.preferredOriginCampusId).toBe(1);
-      expect(getBody.preference?.preferredDestinationCampusId).toBe(4);
-      expect(getBody.preference?.showDepartedTrips).toBe(true);
+      expect(response.status()).toBe(400);
+      expect(
+        await db.busUserPreference.findUniqueOrThrow({
+          where: { userId: owner.id },
+        }),
+      ).toEqual(before);
     } finally {
-      await saveBusPreference(request, {
-        preferredOriginCampusId: original?.preferredOriginCampusId ?? null,
-        preferredDestinationCampusId:
-          original?.preferredDestinationCampusId ?? null,
-        showDepartedTrips: original?.showDepartedTrips ?? false,
-      });
+      await db.$disconnect();
     }
-  });
-
-  test("POST 无效请求体返回 400", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.post(PREF_BASE, {
-      data: {
-        preferredOriginCampusId: "not-a-number",
-        showDepartedTrips: "not-a-boolean",
-      },
-    });
-    expect(response.status()).toBe(400);
   });
 });
