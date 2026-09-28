@@ -1,11 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { expectRequiresSignIn } from "../../../../utils/auth";
 import {
-  expectRequiresSignIn,
-  signInAsDebugUser,
-} from "../../../../utils/auth";
-import { expectNoPageHorizontalOverflow } from "../../../../utils/page-ready";
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { assertPageContract } from "../../_shared/page-contract";
+import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
+
+test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/preferences 外观与语言偏好", () => {
   test("canonical 路径需要登录", async ({ page }, testInfo) => {
@@ -17,8 +19,11 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
     );
   });
 
-  test("legacy query 输入规范到语义路径", async ({ page }) => {
-    await signInAsDebugUser(page, "/account/settings/preferences");
+  test("legacy query 输入规范到语义路径", async ({
+    page,
+    account: _account,
+  }) => {
+    await gotoAndWaitForReady(page, "/account/settings/preferences");
 
     const response = await page.request.get(
       "/account/settings?tab=preferences",
@@ -33,9 +38,10 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
 
   test("外观选择立即应用并写入既有 localStorage", async ({
     page,
+    account: _account,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await signInAsDebugUser(page, "/account/settings/preferences");
+    await gotoAndWaitForReady(page, "/account/settings/preferences");
 
     const preferences = page.getByRole("region", {
       name: /偏好设置|Preferences/i,
@@ -71,11 +77,12 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
 
   test("语言选择复用 locale API 且 URL 不增加语言目录", async ({
     page,
+    account: _account,
   }, testInfo) => {
     await page.request.post("/api/account/preferences", {
       data: { locale: "zh-cn" },
     });
-    await signInAsDebugUser(page, "/account/settings/preferences");
+    await gotoAndWaitForReady(page, "/account/settings/preferences");
 
     const localeResponse = page.waitForResponse(
       (response) =>
@@ -93,13 +100,18 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
     await expect(
       page.getByRole("region", { name: "Preferences" }),
     ).toBeVisible();
+    expect(
+      (await page.context().cookies()).find(
+        (cookie) => cookie.name === "NEXT_LOCALE",
+      )?.value,
+    ).toBe("en-us");
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
     await captureStepScreenshot(page, testInfo, "settings-preferences-english");
   });
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, {
-    routePath: "/account/settings/preferences",
-    testInfo,
-  });
+test("页面契约", async ({ page, account: _account }, testInfo) => {
+  await expectSettingsPage(page, "/account/settings/preferences", testInfo);
+  await expect(page.getByText(/外观|Appearance/i).first()).toBeVisible();
 });

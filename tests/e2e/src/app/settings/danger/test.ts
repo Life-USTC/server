@@ -1,3 +1,4 @@
+import { createLocalAccountIssuer } from "@better-auth/core/db";
 /**
  * E2E tests for the Settings Danger section (`/account/settings/danger`)
  *
@@ -21,17 +22,22 @@
  * - Partial confirmation text (e.g. "DEL") → confirm button stays disabled
  * - Cancel → dialog closes, no action taken
  * - Actual deletion signs the user out and redirects to /
- * - Cleanup recreates the debug fixture user so later tests stay usable
+ * - Deleted credentials stop working; a newly arranged private identity can sign in
  */
-import { expect, test } from "@playwright/test";
-import {
-  expectPagePath,
-  expectRequiresSignIn,
-  signInAsDebugUser,
-} from "../../../../utils/auth";
-import { restoreDebugUserFixture } from "../../../../utils/e2e-db";
+import { expect } from "@playwright/test";
+import { hashPassword } from "better-auth/crypto";
+import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { assertPageContract } from "../../_shared/page-contract";
+import {
+  expectSettingsPage,
+  storedProfile,
+  test,
+} from "../../../../utils/settings-fixture";
+
+test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/danger 危险区设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
@@ -39,13 +45,9 @@ test.describe("/account/settings/danger 危险区设置", () => {
     await captureStepScreenshot(page, testInfo, "settings-danger-unauthorized");
   });
 
-  test("删除账号确认流程", async ({ page }, testInfo) => {
+  test("删除账号确认流程", async ({ page, account }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await signInAsDebugUser(
-      page,
-      "/account/settings/danger",
-      "/account/settings/danger",
-    );
+    await gotoAndWaitForReady(page, "/account/settings/danger");
 
     await expectPagePath(page, "/account/settings/danger");
 
@@ -56,16 +58,11 @@ test.describe("/account/settings/danger 危险区设置", () => {
     const dialog = page.getByRole("alertdialog").last();
     await expect(openDialogButton).toBeVisible();
     await expect(openDialogButton).toBeEnabled();
-    await expect(async () => {
-      await openDialogButton.click({ force: true });
-      await expect(dialog).toBeVisible();
-      await expect(
-        dialog.locator('input[placeholder="DELETE"]').first(),
-      ).toBeVisible();
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+    await openDialogButton.click();
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.locator('input[placeholder="DELETE"]').first(),
+    ).toBeVisible();
 
     const footerButtons = dialog.locator(
       '[data-slot="alert-dialog-footer"] button',
@@ -97,14 +94,9 @@ test.describe("/account/settings/danger 危险区设置", () => {
       .first();
     await expect(narrowOpenDialogButton).toBeVisible();
     await expect(narrowOpenDialogButton).toBeEnabled();
-    await expect(async () => {
-      await narrowOpenDialogButton.click({ force: true });
-      await expect(narrowDialog).toBeVisible();
-      await expect(narrowInput).toBeVisible();
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+    await narrowOpenDialogButton.click();
+    await expect(narrowDialog).toBeVisible();
+    await expect(narrowInput).toBeVisible();
     const narrowFooterButtons = narrowDialog.locator(
       '[data-slot="alert-dialog-footer"] button',
     );
@@ -139,16 +131,18 @@ test.describe("/account/settings/danger 危险区设置", () => {
     // Cancel closes dialog without action.
     await narrowDialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(narrowDialog).toBeHidden();
+    expect(await storedProfile(account.id)).toMatchObject({ id: account.id });
   });
 
-  test("实际删除账号后退出登录并可重新登录", async ({ page }, testInfo) => {
+  test("实际删除账号后退出登录并可重新登录", async ({
+    page,
+    account,
+    credential,
+    baseURL,
+  }, testInfo) => {
     test.setTimeout(60_000);
 
-    await signInAsDebugUser(
-      page,
-      "/account/settings/danger",
-      "/account/settings/danger",
-    );
+    await gotoAndWaitForReady(page, "/account/settings/danger");
     await expectPagePath(page, "/account/settings/danger");
 
     // Open the deletion dialog
@@ -157,17 +151,12 @@ test.describe("/account/settings/danger 危险区设置", () => {
       .first();
     await expect(openDialogButton).toBeVisible();
     await expect(openDialogButton).toBeEnabled();
-    await expect(async () => {
-      await openDialogButton.click({ force: true });
-      const dialog = page.getByRole("alertdialog").last();
-      await expect(dialog).toBeVisible();
-      await expect(
-        dialog.locator('input[placeholder="DELETE"]').first(),
-      ).toBeVisible();
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+    await openDialogButton.click();
+    const openingDialog = page.getByRole("alertdialog").last();
+    await expect(openingDialog).toBeVisible();
+    await expect(
+      openingDialog.locator('input[placeholder="DELETE"]').first(),
+    ).toBeVisible();
 
     const dialog = page.getByRole("alertdialog").last();
     const input = dialog.locator('input[placeholder="DELETE"]').first();
@@ -198,20 +187,23 @@ test.describe("/account/settings/danger 危险区设置", () => {
       await route.continue();
     });
 
-    // Submit deletion and wait for the server-side sign-out redirect.
-    const signedOutNavigation = page.waitForURL(/\/(?:\?.*)?$/, {
-      timeout: 15_000,
-    });
-    await confirmButton.click();
-    await expect(dialog).toBeVisible();
-    await expect(confirmButton).toBeDisabled();
-    await expect(
-      dialog.getByRole("button", { name: /取消|Cancel/i }),
-    ).toBeDisabled();
-    await expect(dialog.locator('[data-icon="inline-start"]')).toBeVisible();
-    releaseDeleteRequest();
-    await signedOutNavigation;
-    await page.unroute("**/account/settings/danger**");
+    try {
+      const signedOutNavigation = page.waitForURL(/\/(?:\?.*)?$/, {
+        timeout: 15_000,
+      });
+      await confirmButton.click();
+      await expect(dialog).toBeVisible();
+      await expect(confirmButton).toBeDisabled();
+      await expect(
+        dialog.getByRole("button", { name: /取消|Cancel/i }),
+      ).toBeDisabled();
+      await expect(dialog.locator('[data-icon="inline-start"]')).toBeVisible();
+      releaseDeleteRequest();
+      await signedOutNavigation;
+    } finally {
+      releaseDeleteRequest();
+      await page.unrouteAll({ behavior: "wait" });
+    }
 
     await expect(page).toHaveURL(/\/(?:\?.*)?$/);
     await expect(page.locator("#app-user-menu")).toHaveCount(0);
@@ -220,17 +212,65 @@ test.describe("/account/settings/danger 危险区设置", () => {
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-danger-deleted");
 
-    // Restore the owner-side fixture, including its Better Auth credential,
-    // so the Worker auth role only performs the real sign-in flow.
-    await restoreDebugUserFixture();
-    await signInAsDebugUser(page, "/", "/", { ui: true });
+    expect(await storedProfile(account.id)).toBeNull();
+    expect(
+      await withE2ePrisma((db) =>
+        db.account.count({ where: { userId: account.id } }),
+      ),
+    ).toBe(0);
+    expect(
+      await withE2ePrisma((db) =>
+        db.session.count({ where: { userId: account.id } }),
+      ),
+    ).toBe(0);
+    const origin = absoluteTestUrl("/", baseURL).replace(/\/$/, "");
+    expect(
+      (
+        await page.request.post("/api/auth/sign-in/email", {
+          data: credential,
+          headers: { origin },
+        })
+      ).status(),
+    ).toBe(401);
+
+    // A new private identity with the released address can authenticate again.
+    const password = await hashPassword(credential.password);
+    await withE2ePrisma((db) =>
+      db.$transaction(async (tx) => {
+        await tx.user.create({
+          data: {
+            id: account.id,
+            email: account.email,
+            emailVerified: true,
+            name: account.name,
+            username: account.username,
+          },
+        });
+        await tx.account.create({
+          data: {
+            userId: account.id,
+            provider: "credential",
+            issuer: createLocalAccountIssuer("credential"),
+            providerAccountId: account.id,
+            password,
+          },
+        });
+      }),
+    );
+    const signedIn = await page.request.post("/api/auth/sign-in/email", {
+      data: credential,
+      headers: { origin },
+    });
+    expect(signedIn.status()).toBe(200);
+    expect((await signedIn.json()).user.id).toBe(account.id);
+    await gotoAndWaitForReady(page, "/workspace/overview");
     await expect(page.locator("#app-user-menu")).toBeVisible();
   });
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, {
-    routePath: "/account/settings/danger",
-    testInfo,
-  });
+test("页面契约", async ({ page, account: _account }, testInfo) => {
+  await expectSettingsPage(page, "/account/settings/danger", testInfo);
+  await expect(
+    page.getByRole("region", { name: /删除账户|Delete Account/i }),
+  ).toBeVisible();
 });
