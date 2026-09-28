@@ -105,7 +105,8 @@ requirements:
   rationale: Tool inventory is canonical in mcp.personal-workspace-focus. Young pagination has its own
     documented domain bounds.
   acceptance:
-    given: Each of the three academic search tools receives1,2,200 and201 characters.
+    given: Three academic search tools in a case-owned database behind the production Node loopback
+      routes, each receiving 1, 2, 200 and 201 characters.
     when: Anonymous callers use the real HTTP MCP endpoint.
     then:
     - 2/200-character searches execute;1/201-character inputs return a tool validation error without a
@@ -120,7 +121,8 @@ requirements:
   rationale: Tool inventory is canonical in mcp.personal-workspace-focus. Young pagination has its own
     documented domain bounds.
   acceptance:
-    given: All four academic catalog tools receive omitted, boundary and out-of-range pagination inputs.
+    given: Four academic catalog tools in a case-owned database behind the production Node loopback
+      routes, receiving omitted, boundary and out-of-range pagination inputs.
     when: Anonymous clients invoke the real HTTP transport and read pagination metadata.
     then:
     - Default and1/100 values return the requested bounded page.
@@ -209,7 +211,8 @@ requirements:
   rule: MCP discovery and public catalog calls allow anonymous access. Personal tools require authenticated
     user context; absence of credentials rejects before private business execution.
   acceptance:
-    given: The real loopback HTTP MCP transport and the complete explicit public/protected tool inventory.
+    given: A private database and Node HTTP MCP server with the complete explicit public/protected
+      tool inventory.
     when: Anonymous discovery is compared against that inventory, every public tool receives a malformed
       mode input, every protected tool receives a call, and a valid semester read supplies a positive control.
     then:
@@ -226,7 +229,8 @@ requirements:
   rule: Any supplied invalid or unsupported authorization credential rejects the MCP request, including
     public catalog calls; it cannot fall back to anonymous access.
   acceptance:
-    given: A public catalog request supplies invalid Bearer, Basic or DPoP credentials.
+    given: A private database and Node HTTP MCP server receiving public catalog requests with
+      invalid Bearer, Basic or DPoP credentials.
     when: The actual HTTP transport verifies the supplied header.
     then:
     - Every request returns401 without a successful tool result.
@@ -239,7 +243,8 @@ requirements:
     signature, issuer, expiry and resource audience; local authorization requires the exact active user-grant
     generation before SDK AuthInfo is constructed. Opaque and DPoP credentials are unsupported.
   acceptance:
-    given: A real signer, publicly served Better Auth JWKS and production-role database grant.
+    given: A private database, actual signer and Better Auth JWKS served over Node HTTP. Application
+      and authentication work use their restricted database roles.
     when: HTTP private calls use a valid JWT and tokens with wrong issuer/audience, expiry, grant generation,
       signature or opaque format.
     then:
@@ -255,7 +260,8 @@ requirements:
     A feature write grant satisfies read access for the same feature. GraphQL selected-field scopes remain
     canonical in graphql.scoped-query-auth and graphql.scoped-mutations.
   acceptance:
-    given: A signed read-only grant and a batch containing read plus write tools.
+    given: A case-owned database, Node HTTP MCP server, signed read-only grant and batch containing
+      read plus write tools.
     when: The real HTTP transport checks the batch, then checks a write-only token on a read tool.
     then:
     - The under-scoped batch returns403 with the required write scope and creates no todo.
@@ -268,7 +274,8 @@ requirements:
   rule: Missing or invalid credentials on a private MCP call return the upstream JSON-RPC -32000 error
     and RFC9728 resource_metadata challenge with only account.profile:read as bootstrap scope.
   acceptance:
-    given: Private HTTP requests with missing and invalid Bearer credentials.
+    given: A private database and Node HTTP MCP server receiving private requests with missing and
+      invalid Bearer credentials.
     when: The actual transport rejects authorization.
     then:
     - Both responses are401 with JSON-RPC -32000, resource_metadata and the minimal bootstrap scope.
@@ -301,8 +308,8 @@ requirements:
     are graphql.graphql-operation-prompt; five-second timeout is graphql.registered-operation-timeout;
     cancellation and mutation commit ambiguity are graphql.mutation-timeout-ambiguity.
   acceptance:
-    given: A real HTTP client has only todo-read scope and requests an account profile through a registered
-      operation and an aliased document with a fragment.
+    given: A private database and Node HTTP MCP client with only todo-read scope, requesting an
+      account profile through a registered operation and an aliased document with a fragment.
     when: The actual MCP transport invokes the shared GraphQL runner.
     then:
     - Both return isError with insufficient_scope and only account.profile:read in the tool-result challenge.
@@ -317,7 +324,8 @@ requirements:
   rationale: Quota/metadata/lease/completion/rename/delete and the prohibition on raw bytes in GraphQL
     or MCP are canonical in graphql.upload-workflow-boundary and the individual graphql.upload-* invariants.
   acceptance:
-    given: A real MCP-resource JWT with upload-write scope and an owned pending upload.
+    given: A private database, Node HTTP upload route, private in-memory R2, real MCP-resource JWT
+      with upload-write scope, and an owned pending upload.
     when: The client sends bytes to the actual REST PUT route over HTTP using that JWT.
     then:
     - The request returns401 and leaves the reservation unchanged with no completed upload row.
@@ -329,7 +337,8 @@ requirements:
   rule: All MCP JSON request bodies have an inclusive64KiB byte limit before optional authentication or
     business dispatch. Oversized declared or streamed bodies return413.
   acceptance:
-    given: A valid65536-byte JSON-RPC request and larger bodies, including a chunked Request stream.
+    given: A private database and Node HTTP MCP server receiving a valid 65536-byte JSON-RPC request
+      and larger bodies, including a direct chunked Request stream.
     when: Anonymous, invalid-credential and authenticated clients submit bounded bodies over HTTP; the
       same route also processes a direct streamed Request.
     then:
@@ -343,7 +352,8 @@ requirements:
   rule: An empty MCP JSON-RPC batch returns400/-32600. Batches of at most50 messages are accepted; larger
     batches return413 before handling.
   acceptance:
-    given: JSON-RPC batches at0,50 and51 messages.
+    given: A private database and Node HTTP MCP server receiving JSON-RPC batches at 0, 50 and 51
+      messages.
     when: The actual HTTP parser and SDK transport handle them.
     then:
     - The empty batch is Invalid Request;51 messages exceed the limit.
@@ -449,13 +459,14 @@ requirements:
     clock. atTime never changes credential expiration, suspension status, ownership, or rate-limit authorization
     clocks.
   acceptance:
-    given: An isolated subscribed user, a due todo, real signed tokens, public JWKS verification, and
-      the Node HTTP adapter for the production MCP route.
-    when: Call all six time-sensitive tools at the seed date and in 2099, then repeat with expired and
+    given: A private database containing a subscribed user, due todo, academic schedule and bus
+      timetable, with real signed tokens and public JWKS verification through the Node HTTP
+      production routes.
+    when: Call all six time-sensitive tools at the fixed April 29, 2026 date and in 2099, then repeat with expired and
       insufficient-scope tokens.
     then:
     - Snapshot/next-class, deadline, overview, timeline, and bus results use the requested product time.
-    - The timeline begins at Shanghai midnight; the seeded todo appears only in its deadline window.
+    - The timeline begins at Shanghai midnight; the case-owned todo appears only in its deadline window.
     - Expired credentials reject 401 at both product times, including for the public bus tool; insufficient
       workspace scopes reject 403.
     test:
@@ -596,7 +607,7 @@ requirements:
     is idempotent on the stateless transport and succeeds with absent or valid credentials; invalid supplied
     credentials reject401.
   acceptance:
-    given: The real HTTP route adapter and stateless SDK transport.
+    given: A private database and Node HTTP production routes using the stateless SDK transport.
     when: A client sends GET, trusted OPTIONS and DELETE with absent, valid and invalid credentials.
     then:
     - GET returns405; OPTIONS returns204 with the trusted origin; valid/anonymous DELETE returns200.

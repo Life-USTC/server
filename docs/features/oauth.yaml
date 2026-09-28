@@ -445,7 +445,8 @@ requirements:
     using Bearer tokens: answer OPTIONS preflights, allow the MCP-specific request headers, and expose
     MCP-Session-Id and WWW-Authenticate on cross-origin transport responses.'
   acceptance:
-    given: A real MCP HTTP handler with a valid resource-bound token and a trusted browser Origin.
+    given: A private database and Node HTTP MCP handler with a valid resource-bound token and a
+      trusted browser Origin.
     when: Send a preflight and both unauthenticated and authenticated workspace tool requests.
     then:
     - The preflight allows the required Authorization/content/MCP/session/event headers.
@@ -460,7 +461,8 @@ requirements:
     header unless that origin matches the app's trusted origin set (public/canonical origin, localhost
     dev aliases, and allowed preview hosts). Non-browser clients that omit Origin remain supported.
   acceptance:
-    given: The actual MCP HTTP routes configured with a public origin and a distinct canonical origin.
+    given: A private database and Node HTTP MCP routes configured per case with a public origin and
+      a distinct canonical origin, without changing process environment variables.
     when: Request POST, OPTIONS, GET, and DELETE from trusted public/canonical/local origins, without
       Origin, and from malicious/null/malformed origins; configure a preview origin.
     then:
