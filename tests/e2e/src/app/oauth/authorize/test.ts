@@ -1,13 +1,8 @@
-import {
-  type APIRequestContext,
-  expect,
-  type Page,
-  test,
-} from "@playwright/test";
+import { createLocalAccountIssuer } from "@better-auth/core/db";
+import { type APIRequestContext, expect } from "@playwright/test";
+import { hashPassword } from "better-auth/crypto";
 import { sha256Base64Url } from "../../../../../shared/crypto";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { test as workerTest } from "../../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
@@ -23,16 +18,53 @@ const OAUTH_E2E_PKCE = {
   code_challenge_method: "S256",
 } as const;
 
-const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
+// OAuth exercises fixed debug identities and auth-owned authorization-code state.
+// Each case owns the actual Worker, its auth database and generated clients.
+const test = workerTest.extend<{
+  actor: string;
+  redirectUri: string;
+  debugUser: string;
+}>({
+  actor: async ({ isolatedWorker, page }, use) => {
+    const actor = await isolatedWorker.createActor();
+    await page.context().addCookies([actor.cookie]);
+    await use(actor.id);
+  },
+  debugUser: async ({ isolatedWorker }, use) => {
+    const id = crypto.randomUUID();
+    await isolatedWorker.database.owner.user.create({
+      data: {
+        id,
+        email: "dev-user@debug.local",
+        emailVerified: true,
+        name: "Dev User",
+        username: "dev-user",
+        accounts: {
+          create: {
+            type: "credential",
+            provider: "credential",
+            issuer: createLocalAccountIssuer("credential"),
+            providerAccountId: id,
+            password: await hashPassword("dev-debug-password"),
+          },
+        },
+      },
+    });
+    await use(id);
+  },
+  redirectUri: async ({ isolatedWorker }, use) => {
+    await use(`${isolatedWorker.origin}/e2e/oauth/callback`);
+  },
+});
 
 async function registerPublicClient(
   request: APIRequestContext,
-  redirectUri = REDIRECT_URI,
+  redirectUri: string,
 ) {
   const response = await request.post("/api/auth/oauth2/register", {
     data: {
       application_type: "native",
-      client_name: `oauth-authorize-e2e-${Date.now()}`,
+      client_name: `oauth-authorize-e2e-${crypto.randomUUID()}`,
       redirect_uris: [redirectUri],
       token_endpoint_auth_method: "none",
       grant_types: ["authorization_code"],
@@ -50,47 +82,19 @@ function buildAuthorizeApiUrl(params: Record<string, string>) {
   return `/api/auth/oauth2/authorize?${new URLSearchParams(params).toString()}`;
 }
 
-async function resumeConsentIfSignInPage(page: Page) {
-  const allowButton = page.getByRole("button", { name: /允许|Allow/i });
-  const debugSignInButton = page
-    .getByRole("button", {
-      name: /Sign in with Debug User \(Dev\)|调试用户（开发）/i,
-    })
-    .first();
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const visibleTarget = await Promise.race([
-      allowButton
-        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
-        .then(() => "allow" as const)
-        .catch(() => null),
-      debugSignInButton
-        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
-        .then(() => "signin" as const)
-        .catch(() => null),
-    ]);
-
-    if (visibleTarget === "allow") {
-      return;
-    }
-    if (visibleTarget === "signin") {
-      await debugSignInButton.click();
-      await page.waitForURL(/\/oauth\/authorize\?/);
-    }
-  }
-
-  await allowButton.waitFor({ state: "visible" });
-}
-
-test("/oauth/authorize 未登录时重定向到登录页", async ({ page }, testInfo) => {
-  const clientId = await registerPublicClient(page.request);
+test("/oauth/authorize 未登录时重定向到登录页", async ({
+  page,
+  request,
+  redirectUri,
+}, testInfo) => {
+  const clientId = await registerPublicClient(request, redirectUri);
 
   await gotoAndWaitForReady(
     page,
     buildAuthorizeApiUrl({
       ...OAUTH_E2E_PKCE,
       client_id: clientId,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       response_type: "code",
       scope: "openid profile",
       state: "redirect-state",
@@ -103,15 +107,20 @@ test("/oauth/authorize 未登录时重定向到登录页", async ({ page }, test
   await captureStepScreenshot(page, testInfo, "oauth-authorize-redirect");
 });
 
-test("/oauth/authorize 登录后恢复原授权请求", async ({ page }, testInfo) => {
-  const clientId = await registerPublicClient(page.request);
+test("/oauth/authorize 登录后恢复原授权请求", async ({
+  page,
+  request,
+  redirectUri,
+  debugUser,
+}, testInfo) => {
+  const clientId = await registerPublicClient(request, redirectUri);
 
   await gotoAndWaitForReady(
     page,
     buildAuthorizeApiUrl({
       ...OAUTH_E2E_PKCE,
       client_id: clientId,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       response_type: "code",
       scope: "openid profile",
       state: "resume-state",
@@ -127,17 +136,23 @@ test("/oauth/authorize 登录后恢复原授权请求", async ({ page }, testInf
     .click();
   await expect(page).toHaveURL(/\/oauth\/authorize\?/);
   await expect(page.getByRole("button", { name: /允许|Allow/i })).toBeVisible();
+  const session = await page.request.get("/api/auth/get-session");
+  expect(session.status()).toBe(200);
+  expect((await session.json()).user.id).toBe(debugUser);
+  expect(new URL(page.url()).searchParams.get("state")).toBe("resume-state");
   await captureStepScreenshot(page, testInfo, "oauth-authorize-resumed");
 });
 
-test("/oauth/authorize 无效客户端展示错误", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/");
-
+test("/oauth/authorize 无效客户端展示错误", async ({
+  page,
+  actor: _actor,
+  redirectUri,
+}, testInfo) => {
   const response = await page.request.get(
     buildAuthorizeApiUrl({
       ...OAUTH_E2E_PKCE,
       client_id: "missing-client",
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       response_type: "code",
       scope: "openid profile",
       state: "invalid-client-state",
@@ -146,19 +161,30 @@ test("/oauth/authorize 无效客户端展示错误", async ({ page }, testInfo) 
     { maxRedirects: 0 },
   );
 
-  expect([302, 400, 401]).toContain(response.status());
+  expect(response.status()).toBe(302);
+  const errorUrl = new URL(response.headers().location, redirectUri);
+  expect(errorUrl.origin).toBe(new URL(redirectUri).origin);
+  expect(errorUrl.pathname).toBe("/api/auth/error");
+  expect(errorUrl.searchParams.get("error")).toBe("invalid_client");
+  const errorPage = await page.goto(errorUrl.href);
+  expect(errorPage?.status()).toBe(200);
   await captureStepScreenshot(page, testInfo, "oauth-authorize-invalid-client");
 });
 
-test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testInfo) => {
-  const clientId = await registerPublicClient(page.request);
-  await signInAsDebugUser(page, "/");
+test("/oauth/authorize 拒绝授权时带 error 回跳", async ({
+  page,
+  request,
+  isolatedWorker,
+  actor: _actor,
+  redirectUri,
+}, testInfo) => {
+  const clientId = await registerPublicClient(request, redirectUri);
 
   const authorizeResponse = await page.request.get(
     buildAuthorizeApiUrl({
       ...OAUTH_E2E_PKCE,
       client_id: clientId,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       response_type: "code",
       scope: "openid profile",
       state: "deny-state",
@@ -171,7 +197,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testIn
   expect(consentLocation).toContain("/oauth/authorize?");
 
   await gotoAndWaitForReady(page, consentLocation, { waitUntil: "load" });
-  await resumeConsentIfSignInPage(page);
+  await expect(page.getByRole("button", { name: /允许|Allow/i })).toBeVisible();
 
   await page.getByRole("button", { name: /拒绝|Deny/i }).click();
   await expect(page).toHaveURL(/\/e2e\/oauth\/callback\?/);
@@ -179,18 +205,26 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testIn
   const redirected = new URL(page.url());
   expect(redirected.searchParams.get("error")).toBe("access_denied");
   expect(redirected.searchParams.get("state")).toBe("deny-state");
+  expect(await isolatedWorker.database.owner.oAuthConsent.count()).toBe(0);
+  expect(await isolatedWorker.database.owner.oAuthAccessToken.count()).toBe(0);
+  expect(await isolatedWorker.database.owner.oAuthRefreshToken.count()).toBe(0);
   await captureStepScreenshot(page, testInfo, "oauth-authorize-denied");
 });
 
-test("oauth.user-consent-framing", async ({ page, request }, testInfo) => {
-  const clientId = await registerPublicClient(page.request);
-  await signInAsDebugUser(page, "/");
+test("oauth.user-consent-framing", async ({
+  page,
+  request,
+  actor,
+  redirectUri,
+  isolatedWorker,
+}, testInfo) => {
+  const clientId = await registerPublicClient(request, redirectUri);
 
   const authorizeResponse = await page.request.get(
     buildAuthorizeApiUrl({
       ...OAUTH_E2E_PKCE,
       client_id: clientId,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       response_type: "code",
       scope: "openid profile email",
       state: "allow-state",
@@ -203,7 +237,7 @@ test("oauth.user-consent-framing", async ({ page, request }, testInfo) => {
   expect(consentLocation).toContain("/oauth/authorize?");
 
   await gotoAndWaitForReady(page, consentLocation, { waitUntil: "load" });
-  await resumeConsentIfSignInPage(page);
+  await expect(page.getByRole("button", { name: /允许|Allow/i })).toBeVisible();
 
   await expect(
     page.getByText(
@@ -237,10 +271,13 @@ test("oauth.user-consent-framing", async ({ page, request }, testInfo) => {
   const allowButton = page.getByRole("button", { name: /允许|Allow/i });
   const denyButton = page.getByRole("button", { name: /拒绝|Deny/i });
   const allowClick = allowButton.click();
-  await expect(allowButton).toBeDisabled();
-  await expect(denyButton).toBeDisabled();
-  releaseConsentRequest();
-  await allowClick;
+  try {
+    await expect(allowButton).toBeDisabled();
+    await expect(denyButton).toBeDisabled();
+  } finally {
+    releaseConsentRequest();
+    await allowClick;
+  }
   await expect(page).toHaveURL(/\/e2e\/oauth\/callback\?/);
 
   const redirected = new URL(page.url());
@@ -248,12 +285,11 @@ test("oauth.user-consent-framing", async ({ page, request }, testInfo) => {
   expect(typeof code).toBe("string");
   expect(redirected.searchParams.get("state")).toBe("allow-state");
 
-  const persisted = await withE2ePrisma((prisma) =>
-    prisma.oAuthConsent.findFirstOrThrow({
-      where: { clientId },
+  const persisted =
+    await isolatedWorker.database.owner.oAuthConsent.findFirstOrThrow({
+      where: { clientId, userId: actor },
       select: { scopes: true },
-    }),
-  );
+    });
   expect(persisted.scopes).toEqual(["openid", "profile"]);
   if (!code) throw new Error("Expected consent authorization code");
   const exchanged = await request.post("/api/auth/oauth2/token", {
@@ -261,7 +297,7 @@ test("oauth.user-consent-framing", async ({ page, request }, testInfo) => {
       client_id: clientId,
       code,
       code_verifier: OAUTH_E2E_CODE_VERIFIER,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       grant_type: "authorization_code",
     },
   });
@@ -277,12 +313,16 @@ test("页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/oauth/authorize", testInfo });
 });
 
-test("user.oauth-consent-loopback-continuation", async ({ page }) => {
-  const callback = new URL("/e2e/oauth/callback", PLAYWRIGHT_BASE_URL);
+test("user.oauth-consent-loopback-continuation", async ({
+  page,
+  request,
+  actor: _actor,
+  isolatedWorker,
+}) => {
+  const callback = new URL("/e2e/oauth/callback", isolatedWorker.origin);
   callback.hostname = "127.0.0.1";
   const redirectUri = callback.href;
-  const clientId = await registerPublicClient(page.request, redirectUri);
-  await signInAsDebugUser(page, "/workspace/overview");
+  const clientId = await registerPublicClient(request, redirectUri);
   const parameters = {
     ...OAUTH_E2E_PKCE,
     client_id: clientId,
@@ -307,7 +347,7 @@ test("user.oauth-consent-loopback-continuation", async ({ page }) => {
   const completed = new URL(page.url());
   expect(completed.searchParams.get("state")).toBe(parameters.state);
   const response = await page.request.post(
-    new URL("/api/auth/oauth2/token", PLAYWRIGHT_BASE_URL).href,
+    new URL("/api/auth/oauth2/token", isolatedWorker.origin).href,
     {
       headers: { cookie: "" },
       form: {
@@ -323,106 +363,101 @@ test("user.oauth-consent-loopback-continuation", async ({ page }) => {
   expect((await response.json()).access_token).toEqual(expect.any(String));
 });
 
-test("oauth.auth-page-clarity", async ({ page }, testInfo) => {
+test("oauth.auth-page-clarity", async ({
+  page,
+  actor: _actor,
+  isolatedWorker,
+}, testInfo) => {
   const marker = crypto.randomUUID();
   const clientId = `https://client.example/${marker}/metadata.json`;
   const clientName = `Desktop calendar ${marker.slice(0, 8)}`;
   const redirectUri = "http://127.0.0.1:61000/callback";
-  await withE2ePrisma((prisma) =>
-    prisma.oAuthClient.create({
-      data: {
-        clientId,
-        name: clientName,
-        applicationType: "native",
-        tokenEndpointAuthMethod: "none",
-        redirectUris: [redirectUri],
-        scopes: ["openid", "profile", "email"],
-        requirePKCE: true,
-        grantTypes: ["authorization_code"],
-        responseTypes: ["code"],
-      },
-    }),
-  );
-  try {
-    await signInAsDebugUser(page, "/");
-    for (const locale of ["en-us", "zh-cn"]) {
-      await page
-        .context()
-        .addCookies([
-          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-        ]);
-      for (const width of [1280, 390]) {
-        await page.setViewportSize({ width, height: 900 });
-        const query = new URLSearchParams({
-          client_id: clientId,
-          redirect_uri: redirectUri,
-          scope: "openid profile email",
-        });
-        const response = await gotoAndWaitForReady(
-          page,
-          `/oauth/authorize?${query}`,
-          {
-            browserHealth: {},
-            expectMeaningfulContent: true,
-            expectNoHorizontalOverflow: true,
-            uiQuality: {},
-          },
-        );
-        expect(response?.status()).toBe(200);
-        await expect(page).toHaveURL(/\/oauth\/authorize\?/);
-        await expect(page).toHaveTitle(/Authorize|授权/);
-        await expect(page.locator("html")).toHaveAttribute(
-          "lang",
-          locale === "en-us" ? /en/i : /zh/i,
-        );
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-        await expect(page.getByText(clientName, { exact: true })).toBeVisible();
-        await expect(
-          page.getByText(
-            /Client host: client\.example|客户端主机: client\.example|客户端主机：client\.example/,
-          ),
-        ).toBeVisible();
-        await expect(
-          page.getByText(
-            /Redirect host: 127\.0\.0\.1:61000|回调主机: 127\.0\.0\.1:61000|回调主机：127\.0\.0\.1:61000/,
-          ),
-        ).toBeVisible();
-        await expect(
-          page.getByText(
-            /This callback returns to an application on your device|此回调将返回您设备上的本地应用/,
-          ),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("checkbox", {
-            name: /View your email address|查看您的邮箱地址/i,
-          }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("checkbox", {
-            name: /View your profile information|查看您的个人资料/i,
-          }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("checkbox", {
-            name: /Verify your identity|验证您的身份/i,
-          }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("button", { name: /Allow|允许/i }),
-        ).toBeEnabled();
-        await expect(
-          page.getByRole("button", { name: /Deny|拒绝/i }),
-        ).toBeEnabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `oauth-clarity-${locale}-${width}`,
-        );
-      }
+  await isolatedWorker.database.owner.oAuthClient.create({
+    data: {
+      clientId,
+      name: clientName,
+      applicationType: "native",
+      tokenEndpointAuthMethod: "none",
+      redirectUris: [redirectUri],
+      scopes: ["openid", "profile", "email"],
+      requirePKCE: true,
+      grantTypes: ["authorization_code"],
+      responseTypes: ["code"],
+    },
+  });
+  for (const locale of ["en-us", "zh-cn"]) {
+    await page
+      .context()
+      .addCookies([
+        { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+      ]);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const query = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        scope: "openid profile email",
+      });
+      const response = await gotoAndWaitForReady(
+        page,
+        `/oauth/authorize?${query}`,
+        {
+          browserHealth: {},
+          expectMeaningfulContent: true,
+          expectNoHorizontalOverflow: true,
+          uiQuality: {},
+        },
+      );
+      expect(response?.status()).toBe(200);
+      await expect(page).toHaveURL(/\/oauth\/authorize\?/);
+      await expect(page).toHaveTitle(/Authorize|授权/);
+      await expect(page.locator("html")).toHaveAttribute(
+        "lang",
+        locale === "en-us" ? /en/i : /zh/i,
+      );
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByText(clientName, { exact: true })).toBeVisible();
+      await expect(
+        page.getByText(
+          /Client host: client\.example|客户端主机: client\.example|客户端主机：client\.example/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          /Redirect host: 127\.0\.0\.1:61000|回调主机: 127\.0\.0\.1:61000|回调主机：127\.0\.0\.1:61000/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          /This callback returns to an application on your device|此回调将返回您设备上的本地应用/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("checkbox", {
+          name: /View your email address|查看您的邮箱地址/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("checkbox", {
+          name: /View your profile information|查看您的个人资料/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("checkbox", {
+          name: /Verify your identity|验证您的身份/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Allow|允许/i }),
+      ).toBeEnabled();
+      await expect(
+        page.getByRole("button", { name: /Deny|拒绝/i }),
+      ).toBeEnabled();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        `oauth-clarity-${locale}-${width}`,
+      );
     }
-  } finally {
-    await withE2ePrisma((prisma) =>
-      prisma.oAuthClient.deleteMany({ where: { clientId } }),
-    );
   }
 });
