@@ -1,8 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
+import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { assertPageContract } from "../_shared/page-contract";
-import { SECTION_URL } from "../sections/[jwId]/_helpers";
 
+const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 const ROOM_CODE = "3A204";
 const MAP_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360' viewBox='0 0 640 360'%3E%3Crect width='640' height='360' fill='%23f4f4f5'/%3E%3Crect x='220' y='100' width='200' height='160' fill='%23dbeafe' stroke='%230369a1' stroke-width='8'/%3E%3Ctext x='320' y='190' text-anchor='middle' font-size='28' fill='%230f172a'%3E3A204%3C/text%3E%3C/svg%3E";
