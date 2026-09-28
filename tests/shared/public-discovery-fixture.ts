@@ -1,14 +1,13 @@
 import { createHash } from "node:crypto";
 import { vi } from "vitest";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 import {
   type CatalogContractFixture,
   createCatalogContractFixture,
 } from "./catalog-contract-fixture";
 import { isolatedDatabaseTest } from "./isolated-database";
+import { createNodeRuntime } from "./node-runtime";
 import type { TestPrismaClient } from "./prisma";
-import { createWaitUntil } from "./wait-until";
 
 type StoredResponse = { body: string; status: number; headers: Headers };
 type PublicDiscovery = {
@@ -33,55 +32,19 @@ export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
     const start = new Date("2031-01-12T00:00:00.000Z").getTime();
     const kv = new Map<string, string>();
     const colo = new Map<string, StoredResponse>();
-    const responses = new Set<Response>();
-    const operations: Promise<void>[] = [];
-
-    function request<T>(read: () => T | Promise<T>): Promise<T> {
-      const pending = createWaitUntil();
-      const operation = (async () => {
-        const [result] = await Promise.allSettled([
-          runWithCloudflareRuntimeEnv(
-            {
-              HYPERDRIVE: { connectionString: connections.app },
-              HYPERDRIVE_AUTH: { connectionString: connections.auth },
-              CATALOG_DETAIL_CORE: {
-                get: async (key: string) => {
-                  const value = kv.get(key);
-                  return value ? JSON.parse(value) : null;
-                },
-                put: async (key: string, value: string) => {
-                  kv.set(key, value);
-                },
-              },
-            },
-            read,
-            pending,
-          ),
-        ]);
-        // Own only the runtime's returned response, whose body releases its
-        // clients at EOF/cancel. Tracking its original body would cancel twice.
-        if (result.status === "fulfilled" && result.value instanceof Response)
-          responses.add(result.value);
-        const [background] = await Promise.allSettled([pending.drain()]);
-        if (result.status === "rejected") {
-          if (background.status === "rejected")
-            throw new AggregateError(
-              [result.reason, background.reason],
-              "Discovery request and background work failed",
-            );
-          throw result.reason;
-        }
-        if (background.status === "rejected") throw background.reason;
-        return result.value;
-      })();
-      operations.push(
-        operation.then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
-      return operation;
-    }
+    const { run: request, close } = createNodeRuntime({
+      HYPERDRIVE: { connectionString: connections.app },
+      HYPERDRIVE_AUTH: { connectionString: connections.auth },
+      CATALOG_DETAIL_CORE: {
+        get: async (key: string) => {
+          const value = kv.get(key);
+          return value ? JSON.parse(value) : null;
+        },
+        put: async (key: string, value: string) => {
+          kv.set(key, value);
+        },
+      },
+    });
 
     try {
       vi.useFakeTimers({ toFake: ["Date"] });
@@ -133,23 +96,7 @@ export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
     }
     async function cleanup() {
       try {
-        for (let index = 0; index < operations.length; index++)
-          await operations[index];
-        const results = await Promise.allSettled(
-          [...responses].map((response) =>
-            response.body && !response.bodyUsed
-              ? response.body.cancel()
-              : undefined,
-          ),
-        );
-        const failures = results.flatMap((result) =>
-          result.status === "rejected" ? [result.reason] : [],
-        );
-        if (failures.length)
-          throw new AggregateError(
-            failures,
-            "Discovery response cleanup failed",
-          );
+        await close();
       } finally {
         vi.useRealTimers();
         vi.unstubAllGlobals();
