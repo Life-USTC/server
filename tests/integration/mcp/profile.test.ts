@@ -1,37 +1,37 @@
 import { describe } from "vitest";
-import * as fixtures from "./_harness";
-import { mcpTest } from "./_harness/context";
-
-const toolTest = mcpTest.extend("context", fixtures.readerFixture());
+import { isolatedMcpTest as toolTest } from "./_harness/isolated-context";
 
 describe("account_profile_get", () => {
-  toolTest("返回认证用户的 REST 等价资料字段", async ({ context, expect }) => {
-    const profile = await context.client.call<{
-      id?: string;
-      email?: string | null;
-      name?: string | null;
-      username?: string | null;
-      isAdmin?: boolean;
-      createdAt?: string;
-      updatedAt?: string;
-    }>("account_profile_get");
+  toolTest(
+    "返回认证用户的 REST 等价资料字段",
+    async ({ mcpActor: context, expect }) => {
+      const profile = await context.client.call<{
+        id?: string;
+        email?: string | null;
+        name?: string | null;
+        username?: string | null;
+        isAdmin?: boolean;
+        createdAt?: string;
+        updatedAt?: string;
+      }>("account_profile_get");
 
-    expect(profile.id).toBe(context.userId);
-    expect(profile.email).toBeNull();
-    expect(profile.name).toBe(context.name);
-    expect(profile.username).toBe(context.username);
-    expect(profile.isAdmin).toBeNull();
-    // Dates are serialized in Asia/Shanghai (+08:00)
-    expect(profile.createdAt).toMatch(/\+08:00$/);
-    expect(profile.updatedAt).toMatch(/\+08:00$/);
-  });
+      expect(profile.id).toBe(context.userId);
+      expect(profile.email).toBeNull();
+      expect(profile.name).toBe(context.name);
+      expect(profile.username).toBe(context.username);
+      expect(profile.isAdmin).toBeNull();
+      // Dates are serialized in Asia/Shanghai (+08:00)
+      expect(profile.createdAt).toMatch(/\+08:00$/);
+      expect(profile.updatedAt).toMatch(/\+08:00$/);
+    },
+  );
 });
 
 describe("account_client_activity_list", () => {
   toolTest(
     "只返回 verified MCP client 与当前用户交集，且不暴露敏感归因字段",
-    async ({ context, expect }) => {
-      const own = await fixtures.prisma.auditLog.create({
+    async ({ mcpActor: context, expect, isolatedDatabase: { owner: db } }) => {
+      const own = await db.auditLog.create({
         data: {
           action: "comment_create",
           channel: "mcp",
@@ -47,7 +47,7 @@ describe("account_client_activity_list", () => {
         },
         select: { id: true },
       });
-      const other = await fixtures.prisma.auditLog.create({
+      const other = await db.auditLog.create({
         data: {
           action: "comment_create",
           channel: "mcp",
@@ -57,7 +57,7 @@ describe("account_client_activity_list", () => {
         },
         select: { id: true },
       });
-      const otherGrant = await fixtures.prisma.auditLog.create({
+      const otherGrant = await db.auditLog.create({
         data: {
           action: "comment_create",
           channel: "mcp",
@@ -69,75 +69,70 @@ describe("account_client_activity_list", () => {
         select: { id: true },
       });
 
-      try {
-        const page = await context.client.call<{
-          items?: Array<Record<string, unknown>>;
-          nextCursor?: string | null;
-        }>("account_client_activity_list", { limit: 10 });
-        expect(page.items).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ id: own.id, channel: "mcp" }),
-          ]),
-        );
-        expect(page.items?.some((item) => item.id === other.id)).toBe(false);
-        expect(page.items?.some((item) => item.id === otherGrant.id)).toBe(
-          false,
-        );
-        const projected = page.items?.find((item) => item.id === own.id);
-        for (const key of [
-          "oauthGrantId",
-          "sessionId",
-          "ipAddress",
-          "userAgent",
-          "targetId",
-        ]) {
-          expect(projected).not.toHaveProperty(key);
-        }
-      } finally {
-        await fixtures.prisma.auditLog.deleteMany({
-          where: { id: { in: [own.id, other.id, otherGrant.id] } },
-        });
+      const page = await context.client.call<{
+        items?: Array<Record<string, unknown>>;
+        nextCursor?: string | null;
+      }>("account_client_activity_list", { limit: 10 });
+      expect(page.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: own.id, channel: "mcp" }),
+        ]),
+      );
+      expect(page.items?.some((item) => item.id === other.id)).toBe(false);
+      expect(page.items?.some((item) => item.id === otherGrant.id)).toBe(false);
+      const projected = page.items?.find((item) => item.id === own.id);
+      for (const key of [
+        "oauthGrantId",
+        "sessionId",
+        "ipAddress",
+        "userAgent",
+        "targetId",
+      ]) {
+        expect(projected).not.toHaveProperty(key);
       }
     },
   );
 });
 
 describe("community_user_get", () => {
-  toolTest("按用户名返回公开资料层级", async ({ context, expect }) => {
-    const profile = await context.client.call<{
-      found?: boolean;
-      user?: {
-        id?: string;
-        name?: string | null;
-        username?: string | null;
-        _count?: {
-          comments?: number;
-          homeworksCreated?: number;
-          uploads?: number;
+  toolTest(
+    "按用户名返回公开资料层级",
+    async ({ mcpActor: context, expect }) => {
+      const profile = await context.client.call<{
+        found?: boolean;
+        user?: {
+          id?: string;
+          name?: string | null;
+          username?: string | null;
+          _count?: {
+            comments?: number;
+            homeworksCreated?: number;
+            uploads?: number;
+          };
         };
-      };
-      totalContributions?: number;
-      weeks?: Array<Array<{ date?: string; count?: number }>>;
-    }>("community_user_get", {
-      identifier: context.username,
-      mode: "full",
-    });
+        totalContributions?: number;
+        weeks?: Array<Array<{ date?: string; count?: number }>>;
+      }>("community_user_get", {
+        identifier: context.username,
+        mode: "full",
+      });
 
-    expect(profile.found).toBe(true);
-    expect(profile.user?.id).toBe(context.userId);
-    expect(profile.user?.name).toBe(context.name);
-    expect(profile.user?.username).toBe(context.username);
-    expect(profile).not.toHaveProperty("sectionCount");
-    expect(typeof profile.totalContributions).toBe("number");
-    expect((profile.weeks?.length ?? 0) > 0).toBe(true);
-    expect(profile.weeks?.[0]?.[0]?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(typeof profile.user?._count?.comments).toBe("number");
-    expect(typeof profile.user?._count?.uploads).toBe("number");
-    expect(typeof profile.user?._count?.homeworksCreated).toBe("number");
-    expect(profile.user?._count).not.toHaveProperty("subscribedSections");
-  });
+      expect(profile.found).toBe(true);
+      expect(profile.user?.id).toBe(context.userId);
+      expect(profile.user?.name).toBe(context.name);
+      expect(profile.user?.username).toBe(context.username);
+      expect(profile).not.toHaveProperty("sectionCount");
+      expect(typeof profile.totalContributions).toBe("number");
+      expect((profile.weeks?.length ?? 0) > 0).toBe(true);
+      expect(profile.weeks?.[0]?.[0]?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(typeof profile.user?._count?.comments).toBe("number");
+      expect(typeof profile.user?._count?.uploads).toBe("number");
+      expect(typeof profile.user?._count?.homeworksCreated).toBe("number");
+      expect(profile.user?._count).not.toHaveProperty("subscribedSections");
+    },
+  );
 
-  toolTest("缺失用户返回 not_found", async ({ context, expect }) => {
+  toolTest("缺失用户返回 not_found", async ({ mcpActor: context, expect }) => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
