@@ -1,281 +1,15 @@
-import type { RequestEvent } from "@sveltejs/kit";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
+import { describe, expect, vi } from "vitest";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import {
   claimUploadPutLease,
   markUploadPutCompleted,
 } from "@/features/uploads/server/upload-service";
-import type { CloudflareR2Bucket } from "@/lib/adapters/cloudflare-runtime";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { authPrisma } from "@/lib/db/auth-prisma";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
-import { createGraphqlRequestHandler } from "@/lib/graphql/server";
-import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restWriteScope } from "@/lib/oauth/scope-registry";
-import { DEV_SEED } from "../fixtures/dev-seed";
-import { createFixturePrisma } from "../shared/prisma";
-import { createMcpHarness, type McpHarness } from "./mcp/_harness";
+import { graphqlMutationTest as it } from "../shared/graphql-mutation-fixture";
 
-const fixturePrisma = createFixturePrisma();
-
-const handler = createGraphqlRequestHandler(false);
-const marker = `[integration-test] graphql-remaining-${Date.now()}`;
-const oauthClientId = `graphql-remaining-${crypto.randomUUID()}`;
-const oauthScopes = [
-  restWriteScope("community.comment"),
-  restWriteScope("workspace.link-pin"),
-  restWriteScope("workspace.upload"),
-];
-
-type GraphqlPayload = {
-  data?: Record<string, unknown> | null;
-  errors?: Array<{
-    message: string;
-    extensions?: Record<string, unknown>;
-  }>;
-};
-
-class MemoryR2Bucket implements CloudflareR2Bucket {
-  readonly objects = new Map<string, { contentType?: string; size: number }>();
-  readonly deletedKeys: string[] = [];
-
-  async delete(key: string) {
-    this.deletedKeys.push(key);
-    this.objects.delete(key);
-  }
-
-  async get() {
-    return null;
-  }
-
-  async head(key: string) {
-    const object = this.objects.get(key);
-    return object
-      ? {
-          size: object.size,
-          httpMetadata: { contentType: object.contentType },
-        }
-      : null;
-  }
-
-  async put(
-    key: string,
-    value:
-      | ReadableStream<Uint8Array>
-      | ArrayBuffer
-      | ArrayBufferView
-      | string
-      | null,
-    options?: { httpMetadata?: { contentType?: string } },
-  ) {
-    const size =
-      typeof value === "string"
-        ? new TextEncoder().encode(value).byteLength
-        : value instanceof ArrayBuffer
-          ? value.byteLength
-          : ArrayBuffer.isView(value)
-            ? value.byteLength
-            : 0;
-    this.objects.set(key, {
-      contentType: options?.httpMetadata?.contentType,
-      size,
-    });
-  }
-}
-
-const bucket = new MemoryR2Bucket();
-const allowMutation = { limit: async () => ({ success: true }) };
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required for GraphQL integration tests");
-}
-const authDatabaseUrl = process.env.AUTH_DATABASE_URL;
-if (!authDatabaseUrl) {
-  throw new Error(
-    "AUTH_DATABASE_URL is required for GraphQL integration tests",
-  );
-}
-const runtimeEnv = {
-  APP_PUBLIC_ORIGIN: "http://localhost:3000",
-  DATABASE_URL: databaseUrl,
-  HYPERDRIVE: { connectionString: databaseUrl },
-  HYPERDRIVE_AUTH: { connectionString: authDatabaseUrl },
-  NODE_ENV: "test",
-  R2_UPLOADS: bucket,
-  USER_BATCH_WRITE_RATE_LIMITER: allowMutation,
-  USER_WRITE_RATE_LIMITER: allowMutation,
-};
-let mcp: McpHarness;
-let userId = "";
-let otherUserId = "";
-let grantId = "";
-let ownedCommentId = "";
-let otherCommentId = "";
-let mcpCommentId = "";
-let completedUploadId = "";
-
-function requestEvent(body: unknown, token: string): RequestEvent {
-  return {
-    request: new Request("https://life.example/api/graphql", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-    }),
-    locals: {
-      authUser: null,
-      locale: "en-us",
-      requestId: "graphql-remaining-integration",
-    },
-  } as unknown as RequestEvent;
-}
-
-async function execute(body: unknown, token: string) {
-  const response = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
-    handler(requestEvent(body, token)),
-  );
-  return {
-    response,
-    payload: (await response.json()) as GraphqlPayload,
-  };
-}
-
-async function signToken(scopes: string[]) {
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const token = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
-    signResourceBoundOAuthAccessToken({
-      clientId: oauthClientId,
-      expiresAt: issuedAt + 300,
-      grantId,
-      issuedAt,
-      resources: [getOAuthGraphqlResourceUrl()],
-      scopes,
-      userId,
-    }),
-  );
-  if (!token) throw new Error("Expected a signed GraphQL access token");
-  return token;
-}
-
-beforeAll(async () => {
-  const section = await fixturePrisma.section.findUniqueOrThrow({
-    where: { jwId: DEV_SEED.section.jwId },
-    select: { id: true },
-  });
-  const [user, otherUser] = await Promise.all([
-    fixturePrisma.user.create({
-      data: {
-        email: `${marker}-owner@example.test`,
-        name: "GraphQL Remaining Owner",
-      },
-      select: { id: true },
-    }),
-    fixturePrisma.user.create({
-      data: {
-        email: `${marker}-other@example.test`,
-        name: "GraphQL Remaining Other",
-      },
-      select: { id: true },
-    }),
-  ]);
-  userId = user.id;
-  otherUserId = otherUser.id;
-
-  const oauthClient = await fixturePrisma.oAuthClient.create({
-    data: {
-      clientId: oauthClientId,
-      consents: {
-        create: {
-          scopes: oauthScopes,
-          userId,
-        },
-      },
-      name: "GraphQL remaining mutations integration",
-      redirectUris: ["https://graphql.example/callback"],
-    },
-    select: {
-      consents: {
-        select: { grantId: true },
-      },
-    },
-  });
-  grantId = oauthClient.consents[0]?.grantId ?? "";
-  if (!grantId) throw new Error("Expected an OAuth consent fixture");
-
-  const [ownedComment, otherComment, mcpComment] = await Promise.all([
-    fixturePrisma.comment.create({
-      data: {
-        body: `${marker} owned`,
-        sectionId: section.id,
-        userId,
-      },
-      select: { id: true },
-    }),
-    fixturePrisma.comment.create({
-      data: {
-        body: `${marker} other`,
-        sectionId: section.id,
-        userId: otherUserId,
-      },
-      select: { id: true },
-    }),
-    fixturePrisma.comment.create({
-      data: {
-        body: `${marker} mcp`,
-        sectionId: section.id,
-        userId,
-      },
-      select: { id: true },
-    }),
-  ]);
-  ownedCommentId = ownedComment.id;
-  otherCommentId = otherComment.id;
-  mcpCommentId = mcpComment.id;
-  mcp = await createMcpHarness(userId);
-});
-
-afterAll(async () => {
-  try {
-    await mcp?.close();
-  } finally {
-    await fixturePrisma.auditLog.deleteMany({
-      where: {
-        targetId: {
-          in: [
-            ownedCommentId,
-            mcpCommentId,
-            ...(completedUploadId ? [completedUploadId] : []),
-          ],
-        },
-      },
-    });
-    await fixturePrisma.comment.deleteMany({
-      where: { id: { in: [ownedCommentId, otherCommentId, mcpCommentId] } },
-    });
-    await fixturePrisma.uploadPending.deleteMany({ where: { userId } });
-    await fixturePrisma.upload.deleteMany({ where: { userId } });
-    await fixturePrisma.workspaceLinkPin.deleteMany({ where: { userId } });
-    await fixturePrisma.oAuthClient.deleteMany({
-      where: { clientId: oauthClientId },
-    });
-    await fixturePrisma.user.deleteMany({
-      where: { id: { in: [userId, otherUserId] } },
-    });
-    await Promise.all([
-      fixturePrisma.$disconnect(),
-      authPrisma.$disconnect(),
-      runtimePrisma.$disconnect(),
-    ]);
-  }
-});
-
-describe("remaining GraphQL and MCP mutation parity", {
-  concurrent: false,
-}, () => {
-  it("graphql.pin-batch-order", async () => {
+describe("remaining GraphQL and MCP mutation parity", () => {
+  it("graphql.pin-batch-order", async ({ graphql }) => {
+    const { signToken, execute } = graphql;
     const token = await signToken([
       restWriteScope("workspace.link-pin"),
       restWriteScope("community.comment"),
@@ -308,7 +42,8 @@ describe("remaining GraphQL and MCP mutation parity", {
     });
   });
 
-  it("graphql.comment-batch-results", async () => {
+  it("graphql.comment-batch-results", async ({ graphql }) => {
+    const { signToken, execute, ownedCommentId, otherCommentId } = graphql;
     const token = await signToken([restWriteScope("community.comment")]);
     const comments = await execute(
       {
@@ -343,21 +78,26 @@ describe("remaining GraphQL and MCP mutation parity", {
     });
   });
 
-  it("runs the registered workspace and comment batch operations", async () => {
-    const workspaceResult = await mcp.call<{
-      success: boolean;
-      data: {
-        linkPinsSet: {
-          pinnedSlugs: string[];
-          maxPinnedLinks: number;
+  it("runs the registered workspace and comment batch operations", async ({
+    graphql,
+  }) => {
+    const { mcp, run, mcpCommentId } = graphql;
+    const workspaceResult = await run(() =>
+      mcp.call<{
+        success: boolean;
+        data: {
+          linkPinsSet: {
+            pinnedSlugs: string[];
+            maxPinnedLinks: number;
+          };
         };
-      };
-    }>("graphql_operation_run", {
-      operationId: "workspace.link_pin.batch_set.v1",
-      variables: { items: [{ slug: "mail", pinned: true }] },
-      confirmed: true,
-      locale: "en-us",
-    });
+      }>("graphql_operation_run", {
+        operationId: "workspace.link_pin.batch_set.v1",
+        variables: { items: [{ slug: "mail", pinned: true }] },
+        confirmed: true,
+        locale: "en-us",
+      }),
+    );
     expect(workspaceResult).toMatchObject({
       success: true,
       data: {
@@ -368,19 +108,21 @@ describe("remaining GraphQL and MCP mutation parity", {
       },
     });
 
-    const comments = await mcp.call<{
-      success: boolean;
-      data: {
-        commentsDelete: {
-          results: Array<{ success: boolean; id: string }>;
+    const comments = await run(() =>
+      mcp.call<{
+        success: boolean;
+        data: {
+          commentsDelete: {
+            results: Array<{ success: boolean; id: string }>;
+          };
         };
-      };
-    }>("graphql_operation_run", {
-      operationId: "community.comments.delete.v1",
-      variables: { ids: [mcpCommentId] },
-      confirmed: true,
-      locale: "en-us",
-    });
+      }>("graphql_operation_run", {
+        operationId: "community.comments.delete.v1",
+        variables: { ids: [mcpCommentId] },
+        confirmed: true,
+        locale: "en-us",
+      }),
+    );
     expect(comments).toMatchObject({
       success: true,
       data: {
@@ -391,7 +133,17 @@ describe("remaining GraphQL and MCP mutation parity", {
     });
   });
 
-  it("graphql.upload-workflow-boundary", async () => {
+  it("graphql.upload-workflow-boundary", async ({ graphql }) => {
+    const {
+      signToken,
+      execute,
+      fixturePrisma,
+      userId,
+      bucket,
+      run,
+      mcp,
+      marker,
+    } = graphql;
     const token = await signToken([restWriteScope("workspace.upload")]);
     const beforePending = await fixturePrisma.uploadPending.count({
       where: { userId },
@@ -418,7 +170,7 @@ describe("remaining GraphQL and MCP mutation parity", {
         );
         expect(result.payload.data).toBeFalsy();
         expect(result.payload.errors?.length).toBeGreaterThan(0);
-        const registered = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+        const registered = await run(() =>
           mcp.callToolResult("graphql_operation_run", {
             operationId: operation.operationId,
             variables: { input: operation.input },
@@ -433,7 +185,7 @@ describe("remaining GraphQL and MCP mutation parity", {
       beforePending,
     );
     expect(bucket.objects.size).toBe(beforeObjects);
-    const created = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+    const created = await run(() =>
       mcp.call<{
         success: boolean;
         data: {
@@ -464,7 +216,7 @@ describe("remaining GraphQL and MCP mutation parity", {
     // Simulate the separate authenticated HTTP PUT without sending bytes
     // through GraphQL or the MCP tool.
     bucket.objects.set(session.key, { contentType: "text/plain", size: 12 });
-    const putLease = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+    const putLease = await run(() =>
       claimUploadPutLease({
         key: session.key,
         requestContentLength: 12,
@@ -472,7 +224,7 @@ describe("remaining GraphQL and MCP mutation parity", {
         userId,
       }),
     );
-    await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+    await run(() =>
       markUploadPutCompleted({
         attemptId: putLease.attemptId,
         key: session.key,
@@ -509,13 +261,13 @@ describe("remaining GraphQL and MCP mutation parity", {
       upload: { id: string; filename: string; size: number };
       usedBytes: number;
     };
-    completedUploadId = completion.upload.id;
+    const completedUploadId = completion.upload.id;
     expect(completion).toMatchObject({
       upload: { filename: `${marker}.txt`, size: 12 },
       usedBytes: 12,
     });
 
-    const renamed = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+    const renamed = await run(() =>
       mcp.call<{
         success: boolean;
         data: { uploadRename: { upload: { filename: string } } };
@@ -538,7 +290,7 @@ describe("remaining GraphQL and MCP mutation parity", {
       },
     });
 
-    const deleted = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+    const deleted = await run(() =>
       mcp.call<{
         success: boolean;
         data: {
@@ -571,7 +323,8 @@ describe("remaining GraphQL and MCP mutation parity", {
     ).resolves.toBeNull();
   });
 
-  it("graphql.upload-ownership", async () => {
+  it("graphql.upload-ownership", async ({ graphql }) => {
+    const { signToken, execute, fixturePrisma, otherUserId, bucket } = graphql;
     const key = `uploads/${otherUserId}/${crypto.randomUUID()}`;
     const upload = await fixturePrisma.upload.create({
       data: {
@@ -627,7 +380,8 @@ describe("remaining GraphQL and MCP mutation parity", {
     }
   });
 
-  it("graphql.upload-suspension", async () => {
+  it("graphql.upload-suspension", async ({ graphql }) => {
+    const { signToken, execute, fixturePrisma, userId, run, mcp } = graphql;
     const key = `uploads/${userId}/${crypto.randomUUID()}`;
     const upload = await fixturePrisma.upload.create({
       data: { key, userId, filename: "suspended.txt", size: 12 },
@@ -681,7 +435,7 @@ describe("remaining GraphQL and MCP mutation parity", {
         expect(http.payload.errors?.[0]?.extensions).toMatchObject({
           code: "FORBIDDEN",
         });
-        const result = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+        const result = await run(() =>
           mcp.callToolResult("graphql_operation_run", {
             operationId: item.operationId,
             variables: item.variables,
@@ -713,7 +467,8 @@ describe("remaining GraphQL and MCP mutation parity", {
     }
   });
 
-  it("graphql.upload-storage-delete-failure", async () => {
+  it("graphql.upload-storage-delete-failure", async ({ graphql }) => {
+    const { signToken, execute, fixturePrisma, userId, bucket } = graphql;
     const key = `uploads/${userId}/${crypto.randomUUID()}`;
     const upload = await fixturePrisma.upload.create({
       data: { key, userId, filename: "retain-on-error.txt", size: 12 },
@@ -751,7 +506,8 @@ describe("remaining GraphQL and MCP mutation parity", {
     }
   });
 
-  it("graphql.upload-quota", async () => {
+  it("graphql.upload-quota", async ({ graphql }) => {
+    const { signToken, execute, fixturePrisma, userId, bucket, run } = graphql;
     const nonce = crypto.randomUUID();
     const data: {
       key: string;
@@ -805,7 +561,7 @@ describe("remaining GraphQL and MCP mutation parity", {
           select: { userId: true, size: true },
         }),
       ).toEqual({ userId, size: 1 });
-      const lease = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+      const lease = await run(() =>
         claimUploadPutLease({
           key: key as string,
           userId,
@@ -813,7 +569,7 @@ describe("remaining GraphQL and MCP mutation parity", {
           requestContentType: "text/plain",
         }),
       );
-      await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+      await run(() =>
         markUploadPutCompleted({
           key: key as string,
           userId,
@@ -861,7 +617,16 @@ describe("remaining GraphQL and MCP mutation parity", {
     }
   });
 
-  it("graphql.upload-audit", async () => {
+  it("graphql.upload-audit", async ({ graphql }) => {
+    const {
+      signToken,
+      execute,
+      fixturePrisma,
+      userId,
+      bucket,
+      oauthClientId,
+      grantId,
+    } = graphql;
     const key = `uploads/${userId}/${crypto.randomUUID()}`;
     const upload = await fixturePrisma.upload.create({
       data: { key, userId, filename: "audited-delete.txt", size: 12 },
