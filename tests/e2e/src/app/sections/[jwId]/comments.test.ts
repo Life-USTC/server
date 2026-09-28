@@ -1,10 +1,13 @@
 /**
  * E2E: /catalog/sections/[jwId] — Section comment CRUD, anonymity, and attachments
  */
-import { expect } from "@playwright/test";
-import { test as uploadTest } from "../../../../utils/comment-upload-fixture";
+import { expect, type Route } from "@playwright/test";
+import {
+  storedComment,
+  test,
+  test as uploadTest,
+} from "../../../../utils/comment-upload-fixture";
 import { openCommentComposer } from "../../../../utils/comments";
-import { storedComment, test } from "../../../../utils/community-fixture";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -19,6 +22,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     account,
     community,
+    isolatedWorker,
   }, testInfo) => {
     test.setTimeout(60_000);
     await gotoAndWaitForReady(
@@ -28,6 +32,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     let releaseDeleteRequest = () => {};
     let commentId: string | undefined;
     let replyId: string | undefined;
+    let deleteGate: ((route: Route) => Promise<void>) | undefined;
 
     try {
       await gotoAndWaitForReady(
@@ -55,7 +60,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       };
       expect(createResponseBody.id).toBeTruthy();
       commentId = createResponseBody.id;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(
+        await storedComment(isolatedWorker.database.owner, commentId),
+      ).toMatchObject({
         userId: account.id,
         sectionId: community.section.id,
         body,
@@ -97,7 +104,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .getByRole("menuitemcheckbox", { name: /点赞|Upvote/i })
         .click();
       await reactionResponse;
-      expect((await storedComment(commentId))?.reactions).toEqual([
+      expect(
+        (await storedComment(isolatedWorker.database.owner, commentId))
+          ?.reactions,
+      ).toEqual([
         expect.objectContaining({ userId: account.id, type: "upvote" }),
       ]);
       await waitForUiSettled(page);
@@ -131,7 +141,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await editCard.getByRole("button", { name: /保存|Save/i }).click();
       await editResponse;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(
+        await storedComment(isolatedWorker.database.owner, commentId),
+      ).toMatchObject({
         body: editedBody,
         status: "active",
       });
@@ -175,7 +187,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       };
       expect(replyResponseBody.id).toBeTruthy();
       replyId = replyResponseBody.id;
-      expect(await storedComment(replyId)).toMatchObject({
+      expect(
+        await storedComment(isolatedWorker.database.owner, replyId),
+      ).toMatchObject({
         userId: account.id,
         body: replyBody,
         parentId: commentId,
@@ -227,14 +241,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       const deleteRequestGate = new Promise<void>((resolve) => {
         releaseDeleteRequest = resolve;
       });
-      await page.route("**/api/community/comments/**", async (route) => {
+      deleteGate = async (route) => {
         if (route.request().method() !== "DELETE") {
-          await route.continue();
+          await route.fallback();
           return;
         }
         await deleteRequestGate;
-        await route.continue();
-      });
+        await route.fallback();
+      };
+      await page.route("**/api/community/comments/**", deleteGate);
       const deleteResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/community/comments/") &&
@@ -256,11 +271,13 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ).toBeVisible();
       releaseDeleteRequest();
       await deleteResponse;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(
+        await storedComment(isolatedWorker.database.owner, commentId),
+      ).toMatchObject({
         status: "deleted",
         deletedAt: expect.any(Date),
       });
-      await page.unroute("**/api/community/comments/**");
+      await page.unroute("**/api/community/comments/**", deleteGate);
       await expect(
         page
           .locator("[data-sonner-toast]")
@@ -270,7 +287,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {
       releaseDeleteRequest();
-      await page.unrouteAll({ behavior: "wait" });
+      if (deleteGate)
+        await page.unroute("**/api/community/comments/**", deleteGate);
     }
   });
 
@@ -278,6 +296,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     account,
     community,
+    isolatedWorker,
   }, testInfo) => {
     test.setTimeout(60_000);
     const body = `e2e-anonymous-comment-${Date.now()}`;
@@ -322,7 +341,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     };
     expect(createResponseBody.id).toBeTruthy();
     const commentId = createResponseBody.id;
-    expect(await storedComment(commentId)).toMatchObject({
+    expect(
+      await storedComment(isolatedWorker.database.owner, commentId),
+    ).toMatchObject({
       userId: account.id,
       sectionId: community.section.id,
       body,
@@ -380,7 +401,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   uploadTest(
     "upload.three-step-upload",
-    async ({ page, account, community, upload }, testInfo) => {
+    async ({ page, account, community, upload, isolatedWorker }, testInfo) => {
       const filename = "independent-section-attachment.txt";
       const body = "Independent section attachment comment";
       const contents = "section-attachment";
@@ -518,7 +539,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(typeof createCommentBody.id).toBe("string");
       const commentId = createCommentBody.id;
       await waitForUiSettled(page);
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(
+        await storedComment(isolatedWorker.database.owner, commentId),
+      ).toMatchObject({
         userId: account.id,
         sectionId: community.section.id,
         body,
@@ -575,7 +598,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await dlg.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(
+        await storedComment(isolatedWorker.database.owner, commentId),
+      ).toMatchObject({
         status: "deleted",
         deletedAt: expect.any(Date),
       });
