@@ -50,6 +50,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string) {
   ]).finally(() => clearTimeout(timer));
 }
 async function stopWorker(child: ChildProcess, exited: Promise<void>) {
+  function stopProcessGroup() {
+    if (!child.pid) return;
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+    }
+  }
   let sendError: unknown;
   if (child.exitCode === null && child.signalCode === null && child.connected) {
     try {
@@ -66,16 +74,13 @@ async function stopWorker(child: ChildProcess, exited: Promise<void>) {
       "Private Worker did not stop within 15 seconds",
     );
   } catch (error) {
-    if (child.pid) {
-      try {
-        process.kill(-child.pid, "SIGKILL");
-      } catch (killError) {
-        if ((killError as NodeJS.ErrnoException).code !== "ESRCH")
-          throw killError;
-      }
-    }
+    stopProcessGroup();
     await exited;
     throw error;
+  } finally {
+    // A closed leader can leave workerd alive after an early crash. Always
+    // terminate the owned group before deleting its database and persistence.
+    stopProcessGroup();
   }
   if (sendError) throw sendError;
 }
