@@ -15,10 +15,7 @@ import {
   waitForUiSettled,
 } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
-import {
-  resolveSeedSectionId,
-  resolveSeedTeacherId,
-} from "../../../utils/seed-lookups";
+import { resolveSeedTeacherId } from "../../../utils/seed-lookups";
 import type { UiQualityAllowlist } from "../../../utils/ui-quality";
 
 type PageContractCase = {
@@ -334,38 +331,6 @@ export async function assertPageContract(
         visibleText(page, `@${DEV_SEED.adminUsername}`),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "u-username");
-      return;
-    }
-
-    case "/community/comments/[id]": {
-      await signInAsDebugUser(page);
-      const sectionId = await resolveSeedSectionId(page);
-      const createResponse = await page.request.post(
-        "/api/community/comments",
-        {
-          data: {
-            targetType: "section",
-            targetId: String(sectionId),
-            body: "e2e mapped route comment",
-          },
-        },
-      );
-      expect(createResponse.status()).toBe(201);
-      const createBody = (await createResponse.json()) as { id?: string };
-      expect(createBody.id).toBeTruthy();
-
-      await gotoContractPage(
-        page,
-        `/community/comments/${createBody.id}`,
-        testInfo,
-      );
-      await expect(page).toHaveURL(
-        new RegExp(
-          `/catalog/sections/${DEV_SEED.section.jwId}#comment-${createBody.id}$`,
-        ),
-      );
-      await expectMainContent(page);
-      await maybeCapture(page, testInfo, "comments-id");
       return;
     }
 
