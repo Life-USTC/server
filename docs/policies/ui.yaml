@@ -452,7 +452,9 @@ requirements:
   expectation:
     kind: ordered_items
     surface: web
-    target: section detail reading sections
+    target:
+      by: css
+      value: '[data-detail-reading-stream] > section[id]'
     items:
     - introduction
     - calendar
@@ -475,7 +477,9 @@ requirements:
   expectation:
     kind: ordered_items
     surface: web
-    target: course and teacher detail reading sections
+    target:
+      by: css
+      value: '[data-detail-reading-stream] > section[id]'
     items:
     - introduction
     - sections
@@ -876,7 +880,9 @@ requirements:
   expectation:
     kind: target_size
     surface: web
-    target: mobile topbar controls and primary navigation links
+    target:
+      by: css
+      value: '[data-shell-topbar] button, [data-shell-navigation="mobile-primary"] a'
     viewport:
       width: 390
       height: 844

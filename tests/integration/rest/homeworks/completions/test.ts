@@ -10,6 +10,7 @@
 import { expect, test } from "@playwright/test";
 import { resolveSeedSectionId } from "../../../../e2e/utils/seed-lookups";
 import { homeworkExpectation } from "../../../../shared/specifications/homework";
+import { semanticContract } from "../../../../shared/specifications/semantic-contract";
 import { signInAsDebugUserApi } from "../../_harness/auth";
 import { assertApiContract } from "../../_shared/api-contract";
 
@@ -130,7 +131,14 @@ test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({
   }
 });
 
-test("homework.rest-completion-batch-input", async ({ request }) => {
+test("homework.rest-completion-batch-input", async ({ request }, testInfo) => {
+  const contract = await semanticContract(
+    "homework.rest-completion-batch-input",
+    "collection_input",
+  );
+  contract.equal("/surface", "rest");
+  contract.equal("/operation", "PUT /api/workspace/homeworks/completions");
+  contract.equal("/input", "items");
   await signInAsDebugUserApi(request, "/");
   const specification = homeworkExpectation(
     "homework.rest-completion-batch-input",
@@ -149,6 +157,10 @@ test("homework.rest-completion-batch-input", async ({ request }) => {
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body.results).toHaveLength(size);
+    contract.equal(
+      size === specification.min_items ? "/min_items" : "/max_items",
+      body.results.length,
+    );
     for (const result of body.results)
       expect(result).toMatchObject({
         success: false,
@@ -167,4 +179,6 @@ test("homework.rest-completion-batch-input", async ({ request }) => {
   );
   if (!specification.unique_items)
     expect((await duplicateResponse.json()).results).toHaveLength(2);
+  contract.equal("/unique_items", duplicateResponse.status() === 400);
+  contract.recordPlaywright(testInfo);
 });

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { homeworkExpectation } from "../../../shared/specifications/homework";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 const { viewer, findHomework, updateHomework, writeAuditLog, invalidate } =
   vi.hoisted(() => ({
@@ -46,6 +47,8 @@ describe("homework deletion authority", () => {
 
   async function verifyAuthority(id: string) {
     const specification = homeworkExpectation(id, "authorization");
+    const contract = await semanticContract(id, "authorization");
+    contract.equal("/surface", "service");
     if (specification.surface !== "service")
       throw new Error("Deletion matrix requires service-layer evidence");
     const services = { deleteHomework, deleteHomeworkForModeration };
@@ -54,7 +57,10 @@ describe("homework deletion authority", () => {
       audit: writeAuditLog,
       calendar: invalidate,
     };
-    for (const scenario of specification.cases) {
+    const service = services[specification.operation];
+    contract.equal("/operation", service.name);
+    const denied = new Set<string>();
+    for (const [index, scenario] of specification.cases.entries()) {
       vi.clearAllMocks();
       viewer.mockResolvedValue({
         isAuthenticated: scenario.authenticated,
@@ -63,9 +69,18 @@ describe("homework deletion authority", () => {
       });
       const userId =
         scenario.relationship === "creator" ? "creator-1" : "other-1";
-      const result = await services[specification.operation]({
+      const result = await service({
         userId,
         homeworkId: "homework-1",
+      });
+      const actor = await viewer.mock.results.at(-1)?.value;
+      contract.equal(`/cases/${index}`, {
+        id: `${actor.isAdmin ? "admin" : "user"}-${userId === "creator-1" ? "creator" : "other"}-${!actor.isAuthenticated ? "anonymous" : actor.isSuspended ? "suspended" : "active"}`,
+        authenticated: actor.isAuthenticated,
+        suspended: actor.isSuspended,
+        role: actor.isAdmin ? "admin" : "user",
+        relationship: userId === "creator-1" ? "creator" : "other",
+        outcome: result.ok ? "allowed" : result.error,
       });
       if (scenario.outcome === "allowed") {
         expect(result, scenario.id).toEqual({
@@ -83,21 +98,23 @@ describe("homework deletion authority", () => {
           ok: false,
           error: scenario.outcome,
         });
-        for (const effect of specification.denied_effects) {
-          expect(
-            effects[effect],
-            `${scenario.id}: ${effect}`,
-          ).not.toHaveBeenCalled();
+        for (const [effect, mock] of Object.entries(effects)) {
+          expect(mock, `${scenario.id}: ${effect}`).not.toHaveBeenCalled();
+          denied.add(effect);
         }
       }
     }
+    contract.set("/denied_effects", [...denied]);
+    return contract;
   }
 
-  it("homework.creator-only-delete", async () => {
-    await verifyAuthority("homework.creator-only-delete");
+  it("homework.creator-only-delete", async (context) => {
+    const contract = await verifyAuthority("homework.creator-only-delete");
+    contract.recordVitest(context);
   });
 
-  it("homework.moderation-delete", async () => {
-    await verifyAuthority("homework.moderation-delete");
+  it("homework.moderation-delete", async (context) => {
+    const contract = await verifyAuthority("homework.moderation-delete");
+    contract.recordVitest(context);
   });
 });

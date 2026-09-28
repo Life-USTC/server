@@ -126,7 +126,9 @@ requirements:
   expectation:
     kind: target_size
     surface: web
-    target: workspace-homeworks-add
+    target:
+      by: test_id
+      value: 'workspace-homeworks-add'
     viewport:
       width: 390
       height: 844

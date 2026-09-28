@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { mcpModeInputSchema } from "@/lib/mcp/tools/_shared/helper-schemas";
+import { listMyTodosInputSchema } from "@/lib/mcp/tools/workspace/profile-tool-helpers";
 import { readSpecification } from "../../../../scripts/specifications/yaml";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: vi.fn(),
@@ -20,7 +22,16 @@ function parseToolText(result: ReturnType<typeof jsonToolResult>) {
 }
 
 describe("jsonToolResult canonical structured output", () => {
-  it("mcp.output-mode-input", async () => {
+  it("mcp.output-mode-input", async (context) => {
+    const contract = await semanticContract(context.task.name, "enum_input");
+    contract.equal("/surface", "service");
+    contract.equal("/operation", "mcpModeInputSchema");
+    contract.equal(
+      "/input",
+      Object.entries(listMyTodosInputSchema).find(
+        ([, schema]) => schema === mcpModeInputSchema,
+      )?.[0],
+    );
     const spec = await readSpecification<{
       requirements: {
         id: string;
@@ -31,12 +42,14 @@ describe("jsonToolResult canonical structured output", () => {
       (rule) => rule.id === "mcp.output-mode-input",
     )?.expectation;
     if (!expectation) throw new Error("Missing MCP mode input expectation");
-    expect(mcpModeInputSchema.parse(undefined)).toBe(expectation.default);
+    contract.equal("/default", mcpModeInputSchema.parse(undefined));
+    contract.set("/values", mcpModeInputSchema.removeDefault().options);
     for (const value of expectation.values)
       expect(mcpModeInputSchema.parse(value)).toBe(value);
     for (const value of ["summary", "", "DEFAULT", " full ", null, 0, {}]) {
       expect(mcpModeInputSchema.safeParse(value).success).toBe(false);
     }
+    contract.recordVitest(context);
   });
   it("preserves canonical pagination and collection fields in default mode", () => {
     const rawResult = jsonToolResult(

@@ -37,7 +37,10 @@ missing policies, features, capabilities, topics and test declarations.
 Requirements contain either a prose `rule` or a typed `expectation`, never both.
 Use `expectation` for the finite kinds in `schemas/expectations.schema.json`:
 input bounds, authorization cases, ordered actions, target sizes and state-based
-presentation. Keep background and tradeoffs in optional `rationale`. Remove the
+presentation. Domain contracts in `schemas/domain-expectations.schema.json` cover
+bounded state transitions, transaction effects, public projections, ordered pages,
+reminder windows and their supported authorization/presentation cases. Add a kind
+only when a real production observation can validate it end to end. Keep background and tradeoffs in optional `rationale`. Remove the
 replaced normative text from `access`, `notes` and `presentation`; use
 `requirement_refs` to reference the canonical requirement instead.
 
@@ -70,13 +73,32 @@ MCP tool. Read the expected values from YAML and observe the real implementation
 never compare two values both generated from the specification. Preserve intended
 transport differences such as pagination defaults and duplicate-input handling.
 
-`specs:check` validates shapes, consistency, and both directions of existing test
-bindings. It explicitly reports requirements that still lack tests;
+`specs:check` validates shapes, consistency, authoritative domain references and
+both directions of existing test bindings. Source references resolve real exported
+operations; public projection paths resolve generated OpenAPI properties; ordered
+model fields resolve Prisma. A resolved reference proves its existence, not its
+runtime behavior. It explicitly reports requirements that still lack tests;
 `specs:check --complete` rejects any such gap. Neither command executes tests.
 `specs:coverage --enforce` requires every requirement's canonical test to pass in
 native execution evidence from the same CI run. Prose and typed requirements have
-the same completeness gate. A passing linked test only proves its actual
-assertions, so reviewers must check that the assertion covers the entire rule.
+the same completeness gate. A typed canonical test uses `tests/shared/specifications/semantic-contract.ts`.
+Compare actual observations with `equal`, exact `set`, `atLeast` or `atMost`, then
+record the completed contract in Vitest task metadata or Playwright annotations.
+Reading expected data does not count as a comparison. The helper refuses receipts
+with an unverified leaf, including empty arrays, case IDs, operation bindings and
+nested fields. Native evidence rejects missing, duplicate, stale or incomplete
+receipts, and never accepts a receipt from a failed or skipped test. Native status,
+typed declaration counts and successful semantic comparisons are reported separately.
+
+Keep setup inputs distinct from observed outputs. An operation binding must refer
+to the actual imported callable or transport used by the test. An element target
+uses `{by: test_id|css, value: ...}` and must identify the locator actually queried.
+Do not count a static reference as a runtime assertion, compare expectations with
+themselves, filter unexpected observations out of exact projections/orders, or add
+manual "consumed" markers. A passing linked test only proves its actual assertions;
+reviewers still assess observation quality, atomicity and product reasonableness.
+The tool does not claim to prove that all prose has been converted or all possible
+behaviors are correct.
 
 CI evidence must include every required unit, integration, REST, role-isolation
 and browser partition from the same commit, run and attempt. The gate also checks

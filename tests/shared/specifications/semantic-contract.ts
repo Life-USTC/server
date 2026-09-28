@@ -124,7 +124,7 @@ export class SemanticContract {
       !Object.hasOwn(context.task.meta, "specification"),
       "Duplicate semantic receipt",
     );
-    context.task.meta.specification = this.#receipt();
+    Object.assign(context.task.meta, { specification: this.#receipt() });
   }
 
   recordPlaywright(info: Pick<TestInfo, "title" | "annotations">): void {

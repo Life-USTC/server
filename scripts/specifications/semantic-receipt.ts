@@ -53,7 +53,7 @@ export function expectationValue(value: unknown, pointer: string): unknown {
 
 const checkSchema = z.strictObject({
   path: z.string(),
-  comparison: z.enum(["equal", "set", "minimum", "maximum", "reference"]),
+  comparison: z.enum(["equal", "set", "minimum", "maximum"]),
 });
 
 export const semanticReceiptSchema = z.strictObject({
@@ -84,7 +84,6 @@ export function coveredExpectationPaths(
 export function validateSemanticReceipt(
   value: unknown,
   requirement: { id: string; expectation?: unknown },
-  bindingPaths: readonly string[] = [],
 ): string[] {
   const parsed = semanticReceiptSchema.safeParse(value);
   if (!parsed.success) return ["Missing or invalid native semantic receipt"];
@@ -94,9 +93,6 @@ export function validateSemanticReceipt(
     errors.push("Semantic receipt belongs to another requirement");
   if (receipt.expectation !== expectationDigest(requirement.expectation))
     errors.push("Semantic receipt does not match the current expectation");
-  for (const check of receipt.checks)
-    if (check.comparison === "reference" && !bindingPaths.includes(check.path))
-      errors.push(`Field is not a validated locator binding: ${check.path}`);
   try {
     const covered = coveredExpectationPaths(
       requirement.expectation,

@@ -352,7 +352,9 @@ requirements:
   expectation:
     kind: ordered_items
     surface: web
-    target: '[data-slot="dialog-footer"]'
+    target:
+      by: css
+      value: '[data-slot="dialog-footer"]'
     items:
     - delete
     - completion
@@ -372,7 +374,9 @@ requirements:
   expectation:
     kind: target_size
     surface: web
-    target: workspace-todos-add
+    target:
+      by: test_id
+      value: 'workspace-todos-add'
     viewport:
       width: 390
       height: 844
@@ -393,7 +397,9 @@ requirements:
   expectation:
     kind: state_presentation
     surface: web
-    target: '[data-slot="dialog-title"]'
+    target:
+      by: css
+      value: '[data-slot="dialog-title"]'
     state:
       completed: true
     text_decoration: line-through

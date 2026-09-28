@@ -6,10 +6,12 @@ import {
   validateMandatoryJobResults,
 } from "./evidence-ci";
 import {
+  type Requirement,
   readSpecifications,
   type SpecificationFile,
   type TestReference,
 } from "./repository";
+import { validateSemanticReceipt } from "./semantic-receipt";
 import { checkSpecifications, collectRequirements } from "./validate";
 import { repositoryRoot } from "./yaml";
 
@@ -32,6 +34,7 @@ export type TestObservation = TestReference & {
   source?: EvidenceExecution & { report: string };
   project: string;
   ambiguous?: boolean;
+  semanticReceipt?: unknown;
   status: "not-run" | "skipped" | "failed" | "passed";
 };
 const nonempty = z.string().min(1);
@@ -57,6 +60,7 @@ const vitestReport = z.object({
             "disabled",
           ]),
           failureMessages: z.array(z.string()).nullable(),
+          meta: z.record(z.string(), z.unknown()).optional(),
         }),
       ),
     }),
@@ -77,6 +81,11 @@ const playwrightSpec = z.object({
         "interrupted",
       ]),
       status: z.enum(["skipped", "expected", "unexpected", "flaky"]),
+      annotations: z
+        .array(
+          z.object({ type: z.string(), description: z.string().optional() }),
+        )
+        .optional(),
       results: z.array(
         z.object({
           status: z
@@ -132,6 +141,7 @@ export function parseNativeReport(
           name: test.title,
           identity: JSON.stringify([...test.ancestorTitles, test.title]),
           project: "vitest",
+          semanticReceipt: test.meta?.specification,
           // Vitest preserves retry errors in native failureMessages. A suite
           // hook failure also invalidates otherwise passing tests in that file.
           status:
@@ -187,6 +197,7 @@ export function parseNativeReport(
               identity: JSON.stringify([...titles, spec.title]),
               project: test.projectName,
               status,
+              semanticReceipt: parseSemanticAnnotations(test.annotations ?? []),
             });
           }
         }
@@ -212,6 +223,19 @@ export function parseNativeReport(
     identities.set(key, observation);
   }
   return observations;
+}
+
+function parseSemanticAnnotations(
+  annotations: { type: string; description?: string }[],
+): unknown {
+  const semantic = annotations.filter(({ type }) => type === "specification");
+  if (!semantic.length) return undefined;
+  if (semantic.length !== 1) return { invalid: "duplicate semantic receipts" };
+  try {
+    return JSON.parse(semantic[0].description ?? "null");
+  } catch {
+    return { invalid: "malformed semantic receipt" };
+  }
 }
 
 const precedence: EvidenceStatus[] = [
@@ -282,6 +306,39 @@ function residualTextLocations(
   );
 }
 
+function semanticEvidence(
+  requirement: Requirement,
+  observations: TestObservation[],
+  nativeStatus: EvidenceStatus,
+) {
+  if (!requirement.expectation)
+    return { status: "not-applicable" as const, issues: [] as string[] };
+  const reference = requirement.acceptance?.test;
+  const matches = reference
+    ? observations.filter(
+        ({ file, name }) => file === reference.file && name === reference.name,
+      )
+    : [];
+  if (!matches.length)
+    return {
+      status: "not-run" as const,
+      issues: ["Canonical semantic test has not executed"],
+    };
+  const issues = matches.flatMap(({ semanticReceipt }) =>
+    validateSemanticReceipt(semanticReceipt, requirement),
+  );
+  if (nativeStatus !== "passed")
+    issues.push("Canonical native execution did not pass");
+  return {
+    status: issues.length ? ("failed" as const) : ("passed" as const),
+    issues: [...new Set(issues)],
+    receipts: matches.map(({ project, semanticReceipt }) => ({
+      project,
+      receipt: semanticReceipt,
+    })),
+  };
+}
+
 export function buildEvidenceReport(
   files: SpecificationFile[],
   observations: TestObservation[] = [],
@@ -294,9 +351,16 @@ export function buildEvidenceReport(
       return {
         document: path,
         id: requirement.id,
-        structured: "expectation" in requirement,
+        representation: requirement.expectation
+          ? ("typed" as const)
+          : ("prose" as const),
         status: result?.status ?? ("missing-tests" as EvidenceStatus),
         test: result,
+        semantics: semanticEvidence(
+          requirement,
+          observations,
+          result?.status ?? "missing-tests",
+        ),
       };
     }),
   );
@@ -327,12 +391,12 @@ export function buildEvidenceReport(
         .length,
     ]),
   );
-  const structured = requirements.filter(
-    (requirement) => requirement.structured,
+  const typed = requirements.filter(
+    (requirement) => requirement.representation === "typed",
   );
   return {
     evidenceMeaning:
-      "Statuses describe execution of bound tests, not independent proof that assertions completely express each requirement.",
+      "Native statuses describe execution of bound tests. Semantic receipts additionally require successful comparisons for every typed field and the current expectation digest. These are not independent proof of product reasonableness; reviewers must assess the observations and requirements.",
     inventoryCompleteness:
       "Residual text candidates are locations for review, not a count of additional atomic requirements.",
     provenance,
@@ -346,8 +410,17 @@ export function buildEvidenceReport(
       unsuccessfulExecutions: executionFailures.length,
       missingArtifacts: missingArtifacts.length,
       unstructuredTextCandidates: unstructuredTextCandidates.length,
-      structured: structured.length,
-      unstructured: requirements.length - structured.length,
+      typedDeclarations: typed.length,
+      proseRequirements: requirements.length - typed.length,
+      semanticVerified: typed.filter(
+        (requirement) => requirement.semantics.status === "passed",
+      ).length,
+      semanticFailed: typed.filter(
+        (requirement) => requirement.semantics.status === "failed",
+      ).length,
+      semanticNotRun: typed.filter(
+        (requirement) => requirement.semantics.status === "not-run",
+      ).length,
       ...counts,
     },
     // Completeness applies to every requirement, regardless of its representation.
@@ -355,7 +428,11 @@ export function buildEvidenceReport(
       executionFailures.length === 0 &&
       missingArtifacts.length === 0 &&
       requirements.length > 0 &&
-      requirements.every((requirement) => requirement.status === "passed"),
+      requirements.every(
+        (requirement) =>
+          requirement.status === "passed" &&
+          ["passed", "not-applicable"].includes(requirement.semantics.status),
+      ),
   };
 }
 
@@ -512,7 +589,7 @@ export async function runEvidenceCoverage(
       else output = value;
     } else throw new Error(`Unknown evidence option: ${arg}`);
   }
-  await checkSpecifications(root);
+  const validation = await checkSpecifications(root);
   if (enforce)
     validateMandatoryJobResults(
       JSON.parse(process.env.SPEC_EVIDENCE_NEEDS ?? "null"),
@@ -525,7 +602,8 @@ export async function runEvidenceCoverage(
     evidence.observations,
     evidence.executions,
   );
-  const json = `${JSON.stringify(report, null, 2)}\n`;
+  const verifiedReport = { ...report, validation: validation.validation };
+  const json = `${JSON.stringify(verifiedReport, null, 2)}\n`;
   if (output) {
     await mkdir(dirname(output), { recursive: true });
     await writeFile(output, json);
@@ -535,7 +613,7 @@ export async function runEvidenceCoverage(
     throw new Error(
       "Specification evidence gate failed; inspect missingArtifacts, executionFailures and requirement statuses in the report",
     );
-  return report;
+  return verifiedReport;
 }
 
 if (import.meta.main) {

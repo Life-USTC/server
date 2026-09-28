@@ -43,7 +43,7 @@ type HomeworkExpectations = {
   target_size: {
     kind: "target_size";
     surface: "web";
-    target: string;
+    target: { by: "test_id" | "css"; value: string };
     viewport: { width: number; height: number };
     min_width: number;
     min_height: number;

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { AnySchema, ValidateFunction } from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
 import ts from "typescript";
+import { validateDomainExpectation } from "./domain-semantics";
 import {
   type Requirement,
   readSpecifications,
@@ -603,6 +604,70 @@ export async function checkSpecifications(
     root,
     testNames,
   );
+  const typed = files
+    .flatMap(({ data }) => collectRequirements(data))
+    .filter(
+      (
+        r,
+      ): r is Requirement & {
+        expectation: NonNullable<Requirement["expectation"]>;
+      } => Boolean(r.expectation),
+    );
+  const domainKinds = new Set([
+    "reminder_window",
+    "transaction_effects",
+    "unchanged_write",
+    "delete_replay",
+    "public_projection",
+    "ordered_page",
+  ]);
+  const domainRequirements = typed.filter((r) =>
+    domainKinds.has(r.expectation.kind),
+  );
+  const domainReferences: {
+    requirement: string;
+    validatedPaths: string[];
+    bindingPaths: string[];
+  }[] = [];
+  const domainErrors: string[] = [];
+  if (domainRequirements.length) {
+    const needsWire = domainRequirements.some(
+      (r) => r.expectation.kind === "public_projection",
+    );
+    const needsModel = domainRequirements.some(
+      (r) => r.expectation.kind === "ordered_page",
+    );
+    const openapi = needsWire
+      ? JSON.parse(
+          await readFile(join(root, "public/openapi.generated.json"), "utf8"),
+        )
+      : undefined;
+    const models = new Map<string, ReadonlySet<string>>();
+    if (needsModel) {
+      const prisma = await readFile(join(root, "prisma/schema.prisma"), "utf8");
+      for (const match of prisma.matchAll(/^model (\w+) \{([\s\S]*?)^\}/gm)) {
+        models.set(
+          match[1],
+          new Set([...match[2].matchAll(/^\s+(\w+)\s+\w/gm)].map((m) => m[1])),
+        );
+      }
+    }
+    for (const requirement of domainRequirements) {
+      const result = validateDomainExpectation(requirement.expectation, {
+        root,
+        openapi,
+        models,
+      });
+      domainErrors.push(
+        ...result.errors.map((error) => `${requirement.id}: ${error}`),
+      );
+      domainReferences.push({
+        requirement: requirement.id,
+        validatedPaths: result.validatedPaths,
+        bindingPaths: result.bindingPaths,
+      });
+    }
+  }
   const ownershipErrors = await validateCanonicalTestOwnership(
     files,
     root,
@@ -614,6 +679,7 @@ export async function checkSpecifications(
     .map((requirement) => requirement.id);
   const errors = [
     ...references.errors,
+    ...domainErrors,
     ...ownershipErrors,
     ...(complete
       ? missing.map((id) => `${id}: missing canonical acceptance test`)
@@ -622,6 +688,11 @@ export async function checkSpecifications(
   if (errors.length) throw new Error(errors.join("\n"));
   return {
     files: files.length,
+    validation: {
+      schema: "passed" as const,
+      consistency: "passed" as const,
+      domainReferences,
+    },
     ...references,
     missing,
     complete: missing.length === 0,

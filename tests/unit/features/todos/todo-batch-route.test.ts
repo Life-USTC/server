@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 import { todoExpectation } from "../../../shared/specifications/todo";
 
 const requireAuthMock = vi.fn();
@@ -46,7 +47,14 @@ const sampleTodo = {
 };
 
 describe("patchTodoBatchRoute", () => {
-  it("todo.rest-batch-patch-bounds", async () => {
+  it("todo.rest-batch-patch-bounds", async (context) => {
+    const contract = await semanticContract(
+      context.task.name,
+      "collection_input",
+    );
+    contract.equal("/surface", "rest");
+    contract.equal("/input", "items");
+    contract.equal("/operation", "PATCH /api/workspace/todos/batch");
     const rule = await todoExpectation(
       "todo.rest-batch-patch-bounds",
       "collection_input",
@@ -77,6 +85,10 @@ describe("patchTodoBatchRoute", () => {
       expect(response.status).toBe(200);
       expect((await response.json()).results).toHaveLength(count);
       expect(updateOwnedTodoMock).toHaveBeenCalledTimes(count);
+      contract.equal(
+        count === rule.min_items ? "/min_items" : "/max_items",
+        updateOwnedTodoMock.mock.calls.length,
+      );
     }
     for (const count of [rule.min_items - 1, rule.max_items + 1]) {
       updateOwnedTodoMock.mockClear();
@@ -92,6 +104,8 @@ describe("patchTodoBatchRoute", () => {
     expect(updateOwnedTodoMock).toHaveBeenCalledTimes(
       rule.unique_items ? 0 : 2,
     );
+    contract.equal("/unique_items", duplicateResponse.status === 400);
+    contract.recordVitest(context);
   });
 
   afterEach(() => {
@@ -253,7 +267,14 @@ describe("patchTodoBatchRoute", () => {
 });
 
 describe("deleteTodoBatchRoute", () => {
-  it("todo.rest-batch-delete-bounds", async () => {
+  it("todo.rest-batch-delete-bounds", async (context) => {
+    const contract = await semanticContract(
+      context.task.name,
+      "collection_input",
+    );
+    contract.equal("/surface", "rest");
+    contract.equal("/input", "ids");
+    contract.equal("/operation", "DELETE /api/workspace/todos/batch");
     const rule = await todoExpectation(
       "todo.rest-batch-delete-bounds",
       "collection_input",
@@ -282,6 +303,10 @@ describe("deleteTodoBatchRoute", () => {
       expect(response.status).toBe(200);
       expect((await response.json()).results).toHaveLength(count);
       expect(deleteOwnedTodoMock).toHaveBeenCalledTimes(count);
+      contract.equal(
+        count === rule.min_items ? "/min_items" : "/max_items",
+        deleteOwnedTodoMock.mock.calls.length,
+      );
     }
     for (const count of [rule.min_items - 1, rule.max_items + 1]) {
       deleteOwnedTodoMock.mockClear();
@@ -297,6 +322,8 @@ describe("deleteTodoBatchRoute", () => {
     expect(deleteOwnedTodoMock).toHaveBeenCalledTimes(
       rule.unique_items ? 0 : 2,
     );
+    contract.equal("/unique_items", duplicateResponse.status === 400);
+    contract.recordVitest(context);
   });
 
   afterEach(() => {

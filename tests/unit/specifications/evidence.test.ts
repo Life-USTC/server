@@ -13,6 +13,24 @@ import {
 import { MANDATORY_EVIDENCE_ARTIFACTS } from "../../../scripts/specifications/evidence-ci";
 import type { SpecificationFile } from "../../../scripts/specifications/repository";
 
+import { expectationDigest } from "../../../scripts/specifications/semantic-receipt";
+
+const expectation = {
+  kind: "numeric_input",
+  surface: "rest",
+  operation: "GET /api/workspace/todos",
+  input: "limit",
+  minimum: 1,
+  maximum: 100,
+  default: 20,
+  integer: true,
+};
+const receipt = () => ({
+  version: 1,
+  requirement: "example.ownership",
+  expectation: expectationDigest(expectation),
+  checks: [{ path: "", comparison: "equal" }],
+});
 const root = "/repo";
 const reference = {
   file: "tests/unit/example.test.ts",
@@ -40,6 +58,7 @@ const vitest = () => ({
           ancestorTitles: ["authorization"],
           status: "passed",
           failureMessages: [] as string[],
+          meta: { specification: receipt() as unknown },
         },
       ],
     },
@@ -62,6 +81,7 @@ const playwright = () => ({
               file: "example.spec.ts",
               tests: [
                 {
+                  annotations: [] as { type: string; description?: string }[],
                   projectName: "chromium",
                   expectedStatus: "passed",
                   status: "expected",
@@ -88,9 +108,7 @@ function specifications(
         requirements: [
           {
             id: "example.ownership",
-            ...(structured
-              ? { expectation: { type: "authorization" } }
-              : { rule: "Owner only" }),
+            ...(structured ? { expectation } : { rule: "Owner only" }),
             acceptance,
           },
         ],
@@ -290,8 +308,9 @@ describe("requirement coverage", () => {
     expect(report.gatePassed).toBe(false);
     expect(report.summary).toMatchObject({
       total: 2,
-      structured: 1,
-      unstructured: 1,
+      typedDeclarations: 1,
+      proseRequirements: 1,
+      semanticVerified: 1,
       passed: 1,
       "missing-tests": 1,
     });
@@ -342,6 +361,66 @@ describe("requirement coverage", () => {
     expect(buildEvidenceReport(specifications(null, false)).gatePassed).toBe(
       false,
     );
+  });
+});
+
+describe("semantic evidence gate", () => {
+  function evaluate(native = vitest()) {
+    return buildEvidenceReport(
+      specifications(),
+      parseNativeReport(native, "vitest", root),
+      successfulExecutions(),
+    );
+  }
+  test("requires complete current native comparisons in addition to a passing test", () => {
+    expect(evaluate().gatePassed).toBe(true);
+    for (const invalid of [
+      undefined,
+      {},
+      { ...receipt(), requirement: "other" },
+      { ...receipt(), expectation: "b".repeat(64) },
+      { ...receipt(), checks: [{ path: "/kind", comparison: "equal" }] },
+      { ...receipt(), checks: [{ path: "", comparison: "reference" }] },
+    ]) {
+      const native = vitest();
+      native.testResults[0].assertionResults[0].meta.specification = invalid;
+      const report = evaluate(native);
+      expect(report.requirements[0].status).toBe("passed");
+      expect(report.requirements[0].semantics.status).toBe("failed");
+      expect(report.gatePassed).toBe(false);
+    }
+  });
+  test("cannot bless failed execution with a complete receipt", () => {
+    const native = vitest();
+    native.testResults[0].assertionResults[0].status = "failed";
+    expect(evaluate(native).requirements[0].semantics.status).toBe("failed");
+  });
+  test("requires valid and unique Playwright semantic annotations", () => {
+    const native = playwright();
+    const observed = native.suites[0].suites[0].specs[0].tests[0];
+    const specs = specifications({
+      test: { ...reference, file: "tests/e2e/example.spec.ts" },
+    });
+    const evaluate = () =>
+      buildEvidenceReport(
+        specs,
+        parseNativeReport(native, "playwright", root),
+        successfulExecutions(),
+      );
+    const annotation = {
+      type: "specification",
+      description: JSON.stringify(receipt()),
+    };
+    for (const annotations of [
+      [],
+      [{ ...annotation, description: "{" }],
+      [annotation, annotation],
+    ]) {
+      observed.annotations = annotations;
+      expect(evaluate().gatePassed).toBe(false);
+    }
+    observed.annotations = [annotation];
+    expect(evaluate().gatePassed).toBe(true);
   });
 });
 

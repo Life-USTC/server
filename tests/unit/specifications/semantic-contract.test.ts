@@ -140,7 +140,7 @@ describe("semantic assertion evidence", () => {
         },
         rule,
       ),
-    ).toContain("Field is not a validated locator binding: ");
+    ).toContain("Missing or invalid native semantic receipt");
     expect(validateSemanticReceipt(undefined, rule)).toContain(
       "Missing or invalid native semantic receipt",
     );
