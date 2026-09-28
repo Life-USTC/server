@@ -7,6 +7,7 @@ import type {
 import { test as storageTest } from "../../integration/rest/uploads/_fixture";
 import { test as communityTest } from "./community-fixture";
 import { withE2ePrisma } from "./e2e-db/prisma";
+import { withSettledPageWrites } from "./settled-page-writes";
 
 type UploadSnapshot = {
   uploads: Upload[];
@@ -51,9 +52,6 @@ export const test = combined.extend<{
     // ID is needed to remove pending reservations or partially uploaded objects.
     const prefix = `uploads/${account.id}/`;
     const steps: UploadStep[] = [];
-    const pendingRequests = new Set<Promise<void>>();
-    const requestErrors = new Set<unknown>();
-    let closing = false;
     const objectKeys = async () => {
       const keys: string[] = [];
       let cursor: string | undefined;
@@ -87,14 +85,12 @@ export const test = combined.extend<{
       return { ...data, objects };
     };
     const cleanup = async () => {
-      closing = true;
       const results: PromiseSettledResult<unknown>[] = await Promise.allSettled(
         page
           .context()
           .pages()
           .map((openPage) => openPage.close()),
       );
-      results.push(...(await Promise.allSettled([...pendingRequests])));
       results.push(...(await Promise.allSettled([page.context().close()])));
       results.push(
         ...(await Promise.allSettled([
@@ -111,68 +107,38 @@ export const test = combined.extend<{
           ),
         ])),
       );
-      const errors = [
-        ...new Set([
-          ...requestErrors,
-          ...results.flatMap((result) =>
-            result.status === "rejected" ? [result.reason] : [],
-          ),
-        ]),
-      ];
+      const errors = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
       if (errors.length)
         throw new AggregateError(errors, "Owned comment upload cleanup failed");
     };
+    const failures: unknown[] = [];
     try {
-      await page.route(
+      await withSettledPageWrites(
+        page,
         /\/api\/workspace\/uploads(?:\/(?:object|complete))?(?:\?|$)/,
-        async (route) => {
-          if (!["POST", "PUT"].includes(route.request().method()))
-            return route.continue();
-          const completion = (async () => {
-            try {
-              // Await the real Worker response before exposing it to the UI. This
-              // captures each persisted phase and lets teardown drain server writes
-              // even if the browser is interrupted before receiving a response.
-              const response = await route.fetch();
-              steps.push({
-                path: new URL(route.request().url()).pathname,
-                status: response.status(),
-                state: await observe(),
-              });
-              try {
-                await route.fulfill({ response });
-              } catch (error) {
-                // Closing our browser may prevent delivery after the Worker and
-                // observation succeeded. No fetch/storage/database error qualifies.
-                if (
-                  !(
-                    closing &&
-                    page.isClosed() &&
-                    error instanceof Error &&
-                    /^route\.fulfill: Target page, context or browser has been closed(?:\n|$)/.test(
-                      error.message,
-                    )
-                  )
-                )
-                  throw error;
-              }
-            } catch (error) {
-              // Completed requests leave pendingRequests before teardown. Retain
-              // their failures so even interrupted tests report observer errors.
-              requestErrors.add(error);
-            }
-          })();
-          pendingRequests.add(completion);
-          try {
-            await completion;
-          } finally {
-            pendingRequests.delete(completion);
-          }
+        () => use({ prefix, steps, observe }),
+        async (response, request) => {
+          // Observe every persisted upload phase before the browser can start
+          // the next phase. The shared lifecycle drains this observer too.
+          steps.push({
+            path: new URL(request.url()).pathname,
+            status: response.status(),
+            state: await observe(),
+          });
         },
       );
-      await use({ prefix, steps, observe });
-    } finally {
-      await cleanup();
+    } catch (error) {
+      failures.push(error);
     }
+    try {
+      await cleanup();
+    } catch (error) {
+      failures.push(error);
+    }
+    if (failures.length === 1) throw failures[0];
+    if (failures.length)
+      throw new AggregateError(failures, "Comment upload fixture failed");
   },
 });

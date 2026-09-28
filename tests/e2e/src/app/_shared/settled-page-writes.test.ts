@@ -200,3 +200,94 @@ test("teardown rejects new writes and retains both body and cleanup errors", asy
   ]);
   expect(page.isClosed()).toBe(true);
 });
+
+test("response observer finishes before fulfillment and page teardown", async ({
+  page,
+  endpoint,
+}) => {
+  const observing = gate();
+  const observed = gate();
+  const bodyFinished = gate();
+  const bodyError = new Error("Intentional body failure");
+  const events: string[] = [];
+  page.on("response", (response) => {
+    if (new URL(response.url()).pathname === "/write")
+      events.push("browser response");
+  });
+  page.on("close", () => events.push("close"));
+  endpoint.release();
+  const failure = withSettledPageWrites(
+    page,
+    /\/write$/,
+    async () => {
+      await openWriter(page, endpoint);
+      await page.getByRole("button", { name: "Write", exact: true }).click();
+      await observing.promise;
+      bodyFinished.resolve();
+      throw bodyError;
+    },
+    async (response, request) => {
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toEqual({});
+      expect(request.method()).toBe("POST");
+      expect(request.postData()).toBe("owned write");
+      events.push("observer started");
+      observing.resolve();
+      await observed.promise;
+      events.push("observer finished");
+    },
+  ).catch((error: unknown) => error);
+
+  await bodyFinished.promise;
+  try {
+    // A real browser/server round trip gives teardown a chance to progress
+    // while the observer is blocked. It must keep the page and response alive.
+    expect(await page.evaluate(async () => (await fetch("/")).ok)).toBe(true);
+    expect(events).toEqual(["observer started"]);
+    expect(page.isClosed()).toBe(false);
+  } finally {
+    observed.resolve();
+  }
+  expect(await failure).toBe(bodyError);
+  expect(events[0]).toBe("observer started");
+  expect(events[1]).toBe("observer finished");
+  expect(events.at(-1)).toBe("close");
+  expect(endpoint.writes).toEqual([
+    { method: "POST", path: "/write", body: "owned write" },
+  ]);
+});
+
+test("observer failure aborts the browser write without replay and reports the error", async ({
+  page,
+  endpoint,
+}) => {
+  const observerError = new Error("Intentional observer failure");
+  let observations = 0;
+  endpoint.release();
+  const failure = await withSettledPageWrites(
+    page,
+    /\/write$/,
+    async () => {
+      await openWriter(page, endpoint);
+      const failed = page.waitForEvent("requestfailed", {
+        predicate: (request) => new URL(request.url()).pathname === "/write",
+      });
+      await page.getByRole("button", { name: "Write", exact: true }).click();
+      await failed;
+    },
+    async () => {
+      observations += 1;
+      throw observerError;
+    },
+  ).catch((error: unknown) => error);
+
+  expect(failure).toMatchObject({
+    message: "Page write request cleanup failed",
+    errors: [observerError],
+  });
+  expect(observations).toBe(1);
+  expect(endpoint.writes).toEqual([
+    { method: "POST", path: "/write", body: "owned write" },
+  ]);
+  expect(page.isClosed()).toBe(true);
+});

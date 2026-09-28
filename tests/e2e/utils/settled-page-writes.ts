@@ -1,10 +1,11 @@
-import type { Page } from "@playwright/test";
+import type { APIResponse, Page, Request } from "@playwright/test";
 
 /** Keep owned fixture data alive until real UI writes settle, even after failure. */
 export async function withSettledPageWrites(
   page: Page,
   match: Parameters<Page["route"]>[0],
   run: () => Promise<void>,
+  afterResponse?: (response: APIResponse, request: Request) => Promise<void>,
 ) {
   const pending = new Set<Promise<void>>();
   const errors: unknown[] = [];
@@ -33,6 +34,7 @@ export async function withSettledPageWrites(
           if (closing)
             throw new Error("Page write started during fixture teardown");
           const response = await route.fetch({ maxRedirects: 0 });
+          await afterResponse?.(response, route.request());
           if (page.isClosed())
             throw new Error("Page closed before its write settled");
           await route.fulfill({ response });
