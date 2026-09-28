@@ -343,11 +343,12 @@ requirements:
   rule: Paginated REST list endpoints return data and pagination with page, pageSize, total and totalPages. Resource-specific list metadata is nested under meta. Empty collections have total zero and one addressable empty page; out-of-range pages return empty data while retaining the total.
   rationale: MCP projections are declared per tool and are not all REST-shaped lists; their own feature contracts own those envelopes.
   acceptance:
-    given: The live OpenAPI document identifies every paginated REST GET operation and an authenticated admin fixture can read all list scopes.
+    given: The live OpenAPI document identifies every paginated REST GET operation. A private Worker and database contain an authenticated administrator plus independently prepared catalog records, comments and todos, alongside empty collections.
     when: Actual Worker requests retrieve pages one and two with pageSize one for every declared paginated list.
     then:
     - Every response uses the core envelope with only optional meta alongside it.
     - Pagination fields, total-page calculation, data length and page-to-page totals are consistent for populated and empty collections.
+    - Prepared course, section, comment and todo lists each report two records, and the admin user list reports one user.
     test:
       file: tests/integration/rest/openapi/list-contracts.test.ts
       name: openapi.paginated-list-envelope
