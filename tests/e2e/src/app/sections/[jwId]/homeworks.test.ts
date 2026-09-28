@@ -12,8 +12,8 @@ import {
   expectSingleColumnDiscussion,
 } from "../../../../utils/detail-dialog";
 import {
-  storedHomeworkCompletion,
-  storedHomeworks,
+  readHomeworkCompletion,
+  readHomeworks,
 } from "../../../../utils/homework-fixture";
 import {
   gotoAndWaitForReady,
@@ -311,10 +311,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     section,
     account,
+    isolatedWorker,
   }, testInfo) => {
+    const db = isolatedWorker.database.owner;
     test.setTimeout(60_000);
 
-    expect(await storedHomeworks(section.id)).toEqual([]);
+    expect(await readHomeworks(db, section.id)).toEqual([]);
     await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
 
     // Create
@@ -343,7 +345,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     expect(createResponseBody.id).toBeTruthy();
     const homeworkId = createResponseBody.id;
     await expect
-      .poll(() => storedHomeworks(section.id))
+      .poll(() => readHomeworks(db, section.id))
       .toMatchObject([
         {
           id: homeworkId,
@@ -382,7 +384,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       })
       .first();
     await expect(completionButton).toBeVisible();
-    expect(await storedHomeworkCompletion(account.id, homeworkId)).toBeNull();
+    expect(await readHomeworkCompletion(db, account.id, homeworkId)).toBeNull();
     await expect(completionButton).toHaveAccessibleName(
       /标记为完成|Mark as complete/i,
     );
@@ -396,7 +398,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await completionButton.click();
     await toggleResponse;
     await expect
-      .poll(() => storedHomeworkCompletion(account.id, homeworkId))
+      .poll(() => readHomeworkCompletion(db, account.id, homeworkId))
       .toMatchObject({ userId: account.id, homeworkId });
     await expect(completionButton).toHaveAccessibleName(
       /取消完成|Mark as incomplete/i,
@@ -429,7 +431,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await deleteResponse;
     await expect(hwCard).toHaveCount(0);
     await expect
-      .poll(() => storedHomeworks(section.id))
+      .poll(() => readHomeworks(db, section.id))
       .toMatchObject([
         {
           id: homeworkId,
@@ -445,7 +447,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     section,
     account,
+    isolatedWorker,
   }, testInfo) => {
+    const db = isolatedWorker.database.owner;
     test.setTimeout(60_000);
 
     const title = `e2e-section-hw-edit-${Date.now()}`;
@@ -509,7 +513,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .click();
     expect((await editResponse).status()).toBe(200);
     await expect
-      .poll(() => storedHomeworks(section.id))
+      .poll(() => readHomeworks(db, section.id))
       .toMatchObject([
         {
           id: homeworkId,
@@ -614,7 +618,9 @@ test("homework.section-completed-deadline-display", async ({
   page,
   section,
   account,
+  isolatedWorker,
 }) => {
+  const db = isolatedWorker.database.owner;
   const title = `section-completion-${crypto.randomUUID()}`;
   const response = await page.request.post("/api/community/section-homeworks", {
     data: {
@@ -654,7 +660,7 @@ test("homework.section-completed-deadline-display", async ({
     await expect(deadline).toContainText("12:30");
     await expect(reminder).toHaveCount(0);
     await expect
-      .poll(() => storedHomeworkCompletion(account.id, id))
+      .poll(() => readHomeworkCompletion(db, account.id, id))
       .toMatchObject({ userId: account.id, homeworkId: id });
     const state = dialog.getByTestId("homework-secondary-details");
     await expect(state).toContainText(/已完成|Completed/i);
@@ -671,7 +677,7 @@ test("homework.section-completed-deadline-display", async ({
       .click();
     await expect(reminder).toBeVisible();
     await expect
-      .poll(() => storedHomeworkCompletion(account.id, id))
+      .poll(() => readHomeworkCompletion(db, account.id, id))
       .toBeNull();
     await page.keyboard.press("Escape");
   }
