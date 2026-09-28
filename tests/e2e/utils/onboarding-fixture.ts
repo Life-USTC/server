@@ -1,31 +1,16 @@
 import type { Semester, User } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
-import { test as workerTest } from "./isolated-worker";
+import { test as accountTest } from "./account-fixture";
 import { absoluteTestUrl } from "./request-url";
 import { withSettledPageWrites } from "./settled-page-writes";
 
 type Profile = User & { username: string };
 
-export const test = workerTest.extend<{
-  account: User;
+export const test = accountTest.extend<{
   incompleteProfile: Profile;
   avatars: { profile: Profile; options: [string, string] };
   semester: Semester;
 }>({
-  account: async ({ isolatedWorker, page }, use) => {
-    const marker = crypto.randomUUID().replaceAll("-", "");
-    const account = await isolatedWorker.database.owner.user.create({
-      data: {
-        name: `E2E account ${marker.slice(0, 8)}`,
-        username: `e2e${marker.slice(0, 17)}`,
-        email: `e2e-account-${marker}@example.test`,
-        emailVerified: true,
-      },
-    });
-    const session = await isolatedWorker.createSession(account.id);
-    await page.context().addCookies([session.cookie]);
-    await use(account);
-  },
   incompleteProfile: async ({ account, page, isolatedWorker }, use) => {
     if (!account.username)
       throw new Error("Private onboarding account requires a username");

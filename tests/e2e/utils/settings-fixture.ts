@@ -1,10 +1,12 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
+import {
+  createLocalAccountIssuer,
+  createOAuthAccountIssuer,
+} from "@better-auth/core/db";
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
 import type { User } from "../../../src/generated/prisma-node/client";
-import { ensureLinkedAccountFixture } from "./e2e-db/oauth";
-import { withE2ePrisma } from "./e2e-db/prisma";
-import { test as accountTest } from "./isolated-account";
+import type { TestPrismaClient } from "../../shared/prisma";
+import { test as accountTest } from "./account-fixture";
 import { gotoAndWaitForReady } from "./page-ready";
 import { absoluteTestUrl } from "./request-url";
 
@@ -16,64 +18,102 @@ type Authorization = {
   name: string;
   redirectUri: string;
 };
+
+async function arrangeLinkedAccount(
+  db: TestPrismaClient,
+  userId: string,
+  provider: "github" | "oidc",
+) {
+  const marker = crypto.randomUUID();
+  const providerAccountId = `${provider}-e2e-${marker}`;
+  const email = `${provider}-${marker}@example.test`;
+  await db.$transaction(async (db) => {
+    await db.account.create({
+      data: {
+        userId,
+        type: "oauth",
+        provider,
+        issuer:
+          provider === "oidc"
+            ? (process.env.AUTH_OIDC_ISSUER ??
+              "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2")
+            : createOAuthAccountIssuer(provider),
+        providerAccountId,
+      },
+    });
+    await db.verifiedEmail.create({ data: { userId, provider, email } });
+  });
+  return { provider, providerAccountId, email };
+}
+
 export const test = accountTest.extend<{
   profile: User;
+  credentialPassword: string;
+  credentialHash: string;
   credential: { email: string; password: string };
-  ustcAccount: Awaited<ReturnType<typeof ensureLinkedAccountFixture>>;
-  githubAccount: Awaited<ReturnType<typeof ensureLinkedAccountFixture>>;
+  ustcAccount: Awaited<ReturnType<typeof arrangeLinkedAccount>>;
+  githubAccount: Awaited<ReturnType<typeof arrangeLinkedAccount>>;
   authorization: Authorization;
 }>({
-  profile: async ({ account, baseURL }, use) => {
+  profile: async ({ account, baseURL, isolatedWorker }, use) => {
     const image = absoluteTestUrl("/images/icon.png", baseURL);
-    const profile = await withE2ePrisma((db) =>
-      db.user.update({
-        where: { id: account.id },
-        data: { image, profilePictures: [image] },
-      }),
-    );
+    const profile = await isolatedWorker.database.owner.user.update({
+      where: { id: account.id },
+      data: { image, profilePictures: [image] },
+    });
     await use(profile);
   },
-  credential: async ({ account }, use) => {
-    const password = `E2e-${crypto.randomUUID()}`;
-    const hashedPassword = await hashPassword(password);
-    await withE2ePrisma((db) =>
-      db.account.create({
-        data: {
-          userId: account.id,
-          provider: "credential",
-          issuer: createLocalAccountIssuer("credential"),
-          providerAccountId: account.id,
-          password: hashedPassword,
-        },
-      }),
-    );
-    await use({ email: account.email, password });
+  // Hashing has no database dependency or continuation that can write after a
+  // setup timeout. A dependent credential fixture starts only after it finishes.
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructured fixture dependencies.
+  credentialPassword: async ({}, use) => {
+    await use(`E2e-${crypto.randomUUID()}`);
   },
-  ustcAccount: async ({ account }, use) => {
-    await use(
-      await ensureLinkedAccountFixture({
+  credentialHash: async ({ credentialPassword }, use) => {
+    await use(await hashPassword(credentialPassword));
+  },
+  credential: async (
+    { account, credentialPassword, credentialHash, isolatedWorker },
+    use,
+  ) => {
+    await isolatedWorker.database.owner.account.create({
+      data: {
         userId: account.id,
-        provider: "oidc",
-      }),
-    );
+        provider: "credential",
+        issuer: createLocalAccountIssuer("credential"),
+        providerAccountId: account.id,
+        password: credentialHash,
+      },
+    });
+    await use({ email: account.email, password: credentialPassword });
   },
-  githubAccount: async ({ account }, use) => {
+  ustcAccount: async ({ account, isolatedWorker }, use) => {
     await use(
-      await ensureLinkedAccountFixture({
-        userId: account.id,
-        provider: "github",
-      }),
+      await arrangeLinkedAccount(
+        isolatedWorker.database.owner,
+        account.id,
+        "oidc",
+      ),
     );
   },
-  authorization: async ({ account, page, baseURL }, use) => {
+  githubAccount: async ({ account, isolatedWorker }, use) => {
+    await use(
+      await arrangeLinkedAccount(
+        isolatedWorker.database.owner,
+        account.id,
+        "github",
+      ),
+    );
+  },
+  authorization: async ({ account, baseURL, isolatedWorker }, use) => {
     const clientId = crypto.randomUUID();
     const clientSecret = `hidden-secret-${crypto.randomUUID()}`;
     const clientUri = "https://calendar.example";
     const redirectUri = absoluteTestUrl("/hidden-oauth-callback", baseURL);
     const name = `Private Calendar ${clientId.slice(0, 8)}`;
     const scopes = ["calendar:read", "profile"];
-    const consent = await withE2ePrisma((db) =>
-      db.$transaction(async (tx) => {
+    const consent = await isolatedWorker.database.owner.$transaction(
+      async (tx) => {
         await tx.oAuthClient.create({
           data: {
             clientId,
@@ -87,26 +127,16 @@ export const test = accountTest.extend<{
         return tx.oAuthConsent.create({
           data: { clientId, scopes, userId: account.id },
         });
-      }),
+      },
     );
-    try {
-      await use({
-        clientId,
-        clientSecret,
-        clientUri,
-        redirectUri,
-        name,
-        consentId: consent.id,
-      });
-    } finally {
-      try {
-        await page.close();
-      } finally {
-        await withE2ePrisma((db) =>
-          db.oAuthClient.delete({ where: { clientId } }),
-        );
-      }
-    }
+    await use({
+      clientId,
+      clientSecret,
+      clientUri,
+      redirectUri,
+      name,
+      consentId: consent.id,
+    });
   },
 });
 
@@ -130,6 +160,6 @@ export async function expectSettingsPage(
   ).toBeVisible();
 }
 
-export function storedProfile(userId: string) {
-  return withE2ePrisma((db) => db.user.findUnique({ where: { id: userId } }));
+export function storedProfile(db: TestPrismaClient, userId: string) {
+  return db.user.findUnique({ where: { id: userId } });
 }
