@@ -59,6 +59,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("fails closed when the user context is missing", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId: ownerUserId },
       rlsHomework: { homeworkId },
     }) => {
@@ -69,6 +70,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         );
 
+        const storedBefore = await fixturePrisma.homeworkCompletion.findMany({
+          orderBy: [{ userId: "asc" }, { homeworkId: "asc" }],
+        });
         await expect(
           withUserDbContext(ownerUserId, (tx) =>
             tx.homeworkCompletion.findUnique({
@@ -95,6 +99,11 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             where: { userId: ownerUserId, homeworkId },
           }),
         ).resolves.toEqual({ count: 0 });
+        await expect(
+          fixturePrisma.homeworkCompletion.findMany({
+            orderBy: [{ userId: "asc" }, { homeworkId: "asc" }],
+          }),
+        ).resolves.toEqual(storedBefore);
       });
     });
     it("keeps service reads and writes isolated to the owner", async ({
@@ -151,6 +160,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("rejects forged ownership and cross-owner mutation", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId: ownerUserId, secondUserId: otherUserId },
       rlsHomework: { homeworkId },
     }) => {
@@ -161,6 +171,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           userId: ownerUserId,
         });
 
+        const storedBefore = await fixturePrisma.homeworkCompletion.findMany({
+          orderBy: [{ userId: "asc" }, { homeworkId: "asc" }],
+        });
         await expect(
           withUserDbContext(otherUserId, (tx) =>
             tx.homeworkCompletion.create({
@@ -193,6 +206,11 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             }),
           ),
         ).rejects.toThrow();
+        await expect(
+          fixturePrisma.homeworkCompletion.findMany({
+            orderBy: [{ userId: "asc" }, { homeworkId: "asc" }],
+          }),
+        ).resolves.toEqual(storedBefore);
       });
     });
   },

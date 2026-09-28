@@ -184,6 +184,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("rejects forged ownership on writes", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId, secondUserId },
       rlsSections: { sectionId },
     }) => {
@@ -200,6 +201,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             }),
           ),
         ).rejects.toThrow();
+        await expect(fixturePrisma.comment.findMany()).resolves.toEqual([]);
       });
     });
   },

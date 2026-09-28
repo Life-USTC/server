@@ -92,6 +92,19 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           { sectionId: sectionIds[0], kind: "teaching_assistant" },
         ]);
 
+        await expect(
+          adminPrisma.userSectionSubscription.findMany({
+            orderBy: [{ sectionId: "asc" }, { userId: "asc" }],
+            select: { userId: true, sectionId: true, kind: true },
+          }),
+        ).resolves.toEqual([
+          {
+            userId: otherUserId,
+            sectionId: sectionIds[0],
+            kind: "teaching_assistant",
+          },
+          { userId, sectionId: sectionIds[1], kind: "regular" },
+        ]);
         const repeated = await batchUpdateUserSectionSubscriptions({
           action: "remove",
           sectionIds: [sectionIds[0]],
@@ -117,6 +130,17 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             }),
           ),
         ).resolves.toEqual([]);
+        await expect(
+          adminPrisma.userSectionSubscription.findMany({
+            select: { userId: true, sectionId: true, kind: true },
+          }),
+        ).resolves.toEqual([
+          {
+            userId: otherUserId,
+            sectionId: sectionIds[0],
+            kind: "teaching_assistant",
+          },
+        ]);
       });
     });
   },

@@ -58,6 +58,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("defaults to no rows or writes without an owner context", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId },
     }) => {
       await rlsRuntime.run(async () => {
@@ -85,6 +86,12 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           return { pending, upload };
         });
 
+        const readStoredUploads = () =>
+          Promise.all([
+            fixturePrisma.upload.findMany({ orderBy: { id: "asc" } }),
+            fixturePrisma.uploadPending.findMany({ orderBy: { id: "asc" } }),
+          ]);
+        const storedBefore = await readStoredUploads();
         await expect(
           prisma.upload.findMany({ where: { id: created.upload.id } }),
         ).resolves.toEqual([]);
@@ -112,10 +119,12 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             },
           }),
         ).rejects.toThrow();
+        await expect(readStoredUploads()).resolves.toEqual(storedBefore);
       });
     });
     it("isolates owners and rejects forged ownership", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId, secondUserId },
     }) => {
       await rlsRuntime.run(async () => {
@@ -146,6 +155,12 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           ),
         );
 
+        const readStoredUploads = () =>
+          Promise.all([
+            fixturePrisma.upload.findMany({ orderBy: { id: "asc" } }),
+            fixturePrisma.uploadPending.findMany({ orderBy: { id: "asc" } }),
+          ]);
+        const storedBefore = await readStoredUploads();
         await expect(
           withUserDbContext(firstUserId, async (tx) => ({
             pendings: await tx.uploadPending.findMany({
@@ -195,6 +210,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           uploads: [{ id: second.upload.id }],
           usedBytes: 5,
         });
+        await expect(readStoredUploads()).resolves.toEqual(storedBefore);
       });
     });
     it("keeps serializable reservations and stale cleanup in owner context", async ({

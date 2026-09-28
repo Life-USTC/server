@@ -101,6 +101,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("allows runtime SELECT/INSERT/UPDATE and rejects runtime DELETE", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
     }) => {
       await rlsRuntime.run(async () => {
         const suffix = crypto.randomUUID();
@@ -301,6 +302,31 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           ]);
         });
 
+        const readStoredRecords = () =>
+          Promise.all([
+            fixturePrisma.publicationSource.findMany({
+              orderBy: { id: "asc" },
+            }),
+            fixturePrisma.publication.findMany({ orderBy: { id: "asc" } }),
+            fixturePrisma.publicationRevision.findMany({
+              orderBy: { id: "asc" },
+            }),
+            fixturePrisma.publicationObject.findMany({
+              orderBy: { id: "asc" },
+            }),
+            fixturePrisma.publicationObjectLink.findMany({
+              orderBy: { id: "asc" },
+            }),
+            fixturePrisma.ingestionRun.findMany({ orderBy: { id: "asc" } }),
+            fixturePrisma.ingestionBatch.findMany({ orderBy: { id: "asc" } }),
+            fixturePrisma.ingestionBatchObject.findMany({
+              orderBy: { id: "asc" },
+            }),
+            fixturePrisma.publicationEventOutbox.findMany({
+              orderBy: { id: "asc" },
+            }),
+          ]);
+        const storedBefore = await readStoredRecords();
         const runtimeDeletes: Array<() => Promise<unknown>> = [
           () =>
             prisma.publicationSource.delete({ where: { id: ids.sourceId } }),
@@ -327,6 +353,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         for (const createOperation of runtimeDeletes) {
           await expect(createOperation()).rejects.toThrow(/permission denied/i);
         }
+        await expect(readStoredRecords()).resolves.toEqual(storedBefore);
       });
     });
   },

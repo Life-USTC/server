@@ -130,6 +130,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("defaults direct reads and writes to no access without user context", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId },
       rlsReactions: { commentId },
     }) => {
@@ -141,6 +142,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         );
 
+        const storedBefore = await fixturePrisma.commentReaction.findMany({
+          orderBy: { id: "asc" },
+        });
         await expect(
           prisma.commentReaction.findMany({ where: { id: created.id } }),
         ).resolves.toEqual([]);
@@ -158,10 +162,14 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         await expect(
           prisma.commentReaction.deleteMany({ where: { id: created.id } }),
         ).resolves.toEqual({ count: 0 });
+        await expect(
+          fixturePrisma.commentReaction.findMany({ orderBy: { id: "asc" } }),
+        ).resolves.toEqual(storedBefore);
       });
     });
     it("isolates owners and rejects forged ownership", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId, secondUserId, adminUserId },
       rlsReactions: { commentId },
     }) => {
@@ -205,6 +213,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         expect(firstRows).toEqual([first]);
         expect(secondRows).toEqual([second]);
         expect(adminRows).toEqual([]);
+        const storedBefore = await fixturePrisma.commentReaction.findMany({
+          orderBy: { id: "asc" },
+        });
         await expect(
           withUserDbContext(secondUserId, (tx) =>
             tx.commentReaction.updateMany({
@@ -233,6 +244,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             }),
           ),
         ).rejects.toThrow();
+        await expect(
+          fixturePrisma.commentReaction.findMany({ orderBy: { id: "asc" } }),
+        ).resolves.toEqual(storedBefore);
       });
     });
     it("exposes only aggregate counts while preserving viewer state", async ({

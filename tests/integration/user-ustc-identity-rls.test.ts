@@ -8,6 +8,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   () => {
     it("fails closed without context and clears transaction-local context", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId: ownerUserId },
     }) => {
       await rlsRuntime.run(async () => {
@@ -19,6 +20,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         );
 
+        const storedBefore = await fixturePrisma.userUstcIdentity.findMany({
+          orderBy: { id: "asc" },
+        });
         await expect(
           prisma.userUstcIdentity.findMany({ where: { id: created.id } }),
         ).resolves.toEqual([]);
@@ -54,6 +58,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         await expect(
           prisma.userUstcIdentity.findMany({ where: { id: created.id } }),
         ).resolves.toEqual([]);
+        await expect(
+          fixturePrisma.userUstcIdentity.findMany({ orderBy: { id: "asc" } }),
+        ).resolves.toEqual(storedBefore);
       });
     });
     it("isolates owners, exercises the sync service, and rejects forged ownership", async ({
@@ -115,6 +122,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             select: { id: true },
           });
 
+        const storedBefore = await fixturePrisma.userUstcIdentity.findMany({
+          orderBy: { id: "asc" },
+        });
         await expect(
           withUserDbContext(otherUserId, (tx) =>
             tx.userUstcIdentity.findMany({ where: { id: ownerIdentity.id } }),
@@ -152,6 +162,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           ),
         ).rejects.toThrow();
 
+        await expect(
+          fixturePrisma.userUstcIdentity.findMany({ orderBy: { id: "asc" } }),
+        ).resolves.toEqual(storedBefore);
         await expect(
           withUserDbContext(ownerUserId, (tx) =>
             tx.userUstcIdentity.update({
