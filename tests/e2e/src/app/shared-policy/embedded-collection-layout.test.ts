@@ -1,24 +1,14 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Locator } from "@playwright/test";
 import {
-  cleanupEmbeddedTablePolicyFixture,
-  createEmbeddedTablePolicyFixture,
   type EmbeddedTablePolicyFixture,
+  test,
 } from "../../../utils/embedded-table-policy-fixture";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-let fixture: EmbeddedTablePolicyFixture;
-test.beforeAll(async () => {
-  fixture = await createEmbeddedTablePolicyFixture();
-});
-test.afterAll(async () => {
-  if (fixture) await cleanupEmbeddedTablePolicyFixture(fixture);
-});
-
-function cases(width: number) {
+function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
   const c = fixture.catalog;
   return [
     ...["homeworks", "exams", "todos"].map((name) => ({
@@ -119,18 +109,23 @@ async function precedes(first: Locator, second: Locator, label: string) {
   expect.soft(followsOnSameRow || a.y + a.height <= b.y + 1, label).toBe(true);
 }
 
-test("ui.embedded-collection-order", async ({ page, baseURL }, testInfo) => {
+test("ui.embedded-collection-order", async ({
+  page,
+  baseURL,
+  isolatedWorker,
+  embedded: fixture,
+}, testInfo) => {
   test.setTimeout(120_000);
   if (!baseURL) throw new Error("Missing Playwright baseURL");
   await page
     .context()
     .addCookies([
-      await createSignedSessionCookie(fixture.admin.id),
+      (await isolatedWorker.createSession(fixture.admin.id)).cookie,
       { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
     ]);
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const item of cases(width)) {
+    for (const item of cases(width, fixture)) {
       await gotoAndWaitForReady(page, item.path);
       const records = page.locator(item.records);
       await expect(records.first()).toBeVisible();
@@ -161,18 +156,23 @@ test("ui.embedded-collection-order", async ({ page, baseURL }, testInfo) => {
   }
 });
 
-test("ui.list-table-6", async ({ page, baseURL }) => {
+test("ui.list-table-6", async ({
+  page,
+  baseURL,
+  isolatedWorker,
+  busEmbedded: fixture,
+}) => {
   test.setTimeout(120_000);
   if (!baseURL) throw new Error("Missing Playwright baseURL");
   await page
     .context()
     .addCookies([
-      await createSignedSessionCookie(fixture.admin.id),
+      (await isolatedWorker.createSession(fixture.admin.id)).cookie,
       { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
     ]);
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const item of cases(width)) {
+    for (const item of cases(width, fixture)) {
       await gotoAndWaitForReady(page, item.path);
       await expectNoPageHorizontalOverflow(page);
       const rows = page.locator(item.records);
@@ -234,6 +234,7 @@ test("ui.list-table-6", async ({ page, baseURL }) => {
     await page
       .getByRole("button", { name: "Change route", exact: true })
       .click();
+    await page.getByRole("radio", { name: "Weekday", exact: true }).click();
     const departed = page.getByRole("switch", {
       name: "Show departed trips",
       exact: true,
