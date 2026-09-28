@@ -1,19 +1,37 @@
 import { describe } from "vitest";
-import * as fixtures from "../_harness";
-import { mcpTest } from "../_harness/context";
+import { isolatedMcpTest } from "../_harness/isolated-context";
+
+const calendarDay = "2026-04-29";
+const throughDay = "2026-05-10";
+const afterThroughDay = "2026-05-11";
+const homeworkDay = "2026-05-02";
+
+const toolTest = isolatedMcpTest.extend(
+  "calendar",
+  async ({ mcpActor, mcpSection, mcpSchedules, isolatedDatabase }) => {
+    const exam = await isolatedDatabase.owner.$transaction(async (db) => {
+      await db.userSectionSubscription.create({
+        data: { userId: mcpActor.userId, sectionId: mcpSection.id },
+      });
+      return db.exam.create({
+        data: {
+          jwId: 1,
+          sectionId: mcpSection.id,
+          examDate: new Date("2026-04-30T00:00:00.000Z"),
+          startTime: 900,
+          endTime: 1100,
+        },
+        select: { id: true, jwId: true },
+      });
+    });
+    return { section: mcpSection, schedules: mcpSchedules, exam };
+  },
+);
 
 describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () => {
-  const toolTest = mcpTest.extend(
-    "isolated",
-    fixtures.academicActorFixture({
-      emailPrefix: "mcp-calendar-events",
-      name: "[integration-test] Calendar Date Filters",
-    }),
-  );
-
   toolTest(
     "workspace_schedule_list 接受裸日期字符串（无时区偏移）",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, calendar, expect }) => {
       const result = await isolated.client.call<{
         schedules?: Array<{
           id?: number;
@@ -22,13 +40,13 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
           startTime?: unknown;
         }>;
       }>("workspace_schedule_list", {
-        dateFrom: fixtures.SEED_DATE, // bare date — would have been rejected by old dateTimeSchema
-        dateTo: fixtures.SEED_PLUS_ELEVEN_DAYS,
+        dateFrom: calendarDay, // bare date — would have been rejected by old dateTimeSchema
+        dateTo: throughDay,
         limit: 20,
         locale: "zh-cn",
       });
 
-      // Should not error, and the seeded schedules should be returned
+      // Should not error, and the prepared schedules should be returned
       expect(Array.isArray(result.schedules)).toBe(true);
       expect((result.schedules?.length ?? 0) > 0).toBe(true);
       expect(typeof result.schedules?.[0]?.startTime).toBe("string");
@@ -36,42 +54,55 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
       // Every date should fall within the requested window
       for (const schedule of result.schedules ?? []) {
         if (schedule.date) {
-          expect(schedule.date >= fixtures.SEED_DATE).toBe(true);
-          expect(schedule.date <= fixtures.SEED_PLUS_TWELVE_DAYS).toBe(true); // lte dateTo end-of-day
+          expect(schedule.date >= calendarDay).toBe(true);
+          expect(schedule.date <= afterThroughDay).toBe(true); // lte dateTo end-of-day
         }
       }
+
+      expect(result.schedules?.map((item) => item.id).sort()).toEqual(
+        calendar.schedules
+          .slice(0, 2)
+          .map((item) => item.id)
+          .sort(),
+      );
     },
   );
 
   toolTest(
     "workspace_exam_list 接受裸日期字符串",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, calendar, expect }) => {
       const result = await isolated.client.call<{
         exams?: Array<{ id?: number }>;
       }>("workspace_exam_list", {
-        dateFrom: fixtures.SEED_DATE,
+        dateFrom: calendarDay,
         includeDateUnknown: false,
         limit: 20,
         locale: "zh-cn",
       });
 
       expect(Array.isArray(result.exams)).toBe(true);
+
+      expect(result.exams?.map((item) => item.id)).toEqual([calendar.exam.id]);
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 接受裸日期字符串",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, calendar, expect }) => {
       const result = await isolated.client.call<{
-        events?: Array<{ type?: string; at?: string }>;
+        events?: Array<{
+          type?: string;
+          at?: string;
+          payload?: { id?: string | number };
+        }>;
       }>("workspace_calendar_event_list", {
-        dateFrom: fixtures.SEED_DATE,
-        dateTo: fixtures.SEED_PLUS_ELEVEN_DAYS,
+        dateFrom: calendarDay,
+        dateTo: throughDay,
         locale: "zh-cn",
       });
 
       expect(Array.isArray(result.events)).toBe(true);
-      // Should include the seeded schedule events
+      // Should include the prepared schedule events
       expect(
         (result.events ?? []).some((e) =>
           ["schedule", "homework_due", "exam", "todo_due"].includes(
@@ -79,17 +110,33 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
           ),
         ),
       ).toBe(true);
+
+      expect(
+        result.events
+          ?.filter((item) => item.type === "schedule")
+          .map((item) => item.payload?.id)
+          .sort(),
+      ).toEqual(
+        calendar.schedules
+          .slice(0, 2)
+          .map((item) => item.id)
+          .sort(),
+      );
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 将同日裸日期范围视为完整上海天时区日",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, calendar, expect }) => {
       const result = await isolated.client.call<{
-        events?: Array<{ type?: string; at?: string }>;
+        events?: Array<{
+          type?: string;
+          at?: string;
+          payload?: { id?: string | number };
+        }>;
       }>("workspace_calendar_event_list", {
-        dateFrom: fixtures.SEED_DATE,
-        dateTo: fixtures.SEED_DATE,
+        dateFrom: calendarDay,
+        dateTo: calendarDay,
         locale: "zh-cn",
       });
 
@@ -97,23 +144,33 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
       expect(
         (result.events ?? []).some(
           (event) =>
-            event.type === "schedule" &&
-            event.at?.startsWith(fixtures.SEED_DATE),
+            event.type === "schedule" && event.at?.startsWith(calendarDay),
         ),
       ).toBe(true);
+
+      expect(
+        result.events
+          ?.filter((item) => item.type === "schedule")
+          .map((item) => item.payload?.id),
+      ).toEqual([calendar.schedules[0]?.id]);
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 遵守精确包含的 dateTo 边界",
-    async ({ isolated, expect }) => {
-      const dueAt = `${fixtures.SEED_PLUS_THREE_DAYS}T21:00:00+08:00`;
-      const homework = await fixtures.prisma.homework.create({
+    async ({
+      mcpActor: isolated,
+      calendar,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const dueAt = `${homeworkDay}T21:00:00+08:00`;
+      const homework = await db.homework.create({
         data: {
           title: "[integration-test] calendar dateTo boundary homework",
-          sectionId: isolated.sectionId,
-          publishedAt: new Date(`${fixtures.SEED_DATE}T00:00:00+08:00`),
-          submissionStartAt: new Date(`${fixtures.SEED_DATE}T00:00:00+08:00`),
+          sectionId: calendar.section.id,
+          publishedAt: new Date(`${calendarDay}T00:00:00+08:00`),
+          submissionStartAt: new Date(`${calendarDay}T00:00:00+08:00`),
           submissionDueAt: new Date(dueAt),
           createdById: isolated.userId,
           updatedById: isolated.userId,
@@ -121,31 +178,41 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
         select: { id: true },
       });
 
-      try {
-        const result = await isolated.client.call<{
-          events?: Array<{ type?: string; at?: string }>;
-        }>("workspace_calendar_event_list", {
-          dateFrom: dueAt,
-          dateTo: dueAt,
-          locale: "zh-cn",
-        });
+      const result = await isolated.client.call<{
+        events?: Array<{
+          type?: string;
+          at?: string;
+          payload?: { id?: string | number };
+        }>;
+      }>("workspace_calendar_event_list", {
+        dateFrom: dueAt,
+        dateTo: dueAt,
+        locale: "zh-cn",
+      });
+      expect(
+        (result.events ?? []).some(
+          (event) => event.type === "homework_due" && event.at === dueAt,
+        ),
+      ).toBe(true);
 
-        expect(
-          (result.events ?? []).some(
-            (event) => event.type === "homework_due" && event.at === dueAt,
-          ),
-        ).toBe(true);
-      } finally {
-        await fixtures.deleteIntegrationHomework(homework.id);
-      }
+      expect(
+        result.events
+          ?.filter((item) => item.type === "homework_due")
+          .map((item) => item.payload?.id),
+      ).toEqual([homework.id]);
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 在精确包含的 dateTo 边界包含 todo",
-    async ({ isolated, expect }) => {
-      const dueAt = `${fixtures.SEED_DATE}T06:45:00+08:00`;
-      const todo = await fixtures.prisma.todo.create({
+    async ({
+      mcpActor: isolated,
+      calendar: _calendar,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const dueAt = `${calendarDay}T06:45:00+08:00`;
+      const todo = await db.todo.create({
         data: {
           userId: isolated.userId,
           title: "[integration-test] inclusive todo dueAt",
@@ -154,54 +221,51 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
         select: { id: true },
       });
 
-      try {
-        const result = await isolated.client.call<{
-          events?: Array<{
-            type?: string;
-            at?: string;
-            payload?: { id?: string };
-          }>;
-        }>("workspace_calendar_event_list", {
-          dateFrom: dueAt,
-          dateTo: dueAt,
-          locale: "zh-cn",
-        });
-
-        expect(
-          (result.events ?? []).some(
-            (event) =>
-              event.type === "todo_due" &&
-              event.at === dueAt &&
-              event.payload?.id === todo.id,
-          ),
-        ).toBe(true);
-      } finally {
-        await fixtures.deleteIntegrationTodo(todo.id);
-      }
+      const result = await isolated.client.call<{
+        events?: Array<{
+          type?: string;
+          at?: string;
+          payload?: { id?: string };
+        }>;
+      }>("workspace_calendar_event_list", {
+        dateFrom: dueAt,
+        dateTo: dueAt,
+        locale: "zh-cn",
+      });
+      expect(
+        (result.events ?? []).some(
+          (event) =>
+            event.type === "todo_due" &&
+            event.at === dueAt &&
+            event.payload?.id === todo.id,
+        ),
+      ).toBe(true);
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 包含与精确窗口重叠的定时事件",
-    async ({ isolated, expect }) => {
-      const schedule = await fixtures.prisma.schedule.findFirst({
+    async ({
+      mcpActor: isolated,
+      calendar,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const schedule = await db.schedule.findFirst({
         where: {
-          section: { jwId: isolated.sectionJwId },
-          date: new Date(`${fixtures.SEED_DATE}T00:00:00.000Z`),
+          section: { jwId: calendar.section.jwId },
+          date: new Date(`${calendarDay}T00:00:00.000Z`),
         },
         select: { id: true, startTime: true, endTime: true },
         orderBy: { startTime: "asc" },
       });
       if (!schedule) {
-        throw new Error(`Seed schedule for ${fixtures.SEED_DATE} not found`);
+        throw new Error(`Private schedule for ${calendarDay} not found`);
       }
 
-      const windowStart = fixtures.shanghaiIsoOnSeedDate(
-        schedule.startTime,
-        15,
-      );
-      const windowEnd = fixtures.shanghaiIsoOnSeedDate(schedule.startTime, 30);
-      const endsAt = new Date(fixtures.shanghaiIsoOnSeedDate(schedule.endTime));
+      const windowStart = `${calendarDay}T08:45:00+08:00`;
+      const windowEnd = `${calendarDay}T09:00:00+08:00`;
+      const endsAt = new Date(`${calendarDay}T10:00:00+08:00`);
       expect(endsAt.getTime()).toBeGreaterThan(new Date(windowEnd).getTime());
 
       const result = await isolated.client.call<{
@@ -218,158 +282,161 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
             event.type === "schedule" && event.payload?.id === schedule.id,
         ),
       ).toBe(true);
+
+      expect(schedule).toMatchObject({ startTime: 830, endTime: 1000 });
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 为精确窗口放宽基于日期的查询",
-    async ({ isolated, expect }) => {
-      const section = await fixtures.prisma.section.findUnique({
-        where: { jwId: isolated.sectionJwId },
+    async ({
+      mcpActor: isolated,
+      calendar,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const section = await db.section.findUnique({
+        where: { jwId: calendar.section.jwId },
         select: { id: true },
       });
       if (!section) {
-        throw new Error(`Seed section ${isolated.sectionJwId} not found`);
+        throw new Error(`Private section ${calendar.section.jwId} not found`);
       }
 
-      const jwId = isolated.sectionJwId + 91;
-      await fixtures.deleteIntegrationExam(jwId);
+      const jwId = calendar.section.jwId + 91;
 
-      try {
-        await fixtures.prisma.exam.create({
-          data: {
-            jwId,
-            sectionId: section.id,
-            examDate: new Date(`${fixtures.SEED_DATE}T00:00:00.000Z`),
-            startTime: null,
-            endTime: null,
-          },
-        });
-
-        const result = await isolated.client.call<{
-          events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
-        }>("workspace_calendar_event_list", {
-          dateFrom: `${fixtures.SEED_DATE}T00:10:00+08:00`,
-          dateTo: `${fixtures.SEED_DATE}T00:30:00+08:00`,
-          locale: "zh-cn",
-        });
-
-        expect(
-          (result.events ?? []).some(
-            (event) => event.type === "exam" && event.payload?.jwId === jwId,
-          ),
-        ).toBe(true);
-      } finally {
-        await fixtures.deleteIntegrationExam(jwId);
-      }
+      await db.exam.create({
+        data: {
+          jwId,
+          sectionId: section.id,
+          examDate: new Date(`${calendarDay}T00:00:00.000Z`),
+          startTime: null,
+          endTime: null,
+        },
+      });
+      const result = await isolated.client.call<{
+        events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
+      }>("workspace_calendar_event_list", {
+        dateFrom: `${calendarDay}T00:10:00+08:00`,
+        dateTo: `${calendarDay}T00:30:00+08:00`,
+        locale: "zh-cn",
+      });
+      expect(
+        (result.events ?? []).some(
+          (event) => event.type === "exam" && event.payload?.jwId === jwId,
+        ),
+      ).toBe(true);
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 使无时间考试在当天保持可见",
-    async ({ isolated, expect }) => {
-      const section = await fixtures.prisma.section.findUnique({
-        where: { jwId: isolated.sectionJwId },
+    async ({
+      mcpActor: isolated,
+      calendar,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const section = await db.section.findUnique({
+        where: { jwId: calendar.section.jwId },
         select: { id: true },
       });
       if (!section) {
-        throw new Error(`Seed section ${isolated.sectionJwId} not found`);
+        throw new Error(`Private section ${calendar.section.jwId} not found`);
       }
 
-      const jwId = isolated.sectionJwId + 90;
-      await fixtures.deleteIntegrationExam(jwId);
+      const jwId = calendar.section.jwId + 90;
 
-      try {
-        await fixtures.prisma.exam.create({
-          data: {
-            jwId,
-            sectionId: section.id,
-            examDate: new Date(`${fixtures.SEED_DATE}T00:00:00.000Z`),
-            startTime: null,
-            endTime: null,
-          },
-        });
-
-        const result = await isolated.client.call<{
-          events?: Array<{ type?: string; at?: string }>;
-        }>("workspace_calendar_event_list", {
-          dateFrom: `${fixtures.SEED_DATE}T08:00:00+08:00`,
-          dateTo: `${fixtures.SEED_DATE}T09:00:00+08:00`,
-          locale: "zh-cn",
-        });
-
-        expect(
-          (result.events ?? []).some(
-            (event) =>
-              event.type === "exam" &&
-              event.at === `${fixtures.SEED_DATE}T00:00:00+08:00`,
-          ),
-        ).toBe(true);
-      } finally {
-        await fixtures.deleteIntegrationExam(jwId);
-      }
+      await db.exam.create({
+        data: {
+          jwId,
+          sectionId: section.id,
+          examDate: new Date(`${calendarDay}T00:00:00.000Z`),
+          startTime: null,
+          endTime: null,
+        },
+      });
+      const result = await isolated.client.call<{
+        events?: Array<{
+          type?: string;
+          at?: string;
+          payload?: { id?: string | number };
+        }>;
+      }>("workspace_calendar_event_list", {
+        dateFrom: `${calendarDay}T08:00:00+08:00`,
+        dateTo: `${calendarDay}T09:00:00+08:00`,
+        locale: "zh-cn",
+      });
+      expect(
+        (result.events ?? []).some(
+          (event) =>
+            event.type === "exam" &&
+            event.at === `${calendarDay}T00:00:00+08:00`,
+        ),
+      ).toBe(true);
     },
   );
 
   toolTest(
     "workspace_calendar_event_list 对无 startTime 的考试尊重 endTime",
-    async ({ isolated, expect }) => {
-      const section = await fixtures.prisma.section.findUnique({
-        where: { jwId: isolated.sectionJwId },
+    async ({
+      mcpActor: isolated,
+      calendar,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const section = await db.section.findUnique({
+        where: { jwId: calendar.section.jwId },
         select: { id: true },
       });
       if (!section) {
-        throw new Error(`Seed section ${isolated.sectionJwId} not found`);
+        throw new Error(`Private section ${calendar.section.jwId} not found`);
       }
 
-      const jwId = isolated.sectionJwId + 92;
-      await fixtures.deleteIntegrationExam(jwId);
+      const jwId = calendar.section.jwId + 92;
 
-      try {
-        await fixtures.prisma.exam.create({
-          data: {
-            jwId,
-            sectionId: section.id,
-            examDate: new Date(`${fixtures.SEED_DATE}T00:00:00.000Z`),
-            startTime: null,
-            endTime: 1200,
-          },
-        });
-
-        const result = await isolated.client.call<{
-          events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
-        }>("workspace_calendar_event_list", {
-          dateFrom: `${fixtures.SEED_DATE}T13:00:00+08:00`,
-          dateTo: `${fixtures.SEED_DATE}T14:00:00+08:00`,
-          locale: "zh-cn",
-        });
-
-        expect(
-          (result.events ?? []).some(
-            (event) => event.type === "exam" && event.payload?.jwId === jwId,
-          ),
-        ).toBe(false);
-      } finally {
-        await fixtures.deleteIntegrationExam(jwId);
-      }
+      await db.exam.create({
+        data: {
+          jwId,
+          sectionId: section.id,
+          examDate: new Date(`${calendarDay}T00:00:00.000Z`),
+          startTime: null,
+          endTime: 1200,
+        },
+      });
+      const result = await isolated.client.call<{
+        events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
+      }>("workspace_calendar_event_list", {
+        dateFrom: `${calendarDay}T13:00:00+08:00`,
+        dateTo: `${calendarDay}T14:00:00+08:00`,
+        locale: "zh-cn",
+      });
+      expect(
+        (result.events ?? []).some(
+          (event) => event.type === "exam" && event.payload?.jwId === jwId,
+        ),
+      ).toBe(false);
     },
   );
 
-  toolTest("对无效日期字符串返回描述性错误", async ({ isolated, expect }) => {
-    const result = await isolated.client.call<{
-      success?: boolean;
-      message?: string;
-    }>("workspace_schedule_list", {
-      dateFrom: "not-a-date",
-      limit: 5,
-    });
+  toolTest(
+    "对无效日期字符串返回描述性错误",
+    async ({ mcpActor: isolated, expect }) => {
+      const result = await isolated.client.call<{
+        success?: boolean;
+        message?: string;
+      }>("workspace_schedule_list", {
+        dateFrom: "not-a-date",
+        limit: 5,
+      });
 
-    expect(result.success).toBe(false);
-    expect(result.message).not.toContain("not-a-date");
-    expect(result.message).toContain("Invalid dateFrom");
-    expect(result.message).toContain("YYYY-MM-DD");
-    expect(result.message?.toLowerCase()).toContain("invalid");
-  });
+      expect(result.success).toBe(false);
+      expect(result.message).not.toContain("not-a-date");
+      expect(result.message).toContain("Invalid dateFrom");
+      expect(result.message).toContain("YYYY-MM-DD");
+      expect(result.message?.toLowerCase()).toContain("invalid");
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
