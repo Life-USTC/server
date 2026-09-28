@@ -1,5 +1,6 @@
 import { isolatedDatabaseTest } from "../../../shared/isolated-database";
 import { createNodeRuntime } from "../../../shared/node-runtime";
+import { createPrivateMcpBus } from "./bus-fixture";
 import {
   type McpHarness,
   ownAnonymousMcpHarness,
@@ -31,6 +32,7 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
   mcpActor: PrivateMcpActor;
   mcpOtherActor: PrivateMcpActor;
   mcpSection: { id: number; jwId: number; code: string };
+  mcpBus: Awaited<ReturnType<typeof createPrivateMcpBus>>;
 }>({
   _mcpCatalogRevision: async ({ isolatedDatabase }, use) => {
     // Database-local IDs repeat across tests, while production L1 cache lives
@@ -167,5 +169,8 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
       });
     });
     await use(section);
+  },
+  mcpBus: async ({ isolatedDatabase }, use) => {
+    await use(await createPrivateMcpBus(isolatedDatabase.owner));
   },
 });
