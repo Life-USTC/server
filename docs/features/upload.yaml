@@ -20,10 +20,39 @@ access:
 requirements:
 - id: upload.storage-delete-retry
   category: consistency
-  rule: Upload deletion removes the backing object before committing metadata deletion and one audit
-    event. Unconfirmed storage deletion preserves metadata and returns REST 502, GraphQL 503 with
-    SERVICE_UNAVAILABLE, or MCP storage_delete_failed. Retrying after storage recovers completes the
-    deletion; replay after successful deletion returns not_found without another storage call or audit event.
+  applies_to:
+  - upload-manage
+  expectation:
+    kind: storage_delete_sequence
+    operation:
+      module: src/lib/api/routes/upload-management-routes.ts
+      export: deleteUploadRoute
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    storage_before_metadata: true
+    failure:
+      outcome: storage_delete_failed
+      protocol:
+        rest_status: 502
+        graphql_status: 503
+        graphql_code: SERVICE_UNAVAILABLE
+      preserves_metadata: true
+      preserves_object: true
+      audits: 0
+      hides_internal_error: true
+    retry:
+      removes_metadata: true
+      removes_object: true
+      audits: 1
+      deleted_size_matches:
+        rest: true
+        mcp: true
+    replay:
+      outcome: not_found
+      storage_calls: 0
+      audits: 1
   rationale: Storage and PostgreSQL cannot share a transaction. Keeping metadata until storage deletion
     is confirmed permits safe recovery. REST uses its upstream-storage error status, while GraphQL uses
     its service-availability code; neither response promises rollback of a storage operation that already succeeded.

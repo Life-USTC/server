@@ -6,6 +6,6 @@ export const subscriptionKindUpdateRequestSchema = z.strictObject({
 });
 
 export const subscriptionKindUpdateResponseSchema = z.strictObject({
-  sectionJwId: z.number().int().positive(),
+  sectionJwId: z.number().int().min(1),
   kind: subscriptionKindSchema,
 });

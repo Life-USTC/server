@@ -218,7 +218,9 @@ requirements:
   expectation:
     kind: ordered_items
     surface: web
-    target: workspace-overview-sections
+    target:
+      by: css
+      value: '[data-overview-sections]'
     items:
     - workspace-overview-focus
     - workspace-overview-today-overdue

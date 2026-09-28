@@ -12,7 +12,25 @@ policy_refs:
 requirements:
 - id: todo.single-delete-replay
   category: consistency
-  rule: Ordinary single-todo deletion commits permanent removal. Retrying the deleted ID preserves absence but returns not_found through REST, GraphQL and MCP; successful deletion does not require a client confirmation flag.
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: delete_replay
+    operation:
+      module: src/lib/api/routes/todos.ts
+      export: deleteTodoRoute
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    committed_state: absent
+    replay: not_found
+    preserves_committed_state: true
+    confirmation_required: false
+    protocol:
+      rest_status: 404
+      graphql_status: 404
+      graphql_code: NOT_FOUND
   acceptance:
     given: An isolated unsuspended owner has a fresh todo for each transport and valid resource-bound OAuth write credentials; the rate-limit boundary admits requests.
     when: Actual REST, GraphQL and MCP requests delete the owned record without a confirmation flag and then repeat the deletion.
@@ -352,7 +370,9 @@ requirements:
   expectation:
     kind: ordered_items
     surface: web
-    target: '[data-slot="dialog-footer"]'
+    target:
+      by: css
+      value: '[data-slot="dialog-footer"]'
     items:
     - delete
     - completion
@@ -372,7 +392,9 @@ requirements:
   expectation:
     kind: target_size
     surface: web
-    target: workspace-todos-add
+    target:
+      by: test_id
+      value: 'workspace-todos-add'
     viewport:
       width: 390
       height: 844
@@ -393,7 +415,9 @@ requirements:
   expectation:
     kind: state_presentation
     surface: web
-    target: '[data-slot="dialog-title"]'
+    target:
+      by: css
+      value: '[data-slot="dialog-title"]'
     state:
       completed: true
     text_decoration: line-through
@@ -407,8 +431,26 @@ requirements:
       name: todo.web-completed-title
 - id: todo.update-calendar-after-commit
   category: consistency
-  rule: A todo update enqueues exactly one owner calendar rebuild after commit and none while commit is
-    pending.
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: transaction_effects
+    operation:
+      module: src/features/todos/server/todo-service.ts
+      export: updateOwnedTodo
+    completion: commit
+    failure_propagated: false
+    before_commit:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
+    after_completion:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 1
+      recipient: owner
   acceptance:
     given: A todo update has finished its transaction callback while commit is pending.
     when: The commit succeeds.
@@ -420,7 +462,25 @@ requirements:
       name: todo.update-calendar-after-commit
 - id: todo.update-calendar-rollback
   category: consistency
-  rule: A failed todo update commit reports its failure and enqueues no calendar rebuild.
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: transaction_effects
+    operation:
+      module: src/features/todos/server/todo-service.ts
+      export: updateOwnedTodo
+    completion: rollback
+    failure_propagated: true
+    before_commit:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
+    after_completion:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
   acceptance:
     given: A todo update has finished its transaction callback while commit is pending.
     when: The commit fails.

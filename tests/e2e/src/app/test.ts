@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 import { uiExpectation } from "../../../shared/specifications/ui";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../utils/auth";
 import { DEV_SEED } from "../../utils/dev-seed";
@@ -508,6 +509,8 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
 });
 
 test("ui.shell-layout-8", async ({ page }, testInfo) => {
+  const contract = await semanticContract(testInfo.title, "target_size");
+  contract.equal("/surface", "web");
   const target = uiExpectation("ui.shell-layout-8", "target_size");
   await page.setViewportSize(target.viewport);
   await signInAsDevAdmin(page, "/workspace/todos");
@@ -529,6 +532,20 @@ test("ui.shell-layout-8", async ({ page }, testInfo) => {
     expect(box?.width).toBeGreaterThanOrEqual(target.min_width);
     expect(box?.height).toBeGreaterThanOrEqual(target.min_height);
   }
+
+  const selector =
+    '[data-shell-topbar] button:visible, [data-shell-navigation="mobile-primary"] a:visible';
+  contract.equal("/target", { by: "css", value: selector });
+  contract.equal("/viewport", page.viewportSize());
+  const controls = page.locator(selector);
+  expect(await controls.count()).toBeGreaterThan(0);
+  for (const control of await controls.all()) {
+    await expect(control).toBeVisible();
+    const box = await control.boundingBox();
+    contract.atLeast("/min_width", box?.width ?? 0);
+    contract.atLeast("/min_height", box?.height ?? 0);
+  }
+  contract.recordPlaywright(testInfo);
 
   await expect(primaryNavigation.locator('[aria-current="page"]')).toHaveCount(
     1,

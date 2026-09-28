@@ -274,7 +274,7 @@ function overviewFocus(
     {@const overviewWeekStart = workspaceOverviewWeekStart()}
     {@const upcomingOverviewExams = overviewUpcomingExams(overviewCalendar)}
     {@const agendaDays = overviewAgendaDays(overviewCalendar, visibleYoungItems)}
-    <div class="grid min-w-0 gap-8 lg:gap-10">
+    <div class="grid min-w-0 gap-8 lg:gap-10" data-overview-sections>
       <OverviewFocusCard
         copy={workspaceCopy.focus}
         loadingLabel={youngLoading ? activityCopy.youngEvents.workspace.loading : null}

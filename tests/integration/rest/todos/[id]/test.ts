@@ -25,6 +25,7 @@ import {
   test,
 } from "@playwright/test";
 import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
+import { semanticContract } from "../../../../shared/specifications/semantic-contract";
 import { todoExpectation } from "../../../../shared/specifications/todo";
 import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
 import { assertApiContract } from "../../_shared/api-contract";
@@ -172,6 +173,13 @@ async function assertSpecifiedOwnership(
   requirementId: string,
 ) {
   const rule = await todoExpectation(requirementId, "authorization");
+  const contract = await semanticContract(requirementId, "authorization");
+  contract.equal("/surface", "rest");
+  contract.equal(
+    "/operation",
+    `${requirementId.includes("patch") ? "PATCH" : "DELETE"} /api/workspace/todos/[id]`,
+  );
+  const deniedEffects = new Set<string>();
   const user = await playwright.request.newContext();
   const admin = await playwright.request.newContext();
   const anonymous = await playwright.request.newContext();
@@ -179,7 +187,7 @@ async function assertSpecifiedOwnership(
     await signInAsDebugUserApi(user);
     await signInAsDevAdminApi(admin);
     const [method, path] = rule.operation.split(" ");
-    for (const scenario of rule.cases) {
+    for (const [index, scenario] of rule.cases.entries()) {
       const actor = scenario.role === "admin" ? admin : user;
       const owner =
         scenario.relationship === "owner"
@@ -193,6 +201,7 @@ async function assertSpecifiedOwnership(
         user?: { id: string; isAdmin: boolean };
       } | null;
       expect(Boolean(session?.user)).toBe(scenario.authenticated);
+      let suspended = false;
       if (session?.user) {
         expect(session.user.isAdmin).toBe(scenario.role === "admin");
         const suspensionCount = await withE2ePrisma((prisma) =>
@@ -204,7 +213,8 @@ async function assertSpecifiedOwnership(
             },
           }),
         );
-        expect(suspensionCount > 0).toBe(scenario.suspended);
+        suspended = suspensionCount > 0;
+        expect(suspended).toBe(scenario.suspended);
       }
 
       const title = `e2e-todo-spec-${scenario.id}-${crypto.randomUUID()}`;
@@ -223,6 +233,19 @@ async function assertSpecifiedOwnership(
         });
         const statuses = { allowed: 200, not_found: 404, unauthenticated: 401 };
         expect(response.status(), scenario.id).toBe(statuses[scenario.outcome]);
+        const role = session?.user?.isAdmin ? "admin" : "user";
+        const relationship =
+          before.userId === session?.user?.id ? "owner" : "other";
+        contract.equal(`/cases/${index}`, {
+          id: session?.user ? `${role}-${relationship}` : "anonymous",
+          authenticated: Boolean(session?.user),
+          suspended,
+          role,
+          relationship,
+          outcome: Object.entries(statuses).find(
+            ([, status]) => status === response.status(),
+          )?.[0],
+        });
         const after = await withE2ePrisma((prisma) =>
           prisma.todo.findUnique({ where: { id } }),
         );
@@ -234,6 +257,7 @@ async function assertSpecifiedOwnership(
             switch (effect) {
               case "todo":
                 expect(after).toEqual(before);
+                deniedEffects.add("todo");
                 break;
               default:
                 throw new Error(`Unverified denied effect: ${effect}`);
@@ -247,12 +271,22 @@ async function assertSpecifiedOwnership(
   } finally {
     await Promise.all([user.dispose(), admin.dispose(), anonymous.dispose()]);
   }
+  contract.set("/denied_effects", [...deniedEffects]);
+  return contract;
 }
 
-test("todo.rest-patch-ownership", async ({ playwright }) => {
-  await assertSpecifiedOwnership(playwright, "todo.rest-patch-ownership");
+test("todo.rest-patch-ownership", async ({ playwright }, testInfo) => {
+  const contract = await assertSpecifiedOwnership(
+    playwright,
+    "todo.rest-patch-ownership",
+  );
+  contract.recordPlaywright(testInfo);
 });
 
-test("todo.rest-delete-ownership", async ({ playwright }) => {
-  await assertSpecifiedOwnership(playwright, "todo.rest-delete-ownership");
+test("todo.rest-delete-ownership", async ({ playwright }, testInfo) => {
+  const contract = await assertSpecifiedOwnership(
+    playwright,
+    "todo.rest-delete-ownership",
+  );
+  contract.recordPlaywright(testInfo);
 });

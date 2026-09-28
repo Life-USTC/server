@@ -11505,7 +11505,7 @@
                   "properties": {
                     "siblingCount": {
                       "type": "integer",
-                      "exclusiveMinimum": true,
+                      "minimum": 1,
                       "maximum": 9007199254740991
                     }
                   },
@@ -18681,14 +18681,14 @@
             "default": null,
             "nullable": true,
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           },
           "preferredDestinationCampusId": {
             "default": null,
             "nullable": true,
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           },
           "showDepartedTrips": {
@@ -19947,7 +19947,7 @@
           },
           "maxPinnedLinks": {
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           },
           "error": {
@@ -20035,7 +20035,7 @@
               },
               "homeworkWindowDays": {
                 "type": "integer",
-                "exclusiveMinimum": true,
+                "minimum": 1,
                 "maximum": 9007199254740991
               },
               "homeworkWindowEnd": {
@@ -20045,7 +20045,7 @@
               },
               "limit": {
                 "type": "integer",
-                "exclusiveMinimum": true,
+                "minimum": 1,
                 "maximum": 9007199254740991
               }
             },
@@ -23492,8 +23492,8 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "maximum": 9007199254740991,
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 9007199254740991
             }
           }
         },
@@ -24259,8 +24259,8 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "maximum": 9007199254740991,
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 9007199254740991
             }
           }
         },
@@ -26474,12 +26474,12 @@
           },
           "expires_in": {
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           },
           "interval": {
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           }
         },
@@ -26581,12 +26581,12 @@
           },
           "expires_in": {
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           },
           "expires_at": {
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           },
           "refresh_token": {
@@ -33475,7 +33475,7 @@
                 "maxImagesPerPage": {
                   "nullable": true,
                   "type": "integer",
-                  "exclusiveMinimum": true,
+                  "minimum": 1,
                   "maximum": 1000
                 }
               },
@@ -34141,7 +34141,7 @@
         "properties": {
           "sectionJwId": {
             "type": "integer",
-            "exclusiveMinimum": true,
+            "minimum": 1,
             "maximum": 9007199254740991
           },
           "kind": {
@@ -34167,8 +34167,8 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "maximum": 9007199254740991,
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 9007199254740991
             }
           },
           "codes": {
@@ -34247,7 +34247,7 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "exclusiveMinimum": true,
+              "minimum": 1,
               "maximum": 9007199254740991
             }
           },
@@ -34255,7 +34255,7 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "exclusiveMinimum": true,
+              "minimum": 1,
               "maximum": 9007199254740991
             }
           },
@@ -39405,8 +39405,8 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "maximum": 9007199254740991,
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 9007199254740991
             }
           },
           "codes": {
@@ -39475,7 +39475,7 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "exclusiveMinimum": true,
+              "minimum": 1,
               "maximum": 9007199254740991
             }
           },
@@ -39483,7 +39483,7 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "exclusiveMinimum": true,
+              "minimum": 1,
               "maximum": 9007199254740991
             }
           },

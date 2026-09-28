@@ -3,6 +3,8 @@ import {
   runWithCloudflareRuntimeEnv,
   setCloudflareCatalogInvalidator,
 } from "@/lib/adapters/cloudflare-runtime";
+import { bindDomainOperation } from "../../../shared/specifications/domain-contracts";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 const {
   calendarRebuildMock,
@@ -157,7 +159,11 @@ describe("upsertDescriptionContent", () => {
     });
   });
 
-  it("description.unchanged-write-history", async () => {
+  it("description.unchanged-write-history", async (context) => {
+    const contract = await semanticContract(
+      "description.unchanged-write-history",
+      "unchanged_write",
+    );
     descriptionFindFirstMock.mockResolvedValue({
       id: "description-1",
       content: "same content",
@@ -166,13 +172,25 @@ describe("upsertDescriptionContent", () => {
       "@/features/descriptions/server/description-upsert"
     );
 
-    const result = await upsertDescriptionContent({
+    const write = bindDomainOperation(
+      contract,
+      "src/features/descriptions/server/description-upsert.ts",
+      upsertDescriptionContent,
+    );
+    const result = await write({
       content: "same content",
       targetId: 1,
       targetType: "section",
       userId: "user-1",
     });
 
+    contract.equal("/updated", result.ok ? result.updated : null);
+    contract.equal(
+      "/history_created",
+      descriptionEditCreateMock.mock.calls.length,
+    );
+    contract.equal("/audits_created", auditLogCreateMock.mock.calls.length);
+    contract.recordVitest(context);
     expect(result).toEqual({
       id: "description-1",
       ok: true,
@@ -229,27 +247,79 @@ describe("upsertDescriptionContent", () => {
     expect(descriptionEditCreateMock).toHaveBeenCalledOnce();
   });
 
-  it("description.failed-write-invalidation", async () => {
-    prismaMock.$transaction.mockRejectedValue(new Error("rollback"));
+  it("description.failed-write-invalidation", async (context) => {
+    const contract = await semanticContract(
+      "description.failed-write-invalidation",
+      "transaction_effects",
+    );
+    const transaction = prismaMock.$transaction.getMockImplementation();
+    if (!transaction) throw new Error("Missing transaction callback harness");
+    descriptionFindFirstMock.mockResolvedValue({
+      id: "description-1",
+      content: "before",
+    });
+    descriptionUpdateMock.mockResolvedValue({
+      id: "description-1",
+      content: "after",
+    });
     const purge = vi.fn();
     const { upsertDescriptionContent } = await import(
       "@/features/descriptions/server/description-upsert"
     );
+    const write = bindDomainOperation(
+      contract,
+      "src/features/descriptions/server/description-upsert.ts",
+      upsertDescriptionContent,
+    );
+    const effects = [
+      {
+        module: "src/lib/adapters/cloudflare-runtime.ts",
+        export: "invalidateCloudflareCatalogRepresentations",
+        observe: () => purge.mock.calls.length,
+      },
+      {
+        module: "src/features/calendar/server/calendar-export-invalidation.ts",
+        export: "scheduleInvalidateCalendarExportsForSection",
+        observe: () => calendarRebuildMock.mock.calls.length,
+      },
+    ];
+    const observe = (phase: string) =>
+      effects.forEach(({ module, export: exported, observe }, index) => {
+        contract.equal(`/${phase}/${index}/operation`, {
+          module,
+          export: exported,
+        });
+        contract.equal(`/${phase}/${index}/calls`, observe());
+      });
+    prismaMock.$transaction.mockImplementation(async (...args) => {
+      await transaction(...args);
+      observe("before_commit");
+      throw new Error("rollback");
+    });
     await runWithCloudflareRuntimeEnv({}, async () => {
       setCloudflareCatalogInvalidator(purge);
       for (const target of [
         { targetId: 1, targetType: "section" as const },
         { targetId: "homework-1", targetType: "homework" as const },
       ]) {
-        await expect(
-          upsertDescriptionContent({
-            content: "after",
-            ...target,
-            userId: "user-1",
-          }),
-        ).rejects.toThrow("rollback");
+        const pending = write({
+          content: "after",
+          ...target,
+          userId: "user-1",
+        });
+        const outcome = pending.then(
+          () => ({ completion: "commit", failed: false }),
+          () => ({ completion: "rollback", failed: true }),
+        );
+        await expect(pending).rejects.toThrow("rollback");
+        const result = await outcome;
+        contract.equal("/completion", result.completion);
+        contract.equal("/failure_propagated", result.failed);
       }
     });
+    observe("after_completion");
+    expect(descriptionUpdateMock).toHaveBeenCalledTimes(2);
+    contract.recordVitest(context);
     expect(purge).not.toHaveBeenCalled();
     expect(calendarRebuildMock).not.toHaveBeenCalled();
   });

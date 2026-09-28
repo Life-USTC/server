@@ -6,17 +6,7 @@ import {
 import { APP_LOCALES } from "@/i18n/config";
 import { parseOptionalIntLike } from "./request-schema-primitives";
 
-const subscriptionSectionIdSchema = z
-  .number()
-  .int()
-  .positive()
-  .meta({
-    override: ({ jsonSchema }: { jsonSchema: Record<string, unknown> }) => {
-      jsonSchema.type = "integer";
-      jsonSchema.minimum = 1;
-      delete jsonSchema.exclusiveMinimum;
-    },
-  });
+const subscriptionSectionIdSchema = z.number().int().min(1);
 
 const subscriptionLookupCodeSchema = z.string().trim().min(1).max(64);
 const subscriptionSectionIdsSchema = z

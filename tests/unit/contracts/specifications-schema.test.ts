@@ -45,6 +45,29 @@ describe("versioned YAML product specifications", () => {
       validateSpecificationShapes(files, validators).length,
     ).toBeGreaterThan(0);
   });
+  it("binds policy applicability to known local topics", async () => {
+    const data = {
+      kind: "policy",
+      id: "policy-example",
+      title: "Policy example",
+      topics: [{ id: "privacy", title: "Privacy" }],
+      requirements: [
+        {
+          id: "policy-example.rule",
+          category: "privacy",
+          rule: "Private values stay private",
+          applies_to: ["misspelled"],
+        },
+      ],
+    };
+    const files = [{ path: "docs/policies/policy-example.yaml", data }];
+    expect(
+      (await validateSpecificationReferences(files)).errors.join("\n"),
+    ).toContain("unknown policy topic misspelled");
+    data.requirements[0].applies_to = ["privacy"];
+    expect((await validateSpecificationReferences(files)).errors).toEqual([]);
+  });
+
   // This compiles all canonical declarations, rather than one small fixture.
   it("validates every source against its schema and checks references", {
     timeout: 15_000,

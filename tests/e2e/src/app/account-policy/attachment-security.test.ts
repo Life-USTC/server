@@ -1,4 +1,5 @@
 import { type APIRequestContext, expect, test } from "@playwright/test";
+import { semanticContract } from "../../../../shared/specifications/semantic-contract";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
@@ -9,7 +10,11 @@ test("cases.content-security.upload-attachment-download-1", async ({
   page,
   browser,
   request,
-}) => {
+}, info) => {
+  const contract = await semanticContract(
+    "cases.content-security.upload-attachment-download-1",
+    "attachment_download_authority",
+  );
   const marker = `attachment-policy-${crypto.randomUUID()}`;
   const users = await withE2ePrisma(async (db) => {
     const created = [];
@@ -51,23 +56,56 @@ test("cases.content-security.upload-attachment-download-1", async ({
     });
     uploadId = upload.uploadId;
     const url = `/api/workspace/uploads/${uploadId}/download`;
-    const expectDownload = async (actor: APIRequestContext, status: number) => {
-      const response = await actor.get(url, { maxRedirects: 0 });
-      expect(response.status()).toBe(status);
-      if (status === 200) {
-        expect(await response.text()).toBe(contents);
-        expect(response.headers()["content-type"]).toContain("text/plain");
-      } else {
-        expect(await response.text()).not.toContain(contents);
-      }
-      const preview = await actor.get(`${url}?preview=1`, { maxRedirects: 0 });
-      expect(preview.status()).toBe(status);
-      if (status !== 200) expect(await preview.text()).not.toContain(contents);
+    const actors: Record<string, APIRequestContext> = {
+      owner: page.request,
+      viewer: viewerContext.request,
+      admin: adminContext.request,
+      anonymous: request,
     };
-    await expectDownload(page.request, 200);
-    await expectDownload(viewerContext.request, 404);
-    await expectDownload(adminContext.request, 404);
-    await expectDownload(request, 401);
+    const observedUrls = new Set<string>();
+    const expectState = async (state: string) => {
+      for (const [role, actor] of Object.entries(actors)) {
+        const response = await actor.get(url, { maxRedirects: 0 });
+        const observed = new URL(response.url());
+        observedUrls.add(observed.pathname);
+        contract.equal("/route", {
+          method: "GET",
+          path: observed.pathname.replace(upload.uploadId, "{id}"),
+        });
+        contract.equal(`/states/${state}/${role}`, response.status());
+        const body = await response.text();
+        if (response.status() === 200) {
+          contract.equal("/authorized_bytes_preserved", body === contents);
+          expect(response.headers()["content-type"]).toContain("text/plain");
+        } else
+          contract.equal(
+            "/denied_responses_hide_bytes",
+            !body.includes(contents),
+          );
+        const preview = await actor.get(`${url}?preview=1`, {
+          maxRedirects: 0,
+        });
+        contract.equal(
+          "/preview_parameter",
+          [...new URL(preview.url()).searchParams.keys()][0],
+        );
+        contract.equal(
+          "/preview_matches_download",
+          preview.status() === response.status(),
+        );
+        if (preview.status() === 200) {
+          expect(preview.headers()["content-type"]).toContain("text/html");
+          expect(await preview.text()).toContain(
+            `href="${new URL(url, preview.url()).href}"`,
+          );
+        } else
+          contract.equal(
+            "/denied_responses_hide_bytes",
+            !(await preview.text()).includes(contents),
+          );
+      }
+    };
+    await expectState("unattached");
     const created = await page.request.post("/api/community/comments", {
       data: {
         targetType: "section",
@@ -78,15 +116,13 @@ test("cases.content-security.upload-attachment-download-1", async ({
     });
     expect(created.status(), await created.text()).toBe(201);
     const { id: commentId } = await created.json();
-    await expectDownload(viewerContext.request, 200);
-    await expectDownload(request, 401);
+    await expectState("public");
     const visibility = await page.request.patch(
       `/api/community/comments/${commentId}`,
       { data: { body: marker, visibility: "logged_in_only" } },
     );
     expect(visibility.status()).toBe(200);
-    await expectDownload(viewerContext.request, 200);
-    await expectDownload(request, 401);
+    await expectState("logged_in_only");
     const moderate = async (status: "active" | "softbanned") => {
       const response = await adminContext.request.patch(
         `/api/admin/comments/${commentId}`,
@@ -95,25 +131,21 @@ test("cases.content-security.upload-attachment-download-1", async ({
       expect(response.status(), await response.text()).toBe(200);
     };
     await moderate("softbanned");
-    await expectDownload(viewerContext.request, 404);
-    await expectDownload(page.request, 200);
-    await expectDownload(adminContext.request, 200);
+    await expectState("softbanned");
     await moderate("active");
-    await expectDownload(viewerContext.request, 200);
+    await expectState("restored");
     const deletedComment = await page.request.delete(
       `/api/community/comments/${commentId}`,
     );
     expect(deletedComment.status()).toBe(200);
-    await expectDownload(viewerContext.request, 404);
-    await expectDownload(adminContext.request, 404);
-    // The uploader retains their own upload independently of its deleted attachment parent.
-    await expectDownload(page.request, 200);
+    await expectState("parent_deleted");
     const deletedUpload = await page.request.delete(
       `/api/workspace/uploads/${uploadId}`,
     );
     expect(deletedUpload.status(), await deletedUpload.text()).toBe(200);
-    await expectDownload(page.request, 404);
-    await expectDownload(viewerContext.request, 404);
+    await expectState("upload_deleted");
+    contract.equal("/same_url_across_states", observedUrls.size === 1);
+    contract.recordPlaywright(info);
     expect(
       await withE2ePrisma((db) =>
         db.upload.findUnique({ where: { id: uploadId } }),

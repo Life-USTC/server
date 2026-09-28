@@ -18,8 +18,25 @@ requirements:
   category: consistency
   applies_to:
   - semester-list
-  rule: Public REST, GraphQL and MCP semester lists order known start dates newest first, unknown dates last,
-    and equal dates by descending unique JW ID. Explicit pages return the same ordered slices and total.
+  expectation:
+    kind: ordered_page
+    operation:
+      module: src/lib/api/routes/academic-metadata-routes.ts
+      export: getSemestersRoute
+    model: Semester
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    order:
+    - field: startDate
+      direction: desc
+      nulls: last
+    - field: jwId
+      direction: desc
+    page_size_echoed: true
+    complete_total: true
+    exhausted_items: 0
   rationale: Known recent terms should lead navigation; undated terms remain available without outranking
     them. The unique tie-breaker keeps page boundaries stable when imported terms share a start date.
   acceptance:

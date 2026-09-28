@@ -16,6 +16,11 @@ import {
   createCatalogContractFixture,
 } from "../shared/catalog-contract-fixture";
 import { createFixturePrisma } from "../shared/prisma";
+import {
+  bindDomainOperation,
+  projectionPreservation,
+} from "../shared/specifications/domain-contracts";
+import { semanticContract } from "../shared/specifications/semantic-contract";
 
 const db = createFixturePrisma();
 let fixture: CatalogContractFixture;
@@ -321,26 +326,75 @@ it("course.public-detail-fields", async () => {
   expect(JSON.stringify(detail)).not.toContain("source-");
 });
 
-it("section.public-teacher-reference", async () => {
-  const detail = await findSectionDetailByJwId(fixture.sections[0].jwId);
-  expect(detail?.teachers).toHaveLength(1);
-  expect(detail?.teachers[0]).toMatchObject({
-    id: fixture.teachers[0].id,
-    department: { id: fixture.departments[0].id },
-    teacherTitle: { id: fixture.titles[0].id },
-  });
-  for (const field of [
-    "email",
-    "telephone",
-    "mobile",
-    "address",
-    "age",
-    "postcode",
-    "qq",
-    "wechat",
-  ])
-    expect(detail?.teachers[0]).not.toHaveProperty(field);
-  expect(JSON.stringify(detail)).not.toContain("source-");
+it("section.public-teacher-reference", async (context) => {
+  const contract = await semanticContract(
+    "section.public-teacher-reference",
+    "public_projection",
+  );
+  const read = bindDomainOperation(
+    contract,
+    "src/features/catalog/server/course-section-read-queries.ts",
+    findSectionDetailByJwId,
+  );
+  for (const locale of ["zh-cn", "en-us"] as const) {
+    const detail = await read(fixture.sections[0].jwId, locale);
+    contract.equal("/response", {
+      schema: "sectionDetailSchema",
+      path: "teachers/items",
+    });
+    contract.set("/fields", Object.keys(detail?.teachers[0] ?? {}));
+    for (const key of ["department", "teacherTitle"] as const)
+      contract.set(
+        `/nested_fields/${key}`,
+        Object.keys(detail?.teachers[0]?.[key] ?? {}),
+      );
+    contract.equal(
+      "/preserves",
+      projectionPreservation(
+        Object.keys(
+          contract.expectation<{ preserves: Record<string, boolean> }>()
+            .preserves,
+        ),
+        detail?.teachers[0],
+        {
+          ...fixture.teachers[0],
+          namePrimary:
+            locale === "en-us"
+              ? fixture.teachers[0].nameEn
+              : fixture.teachers[0].nameCn,
+          nameSecondary:
+            locale === "en-us"
+              ? fixture.teachers[0].nameCn
+              : fixture.teachers[0].nameEn,
+          department: fixture.departments[0],
+          teacherTitle: fixture.titles[0],
+        },
+      ),
+    );
+    contract.equal(
+      "/concealed_source_values",
+      !JSON.stringify(detail).includes("source-"),
+    );
+    expect(detail?.teachers).toHaveLength(1);
+    expect(detail?.teachers[0]).toMatchObject({
+      id: fixture.teachers[0].id,
+      department: { id: fixture.departments[0].id },
+      teacherTitle: { id: fixture.titles[0].id },
+    });
+    for (const field of [
+      "email",
+      "telephone",
+      "mobile",
+      "address",
+      "age",
+      "postcode",
+      "qq",
+      "wechat",
+    ])
+      expect(detail?.teachers[0]).not.toHaveProperty(field);
+    expect(JSON.stringify(detail)).not.toContain("source-");
+  }
+  contract.recordVitest(context);
 });
 
 it("teacher.public-detail-fields", async () => {

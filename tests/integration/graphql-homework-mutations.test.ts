@@ -10,6 +10,7 @@ import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
 import { createFixturePrisma } from "../shared/prisma";
 import { homeworkExpectation } from "../shared/specifications/homework";
+import { semanticContract } from "../shared/specifications/semantic-contract";
 
 const fixturePrisma = createFixturePrisma();
 
@@ -587,7 +588,14 @@ describe("GraphQL homework CRUD mutations", () => {
   });
 });
 
-it("homework.graphql-completion-batch-input", async () => {
+it("homework.graphql-completion-batch-input", async (context) => {
+  const contract = await semanticContract(
+    "homework.graphql-completion-batch-input",
+    "collection_input",
+  );
+  contract.equal("/surface", "graphql");
+  contract.equal("/operation", "homeworkCompletionsSet");
+  contract.equal("/input", "items");
   const specification = homeworkExpectation(
     "homework.graphql-completion-batch-input",
     "collection_input",
@@ -615,6 +623,10 @@ it("homework.graphql-completion-batch-input", async () => {
       results: Array<{ success: boolean }>;
     };
     expect(batch.results).toHaveLength(size);
+    contract.equal(
+      size === specification.min_items ? "/min_items" : "/max_items",
+      batch.results.length,
+    );
     for (const result of batch.results) expect(result.success).toBe(false);
   }
   for (const size of [
@@ -626,4 +638,6 @@ it("homework.graphql-completion-batch-input", async () => {
   const { payload } = await send([items(1)[0], items(1)[0]]);
   if (specification.unique_items) expectErrorCode(payload, "BAD_USER_INPUT");
   else expect(payload.errors).toBeUndefined();
+  contract.equal("/unique_items", Boolean(payload.errors?.length));
+  contract.recordVitest(context);
 });

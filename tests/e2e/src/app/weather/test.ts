@@ -1,3 +1,4 @@
+import { semanticContract } from "../../../../shared/specifications/semantic-contract";
 /**
  * E2E tests for /catalog/weather page
  *
@@ -23,21 +24,40 @@ test.describe("/catalog/weather", () => {
     });
   });
 
-  test("weather.two-locations-only", async ({ page }) => {
+  test("weather.two-locations-only", async ({ page }, info) => {
+    const contract = await semanticContract(
+      "weather.two-locations-only",
+      "localized_regions",
+    );
     for (const locale of ["zh-cn", "en-us"] as const) {
       await page
         .context()
         .addCookies([
           { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
         ]);
-      for (const width of [1280, 390]) {
+      for (const [viewportIndex, width] of [1280, 390].entries()) {
         await page.setViewportSize({ width, height: 900 });
+        contract.equal(`/viewports/${viewportIndex}`, page.viewportSize());
         await showWeatherFixture(page);
-        const headings = page.locator("#main-content h2");
+        const selector = "#main-content h2";
+        const headings = page.locator(selector);
+        contract.equal("/selector", selector);
+        contract.equal("/route", new URL(page.url()).pathname);
         await expect(headings).toHaveText(
           locale === "zh-cn"
             ? ["本部", "高新校区"]
             : ["Main campus", "Gaoxin campus"],
+        );
+        contract.equal(`/labels/${locale}`, await headings.allTextContents());
+        contract.equal(
+          "/location_keys",
+          await headings.evaluateAll((nodes) =>
+            nodes.map((node) => node.getAttribute("data-weather-location")),
+          ),
+        );
+        contract.equal(
+          "/regions",
+          await page.getByTestId("weather-location").count(),
         );
         await expect(page.getByTestId("weather-location")).toHaveCount(2);
         await expect(page.getByTestId("weather-hourly-chart")).toHaveCount(2);
@@ -46,6 +66,7 @@ test.describe("/catalog/weather", () => {
         ).toHaveCount(0);
       }
     }
+    contract.recordPlaywright(info);
   });
 });
 

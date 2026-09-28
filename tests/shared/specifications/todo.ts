@@ -36,13 +36,13 @@ type Authorization = {
 type OrderedItems = {
   kind: "ordered_items";
   surface: "web";
-  target: string;
+  target: { by: "test_id" | "css"; value: string };
   items: ("delete" | "completion" | "edit")[];
 };
 type TargetSize = {
   kind: "target_size";
   surface: "web";
-  target: string;
+  target: { by: "test_id" | "css"; value: string };
   viewport: { width: number; height: number };
   min_width: number;
   min_height: number;
@@ -50,7 +50,7 @@ type TargetSize = {
 type StatePresentation = {
   kind: "state_presentation";
   surface: "web";
-  target: string;
+  target: { by: "test_id" | "css"; value: string };
   state: { completed: boolean };
   text_decoration: string;
 };

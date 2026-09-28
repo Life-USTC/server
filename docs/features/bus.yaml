@@ -18,9 +18,21 @@ access:
 requirements:
 - id: bus.preference-owner-state
   category: authorization
-  rule: Bus preferences belong to the authenticated owner. REST, GraphQL and native MCP require the
-    declared write authority and reject unknown non-null campus IDs without changing stored preferences.
-    A suspended owner may continue saving and resetting these private preferences.
+  applies_to:
+  - bus-timetable
+  expectation:
+    kind: private_setting_authority
+    operations:
+      rest: POST /api/workspace/bus-preferences
+      graphql: busPreferencesSet
+      mcp: workspace_bus_preferences_set
+    owner_changes_only: true
+    suspended_owner_allowed: true
+    anonymous_rejected: true
+    read_scope_rejected: true
+    invalid_target_rejected: true
+    denied_state_unchanged: true
+    response_matches_state: true
   acceptance:
     given: Two isolated owners have independent preference rows and resource-bound OAuth credentials;
       the real services use the restricted application database role.

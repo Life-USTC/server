@@ -35,6 +35,11 @@ ambiguous names and disabled tests. `specs:check --complete` requires every
 requirement to have this binding. The CI evidence gate requires every canonical
 test to execute successfully, including tests for prose requirements. Missing
 tests remain failures of completeness; schema validity is a separate result.
+Typed requirements additionally need a native semantic receipt proving that each
+expectation field was compared in the passing canonical test. The report separates
+schema/reference validity, native execution and semantic comparison status. It
+also lists remaining prose requirements and candidate text locations without
+claiming they have been semantically converted.
 See [editing specifications](AGENTS.md) for semantic review and test-layer rules.
 
 Generated OpenAPI and GraphQL snapshots remain interface artifacts, not duplicate

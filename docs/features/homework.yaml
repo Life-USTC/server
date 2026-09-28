@@ -16,7 +16,25 @@ policy_refs:
 requirements:
 - id: homework.single-delete-replay
   category: consistency
-  rule: Ordinary single-homework deletion retains a tombstone attributed to its creator and one deletion audit event. Retrying the delete succeeds without rewriting the tombstone or adding audit events; GraphQL and MCP report alreadyDeleted=true, while REST retains its success envelope.
+  applies_to:
+  - section-homework-tab
+  expectation:
+    kind: delete_replay
+    operation:
+      module: src/lib/api/routes/homework-mutation-routes.ts
+      export: deleteHomeworkRoute
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    committed_state: tombstone
+    replay: success
+    preserves_committed_state: true
+    audit_events: 1
+    deleted_by: creator
+    replay_already_deleted:
+      graphql: true
+      mcp: true
   acceptance:
     given: An isolated unsuspended owner has a fresh homework for each transport and valid resource-bound OAuth write credentials; the rate-limit boundary admits requests.
     when: Actual REST, GraphQL and MCP requests delete the owned record without a confirmation flag and then repeat the deletion.
@@ -126,7 +144,9 @@ requirements:
   expectation:
     kind: target_size
     surface: web
-    target: workspace-homeworks-add
+    target:
+      by: test_id
+      value: 'workspace-homeworks-add'
     viewport:
       width: 390
       height: 844

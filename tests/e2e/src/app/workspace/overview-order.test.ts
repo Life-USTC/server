@@ -1,9 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { readSpecification } from "../../../../../scripts/specifications/yaml";
+import { semanticContract } from "../../../../shared/specifications/semantic-contract";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 test("overview.card-order", async ({ page }, testInfo) => {
+  const contract = await semanticContract(testInfo.title, "ordered_items");
+  contract.equal("/surface", "web");
+  contract.equal("/target", { by: "css", value: "[data-overview-sections]" });
   const spec = await readSpecification<{
     requirements: {
       id: string;
@@ -33,15 +37,18 @@ test("overview.card-order", async ({ page }, testInfo) => {
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       const observed = await page
-        .locator("[data-testid]")
-        .evaluateAll(
-          (nodes, ids) =>
-            nodes
-              .map((node) => node.getAttribute("data-testid"))
-              .filter((id) => id && ids.includes(id)),
-          rule.items,
+        .locator("[data-overview-sections] > *")
+        .evaluateAll((nodes) =>
+          nodes.map(
+            (node) =>
+              node.getAttribute("data-testid") ??
+              node
+                .querySelector(":scope > [data-testid]")
+                ?.getAttribute("data-testid") ??
+              null,
+          ),
         );
-      expect(observed).toEqual(rule.items);
+      contract.equal("/items", observed);
       let previousBottom = 0;
       for (const id of rule.items) {
         const section = page.getByTestId(id);
@@ -57,4 +64,5 @@ test("overview.card-order", async ({ page }, testInfo) => {
       });
     }
   }
+  contract.recordPlaywright(testInfo);
 });

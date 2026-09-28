@@ -20,9 +20,9 @@ export const compactOverviewResponseSchema = z.object({
     atTime: dateTimeSchema,
     todayStart: dateTimeSchema,
     tomorrowStart: dateTimeSchema,
-    homeworkWindowDays: z.number().int().positive(),
+    homeworkWindowDays: z.number().int().min(1),
     homeworkWindowEnd: dateTimeSchema,
-    limit: z.number().int().positive(),
+    limit: z.number().int().min(1),
   }),
   counts: z.object({
     todos: todoCountsSchema,

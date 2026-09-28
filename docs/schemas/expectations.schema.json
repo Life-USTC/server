@@ -94,7 +94,7 @@
           "const": "web"
         },
         "target": {
-          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          "$ref": "#/$defs/element_target"
         },
         "items": {
           "type": "array",
@@ -125,7 +125,7 @@
           "const": "web"
         },
         "target": {
-          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          "$ref": "#/$defs/element_target"
         },
         "viewport": {
           "type": "object",
@@ -164,7 +164,7 @@
           "const": "web"
         },
         "target": {
-          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          "$ref": "#/$defs/element_target"
         },
         "state": {
           "type": "object",
@@ -420,6 +420,9 @@
         },
         {
           "$ref": "#/$defs/string_input"
+        },
+        {
+          "$ref": "domain-expectations.schema.json#/$defs/expectation"
         }
       ]
     },
@@ -612,6 +615,19 @@
         },
         "length_unit": {
           "const": "utf16_code_units"
+        }
+      }
+    },
+    "element_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by", "value"],
+      "properties": {
+        "by": {
+          "enum": ["test_id", "css"]
+        },
+        "value": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
         }
       }
     }

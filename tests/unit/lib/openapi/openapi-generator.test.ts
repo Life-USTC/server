@@ -76,6 +76,40 @@ describe("openapi generator", () => {
     ).toHaveProperty("x-oauth-scopes", ["workspace.subscription:read"]);
   });
 
+  it("publishes complete numeric bounds throughout the OpenAPI document", () => {
+    function inspect(value: unknown, path = "") {
+      if (!value || typeof value !== "object") return;
+      const schema = value as Record<string, unknown>;
+      for (const [exclusive, inclusive] of [
+        ["exclusiveMinimum", "minimum"],
+        ["exclusiveMaximum", "maximum"],
+      ]) {
+        if (schema[exclusive] === true)
+          expect(typeof schema[inclusive], `${path}/${inclusive}`).toBe(
+            "number",
+          );
+      }
+      for (const [key, child] of Object.entries(value))
+        inspect(child, `${path}/${key}`);
+    }
+    inspect(doc);
+    const bus = doc.components?.schemas?.busPreferenceRequestSchema;
+    expect(bus).toMatchObject({
+      properties: {
+        preferredOriginCampusId: {
+          type: "integer",
+          minimum: 1,
+          nullable: true,
+        },
+        preferredDestinationCampusId: {
+          type: "integer",
+          minimum: 1,
+          nullable: true,
+        },
+      },
+    });
+  });
+
   it("returns a document with the generated metadata", () => {
     expect(doc.openapi).toBe("3.0.0");
     expect(doc.info.title).toBe("Life@USTC API");

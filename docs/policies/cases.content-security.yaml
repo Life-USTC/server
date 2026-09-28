@@ -20,9 +20,54 @@ requirements:
 - id: cases.content-security.upload-attachment-download-1
   category: authorization
   topic: upload-attachment-download
-  rule: Each /api/workspace/uploads/[id]/download byte or preview request requires authentication and checks
-    current owner access or access through a visible comment attachment before streaming the object from R2.
-    A previously issued attachment URL does not bypass ownership, visibility, moderation, or deletion checks.
+  applies_to:
+  - upload-attachment-download
+  expectation:
+    kind: attachment_download_authority
+    route:
+      method: GET
+      path: /api/workspace/uploads/{id}/download
+    preview_parameter: preview
+    states:
+      unattached:
+        owner: 200
+        viewer: 404
+        admin: 404
+        anonymous: 401
+      public:
+        owner: 200
+        viewer: 200
+        admin: 200
+        anonymous: 401
+      logged_in_only:
+        owner: 200
+        viewer: 200
+        admin: 200
+        anonymous: 401
+      softbanned:
+        owner: 200
+        viewer: 404
+        admin: 200
+        anonymous: 401
+      restored:
+        owner: 200
+        viewer: 200
+        admin: 200
+        anonymous: 401
+      parent_deleted:
+        owner: 200
+        viewer: 404
+        admin: 404
+        anonymous: 401
+      upload_deleted:
+        owner: 404
+        viewer: 404
+        admin: 404
+        anonymous: 401
+    preview_matches_download: true
+    authorized_bytes_preserved: true
+    denied_responses_hide_bytes: true
+    same_url_across_states: true
   acceptance:
     given: An isolated owner uploads real object bytes, retains its download URL, and later attaches it to a section comment; separate viewer, administrator, and anonymous principals reuse that same URL and preview URL.
     when: The comment changes from public to logged-in-only, is moderation-hidden, restored, and deleted, then its owner deletes the upload.

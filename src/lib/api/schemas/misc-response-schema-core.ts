@@ -87,8 +87,8 @@ const calendarSubscriptionResolvedSectionsSchema = z.strictObject({
     .nullable(),
   matchedCodes: z.array(z.string()),
   unmatchedCodes: z.array(z.string()),
-  matchedSectionIds: z.array(z.number().int().positive()),
-  unmatchedSectionIds: z.array(z.number().int().positive()),
+  matchedSectionIds: z.array(z.number().int().min(1)),
+  unmatchedSectionIds: z.array(z.number().int().min(1)),
   suggestions: z.record(z.string(), z.array(z.string())),
   sections: z.array(sectionCompactSchema),
   total: z.number().int().nonnegative(),
@@ -121,7 +121,7 @@ export const matchSectionCodesResponseSchema = z.strictObject({
 
 export const workspaceLinkPinResponseSchema = z.object({
   pinnedSlugs: z.array(z.string()),
-  maxPinnedLinks: z.number().int().positive(),
+  maxPinnedLinks: z.number().int().min(1),
   error: z.string().nullable(),
 });
 

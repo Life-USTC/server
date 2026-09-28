@@ -5,7 +5,7 @@ type UiExpectations = {
   target_size: {
     kind: "target_size";
     surface: "web";
-    target: string;
+    target: { by: "test_id" | "css"; value: string };
     viewport: { width: number; height: number };
     min_width: number;
     min_height: number;
@@ -13,7 +13,7 @@ type UiExpectations = {
   ordered_items: {
     kind: "ordered_items";
     surface: "web";
-    target: string;
+    target: { by: "test_id" | "css"; value: string };
     items: string[];
   };
 };

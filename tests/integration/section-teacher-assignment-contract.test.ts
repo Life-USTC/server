@@ -2,10 +2,24 @@ import { afterAll, expect, it } from "vitest";
 import { findSectionDetailByJwId } from "@/features/catalog/server/course-section-read-queries";
 import { teacherAssignmentSchema } from "@/lib/api/schemas/academic-teacher-assignment-response-schemas";
 import { createFixturePrisma } from "../shared/prisma";
+import {
+  bindDomainOperation,
+  projectionPreservation,
+} from "../shared/specifications/domain-contracts";
+import { semanticContract } from "../shared/specifications/semantic-contract";
 
 const fixture = createFixturePrisma();
 afterAll(() => fixture.$disconnect());
-it("section.teacher-assignment-reference", async () => {
+it("section.teacher-assignment-reference", async (context) => {
+  const contract = await semanticContract(
+    "section.teacher-assignment-reference",
+    "public_projection",
+  );
+  const read = bindDomainOperation(
+    contract,
+    "src/features/catalog/server/course-section-read-queries.ts",
+    findSectionDetailByJwId,
+  );
   const jwId = 1700000000 + Math.floor(Math.random() * 100000000);
   const course = await fixture.course.create({
     data: { jwId, code: `assignment-${jwId}`, nameCn: "引用课程" },
@@ -44,7 +58,36 @@ it("section.teacher-assignment-reference", async () => {
     });
     for (const locale of ["zh-cn", "en-us"] as const) {
       // Public service resolves its normal restricted runtime connection.
-      const detail = await findSectionDetailByJwId(jwId, locale);
+      const detail = await read(jwId, locale);
+      contract.equal("/response", {
+        schema: "sectionDetailSchema",
+        path: "teacherAssignments/items",
+      });
+      contract.set("/fields", Object.keys(detail?.teacherAssignments[0] ?? {}));
+      contract.equal(
+        "/preserves",
+        projectionPreservation(
+          Object.keys(
+            contract.expectation<{ preserves: Record<string, boolean> }>()
+              .preserves,
+          ),
+          detail?.teacherAssignments[0],
+          { ...assignment, teacherLessonType: null, teacherTitle: null },
+        ),
+      );
+      contract.equal(
+        "/concealed_source_values",
+        !JSON.stringify(detail).includes("private-assignment"),
+      );
+      contract.equal(
+        "/reference_resolved",
+        detail?.teachers.some(
+          (item) =>
+            item.id === detail?.teacherAssignments[0].teacherId &&
+            item.namePrimary ===
+              (locale === "en-us" ? teacher.nameEn : teacher.nameCn),
+        ),
+      );
       expect(detail?.teacherAssignments).toEqual([
         {
           id: assignment.id,
@@ -72,6 +115,7 @@ it("section.teacher-assignment-reference", async () => {
       ]);
       expect(JSON.stringify(detail)).not.toContain("private-assignment");
     }
+    contract.recordVitest(context);
   } finally {
     await fixture.teacherAssignment.deleteMany({
       where: { sectionId: section.id },
