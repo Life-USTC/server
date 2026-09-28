@@ -21,15 +21,15 @@
  */
 import { expect, test } from "@playwright/test";
 import {
+  arrangeCourses,
+  test as catalogTest,
+} from "../../../utils/catalog-browser-fixture";
+import {
   expectCatalogFilterSheet,
   openCatalogFilterSheet,
 } from "../../../utils/catalog-filter-sheet";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import {
-  createTempCoursesFixture,
-  deleteTempCoursesByPrefix,
-  getSeedCourseFilterFixture,
-} from "../../../utils/e2e-db";
+import { getSeedCourseFilterFixture } from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
 import {
   expectNoPageHorizontalOverflow,
@@ -40,8 +40,6 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/courses 课程目录", () => {
-  test.describe.configure({ mode: "serial" });
-
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/catalog/courses", testInfo });
   });
@@ -220,27 +218,30 @@ test.describe("/catalog/courses 课程目录", () => {
     }
   });
 
-  test("桌面表格截断溢出文本", async ({ page }, testInfo) => {
-    const prefix = `e2etable-${Date.now()}-${testInfo.workerIndex}`;
-    const blankPrefix = `${prefix}-blank`;
-    const namedPrefix = `${prefix}-named`;
-    const blankName = `${"very-long-course-name-".repeat(12)}blank`;
-    const namedName = `${"very-long-course-name-".repeat(12)}named`;
-    const secondaryName = "Short alternate name";
+  catalogTest(
+    "桌面表格截断溢出文本",
+    async ({ page, isolatedWorker }, testInfo) => {
+      const prefix = `e2etable-${Date.now()}-${testInfo.workerIndex}`;
+      const blankPrefix = `${prefix}-blank`;
+      const namedPrefix = `${prefix}-named`;
+      const blankName = `${"very-long-course-name-".repeat(12)}blank`;
+      const namedName = `${"very-long-course-name-".repeat(12)}named`;
+      const secondaryName = "Short alternate name";
 
-    await createTempCoursesFixture({
-      count: 1,
-      nameCn: blankName,
-      prefix: blankPrefix,
-    });
-    await createTempCoursesFixture({
-      count: 1,
-      nameCn: namedName,
-      nameEn: secondaryName,
-      prefix: namedPrefix,
-    });
+      await arrangeCourses(isolatedWorker.database.owner, {
+        firstJwId: 1_500_000_000,
+        count: 1,
+        nameCn: blankName,
+        prefix: blankPrefix,
+      });
+      await arrangeCourses(isolatedWorker.database.owner, {
+        firstJwId: 1_500_000_001,
+        count: 1,
+        nameCn: namedName,
+        nameEn: secondaryName,
+        prefix: namedPrefix,
+      });
 
-    try {
       await page.setViewportSize({ width: 1440, height: 900 });
       await gotoAndWaitForReady(
         page,
@@ -304,18 +305,19 @@ test.describe("/catalog/courses 课程目录", () => {
       }
       await expect(blankRowLink).toHaveAccessibleName(`${blankName}-00`);
       await captureStepScreenshot(page, testInfo, "courses-table-truncation");
-    } finally {
-      await deleteTempCoursesByPrefix(prefix);
-    }
-  });
+    },
+  );
 
-  test("分页提供上一页、页码和下一页并写入浏览历史", async ({
-    page,
-  }, testInfo) => {
-    const prefix = `e2epagination-${Date.now()}-${testInfo.workerIndex}`;
-    await createTempCoursesFixture({ count: 25, prefix });
+  catalogTest(
+    "分页提供上一页、页码和下一页并写入浏览历史",
+    async ({ page, isolatedWorker }, testInfo) => {
+      const prefix = `e2epagination-${Date.now()}-${testInfo.workerIndex}`;
+      await arrangeCourses(isolatedWorker.database.owner, {
+        firstJwId: 1_500_000_000,
+        count: 25,
+        prefix,
+      });
 
-    try {
       const searchPath = `/catalog/courses?search=${prefix}`;
       await gotoAndWaitForReady(page, searchPath, {
         testInfo,
@@ -367,10 +369,8 @@ test.describe("/catalog/courses 课程目录", () => {
             url.searchParams.get("page") === "1")
         );
       });
-    } finally {
-      await deleteTempCoursesByPrefix(prefix);
-    }
-  });
+    },
+  );
 
   test("搜索和清除按钮", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });

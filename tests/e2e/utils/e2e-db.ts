@@ -5,7 +5,6 @@ import type {
 } from "../../shared/audit-cleanup";
 import * as auditFixtures from "./e2e-db/audit";
 import * as busFixtures from "./e2e-db/bus";
-import * as catalogFixtures from "./e2e-db/catalog";
 import * as oauthFixtures from "./e2e-db/oauth";
 import * as publicationFixtures from "./e2e-db/publications";
 import * as seedFixtures from "./e2e-db/seed";
@@ -17,7 +16,6 @@ export type { PublicationFixture } from "./e2e-db/publications";
 const DB_FIXTURE_ATTEMPTS = 3;
 
 const operations = {
-  createTempCoursesFixture: catalogFixtures.createTempCoursesFixture,
   createOAuthAuthorizationFixture:
     oauthFixtures.createOAuthAuthorizationFixture,
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
@@ -33,7 +31,6 @@ const operations = {
   setBusPreferenceFixture: busFixtures.setBusPreferenceFixture,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
   deletePasskeysForUserFixture: userFixtures.deletePasskeysForUserFixture,
-  deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
   createPublicationFixture: publicationFixtures.createPublicationFixture,
@@ -158,13 +155,6 @@ export const setBusPreferenceFixture = (
   userId: string,
   preference: busFixtures.BusPreferenceFixture,
 ) => runDbFixture<void>("setBusPreferenceFixture", [userId, preference]);
-
-export const createTempCoursesFixture = (
-  options: catalogFixtures.TempCoursesFixtureOptions,
-) => runDbFixture<{ count: number }>("createTempCoursesFixture", [options]);
-
-export const deleteTempCoursesByPrefix = (prefix: string) =>
-  runDbFixture<void>("deleteTempCoursesByPrefix", [prefix]);
 
 export const deleteOAuthClientsByName = (name: string) =>
   runDbFixture<null>("deleteOAuthClientsByName", [name]);
