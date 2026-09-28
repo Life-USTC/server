@@ -15,45 +15,58 @@
  *
  * ## Edge Cases
  * - Non-existent user ID → 404 page
- * - Requires sign-in to discover own ID via session API
+ * - Missing username must not expose the internal ID as public metadata
  */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../../utils/auth";
-import { DEV_SEED } from "../../../../../utils/dev-seed";
-import {
-  getCurrentSessionUser,
-  getUserProfileById,
-  updateUserProfileById,
-} from "../../../../../utils/e2e-db";
+import { expect } from "@playwright/test";
+import { updateUserProfileById } from "../../../../../utils/e2e-db";
+import { test } from "../../../../../utils/isolated-account";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
-import { assertPageContract } from "../../../_shared/page-contract";
-
-test.describe.configure({ mode: "serial" });
 
 test.describe("/community/users/[identifier] by ID", () => {
-  test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, {
-      routePath: "/community/users/[identifier]",
-      testInfo,
-    });
+  test("页面契约", async ({ page, account }, testInfo) => {
+    await page.context().clearCookies();
+    const response = await gotoAndWaitForReady(
+      page,
+      `/community/users/${account.username}`,
+      {
+        browserHealth: {},
+        expectMeaningfulContent: true,
+        expectNoHorizontalOverflow: true,
+        uiQuality: {},
+        testInfo,
+      },
+    );
+    expect(response?.status()).toBe(200);
+    await expect(page.locator("#main-content")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: account.name }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(`@${account.username}`, { exact: true }),
+    ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "u-username");
   });
 
-  test("ID 地址直接解析资料且不显示内部 ID", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/");
-    const user = await getCurrentSessionUser(page);
+  test("ID 地址直接解析资料且不显示内部 ID", async ({
+    page,
+    account,
+  }, testInfo) => {
+    await updateUserProfileById(account.id, { image: "/images/icon.png" });
 
-    const response = await page.request.get(`/community/users/${user.id}`);
+    const response = await page.request.get(`/community/users/${account.id}`);
     expect(response.status()).toBe(200);
-    await gotoAndWaitForReady(page, `/community/users/${user.id}`);
-    await expect(page).toHaveURL(new RegExp(`/community/users/${user.id}$`));
+    await gotoAndWaitForReady(page, `/community/users/${account.id}`);
+    await expect(page).toHaveURL(new RegExp(`/community/users/${account.id}$`));
 
-    await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
+    await expect(page.getByText(account.name).first()).toBeVisible();
+    await expect(page.getByText(`@${account.username}`).first()).toBeVisible();
+    await expect(page.getByText(account.id, { exact: true })).toHaveCount(0);
     await expect(
-      page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+      page
+        .locator("#main-content")
+        .getByRole("img", { name: account.name, exact: true }),
     ).toBeVisible();
-    await expect(page.getByText(user.id, { exact: true })).toHaveCount(0);
-    await expect(page.locator("img").first()).toBeVisible();
     await expect(page.getByText(/加入时间|Joined/i).first()).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "u-id/canonical-profile");
@@ -61,41 +74,29 @@ test.describe("/community/users/[identifier] by ID", () => {
 
   test("无用户名资料保留 ID 地址但不渲染 raw ID", async ({
     page,
+    account,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/");
-    const user = await getCurrentSessionUser(page);
-    const originalProfile = await getUserProfileById(user.id);
+    await updateUserProfileById(account.id, { username: null });
+    await page.context().clearCookies();
+    const response = await page.request.get(`/community/users/${account.id}`, {
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(200);
 
-    try {
-      await updateUserProfileById(user.id, { username: null });
-      await page.context().clearCookies();
-      const response = await page.request.get(`/community/users/${user.id}`, {
-        maxRedirects: 0,
-      });
-      expect(response.status()).toBe(200);
-
-      await gotoAndWaitForReady(page, `/community/users/${user.id}`);
-      await expect(page).toHaveURL(new RegExp(`/community/users/${user.id}$`));
-      await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
-      await expect(page.getByText(user.id, { exact: true })).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "u-id/no-username");
-    } finally {
-      await updateUserProfileById(user.id, {
-        name: originalProfile.name,
-        username: originalProfile.username ?? DEV_SEED.debugUsername,
-        image: originalProfile.image,
-      });
-    }
+    await gotoAndWaitForReady(page, `/community/users/${account.id}`);
+    await expect(page).toHaveURL(new RegExp(`/community/users/${account.id}$`));
+    await expect(page.getByText(account.name).first()).toBeVisible();
+    await expect(page.getByText(account.id, { exact: true })).toHaveCount(0);
+    await captureStepScreenshot(page, testInfo, "u-id/no-username");
   });
 
   test("贡献热力图在移动端可滚动并支持键盘和触摸选择", async ({
     page,
+    account,
   }, testInfo) => {
+    await page.context().clearCookies();
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(
-      page,
-      `/community/users/${DEV_SEED.debugUsername}`,
-    );
+    await gotoAndWaitForReady(page, `/community/users/${account.username}`);
 
     const scrollRegion = page.locator("[data-profile-heatmap-scroll]");
     const cells = page.locator("[data-profile-contribution-cell]");
@@ -146,10 +147,7 @@ test.describe("/community/users/[identifier] by ID", () => {
     await captureStepScreenshot(page, testInfo, "u-profile/heatmap-mobile");
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await gotoAndWaitForReady(
-      page,
-      `/community/users/${DEV_SEED.debugUsername}`,
-    );
+    await gotoAndWaitForReady(page, `/community/users/${account.username}`);
     const desktopCellBox = await cells.first().boundingBox();
     expect(desktopCellBox?.width).toBeGreaterThanOrEqual(15);
     await captureStepScreenshot(page, testInfo, "u-profile/heatmap-desktop");
