@@ -56,9 +56,13 @@ function eventWithImage(imageUrl: string | null = PIC_PATH) {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // Failed storage/fetch implementations must not survive into another case.
+  vi.resetAllMocks();
   vi.stubGlobal("fetch", mocks.fetchMock);
   mocks.youngEventFindUnique.mockResolvedValue(eventWithImage());
+  mocks.bucket.head.mockResolvedValue(null);
+  mocks.bucket.get.mockResolvedValue(null);
+  mocks.bucket.put.mockResolvedValue(undefined);
   mocks.state.bucketAvailable = true;
 });
 

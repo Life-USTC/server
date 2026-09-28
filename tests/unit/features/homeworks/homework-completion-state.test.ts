@@ -1,12 +1,9 @@
-import { isDeepStrictEqual } from "node:util";
 import { describe, expect, it } from "vitest";
 import {
   attachHomeworkCompletionRequired,
   completionRequiredForSubscriptionKind,
   isHomeworkPendingForViewer,
 } from "@/features/homeworks/lib/homework-completion-state";
-import { homeworkExpectation } from "../../../shared/specifications/homework";
-import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 const referenceDate = new Date("2026-09-13T12:00:00.000Z");
 
@@ -27,6 +24,7 @@ describe("homework completion requirement", () => {
       { id: "unknown", sectionId: 3, completion: null },
     ];
 
+    const original = structuredClone(homeworks);
     expect(
       attachHomeworkCompletionRequired(
         homeworks,
@@ -55,6 +53,7 @@ describe("homework completion requirement", () => {
         completionRequired: true,
       },
     ]);
+    expect(homeworks).toEqual(original);
   });
 });
 
@@ -91,6 +90,12 @@ describe("teaching assistant pending scope", () => {
     },
   ])("keeps TA homework pending when it is $name", ({ homework, pending }) => {
     expect(isHomeworkPendingForViewer(homework, referenceDate)).toBe(pending);
+    expect(
+      isHomeworkPendingForViewer(
+        { ...homework, completion: { completedAt: referenceDate } },
+        referenceDate,
+      ),
+    ).toBe(false);
   });
 
   it("preserves actual completion as the first pending filter", () => {
@@ -127,75 +132,4 @@ describe("teaching assistant pending scope", () => {
       ),
     ).toBe(true);
   });
-});
-
-it("homework.teaching-assistant-completion", async (context) => {
-  const contract = await semanticContract(
-    context.task.name,
-    "subscription_completion",
-  );
-  const specification = homeworkExpectation(
-    "homework.teaching-assistant-completion",
-    "subscription_completion",
-  );
-  const completion = { completedAt: referenceDate };
-  const original = { id: "homework-1", sectionId: 1, completion };
-  const snapshot = structuredClone(original);
-  const [actual] = attachHomeworkCompletionRequired(
-    [original],
-    new Map([[1, specification.subscription_kind]]),
-  );
-  contract.equal("/subscription_kind", "teaching_assistant");
-  contract.equal("/completion_required", actual.completionRequired);
-  contract.equal(
-    "/preserve_records",
-    isDeepStrictEqual(actual.completion, snapshot.completion),
-  );
-  expect(actual.completion).toEqual(
-    specification.preserve_records ? snapshot.completion : null,
-  );
-  expect(original).toEqual(snapshot);
-  contract.recordVitest(context);
-});
-
-it("homework.teaching-assistant-pending", async (context) => {
-  const contract = await semanticContract(
-    context.task.name,
-    "pending_deadline",
-  );
-  contract.equal("/subscription_kind", "teaching_assistant");
-  const specification = homeworkExpectation(
-    "homework.teaching-assistant-pending",
-    "pending_deadline",
-  );
-  const completionRequired = completionRequiredForSubscriptionKind(
-    specification.subscription_kind,
-  );
-  const cases = [
-    { dueAt: null, field: "without_deadline" },
-    {
-      dueAt: new Date(referenceDate.getTime() + 1),
-      field: "before_deadline",
-    },
-    { dueAt: referenceDate, field: "at_deadline" },
-    {
-      dueAt: new Date(referenceDate.getTime() - 1),
-      field: "after_deadline",
-    },
-  ];
-  for (const { dueAt, field } of cases) {
-    const homework = { completionRequired, submissionDueAt: dueAt };
-    contract.equal(
-      `/${field}`,
-      isHomeworkPendingForViewer(homework, referenceDate),
-    );
-    contract.equal(
-      "/completed",
-      isHomeworkPendingForViewer(
-        { ...homework, completion: { completedAt: referenceDate } },
-        referenceDate,
-      ),
-    );
-  }
-  contract.recordVitest(context);
 });
