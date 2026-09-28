@@ -54,17 +54,20 @@ test("cases.content-security.suspended-user-1", async ({ page }) => {
     await page.context().addCookies([await createSignedSessionCookie(user.id)]);
     const token = await authorizeDeviceBearer(
       page.request,
+      PLAYWRIGHT_BASE_URL,
       client.clientId,
       scope,
     );
     const mcpToken = await authorizeDeviceBearer(
       page.request,
+      PLAYWRIGHT_BASE_URL,
       mcpClient.clientId,
       scope,
       "/api/mcp",
     );
     const graphqlToken = await authorizeDeviceBearer(
       page.request,
+      PLAYWRIGHT_BASE_URL,
       graphqlClient.clientId,
       scope,
       "/api/graphql",

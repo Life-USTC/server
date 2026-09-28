@@ -71,6 +71,7 @@ test("rendering-and-cache.personal-overlays-9", async ({
       expect(await profile.json()).toMatchObject({ id: user.id });
       const token = await authorizeDeviceBearer(
         session,
+        PLAYWRIGHT_BASE_URL,
         client.clientId,
         restReadScope("account.profile"),
       );

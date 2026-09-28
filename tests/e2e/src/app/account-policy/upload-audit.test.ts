@@ -44,6 +44,7 @@ test("audit.action-upload-delete", async ({ page }) => {
     await page.context().addCookies([cookie]);
     const token = await authorizeDeviceBearer(
       page.request,
+      PLAYWRIGHT_BASE_URL,
       client.clientId,
       scope,
       "/api/mcp",
