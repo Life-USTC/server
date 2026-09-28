@@ -173,19 +173,19 @@ requirements:
     actions. Administrator moderation requires an unsuspended administrator using governance surfaces.
   acceptance:
     given: Signed ordinary, foreign, administrator and suspended actors access active and locked comments.
-    when: Exercise actual REST create, edit, delete, reply, reaction and moderation routes, plus loopback
+    when: Exercise actual REST create, edit, delete, reply, reaction and moderation routes, plus Worker
       GraphQL and native MCP edits, replies and reactions with signed OAuth credentials and supported sessions.
     then:
     - Anonymous requests return 401 and suspended actors return 403 for ordinary mutations.
     - Replies and reactions to another author's public active comment succeed without conferring edit/delete
       ownership.
     - Deleted and softbanned comments reject ordinary mutations across all business transports.
-    - Read-only scopes, missing actors and missing comment/parent targets are rejected without changing comments, reactions, attachments, business audits or cache invalidation state.
+    - Read-only scopes, missing actors and missing comment/parent targets are rejected without changing comments, reactions, attachments, business audits or request-local cache purge-hook calls.
     - Edit responses retain the declared transport shape; returned comment bodies, public author identity and timestamps match committed rows. Reaction change flags, where exposed, match the performed change.
     - Only an unsuspended administrator can moderate through the governance route.
     test:
-      file: tests/integration/comment-write-contracts.test.ts
-      name: comment.interaction-gate
+      file: tests/integration/rest/protocol-contracts/comment-authority.test.ts
+      name: comment update suspended rejected through mcp
 - id: comment.web-markdown-hydration
   category: presentation
   rule: Web comment surfaces consume the server-provided renderedBody and do not rerun Markdown rendering
@@ -459,7 +459,7 @@ requirements:
     invalid_attachments without revealing the foreign or occupied upload.
   acceptance:
     given: Two isolated owners have unattached owned files, foreign files and owned files attached
-      elsewhere, with resource-bound OAuth credentials and restricted application database services.
+      elsewhere, with resource-bound OAuth credentials, restricted application database services and real Worker R2 objects.
     when: Each owner creates and edits through actual REST, GraphQL and native MCP HTTP using valid,
       missing, foreign and occupied uploads, then retains, replaces and removes owned attachment links.
     then:
@@ -467,10 +467,10 @@ requirements:
       comment, attachment, reaction, audit and invalidation snapshots unchanged.
     - Creation attaches an available owned upload; editing may retain it, replace it with another available
       owned upload or detach it, without changing another comment's occupied link.
-    - All original upload records remain exactly unchanged throughout these attachment operations.
+    - All original upload records, object bytes and content metadata remain exactly unchanged throughout these attachment operations.
     test:
-      file: tests/integration/comment-write-contracts.test.ts
-      name: comment.attachment-ownership
+      file: tests/integration/rest/protocol-contracts/comment-attachment-authority.test.ts
+      name: comment attachment foreign update by author 0 rejected through rest
 - id: comment.batch-delete-limit
   category: validation
   rule: Batch comment deletion accepts at most 50 unique comment IDs.

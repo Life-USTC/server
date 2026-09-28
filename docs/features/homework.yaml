@@ -419,15 +419,15 @@ requirements:
   acceptance:
     given: An isolated section has homework authored by one user, with another active user, an active
       administrator and a suspended user.
-    when: Active actors use the real service and loopback REST, GraphQL and native MCP writes with
+    when: Active actors use the real service and Worker REST, GraphQL and native MCP writes with
       resource-bound OAuth or supported sessions; anonymous, read-only, suspended and invalid-target writes are attempted.
     then:
     - Active collaborators can create and update shared homework while preserving the original creator; returned homework identity, title, flags and timestamps match committed rows. GraphQL completion fields and REST/MCP completion objects retain their declared shapes.
     - Suspended, unauthenticated and read-only credentials are rejected consistently; deleted, missing and wrong-JW targets cannot be edited.
-    - Rejected writes preserve homework, completion, description/history and business audit rows and produce no cache invalidation.
+    - Rejected writes preserve homework, completion, description/history and business audit rows and produce neither cache purge-hook calls nor calendar rebuild enqueue calls.
     test:
-      file: tests/integration/homework-state-contract.test.ts
-      name: homework.active-collaborator-write
+      file: tests/integration/rest/protocol-contracts/homework-authority.test.ts
+      name: homework update by editor 1 through graphql
 - id: homework.completion-owner
   category: authorization
   rule: Each authenticated user can only manage their own homework completion state, including while

@@ -18,6 +18,7 @@ export function sendOperation(
   transport: Transport,
   operation: Operation,
   token?: string,
+  headers: Record<string, string> = {},
 ) {
   return fetch(
     `${origin}${transport === "rest" ? operation.rest.path : `/api/${transport}`}`,
@@ -30,6 +31,7 @@ export function sendOperation(
             : "application/json",
         accept: "application/json, text/event-stream",
         origin: origin,
+        ...headers,
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
       body:
@@ -82,8 +84,15 @@ export async function invokeOperation(
   transport: Transport,
   operation: Operation,
   token?: string,
+  headers: Record<string, string> = {},
 ) {
-  const response = await sendOperation(origin, transport, operation, token);
+  const response = await sendOperation(
+    origin,
+    transport,
+    operation,
+    token,
+    headers,
+  );
   const payload = await nativeEnvelope(response);
   const content =
     transport === "mcp" && payload.result?.content

@@ -1,5 +1,9 @@
 import type { ExecutionContext, R2Bucket } from "@cloudflare/workers-types";
 import productionWorker from "../../../src/worker.js";
+import {
+  handleCommunityEffectProbe,
+  observeCommunityEffects,
+} from "./community-effect-probe";
 
 export { PublicSsr } from "../../../src/worker.js";
 
@@ -64,14 +68,17 @@ export default {
     },
     context: ExecutionContext,
   ) {
+    const effectResponse = await handleCommunityEffectProbe(request, env);
+    if (effectResponse) return effectResponse;
+    const observed = observeCommunityEffects(request, env, context);
     const url = new URL(request.url);
     if (url.pathname !== storagePath)
       return productionWorker.fetch(
         request,
         deleteProbes.size
-          ? { ...env, R2_UPLOADS: observeDeletes(env.R2_UPLOADS) }
-          : env,
-        context,
+          ? { ...observed.env, R2_UPLOADS: observeDeletes(env.R2_UPLOADS) }
+          : observed.env,
+        observed.context,
       );
     if (
       env.NODE_ENV !== "test" ||

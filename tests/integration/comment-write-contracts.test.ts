@@ -12,11 +12,6 @@ import { getCommentRoute } from "@/lib/api/routes/comments-thread-route";
 import { patchCommentRoute } from "@/lib/api/routes/comments-update-route";
 import { postDescriptionRoute } from "@/lib/api/routes/description-upsert-route";
 import { prisma as runtimePrisma, withUserDbContext } from "@/lib/db/prisma";
-import {
-  assertCommentAttachmentTransportOwnership,
-  assertCommentWriteTransportAuthorization,
-  assertDescriptionWriteTransportAuthorization,
-} from "../shared/community-write-parity";
 import { createDeferred } from "../shared/deferred";
 import {
   type DomainState,
@@ -103,7 +98,6 @@ const it = domainStateTest.extend<{
 it("comment.attachment-ownership", async ({ comment }) => {
   const { db, marker, other, request, createInput, seed, upload } = comment;
   await comment.runtime(async () => {
-    await assertCommentAttachmentTransportOwnership();
     const own = await upload();
     const otherUpload = await upload(other);
     const occupied = await upload();
@@ -330,7 +324,6 @@ it("comment.interaction-gate", async ({ comment }) => {
     expect(
       await db.user.findUniqueOrThrow({ where: { id: suspended } }),
     ).toMatchObject({ isAdmin: true });
-    await assertCommentWriteTransportAuthorization();
     const active = await seed();
     for (const viewer of [null, suspended]) {
       const expected = viewer ? 403 : 401;
@@ -619,7 +612,6 @@ it("comment.rich-content", async ({ comment }) => {
 it("description.editor-authorization", async ({ comment }) => {
   const { db, owner, other, admin, suspended, teacherId, request } = comment;
   await comment.runtime(async () => {
-    await assertDescriptionWriteTransportAuthorization();
     const body = {
       targetType: "teacher",
       teacherId,
