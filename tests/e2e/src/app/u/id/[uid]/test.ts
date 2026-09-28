@@ -18,8 +18,7 @@
  * - Missing username must not expose the internal ID as public metadata
  */
 import { expect } from "@playwright/test";
-import { updateUserProfileById } from "../../../../../utils/e2e-db";
-import { test } from "../../../../../utils/isolated-account";
+import { test } from "../../../../../utils/account-fixture";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
 
@@ -51,8 +50,12 @@ test.describe("/community/users/[identifier] by ID", () => {
   test("ID 地址直接解析资料且不显示内部 ID", async ({
     page,
     account,
+    isolatedWorker,
   }, testInfo) => {
-    await updateUserProfileById(account.id, { image: "/images/icon.png" });
+    await isolatedWorker.database.owner.user.update({
+      where: { id: account.id },
+      data: { image: "/images/icon.png" },
+    });
 
     const response = await page.request.get(`/community/users/${account.id}`);
     expect(response.status()).toBe(200);
@@ -75,8 +78,12 @@ test.describe("/community/users/[identifier] by ID", () => {
   test("无用户名资料保留 ID 地址但不渲染 raw ID", async ({
     page,
     account,
+    isolatedWorker,
   }, testInfo) => {
-    await updateUserProfileById(account.id, { username: null });
+    await isolatedWorker.database.owner.user.update({
+      where: { id: account.id },
+      data: { username: null },
+    });
     await page.context().clearCookies();
     const response = await page.request.get(`/community/users/${account.id}`, {
       maxRedirects: 0,
