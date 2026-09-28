@@ -123,20 +123,3 @@ function triggerProps(props: Record<string, unknown>) {
     data-slot="truncated-text-placeholder"
   ></span>
 {/if}
-
-<style>
-@media (hover: none) {
-  [data-slot="truncated-text"] {
-    display: block;
-    overflow: visible;
-    overflow-wrap: anywhere;
-    white-space: normal;
-    -webkit-line-clamp: unset;
-    line-clamp: unset;
-  }
-
-  [data-slot="truncated-text"][data-preserve-whitespace] {
-    white-space: pre-wrap;
-  }
-}
-</style>

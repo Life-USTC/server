@@ -207,3 +207,18 @@ html {
     @apply max-w-none;
   }
 }
+
+@media (hover: none) {
+  [data-slot="truncated-text"] {
+    display: block;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+  }
+
+  [data-slot="truncated-text"][data-preserve-whitespace] {
+    white-space: pre-wrap;
+  }
+}

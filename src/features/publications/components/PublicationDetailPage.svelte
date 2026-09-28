@@ -1,6 +1,5 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
-import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
 import {
   publicationDetailHref,
   publicationReturnHref,
@@ -50,6 +49,27 @@ const articleInformation = $derived(
 
 <svelte:head><title>{revision.title} - {copy.title}</title></svelte:head>
 
+{#snippet externalLink(className = "", placement = "")}
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="lucide {className}"
+    data-icon={placement || undefined}
+    aria-hidden="true"
+  >
+    <path d="M15 3h6v6" />
+    <path d="M10 14 21 3" />
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+  </svg>
+{/snippet}
+
 <CollectionPage
   headerClass="min-w-0"
   title={revision.title}
@@ -72,7 +92,7 @@ const articleInformation = $derived(
           </div>
           {#if revision.sourcePageUrl}
             <Button class="mt-3" href={revision.sourcePageUrl} variant="outline" size="sm" target="_blank" rel="noreferrer noopener">
-              {copy.sourcePage}<ExternalLinkIcon data-icon="inline-end" aria-hidden="true" />
+              {copy.sourcePage}{@render externalLink("", "inline-end")}
             </Button>
           {/if}
           {#if summary.length > 160}
@@ -97,7 +117,7 @@ const articleInformation = $derived(
                 <a class="inline-flex max-w-full min-w-0 flex-wrap items-center gap-2 text-primary hover:underline" href={object.url} download={object.filename ?? true}>
                   <span class="min-w-0 [overflow-wrap:anywhere]">{object.filename || object.altText || copy.attachmentNumber.replace("{number}", String(index + 1))}</span>
                   <span class="text-xs text-muted-foreground [overflow-wrap:anywhere]">{object.contentType} · {Math.ceil(object.size / 1024)} KB</span>
-                  <ExternalLinkIcon class="size-4 shrink-0" aria-hidden="true" />
+                  {@render externalLink("size-4 shrink-0")}
                 </a>
               </li>
             {/each}

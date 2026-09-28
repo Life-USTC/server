@@ -5,7 +5,6 @@ import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
-import CircleUserRoundIcon from "@lucide/svelte/icons/circle-user-round";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
@@ -13,17 +12,13 @@ import FilesIcon from "@lucide/svelte/icons/files";
 import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
-import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LinkIcon from "@lucide/svelte/icons/link";
-import Link2Icon from "@lucide/svelte/icons/link-2";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
-import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
 import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
-import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import SparklesIcon from "@lucide/svelte/icons/sparkles";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
@@ -317,17 +312,17 @@ function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
       links: [
         {
           href: "/account/settings/profile",
-          icon: CircleUserRoundIcon,
+          glyph: "profile",
           label: copy.nav.settingsSections.profile,
         },
         {
           href: "/account/settings/preferences",
-          icon: SlidersHorizontalIcon,
+          glyph: "preferences",
           label: copy.nav.settingsSections.preferences,
         },
         {
           href: "/account/settings/accounts",
-          icon: Link2Icon,
+          glyph: "accounts",
           label: copy.nav.settingsSections.accounts,
         },
         {
@@ -337,12 +332,12 @@ function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
         },
         {
           href: "/account/settings/authorizations",
-          icon: KeyRoundIcon,
+          glyph: "key",
           label: copy.nav.settingsSections.authorizations,
         },
         {
           href: "/account/settings/danger",
-          icon: ShieldAlertIcon,
+          glyph: "danger",
           label: copy.nav.settingsSections.danger,
         },
       ],
@@ -594,7 +589,7 @@ function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
     },
     {
       href: "/admin/oauth",
-      icon: KeyRoundIcon,
+      glyph: "key",
       label: copy.nav.admin.oauth,
     },
     {

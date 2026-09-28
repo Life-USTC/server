@@ -11,6 +11,7 @@ import type {
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
 import AppUserMenu from "./AppUserMenu.svelte";
+import SettingsGlyph from "./SettingsGlyph.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 export type SectionSidebar = {
@@ -212,7 +213,9 @@ function closeMobileSidebar(): void {
                               aria-current={active ? "page" : undefined}
                               onclick={closeMobileSidebar}
                             >
-                              {#if link.icon}
+                              {#if link.glyph}
+                                <SettingsGlyph name={link.glyph} />
+                              {:else if link.icon}
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
@@ -318,7 +321,9 @@ function closeMobileSidebar(): void {
                               aria-current={active ? "page" : undefined}
                               onclick={closeMobileSidebar}
                             >
-                              {#if link.icon}
+                              {#if link.glyph}
+                                <SettingsGlyph name={link.glyph} />
+                              {:else if link.icon}
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}

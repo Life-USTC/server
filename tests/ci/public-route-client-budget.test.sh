@@ -27,27 +27,27 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 const budgets = {
   // The staged onboarding guide (#769) became a fourth importer of the
   // `user-round` Lucide icon, so Rollup promoted it from inlined in the user
-  // menu chunk to a shared 326 B chunk: `/` measures 72 requests and 194,386
-  // gzip bytes, up from 71 and 193,916. That is the shared-chunk split
-  // described above, not extra payload, so only the request count moves.
-  // Pinned to the measured 72, not above it, so the next split still trips.
-  // Merging main grew shared shell chunks (sidebar navigation and search
-  // results) without adding a request. Measured 195,592 gzip bytes, above the
-  // previous 195,000 cap. Keep the request pin and raise gzip to 196,000.
-  "/": { gzipBytes: 196_000, requests: 72 },
+  // menu chunk to a shared 326 B chunk: `/` measured 72 requests and 194,386
+  // gzip bytes. Settings-only marks (profile, preferences, accounts, key,
+  // danger) are now drawn in the shell, and the truncated-text touch rules
+  // live in the global stylesheet, so those shared chunks are not initial
+  // requests. Measured 68 requests and 194,565 gzip bytes. Pin the request
+  // count at 68 so the next split still trips; the gzip cap stays 195,000.
+  "/": { gzipBytes: 195_000, requests: 68 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
-  // The news list now shares the collection page, filter toolbar, and
-  // pagination with the shell. Icons the shell also imports
-  // (`sliders-horizontal`, `chevron-right`, `arrow-left`) and the small
-  // toolbar/layout helpers were extracted into their own chunks. Measured
-  // 93 requests and 223,969 gzip bytes. Pin the request count at 93 so the
-  // next split still trips; the gzip cap stays 232_000.
-  "/news": { gzipBytes: 232_000, requests: 93 },
-  // The external-link icon is imported by both the news detail page and
-  // global search, so the production build emits it as its own chunk.
-  // Measured 83 requests and 213,141 gzip bytes. Pin the request count at 83.
-  "/news/[id]": { gzipBytes: 221_000, requests: 83 },
+  // The news list shares the collection page, filter toolbar, and pagination
+  // with the shell. Icons the shell also imports (`chevron-right`,
+  // `arrow-left`) and the small toolbar/layout helpers are their own chunks.
+  // Dropping the settings-only icon chunks and the truncated-text stylesheet
+  // brings the list to 87 requests and 220,780 gzip bytes. Pin the request
+  // count at 87 so the next split still trips; the gzip cap stays 232,000.
+  "/news": { gzipBytes: 232_000, requests: 87 },
+  // The news detail page draws its external-link mark inline, so the shared
+  // Lucide chunk used by search and room maps is not an initial request.
+  // Measured 78 requests and 212,063 gzip bytes. Pin the request count at 78;
+  // the gzip cap stays 221,000.
+  "/news/[id]": { gzipBytes: 221_000, requests: 78 },
   "/news/sources": { gzipBytes: 225_000, requests: 86 },
 };
 
