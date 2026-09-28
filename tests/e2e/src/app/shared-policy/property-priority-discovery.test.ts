@@ -1,30 +1,14 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { test as base, expect, type Locator } from "@playwright/test";
-import {
-  localizeCatalogLink,
-  USTC_CATALOG_LINKS,
-} from "@/features/catalog-links/lib/catalog-links";
-import {
-  formatShanghaiDate,
-  formatShanghaiTime,
-} from "@/lib/time/shanghai-format";
+import { expect, type Locator } from "@playwright/test";
 import en from "../../../../../messages/en-us.json" with { type: "json" };
 import zh from "../../../../../messages/zh-cn.json" with { type: "json" };
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import {
-  createPublicationFixture,
-  deletePublicationFixture,
-  publicationFixtureObjectCommand,
-} from "../../../utils/e2e-db/publications";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test } from "../../../utils/property-discovery-fixture";
 import {
   assertPriorityView,
   type VisiblePriorityField,
 } from "../../../utils/property-priority";
 import { showWeatherFixture } from "../../../utils/weather-fixture";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
 const visible = (
   locator: Locator,
@@ -36,264 +20,16 @@ const icon = (
   attribute: "src" | "aria-label",
 ): VisiblePriorityField => ({ locator, expected, attribute });
 
-async function fixture() {
-  const marker = crypto.randomUUID();
-  const publication = await createPublicationFixture(`priority-${marker}`);
-  const bytes = Buffer.from(`Priority attachment ${marker}`);
-  const hash = createHash("sha256").update(bytes).digest("hex");
-  const objectKey = `publications/asset/sha256/${hash.slice(0, 2)}/${hash}`;
-  publicationFixtureObjectCommand("put", objectKey, bytes, "application/pdf");
-  const data = await withE2ePrisma(async (db) => {
-    const user = await db.user.create({
-      data: {
-        name: "Priority reader",
-        username: `priority-${marker}`,
-        email: `priority-${marker}@example.test`,
-        emailVerified: true,
-        workspaceLinkPins: { create: { slug: "jw" } },
-      },
-    });
-    const current = await db.publication.findUniqueOrThrow({
-      where: { id: publication.id },
-    });
-    if (!current.currentRevisionId)
-      throw new Error("Publication fixture has no current revision");
-    const revision = await db.publicationRevision.update({
-      where: { id: current.currentRevisionId },
-      data: {
-        summary: "Priority article summary",
-        author: "Priority author",
-        reporter: "Priority reporter",
-        editor: "Priority editor",
-        originalPublisher: "Priority publisher",
-        rawMetadata: { privateMarker: `raw-publication-${marker}` },
-      },
-    });
-    const asset = await db.publicationObject.create({
-      data: {
-        kind: "asset",
-        sha256: hash,
-        r2Key: objectKey,
-        size: bytes.byteLength,
-        contentType: "application/pdf",
-        status: "verified",
-        verifiedAt: new Date(),
-      },
-    });
-    await db.publicationObjectLink.create({
-      data: {
-        revisionId: revision.id,
-        objectId: asset.id,
-        role: "asset",
-        filename: "Priority attachment.pdf",
-      },
-    });
-    const organizer = await db.youngOrganizer.create({
-      data: {
-        id: `priority-organizer-id-${marker}`,
-        name: `Priority organizer ${marker.slice(0, 8)}`,
-        normalizedName: `priority-organizer-${marker}`,
-      },
-    });
-    const young = await db.youngEvent.create({
-      data: {
-        youngId: `priority-event-id-${marker}`,
-        name: `Priority 活动 ${marker.slice(0, 8)}`,
-        organizerId: organizer.id,
-        organizer: organizer.name,
-        rawJson: { privateMarker: `young-raw-${marker}` },
-        isActive: true,
-        sourceMissing: true,
-        status: "报名中",
-        category: "Priority category",
-        module: "智",
-        activityLevel: "校级",
-        form: "讲座",
-        grades: "2026 cohort",
-        department: "Priority department",
-        sponsor: "Priority sponsor",
-        externalSponsor: "Priority partner",
-        contactName: "Priority contact",
-        contactTel: "0551-63600000",
-        location: "Priority venue",
-        imageUrl: `group1/priority-${marker}.png`,
-        description: "<p>Priority event description</p>",
-        participationNotes: "<p>Priority participation notes</p>",
-        startAt: new Date("2035-09-15T10:00:00+08:00"),
-        endAt: new Date("2035-09-15T12:00:00+08:00"),
-        applyStartAt: new Date("2035-09-01T08:00:00+08:00"),
-        applyEndAt: new Date("2035-09-14T20:00:00+08:00"),
-        hours: 2.5,
-        capacity: 47,
-        appliedCount: 13,
-        duration: 2,
-        serviceHour: 3.5,
-        sumHours: 59,
-        sumPersons: 23,
-        partakeNum: 17,
-        favCount: 7,
-        limitNum: 41,
-        createdAtUpstream: new Date("2035-08-01T09:11:00+08:00"),
-        auditedAt: new Date("2035-08-02T09:12:00+08:00"),
-        updatedAtUpstream: new Date("2035-08-03T09:13:00+08:00"),
-        requiresSignup: true,
-        requiresSignupInfo: true,
-        signupScopeCode: `opaque-scope-${marker}`,
-        signupDepartmentIds: [`opaque-department-${marker}`],
-        allowedAttachmentTypes: ["pdf", "docx"],
-        isOnline: true,
-        onlineMeetingInfo: "Priority meeting 8123",
-        places: [
-          {
-            placeInfo: "Priority room 3A204",
-            placeSt: "2035-09-15T10:00:00+08:00",
-            placeEt: "2035-09-15T12:00:00+08:00",
-          },
-        ],
-      },
-    });
-    const base = 1_600_000_000 + Math.floor(Math.random() * 50_000_000);
-    const campuses = await Promise.all(
-      [0, 1].map((i) =>
-        db.busCampus.create({
-          data: {
-            id: base + i,
-            nameCn: `优先级${i === 0 ? "甲" : "乙"}站${marker.slice(0, 4)}`,
-            nameEn: `Priority ${i === 0 ? "Alpha" : "Beta"} ${marker.slice(0, 4)}`,
-            latitude: 31.82 + i * 0.01,
-            longitude: 117.26 + i * 0.01,
-          },
-        }),
-      ),
-    );
-    const route = await db.busRoute.create({
-      data: {
-        id: base + 2,
-        nameCn: "优先级测试线路",
-        nameEn: "Priority route",
-        stops: {
-          create: campuses.map((campus, i) => ({
-            campusId: campus.id,
-            stopOrder: i + 1,
-          })),
-        },
-      },
-    });
-    const rawCampuses = campuses.map((c) => ({
-      id: c.id,
-      name: c.nameCn,
-      latitude: c.latitude,
-      longitude: c.longitude,
-    }));
-    const rawRoute = { id: route.id, campuses: rawCampuses };
-    const schedules = [
-      {
-        id: route.id,
-        route: rawRoute,
-        time: [
-          ["13:00", "13:20"],
-          ["00:00", "23:59"],
-        ],
-      },
-    ];
-    const version = await db.busScheduleVersion.create({
-      data: {
-        key: `priority-version-${marker}`,
-        title: "Priority timetable",
-        checksum: marker,
-        isEnabled: true,
-        effectiveFrom: new Date(`${formatShanghaiDate(new Date())}T00:00:00Z`),
-        rawJson: {
-          campuses: rawCampuses,
-          routes: [rawRoute],
-          weekday_routes: schedules,
-          saturday_routes: schedules,
-          sunday_routes: schedules,
-        },
-      },
-    });
-    const trips = [];
-    for (const [dayIndex, dayType] of (
-      ["weekday", "saturday", "sunday"] as const
-    ).entries())
-      for (const position of [0, 1])
-        trips.push(
-          await db.busTrip.create({
-            data: {
-              id: base + 10 + dayIndex * 2 + position,
-              versionId: version.id,
-              routeId: route.id,
-              dayType,
-              position,
-              stopTimes: schedules[0].time[position],
-            },
-          }),
-        );
-    return {
-      user,
-      revision,
-      asset,
-      organizer,
-      young,
-      campuses,
-      route,
-      version,
-      trips,
-    };
-  });
-  return {
-    ...data,
-    publication,
-    marker,
-    async close() {
-      await withE2ePrisma(async (db) => {
-        await db.user.delete({ where: { id: data.user.id } });
-        await db.youngEvent.delete({ where: { youngId: data.young.youngId } });
-        await db.youngOrganizer.delete({ where: { id: data.organizer.id } });
-        await db.busScheduleVersion.delete({ where: { id: data.version.id } });
-        await db.busRouteStop.deleteMany({ where: { routeId: data.route.id } });
-        await db.busRoute.delete({ where: { id: data.route.id } });
-        await db.busCampus.deleteMany({
-          where: { id: { in: data.campuses.map((c) => c.id) } },
-        });
-      });
-      await deletePublicationFixture(publication);
-      await withE2ePrisma((db) =>
-        db.publicationObject.delete({ where: { id: data.asset.id } }),
-      );
-      publicationFixtureObjectCommand("delete", objectKey);
-    },
-  };
-}
-
-// These consumers only read this state. Sharing its immutable objects avoids
-// repeating the R2 upload bootstrap; a focused run receives the same fresh state.
-// The active bus version still requires an isolated Worker/database partition.
-const test = base.extend<
-  object,
-  { discoveryState: Awaited<ReturnType<typeof fixture>> }
->({
-  discoveryState: [
-    // biome-ignore lint/correctness/noEmptyPattern: Playwright reads destructuring as the fixture dependency list.
-    async ({}, use) => {
-      const data = await fixture();
-      try {
-        await use(data);
-      } finally {
-        await data.close();
-      }
-    },
-    { scope: "worker" },
-  ],
-});
-
 for (const locale of ["zh-cn", "en-us"] as const)
   for (const width of [1280, 390]) {
     test(`ui.model-property-priority-discovery-views ${locale}/${width}`, async ({
       page,
+      baseURL,
+      isolatedWorker,
       discoveryState: f,
     }, testInfo) => {
       test.setTimeout(240_000);
+      if (!baseURL) throw new Error("Missing Playwright baseURL");
       const main = page.locator("#main-content");
       const title = () => main.getByRole("heading", { level: 1 });
       const clock = new Date();
@@ -313,9 +49,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
         await page.context().clearCookies();
         await page
           .context()
-          .addCookies([
-            { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-          ]);
+          .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
         await page.setViewportSize({ width, height: 1000 });
         await test.step(`${locale}/${width}: landing`, async () => {
           await gotoAndWaitForReady(page, "/");
@@ -579,6 +313,15 @@ for (const locale of ["zh-cn", "en-us"] as const)
               "revision.rawMetadata": { value: `raw-publication-${f.marker}` },
             },
           });
+          const attachmentHref = await main
+            .getByRole("link", { name: /Priority attachment\.pdf/ })
+            .getAttribute("href");
+          if (!attachmentHref)
+            throw new Error("Missing publication attachment URL");
+          const attachment = await page.request.get(attachmentHref);
+          expect(attachment.status()).toBe(200);
+          expect(attachment.headers()["content-type"]).toBe("application/pdf");
+          expect(await attachment.body()).toEqual(f.attachmentBytes);
           await gotoAndWaitForReady(page, "/news/sources");
           const source = main
             .locator(`a[href="/news?source=${f.publication.sourceId}"]`)
@@ -946,7 +689,12 @@ for (const locale of ["zh-cn", "en-us"] as const)
             secondary: {
               "hourly.time": visible(
                 tooltip.locator("p").first(),
-                formatShanghaiTime(snapshot.hourly[0].at),
+                new Intl.DateTimeFormat("en-GB", {
+                  timeZone: "Asia/Shanghai",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                }).format(new Date(snapshot.hourly[0].at)),
               ),
               "hourly.temperature": visible(
                 tooltip.getByText("28°C", { exact: true }),
@@ -981,14 +729,20 @@ for (const locale of ["zh-cn", "en-us"] as const)
         await test.step(`${locale}/${width}: signed-in links`, async () => {
           await page
             .context()
-            .addCookies([await createSignedSessionCookie(f.user.id)]);
+            .addCookies([
+              (await isolatedWorker.createSession(f.user.id)).cookie,
+            ]);
           await gotoAndWaitForReady(page, "/catalog/links");
-          const catalogLink = USTC_CATALOG_LINKS.find(
-            (link) => link.slug === "jw",
-          );
-          if (!catalogLink)
-            throw new Error("Academic Affairs catalog link is missing");
-          const item = localizeCatalogLink(catalogLink, locale);
+          const item = {
+            slug: "jw",
+            ...(locale === "zh-cn"
+              ? { title: "教务系统", description: "选课、成绩与教学事务。" }
+              : {
+                  title: "Academic Affairs System",
+                  description:
+                    "Course selection, grades, and teaching affairs.",
+                }),
+          };
           const link = main
             .locator('a[href="/api/catalog/links/resolve?slug=jw"]')
             .filter({ visible: true })
