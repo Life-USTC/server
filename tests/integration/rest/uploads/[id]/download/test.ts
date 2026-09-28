@@ -1,27 +1,23 @@
 import { expect } from "@playwright/test";
-import { DEV_SEED } from "../../../../../fixtures/dev-seed";
 import { base, test as uploadTest } from "../../_fixture";
 
 const test = uploadTest.extend<{ attachmentTarget: number }>({
   attachmentTarget: async ({ uploadState }, use) => {
     const { db } = uploadState;
-    const code = `upload-target-${crypto.randomUUID()}`;
-    try {
-      const source = await db.section.findUniqueOrThrow({
-        where: { jwId: DEV_SEED.section.jwId },
-        select: { courseId: true, semesterId: true },
-      });
-      const section = await db.section.create({
-        data: {
-          ...source,
-          code,
-          jwId: 1_800_000_000 + Math.floor(Math.random() * 100_000_000),
+    const section = await db.section.create({
+      data: {
+        code: "private-upload-attachment-target",
+        jwId: 1_800_000_001,
+        course: {
+          create: {
+            code: "private-upload-course",
+            jwId: 1_800_000_000,
+            nameCn: "Private attachment course",
+          },
         },
-      });
-      await use(section.id);
-    } finally {
-      await db.section.deleteMany({ where: { code } });
-    }
+      },
+    });
+    await use(section.id);
   },
 });
 const path = (id: string) => `${base}/${id}/download`;
