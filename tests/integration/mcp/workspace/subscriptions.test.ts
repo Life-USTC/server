@@ -1,39 +1,53 @@
-import { cleanupMcpResources } from "../_harness/cleanup";
-import { mcpTest } from "../_harness/context";
-// Merged from mcp-12-subscriptions + mcp-18-calendar-subscriptions
-
-import { afterAll, describe } from "vitest";
-import {
-  createFixturePrisma,
-  disconnectTestPrisma,
-} from "../../../shared/prisma";
+import { describe } from "vitest";
 import {
   assertSubscriptionAction,
   assertSubscriptionBrief,
 } from "../../../shared/scenarios/subscriptions";
-import * as fixtures from "../_harness";
-import { createMcpHarness } from "../_harness";
+import { isolatedMcpTest } from "../_harness/isolated-context";
 
-const toolTest = mcpTest
-  .extend(
-    "subscriber",
-    fixtures.actorFixture({
-      emailPrefix: "mcp-subscriptions",
-      name: "MCP Subscription Integration",
-    }),
-  )
-  .extend(
-    "context",
-    fixtures.academicActorFixture({
-      emailPrefix: "mcp-calendar-subscriptions",
-      name: "MCP Calendar Subscriptions",
-    }),
-  );
+const toolTest = isolatedMcpTest
+  .extend("section", async ({ mcpSection, isolatedDatabase }) => {
+    const section = await isolatedDatabase.owner.section.findUniqueOrThrow({
+      where: { id: mcpSection.id },
+      select: {
+        id: true,
+        jwId: true,
+        code: true,
+        courseId: true,
+        semesterId: true,
+      },
+    });
+    if (section.semesterId === null)
+      throw new Error("Subscription section needs a semester");
+    // Default imports resolve the real current date. Prepare its semester;
+    // do not bypass that path with a supplied semesterId or a mocked clock.
+    const today = new Date();
+    await isolatedDatabase.owner.semester.update({
+      where: { id: section.semesterId },
+      data: {
+        startDate: new Date(
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1),
+        ),
+        endDate: new Date(
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 5, 0),
+        ),
+      },
+    });
+    return section;
+  })
+  .extend("context", ({ mcpActor, section }) => ({
+    ...mcpActor,
+    sectionId: section.id,
+    sectionJwId: section.jwId,
+    sectionCode: section.code,
+    semesterId: section.semesterId,
+  }));
 
 describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
   toolTest(
     "订阅返回 action=subscribed 或 action=already_subscribed",
-    async ({ subscriber }) => {
+    async ({ mcpActor: subscriber, section, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
       const result = await subscriber.client.call<{
         success?: boolean;
         action?: string;
@@ -44,21 +58,47 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
           sections?: unknown;
         } | null;
       }>("workspace_subscription_add", {
-        jwId: fixtures.DEV_SEED.section.jwId,
+        jwId: section.jwId,
         locale: "zh-cn",
       });
 
-      assertSubscriptionAction(result, fixtures.DEV_SEED.section.jwId, [
+      assertSubscriptionAction(result, section.jwId, [
         "subscribed",
         "already_subscribed",
       ]);
       assertSubscriptionBrief(result.subscription);
+
+      expect(result.action).toBe("subscribed");
+      expect(result.subscription?.sectionCount).toBe(1);
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: subscriber.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: section.id, kind: "regular" }]);
+      const repeated = await subscriber.client.call<{
+        success?: boolean;
+        action?: string;
+        sectionJwId?: number;
+      }>("workspace_subscription_add", { jwId: section.jwId, locale: "zh-cn" });
+      expect(repeated).toMatchObject({
+        success: true,
+        action: "already_subscribed",
+        sectionJwId: section.jwId,
+      });
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: subscriber.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: section.id, kind: "regular" }]);
     },
   );
 
   toolTest(
     "对缺失的订阅与取消订阅目标返回 not_found",
-    async ({ subscriber, expect }) => {
+    async ({ mcpActor: subscriber, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
       const missingJwId = 2_147_483_647;
       const subscribeResult = await subscriber.client.call<{
         success?: boolean;
@@ -91,155 +131,54 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
         success: false,
         subscription: null,
       });
+
+      expect(await db.userSectionSubscription.count()).toBe(0);
+      expect(await db.section.count()).toBe(0);
     },
   );
 });
 
-// --- formerly mcp-18-calendar-subscriptions ---
-// Uses an isolated user: these tests arrange subscription state directly,
-// which would race other files against the shared dev-seed user.
-
-const rlsFixturePrisma = createFixturePrisma();
-
 describe("workspace subscriptions through the restricted MCP runtime", () => {
-  const rlsTest = mcpTest.extend(
+  const rlsTest = toolTest.extend(
     "state",
-    async ({ mcpConnections: _connections }, { onCleanup }) => {
-      let client: Awaited<ReturnType<typeof createMcpHarness>> | undefined;
-      let userId = "";
-      let otherUserId = "";
-      let activeSectionId = 0;
-      let activeSectionJwId = 0;
-      let retiredSectionId = 0;
-      let retiredSectionJwId = 0;
-      let courseId = 0;
-      let semesterId = 0;
-      onCleanup(async () => {
-        await cleanupMcpResources([
-          async () => {
-            await client?.close();
-          },
-          async () => {
-            await rlsFixturePrisma.$transaction(async (tx) => {
-              await tx.featureOperationEvent.deleteMany({
-                where: { userId: { in: [userId, otherUserId] } },
-              });
-              await tx.user.deleteMany({
-                where: { id: { in: [userId, otherUserId] } },
-              });
-              await tx.section.deleteMany({
-                where: { id: { in: [activeSectionId, retiredSectionId] } },
-              });
-              await tx.course.deleteMany({ where: { id: courseId } });
-              await tx.semester.deleteMany({ where: { id: semesterId } });
-            });
-          },
-        ]);
-      });
-      const suffix = crypto.randomUUID();
-      // Keep custom catalog rows isolated from shared seed rows. The fixture
-      // client is the function-owner connection; MCP itself uses DATABASE_URL.
-      const numericMarker =
-        2_000_000_000 +
-        (Date.now() % 10_000_000) * 2 +
-        Math.trunc(Math.random() * 1_000);
-      const fixture = await rlsFixturePrisma.$transaction(async (tx) => {
-        const semester = await tx.semester.create({
-          data: {
-            jwId: numericMarker,
-            code: `[integration-test] mcp-rls-semester-${suffix}`,
-            nameCn: `[integration-test] MCP RLS semester ${suffix}`,
-            startDate: new Date("2026-01-01T00:00:00.000Z"),
-            endDate: new Date("2027-01-01T00:00:00.000Z"),
-          },
-          select: { id: true },
-        });
-        const course = await tx.course.create({
-          data: {
-            jwId: numericMarker + 1,
-            code: `[integration-test] MCP-RLS-${suffix}`,
-            nameCn: `[integration-test] MCP RLS course ${suffix}`,
-          },
-          select: { id: true },
-        });
-        const [activeSection, retiredSection] = await Promise.all([
-          tx.section.create({
+    async ({ mcpActor, mcpOtherActor, section, isolatedDatabase }) => {
+      const retiredSection = await isolatedDatabase.owner.$transaction(
+        async (db) => {
+          const retired = await db.section.create({
             data: {
-              jwId: numericMarker + 2,
-              code: `[integration-test] MCP-RLS-active-${suffix}`,
-              courseId: course.id,
-              semesterId: semester.id,
-            },
-            select: { id: true, jwId: true },
-          }),
-          tx.section.create({
-            data: {
-              jwId: numericMarker + 3,
-              code: `[integration-test] MCP-RLS-retired-${suffix}`,
-              courseId: course.id,
-              semesterId: semester.id,
+              jwId: 2,
+              code: "MCP.RETIRED",
+              courseId: section.courseId,
+              semesterId: section.semesterId,
               retiredAt: new Date("2026-09-01T00:00:00.000Z"),
             },
-            select: { id: true, jwId: true },
-          }),
-        ]);
-        const user = await tx.user.create({
-          data: {
-            email: `integration-mcp-subscription-rls-${suffix}@example.test`,
-            name: "MCP subscription RLS owner",
-          },
-          select: { id: true },
-        });
-        const otherUser = await tx.user.create({
-          data: {
-            email: `integration-mcp-subscription-rls-other-${suffix}@example.test`,
-            name: "MCP subscription RLS other owner",
-          },
-          select: { id: true },
-        });
-        await tx.userSectionSubscription.create({
-          data: {
-            userId: otherUser.id,
-            sectionId: activeSection.id,
-            kind: "teaching_assistant",
-          },
-        });
-        return {
-          activeSection,
-          courseId: course.id,
-          otherUserId: otherUser.id,
-          retiredSection,
-          semesterId: semester.id,
-          userId: user.id,
-        };
-      });
-
-      activeSectionId = fixture.activeSection.id;
-      activeSectionJwId = fixture.activeSection.jwId;
-      courseId = fixture.courseId;
-      otherUserId = fixture.otherUserId;
-      retiredSectionId = fixture.retiredSection.id;
-      retiredSectionJwId = fixture.retiredSection.jwId;
-      semesterId = fixture.semesterId;
-      userId = fixture.userId;
-      client = await createMcpHarness(userId);
+          });
+          await db.userSectionSubscription.create({
+            data: {
+              userId: mcpOtherActor.userId,
+              sectionId: section.id,
+              kind: "teaching_assistant",
+            },
+          });
+          return retired;
+        },
+      );
       return {
-        client,
-        userId,
-        otherUserId,
-        activeSectionId,
-        activeSectionJwId,
-        retiredSectionId,
-        retiredSectionJwId,
-        courseId,
-        semesterId,
+        client: mcpActor.client,
+        userId: mcpActor.userId,
+        otherUserId: mcpOtherActor.userId,
+        activeSectionId: section.id,
+        activeSectionJwId: section.jwId,
+        retiredSectionId: retiredSection.id,
+        retiredSectionJwId: retiredSection.jwId,
       };
     },
   );
 
   rlsTest(
     "runs subscribe/list/remove/list under RLS and preserves other owners",
-    async ({ state, expect }) => {
+    async ({ state, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
       const {
         client,
         userId,
@@ -277,7 +216,20 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
         },
       });
 
-      await rlsFixturePrisma.userSectionSubscription.create({
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: activeSectionId, kind: "regular" }]);
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: otherUserId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: activeSectionId, kind: "teaching_assistant" }]);
+
+      await db.userSectionSubscription.create({
         data: {
           userId,
           sectionId: retiredSectionId,
@@ -325,6 +277,13 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
         },
       });
 
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: retiredSectionId, kind: "teaching_assistant" }]);
+
       const repeatedRemove = await client.call<{
         action?: string;
         sectionJwId?: number;
@@ -371,12 +330,12 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
       expect(listAfterAllRemoves.sections).toEqual([]);
 
       await expect(
-        rlsFixturePrisma.userSectionSubscription.findMany({
+        db.userSectionSubscription.findMany({
           where: { userId },
         }),
       ).resolves.toEqual([]);
       await expect(
-        rlsFixturePrisma.userSectionSubscription.findMany({
+        db.userSectionSubscription.findMany({
           where: { userId: otherUserId },
           select: { sectionId: true, kind: true },
         }),
@@ -390,10 +349,11 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 describe("个人日历订阅 — 读取与批量订阅", () => {
   toolTest(
     "workspace_calendar_feed_get 返回订阅班级但不泄露个人 iCal 凭据",
-    async ({ context, expect }) => {
-      await fixtures.replaceUserSubscribedSections(context.userId, [
-        context.sectionId,
-      ]);
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: context.userId, sectionId: context.sectionId },
+      });
 
       const result = await context.client.call<{
         success?: boolean;
@@ -432,15 +392,28 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       expect(result.subscription?.calendarPath).toBeUndefined();
       expect(result.subscription?.calendarUrl).toBeUndefined();
       expect(result.subscription?.note).toContain("not official");
+
+      expect(result.subscription?.sectionCount).toBe(1);
+      expect(result.subscription?.currentSemesterSectionCount).toBe(1);
+      expect(result.subscription?.sections?.map((row) => row.jwId)).toEqual([
+        context.sectionJwId,
+      ]);
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
     },
   );
 
   toolTest(
     "workspace_calendar_feed_get summary 兼容输入返回 default 结构",
-    async ({ context, expect }) => {
-      await fixtures.replaceUserSubscribedSections(context.userId, [
-        context.sectionId,
-      ]);
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: context.userId, sectionId: context.sectionId },
+      });
 
       const result = await context.client.call<{
         success?: boolean;
@@ -467,15 +440,25 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       expect(Array.isArray(result.subscription?.currentSemesterSections)).toBe(
         true,
       );
+
+      expect(result.subscription?.sectionCount).toBe(1);
+      expect(result.subscription?.currentSemesterSectionCount).toBe(1);
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
     },
   );
 
   toolTest(
     "workspace_subscription_list 列出当前订阅班级",
-    async ({ context, expect }) => {
-      await fixtures.replaceUserSubscribedSections(context.userId, [
-        context.sectionId,
-      ]);
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: context.userId, sectionId: context.sectionId },
+      });
 
       const result = await context.client.call<{
         success?: boolean;
@@ -497,12 +480,23 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         ),
       ).toBe(true);
       expect(result.note).toContain("not official");
+
+      expect(
+        result.sections?.map((row) => ({ jwId: row.jwId, code: row.code })),
+      ).toEqual([{ jwId: context.sectionJwId, code: context.sectionCode }]);
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
     },
   );
 
   toolTest(
     "catalog_section_calendar_feed_get 按 jwId 返回单班 iCal 信息",
-    async ({ context, expect }) => {
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
       const result = await context.client.call<{
         found?: boolean;
         section?: {
@@ -523,12 +517,23 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         `/api/catalog/sections/${context.sectionJwId}/calendar.ics`,
       );
       expect(result.calendarUrl).toContain(result.calendarPath ?? "");
+
+      expect(result.calendarUrl).toBe(
+        `https://life.example/api/catalog/sections/${context.sectionJwId}/calendar.ics`,
+      );
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([]);
     },
   );
 
   toolTest(
     "catalog_section_calendar_feed_get 对缺失 jwId 返回 found=false",
-    async ({ context, expect }) => {
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
       const missingJwId = 2_147_483_647;
       const result = await context.client.call<{
         found?: boolean;
@@ -545,13 +550,23 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       expect(result.calendarPath).toBe(
         `/api/catalog/sections/${missingJwId}/calendar.ics`,
       );
+
+      expect(
+        await db.section.findUnique({ where: { jwId: missingJwId } }),
+      ).toBeNull();
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([]);
     },
   );
 
   toolTest(
     "workspace_subscription_import 批量匹配并订阅班级",
-    async ({ context, expect }) => {
-      await fixtures.replaceUserSubscribedSections(context.userId, []);
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
 
       const result = await context.client.call<{
         success?: boolean;
@@ -584,15 +599,26 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
           result.subscription?.sectionCount ??
           0) > 0,
       ).toBe(true);
+
+      expect(result.semester?.id).toBe(context.semesterId);
+      expect(result.matchedCodes).toEqual([context.sectionCode]);
+      expect(result.addedCount).toBe(1);
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
     },
   );
 
   toolTest(
     "workspace_subscription_import 跳过已订阅班级",
-    async ({ context, expect }) => {
-      await fixtures.replaceUserSubscribedSections(context.userId, [
-        context.sectionId,
-      ]);
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: context.userId, sectionId: context.sectionId },
+      });
 
       const result = await context.client.call<{
         success?: boolean;
@@ -609,12 +635,25 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       expect(result.matchedCodes).toContain(context.sectionCode);
       expect(result.addedCount).toBe(0);
       expect(result.alreadySubscribedCount).toBeGreaterThanOrEqual(1);
+
+      expect(result.alreadySubscribedCount).toBe(1);
+      expect(result.unmatchedCodes).toEqual([]);
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
     },
   );
 
   toolTest(
     "workspace_subscription_import 报告未匹配代码",
-    async ({ context, expect }) => {
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: context.userId, sectionId: context.sectionId },
+      });
       const marker = `MISSING${Date.now()}.01`;
 
       const result = await context.client.call<{
@@ -633,12 +672,23 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       expect(result.unmatchedCodes).toContain(marker);
       expect(result.addedCount).toBe(0);
       expect(result.alreadySubscribedCount).toBe(0);
+
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
     },
   );
 
   toolTest(
     "workspace_subscription_import 对不存在的学期返回失败",
-    async ({ context, expect }) => {
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: context.userId, sectionId: context.sectionId },
+      });
       const result = await context.client.call<{
         success?: boolean;
         message?: string;
@@ -650,40 +700,62 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
       expect(result.success).toBe(false);
       expect(result.message).toContain("No semester found");
+
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
+      expect(
+        await db.semester.findUnique({ where: { id: 2_147_483_647 } }),
+      ).toBeNull();
     },
   );
 
   toolTest(
     "workspace_subscription_import 拒绝空代码列表",
-    async ({ context, expect }) => {
+    async ({ context, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: context.userId, sectionId: context.sectionId },
+      });
       await expect(
         context.client.call("workspace_subscription_import", {
           codes: [],
           locale: "zh-cn",
         }),
       ).rejects.toThrow();
+
+      expect(
+        await db.userSectionSubscription.findMany({
+          where: { userId: context.userId },
+          select: { sectionId: true, kind: true },
+        }),
+      ).toEqual([{ sectionId: context.sectionId, kind: "regular" }]);
     },
   );
 
   toolTest(
     "workspace_calendar_feed_get 对不存在用户返回失败",
-    async ({ expect }) => {
-      const missingUserMcp = await createMcpHarness("missing-user-id");
-      try {
-        const result = await missingUserMcp.call<{
-          success?: boolean;
-          message?: string;
-        }>("workspace_calendar_feed_get", {
-          locale: "zh-cn",
-        });
+    async ({ mcpSessions, isolatedDatabase, expect }) => {
+      const db = isolatedDatabase.owner;
+      const missingSession = mcpSessions.own("missing-user-id");
+      await missingSession.initialize();
+      const missingUserMcp = missingSession.client;
 
-        expect(result.success).toBe(false);
-        expect(result.message).toContain("User not found");
-      } finally {
-        await missingUserMcp.close();
-      }
+      const result = await missingUserMcp.call<{
+        success?: boolean;
+        message?: string;
+      }>("workspace_calendar_feed_get", {
+        locale: "zh-cn",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("User not found");
+
+      expect(await db.user.count()).toBe(0);
+      expect(await db.userSectionSubscription.count()).toBe(0);
     },
   );
 });
-
-afterAll(() => disconnectTestPrisma(rlsFixturePrisma));
