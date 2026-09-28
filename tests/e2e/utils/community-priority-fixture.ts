@@ -10,12 +10,13 @@ export async function createCommunityPriorityFixture(page: Page) {
   const daysAgo = (days: number) =>
     new Date(today.getTime() - days * 86_400_000);
   const f = await withE2ePrisma(async (db) => {
+    const marker = crypto.randomUUID();
     const n = 1_600_000_000 + Math.floor(Math.random() * 100_000_000);
     const author = await db.user.create({
       data: {
         name: "Priority community author",
-        username: "prioritycommunity",
-        email: "priority-community@example.test",
+        username: `pc${marker.replaceAll("-", "").slice(0, 20)}`,
+        email: `priority-community-${marker}@example.test`,
         emailVerified: true,
         image: PRIORITY_AVATAR,
         createdAt: new Date("2026-01-02T00:00:00Z"),

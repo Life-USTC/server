@@ -1,9 +1,4 @@
 import { expect, type Page, test } from "@playwright/test";
-import {
-  type SemanticContract,
-  semanticContract,
-} from "../../../../shared/specifications/semantic-contract";
-import { uiExpectation } from "../../../../shared/specifications/ui";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
@@ -70,21 +65,11 @@ async function openMobileMenu(page: Page) {
   ).toBeVisible();
 }
 
-async function assertReadingOrder(
-  page: Page,
-  id: string,
-  contract: SemanticContract,
-) {
-  contract.equal("/surface", "web");
-  contract.equal("/target", {
-    by: "css",
-    value: "[data-detail-reading-stream] > section[id]",
-  });
-  const { items } = uiExpectation(id, "ordered_items");
+async function assertReadingOrder(page: Page, items: readonly string[]) {
   const actual = await page
     .locator("[data-detail-reading-stream] > section[id]")
     .evaluateAll((nodes) => nodes.map((node) => node.id));
-  contract.equal("/items", actual);
+  expect(actual).toEqual(items);
   let previousBottom = -Infinity;
   for (const id of items) {
     const box = await page.locator(`#${id}`).boundingBox();
@@ -95,21 +80,24 @@ async function assertReadingOrder(
   }
 }
 
-test("ui.detail-two-column-stream-2", async ({ page }, testInfo) => {
-  const contract = await semanticContract(testInfo.title, "ordered_items");
+test("ui.detail-two-column-stream-2", async ({ page }) => {
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await gotoAndWaitForReady(
       page,
       `/catalog/sections/${DEV_SEED.section.jwId}`,
     );
-    await assertReadingOrder(page, "ui.detail-two-column-stream-2", contract);
+    await assertReadingOrder(page, [
+      "introduction",
+      "calendar",
+      "exams",
+      "homework",
+      "comments",
+    ]);
   }
-  contract.recordPlaywright(testInfo);
 });
 
-test("ui.detail-two-column-stream-3", async ({ page }, testInfo) => {
-  const contract = await semanticContract(testInfo.title, "ordered_items");
+test("ui.detail-two-column-stream-3", async ({ page }) => {
   const pages = (await catalogPages(page)).filter(
     (p) => p.collection !== "/catalog/sections",
   );
@@ -117,10 +105,9 @@ test("ui.detail-two-column-stream-3", async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     for (const { href } of pages) {
       await gotoAndWaitForReady(page, href);
-      await assertReadingOrder(page, "ui.detail-two-column-stream-3", contract);
+      await assertReadingOrder(page, ["introduction", "sections", "comments"]);
     }
   }
-  contract.recordPlaywright(testInfo);
 });
 
 test("ui.detail-hero-2", async ({ page }) => {

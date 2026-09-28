@@ -1,8 +1,8 @@
 import { type Locator, type Page, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
-import type {
-  createPriorityViewAudit,
-  VisiblePriorityField,
+import {
+  assertPriorityView,
+  type VisiblePriorityField,
 } from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
 
@@ -13,7 +13,6 @@ const field = (
 const text = (scope: Locator, expected: string | RegExp) =>
   field(scope.getByText(expected).filter({ visible: true }).first(), expected);
 export async function checkWorkspaceOverviewPriorityViews(
-  audit: ReturnType<typeof createPriorityViewAudit>,
   page: Page,
   data: WorkspacePriorityFixture,
   locale: "zh-cn" | "en-us",
@@ -70,10 +69,7 @@ export async function checkWorkspaceOverviewPriorityViews(
     locale === "en-us" ? "en-US" : "zh-CN",
     { timeZone: "Asia/Shanghai", weekday: "long" },
   ).format(date);
-  await audit.check({
-    feature: "overview",
-    capability: "authenticated-overview",
-    view: "web",
+  await assertPriorityView({
     scope: main,
     identity,
     primary: {
@@ -142,10 +138,7 @@ export async function checkWorkspaceOverviewPriorityViews(
           .first(),
         expected,
       );
-    await audit.check({
-      feature: "overview",
-      capability: "authenticated-overview",
-      view: "web-week-strip",
+    await assertPriorityView({
       scope: card,
       identity: cardTitle,
       primary: { "days.events.title": field(cardTitle, item.title) },
@@ -172,10 +165,7 @@ export async function checkWorkspaceOverviewPriorityViews(
     name: locale === "en-us" ? "Todos" : "待办",
     exact: true,
   });
-  await audit.check({
-    feature: "overview",
-    capability: "workspace-shell-navigation",
-    view: "web",
+  await assertPriorityView({
     scope: item,
     identity: title.locator("span").last(),
     primary: {
