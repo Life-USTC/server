@@ -50,12 +50,6 @@ function organizerHref(id: string) {
 function eventsHref(id: string) {
   return `/catalog/young-events?active=true&organizerId=${encodeURIComponent(id)}`;
 }
-
-const summary = $derived(
-  youngCopy.organizersShowing
-    .replace("{count}", String(data.length))
-    .replace("{total}", String(pagination.total)),
-);
 </script>
 
 {#snippet paginationFooter()}
@@ -92,7 +86,6 @@ const summary = $derived(
     {/snippet}
 
     <section class="flex min-h-[calc(100dvh-16rem)] min-w-0 flex-col gap-3">
-      <p class="text-right text-sm text-muted-foreground">{summary}</p>
       {#if data.length > 0}
         <ResponsiveCollection>
           {#snippet mobile()}
@@ -161,7 +154,6 @@ const summary = $derived(
         </div>
       {/if}
       <div class="mt-auto grid justify-items-end gap-1 pt-8">
-        <p class="text-xs text-muted-foreground">{youngCopy.organizerCountsHint}</p>
         <YoungSourceNote labels={youngCopy} {source} />
       </div>
     </section>

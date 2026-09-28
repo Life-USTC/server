@@ -31,7 +31,6 @@ export let unknownDatesHref = "/catalog/young-events?dateUnknown=true";
 export let labels: {
   agenda: string;
   earlierDates: string;
-  empty: string;
   month: string;
   next: string;
   previous: string;
@@ -176,8 +175,6 @@ function eventMeta(event: YoungEventSummary) {
             {#if visible.length > limit}
               <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
             {/if}
-          {:else if view === "day"}
-            <p class="text-sm text-muted-foreground">{labels.empty}</p>
           {/if}
         </section>
       {/each}
@@ -229,12 +226,8 @@ function eventMeta(event: YoungEventSummary) {
                 <span class="block truncate text-muted-foreground text-xs">{[eventMeta(event), event.sourceMissing ? labels.sourceMissing : null].filter(Boolean).join(" · ")}</span>
               </span>
             </a>
-          {:else}
-            <p class="text-sm text-muted-foreground">{labels.empty}</p>
           {/each}
         </div>
-      {:else}
-        <p class="text-sm text-muted-foreground">{labels.empty}</p>
       {/if}
     {:else}
       <CalendarGrid

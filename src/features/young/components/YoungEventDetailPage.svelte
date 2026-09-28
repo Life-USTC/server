@@ -20,6 +20,7 @@ import * as Collapsible from "$lib/components/ui/collapsible";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import { youngReturnHref } from "../lib/young-navigation";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
@@ -104,10 +105,6 @@ function formatRange(start: string | null, end: string | null) {
   return youngDateRange(start, end, youngCopy);
 }
 
-function formatSourceDate(value: string | null) {
-  return youngDateTime(value);
-}
-
 type Field = { label: string; value: string | null | undefined };
 
 function fieldList(fields: Field[]) {
@@ -135,15 +132,6 @@ const badges = $derived(
   ].filter((value): value is string => value != null && value !== ""),
 );
 
-const timeFields = $derived(
-  fieldList([
-    {
-      label: youngCopy.signupWindow,
-      value: formatRange(event.applyStartAt, event.applyEndAt),
-    },
-  ]),
-);
-
 const recordFields = $derived(
   fieldList([
     {
@@ -158,32 +146,8 @@ const recordFields = $derived(
   ]),
 );
 
-const registrationFields = $derived(
-  fieldList([
-    {
-      label: youngCopy.signupRequirement,
-      value:
-        event.requiresSignup === true
-          ? youngCopy.signupRequired
-          : event.requiresSignup === false
-            ? youngCopy.signupNotRequired
-            : null,
-    },
-    { label: youngCopy.grades, value: event.grades },
-    {
-      label: youngCopy.allowedAttachmentTypes,
-      value: event.allowedAttachmentTypes.join(", ").toUpperCase(),
-    },
-    {
-      label: youngCopy.onlineMeetingInfo,
-      value: event.isOnline === false ? null : event.onlineMeetingInfo,
-    },
-  ]),
-);
-
 const peopleFields = $derived(
   fieldList([
-    { label: youngCopy.limitNum, value: numberValue(event.limitNum) },
     { label: youngCopy.partakeNum, value: numberValue(event.partakeNum) },
     { label: youngCopy.sumPersons, value: numberValue(event.sumPersons) },
     { label: youngCopy.hours, value: numberValue(event.hours) },
@@ -196,19 +160,6 @@ const peopleFields = $derived(
           ? null
           : youngCopy.durationHours.replace("{value}", String(event.duration)),
     },
-    { label: youngCopy.favCount, value: numberValue(event.favCount) },
-  ]),
-);
-
-const organizationFields = $derived(
-  fieldList([
-    { label: youngCopy.category, value: event.category },
-    { label: youngCopy.sponsor, value: event.sponsor },
-    { label: youngCopy.externalSponsor, value: event.externalSponsor },
-    { label: youngCopy.organizer, value: event.organizer },
-    { label: youngCopy.department, value: event.department },
-    { label: youngCopy.contactName, value: event.contactName },
-    { label: youngCopy.contactTel, value: event.contactTel },
   ]),
 );
 
@@ -220,6 +171,21 @@ const places = $derived(
     }))
     .filter((place) => place.info != null || place.range != null),
 );
+
+const extraPlaces = $derived.by(() => {
+  const shownLocation =
+    event.location?.trim() ||
+    places
+      .map((place) => place.info)
+      .filter((info): info is string => Boolean(info))
+      .join(" · ");
+  const eventRange = formatRange(event.startAt, event.endAt);
+  return places.filter((place) => {
+    const infoShown = !place.info || shownLocation.includes(place.info);
+    const rangeShown = !place.range || place.range === eventRange;
+    return !(infoShown && rangeShown);
+  });
+});
 </script>
 
 {#snippet factSection(title: string, fields: { label: string; value: string }[])}
@@ -319,11 +285,11 @@ const places = $derived(
       <div data-testid="young-event-overview">
         <DetailDefinitionList items={overviewFields} />
       </div>
-      {#if places.length > 0}
+      {#if extraPlaces.length > 0}
         <section class="mt-5 grid gap-3">
           <h2 class="text-sm font-semibold tracking-tight">{youngCopy.sectionPlaces}</h2>
           <ul class="grid gap-3">
-            {#each places as place, index (index)}
+            {#each extraPlaces as place, index (index)}
               <li class="grid gap-1">
                 {#if place.info}<span class="text-sm font-medium">{place.info}</span>{/if}
                 {#if place.range}<span class="text-muted-foreground text-sm">{place.range}</span>{/if}
@@ -341,32 +307,7 @@ const places = $derived(
         <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
       </div>
     </Panel>
-    {#if event.organizerId && event.organizer}
-      <p class="text-sm">
-        <span class="text-muted-foreground">{youngCopy.organizer}: </span>
-        <a class="underline underline-offset-4" href={`/catalog/young-events/organizers/${event.organizerId}`}>{event.organizer}</a>
-      </p>
-    {/if}
-    {@render factSection(youngCopy.sectionTime, timeFields)}
-    {@render factSection(youngCopy.sectionRegistration, registrationFields)}
-    {#if event.requiresSignupInfo != null}
-      <p class="text-sm text-muted-foreground">{event.requiresSignupInfo ? youngCopy.signupInfoRequired : youngCopy.signupInfoNotRequired}</p>
-    {/if}
-    {#if event.signupScopeCode != null || event.signupDepartmentIds.length > 0}
-      <p class="text-sm text-muted-foreground">{youngCopy.scopeHint}</p>
-    {/if}
-    {@render factSection(youngCopy.sectionOrganization, organizationFields)}
-    <p class="text-right text-xs text-muted-foreground" data-testid="young-source-freshness">
-      {#if source.status === "fresh"}
-        {youngCopy.sourceFresh}
-      {:else if source.status === "stale"}
-        {youngCopy.sourceStale}
-      {:else}
-        {youngCopy.sourceUnknown}
-      {/if}
-      {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-      {#if event.sourceMissing} · {youngCopy.sourceMissing}{/if}
-    </p>
+    <YoungSourceNote labels={youngCopy} {source} />
   {/snippet}
 </CollectionPage>
 

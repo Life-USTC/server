@@ -2,8 +2,7 @@
  * E2E tests for /catalog/young-events/[youngId] — 第二课堂活动详情
  *
  * ## Data Represented
- * - One signup event: name, category, status, event time, signup window,
- *   location, organizer, department, hours, capacity
+ * - One signup event: name, status, event time, location, and hours
  * - Seed event: DEV_SEED.youngEvent (youngId dev-scenario-young-event)
  *
  * ## UI/UX Elements
@@ -39,8 +38,10 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     ).toBeVisible();
     await expect(visibleText(page, DEV_SEED.youngEvent.location)).toBeVisible();
     await expect(
-      visibleText(page, DEV_SEED.youngEvent.organizer),
-    ).toBeVisible();
+      page.getByRole("heading", {
+        name: /^(?:时间与报名|报名与参与|组织与联系|Time and registration|Registration and participation|Organization and contact)$/,
+      }),
+    ).toHaveCount(0);
 
     const signupLink = page.getByRole("link", {
       name: /前往官方平台|official site/i,
@@ -115,27 +116,27 @@ for (const width of [1280, 390]) {
     try {
       await page.setViewportSize({ width, height: 844 });
       await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
-      await expect(
-        page.getByText("800-414-186", { exact: true }),
-      ).toBeVisible();
-      await expect(page.getByText("PDF, DOCX", { exact: true })).toBeVisible();
-      await expect(
-        page.getByText(/提供线上会议|Online meeting available/, {
-          exact: true,
-        }),
-      ).toBeVisible();
-      await expect(
-        page
-          .getByTestId("young-event-overview")
-          .getByText("东区学生活动中心", { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText("校外合作机构", { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText("800-414-186", { exact: true })).toHaveCount(
+        0,
+      );
+      await expect(page.getByText("PDF, DOCX", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("校外合作机构", { exact: true })).toHaveCount(
+        0,
+      );
       await expect(
         page.getByText(
           /报名时需填写补充信息|Additional information required at registration/,
         ),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", {
+          name: /^(?:时间与报名|报名与参与|组织与联系|场地安排|Time and registration|Registration and participation|Organization and contact|Venues)$/,
+        }),
+      ).toHaveCount(0);
+      await expect(
+        page
+          .getByTestId("young-event-overview")
+          .getByText("东区学生活动中心", { exact: true }),
       ).toBeVisible();
       await expect(
         page.getByText("opaque-department-id", { exact: true }),

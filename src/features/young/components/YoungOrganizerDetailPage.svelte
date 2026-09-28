@@ -12,11 +12,11 @@ import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
-import { youngDateRange, youngDateTime } from "../lib/young-event-display";
+import { youngDateRange } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
@@ -35,10 +35,6 @@ function formatRange(event: YoungEventSummary) {
     youngDateRange(event.startAt, event.endAt, youngCopy) ??
     youngCopy.unknownTime
   );
-}
-
-function formatSourceDate(value: string | null) {
-  return youngDateTime(value) ?? youngCopy.unknownValue;
 }
 
 function pageHref(page: number) {
@@ -65,7 +61,6 @@ function pageHref(page: number) {
           <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
         {/snippet}
         <div class="grid gap-3">
-        <ResultsSummary summary={youngCopy.showing.replace("{count}", String(events.data.length)).replace("{total}", String(events.pagination.total))} page={events.pagination.page} totalPages={events.pagination.totalPages} />
         {#if events.data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}
@@ -100,16 +95,6 @@ function pageHref(page: number) {
         </div>
       </Panel>
   {#snippet aside()}
-    <p class="text-sm text-muted-foreground" data-testid="young-source-freshness">
-      {#if source.status === "fresh"}
-        {youngCopy.sourceFresh}
-      {:else if source.status === "stale"}
-        {youngCopy.sourceStale}
-      {:else}
-        {youngCopy.sourceUnknown}
-      {/if}
-      {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-    </p>
     <YoungSubscriptionControl id={organizer.id} kind="organizers" copy={youngCopy.workspace} />
     <DetailDefinitionList
       items={[
@@ -119,6 +104,6 @@ function pageHref(page: number) {
         { label: youngCopy.historyEvents, value: String(organizer.historyCount) },
       ]}
     />
-    <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
+    <YoungSourceNote labels={youngCopy} {source} />
   {/snippet}
 </CollectionPage>

@@ -126,7 +126,6 @@ const calendarLabels = $derived({
   agenda: youngCopy.agenda,
   earlierDates: youngCopy.earlierDates,
   day: youngCopy.day,
-  empty: youngCopy.calendarEmpty,
   month: youngCopy.month,
   moreEvents: youngCopy.moreEvents,
   next: youngCopy.next,
