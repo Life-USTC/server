@@ -7,6 +7,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   () => {
     it("defaults to no rows when user context is missing", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId },
     }) => {
       await rlsRuntime.run(async () => {
@@ -18,6 +19,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         );
 
+        const storedBefore = await fixturePrisma.todo.findMany();
         try {
           await expect(
             withUserDbContext(firstUserId, (tx) =>
@@ -44,6 +46,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
               data: { title: `${title} direct`, userId: firstUserId },
             }),
           ).rejects.toThrow();
+          await expect(fixturePrisma.todo.findMany()).resolves.toEqual(
+            storedBefore,
+          );
         } finally {
           await withUserDbContext(firstUserId, (tx) =>
             tx.todo.deleteMany({ where: { title: { startsWith: title } } }),
@@ -53,6 +58,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("rolls back a failed action and returns the pooled client to fail-closed state", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId },
     }) => {
       await rlsRuntime.run(async () => {
@@ -66,6 +72,8 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         ).rejects.toThrow("force transaction rollback");
 
+        // A context-free read is hidden by RLS even if rollback were broken.
+        await expect(fixturePrisma.todo.findMany()).resolves.toEqual([]);
         await expect(
           prisma.todo.findMany({ where: { title } }),
         ).resolves.toEqual([]);
@@ -78,6 +86,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
     it("isolates concurrent users and rejects forged ownership", async ({
       rlsRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
       rlsActors: { firstUserId, secondUserId, adminUserId },
     }) => {
       await rlsRuntime.run(async () => {
@@ -94,6 +103,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         );
         const createdIds = [first.id, second.id];
+        const storedBefore = await fixturePrisma.todo.findMany({
+          orderBy: { id: "asc" },
+        });
 
         const [firstRows, secondRows, adminRows] = await Promise.all([
           withUserDbContext(firstUserId, () =>
@@ -170,6 +182,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             }),
           ),
         ).resolves.toEqual({ userId: firstUserId, completed: false });
+        await expect(
+          fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+        ).resolves.toEqual(storedBefore);
       });
     });
   },
