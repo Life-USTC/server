@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import * as fixtures from "./_harness";
+import { mcpTest } from "./_harness/context";
 
-const context = fixtures.createMcpToolTestContext();
+const toolTest = mcpTest.extend("context", fixtures.readerFixture());
 
 describe("account_profile_get", () => {
-  it("返回认证用户的 REST 等价资料字段", async () => {
+  toolTest("返回认证用户的 REST 等价资料字段", async ({ context, expect }) => {
     const profile = await context.client.call<{
       id?: string;
       email?: string | null;
@@ -27,77 +28,82 @@ describe("account_profile_get", () => {
 });
 
 describe("account_client_activity_list", () => {
-  it("只返回 verified MCP client 与当前用户交集，且不暴露敏感归因字段", async () => {
-    const own = await fixtures.prisma.auditLog.create({
-      data: {
-        action: "comment_create",
-        channel: "mcp",
-        subjectUserId: context.userId,
-        userId: context.userId,
-        oauthClientId: "integration-test-client",
-        oauthGrantId: "integration-test-grant",
-        sessionId: "private-session",
-        ipAddress: "203.0.113.99",
-        userAgent: "private-user-agent",
-        targetId: "private-target",
-        targetType: "comment",
-      },
-      select: { id: true },
-    });
-    const other = await fixtures.prisma.auditLog.create({
-      data: {
-        action: "comment_create",
-        channel: "mcp",
-        subjectUserId: context.userId,
-        userId: context.userId,
-        oauthClientId: "other-client",
-      },
-      select: { id: true },
-    });
-    const otherGrant = await fixtures.prisma.auditLog.create({
-      data: {
-        action: "comment_create",
-        channel: "mcp",
-        subjectUserId: context.userId,
-        userId: context.userId,
-        oauthClientId: "integration-test-client",
-        oauthGrantId: "other-grant",
-      },
-      select: { id: true },
-    });
-
-    try {
-      const page = await context.client.call<{
-        items?: Array<Record<string, unknown>>;
-        nextCursor?: string | null;
-      }>("account_client_activity_list", { limit: 10 });
-      expect(page.items).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ id: own.id, channel: "mcp" }),
-        ]),
-      );
-      expect(page.items?.some((item) => item.id === other.id)).toBe(false);
-      expect(page.items?.some((item) => item.id === otherGrant.id)).toBe(false);
-      const projected = page.items?.find((item) => item.id === own.id);
-      for (const key of [
-        "oauthGrantId",
-        "sessionId",
-        "ipAddress",
-        "userAgent",
-        "targetId",
-      ]) {
-        expect(projected).not.toHaveProperty(key);
-      }
-    } finally {
-      await fixtures.prisma.auditLog.deleteMany({
-        where: { id: { in: [own.id, other.id, otherGrant.id] } },
+  toolTest(
+    "只返回 verified MCP client 与当前用户交集，且不暴露敏感归因字段",
+    async ({ context, expect }) => {
+      const own = await fixtures.prisma.auditLog.create({
+        data: {
+          action: "comment_create",
+          channel: "mcp",
+          subjectUserId: context.userId,
+          userId: context.userId,
+          oauthClientId: "integration-test-client",
+          oauthGrantId: "integration-test-grant",
+          sessionId: "private-session",
+          ipAddress: "203.0.113.99",
+          userAgent: "private-user-agent",
+          targetId: "private-target",
+          targetType: "comment",
+        },
+        select: { id: true },
       });
-    }
-  });
+      const other = await fixtures.prisma.auditLog.create({
+        data: {
+          action: "comment_create",
+          channel: "mcp",
+          subjectUserId: context.userId,
+          userId: context.userId,
+          oauthClientId: "other-client",
+        },
+        select: { id: true },
+      });
+      const otherGrant = await fixtures.prisma.auditLog.create({
+        data: {
+          action: "comment_create",
+          channel: "mcp",
+          subjectUserId: context.userId,
+          userId: context.userId,
+          oauthClientId: "integration-test-client",
+          oauthGrantId: "other-grant",
+        },
+        select: { id: true },
+      });
+
+      try {
+        const page = await context.client.call<{
+          items?: Array<Record<string, unknown>>;
+          nextCursor?: string | null;
+        }>("account_client_activity_list", { limit: 10 });
+        expect(page.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: own.id, channel: "mcp" }),
+          ]),
+        );
+        expect(page.items?.some((item) => item.id === other.id)).toBe(false);
+        expect(page.items?.some((item) => item.id === otherGrant.id)).toBe(
+          false,
+        );
+        const projected = page.items?.find((item) => item.id === own.id);
+        for (const key of [
+          "oauthGrantId",
+          "sessionId",
+          "ipAddress",
+          "userAgent",
+          "targetId",
+        ]) {
+          expect(projected).not.toHaveProperty(key);
+        }
+      } finally {
+        await fixtures.prisma.auditLog.deleteMany({
+          where: { id: { in: [own.id, other.id, otherGrant.id] } },
+        });
+      }
+    },
+  );
 });
 
 describe("community_user_get", () => {
-  it("按用户名返回公开资料层级", async () => {
+  toolTest("按用户名返回公开资料层级", async ({ context, expect }) => {
     const profile = await context.client.call<{
       found?: boolean;
       user?: {
@@ -131,7 +137,7 @@ describe("community_user_get", () => {
     expect(profile.user?._count).not.toHaveProperty("subscribedSections");
   });
 
-  it("缺失用户返回 not_found", async () => {
+  toolTest("缺失用户返回 not_found", async ({ context, expect }) => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
