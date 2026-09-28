@@ -132,6 +132,7 @@ function listDateTime(value: string | null | undefined) {
                                   {#if event.location}<span> · {event.location}</span>{/if}
                                   {#if event.category}<span> · {event.category}</span>{/if}
                                   {#if event.module}<span> · {event.module}</span>{/if}
+                                  {#if event.activityLevel}<span> · {event.activityLevel}</span>{/if}
                                   {#if event.organizer}<span> · {event.organizer}</span>{/if}
                                 </p>
                               </Item.Content>
@@ -170,11 +171,12 @@ function listDateTime(value: string | null | undefined) {
                       </a>
                       {#if event.category}<span class="mt-0.5 block text-xs text-muted-foreground">{event.category}</span>{/if}
                       {#if event.module}<span class="block text-xs text-muted-foreground">{event.module}</span>{/if}
+                      {#if event.activityLevel}<span class="block text-xs text-muted-foreground">{event.activityLevel}</span>{/if}
                       {#if event.organizer}<span class="block text-xs text-muted-foreground">{event.organizer}</span>{/if}
                     </Table.Cell>
                     <Table.Cell>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</Table.Cell>
-                    <Table.Cell><span>{event.location ?? youngCopy.unknownValue}</span></Table.Cell>
-                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue)}</Table.Cell>
+                    <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
                     <Table.Cell>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Table.Cell>
                   </Table.Row>
                 {/each}

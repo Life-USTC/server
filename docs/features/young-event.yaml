@@ -558,44 +558,16 @@ capabilities:
         web-detail:
           primary:
           - event.name
-          - event.startAt
-          - event.endAt
           - event.status
           secondary:
           - event.activityLevel
-          - event.allowedAttachmentTypes
-          - event.appliedCount
-          - event.applyEndAt
-          - event.applyStartAt
-          - event.capacity
-          - event.category
-          - event.contactName
-          - event.contactTel
-          - event.department
           - event.description
-          - event.duration
-          - event.externalSponsor
-          - event.favCount
           - event.form
-          - event.grades
-          - event.hours
           - event.imageUrl
           - event.isActive
           - event.isOnline
-          - event.limitNum
-          - event.location
           - event.module
-          - event.onlineMeetingInfo
-          - event.organizer
-          - event.partakeNum
           - event.participationNotes
-          - event.places
-          - event.requiresSignup
-          - event.requiresSignupInfo
-          - event.serviceHour
-          - event.sponsor
-          - event.sumHours
-          - event.sumPersons
           tertiary:
           - event.youngId
           - event.organizerId
