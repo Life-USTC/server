@@ -211,16 +211,21 @@ requirements:
       name: admin.feature-experience-retention
 - id: admin.responsive-workspace
   category: presentation
-  rule: Admin pages present the page identity, feedback or filters when applicable, then records. Desktop
-    shows tabular records; mobile presents compact records containing the same primary identity and available
-    actions.
+  rule: Admin pages present the page identity, feedback or filters when applicable, then records. The
+    page heading uses larger text than the record identity. Desktop shows tabular records; mobile presents
+    compact records containing the same primary identity and available actions.
   acceptance:
-    given: A signed-in administrator and real users, moderation, OAuth, and bus records.
-    when: Render each page at desktop and mobile widths and compare the first record and its available
-      actions.
+    given: A private signed-in administrator and explicitly prepared user, moderation comment, OAuth client,
+      and inactive bus version records.
+    when: Render each page at desktop and mobile widths and check the known records against independently
+      specified headings, identities, and action names.
     then:
-    - Each page preserves its heading and primary record identity; desktop tables become compact mobile
-      records with the same available actions and no horizontal overflow.
+    - Desktop tables become compact mobile records with the expected identity and complete expected
+      actions, and neither layout has horizontal overflow.
+    - Users and comments expose their manage controls; OAuth exposes client-specific deletion; inactive
+      bus versions expose activation and deletion.
+    - The page heading appears above the records with larger text; applicable search controls appear
+      between the heading and records.
     test:
       file: tests/e2e/src/app/admin/test.ts
       name: admin.responsive-workspace
