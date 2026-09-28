@@ -9,6 +9,7 @@
     "vitest.base.ts",
     "vitest.config.ts",
     "vitest.integration.config.ts",
+    "tests/ci/fixtures/e2e-storage-worker.ts",
     "tests/e2e/**/*.ts",
     "scripts/specifications/**/*.ts"
   ],

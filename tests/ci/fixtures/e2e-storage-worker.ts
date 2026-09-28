@@ -6,6 +6,50 @@ export { PublicSsr } from "../../../src/worker.js";
 const storagePath = "/__test/storage/uploads";
 const ownedPrefix = /^uploads\/[0-9a-f-]{36}\/$/;
 const ownedKey = /^uploads\/[0-9a-f-]{36}\/(?:\d+-)?[0-9a-f-]{36}$/;
+type DeleteProbe = {
+  attempts: number;
+  pending: number;
+  fail: boolean;
+  hold: boolean;
+};
+const deleteProbes = new Map<string, DeleteProbe>();
+
+function observeDeletes(bucket: R2Bucket): R2Bucket {
+  return new Proxy(bucket, {
+    get(target, property) {
+      if (property !== "delete") {
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+      return async (keys: string | string[]) => {
+        const probes = (typeof keys === "string" ? [keys] : keys).flatMap(
+          (key) => {
+            const probe = deleteProbes.get(key);
+            return probe ? [probe] : [];
+          },
+        );
+        for (const probe of probes) {
+          probe.attempts++;
+          probe.pending++;
+        }
+        try {
+          const deadline = Date.now() + 15_000;
+          for (const probe of probes) {
+            while (probe.hold) {
+              if (Date.now() >= deadline)
+                throw new Error("Test storage deletion hold timed out");
+              await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+            if (probe.fail) throw new Error("private-storage-failure");
+          }
+          return await target.delete(keys);
+        } finally {
+          for (const probe of probes) probe.pending--;
+        }
+      };
+    },
+  });
+}
 
 // Only wrangler.e2e.jsonc loads this entrypoint. Fixture writes and independent
 // observations use the same R2 binding/runtime as the production request.
@@ -22,7 +66,13 @@ export default {
   ) {
     const url = new URL(request.url);
     if (url.pathname !== storagePath)
-      return productionWorker.fetch(request, env, context);
+      return productionWorker.fetch(
+        request,
+        deleteProbes.size
+          ? { ...env, R2_UPLOADS: observeDeletes(env.R2_UPLOADS) }
+          : env,
+        context,
+      );
     if (
       env.NODE_ENV !== "test" ||
       !env.E2E_STORAGE_SECRET ||
@@ -47,6 +97,50 @@ export default {
       return new Response("Expected a fixture-owned upload key", {
         status: 400,
       });
+
+    // Exact-key probes pause only the real delete call. Tests can inspect
+    // committed metadata while it is pending, then release to failure/success.
+    if (url.searchParams.has("deleteProbe")) {
+      switch (request.method) {
+        case "GET":
+          return Response.json(deleteProbes.get(key) ?? null);
+        case "POST": {
+          const body: unknown = await request.json();
+          if (
+            !body ||
+            typeof body !== "object" ||
+            !("fail" in body) ||
+            typeof body.fail !== "boolean" ||
+            !("hold" in body) ||
+            typeof body.hold !== "boolean"
+          )
+            return new Response("Expected boolean fail and hold", {
+              status: 400,
+            });
+          const probe = deleteProbes.get(key) ?? {
+            attempts: 0,
+            pending: 0,
+            fail: false,
+            hold: false,
+          };
+          probe.fail = body.fail;
+          probe.hold = body.hold;
+          deleteProbes.set(key, probe);
+          return Response.json(probe);
+        }
+        case "DELETE": {
+          const probe = deleteProbes.get(key);
+          if (probe) {
+            probe.hold = false;
+            probe.fail = false;
+          }
+          deleteProbes.delete(key);
+          return new Response(null, { status: 204 });
+        }
+        default:
+          return new Response(null, { status: 405 });
+      }
+    }
 
     switch (request.method) {
       case "GET": {

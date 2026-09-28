@@ -96,14 +96,27 @@ for (const deleted of [false, true]) {
   }
 }
 
-test("download returns 404 for unknown metadata or a missing storage object", async ({
-  uploadState,
-}) => {
-  const { owner, bucket, knownUpload } = uploadState;
-  expect((await owner.request.get(path(crypto.randomUUID()))).status()).toBe(
-    404,
-  );
-  const upload = await knownUpload();
-  await bucket.delete(upload.key);
-  expect((await owner.request.get(path(upload.id))).status()).toBe(404);
-});
+for (const missing of ["metadata", "storage object"] as const) {
+  test(`download returns 404 for missing ${missing}`, async ({
+    uploadState,
+  }) => {
+    const { db, owner, bucket, knownUpload } = uploadState;
+    const upload = await knownUpload();
+    if (missing === "metadata")
+      await db.upload.delete({ where: { id: upload.id } });
+    else await bucket.delete(upload.key);
+    const response = await owner.request.get(path(upload.id));
+    expect(response.status()).toBe(404);
+    expect((await response.json()).error).toEqual(expect.any(String));
+    expect(await db.upload.findUnique({ where: { id: upload.id } })).toEqual(
+      missing === "metadata"
+        ? null
+        : expect.objectContaining({ id: upload.id }),
+    );
+    expect(await bucket.head(upload.key)).toEqual(
+      missing === "storage object"
+        ? null
+        : expect.objectContaining({ size: upload.size }),
+    );
+  });
+}
