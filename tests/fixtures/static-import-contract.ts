@@ -3,33 +3,25 @@ import { Database } from "bun:sqlite";
 import { deepStrictEqual, rejects, strictEqual } from "node:assert";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { runImport } from "../../src/static-loader/import";
 import { STATIC_IMPORT_TRANSFORM_REVISION } from "../../src/static-loader/import-state";
 import { createFixturePrisma, createTestPrisma } from "../shared/prisma";
 
 const scenario = process.argv[2];
-const directory = mkdtempSync(join(tmpdir(), "static-import-contract-"));
-const path = join(directory, "snapshot.sqlite");
+const path = process.argv[3];
+if (!path) throw new Error("Expected a test-owned snapshot path");
 const fixture = createFixturePrisma();
 // The production static-sync job uses MIGRATOR_DATABASE_URL. Keep its
 // privileged importer connection separate from the fixture inspector.
 const importer = createTestPrisma(process.env.FUNCTION_OWNER_DATABASE_URL);
-const base = 1500000000 + Math.floor(Math.random() * 100000000);
+const base = 1500000000;
 const semesterJwId = base + 401;
 const sectionJwId = base + 101;
 const courseJwId = base + 201;
 const catalog = "catalog_teach_lesson_list_for_teach";
-const stateBefore = await fixture.staticImportState.findUnique({
-  where: { id: "global" },
-});
-const originalTime = Math.max(
-  Date.now() - 60000,
-  stateBefore?.snapshotGeneratedAt.getTime() ?? 0,
-);
+const originalTime = new Date("2026-09-01T00:00:00Z").getTime();
 let generation = 0;
 let observedAt = new Date(originalTime);
 let snapshotSha256 = "";
@@ -308,55 +300,6 @@ try {
   }
   console.log(`CONTRACT_PASSED:${scenario}`);
 } finally {
-  const sections = await fixture.section.findMany({
-    where: { jwId: { gte: base, lte: base + 1000 } },
-    select: { id: true },
-  });
-  await fixture.auditLog.deleteMany({
-    where: {
-      targetType: "section",
-      targetId: { in: sections.map((row) => String(row.id)) },
-    },
-  });
-  const sectionIds = sections.map((row) => row.id);
-  await fixture.schedule.deleteMany({
-    where: { sectionId: { in: sectionIds } },
-  });
-  await fixture.exam.deleteMany({ where: { sectionId: { in: sectionIds } } });
-  await fixture.scheduleGroup.deleteMany({
-    where: { sectionId: { in: sectionIds } },
-  });
-  await fixture.teacherAssignment.deleteMany({
-    where: { sectionId: { in: sectionIds } },
-  });
-  await fixture.section.deleteMany({
-    where: { jwId: { gte: base, lte: base + 1000 } },
-  });
-  await fixture.course.deleteMany({
-    where: { jwId: { gte: base, lte: base + 1000 } },
-  });
-  await fixture.teacher.deleteMany({ where: { jwId: base + 301 } });
-  await fixture.room.deleteMany({ where: { jwId: base + 401 } });
-  await fixture.building.deleteMany({ where: { jwId: base + 501 } });
-  await fixture.campus.deleteMany({ where: { jwId: base + 601 } });
-  await fixture.roomType.deleteMany({
-    where: { jwId: { in: [base + 24, base + 27] } },
-  });
-  await fixture.semester.deleteMany({ where: { jwId: semesterJwId } });
-  await fixture.courseCategory.deleteMany({
-    where: { nameCn: `自然科学-${base}` },
-  });
-  await fixture.courseClassify.deleteMany({
-    where: { nameCn: `obsolete-${base}` },
-  });
-  if (stateBefore)
-    await fixture.staticImportState.upsert({
-      where: { id: "global" },
-      create: stateBefore,
-      update: stateBefore,
-    });
-  else await fixture.staticImportState.deleteMany({ where: { id: "global" } });
-  await importer.$disconnect();
-  await fixture.$disconnect();
-  rmSync(directory, { recursive: true, force: true });
+  // The parent test owns the database and snapshot, including early failures.
+  await Promise.all([importer.$disconnect(), fixture.$disconnect()]);
 }
