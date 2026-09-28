@@ -3,13 +3,16 @@ import type {
   Comment,
   Prisma,
 } from "../../../../src/generated/prisma-node/client";
+import { test as isolatedTest } from "../../../e2e/utils/isolated-worker";
+import {
+  createUploadBucket,
+  type UploadBucket,
+} from "../../../e2e/utils/upload-bucket";
 import {
   type CatalogContractFixture,
-  cleanupCatalogContractFixture,
   createCatalogContractFixture,
 } from "../../../shared/catalog-contract-fixture";
 import type { TestPrismaClient } from "../../../shared/prisma";
-import { test as uploadTest } from "../uploads/_fixture";
 
 type Actor = { id: string; request: APIRequestContext };
 type CommentState = {
@@ -17,6 +20,7 @@ type CommentState = {
   owner: Actor;
   other: Actor;
   anonymous: APIRequestContext;
+  bucket: UploadBucket;
   admin: () => Promise<Actor>;
   catalog: CatalogContractFixture;
   section: CatalogContractFixture["sections"][number];
@@ -26,6 +30,10 @@ type CommentState = {
   comment: (
     data?: Partial<Prisma.CommentUncheckedCreateInput>,
   ) => Promise<Comment>;
+};
+type CommentEffects = {
+  initialize: () => Promise<void>;
+  observe: (request: APIRequestContext) => APIRequestContext;
 };
 
 const requestMethods = new Set([
@@ -38,31 +46,26 @@ const requestMethods = new Set([
   "head",
 ]);
 
-/** Arrange known data independently of the route under test. Every API call
- * still uses the real Worker, and uploads use the existing real R2 fixture.
+/** Each case owns its real Worker, database, queue runtime and R2 persistence.
+ * The probe observes producer waitUntil/purge/send outcomes. It does not prove
+ * queue consumption: native Worker teardown prevents deferred work reaching
+ * another test's environment, including when setup or the body fails.
  */
-export const test = uploadTest.extend<{ commentState: CommentState }>({
-  commentState: async (
-    { uploadState, createActor, request },
-    use,
-    testInfo,
-  ) => {
-    const { db } = uploadState;
+export const test = isolatedTest.extend<{
+  commentState: CommentState;
+  _commentEffects: CommentEffects;
+}>({
+  _commentEffects: async ({ request }, use, testInfo) => {
     const probeId = crypto.randomUUID();
-    const youngId = `comment-event-${crypto.randomUUID()}`;
-    const contexts = new Set<APIRequestContext>();
     const pending = new Set<Promise<unknown>>();
     const requestErrors: unknown[] = [];
     let closing = false;
     let probeCreated = false;
-    let catalog: CatalogContractFixture | undefined;
-    const actorIds = [uploadState.owner.id, uploadState.other.id];
     const probe = (method: "post" | "get" | "delete") =>
       request[method](`/__test/community-effects?id=${probeId}`, {
         headers: { "x-test-storage-secret": "local-test-storage-observer" },
       });
     function observe(context: APIRequestContext): APIRequestContext {
-      contexts.add(context);
       return new Proxy(context, {
         get(target, property) {
           const value = Reflect.get(target, property);
@@ -94,143 +97,99 @@ export const test = uploadTest.extend<{ commentState: CommentState }>({
         },
       });
     }
-    const owner = {
-      ...uploadState.owner,
-      request: observe(uploadState.owner.request),
-    };
-    const other = {
-      ...uploadState.other,
-      request: observe(uploadState.other.request),
-    };
-    const anonymous = observe(request);
-    async function cleanup() {
-      closing = true;
-      // Do not abort a request and then race its still-running server mutation.
-      await Promise.allSettled([...pending]);
-      const failures = [...requestErrors];
-      try {
-        await testInfo.attach("comment-fixture-state", {
-          body: JSON.stringify({
-            actorIds,
-            probeId,
-            youngId,
-            catalog: catalog?.cleanupIds,
-          }),
-          contentType: "application/json",
-        });
-      } catch (error) {
-        failures.push(error);
-      }
-      try {
-        const response = await probe("get");
-        if (probeCreated) expect(response.status()).toBe(200);
-        if (response.status() !== 404) {
-          expect(response.status()).toBe(200);
-          const effects = (await response.json()) as {
-            backgroundErrors: string[];
-            purges: { outcome: string; result: { ok: boolean } }[];
-            messages: { outcome: string }[];
-          };
-          expect(effects.backgroundErrors).toEqual([]);
-          expect(
-            [...effects.purges, ...effects.messages].every(
-              (effect) => effect.outcome === "fulfilled",
-            ),
-          ).toBe(true);
-          expect(effects.purges.every((effect) => effect.result.ok)).toBe(true);
-        }
-      } catch (error) {
-        failures.push(error);
-      }
-      try {
-        expect(probeCreated ? [204] : [204, 404]).toContain(
-          (await probe("delete")).status(),
-        );
-      } catch (error) {
-        failures.push(error);
-      }
-      const closed = await Promise.allSettled(
-        [...contexts].map((context) => context.dispose()),
-      );
-      failures.push(
-        ...closed.flatMap((result) =>
-          result.status === "rejected" ? [result.reason] : [],
-        ),
-      );
-      // Actor-owned records include mutations whose response could not be decoded.
-      for (const remove of [
-        () => db.comment.deleteMany({ where: { userId: { in: actorIds } } }),
-        () => db.youngEvent.deleteMany({ where: { youngId } }),
-      ]) {
-        try {
-          await remove();
-        } catch (error) {
-          failures.push(error);
-        }
-      }
-      if (catalog) {
-        try {
-          await cleanupCatalogContractFixture(db, catalog);
-        } catch (error) {
-          failures.push(error);
-        }
-      }
-      if (failures.length)
-        throw new AggregateError(failures, "Comment fixture cleanup failed");
-    }
-    let setupFailure: unknown;
+    const failures: unknown[] = [];
+    // Register teardown before a dependent fixture creates the probe or data.
     try {
-      expect((await probe("post")).status()).toBe(201);
-      probeCreated = true;
-      catalog = await createCatalogContractFixture(db);
-      const youngEvent = await db.youngEvent.create({
-        data: {
-          youngId,
-          name: "Private comment event",
-          isActive: true,
-          rawJson: {},
-        },
-      });
-      const section = catalog.sections[0];
       await use({
-        db,
-        owner,
-        other,
-        anonymous,
-        catalog,
-        section,
-        course: catalog.courses[0],
-        teacher: catalog.teachers[0],
-        youngEvent,
-        admin: async () => {
-          const actor = await createActor({ isAdmin: true });
-          actorIds.push(actor.id);
-          return { ...actor, request: observe(actor.request) };
+        observe,
+        initialize: async () => {
+          expect((await probe("post")).status()).toBe(201);
+          probeCreated = true;
         },
-        comment: (data = {}) =>
-          db.comment.create({
-            data: {
-              userId: owner.id,
-              sectionId: section.id,
-              body: "Prepared root comment",
-              createdAt: new Date("2026-01-01T00:00:00Z"),
-              ...data,
-            },
-          }),
       });
     } catch (error) {
-      setupFailure = error;
+      failures.push(error);
+    }
+    closing = true;
+    await Promise.allSettled([...pending]);
+    failures.push(...requestErrors);
+    try {
+      await testInfo.attach("comment-effect-probe", {
+        body: JSON.stringify({ probeId }),
+        contentType: "application/json",
+      });
+      const response = await probe("get");
+      if (probeCreated) expect(response.status()).toBe(200);
+      if (response.status() !== 404) {
+        expect(response.status()).toBe(200);
+        const effects = (await response.json()) as {
+          backgroundErrors: string[];
+          purges: { outcome: string; result: { ok: boolean } }[];
+          messages: { outcome: string }[];
+        };
+        expect(effects.backgroundErrors).toEqual([]);
+        expect(
+          [...effects.purges, ...effects.messages].every(
+            (effect) => effect.outcome === "fulfilled",
+          ),
+        ).toBe(true);
+        expect(effects.purges.every((effect) => effect.result.ok)).toBe(true);
+      }
+    } catch (error) {
+      failures.push(error);
     }
     try {
-      await cleanup();
+      expect(probeCreated ? [204] : [204, 404]).toContain(
+        (await probe("delete")).status(),
+      );
     } catch (error) {
-      if (setupFailure)
-        throw new AggregateError(
-          [setupFailure, error],
-          "Comment setup and cleanup failed",
-        );
-      throw error;
+      failures.push(error);
     }
-    if (setupFailure) throw setupFailure;
+    if (failures.length)
+      throw new AggregateError(failures, "Comment effect observation failed");
+  },
+  commentState: async ({ isolatedWorker, request, _commentEffects }, use) => {
+    await _commentEffects.initialize();
+    const db = isolatedWorker.database.owner;
+    const actor = async (options?: { isAdmin: boolean }) => {
+      const created = await isolatedWorker.createActor(options);
+      return { ...created, request: _commentEffects.observe(created.request) };
+    };
+    const owner = await actor();
+    const other = await actor();
+    const anonymous = _commentEffects.observe(request);
+    const catalog = await createCatalogContractFixture(db);
+    const youngEvent = await db.youngEvent.create({
+      data: {
+        youngId: `comment-event-${crypto.randomUUID()}`,
+        name: "Private comment event",
+        isActive: true,
+        rawJson: {},
+      },
+    });
+    const section = catalog.sections[0];
+    await use({
+      db,
+      owner,
+      other,
+      anonymous,
+      bucket: createUploadBucket(anonymous),
+      catalog,
+      section,
+      course: catalog.courses[0],
+      teacher: catalog.teachers[0],
+      youngEvent,
+      admin: () => actor({ isAdmin: true }),
+      comment: (data = {}) =>
+        db.comment.create({
+          data: {
+            userId: owner.id,
+            sectionId: section.id,
+            body: "Prepared root comment",
+            createdAt: new Date("2026-01-01T00:00:00Z"),
+            ...data,
+          },
+        }),
+    });
   },
 });
