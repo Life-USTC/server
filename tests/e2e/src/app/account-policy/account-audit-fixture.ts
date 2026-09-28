@@ -97,6 +97,7 @@ export const test = workerTest.extend<{
     const count = await accountAudit.db.passkey.count({
       where: { userId: accountAudit.user.id },
     });
+    expect(count).toBe(1);
     await expect
       .poll(
         async () =>
