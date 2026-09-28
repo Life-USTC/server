@@ -1,6 +1,42 @@
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../utils/auth";
+import { expect } from "@playwright/test";
+import { test as workerTest } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+
+// Every search case owns its catalog, including public/anonymous searches.
+const test = workerTest.extend<{ catalog: undefined }>({
+  catalog: [
+    async ({ isolatedWorker }, use) => {
+      await isolatedWorker.database.owner.course.create({
+        data: {
+          jwId: 1,
+          code: "MATH2001",
+          nameCn: "线性代数进阶",
+          nameEn: "Advanced Linear Algebra",
+          sections: {
+            create: {
+              jwId: 2,
+              code: "MATH2001.01",
+              teachers: {
+                create: { jwId: 1, nameCn: "林璟锵", nameEn: "Lin Jingqiang" },
+              },
+              semester: {
+                create: {
+                  jwId: 1,
+                  code: "2026-autumn",
+                  nameCn: "2026年秋季学期",
+                  startDate: new Date("2026-08-31T00:00:00Z"),
+                  endDate: new Date("2027-01-31T00:00:00Z"),
+                },
+              },
+            },
+          },
+        },
+      });
+      await use(undefined);
+    },
+    { auto: true },
+  ],
+});
 
 test.beforeEach(async ({ page }) => {
   page.on("pageerror", (error) => {
@@ -137,8 +173,16 @@ test("global search trigger opens dialog and navigates to a result", async ({
   await expect(dialog).toBeHidden();
 });
 
-test("signed-in global search returns catalog results", async ({ page }) => {
-  await signInAsDebugUser(page, "/workspace/overview");
+test("signed-in global search returns catalog results", async ({
+  page,
+  isolatedWorker,
+}) => {
+  const actor = await isolatedWorker.createActor();
+  await page.context().addCookies([actor.cookie]);
+  const session = await page.request.get("/api/auth/get-session");
+  expect(session.status()).toBe(200);
+  expect((await session.json()).user.id).toBe(actor.id);
+  await gotoAndWaitForReady(page, "/workspace/overview");
 
   const searchResponse = page.waitForResponse(
     (response) =>

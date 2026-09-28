@@ -16,7 +16,7 @@
  *   `/workspace/overview`.
  */
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import { test as privateTest } from "../../../../utils/isolated-worker";
 import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
@@ -56,18 +56,32 @@ test.describe("仪表盘无效标签（comments）", () => {
     await captureStepScreenshot(page, testInfo, "home-comments-public");
   });
 
-  test("登录后 ?tab=comments 回退到总览", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=comments", "/workspace/overview");
+  privateTest(
+    "登录后 ?tab=comments 回退到总览",
+    async ({ page, isolatedWorker }, testInfo) => {
+      const actor = await isolatedWorker.createActor();
+      await page.context().addCookies([actor.cookie]);
+      const session = await page.request.get("/api/auth/get-session");
+      expect(session.status()).toBe(200);
+      expect((await session.json()).user.id).toBe(actor.id);
+      const redirect = await page.request.get("/?tab=comments", {
+        maxRedirects: 0,
+      });
+      expect(redirect.status()).toBe(303);
+      expect(redirect.headers().location).toBe("/workspace/overview");
+      await gotoAndWaitForReady(page, "/?tab=comments");
+      await expect(page).toHaveURL(/\/workspace\/overview$/);
 
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.locator("#app-user-menu")).toBeVisible();
+      await expect(page.locator("#main-content")).toBeVisible();
+      await expect(page.locator("#app-user-menu")).toBeVisible();
 
-    // Overview is the fallback — should show the overview sidebar entry as active
-    await expandWorkspaceSidebarGroup(page);
-    await expect(
-      sidebarNavigationLink(page, /^(今天|Today)$/i),
-    ).toHaveAttribute("aria-current", "page");
+      // Overview is the fallback — should show the overview sidebar entry as active
+      await expandWorkspaceSidebarGroup(page);
+      await expect(
+        sidebarNavigationLink(page, /^(今天|Today)$/i),
+      ).toHaveAttribute("aria-current", "page");
 
-    await captureStepScreenshot(page, testInfo, "home-comments-seed");
-  });
+      await captureStepScreenshot(page, testInfo, "home-comments-seed");
+    },
+  );
 });
