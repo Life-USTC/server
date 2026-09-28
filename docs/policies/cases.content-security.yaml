@@ -21,7 +21,7 @@ requirements:
   category: authorization
   topic: upload-attachment-download
   applies_to:
-  - comment-attachment-download
+  - upload-attachment-download
   expectation:
     kind: attachment_download_authority
     route:
