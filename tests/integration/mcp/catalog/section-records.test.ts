@@ -1,45 +1,52 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import * as fixtures from "../_harness";
+import { mcpTest } from "../_harness/context";
 
-const context = fixtures.createMcpToolTestContext();
+const toolTest = mcpTest.extend("context", fixtures.readerFixture());
 
 describe("catalog_section_schedule_list — 日期范围筛选", () => {
-  it("无日期筛选时返回该班级所有课程安排", async () => {
-    const all = await context.client.call<{
-      found?: boolean;
-      schedules?: Array<{ id?: number; date?: string }>;
-    }>("catalog_section_schedule_list", {
-      sectionJwId: fixtures.DEV_SEED.section.jwId,
-      locale: "zh-cn",
-    });
+  toolTest(
+    "无日期筛选时返回该班级所有课程安排",
+    async ({ context, expect }) => {
+      const all = await context.client.call<{
+        found?: boolean;
+        schedules?: Array<{ id?: number; date?: string }>;
+      }>("catalog_section_schedule_list", {
+        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        locale: "zh-cn",
+      });
 
-    expect(all.found).toBe(true);
-    expect((all.schedules?.length ?? 0) > 0).toBe(true);
-  });
+      expect(all.found).toBe(true);
+      expect((all.schedules?.length ?? 0) > 0).toBe(true);
+    },
+  );
 
-  it("使用 dateFrom+dateTo 裸日期将结果缩小到特定周", async () => {
-    const week = await context.client.call<{
-      found?: boolean;
-      schedules?: Array<{ id?: number; date?: string }>;
-    }>("catalog_section_schedule_list", {
-      sectionJwId: fixtures.DEV_SEED.section.jwId,
-      dateFrom: fixtures.SEED_DATE,
-      dateTo: fixtures.SEED_PLUS_SIX_DAYS,
-      locale: "zh-cn",
-    });
+  toolTest(
+    "使用 dateFrom+dateTo 裸日期将结果缩小到特定周",
+    async ({ context, expect }) => {
+      const week = await context.client.call<{
+        found?: boolean;
+        schedules?: Array<{ id?: number; date?: string }>;
+      }>("catalog_section_schedule_list", {
+        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        dateFrom: fixtures.SEED_DATE,
+        dateTo: fixtures.SEED_PLUS_SIX_DAYS,
+        locale: "zh-cn",
+      });
 
-    expect(week.found).toBe(true);
-    // Should only include schedules within the window
-    for (const s of week.schedules ?? []) {
-      if (s.date) {
-        const d = s.date.slice(0, 10);
-        expect(d >= fixtures.SEED_DATE).toBe(true);
-        expect(d <= fixtures.SEED_PLUS_SIX_DAYS).toBe(true);
+      expect(week.found).toBe(true);
+      // Should only include schedules within the window
+      for (const s of week.schedules ?? []) {
+        if (s.date) {
+          const d = s.date.slice(0, 10);
+          expect(d >= fixtures.SEED_DATE).toBe(true);
+          expect(d <= fixtures.SEED_PLUS_SIX_DAYS).toBe(true);
+        }
       }
-    }
-  });
+    },
+  );
 
-  it("对无匹配课程安排的窗口返回空数组", async () => {
+  toolTest("对无匹配课程安排的窗口返回空数组", async ({ context, expect }) => {
     const result = await context.client.call<{
       found?: boolean;
       schedules?: unknown[];
@@ -54,7 +61,7 @@ describe("catalog_section_schedule_list — 日期范围筛选", () => {
     expect(result.schedules).toHaveLength(0);
   });
 
-  it("无效 dateFrom 返回错误消息", async () => {
+  toolTest("无效 dateFrom 返回错误消息", async ({ context, expect }) => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
@@ -72,7 +79,7 @@ describe("catalog_section_schedule_list — 日期范围筛选", () => {
 });
 
 describe("catalog_schedule_list — 灵活日期筛选", () => {
-  it("接受裸日期并返回分页公开课程安排", async () => {
+  toolTest("接受裸日期并返回分页公开课程安排", async ({ context, expect }) => {
     const result = await context.client.call<{
       data?: Array<{ date?: string; endTime?: unknown; startTime?: unknown }>;
       pagination?: { total?: number };
@@ -95,7 +102,7 @@ describe("catalog_schedule_list — 灵活日期筛选", () => {
     }
   });
 
-  it("对无效日期筛选返回描述性载荷", async () => {
+  toolTest("对无效日期筛选返回描述性载荷", async ({ context, expect }) => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;

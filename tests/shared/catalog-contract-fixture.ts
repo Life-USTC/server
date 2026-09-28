@@ -1,6 +1,11 @@
+import type { Prisma } from "../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "./prisma";
 
-export async function createCatalogContractFixture(client: TestPrismaClient) {
+export async function createCatalogContractFixture(client: {
+  $transaction<T>(
+    run: (db: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T>;
+}) {
   return client.$transaction(async (db) => {
     const base = 1600000000 + Math.floor(Math.random() * 100000000);
     const marker = `catalog-${crypto.randomUUID().slice(0, 8)}`;

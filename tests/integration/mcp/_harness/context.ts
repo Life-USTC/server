@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach } from "vitest";
+import { test } from "vitest";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import {
@@ -73,92 +73,80 @@ export async function createEphemeralMcpUser(
   }
 }
 
-function registerIsolatedUserLifecycle(
-  context: IsolatedMcpToolTestContext,
-  input: UserOptions,
-) {
-  let current: EphemeralMcpUser | undefined;
-  beforeEach(async () => {
-    current = await createEphemeralMcpUser(input);
-    context.userId = current.userId;
-    context.client = current.client;
-  });
-  afterEach(async () => {
-    const finished = current;
-    current = undefined;
-    context.userId = "";
-    await finished?.close();
-  });
-  // Pools outlive individual cases; closing them per case would affect another context.
-  afterAll(async () => {
-    await cleanupMcpResources([
-      () => fixturePrisma.$disconnect(),
-      () => authPrisma.$disconnect(),
-      () => runtimePrisma.$disconnect(),
-    ]);
-  });
-}
+type FixtureCleanup = { onCleanup: (cleanup: () => Promise<void>) => void };
 
-export function createMcpToolTestContext(): McpToolTestContext {
-  const context = {
-    client: undefined as unknown as McpHarness,
-    userId: "",
-    username: "",
-    name: "MCP reader",
-  };
-  registerIsolatedUserLifecycle(context, {
-    emailPrefix: "mcp-reader",
-    name: context.name,
-    setup: async (userId) => {
-      context.username = `reader${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
-      await fixturePrisma.user.update({
-        where: { id: userId },
-        data: { username: context.username },
-      });
-    },
-  });
-  return context;
-}
-
-/** A fresh actor for every case, with fixture setup independent of earlier mutations. */
-export function createIsolatedMcpToolTestContext(
-  input: UserOptions,
-): IsolatedMcpToolTestContext {
-  const context = { client: undefined as unknown as McpHarness, userId: "" };
-  registerIsolatedUserLifecycle(context, input);
-  return context;
-}
-
-export function createSubscribedIsolatedMcpToolTestContext(
-  input: Omit<UserOptions, "setup"> & {
-    setup?: (userId: string, sectionId: number) => Promise<void>;
+export const mcpTest = test.extend(
+  "mcpConnections",
+  { scope: "file", auto: true },
+  // biome-ignore lint/correctness/noEmptyPattern: Vitest parses fixture dependencies from this pattern.
+  ({}, { onCleanup }) => {
+    onCleanup(() =>
+      cleanupMcpResources([
+        () => fixturePrisma.$disconnect(),
+        () => authPrisma.$disconnect(),
+        () => runtimePrisma.$disconnect(),
+      ]),
+    );
+    return true;
   },
-): SubscribedIsolatedMcpToolTestContext {
-  const context = {
-    client: undefined as unknown as McpHarness,
-    userId: "",
-    sectionId: 0,
-    sectionJwId: 0,
-    sectionCode: "",
+);
+
+export function actorFixture(input: UserOptions) {
+  return async (
+    { mcpConnections: _connections }: { mcpConnections: boolean },
+    { onCleanup }: FixtureCleanup,
+  ) => {
+    const actor = await createEphemeralMcpUser(input);
+    onCleanup(actor.close);
+    return actor;
   };
-  registerIsolatedUserLifecycle(context, {
-    ...input,
-    setup: async (userId) => {
-      context.sectionId = 0;
-      const section = await createSubscribedAcademicFixture(userId);
-      context.sectionId = section.id;
-      context.sectionJwId = section.jwId;
-      context.sectionCode = section.code;
-      await input.setup?.(userId, section.id);
-    },
-    cleanup: async (userId) => {
-      await cleanupMcpResources([
-        async () => input.cleanup?.(userId),
+}
+
+export function readerFixture() {
+  return async (
+    { mcpConnections: _connections }: { mcpConnections: boolean },
+    { onCleanup }: FixtureCleanup,
+  ) => {
+    const name = "MCP reader";
+    const username = `reader${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+    const actor = await createEphemeralMcpUser({
+      emailPrefix: "mcp-reader",
+      name,
+      setup: async (userId) => {
+        await fixturePrisma.user.update({
+          where: { id: userId },
+          data: { username },
+        });
+      },
+    });
+    onCleanup(actor.close);
+    return { ...actor, name, username };
+  };
+}
+
+export function academicActorFixture(input: UserOptions) {
+  return async (
+    { mcpConnections: _connections }: { mcpConnections: boolean },
+    { onCleanup }: FixtureCleanup,
+  ) => {
+    const actor = await createEphemeralMcpUser(input);
+    let section:
+      | Awaited<ReturnType<typeof createSubscribedAcademicFixture>>
+      | undefined;
+    onCleanup(() =>
+      cleanupMcpResources([
         async () => {
-          if (context.sectionId) await deleteAcademicFixture(context.sectionId);
+          if (section) await deleteAcademicFixture(section.id);
         },
-      ]);
-    },
-  });
-  return context;
+        actor.close,
+      ]),
+    );
+    section = await createSubscribedAcademicFixture(actor.userId);
+    return {
+      ...actor,
+      sectionId: section.id,
+      sectionJwId: section.jwId,
+      sectionCode: section.code,
+    };
+  };
 }

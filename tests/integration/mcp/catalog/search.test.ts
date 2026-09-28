@@ -1,117 +1,127 @@
+import { mcpTest } from "../_harness/context";
 // Merged from mcp-08-catalog + mcp-13-catalog-search + mcp-14-teacher + mcp-15-section-match
 
-import { describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import * as fixtures from "../_harness";
 
-const context = fixtures.createMcpToolTestContext();
+const toolTest = mcpTest.extend("context", fixtures.readerFixture());
 
 describe("课程与班级查找", () => {
-  it("catalog_course_search 返回 REST 等价分页课程层级", async () => {
-    const seedCourseFilters = await fixtures.prisma.course.findUnique({
-      where: { jwId: fixtures.DEV_SEED.course.jwId },
-      select: {
-        categoryId: true,
-        classTypeId: true,
-        educationLevelId: true,
-      },
-    });
-    expect(seedCourseFilters).toBeTruthy();
+  toolTest(
+    "catalog_course_search 返回 REST 等价分页课程层级",
+    async ({ context, expect }) => {
+      const seedCourseFilters = await fixtures.prisma.course.findUnique({
+        where: { jwId: fixtures.DEV_SEED.course.jwId },
+        select: {
+          categoryId: true,
+          classTypeId: true,
+          educationLevelId: true,
+        },
+      });
+      expect(seedCourseFilters).toBeTruthy();
 
-    const args: Record<string, unknown> = {
-      limit: 10,
-      locale: "zh-cn",
-      mode: "full",
-      page: 1,
-    };
-    for (const [key, value] of Object.entries(seedCourseFilters ?? {})) {
-      if (value != null) args[key] = value;
-    }
-
-    const result = await context.client.call<{
-      data?: Array<{
-        jwId?: number;
-        code?: string | null;
-        nameCn?: string | null;
-        educationLevel?: { nameCn?: string | null } | null;
-        category?: { nameCn?: string | null } | null;
-        classType?: { nameCn?: string | null } | null;
-      }>;
-      pagination?: {
-        page?: number;
-        pageSize?: number;
-        total?: number;
-        totalPages?: number;
+      const args: Record<string, unknown> = {
+        limit: 10,
+        locale: "zh-cn",
+        mode: "full",
+        page: 1,
       };
-    }>("catalog_course_search", args);
+      for (const [key, value] of Object.entries(seedCourseFilters ?? {})) {
+        if (value != null) args[key] = value;
+      }
 
-    expect(result.pagination?.page).toBe(1);
-    expect(result.pagination?.pageSize).toBe(10);
-    expect(result.pagination?.total).toBeGreaterThan(0);
-    expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
-
-    const course = result.data?.find(
-      (item) => item.jwId === fixtures.DEV_SEED.course.jwId,
-    );
-    expect(course?.code).toBe(fixtures.DEV_SEED.course.code);
-    expect(course?.nameCn).toBe(fixtures.DEV_SEED.course.nameCn);
-    expect(course?.educationLevel?.nameCn).toBe(
-      fixtures.DEV_SEED.course.educationLevelNameCn,
-    );
-    expect(course?.category?.nameCn).toBe(
-      fixtures.DEV_SEED.course.categoryNameCn,
-    );
-    expect(course?.classType?.nameCn).toBe(
-      fixtures.DEV_SEED.course.classTypeNameCn,
-    );
-  });
-
-  it("catalog_section_get 返回与 REST 班级详情相同的层级", async () => {
-    const result = await context.client.call<{
-      found?: boolean;
-      section?: {
-        code?: string;
-        schedules?: Array<{
-          endTime?: unknown;
-          startTime?: unknown;
+      const result = await context.client.call<{
+        data?: Array<{
+          jwId?: number;
+          code?: string | null;
+          nameCn?: string | null;
+          educationLevel?: { nameCn?: string | null } | null;
+          category?: { nameCn?: string | null } | null;
+          classType?: { nameCn?: string | null } | null;
         }>;
-        teacherAssignments?: Array<Record<string, unknown>>;
-        scheduleGroups?: unknown[];
-        exams?: unknown[];
-        roomType?: unknown;
-      };
-    }>("catalog_section_get", {
-      jwId: fixtures.DEV_SEED.section.jwId,
-      locale: "zh-cn",
-      mode: "full",
-    });
+        pagination?: {
+          page?: number;
+          pageSize?: number;
+          total?: number;
+          totalPages?: number;
+        };
+      }>("catalog_course_search", args);
 
-    expect(result.found).toBe(true);
-    expect(result.section?.code).toBe(fixtures.DEV_SEED.section.code);
-    expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
-    expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
-    expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(true);
-    for (const assignment of result.section?.teacherAssignments ?? []) {
-      expect(assignment).not.toHaveProperty("teacher");
-    }
-    expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
-    expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
-    expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
-  });
+      expect(result.pagination?.page).toBe(1);
+      expect(result.pagination?.pageSize).toBe(10);
+      expect(result.pagination?.total).toBeGreaterThan(0);
+      expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
 
-  it("catalog_section_get 在 jwId 缺失时返回恢复提示", async () => {
-    const result = await context.client.call<{
-      found?: boolean;
-      message?: string;
-      hint?: string;
-    }>("catalog_section_get", {
-      jwId: 999999999,
-      locale: "zh-cn",
-    });
+      const course = result.data?.find(
+        (item) => item.jwId === fixtures.DEV_SEED.course.jwId,
+      );
+      expect(course?.code).toBe(fixtures.DEV_SEED.course.code);
+      expect(course?.nameCn).toBe(fixtures.DEV_SEED.course.nameCn);
+      expect(course?.educationLevel?.nameCn).toBe(
+        fixtures.DEV_SEED.course.educationLevelNameCn,
+      );
+      expect(course?.category?.nameCn).toBe(
+        fixtures.DEV_SEED.course.categoryNameCn,
+      );
+      expect(course?.classType?.nameCn).toBe(
+        fixtures.DEV_SEED.course.classTypeNameCn,
+      );
+    },
+  );
 
-    expect(result.found).toBe(false);
-    expect(result.message).toContain("999999999");
-    expect(result.hint).toContain("catalog_section_search");
-  });
+  toolTest(
+    "catalog_section_get 返回与 REST 班级详情相同的层级",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        found?: boolean;
+        section?: {
+          code?: string;
+          schedules?: Array<{
+            endTime?: unknown;
+            startTime?: unknown;
+          }>;
+          teacherAssignments?: Array<Record<string, unknown>>;
+          scheduleGroups?: unknown[];
+          exams?: unknown[];
+          roomType?: unknown;
+        };
+      }>("catalog_section_get", {
+        jwId: fixtures.DEV_SEED.section.jwId,
+        locale: "zh-cn",
+        mode: "full",
+      });
+
+      expect(result.found).toBe(true);
+      expect(result.section?.code).toBe(fixtures.DEV_SEED.section.code);
+      expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
+      expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
+      expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(true);
+      for (const assignment of result.section?.teacherAssignments ?? []) {
+        expect(assignment).not.toHaveProperty("teacher");
+      }
+      expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
+      expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
+      expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
+    },
+  );
+
+  toolTest(
+    "catalog_section_get 在 jwId 缺失时返回恢复提示",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        found?: boolean;
+        message?: string;
+        hint?: string;
+      }>("catalog_section_get", {
+        jwId: 999999999,
+        locale: "zh-cn",
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.message).toContain("999999999");
+      expect(result.hint).toContain("catalog_section_search");
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -121,156 +131,179 @@ describe("课程与班级查找", () => {
 // --- formerly mcp-13-catalog-search ---
 
 describe("学期查询工具", () => {
-  it("catalog_semester_list 返回与 REST 等价的分页学期列表", async () => {
-    const result = await context.client.call<{
-      data?: Array<{
-        id?: number;
-        jwId?: number;
-        code?: string;
-        nameCn?: string;
-        startDate?: string;
-        endDate?: string;
-      }>;
-      pagination?: {
-        page?: number;
-        pageSize?: number;
-        total?: number;
-        totalPages?: number;
-      };
-    }>("catalog_semester_list", {
-      page: 1,
-      limit: 20,
-      mode: "default",
-    });
+  toolTest(
+    "catalog_semester_list 返回与 REST 等价的分页学期列表",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        data?: Array<{
+          id?: number;
+          jwId?: number;
+          code?: string;
+          nameCn?: string;
+          startDate?: string;
+          endDate?: string;
+        }>;
+        pagination?: {
+          page?: number;
+          pageSize?: number;
+          total?: number;
+          totalPages?: number;
+        };
+      }>("catalog_semester_list", {
+        page: 1,
+        limit: 20,
+        mode: "default",
+      });
 
-    expect(result.pagination?.page).toBe(1);
-    expect(result.pagination?.pageSize).toBe(20);
-    expect((result.pagination?.total ?? 0) > 0).toBe(true);
-    expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
+      expect(result.pagination?.page).toBe(1);
+      expect(result.pagination?.pageSize).toBe(20);
+      expect((result.pagination?.total ?? 0) > 0).toBe(true);
+      expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
 
-    const semester = result.data?.find(
-      (item) => item.jwId === fixtures.DEV_SEED.semesterJwId,
-    );
-    expect(semester).toBeDefined();
-    expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
-    expect(typeof semester?.id).toBe("number");
-    expect(typeof semester?.code).toBe("string");
-    expect(typeof semester?.startDate).toBe("string");
-    expect(typeof semester?.endDate).toBe("string");
-  });
+      const semester = result.data?.find(
+        (item) => item.jwId === fixtures.DEV_SEED.semesterJwId,
+      );
+      expect(semester).toBeDefined();
+      expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
+      expect(typeof semester?.id).toBe("number");
+      expect(typeof semester?.code).toBe("string");
+      expect(typeof semester?.startDate).toBe("string");
+      expect(typeof semester?.endDate).toBe("string");
+    },
+  );
 
-  it("catalog_semester_list summary 兼容输入保留标准分页数组", async () => {
-    const result = await context.client.call<{
-      data?: Array<{
-        jwId?: number;
-        nameCn?: string;
-      }>;
-      pagination?: {
-        total?: number;
-        page?: number;
-        pageSize?: number;
-      };
-    }>("catalog_semester_list", {
-      page: 1,
-      limit: 10,
-      mode: "default",
-    });
-
-    expect(Array.isArray(result.data)).toBe(true);
-    expect(typeof result.pagination?.total).toBe("number");
-    expect(result.pagination?.page).toBe(1);
-    expect(result.pagination?.pageSize).toBe(10);
-
-    const semester = result.data?.find(
-      (item) => item.jwId === fixtures.DEV_SEED.semesterJwId,
-    );
-    expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
-  });
-
-  it("catalog_semester_list 合法高页码返回空数据与正确分页元数据", async () => {
-    const result = await context.client.call<{
-      data?: unknown[];
-      pagination?: {
-        page?: number;
-        pageSize?: number;
-        total?: number;
-        totalPages?: number;
-      };
-    }>("catalog_semester_list", {
-      page: 100,
-      limit: 10,
-      mode: "default",
-    });
-
-    expect(result.data).toHaveLength(0);
-    expect(result.pagination?.page).toBe(100);
-    expect(result.pagination?.pageSize).toBe(10);
-    expect((result.pagination?.total ?? 0) > 0).toBe(true);
-    expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
-  });
-
-  it("catalog_semester_list 拒绝越界或无效分页参数", async () => {
-    await expect(
-      context.client.call("catalog_semester_list", { page: 0, limit: 10 }),
-    ).rejects.toThrow();
-
-    await expect(
-      context.client.call("catalog_semester_list", { page: 101, limit: 10 }),
-    ).rejects.toThrow();
-
-    await expect(
-      context.client.call("catalog_semester_list", { page: 1, limit: 101 }),
-    ).rejects.toThrow();
-
-    await expect(
-      context.client.call("catalog_semester_list", {
-        page: "not-a-number",
+  toolTest(
+    "catalog_semester_list summary 兼容输入保留标准分页数组",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        data?: Array<{
+          jwId?: number;
+          nameCn?: string;
+        }>;
+        pagination?: {
+          total?: number;
+          page?: number;
+          pageSize?: number;
+        };
+      }>("catalog_semester_list", {
+        page: 1,
         limit: 10,
-      }),
-    ).rejects.toThrow();
-  });
+        mode: "default",
+      });
 
-  it("catalog_semester_current 返回覆盖当前的 seed 学期", async () => {
-    const result = await context.client.call<{
-      found?: boolean;
-      semester?: {
-        id?: number;
-        jwId?: number;
-        code?: string;
-        nameCn?: string;
-        startDate?: string;
-        endDate?: string;
-      };
-    }>("catalog_semester_current", { mode: "default" });
+      expect(Array.isArray(result.data)).toBe(true);
+      expect(typeof result.pagination?.total).toBe("number");
+      expect(result.pagination?.page).toBe(1);
+      expect(result.pagination?.pageSize).toBe(10);
 
-    expect(result.found).toBe(true);
-    expect(result.semester?.jwId).toBe(fixtures.DEV_SEED.semesterJwId);
-    expect(result.semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
-    expect(typeof result.semester?.id).toBe("number");
-    expect(typeof result.semester?.code).toBe("string");
-    expect(typeof result.semester?.startDate).toBe("string");
-    expect(typeof result.semester?.endDate).toBe("string");
-  });
+      const semester = result.data?.find(
+        (item) => item.jwId === fixtures.DEV_SEED.semesterJwId,
+      );
+      expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
+    },
+  );
 
-  it("catalog_semester_current full 模式返回完整学期记录", async () => {
-    const result = await context.client.call<{
-      found?: boolean;
-      semester?: Record<string, unknown>;
-    }>("catalog_semester_current", { mode: "full" });
+  toolTest(
+    "catalog_semester_list 合法高页码返回空数据与正确分页元数据",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        data?: unknown[];
+        pagination?: {
+          page?: number;
+          pageSize?: number;
+          total?: number;
+          totalPages?: number;
+        };
+      }>("catalog_semester_list", {
+        page: 100,
+        limit: 10,
+        mode: "default",
+      });
 
-    expect(result.found).toBe(true);
-    expect(result.semester?.jwId).toBe(fixtures.DEV_SEED.semesterJwId);
-    expect(result.semester).toHaveProperty("id");
-    expect(result.semester).toHaveProperty("nameCn");
-    expect(result.semester).toHaveProperty("startDate");
-    expect(result.semester).toHaveProperty("endDate");
-  });
+      expect(result.data).toHaveLength(0);
+      expect(result.pagination?.page).toBe(100);
+      expect(result.pagination?.pageSize).toBe(10);
+      expect((result.pagination?.total ?? 0) > 0).toBe(true);
+      expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+    },
+  );
 
-  it("catalog_semester_current 拒绝无效 mode 参数", async () => {
-    await expect(
-      context.client.call("catalog_semester_current", { mode: "invalid-mode" }),
-    ).rejects.toThrow();
-  });
+  toolTest(
+    "catalog_semester_list 拒绝越界或无效分页参数",
+    async ({ context, expect }) => {
+      await expect(
+        context.client.call("catalog_semester_list", { page: 0, limit: 10 }),
+      ).rejects.toThrow();
+
+      await expect(
+        context.client.call("catalog_semester_list", { page: 101, limit: 10 }),
+      ).rejects.toThrow();
+
+      await expect(
+        context.client.call("catalog_semester_list", { page: 1, limit: 101 }),
+      ).rejects.toThrow();
+
+      await expect(
+        context.client.call("catalog_semester_list", {
+          page: "not-a-number",
+          limit: 10,
+        }),
+      ).rejects.toThrow();
+    },
+  );
+
+  toolTest(
+    "catalog_semester_current 返回覆盖当前的 seed 学期",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        found?: boolean;
+        semester?: {
+          id?: number;
+          jwId?: number;
+          code?: string;
+          nameCn?: string;
+          startDate?: string;
+          endDate?: string;
+        };
+      }>("catalog_semester_current", { mode: "default" });
+
+      expect(result.found).toBe(true);
+      expect(result.semester?.jwId).toBe(fixtures.DEV_SEED.semesterJwId);
+      expect(result.semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
+      expect(typeof result.semester?.id).toBe("number");
+      expect(typeof result.semester?.code).toBe("string");
+      expect(typeof result.semester?.startDate).toBe("string");
+      expect(typeof result.semester?.endDate).toBe("string");
+    },
+  );
+
+  toolTest(
+    "catalog_semester_current full 模式返回完整学期记录",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        found?: boolean;
+        semester?: Record<string, unknown>;
+      }>("catalog_semester_current", { mode: "full" });
+
+      expect(result.found).toBe(true);
+      expect(result.semester?.jwId).toBe(fixtures.DEV_SEED.semesterJwId);
+      expect(result.semester).toHaveProperty("id");
+      expect(result.semester).toHaveProperty("nameCn");
+      expect(result.semester).toHaveProperty("startDate");
+      expect(result.semester).toHaveProperty("endDate");
+    },
+  );
+
+  toolTest(
+    "catalog_semester_current 拒绝无效 mode 参数",
+    async ({ context, expect }) => {
+      await expect(
+        context.client.call("catalog_semester_current", {
+          mode: "invalid-mode",
+        }),
+      ).rejects.toThrow();
+    },
+  );
 });
 
 // --- formerly mcp-14-teacher ---
@@ -343,7 +376,7 @@ type GetCourseResult = {
 };
 
 describe("班级搜索工具 catalog_section_search", () => {
-  it("按课程 jwId 返回分页的班级摘要", async () => {
+  toolTest("按课程 jwId 返回分页的班级摘要", async ({ context, expect }) => {
     const result = await context.client.call<SearchSectionsResult>(
       "catalog_section_search",
       {
@@ -376,7 +409,7 @@ describe("班级搜索工具 catalog_section_search", () => {
     ).toBe(true);
   });
 
-  it("按教师工号过滤班级", async () => {
+  toolTest("按教师工号过滤班级", async ({ context, expect }) => {
     const result = await context.client.call<SearchSectionsResult>(
       "catalog_section_search",
       {
@@ -396,7 +429,7 @@ describe("班级搜索工具 catalog_section_search", () => {
     ).toBe(true);
   });
 
-  it("按 jwIds 精确查询班级", async () => {
+  toolTest("按 jwIds 精确查询班级", async ({ context, expect }) => {
     const result = await context.client.call<SearchSectionsResult>(
       "catalog_section_search",
       {
@@ -414,7 +447,7 @@ describe("班级搜索工具 catalog_section_search", () => {
     expect(result.pagination?.totalPages).toBe(1);
   });
 
-  it("无匹配过滤返回空分页", async () => {
+  toolTest("无匹配过滤返回空分页", async ({ context, expect }) => {
     const result = await context.client.call<SearchSectionsResult>(
       "catalog_section_search",
       {
@@ -431,7 +464,7 @@ describe("班级搜索工具 catalog_section_search", () => {
     expect(result.pagination?.totalPages).toBe(1);
   });
 
-  it("拒绝越界分页参数", async () => {
+  toolTest("拒绝越界分页参数", async ({ context, expect }) => {
     await expect(
       context.client.call("catalog_section_search", { page: 1, limit: 101 }),
     ).rejects.toThrow();
@@ -442,7 +475,7 @@ describe("班级搜索工具 catalog_section_search", () => {
 });
 
 describe("课程详情工具 catalog_course_get", () => {
-  it("按 jwId 返回课程详情及班级列表", async () => {
+  toolTest("按 jwId 返回课程详情及班级列表", async ({ context, expect }) => {
     const result = await context.client.call<GetCourseResult>(
       "catalog_course_get",
       {
@@ -483,7 +516,7 @@ describe("课程详情工具 catalog_course_get", () => {
     );
   });
 
-  it("缺失课程返回 found false", async () => {
+  toolTest("缺失课程返回 found false", async ({ context, expect }) => {
     const result = await context.client.call<GetCourseResult>(
       "catalog_course_get",
       {
@@ -496,7 +529,7 @@ describe("课程详情工具 catalog_course_get", () => {
     expect(result.course).toBeNull();
   });
 
-  it("拒绝无效 jwId 参数", async () => {
+  toolTest("拒绝无效 jwId 参数", async ({ context, expect }) => {
     await expect(
       context.client.call("catalog_course_get", { jwId: 0 }),
     ).rejects.toThrow();
@@ -514,7 +547,7 @@ describe("课程详情工具 catalog_course_get", () => {
 // --- formerly mcp-15-section-match ---
 
 describe("catalog_section_match_preview — 班级代码匹配", () => {
-  it("在当前学期匹配单个班级代码", async () => {
+  toolTest("在当前学期匹配单个班级代码", async ({ context, expect }) => {
     const result = await context.client.call<{
       success?: boolean;
       semester?: { id?: number; nameCn?: string; code?: string };
@@ -538,85 +571,94 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
     expect(result.note).toContain("Life@USTC");
   });
 
-  it("支持多个代码并区分匹配与未匹配，且为未匹配代码提供建议", async () => {
-    const unmatchedCode = fixtures.DEV_SEED.section.code.replace(
-      /\.\d+$/,
-      ".02",
-    );
+  toolTest(
+    "支持多个代码并区分匹配与未匹配，且为未匹配代码提供建议",
+    async ({ context, expect }) => {
+      const unmatchedCode = fixtures.DEV_SEED.section.code.replace(
+        /\.\d+$/,
+        ".02",
+      );
 
-    const result = await context.client.call<{
-      success?: boolean;
-      matchedCodes?: string[];
-      unmatchedCodes?: string[];
-      suggestions?: Record<string, string[]>;
-      total?: number;
-    }>("catalog_section_match_preview", {
-      codes: [fixtures.DEV_SEED.section.code, unmatchedCode],
-      locale: "zh-cn",
-    });
+      const result = await context.client.call<{
+        success?: boolean;
+        matchedCodes?: string[];
+        unmatchedCodes?: string[];
+        suggestions?: Record<string, string[]>;
+        total?: number;
+      }>("catalog_section_match_preview", {
+        codes: [fixtures.DEV_SEED.section.code, unmatchedCode],
+        locale: "zh-cn",
+      });
 
-    expect(result.success).toBe(true);
-    expect(result.matchedCodes).toContain(fixtures.DEV_SEED.section.code);
-    expect(result.matchedCodes).not.toContain(unmatchedCode);
-    expect(result.unmatchedCodes).toContain(unmatchedCode);
-    expect(result.total).toBe(1);
-    expect(result.suggestions?.[unmatchedCode]).toContain(
-      fixtures.DEV_SEED.section.code,
-    );
-  });
+      expect(result.success).toBe(true);
+      expect(result.matchedCodes).toContain(fixtures.DEV_SEED.section.code);
+      expect(result.matchedCodes).not.toContain(unmatchedCode);
+      expect(result.unmatchedCodes).toContain(unmatchedCode);
+      expect(result.total).toBe(1);
+      expect(result.suggestions?.[unmatchedCode]).toContain(
+        fixtures.DEV_SEED.section.code,
+      );
+    },
+  );
 
-  it("可按 semesterId 查询历史学期班级代码", async () => {
-    const previousSemester = await fixtures.prisma.semester.findUnique({
-      where: { jwId: fixtures.DEV_SEED.previousSemesterJwId },
-      select: { id: true, nameCn: true },
-    });
-    expect(previousSemester).toBeTruthy();
+  toolTest(
+    "可按 semesterId 查询历史学期班级代码",
+    async ({ context, expect }) => {
+      const previousSemester = await fixtures.prisma.semester.findUnique({
+        where: { jwId: fixtures.DEV_SEED.previousSemesterJwId },
+        select: { id: true, nameCn: true },
+      });
+      expect(previousSemester).toBeTruthy();
 
-    const previousSection = fixtures.DEV_SEED.sections.find(
-      (section) => section.code === "MATH2001.01",
-    );
-    expect(previousSection).toBeTruthy();
-    if (!previousSemester || !previousSection) {
-      throw new Error("Previous semester or section seed data missing");
-    }
+      const previousSection = fixtures.DEV_SEED.sections.find(
+        (section) => section.code === "MATH2001.01",
+      );
+      expect(previousSection).toBeTruthy();
+      if (!previousSemester || !previousSection) {
+        throw new Error("Previous semester or section seed data missing");
+      }
 
-    const result = await context.client.call<{
-      success?: boolean;
-      semester?: { id?: number; nameCn?: string };
-      matchedCodes?: string[];
-      unmatchedCodes?: string[];
-      total?: number;
-    }>("catalog_section_match_preview", {
-      codes: [previousSection.code],
-      semesterId: previousSemester.id,
-      locale: "zh-cn",
-    });
+      const result = await context.client.call<{
+        success?: boolean;
+        semester?: { id?: number; nameCn?: string };
+        matchedCodes?: string[];
+        unmatchedCodes?: string[];
+        total?: number;
+      }>("catalog_section_match_preview", {
+        codes: [previousSection.code],
+        semesterId: previousSemester.id,
+        locale: "zh-cn",
+      });
 
-    expect(result.success).toBe(true);
-    expect(result.semester?.id).toBe(previousSemester.id);
-    expect(result.semester?.nameCn).toBe(
-      fixtures.DEV_SEED.previousSemesterNameCn,
-    );
-    expect(result.matchedCodes).toContain(previousSection.code);
-    expect(result.unmatchedCodes).toEqual([]);
-    expect(result.total).toBe(1);
-  });
+      expect(result.success).toBe(true);
+      expect(result.semester?.id).toBe(previousSemester.id);
+      expect(result.semester?.nameCn).toBe(
+        fixtures.DEV_SEED.previousSemesterNameCn,
+      );
+      expect(result.matchedCodes).toContain(previousSection.code);
+      expect(result.unmatchedCodes).toEqual([]);
+      expect(result.total).toBe(1);
+    },
+  );
 
-  it("在 semesterId 不存在时返回失败提示", async () => {
-    const result = await context.client.call<{
-      success?: boolean;
-      message?: string;
-    }>("catalog_section_match_preview", {
-      codes: [fixtures.DEV_SEED.section.code],
-      semesterId: 2_147_483_647,
-      locale: "zh-cn",
-    });
+  toolTest(
+    "在 semesterId 不存在时返回失败提示",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        success?: boolean;
+        message?: string;
+      }>("catalog_section_match_preview", {
+        codes: [fixtures.DEV_SEED.section.code],
+        semesterId: 2_147_483_647,
+        locale: "zh-cn",
+      });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toContain("No semester found");
-  });
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("No semester found");
+    },
+  );
 
-  it("拒绝空代码数组", async () => {
+  toolTest("拒绝空代码数组", async ({ context, expect }) => {
     await expect(
       context.client.call("catalog_section_match_preview", {
         codes: [],
@@ -625,7 +667,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
     ).rejects.toThrow();
   });
 
-  it("拒绝非法格式班级代码", async () => {
+  toolTest("拒绝非法格式班级代码", async ({ context, expect }) => {
     await expect(
       context.client.call("catalog_section_match_preview", {
         codes: ["bad code!"],

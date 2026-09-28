@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, vi } from "vitest";
 import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
@@ -13,15 +13,35 @@ import { GRAPHQL_OPERATION_PROMPT_NAME } from "@/lib/graphql/prompts";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 import * as fixtures from "./mcp/_harness";
 import { createMcpHarness } from "./mcp/_harness";
+import { mcpTest } from "./mcp/_harness/context";
 
-describe("GraphQL MCP operations", () => {
-  const isolated = fixtures.createIsolatedMcpToolTestContext({
+// Keep request evidence outside mock histories that another concurrent test can reset.
+const observedLogs = vi.hoisted(
+  () => [] as Parameters<typeof import("@/lib/log/app-log-emitter").emitLog>[],
+);
+vi.mock("@/lib/log/app-log-emitter", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("@/lib/log/app-log-emitter")>();
+  return {
+    ...original,
+    emitLog: (...args: Parameters<typeof original.emitLog>) => {
+      observedLogs.push(args);
+      return original.emitLog(...args);
+    },
+  };
+});
+const toolTest = mcpTest.extend(
+  "isolated",
+  fixtures.actorFixture({
     emailPrefix: "graphql-mcp-resources",
     name: "[integration-test] GraphQL MCP Resources",
-  });
+  }),
+);
+describe("GraphQL MCP operations", () => {
   const marker = `[integration-test] graphql-mcp-${Date.now()}`;
 
   async function callExpectedGraphqlError<T>(
+    isolated: fixtures.IsolatedMcpToolTestContext,
     args: Record<string, unknown>,
   ): Promise<T> {
     const result = await isolated.client.callToolResult(
@@ -32,61 +52,66 @@ describe("GraphQL MCP operations", () => {
     return result.structuredContent as T;
   }
 
-  it("interface-hierarchy.transport-specific-exceptions-11", async () => {
-    const resources = await isolated.client.listResources();
+  toolTest(
+    "interface-hierarchy.transport-specific-exceptions-11",
+    async ({ isolated, expect }) => {
+      const resources = await isolated.client.listResources();
 
-    expect(resources.resources).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ uri: GRAPHQL_SCHEMA_RESOURCE_URI }),
-        expect.objectContaining({ uri: GRAPHQL_OPERATIONS_RESOURCE_URI }),
-      ]),
-    );
+      expect(resources.resources).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ uri: GRAPHQL_SCHEMA_RESOURCE_URI }),
+          expect.objectContaining({ uri: GRAPHQL_OPERATIONS_RESOURCE_URI }),
+        ]),
+      );
 
-    const schema = await isolated.client.readResource(
-      GRAPHQL_SCHEMA_RESOURCE_URI,
-    );
-    const operations = await isolated.client.readResource(
-      GRAPHQL_OPERATIONS_RESOURCE_URI,
-    );
+      const schema = await isolated.client.readResource(
+        GRAPHQL_SCHEMA_RESOURCE_URI,
+      );
+      const operations = await isolated.client.readResource(
+        GRAPHQL_OPERATIONS_RESOURCE_URI,
+      );
 
-    expect(schema.contents[0]).toMatchObject({
-      uri: GRAPHQL_SCHEMA_RESOURCE_URI,
-      mimeType: "text/plain",
-    });
-    expect(schema.contents[0]).toHaveProperty(
-      "text",
-      readFileSync("docs/graphql/schema.graphql", "utf8"),
-    );
-    const operationContent = operations.contents[0];
-    if (!operationContent || !("text" in operationContent)) {
-      throw new Error("GraphQL operations manifest must be text");
-    }
-    const manifest = JSON.parse(operationContent.text) as Record<
-      string,
-      unknown
-    >;
-    expect(manifest).toMatchObject({
-      schemaVersion: 1,
-      operations: expect.arrayContaining([
-        expect.objectContaining({
-          id: "workspace.todo.list.v1",
-          scopes: ["workspace.todo:read"],
-          readOnly: true,
-        }),
-        expect.objectContaining({
-          id: "workspace.todo.delete.v1",
-          scopes: ["workspace.todo:write"],
-          destructive: true,
-          requiresConfirmation: true,
-        }),
-      ]),
-    });
-    expect(manifest).toEqual(publicGraphqlOperationsManifest);
-    expect(JSON.stringify([schema, operations])).not.toContain(isolated.userId);
-    expect(JSON.stringify(manifest)).not.toContain('"document"');
-  });
+      expect(schema.contents[0]).toMatchObject({
+        uri: GRAPHQL_SCHEMA_RESOURCE_URI,
+        mimeType: "text/plain",
+      });
+      expect(schema.contents[0]).toHaveProperty(
+        "text",
+        readFileSync("docs/graphql/schema.graphql", "utf8"),
+      );
+      const operationContent = operations.contents[0];
+      if (!operationContent || !("text" in operationContent)) {
+        throw new Error("GraphQL operations manifest must be text");
+      }
+      const manifest = JSON.parse(operationContent.text) as Record<
+        string,
+        unknown
+      >;
+      expect(manifest).toMatchObject({
+        schemaVersion: 1,
+        operations: expect.arrayContaining([
+          expect.objectContaining({
+            id: "workspace.todo.list.v1",
+            scopes: ["workspace.todo:read"],
+            readOnly: true,
+          }),
+          expect.objectContaining({
+            id: "workspace.todo.delete.v1",
+            scopes: ["workspace.todo:write"],
+            destructive: true,
+            requiresConfirmation: true,
+          }),
+        ]),
+      });
+      expect(manifest).toEqual(publicGraphqlOperationsManifest);
+      expect(JSON.stringify([schema, operations])).not.toContain(
+        isolated.userId,
+      );
+      expect(JSON.stringify(manifest)).not.toContain('"document"');
+    },
+  );
 
-  it("graphql.graphql-operation-prompt", async () => {
+  toolTest("graphql.graphql-operation-prompt", async ({ isolated, expect }) => {
     expect(isolated.client.getInstructions()).toContain(
       GRAPHQL_OPERATION_PROMPT_NAME,
     );
@@ -165,48 +190,53 @@ describe("GraphQL MCP operations", () => {
     );
   });
 
-  it("exposes arbitrary documents and compatible registered operations", async () => {
-    const { tools } = await isolated.client.listTools();
-    const runner = tools.find((tool) => tool.name === "graphql_operation_run");
+  toolTest(
+    "exposes arbitrary documents and compatible registered operations",
+    async ({ isolated, expect }) => {
+      const { tools } = await isolated.client.listTools();
+      const runner = tools.find(
+        (tool) => tool.name === "graphql_operation_run",
+      );
 
-    expect(tools.map((tool) => tool.name)).not.toContain("execute_graphql");
-    expect(runner).toBeDefined();
-    expect(runner?.description).toContain(GRAPHQL_OPERATION_PROMPT_NAME);
-    expect(Object.keys(runner?.inputSchema.properties ?? {}).sort()).toEqual([
-      "confirmed",
-      "document",
-      "locale",
-      "operationId",
-      "operationName",
-      "variables",
-    ]);
-    expect(runner?.inputSchema.properties).toHaveProperty("document");
-    expect(runner?.inputSchema.properties?.document).toMatchObject({
-      description: expect.stringContaining(GRAPHQL_SCHEMA_RESOURCE_URI),
-    });
-    expect(runner?.outputSchema).toMatchObject({
-      type: "object",
-      required: expect.arrayContaining(["success"]),
-      additionalProperties: false,
-    });
-    expect(runner?._meta).toMatchObject({
-      securitySchemes: [{ type: "oauth2", scopes: [] }],
-      "life-ustc/graphqlOperationsManifest": 1,
-    });
-    expect(runner?.annotations).toMatchObject({
-      readOnlyHint: false,
-      destructiveHint: true,
-      openWorldHint: true,
-    });
-  });
+      expect(tools.map((tool) => tool.name)).not.toContain("execute_graphql");
+      expect(runner).toBeDefined();
+      expect(runner?.description).toContain(GRAPHQL_OPERATION_PROMPT_NAME);
+      expect(Object.keys(runner?.inputSchema.properties ?? {}).sort()).toEqual([
+        "confirmed",
+        "document",
+        "locale",
+        "operationId",
+        "operationName",
+        "variables",
+      ]);
+      expect(runner?.inputSchema.properties).toHaveProperty("document");
+      expect(runner?.inputSchema.properties?.document).toMatchObject({
+        description: expect.stringContaining(GRAPHQL_SCHEMA_RESOURCE_URI),
+      });
+      expect(runner?.outputSchema).toMatchObject({
+        type: "object",
+        required: expect.arrayContaining(["success"]),
+        additionalProperties: false,
+      });
+      expect(runner?._meta).toMatchObject({
+        securitySchemes: [{ type: "oauth2", scopes: [] }],
+        "life-ustc/graphqlOperationsManifest": 1,
+      });
+      expect(runner?.annotations).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+      });
+    },
+  );
 
-  it("correlates nested GraphQL observations with the HTTP request id", async () => {
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    try {
+  toolTest(
+    "correlates nested GraphQL observations with the HTTP request id",
+    async ({ isolated, expect }) => {
       const result = await runWithCloudflareRuntimeEnv(undefined, () => {
         setCloudflareRequestContext({
           method: "POST",
-          requestId: "mcp-http-request-id",
+          requestId: "mcp-http-request-51",
           route: "/api/mcp",
         });
         return isolated.client.call("graphql_operation_run", {
@@ -216,35 +246,37 @@ describe("GraphQL MCP operations", () => {
       });
       expect(result).toMatchObject({ success: true });
 
-      const operationLog = info.mock.calls.find(
-        ([prefix, value]) =>
+      const operationLog = observedLogs.find(
+        ([prefix, _level, value]) =>
           prefix === "[app]" &&
           typeof value === "object" &&
           value !== null &&
           "event" in value &&
-          value.event === "graphql.operation",
+          value.event === "graphql.operation" &&
+          "requestId" in value &&
+          value.requestId === "mcp-http-request-51",
       );
-      expect(operationLog?.[1]).toEqual(
+      expect(operationLog?.[2]).toEqual(
         expect.objectContaining({
-          requestId: "mcp-http-request-id",
+          requestId: "mcp-http-request-51",
           route: "/api/mcp",
         }),
       );
-    } finally {
-      info.mockRestore();
-    }
-  });
+    },
+  );
 
-  it("runs arbitrary documents with fragments, aliases, and variables", async () => {
-    const result = await isolated.client.call<{
-      success: boolean;
-      operationId: string;
-      operationName: string;
-      data: {
-        account: { todos: { pageInfo: { pageSize: number } } };
-      };
-    }>("graphql_operation_run", {
-      document: /* GraphQL */ `
+  toolTest(
+    "runs arbitrary documents with fragments, aliases, and variables",
+    async ({ isolated, expect }) => {
+      const result = await isolated.client.call<{
+        success: boolean;
+        operationId: string;
+        operationName: string;
+        data: {
+          account: { todos: { pageInfo: { pageSize: number } } };
+        };
+      }>("graphql_operation_run", {
+        document: /* GraphQL */ `
         query ArbitraryTodos($page: PageInput) {
           account: workspace {
             ...WorkspaceTodos
@@ -258,116 +290,120 @@ describe("GraphQL MCP operations", () => {
           }
         }
       `,
-      operationName: "ArbitraryTodos",
-      variables: { page: { pageSize: 2 } },
-      locale: "zh-cn",
-    });
+        operationName: "ArbitraryTodos",
+        variables: { page: { pageSize: 2 } },
+        locale: "zh-cn",
+      });
 
-    expect(result).toMatchObject({
-      success: true,
-      operationId: "document",
-      operationName: "ArbitraryTodos",
-      data: { account: { todos: { pageInfo: { pageSize: 2 } } } },
-    });
-  });
+      expect(result).toMatchObject({
+        success: true,
+        operationId: "document",
+        operationName: "ArbitraryTodos",
+        data: { account: { todos: { pageInfo: { pageSize: 2 } } } },
+      });
+    },
+  );
 
-  it("graphql.mcp-mutation-confirmation", async () => {
-    const readOnly = await createMcpHarness(isolated.userId, [
-      restReadScope("workspace.todo"),
-    ]);
-    const other = await fixtures.prisma.user.create({
-      data: { email: `${crypto.randomUUID()}@confirmed-authority.test` },
-    });
-    const foreignActor = await createMcpHarness(other.id, [
-      restWriteScope("workspace.todo"),
-    ]);
-    try {
-      for (const mode of ["document", "registered"] as const) {
-        const title = `${marker}-confirmation-${mode}`;
-        const input = {
-          ...(mode === "document"
-            ? {
-                document:
-                  "mutation CreateTodo($input: CreateTodoInput!) { todoCreate(input: $input) { id } }",
-                operationName: "CreateTodo",
-              }
-            : { operationId: "workspace.todo.create.v1" }),
-          variables: { input: { title } },
-          locale: "zh-cn",
-        };
-        for (const confirmed of [undefined, false]) {
-          const result = await callExpectedGraphqlError({
-            ...input,
-            confirmed,
-          });
-          expect(result).toMatchObject({
-            success: false,
-            error: "CONFIRMATION_REQUIRED",
+  toolTest(
+    "graphql.mcp-mutation-confirmation",
+    async ({ isolated, expect }) => {
+      const readOnly = await createMcpHarness(isolated.userId, [
+        restReadScope("workspace.todo"),
+      ]);
+      const other = await fixtures.prisma.user.create({
+        data: { email: `${crypto.randomUUID()}@confirmed-authority.test` },
+      });
+      const foreignActor = await createMcpHarness(other.id, [
+        restWriteScope("workspace.todo"),
+      ]);
+      try {
+        for (const mode of ["document", "registered"] as const) {
+          const title = `${marker}-confirmation-${mode}`;
+          const input = {
+            ...(mode === "document"
+              ? {
+                  document:
+                    "mutation CreateTodo($input: CreateTodoInput!) { todoCreate(input: $input) { id } }",
+                  operationName: "CreateTodo",
+                }
+              : { operationId: "workspace.todo.create.v1" }),
+            variables: { input: { title } },
+            locale: "zh-cn",
+          };
+          for (const confirmed of [undefined, false]) {
+            const result = await callExpectedGraphqlError(isolated, {
+              ...input,
+              confirmed,
+            });
+            expect(result).toMatchObject({
+              success: false,
+              error: "CONFIRMATION_REQUIRED",
+            });
+            expect(
+              await fixtures.prisma.todo.count({
+                where: { userId: isolated.userId, title },
+              }),
+            ).toBe(0);
+          }
+          const insufficient = await readOnly.callToolResult(
+            "graphql_operation_run",
+            { ...input, confirmed: true },
+          );
+          expect(insufficient).toMatchObject({
+            isError: true,
+            structuredContent: { success: false, error: "FORBIDDEN" },
           });
           expect(
             await fixtures.prisma.todo.count({
               where: { userId: isolated.userId, title },
             }),
           ).toBe(0);
-        }
-        const insufficient = await readOnly.callToolResult(
-          "graphql_operation_run",
-          { ...input, confirmed: true },
-        );
-        expect(insufficient).toMatchObject({
-          isError: true,
-          structuredContent: { success: false, error: "FORBIDDEN" },
-        });
-        expect(
-          await fixtures.prisma.todo.count({
-            where: { userId: isolated.userId, title },
-          }),
-        ).toBe(0);
-        const result = await isolated.client.call("graphql_operation_run", {
-          ...input,
-          confirmed: true,
-        });
-        expect(result).toMatchObject({ success: true });
-        expect(
-          await fixtures.prisma.todo.count({
-            where: { userId: isolated.userId, title },
-          }),
-        ).toBe(1);
-        const owned = await fixtures.prisma.todo.findFirstOrThrow({
-          where: { userId: isolated.userId, title },
-        });
-        const denied = await foreignActor.callToolResult(
-          "graphql_operation_run",
-          {
-            ...(mode === "document"
-              ? {
-                  document:
-                    "mutation($id:ID!) { todoDelete(id:$id) { id success } }",
-                }
-              : { operationId: "workspace.todo.delete.v1" }),
-            variables: { id: owned.id },
+          const result = await isolated.client.call("graphql_operation_run", {
+            ...input,
             confirmed: true,
-          },
-        );
-        expect(denied).toMatchObject({
-          isError: true,
-          structuredContent: {
-            success: false,
-            errors: [{ extensions: { code: "NOT_FOUND" } }],
-          },
-        });
-        expect(
-          await fixtures.prisma.todo.findUnique({ where: { id: owned.id } }),
-        ).toEqual(owned);
+          });
+          expect(result).toMatchObject({ success: true });
+          expect(
+            await fixtures.prisma.todo.count({
+              where: { userId: isolated.userId, title },
+            }),
+          ).toBe(1);
+          const owned = await fixtures.prisma.todo.findFirstOrThrow({
+            where: { userId: isolated.userId, title },
+          });
+          const denied = await foreignActor.callToolResult(
+            "graphql_operation_run",
+            {
+              ...(mode === "document"
+                ? {
+                    document:
+                      "mutation($id:ID!) { todoDelete(id:$id) { id success } }",
+                  }
+                : { operationId: "workspace.todo.delete.v1" }),
+              variables: { id: owned.id },
+              confirmed: true,
+            },
+          );
+          expect(denied).toMatchObject({
+            isError: true,
+            structuredContent: {
+              success: false,
+              errors: [{ extensions: { code: "NOT_FOUND" } }],
+            },
+          });
+          expect(
+            await fixtures.prisma.todo.findUnique({ where: { id: owned.id } }),
+          ).toEqual(owned);
+        }
+      } finally {
+        await readOnly.close();
+        await foreignActor.close();
+        await fixtures.prisma.user.delete({ where: { id: other.id } });
       }
-    } finally {
-      await readOnly.close();
-      await foreignActor.close();
-      await fixtures.prisma.user.delete({ where: { id: other.id } });
-    }
-  });
+    },
+  );
 
-  it("graphql.graphql-operation-runner", async () => {
+  toolTest("graphql.graphql-operation-runner", async ({ isolated, expect }) => {
     for (const input of [
       {},
       {
@@ -376,7 +412,10 @@ describe("GraphQL MCP operations", () => {
       },
     ]) {
       expect(
-        await callExpectedGraphqlError({ ...input, locale: "zh-cn" }),
+        await callExpectedGraphqlError(isolated, {
+          ...input,
+          locale: "zh-cn",
+        }),
       ).toMatchObject({ success: false, error: "BAD_USER_INPUT" });
     }
     for (const input of [
@@ -394,7 +433,7 @@ describe("GraphQL MCP operations", () => {
     }
   });
 
-  it("graphql.mcp-validation-parity", async () => {
+  toolTest("graphql.mcp-validation-parity", async ({ isolated, expect }) => {
     const { createGraphqlRequestHandler } = await import(
       "@/lib/graphql/server"
     );
@@ -440,254 +479,280 @@ describe("GraphQL MCP operations", () => {
     }
   });
 
-  it("rejects ambiguous inputs, introspection, and over-wide documents", async () => {
-    const ambiguous = await callExpectedGraphqlError<{
-      error: string;
-      success: boolean;
-    }>({
-      operationId: "workspace.todo.list.v1",
-      document: "query Account { account { profile { id } } }",
-      locale: "zh-cn",
-    });
-    expect(ambiguous).toMatchObject({
-      success: false,
-      error: "BAD_USER_INPUT",
-    });
-
-    const introspection = await callExpectedGraphqlError<{
-      success: boolean;
-      errors: Array<{ message: string }>;
-    }>({
-      document: "query Inspect { __schema { queryType { name } } }",
-      operationName: "Inspect",
-      locale: "zh-cn",
-    });
-    expect(introspection.success).toBe(false);
-    expect(introspection.errors[0]?.message).toMatch(/introspection/i);
-
-    const overWide = await callExpectedGraphqlError<{
-      success: boolean;
-      errors: Array<{ message: string }>;
-    }>({
-      document: `query TooWide { ${Array.from(
-        { length: 11 },
-        (_, index) => `field${index}: catalog { currentSemester { jwId } }`,
-      ).join(" ")} }`,
-      operationName: "TooWide",
-      locale: "zh-cn",
-    });
-    expect(overWide).toMatchObject({ success: false });
-    expect(overWide.errors[0]?.message).toBe(
-      "Query has too many top-level fields.",
-    );
-  });
-
-  it("runs approved Viewer reads and confirmed mutations", async () => {
-    const todos = await isolated.client.call<{
-      success: boolean;
-      data: {
-        workspace: {
-          todos: {
-            items: unknown[];
-            pageInfo: { pageSize: number };
-          };
-        };
-      };
-    }>("graphql_operation_run", {
-      operationId: "workspace.todo.list.v1",
-      variables: { page: { pageSize: 2 } },
-      locale: "zh-cn",
-    });
-    expect(todos).toMatchObject({
-      success: true,
-      data: {
-        workspace: {
-          todos: {
-            pageInfo: { pageSize: 2 },
-          },
-        },
-      },
-    });
-
-    const missingConfirmation = await callExpectedGraphqlError<{
-      success: boolean;
-      error: string;
-    }>({
-      operationId: "workspace.todo.create.v1",
-      variables: { input: { title: marker } },
-      locale: "zh-cn",
-    });
-    expect(missingConfirmation).toMatchObject({
-      success: false,
-      error: "CONFIRMATION_REQUIRED",
-    });
-
-    let createdTodoId = "";
-    try {
-      const created = await isolated.client.call<{
+  toolTest(
+    "rejects ambiguous inputs, introspection, and over-wide documents",
+    async ({ isolated, expect }) => {
+      const ambiguous = await callExpectedGraphqlError<{
+        error: string;
         success: boolean;
-        data: { todoCreate: { id: string } };
-      }>("graphql_operation_run", {
-        operationId: "workspace.todo.create.v1",
-        variables: {
-          input: { title: marker, priority: "HIGH" },
-        },
-        confirmed: true,
+      }>(isolated, {
+        operationId: "workspace.todo.list.v1",
+        document: "query Account { account { profile { id } } }",
         locale: "zh-cn",
       });
-      expect(created.success).toBe(true);
-      createdTodoId = created.data.todoCreate.id;
+      expect(ambiguous).toMatchObject({
+        success: false,
+        error: "BAD_USER_INPUT",
+      });
 
-      const completed = await isolated.client.call<{
+      const introspection = await callExpectedGraphqlError<{
+        success: boolean;
+        errors: Array<{ message: string }>;
+      }>(isolated, {
+        document: "query Inspect { __schema { queryType { name } } }",
+        operationName: "Inspect",
+        locale: "zh-cn",
+      });
+      expect(introspection.success).toBe(false);
+      expect(introspection.errors[0]?.message).toMatch(/introspection/i);
+
+      const overWide = await callExpectedGraphqlError<{
+        success: boolean;
+        errors: Array<{ message: string }>;
+      }>(isolated, {
+        document: `query TooWide { ${Array.from(
+          { length: 11 },
+          (_, index) => `field${index}: catalog { currentSemester { jwId } }`,
+        ).join(" ")} }`,
+        operationName: "TooWide",
+        locale: "zh-cn",
+      });
+      expect(overWide).toMatchObject({ success: false });
+      expect(overWide.errors[0]?.message).toBe(
+        "Query has too many top-level fields.",
+      );
+    },
+  );
+
+  toolTest(
+    "runs approved Viewer reads and confirmed mutations",
+    async ({ isolated, expect }) => {
+      const todos = await isolated.client.call<{
         success: boolean;
         data: {
-          todoCompletionsSet: {
-            results: Array<{
-              success: boolean;
-              todoId: string;
-              completed: boolean;
-            }>;
+          workspace: {
+            todos: {
+              items: unknown[];
+              pageInfo: { pageSize: number };
+            };
           };
         };
       }>("graphql_operation_run", {
-        operationId: "workspace.todo.completions.set.v1",
-        variables: {
-          items: [{ todoId: createdTodoId, completed: true }],
-        },
-        confirmed: true,
+        operationId: "workspace.todo.list.v1",
+        variables: { page: { pageSize: 2 } },
         locale: "zh-cn",
       });
-      expect(completed).toMatchObject({
+      expect(todos).toMatchObject({
         success: true,
         data: {
-          todoCompletionsSet: {
-            results: [
-              {
-                success: true,
-                todoId: createdTodoId,
-                completed: true,
-              },
+          workspace: {
+            todos: {
+              pageInfo: { pageSize: 2 },
+            },
+          },
+        },
+      });
+
+      const missingConfirmation = await callExpectedGraphqlError<{
+        success: boolean;
+        error: string;
+      }>(isolated, {
+        operationId: "workspace.todo.create.v1",
+        variables: { input: { title: marker } },
+        locale: "zh-cn",
+      });
+      expect(missingConfirmation).toMatchObject({
+        success: false,
+        error: "CONFIRMATION_REQUIRED",
+      });
+
+      let createdTodoId = "";
+      try {
+        const created = await isolated.client.call<{
+          success: boolean;
+          data: { todoCreate: { id: string } };
+        }>("graphql_operation_run", {
+          operationId: "workspace.todo.create.v1",
+          variables: {
+            input: { title: marker, priority: "HIGH" },
+          },
+          confirmed: true,
+          locale: "zh-cn",
+        });
+        expect(created.success).toBe(true);
+        createdTodoId = created.data.todoCreate.id;
+
+        const completed = await isolated.client.call<{
+          success: boolean;
+          data: {
+            todoCompletionsSet: {
+              results: Array<{
+                success: boolean;
+                todoId: string;
+                completed: boolean;
+              }>;
+            };
+          };
+        }>("graphql_operation_run", {
+          operationId: "workspace.todo.completions.set.v1",
+          variables: {
+            items: [{ todoId: createdTodoId, completed: true }],
+          },
+          confirmed: true,
+          locale: "zh-cn",
+        });
+        expect(completed).toMatchObject({
+          success: true,
+          data: {
+            todoCompletionsSet: {
+              results: [
+                {
+                  success: true,
+                  todoId: createdTodoId,
+                  completed: true,
+                },
+              ],
+            },
+          },
+        });
+
+        const deleted = await isolated.client.call<{
+          success: boolean;
+          data: { todoDelete: { id: string; success: boolean } };
+        }>("graphql_operation_run", {
+          operationId: "workspace.todo.delete.v1",
+          variables: { id: createdTodoId },
+          confirmed: true,
+          locale: "zh-cn",
+        });
+        expect(deleted).toMatchObject({
+          success: true,
+          data: {
+            todoDelete: {
+              id: createdTodoId,
+              success: true,
+            },
+          },
+        });
+        createdTodoId = "";
+      } finally {
+        await fixtures.deleteIntegrationTodo(createdTodoId);
+      }
+    },
+  );
+
+  toolTest(
+    "rejects variables outside the selected registered operation",
+    async ({ isolated, expect }) => {
+      const result = await callExpectedGraphqlError<{
+        success: boolean;
+        error: string;
+        message: string;
+      }>(isolated, {
+        operationId: "workspace.todo.list.v1",
+        variables: {
+          document: "query Arbitrary { workspace { profile { email } } }",
+        },
+        locale: "zh-cn",
+      });
+
+      expect(result).toMatchObject({
+        success: false,
+        error: "BAD_USER_INPUT",
+        message: "Unknown variable: document.",
+      });
+    },
+  );
+
+  toolTest(
+    "returns an exact insufficient-scope challenge for reauthorization",
+    async ({ isolated, expect }) => {
+      const limitedMcp = await createMcpHarness(isolated.userId, [
+        restReadScope("workspace.homework"),
+      ]);
+      try {
+        const result = await limitedMcp.callToolResult(
+          "graphql_operation_run",
+          {
+            operationId: "workspace.todo.list.v1",
+            variables: {},
+            locale: "zh-cn",
+          },
+        );
+
+        expect(result).toMatchObject({
+          isError: true,
+          structuredContent: {
+            success: false,
+            error: "FORBIDDEN",
+            requiredScopes: [restReadScope("workspace.todo")],
+          },
+        });
+        expect(result._meta?.["mcp/www_authenticate"]).toEqual([
+          expect.stringContaining('error="insufficient_scope"'),
+        ]);
+        expect(result._meta?.["mcp/www_authenticate"]).toEqual([
+          expect.stringContaining(`scope="${restReadScope("workspace.todo")}"`),
+        ]);
+      } finally {
+        await limitedMcp.close();
+      }
+    },
+  );
+
+  toolTest(
+    "enforces resolver scopes for arbitrary documents",
+    async ({ isolated, expect }) => {
+      const limitedMcp = await createMcpHarness(isolated.userId, [
+        restReadScope("workspace.homework"),
+      ]);
+      try {
+        const result = await limitedMcp.callToolResult(
+          "graphql_operation_run",
+          {
+            document:
+              "query ScopedTodos { workspace { todos { items { id } } } }",
+            operationName: "ScopedTodos",
+            variables: {},
+            locale: "zh-cn",
+          },
+        );
+
+        expect(result).toMatchObject({
+          isError: true,
+          structuredContent: {
+            success: false,
+            errors: [
+              expect.objectContaining({
+                extensions: expect.objectContaining({
+                  code: "FORBIDDEN",
+                  requiredScopes: [restReadScope("workspace.todo")],
+                }),
+              }),
             ],
           },
-        },
-      });
+        });
+        expect(result._meta?.["mcp/www_authenticate"]).toEqual([
+          expect.stringContaining(`scope="${restReadScope("workspace.todo")}"`),
+        ]);
+      } finally {
+        await limitedMcp.close();
+      }
+    },
+  );
 
-      const deleted = await isolated.client.call<{
-        success: boolean;
-        data: { todoDelete: { id: string; success: boolean } };
-      }>("graphql_operation_run", {
-        operationId: "workspace.todo.delete.v1",
-        variables: { id: createdTodoId },
-        confirmed: true,
-        locale: "zh-cn",
-      });
-      expect(deleted).toMatchObject({
-        success: true,
-        data: {
-          todoDelete: {
-            id: createdTodoId,
-            success: true,
-          },
-        },
-      });
-      createdTodoId = "";
-    } finally {
-      await fixtures.deleteIntegrationTodo(createdTodoId);
-    }
-  });
-
-  it("rejects variables outside the selected registered operation", async () => {
-    const result = await callExpectedGraphqlError<{
-      success: boolean;
-      error: string;
-      message: string;
-    }>({
-      operationId: "workspace.todo.list.v1",
-      variables: {
-        document: "query Arbitrary { workspace { profile { email } } }",
-      },
-      locale: "zh-cn",
-    });
-
-    expect(result).toMatchObject({
-      success: false,
-      error: "BAD_USER_INPUT",
-      message: "Unknown variable: document.",
-    });
-  });
-
-  it("returns an exact insufficient-scope challenge for reauthorization", async () => {
-    const limitedMcp = await createMcpHarness(isolated.userId, [
-      restReadScope("workspace.homework"),
-    ]);
-    try {
-      const result = await limitedMcp.callToolResult("graphql_operation_run", {
-        operationId: "workspace.todo.list.v1",
-        variables: {},
-        locale: "zh-cn",
-      });
-
-      expect(result).toMatchObject({
-        isError: true,
-        structuredContent: {
-          success: false,
-          error: "FORBIDDEN",
-          requiredScopes: [restReadScope("workspace.todo")],
-        },
-      });
-      expect(result._meta?.["mcp/www_authenticate"]).toEqual([
-        expect.stringContaining('error="insufficient_scope"'),
+  toolTest(
+    "preflights every mutation scope before any selected field executes",
+    async ({ isolated, expect }) => {
+      const todoOnlyMcp = await createMcpHarness(isolated.userId, [
+        restWriteScope("workspace.todo"),
       ]);
-      expect(result._meta?.["mcp/www_authenticate"]).toEqual([
-        expect.stringContaining(`scope="${restReadScope("workspace.todo")}"`),
-      ]);
-    } finally {
-      await limitedMcp.close();
-    }
-  });
-
-  it("enforces resolver scopes for arbitrary documents", async () => {
-    const limitedMcp = await createMcpHarness(isolated.userId, [
-      restReadScope("workspace.homework"),
-    ]);
-    try {
-      const result = await limitedMcp.callToolResult("graphql_operation_run", {
-        document: "query ScopedTodos { workspace { todos { items { id } } } }",
-        operationName: "ScopedTodos",
-        variables: {},
-        locale: "zh-cn",
-      });
-
-      expect(result).toMatchObject({
-        isError: true,
-        structuredContent: {
-          success: false,
-          errors: [
-            expect.objectContaining({
-              extensions: expect.objectContaining({
-                code: "FORBIDDEN",
-                requiredScopes: [restReadScope("workspace.todo")],
-              }),
-            }),
-          ],
-        },
-      });
-      expect(result._meta?.["mcp/www_authenticate"]).toEqual([
-        expect.stringContaining(`scope="${restReadScope("workspace.todo")}"`),
-      ]);
-    } finally {
-      await limitedMcp.close();
-    }
-  });
-
-  it("preflights every mutation scope before any selected field executes", async () => {
-    const todoOnlyMcp = await createMcpHarness(isolated.userId, [
-      restWriteScope("workspace.todo"),
-    ]);
-    const title = `${marker}-mixed-scope`;
-    try {
-      const result = await todoOnlyMcp.callToolResult("graphql_operation_run", {
-        document: /* GraphQL */ `
+      const title = `${marker}-mixed-scope`;
+      try {
+        const result = await todoOnlyMcp.callToolResult(
+          "graphql_operation_run",
+          {
+            document: /* GraphQL */ `
             mutation MixedScopes($input: CreateTodoInput!) {
               todoCreate(input: $input) { id }
               busPreferencesSet(input: { showDepartedTrips: false }) {
@@ -695,31 +760,35 @@ describe("GraphQL MCP operations", () => {
               }
             }
           `,
-        operationName: "MixedScopes",
-        variables: { input: { title } },
-        confirmed: true,
-        locale: "zh-cn",
-      });
+            operationName: "MixedScopes",
+            variables: { input: { title } },
+            confirmed: true,
+            locale: "zh-cn",
+          },
+        );
 
-      expect(result).toMatchObject({
-        isError: true,
-        structuredContent: {
-          success: false,
-          error: "FORBIDDEN",
-          requiredScopes: [restWriteScope("workspace.bus-preferences")],
-        },
-      });
-      expect(await fixtures.prisma.todo.count({ where: { title } })).toBe(0);
-    } finally {
-      await todoOnlyMcp.close();
-    }
-  });
+        expect(result).toMatchObject({
+          isError: true,
+          structuredContent: {
+            success: false,
+            error: "FORBIDDEN",
+            requiredScopes: [restWriteScope("workspace.bus-preferences")],
+          },
+        });
+        expect(await fixtures.prisma.todo.count({ where: { title } })).toBe(0);
+      } finally {
+        await todoOnlyMcp.close();
+      }
+    },
+  );
 
-  it("preflights only mutation fields included by GraphQL directives", async () => {
-    const todoOnlyMcp = await createMcpHarness(isolated.userId, [
-      restWriteScope("workspace.todo"),
-    ]);
-    const document = /* GraphQL */ `
+  toolTest(
+    "preflights only mutation fields included by GraphQL directives",
+    async ({ isolated, expect }) => {
+      const todoOnlyMcp = await createMcpHarness(isolated.userId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const document = /* GraphQL */ `
       mutation ConditionalScopes(
         $input: CreateTodoInput!
         $skipBus: Boolean!
@@ -735,58 +804,59 @@ describe("GraphQL MCP operations", () => {
         ) { showDepartedTrips }
       }
     `;
-    try {
-      for (const [suffix, skipBus, includeBus] of [
-        ["skip", true, true],
-        ["exclude", false, false],
-      ] as const) {
-        const title = `${marker}-${suffix}-bus`;
-        const result = await todoOnlyMcp.call<{
-          success: boolean;
-          data: { created: { id: string } };
-        }>("graphql_operation_run", {
-          document,
-          operationName: "ConditionalScopes",
-          variables: {
-            input: { title },
-            skipBus,
-            includeBus,
-          },
-          confirmed: true,
-          locale: "zh-cn",
-        });
-        expect(result.success, JSON.stringify(result)).toBe(true);
-        await fixtures.deleteIntegrationTodo(result.data.created.id);
-      }
+      try {
+        for (const [suffix, skipBus, includeBus] of [
+          ["skip", true, true],
+          ["exclude", false, false],
+        ] as const) {
+          const title = `${marker}-${suffix}-bus`;
+          const result = await todoOnlyMcp.call<{
+            success: boolean;
+            data: { created: { id: string } };
+          }>("graphql_operation_run", {
+            document,
+            operationName: "ConditionalScopes",
+            variables: {
+              input: { title },
+              skipBus,
+              includeBus,
+            },
+            confirmed: true,
+            locale: "zh-cn",
+          });
+          expect(result.success, JSON.stringify(result)).toBe(true);
+          await fixtures.deleteIntegrationTodo(result.data.created.id);
+        }
 
-      const blockedTitle = `${marker}-included-bus`;
-      const blocked = await todoOnlyMcp.callToolResult(
-        "graphql_operation_run",
-        {
-          document,
-          operationName: "ConditionalScopes",
-          variables: {
-            input: { title: blockedTitle },
-            skipBus: false,
-            includeBus: true,
+        const blockedTitle = `${marker}-included-bus`;
+        const blocked = await todoOnlyMcp.callToolResult(
+          "graphql_operation_run",
+          {
+            document,
+            operationName: "ConditionalScopes",
+            variables: {
+              input: { title: blockedTitle },
+              skipBus: false,
+              includeBus: true,
+            },
+            confirmed: true,
+            locale: "zh-cn",
           },
-          confirmed: true,
-          locale: "zh-cn",
-        },
-      );
-      expect(blocked).toMatchObject({
-        isError: true,
-        structuredContent: {
-          success: false,
-          error: "FORBIDDEN",
-          requiredScopes: [restWriteScope("workspace.bus-preferences")],
-        },
-      });
-      expect(
-        await fixtures.prisma.todo.count({ where: { title: blockedTitle } }),
-      ).toBe(0);
-    } finally {
-      await todoOnlyMcp.close();
-    }
-  });
+        );
+        expect(blocked).toMatchObject({
+          isError: true,
+          structuredContent: {
+            success: false,
+            error: "FORBIDDEN",
+            requiredScopes: [restWriteScope("workspace.bus-preferences")],
+          },
+        });
+        expect(
+          await fixtures.prisma.todo.count({ where: { title: blockedTitle } }),
+        ).toBe(0);
+      } finally {
+        await todoOnlyMcp.close();
+      }
+    },
+  );
 });

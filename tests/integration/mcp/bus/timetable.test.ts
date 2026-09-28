@@ -1,148 +1,158 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import * as fixtures from "../_harness";
 import { createAnonymousMcpHarness } from "../_harness";
+import { mcpTest } from "../_harness/context";
 
-const context = fixtures.createMcpToolTestContext();
+const toolTest = mcpTest.extend("context", fixtures.readerFixture());
 
 describe("catalog_bus_timetable_get", () => {
-  it("默认模式返回班车数据集的计数、校区与路线摘要", async () => {
-    const result = await context.client.call<{
-      locale?: string;
-      fetchedAt?: string;
-      version?: { key?: string; title?: string } | null;
-      counts?: {
-        campuses?: number;
-        routes?: number;
-        weekdayTrips?: number;
-        saturdayTrips?: number;
-        sundayTrips?: number;
-      };
-      campuses?: Array<{ id?: number; namePrimary?: string }>;
-      routes?: Array<{ id?: number; nameCn?: string }>;
-      preferences?: {
-        preferredOriginCampusId?: number | null;
-        preferredDestinationCampusId?: number | null;
-        showDepartedTrips?: boolean;
-      };
-      nextDepartures?: unknown[];
-      nextDeparturesMessage?: string | null;
-    }>("catalog_bus_timetable_get", {
-      locale: "zh-cn",
-      mode: "default",
-    });
+  toolTest(
+    "默认模式返回班车数据集的计数、校区与路线摘要",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        locale?: string;
+        fetchedAt?: string;
+        version?: { key?: string; title?: string } | null;
+        counts?: {
+          campuses?: number;
+          routes?: number;
+          weekdayTrips?: number;
+          saturdayTrips?: number;
+          sundayTrips?: number;
+        };
+        campuses?: Array<{ id?: number; namePrimary?: string }>;
+        routes?: Array<{ id?: number; nameCn?: string }>;
+        preferences?: {
+          preferredOriginCampusId?: number | null;
+          preferredDestinationCampusId?: number | null;
+          showDepartedTrips?: boolean;
+        };
+        nextDepartures?: unknown[];
+        nextDeparturesMessage?: string | null;
+      }>("catalog_bus_timetable_get", {
+        locale: "zh-cn",
+        mode: "default",
+      });
 
-    expect(result.locale).toBe("zh-cn");
-    expect(result.fetchedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-    expect(result.version?.key).toBe(fixtures.DEV_SEED.bus.versionKey);
-    expect(result.version?.title).toBe(fixtures.DEV_SEED.bus.versionTitle);
-    expect(typeof result.counts?.campuses).toBe("number");
-    expect(typeof result.counts?.routes).toBe("number");
-    expect(typeof result.counts?.weekdayTrips).toBe("number");
-    expect(typeof result.counts?.saturdayTrips).toBe("number");
-    expect(typeof result.counts?.sundayTrips).toBe("number");
-    expect(result.campuses?.length).toBeGreaterThan(0);
-    expect(result.routes?.length).toBeGreaterThan(0);
-    expect(
-      result.routes?.some((r) => r.id === fixtures.DEV_SEED.bus.routeId),
-    ).toBe(true);
-    expect(result.preferences).toBeNull();
-    expect(Array.isArray(result.nextDepartures)).toBe(true);
-  });
+      expect(result.locale).toBe("zh-cn");
+      expect(result.fetchedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(result.version?.key).toBe(fixtures.DEV_SEED.bus.versionKey);
+      expect(result.version?.title).toBe(fixtures.DEV_SEED.bus.versionTitle);
+      expect(typeof result.counts?.campuses).toBe("number");
+      expect(typeof result.counts?.routes).toBe("number");
+      expect(typeof result.counts?.weekdayTrips).toBe("number");
+      expect(typeof result.counts?.saturdayTrips).toBe("number");
+      expect(typeof result.counts?.sundayTrips).toBe("number");
+      expect(result.campuses?.length).toBeGreaterThan(0);
+      expect(result.routes?.length).toBeGreaterThan(0);
+      expect(
+        result.routes?.some((r) => r.id === fixtures.DEV_SEED.bus.routeId),
+      ).toBe(true);
+      expect(result.preferences).toBeNull();
+      expect(Array.isArray(result.nextDepartures)).toBe(true);
+    },
+  );
 
-  it("summary 兼容输入返回与 default 相同的紧凑路线结构", async () => {
-    const result = await context.client.call<{
-      locale?: string;
-      counts?: {
-        campuses?: number;
-        routes?: number;
-        weekdayTrips?: number;
-        saturdayTrips?: number;
-        sundayTrips?: number;
-      };
-      campuses?: unknown[];
-      routes?: unknown[];
-      preferences?: {
-        preferredOriginCampusId?: number | null;
-        preferredDestinationCampusId?: number | null;
-        showDepartedTrips?: boolean;
-      };
-      nextDepartures?: unknown[];
-      nextDeparturesMessage?: string | null;
-    }>("catalog_bus_timetable_get", {
-      locale: "zh-cn",
-      mode: "default",
-    });
+  toolTest(
+    "summary 兼容输入返回与 default 相同的紧凑路线结构",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        locale?: string;
+        counts?: {
+          campuses?: number;
+          routes?: number;
+          weekdayTrips?: number;
+          saturdayTrips?: number;
+          sundayTrips?: number;
+        };
+        campuses?: unknown[];
+        routes?: unknown[];
+        preferences?: {
+          preferredOriginCampusId?: number | null;
+          preferredDestinationCampusId?: number | null;
+          showDepartedTrips?: boolean;
+        };
+        nextDepartures?: unknown[];
+        nextDeparturesMessage?: string | null;
+      }>("catalog_bus_timetable_get", {
+        locale: "zh-cn",
+        mode: "default",
+      });
 
-    expect(result.locale).toBe("zh-cn");
-    expect(typeof result.counts?.routes).toBe("number");
-    expect(Array.isArray(result.campuses)).toBe(true);
-    expect(Array.isArray(result.routes)).toBe(true);
-    expect(result.preferences).toBeNull();
-    expect(Array.isArray(result.nextDepartures)).toBe(true);
-    expect(typeof result.nextDeparturesMessage).toBe("string");
-  });
+      expect(result.locale).toBe("zh-cn");
+      expect(typeof result.counts?.routes).toBe("number");
+      expect(Array.isArray(result.campuses)).toBe(true);
+      expect(Array.isArray(result.routes)).toBe(true);
+      expect(result.preferences).toBeNull();
+      expect(Array.isArray(result.nextDepartures)).toBe(true);
+      expect(typeof result.nextDeparturesMessage).toBe("string");
+    },
+  );
 
-  it("full 模式返回完整路线、班次与停靠站信息", async () => {
-    const result = await context.client.call<{
-      locale?: string;
-      version?: { key?: string } | null;
-      campuses?: Array<{
-        id?: number;
-        namePrimary?: string;
-        latitude?: number;
-      }>;
-      routes?: Array<{
-        id?: number;
-        nameCn?: string;
-        stops?: Array<{ stopOrder?: number; campus?: { id?: number } }>;
-      }>;
-      trips?: Array<{
-        id?: number;
-        routeId?: number;
-        dayType?: string;
-        stopTimes?: unknown[];
-      }>;
-      availableVersions?: unknown[];
-      counts?: {
-        routes?: number;
-        weekdayTrips?: number;
-        saturdayTrips?: number;
-        sundayTrips?: number;
-      };
-      nextDepartures?: unknown[];
-      nextDeparturesMessage?: string | null;
-    }>("catalog_bus_timetable_get", {
-      locale: "zh-cn",
-      mode: "full",
-    });
+  toolTest(
+    "full 模式返回完整路线、班次与停靠站信息",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        locale?: string;
+        version?: { key?: string } | null;
+        campuses?: Array<{
+          id?: number;
+          namePrimary?: string;
+          latitude?: number;
+        }>;
+        routes?: Array<{
+          id?: number;
+          nameCn?: string;
+          stops?: Array<{ stopOrder?: number; campus?: { id?: number } }>;
+        }>;
+        trips?: Array<{
+          id?: number;
+          routeId?: number;
+          dayType?: string;
+          stopTimes?: unknown[];
+        }>;
+        availableVersions?: unknown[];
+        counts?: {
+          routes?: number;
+          weekdayTrips?: number;
+          saturdayTrips?: number;
+          sundayTrips?: number;
+        };
+        nextDepartures?: unknown[];
+        nextDeparturesMessage?: string | null;
+      }>("catalog_bus_timetable_get", {
+        locale: "zh-cn",
+        mode: "full",
+      });
 
-    expect(result.locale).toBe("zh-cn");
-    expect(result.version?.key).toBe(fixtures.DEV_SEED.bus.versionKey);
-    expect(result.campuses?.length).toBeGreaterThan(0);
-    expect(result.routes?.length).toBeGreaterThan(0);
-    expect(result.trips?.length).toBeGreaterThan(0);
-    expect(result.availableVersions?.length).toBeGreaterThan(0);
-    expect(typeof result.counts?.routes).toBe("number");
-    expect(typeof result.counts?.weekdayTrips).toBe("number");
-    expect(typeof result.counts?.saturdayTrips).toBe("number");
-    expect(typeof result.counts?.sundayTrips).toBe("number");
-    expect(Array.isArray(result.nextDepartures)).toBe(true);
-    expect(result).toHaveProperty("nextDeparturesMessage");
+      expect(result.locale).toBe("zh-cn");
+      expect(result.version?.key).toBe(fixtures.DEV_SEED.bus.versionKey);
+      expect(result.campuses?.length).toBeGreaterThan(0);
+      expect(result.routes?.length).toBeGreaterThan(0);
+      expect(result.trips?.length).toBeGreaterThan(0);
+      expect(result.availableVersions?.length).toBeGreaterThan(0);
+      expect(typeof result.counts?.routes).toBe("number");
+      expect(typeof result.counts?.weekdayTrips).toBe("number");
+      expect(typeof result.counts?.saturdayTrips).toBe("number");
+      expect(typeof result.counts?.sundayTrips).toBe("number");
+      expect(Array.isArray(result.nextDepartures)).toBe(true);
+      expect(result).toHaveProperty("nextDeparturesMessage");
 
-    const route = result.routes?.find(
-      (r) => r.id === fixtures.DEV_SEED.bus.routeId,
-    );
-    expect(route).toBeDefined();
-    expect(route?.stops?.length).toBeGreaterThan(0);
+      const route = result.routes?.find(
+        (r) => r.id === fixtures.DEV_SEED.bus.routeId,
+      );
+      expect(route).toBeDefined();
+      expect(route?.stops?.length).toBeGreaterThan(0);
 
-    const trip = result.trips?.find(
-      (t) => t.routeId === fixtures.DEV_SEED.bus.routeId,
-    );
-    expect(trip).toBeDefined();
-    expect(trip?.dayType).toMatch(/weekday|saturday|sunday/);
-  });
+      const trip = result.trips?.find(
+        (t) => t.routeId === fixtures.DEV_SEED.bus.routeId,
+      );
+      expect(trip).toBeDefined();
+      expect(trip?.dayType).toMatch(/weekday|saturday|sunday/);
+    },
+  );
 
-  it("支持通过 versionKey 指定版本", async () => {
+  toolTest("支持通过 versionKey 指定版本", async ({ context, expect }) => {
     const result = await context.client.call<{
       version?: { key?: string } | null;
     }>("catalog_bus_timetable_get", {
@@ -153,7 +163,7 @@ describe("catalog_bus_timetable_get", () => {
     expect(result.version?.key).toBe(fixtures.DEV_SEED.bus.versionKey);
   });
 
-  it("未认证调用返回公开时刻表且不包含个人偏好", async () => {
+  toolTest("未认证调用返回公开时刻表且不包含个人偏好", async ({ expect }) => {
     const anonymous = await createAnonymousMcpHarness();
     try {
       const result = await anonymous.call<{ preferences?: unknown }>(
@@ -168,7 +178,7 @@ describe("catalog_bus_timetable_get", () => {
 });
 
 describe("catalog_bus_route_list", () => {
-  it("返回当前生效版本的路线与校区列表", async () => {
+  toolTest("返回当前生效版本的路线与校区列表", async ({ context, expect }) => {
     const result = await context.client.call<{
       routes?: Array<{
         id?: number;
@@ -212,26 +222,29 @@ describe("catalog_bus_route_list", () => {
     ).toBe(true);
   });
 
-  it("en-us locale 返回英文校区与路线名称", async () => {
-    const result = await context.client.call<{
-      routes?: Array<{ id?: number; nameEn?: string | null }>;
-      campuses?: Array<{ id?: number; namePrimary?: string }>;
-    }>("catalog_bus_route_list", { locale: "en-us" });
+  toolTest(
+    "en-us locale 返回英文校区与路线名称",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        routes?: Array<{ id?: number; nameEn?: string | null }>;
+        campuses?: Array<{ id?: number; namePrimary?: string }>;
+      }>("catalog_bus_route_list", { locale: "en-us" });
 
-    const route = result.routes?.find(
-      (r) => r.id === fixtures.DEV_SEED.bus.routeId,
-    );
-    expect(route?.nameEn).toBeTruthy();
+      const route = result.routes?.find(
+        (r) => r.id === fixtures.DEV_SEED.bus.routeId,
+      );
+      expect(route?.nameEn).toBeTruthy();
 
-    const campus = result.campuses?.find(
-      (c) => c.id === fixtures.DEV_SEED.bus.originCampusId,
-    );
-    expect(campus?.namePrimary).toBe(fixtures.DEV_SEED.bus.originCampusName);
-  });
+      const campus = result.campuses?.find(
+        (c) => c.id === fixtures.DEV_SEED.bus.originCampusId,
+      );
+      expect(campus?.namePrimary).toBe(fixtures.DEV_SEED.bus.originCampusName);
+    },
+  );
 });
 
 describe("catalog_bus_route_get", () => {
-  it("返回指定路线的平日与周日时刻表", async () => {
+  toolTest("返回指定路线的平日与周日时刻表", async ({ context, expect }) => {
     const result = await context.client.call<{
       route?: {
         id?: number;
@@ -276,22 +289,25 @@ describe("catalog_bus_route_get", () => {
     expect(Array.isArray(result.alternateRoutes)).toBe(true);
   });
 
-  it("未知路线返回 hasData: false 与 catalog_bus_route_list 提示", async () => {
-    const result = await context.client.call<{
-      routeId?: number;
-      hasData?: boolean;
-      message?: string;
-    }>("catalog_bus_route_get", {
-      routeId: 2_147_483_647,
-      locale: "zh-cn",
-    });
+  toolTest(
+    "未知路线返回 hasData: false 与 catalog_bus_route_list 提示",
+    async ({ context, expect }) => {
+      const result = await context.client.call<{
+        routeId?: number;
+        hasData?: boolean;
+        message?: string;
+      }>("catalog_bus_route_get", {
+        routeId: 2_147_483_647,
+        locale: "zh-cn",
+      });
 
-    expect(result.routeId).toBe(2_147_483_647);
-    expect(result.hasData).toBe(false);
-    expect(result.message).toContain("catalog_bus_route_list");
-  });
+      expect(result.routeId).toBe(2_147_483_647);
+      expect(result.hasData).toBe(false);
+      expect(result.message).toContain("catalog_bus_route_list");
+    },
+  );
 
-  it("无效 routeId 触发校验错误", async () => {
+  toolTest("无效 routeId 触发校验错误", async ({ context, expect }) => {
     await expect(
       context.client.call("catalog_bus_route_get", {
         routeId: 0,
@@ -308,7 +324,7 @@ describe("catalog_bus_route_get", () => {
   });
 });
 
-it("mcp.bus-route-stop-projection", async () => {
+toolTest("mcp.bus-route-stop-projection", async ({ context, expect }) => {
   const outputs = [];
   for (const mode of ["default", "full"] as const) {
     const result = await context.client.call<{

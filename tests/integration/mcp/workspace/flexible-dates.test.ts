@@ -1,14 +1,17 @@
-import { expect, it } from "vitest";
 import { parseOptionalMcpDate } from "@/lib/mcp/tools/_shared/helper-dates";
 import { flexDateInputSchema } from "@/lib/mcp/tools/_shared/helper-schemas";
-import { createIsolatedMcpToolTestContext, prisma } from "../_harness";
+import { actorFixture, prisma } from "../_harness";
+import { mcpTest } from "../_harness/context";
 
-const context = createIsolatedMcpToolTestContext({
-  emailPrefix: "mcp-date-contract",
-  name: "MCP date contract",
-});
+const toolTest = mcpTest.extend(
+  "context",
+  actorFixture({
+    emailPrefix: "mcp-date-contract",
+    name: "MCP date contract",
+  }),
+);
 
-it("mcp.flexible-date-inputs", async () => {
+toolTest("mcp.flexible-date-inputs", async ({ context, expect }) => {
   for (const [input, expected] of [
     ["2026-05-01", "2026-05-01T00:00:00.000Z"],
     ["2026-05-01T08:00:00", "2026-05-01T00:00:00.000Z"],

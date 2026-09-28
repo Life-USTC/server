@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, vi } from "vitest";
 import { mergeWeatherSnapshots } from "@/features/weather/server/weather-merge";
 import type { WeatherSnapshot } from "@/features/weather/server/weather-types";
 import { getWeatherLocation } from "@/features/weather/server/weather-types";
@@ -6,60 +6,91 @@ import { getWeatherRoute } from "@/lib/api/routes/weather";
 import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
 import { createGraphqlYoga } from "@/lib/graphql/server";
 import { createAnonymousMcpHarness, type McpHarness } from "../_harness/client";
+import { mcpTest } from "../_harness/context";
 
-const mocks = vi.hoisted(() => ({ readCache: vi.fn() }));
-vi.mock("@/features/weather/server/weather-cache", () => ({
-  readWeatherCache: mocks.readCache,
-}));
-let client: McpHarness;
-function snapshot(key: string): WeatherSnapshot {
-  return {
-    location: {
-      key: key as WeatherSnapshot["location"]["key"],
-      name: key,
-      adcode: "340100",
-    },
-    fetchedAt: new Date().toISOString(),
-    providers: ["amap"],
-    current: { temperature: 20, condition: { text: "晴", icon: "sunny" } },
-    hourly: [],
-    daily: [],
-    alerts: [],
-    extensions: {},
-  };
-}
-async function graphql(locationKey: string) {
-  const response = await createGraphqlYoga(false).fetch(
-    "https://example.test/api/graphql",
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        query:
-          "query($key: String!) { catalog { weather(locationKey: $key) { location { key } current { temperature } } } }",
-        variables: { key: locationKey },
-      }),
-    },
-    { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
-  );
-  return response.json();
-}
-beforeEach(async () => {
-  mocks.readCache.mockImplementation(async (key: string) => snapshot(key));
-  client = await createAnonymousMcpHarness();
+const weatherContext = await vi.hoisted(async () => {
+  const { AsyncLocalStorage } = await import("node:async_hooks");
+  return new AsyncLocalStorage<{
+    readCache: (key: string) => Promise<WeatherSnapshot>;
+    calls: string[];
+  }>();
 });
-afterEach(async () => client?.close());
+
+const contractTest = mcpTest.extend(
+  "state",
+  async ({ mcpConnections: _connections }, { onCleanup }) => {
+    const mocks = {
+      readCache: async (key: string) => snapshot(key),
+      calls: [] as string[],
+    };
+    let client: McpHarness;
+    function snapshot(key: string): WeatherSnapshot {
+      return {
+        location: {
+          key: key as WeatherSnapshot["location"]["key"],
+          name: key,
+          adcode: "340100",
+        },
+        fetchedAt: new Date().toISOString(),
+        providers: ["amap"],
+        current: { temperature: 20, condition: { text: "晴", icon: "sunny" } },
+        hourly: [],
+        daily: [],
+        alerts: [],
+        extensions: {},
+      };
+    }
+    async function graphql(locationKey: string) {
+      const response = await createGraphqlYoga(false).fetch(
+        "https://example.test/api/graphql",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            query:
+              "query($key: String!) { catalog { weather(locationKey: $key) { location { key } current { temperature } } } }",
+            variables: { key: locationKey },
+          }),
+        },
+        { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
+      );
+      return response.json();
+    }
+    onCleanup(async () => {
+      await client?.close();
+    });
+
+    client = await createAnonymousMcpHarness();
+
+    return { mocks, client, snapshot, graphql };
+  },
+);
+
+vi.mock("@/features/weather/server/weather-cache", () => ({
+  readWeatherCache: (key: string) => {
+    const mocks = weatherContext.getStore();
+    if (!mocks) throw new Error("Weather call outside its test fixture");
+    mocks.calls.push(key);
+    return mocks.readCache(key);
+  },
+}));
+
+contractTest.aroundEach(async (runTest, { state }) => {
+  await weatherContext.run(state.mocks, runTest);
+});
 
 describe("weather transport contracts", () => {
-  it("weather.public-no-signin", async () => {
+  contractTest("weather.public-no-signin", async ({ state, expect }) => {
+    const { mocks, client, snapshot, graphql } = state;
+
     for (const [key, temperature] of [
       ["ustc-main", 20],
       ["ustc-gaoxin", null],
     ] as const) {
-      mocks.readCache.mockImplementation(async (locationKey: string) => ({
+      mocks.readCache = async (locationKey: string) => ({
         ...snapshot(locationKey),
         current: { temperature, condition: { text: "未知", icon: "unknown" } },
-      }));
+      });
       const response = await getWeatherRoute(
         new Request(
           `https://example.test/api/catalog/weather?locationKey=${key}`,
@@ -83,9 +114,11 @@ describe("weather transport contracts", () => {
       ).toMatchObject({ location: { key }, current: { temperature } });
     }
   });
-  it("weather.location-key-boundary", async () => {
+  contractTest("weather.location-key-boundary", async ({ state, expect }) => {
+    const { mocks, client, graphql } = state;
+
     for (const key of ["", "unknown", "USTC-MAIN", " ustc-main "]) {
-      mocks.readCache.mockClear();
+      mocks.calls.length = 0;
       const response = await getWeatherRoute(
         new Request(
           `https://example.test/api/catalog/weather?locationKey=${encodeURIComponent(key)}`,
@@ -101,12 +134,14 @@ describe("weather transport contracts", () => {
           })
         ).isError,
       ).toBe(true);
-      expect(mocks.readCache).not.toHaveBeenCalled();
+      expect(mocks.calls).toEqual([]);
     }
   });
 });
 
-it("weather.raw-extensions-preserved", async () => {
+contractTest("weather.raw-extensions-preserved", async ({ state, expect }) => {
+  const { mocks, client } = state;
+
   const amapRaw = {
     base: { status: "1", lives: [{ temperature: "22", humidity: "71" }] },
     all: { status: "1", forecasts: [] },
@@ -133,7 +168,7 @@ it("weather.raw-extensions-preserved", async () => {
         raw: meteoRaw,
       },
     );
-    mocks.readCache.mockResolvedValue(merged);
+    mocks.readCache = async () => merged;
     const response = await getWeatherRoute(
       new Request(
         `https://example.test/api/catalog/weather?locationKey=${locationKey}`,
