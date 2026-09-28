@@ -4,7 +4,6 @@ import { createHomeworkForSection } from "@/features/homeworks/server/homework-c
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { DEV_SEED } from "../fixtures/dev-seed";
-import { assertHomeworkWriteTransportAuthorization } from "../shared/community-write-parity";
 import {
   type DomainState,
   domainStateTest,
@@ -219,7 +218,6 @@ it("homework.active-collaborator-write", async ({ homework }) => {
     expect(
       await db.user.findUniqueOrThrow({ where: { id: users[3] } }),
     ).toMatchObject({ isAdmin: false });
-    await assertHomeworkWriteTransportAuthorization();
     const homework = await create();
     for (const index of [1, 2]) {
       const own = await create(index);

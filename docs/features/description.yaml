@@ -331,16 +331,16 @@ requirements:
     surface and records the moderation audit action.
   acceptance:
     given: Two ordinary editors, a suspended user and an administrator have real sessions and resource-bound OAuth grants.
-    when: Write through actual loopback REST, GraphQL and native MCP and moderate through governance REST.
+    when: Write through actual Worker REST, GraphQL and native MCP and moderate through governance REST.
     then:
     - Unauthenticated writes return 401 and suspended writes return 403.
     - Different ordinary users collaboratively edit the same description ID and append precisely attributed history through all three business transports. All responses acknowledge the changed ID; native MCP additionally returns the committed description content and timestamp.
-    - Read-only scopes, missing actors and missing targets fail without changing descriptions, history, business audits or cache invalidation state.
+    - Read-only scopes, missing actors and missing targets fail without changing descriptions, history, business audits or request-local cache purge-hook calls.
     - Only an unsuspended administrator can moderate; ordinary and moderation writes record their respective
       audit actions.
     test:
-      file: tests/integration/comment-write-contracts.test.ts
-      name: description.editor-authorization
+      file: tests/integration/rest/protocol-contracts/description-authority.test.ts
+      name: description history retains six collaborative edits across entry points
 capabilities:
   object-description-section:
     title: Object Description Section
