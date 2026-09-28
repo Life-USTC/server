@@ -52,6 +52,7 @@ export const test = combined.extend<{
     const prefix = `uploads/${account.id}/`;
     const steps: UploadStep[] = [];
     const pendingRequests = new Set<Promise<void>>();
+    const requestErrors = new Set<unknown>();
     let closing = false;
     const objectKeys = async () => {
       const keys: string[] = [];
@@ -110,9 +111,14 @@ export const test = combined.extend<{
           ),
         ])),
       );
-      const errors = results.flatMap((result) =>
-        result.status === "rejected" ? [result.reason] : [],
-      );
+      const errors = [
+        ...new Set([
+          ...requestErrors,
+          ...results.flatMap((result) =>
+            result.status === "rejected" ? [result.reason] : [],
+          ),
+        ]),
+      ];
       if (errors.length)
         throw new AggregateError(errors, "Owned comment upload cleanup failed");
     };
@@ -133,9 +139,27 @@ export const test = combined.extend<{
                 status: response.status(),
                 state: await observe(),
               });
-              await route.fulfill({ response });
+              try {
+                await route.fulfill({ response });
+              } catch (error) {
+                // Closing our browser may prevent delivery after the Worker and
+                // observation succeeded. No fetch/storage/database error qualifies.
+                if (
+                  !(
+                    closing &&
+                    page.isClosed() &&
+                    error instanceof Error &&
+                    /^route\.fulfill: Target page, context or browser has been closed(?:\n|$)/.test(
+                      error.message,
+                    )
+                  )
+                )
+                  throw error;
+              }
             } catch (error) {
-              if (!closing) throw error;
+              // Completed requests leave pendingRequests before teardown. Retain
+              // their failures so even interrupted tests report observer errors.
+              requestErrors.add(error);
             }
           })();
           pendingRequests.add(completion);
