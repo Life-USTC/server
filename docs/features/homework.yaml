@@ -43,7 +43,7 @@ requirements:
     - A replay succeeds, preserves the exact committed row and audit count, and reports alreadyDeleted where that field is part of the transport.
     test:
       file: tests/integration/mutation-error-parity.test.ts
-      name: homework.single-delete-replay
+      name: "homework delete replay through graphql preserves the committed state"
 - id: homework.no-subscription-required
   category: authorization
   rule: Creating homework does not require the user to be subscribed to the section first.
@@ -102,7 +102,7 @@ requirements:
     - The specified reminder is hidden when complete and restored when incomplete.
     test:
       file: tests/e2e/src/app/workspace/homeworks/list-state.test.ts
-      name: homework.completed-deadline-display
+      name: homework.completed-deadline-display (workspace-card, overdue)
 - id: homework.teaching-assistant-completion
   category: consistency
   applies_to:
@@ -122,7 +122,7 @@ requirements:
     - The existing completion record is preserved.
     test:
       file: tests/unit/features/homeworks/homework-completion-state.test.ts
-      name: homework.teaching-assistant-completion
+      name: "attaches a requirement per section without changing homework records"
 - id: homework.mobile-status-controls
   category: presentation
   rule: Mobile homework completion filters and the create action are directly reachable within the viewport
@@ -254,7 +254,7 @@ requirements:
     - Rejected cases perform none of the specified side effects.
     test:
       file: tests/unit/features/homeworks/homework-delete-authority.test.ts
-      name: homework.creator-only-delete
+      name: "homework deletion authority > ordinary deletion > active user creator"
 - id: homework.completion-set-idempotency
   category: consistency
   rule: Setting completed=true on an existing completion preserves its original completedAt; repeated
@@ -315,7 +315,7 @@ requirements:
     - Rejected cases perform none of the specified side effects.
     test:
       file: tests/unit/features/homeworks/homework-delete-authority.test.ts
-      name: homework.moderation-delete
+      name: "homework deletion authority > moderation deletion > active other admin"
 - id: homework.teaching-assistant-pending
   category: consistency
   applies_to:
@@ -335,7 +335,7 @@ requirements:
     - Every boundary returns its specified pending value.
     test:
       file: tests/unit/features/homeworks/homework-completion-state.test.ts
-      name: homework.teaching-assistant-pending
+      name: "derives TA pending state when homework is exactly at its deadline"
 - id: homework.teaching-assistant-label
   category: presentation
   rule: Authenticated personal homework views display 无需完成 / No completion required for teaching-assistant
@@ -373,7 +373,7 @@ requirements:
     - Duplicate target IDs follow the specified uniqueness policy.
     test:
       file: tests/integration/rest/homeworks/completions/test.ts
-      name: homework.rest-completion-batch-input
+      name: accepts 100 completion writes and preserves another owner's state
   rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: homework.graphql-completion-batch-input
   category: behavior
@@ -395,7 +395,7 @@ requirements:
     - Duplicate target IDs follow the specified uniqueness policy.
     test:
       file: tests/integration/graphql-homework-mutations.test.ts
-      name: homework.graphql-completion-batch-input
+      name: accepts 100 items and persists every completion
   rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: homework.public-section-read
   category: authorization

@@ -335,6 +335,7 @@ it("rendering-and-cache.sitemap-freshness", async () => {
         nameCn: "New sitemap course",
       },
     });
+    h.catalog.cleanupIds.courses.push(extra.id);
     vi.setSystemTime(h.start + 86_400_000 - 1);
     expect(await (await read()).text()).toBe(updated);
     vi.setSystemTime(h.start + 86_400_000);

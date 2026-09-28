@@ -16,11 +16,6 @@ import {
   createCatalogContractFixture,
 } from "../shared/catalog-contract-fixture";
 import { createFixturePrisma } from "../shared/prisma";
-import {
-  bindDomainOperation,
-  projectionPreservation,
-} from "../shared/specifications/domain-contracts";
-import { semanticContract } from "../shared/specifications/semantic-contract";
 
 const db = createFixturePrisma();
 let fixture: CatalogContractFixture;
@@ -95,9 +90,10 @@ it("course.public-detail-cache", async () => {
   ).toBe(a.nameCn);
   const missing = fixture.base + 99;
   expect(await request(() => findCourseDetailByJwId(missing))).toBeNull();
-  await db.course.create({
+  const addedCourse = await db.course.create({
     data: { jwId: missing, code: `${fixture.marker}-new`, nameCn: "新课程" },
   });
+  fixture.cleanupIds.courses.push(addedCourse.id);
   await commitRevision();
   expect(
     (await request(() => findCourseDetailByJwId(a.jwId)))?.namePrimary,
@@ -182,7 +178,7 @@ it("section.public-detail-cache", async () => {
   ).toBe(a.code);
   const missing = fixture.base + 99;
   expect(await request(() => findSectionDetailByJwId(missing))).toBeNull();
-  await db.section.create({
+  const addedSection = await db.section.create({
     data: {
       jwId: missing,
       code: "NEW-SECTION",
@@ -190,6 +186,7 @@ it("section.public-detail-cache", async () => {
       semesterId: fixture.semester.id,
     },
   });
+  fixture.cleanupIds.sections.push(addedSection.id);
   await commitRevision();
   expect(
     (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn", shape)))
@@ -232,9 +229,10 @@ it("teacher.public-detail-cache", async () => {
   );
   const missing = fixture.base + 99;
   expect(await request(() => findTeacherDetailById(missing))).toBeNull();
-  await db.teacher.create({
+  const addedTeacher = await db.teacher.create({
     data: { id: missing, jwId: missing, nameCn: "新增教师" },
   });
+  fixture.cleanupIds.teachers.push(addedTeacher.id);
   await commitRevision();
   expect((await request(() => findTeacherDetailById(a.id)))?.namePrimary).toBe(
     "导入更新的教师",
@@ -275,7 +273,8 @@ it("section.bounded-related-sections", async () => {
       },
     })
   ).id;
-  await db.section.create({
+  fixture.cleanupIds.semesters.push(semesterId);
+  const older = await db.section.create({
     data: {
       jwId: fixture.base + 29,
       code: "AAAA-OLDER",
@@ -283,10 +282,11 @@ it("section.bounded-related-sections", async () => {
       semesterId: fixture.semester.id,
     },
   });
+  fixture.cleanupIds.sections.push(older.id);
   // Reverse insert order makes an omitted unique tie-breaker observable.
   const expected: number[] = [];
   for (let offset = 28; offset >= 2; offset--) {
-    await db.section.create({
+    const section = await db.section.create({
       data: {
         jwId: fixture.base + offset,
         code: "EQUAL-CODE",
@@ -295,6 +295,7 @@ it("section.bounded-related-sections", async () => {
         retiredAt: offset >= 27 ? new Date() : null,
       },
     });
+    fixture.cleanupIds.sections.push(section.id);
     if (offset < 27) expected.push(fixture.base + offset);
   }
   const result = await getSectionPage(fixture.sections[0].jwId);
@@ -326,75 +327,49 @@ it("course.public-detail-fields", async () => {
   expect(JSON.stringify(detail)).not.toContain("source-");
 });
 
-it("section.public-teacher-reference", async (context) => {
-  const contract = await semanticContract(
-    "section.public-teacher-reference",
-    "public_projection",
-  );
-  const read = bindDomainOperation(
-    contract,
-    "src/features/catalog/server/course-section-read-queries.ts",
-    findSectionDetailByJwId,
-  );
+it("section.public-teacher-reference", async () => {
   for (const locale of ["zh-cn", "en-us"] as const) {
-    const detail = await read(fixture.sections[0].jwId, locale);
-    contract.equal("/response", {
-      schema: "sectionDetailSchema",
-      path: "teachers/items",
+    const detail = await findSectionDetailByJwId(
+      fixture.sections[0].jwId,
+      locale,
+    );
+    const teacher = fixture.teachers[0];
+    const department = fixture.departments[0];
+    const title = fixture.titles[0];
+    const localized = (row: {
+      nameCn: string | null;
+      nameEn: string | null;
+    }) => ({
+      nameCn: row.nameCn,
+      nameEn: row.nameEn,
+      namePrimary: locale === "en-us" ? row.nameEn : row.nameCn,
+      nameSecondary: locale === "en-us" ? row.nameCn : row.nameEn,
     });
-    contract.set("/fields", Object.keys(detail?.teachers[0] ?? {}));
-    for (const key of ["department", "teacherTitle"] as const)
-      contract.set(
-        `/nested_fields/${key}`,
-        Object.keys(detail?.teachers[0]?.[key] ?? {}),
-      );
-    contract.equal(
-      "/preserves",
-      projectionPreservation(
-        Object.keys(
-          contract.expectation<{ preserves: Record<string, boolean> }>()
-            .preserves,
-        ),
-        detail?.teachers[0],
-        {
-          ...fixture.teachers[0],
-          namePrimary:
-            locale === "en-us"
-              ? fixture.teachers[0].nameEn
-              : fixture.teachers[0].nameCn,
-          nameSecondary:
-            locale === "en-us"
-              ? fixture.teachers[0].nameCn
-              : fixture.teachers[0].nameEn,
-          department: fixture.departments[0],
-          teacherTitle: fixture.titles[0],
+    // Exact projections also reject leaked contact/source fields and extra nested data.
+    expect(detail?.teachers).toEqual([
+      {
+        id: teacher.id,
+        jwId: teacher.jwId,
+        personId: teacher.personId,
+        code: teacher.code,
+        ...localized(teacher),
+        department: {
+          id: department.id,
+          code: department.code,
+          isCollege: department.isCollege,
+          ...localized(department),
         },
-      ),
-    );
-    contract.equal(
-      "/concealed_source_values",
-      !JSON.stringify(detail).includes("source-"),
-    );
-    expect(detail?.teachers).toHaveLength(1);
-    expect(detail?.teachers[0]).toMatchObject({
-      id: fixture.teachers[0].id,
-      department: { id: fixture.departments[0].id },
-      teacherTitle: { id: fixture.titles[0].id },
-    });
-    for (const field of [
-      "email",
-      "telephone",
-      "mobile",
-      "address",
-      "age",
-      "postcode",
-      "qq",
-      "wechat",
-    ])
-      expect(detail?.teachers[0]).not.toHaveProperty(field);
+        teacherTitle: {
+          id: title.id,
+          jwId: title.jwId,
+          code: title.code,
+          enabled: title.enabled,
+          ...localized(title),
+        },
+      },
+    ]);
     expect(JSON.stringify(detail)).not.toContain("source-");
   }
-  contract.recordVitest(context);
 });
 
 it("teacher.public-detail-fields", async () => {

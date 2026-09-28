@@ -46,7 +46,7 @@ requirements:
       or native MCP invalid_bus_preference according to the declared transport error shape.
     test:
       file: tests/integration/personal-setting-authority.test.ts
-      name: bus.preference-owner-state
+      name: "bus preferences preserve ownership through rest"
 - id: bus.public-web-personal-overlay
   category: privacy
   rule: Public bus HTML contains public timetable data without saved user preferences.

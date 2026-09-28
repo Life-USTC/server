@@ -88,15 +88,18 @@ describe("teaching assistant pending scope", () => {
       },
       pending: false,
     },
-  ])("keeps TA homework pending when it is $name", ({ homework, pending }) => {
-    expect(isHomeworkPendingForViewer(homework, referenceDate)).toBe(pending);
-    expect(
-      isHomeworkPendingForViewer(
-        { ...homework, completion: { completedAt: referenceDate } },
-        referenceDate,
-      ),
-    ).toBe(false);
-  });
+  ])(
+    "derives TA pending state when homework $name",
+    ({ homework, pending }) => {
+      expect(isHomeworkPendingForViewer(homework, referenceDate)).toBe(pending);
+      expect(
+        isHomeworkPendingForViewer(
+          { ...homework, completion: { completedAt: referenceDate } },
+          referenceDate,
+        ),
+      ).toBe(false);
+    },
+  );
 
   it("preserves actual completion as the first pending filter", () => {
     expect(

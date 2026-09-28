@@ -56,9 +56,10 @@ requirements:
     - Previous day, next day, and today select the expected campus date; reloading preserves the selected
       day and its events.
     - Every activity-only mode displays the activity without requiring or leaking course subscriptions.
+    - The selected activity view remains visibly and accessibly selected when its control is clicked again.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
-      name: calendar.views
+      name: calendar.day-navigation en-us 390
 - id: calendar.mobile-agenda-first
   category: presentation
   rule: At mobile widths, the personal academic calendar offers day and week as vertically readable agendas
@@ -94,7 +95,7 @@ requirements:
       it does not present a weekday grid.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
-      name: calendar.week-starts-monday
+      name: calendar.week-starts-monday academic week
 - id: calendar.subscription-badges
   category: presentation
   rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop
@@ -126,7 +127,7 @@ requirements:
     - Course, exam and activity cards retain their respective navigation destinations.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
-      name: calendar.event-card-types
+      name: calendar.event-card-types Asia/Shanghai › 390
 - id: calendar.feed-cache-refresh
   category: consistency
   rule: A stale cached personal export remains available while an asynchronous refresh is requested.

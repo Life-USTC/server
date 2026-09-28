@@ -59,29 +59,32 @@ tests/integration/rest/         REST contracts — not browser E2E
 
 Mobile route checks are split by public, authenticated, and admin access.
 Workspace homework checks are split by creation, completion, list state, and
-mobile behavior so file-based shards can distribute them independently. Keep
-shared-user mutations serial within each database and restore their fixtures.
+mobile behavior so file-based shards can distribute them independently. Use
+test-scoped accounts and domain fixtures for mutable data. Global activation and
+maintenance scenarios require their own database/service environment.
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 
 ## Conventions
 
 - Prefer role/label selectors; never `waitForTimeout` or `networkidle`.
-- One worker per shard; shared-state files use
-  `test.describe.configure({ mode: "serial" })` and restore seed in `finally`
-  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `workspace/**`, MCP UI).
+- The complete suite still defaults to one worker per shard while remaining
+  shared-state cases are migrated. Validate each migrated group standalone,
+  reordered and with multiple workers sharing a database. Do not introduce
+  serial blocks or shared-user restore logic as a new isolation mechanism.
 
 
 ## Unified UI contract (L0-L4)
 
 - **L0 — inventory:** `tests/e2e/src/app/_shared/page-inventory.ts` lists every
-  `src/routes/**/+page.svelte`, redirect, and non-page browser alias. The unit
-  gate fails when a route is orphaned. Every rendered page also owns exactly
-  one mobile contract: inventory-driven public/authed/admin coverage, or a
-  dedicated scenario with a spec, test name, and non-empty reason.
-- **L1 — rendered page baseline:** rendered pages use `assertPageContract` within their
-  scenarios and are exercised on desktop and mobile. A dedicated test per page
-  is not required. Require a successful document response,
+  `src/routes/**/+page.svelte` and supplies concrete browser samples and mobile
+  batches. Route completeness is a structural check, not proof of coverage.
+  Review requirements and supporting desktop/mobile scenarios manually; never
+  infer execution from helper names, source fragments or test-owner entries.
+- **L1 — rendered page baseline:** scenarios exercise their relevant pages on
+  desktop and mobile. Use explicit observations or shared observation helpers
+  with an independently prepared account. A dedicated test per page is not
+  required. Require a successful document response,
   final URL/title/language, one visible main content target, a visible level-one
   heading, meaningful settled content, no runtime/console error or error
   overlay, and no document-level horizontal overflow.
@@ -97,7 +100,8 @@ Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
   present. Forms exercise validation, pending/disabled state, success,
   persistence, and failure/rollback. Dialogs exercise open, focus, Escape,
   cancel, and confirm. Mutating tests create deterministic fixtures, assert the
-  UI and persisted effect, and restore state in `finally`. Dynamic detail pages
+  UI and persisted effect, and clean up owned state through native fixtures,
+  including setup and assertion failures. Dynamic detail pages
   include missing-record/404 cases; role-sensitive pages cover anonymous, user,
   and admin behavior as applicable.
 - **L4 — visual evidence:** keep pixel regression opt-in and representative

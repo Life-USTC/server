@@ -1,5 +1,4 @@
 import { createServer, type Server } from "node:http";
-import { isDeepStrictEqual } from "node:util";
 import type { RequestEvent } from "@sveltejs/kit";
 import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
@@ -16,10 +15,6 @@ import { deleteUploadRoute } from "@/lib/api/routes/upload-management-routes";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
 import { createFixturePrisma } from "../shared/prisma";
-import {
-  type SemanticContract,
-  semanticContract,
-} from "../shared/specifications/semantic-contract";
 
 const db = createFixturePrisma();
 const graphql = createGraphqlRequestHandler(false);
@@ -512,200 +507,120 @@ async function successfulDelete(
 
 async function verifyDeleteReplay(
   domain: "todo" | "comment" | "homework",
-  contract: SemanticContract,
+  surface: keyof Tokens,
 ) {
-  const route = routes.find((route) => route.path === domains[domain].path);
-  if (!route) throw new Error("Missing bound delete route");
-  const modules = {
-    todo: "todos",
-    comment: "comments-delete-route",
-    homework: "homework-mutation-routes",
-  };
-  contract.equal("/operation", {
-    module: `src/lib/api/routes/${modules[domain]}.ts`,
-    export: route.handler.name,
-  });
-  const observedSurfaces: string[] = [];
   const f = await fixture();
   try {
     const section = await db.section.findFirstOrThrow({
       where: { retiredAt: null },
     });
-    for (const surface of ["rest", "graphql", "mcp"] as const) {
-      const row =
-        domain === "todo"
-          ? await db.todo.create({
-              data: { userId: f.owner.id, title: `Replay ${surface}` },
+    const row =
+      domain === "todo"
+        ? await db.todo.create({
+            data: { userId: f.owner.id, title: `Replay ${surface}` },
+          })
+        : domain === "comment"
+          ? await db.comment.create({
+              data: {
+                userId: f.owner.id,
+                sectionId: section.id,
+                body: `Replay ${surface}`,
+              },
             })
-          : domain === "comment"
-            ? await db.comment.create({
-                data: {
-                  userId: f.owner.id,
-                  sectionId: section.id,
-                  body: `Replay ${surface}`,
-                },
-              })
-            : await db.homework.create({
-                data: {
-                  createdById: f.owner.id,
-                  sectionId: section.id,
-                  title: `Replay ${surface}`,
-                },
-              });
-      const read = () =>
-        domain === "todo"
-          ? db.todo.findUnique({ where: { id: row.id } })
-          : domain === "comment"
-            ? db.comment.findUnique({ where: { id: row.id } })
-            : db.homework.findUnique({ where: { id: row.id } });
-      deleteRequests.length = 0;
-      const first = await successfulDelete(domain, row.id, f.tokens, surface);
-      observedSurfaces.push(surface);
-      if (domain === "todo")
-        contract.equal(
-          "/confirmation_required",
-          deleteRequests.some((request) =>
-            /confirm/i.test(request.url + request.body),
-          ),
-        );
-      const committed = await read();
-      contract.equal(
-        "/committed_state",
-        committed === null
-          ? "absent"
-          : "deletedAt" in committed && committed.deletedAt
-            ? "tombstone"
-            : "active",
-      );
-      if (domain === "todo") expect(committed).toBeNull();
-      else {
-        expect(committed).toMatchObject({
-          id: row.id,
-          deletedAt: expect.any(Date),
-          ...(domain === "comment"
-            ? { status: "deleted" }
-            : { deletedById: f.owner.id }),
-        });
-        expect(
-          await db.auditLog.count({
-            where: { action: `${domain}_delete`, targetId: row.id },
-          }),
-        ).toBe(1);
-      }
-      if (domain === "homework") {
-        if (surface !== "rest") expect(first.alreadyDeleted).toBe(false);
-        const replay = await successfulDelete(
-          domain,
-          row.id,
-          f.tokens,
-          surface,
-        );
-        if (surface !== "rest") {
-          expect(replay.alreadyDeleted).toBe(true);
-          contract.equal(
-            `/replay_already_deleted/${surface}`,
-            replay.alreadyDeleted,
-          );
-        }
-        contract.equal(
-          "/deleted_by",
-          committed &&
-            "deletedById" in committed &&
-            "createdById" in committed &&
-            committed.deletedById === committed.createdById
-            ? "creator"
-            : "other",
-        );
-        contract.equal("/replay", replay.success ? "success" : "failure");
-      } else {
-        const rejected = await rejectDelete(
-          domain,
-          row.id,
-          f.tokens,
-          domain === "todo" ? "not_found" : "locked",
-        );
-        contract.equal("/replay", rejected.mcp.error);
-        contract.equal("/protocol", rejected.protocol);
-      }
-      contract.equal(
-        "/preserves_committed_state",
-        isDeepStrictEqual(await read(), committed),
-      );
-      expect(await read()).toEqual(committed);
-      if (domain !== "todo")
-        contract.equal(
-          "/audit_events",
-          await db.auditLog.count({
-            where: { action: `${domain}_delete`, targetId: row.id },
-          }),
-        );
+          : await db.homework.create({
+              data: {
+                createdById: f.owner.id,
+                sectionId: section.id,
+                title: `Replay ${surface}`,
+              },
+            });
+    const read = () =>
+      domain === "todo"
+        ? db.todo.findUnique({ where: { id: row.id } })
+        : domain === "comment"
+          ? db.comment.findUnique({ where: { id: row.id } })
+          : db.homework.findUnique({ where: { id: row.id } });
+    deleteRequests.length = 0;
+    const first = await successfulDelete(domain, row.id, f.tokens, surface);
+    if (domain === "todo")
+      expect(
+        deleteRequests.some((request) =>
+          /confirm/i.test(request.url + request.body),
+        ),
+      ).toBe(false);
+    const committed = await read();
+    if (domain === "todo") expect(committed).toBeNull();
+    else {
+      expect(committed).toMatchObject({
+        id: row.id,
+        deletedAt: expect.any(Date),
+        ...(domain === "comment"
+          ? { status: "deleted" }
+          : { deletedById: f.owner.id }),
+      });
+      expect(
+        await db.auditLog.count({
+          where: { action: `${domain}_delete`, targetId: row.id },
+        }),
+      ).toBe(1);
     }
-    contract.set("/surfaces", observedSurfaces);
+    if (domain === "homework") {
+      if (surface !== "rest") expect(first.alreadyDeleted).toBe(false);
+      const replay = await successfulDelete(domain, row.id, f.tokens, surface);
+      expect(replay.success).toBe(true);
+      if (surface !== "rest") expect(replay.alreadyDeleted).toBe(true);
+    } else {
+      // Verify each protocol's native rejection without changing the committed row.
+      await rejectDelete(
+        domain,
+        row.id,
+        f.tokens,
+        domain === "todo" ? "not_found" : "locked",
+      );
+    }
+    expect(await read()).toEqual(committed);
+    if (domain !== "todo")
+      expect(
+        await db.auditLog.count({
+          where: { action: `${domain}_delete`, targetId: row.id },
+        }),
+      ).toBe(1);
   } finally {
     await f.cleanup();
   }
 }
 
-it("todo.single-delete-replay", async (context) => {
-  const contract = await semanticContract(
-    "todo.single-delete-replay",
-    "delete_replay",
+for (const domain of ["todo", "comment", "homework"] as const)
+  it.each(["rest", "graphql", "mcp"] as const)(
+    `${domain} delete replay through %s preserves the committed state`,
+    (surface) => verifyDeleteReplay(domain, surface),
   );
-  await verifyDeleteReplay("todo", contract);
-  contract.recordVitest(context);
-});
-it("comment.single-delete-replay", async (context) => {
-  const contract = await semanticContract(
-    "comment.single-delete-replay",
-    "delete_replay",
-  );
-  await verifyDeleteReplay("comment", contract);
-  contract.recordVitest(context);
-});
-it("homework.single-delete-replay", async (context) => {
-  const contract = await semanticContract(
-    "homework.single-delete-replay",
-    "delete_replay",
-  );
-  await verifyDeleteReplay("homework", contract);
-  contract.recordVitest(context);
-});
 
-it("upload.storage-delete-retry", async (context) => {
-  const contract = await semanticContract(
-    "upload.storage-delete-retry",
-    "storage_delete_sequence",
-  );
-  const route = routes.find((route) => route.path === domains.upload.path);
-  if (!route) throw new Error("Missing upload delete handler");
-  contract.equal("/operation", {
-    module: "src/lib/api/routes/upload-management-routes.ts",
-    export: route.handler.name,
-  });
-  const observedSurfaces: string[] = [];
-  const f = await fixture();
-  const objects = new Map<string, string>();
-  let failStorage = true;
-  const metadataAtStorageDelete: number[] = [];
-  storage = {
-    async delete(key) {
-      metadataAtStorageDelete.push(await db.upload.count({ where: { key } }));
-      if (failStorage) throw new Error("private-storage-failure");
-      objects.delete(key);
-    },
-    async head(key) {
-      const content = objects.get(key);
-      return content === undefined ? null : { size: content.length };
-    },
-    async get() {
-      throw new Error("Unexpected storage read");
-    },
-    async put() {
-      throw new Error("Unexpected storage write");
-    },
-  };
-  try {
-    for (const surface of ["rest", "graphql", "mcp"] as const) {
+it.each(["rest", "graphql", "mcp"] as const)(
+  "upload storage deletion failure and retry through %s",
+  async (surface) => {
+    const f = await fixture();
+    const objects = new Map<string, string>();
+    let failStorage = true;
+    const metadataAtStorageDelete: number[] = [];
+    storage = {
+      async delete(key) {
+        metadataAtStorageDelete.push(await db.upload.count({ where: { key } }));
+        if (failStorage) throw new Error("private-storage-failure");
+        objects.delete(key);
+      },
+      async head(key) {
+        const content = objects.get(key);
+        return content === undefined ? null : { size: content.length };
+      },
+      async get() {
+        throw new Error("Unexpected storage read");
+      },
+      async put() {
+        throw new Error("Unexpected storage write");
+      },
+    };
+    try {
       const key = `uploads/${f.owner.id}/${crypto.randomUUID()}`;
       const content = `Owned bytes for ${surface}`;
       const row = await db.upload.create({
@@ -717,33 +632,11 @@ it("upload.storage-delete-retry", async (context) => {
         },
       });
       objects.set(key, content);
-      failStorage = true;
-      metadataAtStorageDelete.length = 0;
       const rejected = await rejectDelete(
         "upload",
         row.id,
         f.tokens,
         "storage_delete_failed",
-      );
-      contract.equal("/failure/outcome", rejected.mcp.error);
-      contract.equal("/failure/protocol", rejected.protocol);
-      contract.equal(
-        "/failure/preserves_metadata",
-        isDeepStrictEqual(
-          await db.upload.findUnique({ where: { id: row.id } }),
-          row,
-        ),
-      );
-      contract.equal("/failure/preserves_object", objects.get(key) === content);
-      contract.equal(
-        "/failure/audits",
-        await db.auditLog.count({
-          where: { action: "upload_delete", targetId: row.id },
-        }),
-      );
-      contract.equal(
-        "/failure/hides_internal_error",
-        !JSON.stringify(rejected).includes("private-storage-failure"),
       );
       expect(JSON.stringify(rejected)).not.toContain("private-storage-failure");
       expect(await db.upload.findUnique({ where: { id: row.id } })).toEqual(
@@ -756,6 +649,7 @@ it("upload.storage-delete-retry", async (context) => {
         }),
       ).toBe(0);
       expect(metadataAtStorageDelete).toEqual([1, 1, 1]);
+
       failStorage = false;
       const deleted = await successfulDelete(
         "upload",
@@ -763,29 +657,8 @@ it("upload.storage-delete-retry", async (context) => {
         f.tokens,
         surface,
       );
-      observedSurfaces.push(surface);
-      if (surface !== "graphql") {
+      if (surface !== "graphql")
         expect(deleted.deletedSize).toBe(content.length);
-        contract.equal(
-          `/retry/deleted_size_matches/${surface}`,
-          deleted.deletedSize === content.length,
-        );
-      }
-      contract.equal(
-        "/retry/removes_metadata",
-        (await db.upload.findUnique({ where: { id: row.id } })) === null,
-      );
-      contract.equal("/retry/removes_object", !objects.has(key));
-      contract.equal(
-        "/retry/audits",
-        await db.auditLog.count({
-          where: { action: "upload_delete", targetId: row.id },
-        }),
-      );
-      contract.equal(
-        "/storage_before_metadata",
-        metadataAtStorageDelete.every((count) => count === 1),
-      );
       expect(objects.has(key)).toBe(false);
       expect(await db.upload.findUnique({ where: { id: row.id } })).toBeNull();
       expect(
@@ -794,35 +667,17 @@ it("upload.storage-delete-retry", async (context) => {
         }),
       ).toBe(1);
       expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
-      const callsBeforeReplay = metadataAtStorageDelete.length;
-      const replay = await rejectDelete(
-        "upload",
-        row.id,
-        f.tokens,
-        "not_found",
-      );
-      contract.equal("/replay/outcome", replay.mcp.error);
-      contract.equal(
-        "/replay/storage_calls",
-        metadataAtStorageDelete.length - callsBeforeReplay,
-      );
-      contract.equal(
-        "/replay/audits",
-        await db.auditLog.count({
-          where: { action: "upload_delete", targetId: row.id },
-        }),
-      );
+
+      await rejectDelete("upload", row.id, f.tokens, "not_found");
       expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
       expect(
         await db.auditLog.count({
           where: { action: "upload_delete", targetId: row.id },
         }),
       ).toBe(1);
+    } finally {
+      storage = undefined;
+      await f.cleanup();
     }
-    contract.set("/surfaces", observedSurfaces);
-    contract.recordVitest(context);
-  } finally {
-    storage = undefined;
-    await f.cleanup();
-  }
-});
+  },
+);

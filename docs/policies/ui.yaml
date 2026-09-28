@@ -566,7 +566,7 @@ requirements:
       returns the fixture bytes; rejected rename feedback retains the filename without changing the record.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-community.test.ts
-      name: ui.model-property-priority-community-views
+      name: "ui.model-property-priority-community-views en-us/1280"
 - id: ui.model-property-priority-admin-views
   category: presentation
   topic: model-property-priority
@@ -586,7 +586,7 @@ requirements:
       derived description edit display uses lastEditedAt or updatedAt only when lastEditedAt is absent.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-admin.test.ts
-      name: ui.model-property-priority-admin-views
+      name: "ui.model-property-priority-admin-views en-us/1280"
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority
@@ -625,7 +625,7 @@ requirements:
     - Locale-specific secondary names are either rendered in English views or explicitly absent in Chinese views.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-catalog.test.ts
-      name: ui.model-property-priority-catalog-views
+      name: "ui.model-property-priority-catalog-views zh-cn/1280"
 - id: ui.model-property-priority-account-views
   category: presentation
   topic: model-property-priority
@@ -646,7 +646,7 @@ requirements:
       and internal record identifiers do not appear as ordinary identifying content.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-account.test.ts
-      name: ui.model-property-priority-account-views
+      name: "ui.model-property-priority-account-views en-us/1280"
 - id: ui.model-property-priority-discovery-views
   category: presentation
   topic: model-property-priority
@@ -666,7 +666,7 @@ requirements:
       identifiers are absent from ordinary display content.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-discovery.test.ts
-      name: ui.model-property-priority-discovery-views
+      name: "ui.model-property-priority-discovery-views zh-cn/1280"
 - id: ui.model-property-priority-workspace-views
   category: presentation
   topic: model-property-priority
@@ -688,7 +688,7 @@ requirements:
       identifiers and raw numeric enums are absent from ordinary text and visible form values.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-workspace.test.ts
-      name: ui.model-property-priority-workspace-views
+      name: "workspace presentation calendar en-us/390"
 - id: ui.basic-info-card-2
   category: presentation
   topic: basic-info-card
@@ -976,7 +976,7 @@ requirements:
       visual and accessible state without waiting for the results request to finish.
     test:
       file: tests/e2e/src/app/workspace/task-filter-readiness.test.ts
-      name: ui.workspace-filters-and-empty-states-2
+      name: ui.workspace-filters-and-empty-states-2 (homeworks)
 - id: ui.workspace-filters-and-empty-states-3
   category: presentation
   topic: workspace-filters-and-empty-states

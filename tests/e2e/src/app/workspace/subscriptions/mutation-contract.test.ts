@@ -1,194 +1,233 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
+import { expect } from "@playwright/test";
+import { test as calendarTest } from "../../../../utils/calendar-fixture";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
+import {
+  issueAccessTokenForClient,
+  parseTextContent,
+  registerPublicClient,
+} from "../../api/mcp/helpers";
 
-let fixture: Awaited<ReturnType<typeof createCalendarContractFixture>>;
-let second: { id: number; code: string };
-let clientId: string | undefined;
-let trigger: string | undefined;
-async function memberships() {
+const base = "/api/workspace/subscriptions";
+const test = calendarTest.extend<{
+  second: { id: number; code: string };
+  failSecondRow: (operation: "INSERT" | "DELETE") => Promise<void>;
+}>({
+  second: async ({ calendar, page }, use) => {
+    const second = await withE2ePrisma((db) =>
+      db.$transaction(async (tx) => {
+        await tx.userSectionSubscription.deleteMany({
+          where: { userId: calendar.users[0].id },
+        });
+        return tx.section.create({
+          data: {
+            jwId: calendar.section.jwId + 10000,
+            code: `${calendar.course.code}.02`,
+            courseId: calendar.course.id,
+            semesterId: calendar.section.semesterId,
+          },
+        });
+      }),
+    );
+    try {
+      await page
+        .context()
+        .addCookies([await createSignedSessionCookie(calendar.users[0].id)]);
+      await use(second);
+    } finally {
+      try {
+        await page.close();
+      } finally {
+        await withE2ePrisma((db) =>
+          db.section.delete({ where: { id: second.id } }),
+        );
+      }
+    }
+  },
+  failSecondRow: async ({ calendar, second }, use) => {
+    const trigger = `subscription_failure_${crypto.randomUUID().replaceAll("-", "")}`;
+    const ownerId = calendar.users[0].id;
+    if (!/^[a-zA-Z0-9_-]+$/.test(ownerId))
+      throw new Error("Unexpected fixture ID");
+    try {
+      await use(async (operation) => {
+        const row = operation === "DELETE" ? "OLD" : "NEW";
+        // The trigger is restricted to this test's owner and section.
+        await withE2ePrisma((db) =>
+          db.$transaction(async (tx) => {
+            await tx.$executeRawUnsafe(
+              `CREATE FUNCTION "${trigger}"() RETURNS trigger LANGUAGE plpgsql AS $body$ BEGIN IF ${row}."userId" = '${ownerId}' AND ${row}."sectionId" = ${second.id} THEN RAISE EXCEPTION 'isolated subscription failure'; END IF; RETURN ${row}; END; $body$`,
+            );
+            await tx.$executeRawUnsafe(
+              `CREATE TRIGGER "${trigger}" BEFORE ${operation} ON "UserSectionSubscription" FOR EACH ROW EXECUTE FUNCTION "${trigger}"()`,
+            );
+          }),
+        );
+      });
+    } finally {
+      await withE2ePrisma((db) =>
+        db.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `DROP TRIGGER IF EXISTS "${trigger}" ON "UserSectionSubscription"`,
+          );
+          await tx.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${trigger}"()`);
+        }),
+      );
+    }
+  },
+});
+
+function memberships(userId: string) {
   return withE2ePrisma((db) =>
     db.userSectionSubscription.findMany({
-      where: { userId: fixture.users[0].id },
+      where: { userId },
       orderBy: { sectionId: "asc" },
     }),
   );
 }
-async function removeFailure() {
-  if (!trigger) return;
-  await withE2ePrisma(async (db) => {
-    await db.$executeRawUnsafe(
-      `DROP TRIGGER IF EXISTS "${trigger}" ON "UserSectionSubscription"`,
+
+for (const operation of [
+  "append",
+  "remove",
+  "query",
+  "batch",
+  "import-codes",
+] as const) {
+  test(`subscription.duplicate-input-semantics REST ${operation}`, async ({
+    page,
+    calendar: fixture,
+    second: _second,
+  }) => {
+    const id = fixture.section.id;
+    const code = fixture.section.code;
+    const codes = [code, code.toLowerCase(), ` ${code} `];
+    const userId = fixture.users[0].id;
+    if (operation === "remove")
+      await withE2ePrisma((db) =>
+        db.userSectionSubscription.create({ data: { userId, sectionId: id } }),
+      );
+    const send = () => {
+      if (operation === "append")
+        return page.request.patch(base, { data: { sectionIds: [id, id] } });
+      if (operation === "remove")
+        return page.request.delete(base, { data: { sectionIds: [id, id] } });
+      return page.request.post(`${base}/${operation}`, {
+        data: {
+          codes,
+          semesterId: fixture.section.semesterId,
+          ...(operation === "import-codes" ? {} : { sectionIds: [id, id] }),
+          ...(operation === "batch" ? { action: "add" } : {}),
+        },
+      });
+    };
+    const response = await send();
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    if (operation === "query" || operation === "batch")
+      expect(body).toMatchObject({
+        total: 1,
+        matchedSectionIds: [id],
+        matchedCodes: [code],
+      });
+    if (operation === "import-codes")
+      expect(body).toMatchObject({ addedCount: 1, matchedCodes: [code] });
+    if (operation === "append")
+      expect(body).toMatchObject({ addedCount: 1, alreadySubscribedCount: 0 });
+    if (operation === "batch") expect(body.addedCount).toBe(1);
+    const added = await memberships(userId);
+    expect(added.map(({ sectionId }) => sectionId)).toEqual(
+      operation === "query" || operation === "remove" ? [] : [id],
     );
-    await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${trigger}"()`);
+    const replay = await send();
+    expect(replay.status()).toBe(200);
+    if (operation === "batch")
+      expect(await replay.json()).toMatchObject({
+        addedCount: 0,
+        total: 1,
+        matchedSectionIds: [id],
+        matchedCodes: [code],
+      });
+    if (operation === "append" || operation === "import-codes")
+      expect(await replay.json()).toMatchObject({
+        addedCount: 0,
+        alreadySubscribedCount: 1,
+      });
+    expect(await memberships(userId)).toEqual(added);
   });
-  trigger = undefined;
 }
-async function failSecondRow(operation: "INSERT" | "DELETE") {
-  await removeFailure();
-  trigger = `subscription_failure_${crypto.randomUUID().replaceAll("-", "")}`;
-  const row = operation === "DELETE" ? "OLD" : "NEW";
-  const ownerId = fixture.users[0].id;
-  if (!/^[a-zA-Z0-9_-]+$/.test(ownerId))
-    throw new Error("Unexpected fixture ID");
-  await withE2ePrisma(async (db) => {
-    await db.$executeRawUnsafe(
-      `CREATE FUNCTION "${trigger}"() RETURNS trigger LANGUAGE plpgsql AS $body$ BEGIN IF ${row}."userId" = '${ownerId}' AND ${row}."sectionId" = ${second.id} THEN RAISE EXCEPTION 'isolated subscription failure'; END IF; RETURN ${row}; END; $body$`,
-    );
-    await db.$executeRawUnsafe(
-      `CREATE TRIGGER "${trigger}" BEFORE ${operation} ON "UserSectionSubscription" FOR EACH ROW EXECUTE FUNCTION "${trigger}"()`,
-    );
-  });
-}
-test.beforeEach(async ({ page }) => {
-  clientId = undefined;
-  trigger = undefined;
-  fixture = await createCalendarContractFixture();
-  second = await withE2ePrisma(async (db) => {
-    await db.userSectionSubscription.deleteMany({
-      where: { userId: fixture.users[0].id },
-    });
-    return db.section.create({
+
+test("subscription.duplicate-input-semantics GraphQL", async ({
+  page,
+  calendar: fixture,
+  second: _second,
+}) => {
+  const code = fixture.section.code;
+  const gql = async (codes: string[], action = "ADD", status = 200) => {
+    const response = await page.request.post("/api/graphql", {
+      headers: { origin: PLAYWRIGHT_BASE_URL },
       data: {
-        jwId: fixture.section.jwId + 10000,
-        code: `${fixture.course.code}.02`,
-        courseId: fixture.course.id,
-        semesterId: fixture.section.semesterId,
+        query:
+          "mutation($input: UpdateSectionSubscriptionsInput!) { subscriptionsImport(input: $input) { addedCount removedCount } }",
+        variables: {
+          input: { action, codes, semesterId: fixture.section.semesterId },
+        },
       },
     });
-  });
-  await page.context().clearCookies();
-  await page
-    .context()
-    .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
-});
-test.afterEach(async () => {
-  await removeFailure();
-  await withE2ePrisma(async (db) => {
-    if (clientId) await db.oAuthClient.delete({ where: { clientId } });
-    if (second) await db.section.delete({ where: { id: second.id } });
-  });
-  await fixture?.cleanup();
-});
-
-test("subscription.duplicate-input-semantics", async ({ page, request }) => {
-  const id = fixture.section.id;
-  const code = fixture.section.code;
-  const duplicateCodes = [code, code.toLowerCase(), ` ${code} `];
-  const append = () =>
-    page.request.patch("/api/workspace/subscriptions", {
-      data: { sectionIds: [id, id] },
-    });
-  expect(await (await append()).json()).toMatchObject({
-    addedCount: 1,
-    alreadySubscribedCount: 0,
-  });
-  expect(await memberships()).toHaveLength(1);
-  const added = await memberships();
-  expect(await (await append()).json()).toMatchObject({
-    addedCount: 0,
-    alreadySubscribedCount: 1,
-  });
-  expect(await memberships()).toEqual(added);
-  const remove = () =>
-    page.request.delete("/api/workspace/subscriptions", {
-      data: { sectionIds: [id, id] },
-    });
-  expect((await remove()).status()).toBe(200);
-  expect(await memberships()).toHaveLength(0);
-  expect((await remove()).status()).toBe(200);
-  expect(await memberships()).toHaveLength(0);
-  const query = await page.request.post("/api/workspace/subscriptions/query", {
-    data: {
-      sectionIds: [id, id],
-      codes: duplicateCodes,
-      semesterId: fixture.section.semesterId,
-    },
-  });
-  expect(query.status()).toBe(200);
-  expect(await query.json()).toMatchObject({
-    total: 1,
-    matchedSectionIds: [id],
-    matchedCodes: [code],
-  });
-  const batch = await page.request.post("/api/workspace/subscriptions/batch", {
-    data: {
-      action: "add",
-      sectionIds: [id, id],
-      codes: duplicateCodes,
-      semesterId: fixture.section.semesterId,
-    },
-  });
-  expect(batch.status()).toBe(200);
-  expect(await batch.json()).toMatchObject({
-    addedCount: 1,
-    total: 1,
-    matchedSectionIds: [id],
-    matchedCodes: [code],
-  });
-  expect((await remove()).status()).toBe(200);
-  const imported = await page.request.post(
-    "/api/workspace/subscriptions/import-codes",
-    { data: { codes: duplicateCodes, semesterId: fixture.section.semesterId } },
-  );
-  expect(imported.status()).toBe(200);
-  expect(await imported.json()).toMatchObject({
-    addedCount: 1,
-    matchedCodes: [code],
-  });
-  expect(await memberships()).toHaveLength(1);
-  expect((await remove()).status()).toBe(200);
-  const queryText =
-    "mutation($input: UpdateSectionSubscriptionsInput!) { subscriptionsImport(input: $input) { addedCount removedCount } }";
-  const gql = async (codes: string[], action = "ADD") =>
-    (
-      await page.request.post("/api/graphql", {
-        headers: { origin: PLAYWRIGHT_BASE_URL },
-        data: {
-          query: queryText,
-          variables: {
-            input: { action, codes, semesterId: fixture.section.semesterId },
-          },
-        },
-      })
-    ).json();
-  expect((await gql(duplicateCodes)).errors[0].extensions.code).toBe(
-    "BAD_USER_INPUT",
-  );
-  expect(await memberships()).toHaveLength(0);
+    expect(response.status()).toBe(status);
+    return response.json();
+  };
+  const before = await memberships(fixture.users[0].id);
+  expect(
+    (await gql([code, code.toLowerCase(), ` ${code} `], "ADD", 400)).errors[0]
+      .extensions.code,
+  ).toBe("BAD_USER_INPUT");
+  expect(await memberships(fixture.users[0].id)).toEqual(before);
   const single = await gql([code]);
   expect(single.errors).toBeUndefined();
   expect(single.data.subscriptionsImport.addedCount).toBe(1);
   expect(
+    (await memberships(fixture.users[0].id)).map(({ sectionId }) => sectionId),
+  ).toEqual([fixture.section.id]);
+  expect(
     (await gql([code], "REMOVE")).data.subscriptionsImport.removedCount,
   ).toBe(1);
+  expect(await memberships(fixture.users[0].id)).toEqual([]);
+});
+
+test("subscription.duplicate-input-semantics MCP", async ({
+  page,
+  request,
+  calendar: fixture,
+  second: _second,
+}) => {
   const scope = "workspace.subscription:write";
   const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-  const token = await issueAccessToken(page, request, {
-    scope,
-    clientScopes: [scope],
-    resource,
-  });
-  clientId = token.clientId;
+  const clientId = await registerPublicClient(request, scope);
   const client = new Client({ name: "subscription-duplicates", version: "1" });
   try {
+    const { response, tokenBody } = await issueAccessTokenForClient(
+      page,
+      request,
+      { clientId, scope, resource },
+    );
+    expect(response.status()).toBe(200);
+    expect(typeof tokenBody.access_token).toBe("string");
     await client.connect(
       new StreamableHTTPClientTransport(new URL(resource), {
         requestInit: {
-          headers: { Authorization: `Bearer ${token.accessToken}` },
+          headers: { Authorization: `Bearer ${tokenBody.access_token}` },
         },
       }),
     );
+    const code = fixture.section.code;
     const call = () =>
       client.callTool({
         name: "workspace_subscription_import",
         arguments: {
-          codes: duplicateCodes,
+          codes: [code, code.toLowerCase(), ` ${code} `],
           semesterId: fixture.section.semesterId,
         },
       });
@@ -199,50 +238,92 @@ test("subscription.duplicate-input-semantics", async ({ page, request }) => {
       alreadySubscribedCount: 0,
       matchedCodes: [code],
     });
-    const baseline = await memberships();
-    expect(baseline).toHaveLength(1);
-    expect(parseTextContent(await call())).toMatchObject({
+    const baseline = await memberships(fixture.users[0].id);
+    expect(baseline.map(({ sectionId }) => sectionId)).toEqual([
+      fixture.section.id,
+    ]);
+    const replay = await call();
+    expect(replay.isError).not.toBe(true);
+    expect(parseTextContent(replay)).toMatchObject({
       addedCount: 0,
       alreadySubscribedCount: 1,
     });
-    expect(await memberships()).toEqual(baseline);
+    expect(await memberships(fixture.users[0].id)).toEqual(baseline);
   } finally {
-    await client.close();
+    try {
+      await client.close();
+    } finally {
+      await withE2ePrisma((db) =>
+        db.oAuthClient.delete({ where: { clientId } }),
+      );
+    }
   }
 });
 
-test("subscription.membership-atomicity", async ({ page }) => {
+for (const operation of [
+  "append",
+  "batch add",
+  "import-codes",
+  "remove",
+  "batch remove",
+] as const) {
+  test(`subscription.membership-atomicity ${operation}`, async ({
+    page,
+    calendar: fixture,
+    second,
+    failSecondRow,
+  }) => {
+    const ids = [fixture.section.id, second.id];
+    const codes = [fixture.section.code, second.code];
+    const removing = operation === "remove" || operation === "batch remove";
+    if (removing)
+      await withE2ePrisma((db) =>
+        db.userSectionSubscription.createMany({
+          data: ids.map((sectionId) => ({
+            userId: fixture.users[0].id,
+            sectionId,
+          })),
+        }),
+      );
+    const before = await memberships(fixture.users[0].id);
+    await failSecondRow(removing ? "DELETE" : "INSERT");
+    const data = {
+      sectionIds: ids,
+      codes,
+      semesterId: fixture.section.semesterId,
+    };
+    const response =
+      operation === "append"
+        ? await page.request.patch(base, { data: { sectionIds: ids } })
+        : operation === "remove"
+          ? await page.request.delete(base, { data: { sectionIds: ids } })
+          : await page.request.post(
+              `${base}/${operation === "import-codes" ? operation : "batch"}`,
+              {
+                data: {
+                  ...data,
+                  ...(operation === "import-codes"
+                    ? {}
+                    : { action: removing ? "remove" : "add" }),
+                },
+              },
+            );
+    expect(response.status()).toBe(500);
+    expect(await memberships(fixture.users[0].id)).toEqual(before);
+  });
+}
+
+test("subscription.import-replay-after-lost-response", async ({
+  page,
+  calendar: fixture,
+  second,
+}) => {
   const ids = [fixture.section.id, second.id];
   const codes = [fixture.section.code, second.code];
-  await failSecondRow("INSERT");
-  const failedAppend = await page.request.patch(
-    "/api/workspace/subscriptions",
-    { data: { sectionIds: ids } },
-  );
-  expect(failedAppend.status()).toBe(500);
-  expect(await memberships()).toHaveLength(0);
-  for (const [path, data] of [
-    [
-      "/api/workspace/subscriptions/batch",
-      {
-        action: "add",
-        sectionIds: ids,
-        semesterId: fixture.section.semesterId,
-      },
-    ],
-    [
-      "/api/workspace/subscriptions/import-codes",
-      { codes, semesterId: fixture.section.semesterId },
-    ],
-  ] as const) {
-    expect((await page.request.post(path, { data })).status()).toBe(500);
-    expect(await memberships()).toHaveLength(0);
-  }
-  await removeFailure();
   await page.goto("/workspace/subscriptions");
   let committedResponse: unknown;
   await page.route(
-    "**/api/workspace/subscriptions/import-codes",
+    `**${base}/import-codes`,
     async (route) => {
       const response = await route.fetch();
       expect(response.status()).toBe(200);
@@ -271,52 +352,22 @@ test("subscription.membership-atomicity", async ({ page }) => {
     addedCount: 2,
     alreadySubscribedCount: 0,
     subscription: {
-      sections: expect.arrayContaining([
-        expect.objectContaining({ id: ids[0] }),
-        expect.objectContaining({ id: ids[1] }),
-      ]),
+      sections: expect.arrayContaining(
+        ids.map((id) => expect.objectContaining({ id })),
+      ),
     },
   });
-  const baseline = await memberships();
-  expect(baseline).toHaveLength(2);
-  const repeated = await page.request.post(
-    "/api/workspace/subscriptions/import-codes",
-    { data: { codes, semesterId: fixture.section.semesterId } },
+  const baseline = await memberships(fixture.users[0].id);
+  expect(baseline.map(({ sectionId }) => sectionId)).toEqual(
+    [...ids].sort((a, b) => a - b),
   );
+  const repeated = await page.request.post(`${base}/import-codes`, {
+    data: { codes, semesterId: fixture.section.semesterId },
+  });
   expect(repeated.status()).toBe(200);
   expect(await repeated.json()).toMatchObject({
     addedCount: 0,
     alreadySubscribedCount: 2,
   });
-  expect(await memberships()).toEqual(baseline);
-  await failSecondRow("DELETE");
-  expect(
-    (
-      await page.request.delete("/api/workspace/subscriptions", {
-        data: { sectionIds: ids },
-      })
-    ).status(),
-  ).toBe(500);
-  expect(await memberships()).toEqual(baseline);
-  expect(
-    (
-      await page.request.post("/api/workspace/subscriptions/batch", {
-        data: {
-          action: "remove",
-          codes,
-          semesterId: fixture.section.semesterId,
-        },
-      })
-    ).status(),
-  ).toBe(500);
-  expect(await memberships()).toEqual(baseline);
-  await removeFailure();
-  expect(
-    (
-      await page.request.delete("/api/workspace/subscriptions", {
-        data: { sectionIds: ids },
-      })
-    ).status(),
-  ).toBe(200);
-  expect(await memberships()).toHaveLength(0);
+  expect(await memberships(fixture.users[0].id)).toEqual(baseline);
 });

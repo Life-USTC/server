@@ -149,7 +149,7 @@ requirements:
     - Neither public invalidation nor calendar enqueue runs.
     test:
       file: tests/unit/features/descriptions/description-upsert-service.test.ts
-      name: description.failed-write-invalidation
+      name: "does not invalidate section representations when commit fails"
 - id: description.editor-permission-gate
   category: presentation
   rule: The description editor neither opens nor submits until current viewer permissions authorize editing.

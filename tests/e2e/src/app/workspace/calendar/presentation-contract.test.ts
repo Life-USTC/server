@@ -1,18 +1,10 @@
-import { expect, type Page, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
+import { expect, type Page } from "@playwright/test";
+import { type CalendarFixture, test } from "../../../../utils/calendar-fixture";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
 
-let fixture: Awaited<ReturnType<typeof createCalendarContractFixture>>;
-test.beforeEach(async () => {
-  fixture = await createCalendarContractFixture();
-});
-test.afterEach(async () => {
-  await fixture?.cleanup();
-});
-
-async function owner(page: Page, index: number) {
+async function owner(page: Page, fixture: CalendarFixture, index: number) {
   await page.context().clearCookies();
   await page
     .context()
@@ -21,21 +13,24 @@ async function owner(page: Page, index: number) {
       { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
     ]);
 }
-async function activityCalendar(page: Page) {
-  await owner(page, 1);
+async function activityCalendar(page: Page, fixture: CalendarFixture) {
+  await owner(page, fixture, 1);
   await gotoAndWaitForReady(page, "/workspace/calendar");
   await page.locator("#personal-activity-date").fill(fixture.activityDate);
   await page.locator("#personal-activity-date").press("Tab");
 }
 
-test("calendar.views", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await owner(page, 0);
-  for (const [view, label] of [
-    ["semester", /^(This semester|学期)$/],
-    ["month", /^(This month|本月)$/],
-    ["week", /^(This week|本周)$/],
-  ] as const) {
+for (const [view, label] of [
+  ["semester", /^(This semester|学期)$/],
+  ["month", /^(This month|本月)$/],
+  ["week", /^(This week|本周)$/],
+] as const) {
+  test(`calendar.academic-view ${view}`, async ({
+    page,
+    calendar: fixture,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await owner(page, fixture, 0);
     await gotoAndWaitForReady(page, fixture.academicUrl(view));
     await expect(page.getByRole("radio", { name: label })).toBeChecked();
     await expect(page.getByTestId("workspace-calendar-grid")).toBeVisible();
@@ -50,14 +45,20 @@ test("calendar.views", async ({ page }, testInfo) => {
         .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
         .first(),
     ).toBeVisible();
-  }
-  for (const locale of ["en-us", "zh-cn"]) {
-    await page
-      .context()
-      .addCookies([
-        { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-      ]);
-    for (const width of [1280, 390]) {
+  });
+}
+for (const locale of ["en-us", "zh-cn"]) {
+  for (const width of [1280, 390]) {
+    test(`calendar.day-navigation ${locale} ${width}`, async ({
+      page,
+      calendar: fixture,
+    }, testInfo) => {
+      await owner(page, fixture, 0);
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+        ]);
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, fixture.academicUrl());
       await page.getByRole("radio", { name: /^(Day|日)$/ }).click();
@@ -127,18 +128,28 @@ test("calendar.views", async ({ page }, testInfo) => {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
-    }
+    });
   }
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await activityCalendar(page);
-  for (const [view, label] of [
-    ["day", /^(Day|日)$/],
-    ["week", /^(Week|周)$/],
-    ["month", /^(Month|月)$/],
-  ] as const) {
+}
+for (const [view, label] of [
+  ["day", /^(Day|日)$/],
+  ["week", /^(Week|周)$/],
+  ["month", /^(Month|月)$/],
+] as const) {
+  test(`calendar.activity-view ${view}`, async ({
+    page,
+    calendar: fixture,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await activityCalendar(page, fixture);
     const control = page.getByRole("radio", { name: label });
     await control.click();
+    await control.locator("..").screenshot({
+      path: testInfo.outputPath("calendar-view-controls.png"),
+    });
     await expect(control).toHaveAttribute("data-state", "on");
+    await control.click();
+    await expect(control).toBeChecked();
     const viewSurface =
       view === "day"
         ? page.getByTestId("calendar-agenda").filter({ visible: true })
@@ -149,13 +160,16 @@ test("calendar.views", async ({ page }, testInfo) => {
     await expect(
       page.locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`),
     ).toHaveCount(0);
-  }
-});
+  });
+}
 
-test("calendar.week-starts-monday", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await owner(page, 0);
-  for (const view of ["semester", "month", "week"]) {
+for (const view of ["semester", "month", "week"]) {
+  test(`calendar.week-starts-monday academic ${view}`, async ({
+    page,
+    calendar: fixture,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await owner(page, fixture, 0);
     await gotoAndWaitForReady(page, fixture.academicUrl(view));
     if (view === "week")
       await page.screenshot({
@@ -188,9 +202,18 @@ test("calendar.week-starts-monday", async ({ page }, testInfo) => {
         ).indexOf(cell),
       ),
     ).toBe(2);
-  }
-  await activityCalendar(page);
-  for (const label of [/^(Week|周)$/, /^(Month|月)$/]) {
+  });
+}
+for (const [view, label] of [
+  ["week", /^(Week|周)$/],
+  ["month", /^(Month|月)$/],
+] as const) {
+  test(`calendar.week-starts-monday activity ${view}`, async ({
+    page,
+    calendar: fixture,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await activityCalendar(page, fixture);
     await page.getByRole("radio", { name: label }).click();
     const headers = page
       .getByRole("grid")
@@ -206,7 +229,12 @@ test("calendar.week-starts-monday", async ({ page }, testInfo) => {
       "Saturday",
       "Sunday",
     ]);
-  }
+  });
+}
+test("calendar.public-section-lecture-fields", async ({
+  page,
+  calendar: fixture,
+}) => {
   await page.context().clearCookies();
   await page
     .context()
@@ -226,16 +254,12 @@ test("calendar.week-starts-monday", async ({ page }, testInfo) => {
   await expect(cells.nth(4)).toContainText("Calendar teaching room");
 });
 
-test("calendar.event-card-types", async ({ browser }) => {
-  for (const timezoneId of ["UTC", "Asia/Shanghai"]) {
-    const context = await browser.newContext({
-      baseURL: PLAYWRIGHT_BASE_URL,
-      timezoneId,
-    });
-    const page = await context.newPage();
-    try {
-      await owner(page, 0);
-      for (const width of [1280, 390]) {
+for (const timezoneId of ["UTC", "Asia/Shanghai"]) {
+  test.describe(`calendar.event-card-types ${timezoneId}`, () => {
+    test.use({ timezoneId });
+    for (const width of [1280, 390]) {
+      test(`${width}`, async ({ page, calendar: fixture }) => {
+        await owner(page, fixture, 0);
         await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(page, fixture.academicUrl());
         const surface = page
@@ -282,9 +306,7 @@ test("calendar.event-card-types", async ({ browser }) => {
           "href",
           `/catalog/young-events/${fixture.young.youngId}`,
         );
-      }
-    } finally {
-      await context.close();
+      });
     }
-  }
-});
+  });
+}

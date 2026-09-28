@@ -446,7 +446,7 @@ requirements:
     - The shared teachers list resolves that identity and no private teacher contact appears.
     test:
       file: tests/integration/section-teacher-assignment-contract.test.ts
-      name: section.teacher-assignment-reference
+      name: "section teacher assignment preserves fields and resolves its public teacher (en-us)"
 - id: section.retired-subscription-mutations
   category: consistency
   rule: New subscription add operations reject retired rows. Existing owners can remove retired subscriptions
