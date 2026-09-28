@@ -3,6 +3,11 @@ import { sharedAlias } from "./vitest.base";
 
 export default defineConfig({
   test: {
+    // Console intercept forwards logs over the worker RPC. A log still in
+    // flight when the worker closes exits the run with EnvironmentTeardownError
+    // after every test has passed, and that failed outcome fails the
+    // specification evidence gate.
+    disableConsoleIntercept: true,
     reporters: process.env.SPEC_EVIDENCE_DIR
       ? [
           "default",
