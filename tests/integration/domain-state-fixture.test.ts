@@ -1,47 +1,58 @@
 import { expect } from "vitest";
 import { getCloudflareRuntimeTaskScheduler } from "@/lib/adapters/cloudflare-runtime";
 import { domainStateTest } from "../shared/domain-state-fixture";
+import { ownIsolatedDatabase } from "../shared/isolated-database-lifecycle";
 import { createFixturePrisma } from "../shared/prisma";
 
 type CleanupProbe = {
   response?: Response;
   cancellations: number;
   users: string[];
+  database?: string;
 };
 
 const it = domainStateTest.extend<{
-  suspendedIsAdmin: boolean;
   cleanupProbe: CleanupProbe;
+  _databaseResources: ReturnType<typeof ownIsolatedDatabase>;
 }>({
   // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
   cleanupProbe: async ({}, use) => {
     const probe: CleanupProbe = { cancellations: 0, users: [] };
     await use(probe);
-    // This fixture encloses state, so these checks run after its teardown.
+    // This fixture encloses state and its runtime/database dependencies.
     expect(probe.response).toBeDefined();
     expect(probe.cancellations).toBe(1);
     expect(probe.response?.bodyUsed).toBe(true);
     const db = createFixturePrisma();
     try {
       expect(probe.users).toHaveLength(4);
-      expect(await db.user.count({ where: { id: { in: probe.users } } })).toBe(
-        0,
-      );
+      expect(probe.database).toMatch(/^test_isolated_/);
       expect(
-        await db.session.count({ where: { userId: { in: probe.users } } }),
-      ).toBe(0);
+        await db.$queryRaw`
+        SELECT datname FROM pg_database WHERE datname = ${probe.database}
+      `,
+      ).toEqual([]);
+      expect(
+        await db.$queryRaw`
+        SELECT pid FROM pg_stat_activity WHERE datname = ${probe.database}
+      `,
+      ).toEqual([]);
     } finally {
       await db.$disconnect();
     }
   },
-  suspendedIsAdmin: async ({ cleanupProbe }, use) => {
-    // Make the probe a dependency of state without introducing shared state.
-    expect(cleanupProbe.cancellations).toBe(0);
-    await use(true);
+  _databaseResources: async ({ databaseTemplate, cleanupProbe }, use) => {
+    const database = ownIsolatedDatabase(databaseTemplate);
+    cleanupProbe.database = database.name;
+    try {
+      await use(database);
+    } finally {
+      await database.dispose();
+    }
   },
 });
 
-it("reclaims the original response after background rejection and permits the next operation", async ({
+it("reclaims the wrapped response after background rejection and permits the next operation", async ({
   state,
   cleanupProbe,
 }) => {
@@ -61,7 +72,7 @@ it("reclaims the original response after background rejection and permits the ne
     }),
   ).rejects.toMatchObject({ errors: [failure] });
   expect(cleanupProbe.cancellations).toBe(0);
-  expect(cleanupProbe.response?.body?.locked).toBe(false);
+  expect(cleanupProbe.response?.body?.locked).toBe(true);
   await expect(state.runtime(async () => "healthy operation")).resolves.toBe(
     "healthy operation",
   );
