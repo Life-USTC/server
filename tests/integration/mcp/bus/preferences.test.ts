@@ -1,14 +1,8 @@
 import { describe } from "vitest";
-import * as fixtures from "../_harness";
-import { mcpTest } from "../_harness/context";
-
-const toolTest = mcpTest.extend(
-  "isolated",
-  fixtures.actorFixture({
-    emailPrefix: "mcp-bus",
-    name: "[integration-test] Bus",
-  }),
-);
+import {
+  type PrivateMcpActor,
+  isolatedMcpTest as toolTest,
+} from "../_harness/isolated-context";
 
 type BusPreferenceToolResponse = {
   preference?: {
@@ -21,14 +15,14 @@ type BusPreferenceToolResponse = {
 describe("catalog_bus_departure_next — 默认模式去除重复的校区对象", () => {
   toolTest(
     "接受仅日期的 atTime 以确定发车查询",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, mcpBus, expect }) => {
       const result = await isolated.client.call<{ totalRoutes?: number }>(
         "catalog_bus_departure_next",
         {
           locale: "zh-cn",
-          originCampusId: fixtures.DEV_SEED.bus.originCampusId,
-          destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
-          atTime: fixtures.SEED_DATE,
+          originCampusId: mcpBus.originCampusId,
+          destinationCampusId: mcpBus.destinationCampusId,
+          atTime: "2026-04-29",
           limit: 50,
         },
       );
@@ -39,12 +33,12 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 
   toolTest(
     "拒绝超过共享 REST/MCP 上限的 limit",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, mcpBus, expect }) => {
       await expect(
         isolated.client.call("catalog_bus_departure_next", {
           locale: "zh-cn",
-          originCampusId: fixtures.DEV_SEED.bus.originCampusId,
-          destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
+          originCampusId: mcpBus.originCampusId,
+          destinationCampusId: mcpBus.destinationCampusId,
           limit: 51,
         }),
       ).rejects.toThrow();
@@ -53,14 +47,14 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 
   toolTest(
     "以共享 MCP 日期提示拒绝无效的 atTime",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, mcpBus, expect }) => {
       const result = await isolated.client.call<{
         success?: boolean;
         message?: string;
       }>("catalog_bus_departure_next", {
         locale: "zh-cn",
-        originCampusId: fixtures.DEV_SEED.bus.originCampusId,
-        destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
+        originCampusId: mcpBus.originCampusId,
+        destinationCampusId: mcpBus.destinationCampusId,
         atTime: "not-a-date",
       });
 
@@ -73,7 +67,7 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 
   toolTest(
     "发车项省略 originCampus 和 destinationCampus",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, mcpBus, expect }) => {
       const result = await isolated.client.call<{
         originCampus?: { id?: number };
         destinationCampus?: { id?: number };
@@ -86,8 +80,8 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
         message?: string | null;
       }>("catalog_bus_departure_next", {
         locale: "zh-cn",
-        originCampusId: fixtures.DEV_SEED.bus.originCampusId,
-        destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
+        originCampusId: mcpBus.originCampusId,
+        destinationCampusId: mcpBus.destinationCampusId,
       });
 
       expect(result.totalRoutes).toBeGreaterThan(0);
@@ -107,7 +101,7 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 });
 
 describe("bus preference 工具", () => {
-  function readPreference(isolated: fixtures.IsolatedMcpToolTestContext) {
+  function readPreference(isolated: PrivateMcpActor) {
     return isolated.client.call<BusPreferenceToolResponse>(
       "workspace_bus_preferences_get",
     );
@@ -115,7 +109,12 @@ describe("bus preference 工具", () => {
 
   toolTest(
     "读取、保存并重置已认证用户的 bus 偏好",
-    async ({ isolated, expect }) => {
+    async ({
+      mcpActor: isolated,
+      mcpBus,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
       const initial = await readPreference(isolated);
 
       expect(initial.preference).toEqual({
@@ -127,18 +126,34 @@ describe("bus preference 工具", () => {
       const saved = await isolated.client.call<BusPreferenceToolResponse>(
         "workspace_bus_preferences_set",
         {
-          preferredOriginCampusId: fixtures.DEV_SEED.bus.originCampusId,
-          preferredDestinationCampusId:
-            fixtures.DEV_SEED.bus.destinationCampusId,
+          preferredOriginCampusId: mcpBus.originCampusId,
+          preferredDestinationCampusId: mcpBus.destinationCampusId,
           showDepartedTrips: true,
         },
       );
 
       expect(saved.preference).toEqual({
-        preferredOriginCampusId: fixtures.DEV_SEED.bus.originCampusId,
-        preferredDestinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
+        preferredOriginCampusId: mcpBus.originCampusId,
+        preferredDestinationCampusId: mcpBus.destinationCampusId,
         showDepartedTrips: true,
       });
+      await expect(
+        db.busUserPreference.findMany({
+          select: {
+            userId: true,
+            preferredOriginCampusId: true,
+            preferredDestinationCampusId: true,
+            showDepartedTrips: true,
+          },
+        }),
+      ).resolves.toEqual([
+        {
+          userId: isolated.userId,
+          preferredOriginCampusId: mcpBus.originCampusId,
+          preferredDestinationCampusId: mcpBus.destinationCampusId,
+          showDepartedTrips: true,
+        },
+      ]);
 
       const readBack = await readPreference(isolated);
 
@@ -158,32 +173,48 @@ describe("bus preference 工具", () => {
         preferredDestinationCampusId: null,
         showDepartedTrips: false,
       });
+      await expect(
+        db.busUserPreference.findUnique({ where: { userId: isolated.userId } }),
+      ).resolves.toMatchObject({
+        preferredOriginCampusId: null,
+        preferredDestinationCampusId: null,
+        showDepartedTrips: false,
+      });
     },
   );
 
-  toolTest("序列化未知校区校验失败且不写入", async ({ isolated, expect }) => {
-    const before = await readPreference(isolated);
+  toolTest(
+    "序列化未知校区校验失败且不写入",
+    async ({
+      mcpActor: isolated,
+      mcpBus: _bus,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const before = await readPreference(isolated);
 
-    const result = await isolated.client.call<{
-      success?: boolean;
-      error?: string;
-      message?: string;
-      hint?: string;
-    }>("workspace_bus_preferences_set", {
-      preferredOriginCampusId: 999_999_999,
-      preferredDestinationCampusId: null,
-      showDepartedTrips: false,
-    });
+      const result = await isolated.client.call<{
+        success?: boolean;
+        error?: string;
+        message?: string;
+        hint?: string;
+      }>("workspace_bus_preferences_set", {
+        preferredOriginCampusId: 999_999_999,
+        preferredDestinationCampusId: null,
+        showDepartedTrips: false,
+      });
 
-    expect(result).toMatchObject({
-      success: false,
-      error: "invalid_bus_preference",
-      message: "Unknown preferred origin campus",
-    });
-    expect(result.hint).toContain("catalog_bus_route_list");
+      expect(result).toMatchObject({
+        success: false,
+        error: "invalid_bus_preference",
+        message: "Unknown preferred origin campus",
+      });
+      expect(result.hint).toContain("catalog_bus_route_list");
 
-    const readBack = await readPreference(isolated);
+      const readBack = await readPreference(isolated);
 
-    expect(readBack.preference).toEqual(before.preference);
-  });
+      expect(readBack.preference).toEqual(before.preference);
+      await expect(db.busUserPreference.findMany()).resolves.toEqual([]);
+    },
+  );
 });
