@@ -15,6 +15,9 @@ export async function createPrivateMcpBus(db: TestPrismaClient) {
     { id: 1, name: "东校区", latitude: 31.84, longitude: 117.26 },
     { id: 2, name: "西校区", latitude: 31.83, longitude: 117.25 },
   ];
+  const route = { id: bus.routeId, campuses };
+  const stopTimes = ["09:00", "09:20"];
+  const schedule = { id: 1, route, time: [stopTimes] };
   await db.$transaction(async (tx) => {
     await tx.busCampus.createMany({
       data: campuses.map(({ name, ...campus }) => ({
@@ -42,10 +45,10 @@ export async function createPrivateMcpBus(db: TestPrismaClient) {
         checksum: "mcp-bus-checksum",
         rawJson: {
           campuses,
-          routes: [{ id: bus.routeId, campuses }],
-          weekday_routes: [],
-          saturday_routes: [],
-          sunday_routes: [],
+          routes: [route],
+          weekday_routes: [schedule],
+          saturday_routes: [schedule],
+          sunday_routes: [schedule],
           message: {
             message: bus.versionTitle,
             url: "https://example.test/timetable",
@@ -57,7 +60,7 @@ export async function createPrivateMcpBus(db: TestPrismaClient) {
               routeId: bus.routeId,
               dayType,
               position: 0,
-              stopTimes: ["09:00", "09:20"],
+              stopTimes,
             }),
           ),
         },
