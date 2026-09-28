@@ -1,17 +1,14 @@
 import { createHash } from "node:crypto";
-import { expect, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import {
-  createPublicationFixture,
-  deletePublicationFixture,
-  publicationFixtureObjectCommand,
-} from "../../../utils/e2e-db/publications";
+import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test } from "../../../utils/publication-fixture";
 
-test("publications.markdown-presentation", async ({ page }) => {
-  const f = await createPublicationFixture(
-    `presentation-${crypto.randomUUID()}`,
-  );
+test("publications.markdown-presentation", async ({
+  page,
+  publication: f,
+  publicationObjects,
+  isolatedWorker,
+}) => {
   const asset = Buffer.from(`PDF fixture ${crypto.randomUUID()}`);
   const hash = createHash("sha256").update(asset).digest("hex");
   const key = `publications/asset/sha256/${hash.slice(0, 2)}/${hash}`;
@@ -20,9 +17,10 @@ test("publications.markdown-presentation", async ({ page }) => {
   const title = 'Revision title " onerror="alert(1)';
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  try {
-    publicationFixtureObjectCommand("put", key, asset, "application/pdf");
-    const missing = await withE2ePrisma(async (db) => {
+  await publicationObjects.put(key, asset, "application/pdf");
+  expect(await publicationObjects.get(key)).toEqual(asset);
+  const missing = await isolatedWorker.database.owner.$transaction(
+    async (db) => {
       const publication = await db.publication.findUniqueOrThrow({
         where: { id: f.id },
       });
@@ -80,70 +78,62 @@ test("publications.markdown-presentation", async ({ page }) => {
         data: { currentRevisionId: revision.id },
       });
       return missing.id;
+    },
+  );
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await gotoAndWaitForReady(page, `/news/${f.id}`);
+    const body = page.locator(".publication-body");
+    const image = body.getByRole("img", {
+      name: "Revision image description",
+      exact: true,
     });
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 844 });
-      await gotoAndWaitForReady(page, `/news/${f.id}`);
-      const body = page.locator(".publication-body");
-      const image = body.getByRole("img", {
-        name: "Revision image description",
-        exact: true,
-      });
-      await expect(image).toHaveAttribute("src", f.imageUrl);
-      await expect(image).toHaveAttribute("title", title);
-      await expect(body.locator("figcaption")).toHaveText(caption);
-      await expect(
-        body.locator("figcaption img, script, [onerror]"),
-      ).toHaveCount(0);
-      const blocks = await body
-        .locator(":scope > p, :scope > figure")
-        .evaluateAll((nodes) =>
-          nodes.map((node) =>
-            node.tagName === "FIGURE" ? "image" : node.textContent,
-          ),
-        );
-      expect(blocks.slice(0, 4)).toEqual([
-        "This is the body text rendered by the public detail page.",
-        "第二段正文，验证段间距与首行缩进。",
-        "image",
-        "This paragraph follows the inline image.",
-      ]);
-      for (const name of [
-        "Article author",
-        "Article reporter",
-        "Article editor",
-        "Original publisher",
-      ])
-        await expect(
-          page.locator("dd").filter({ hasText: new RegExp(`^${name}$`) }),
-        ).toBeVisible();
-      const download = page.getByRole("link", { name: filename, exact: false });
-      await expect(download).toHaveAttribute(
-        "href",
-        `/api/publications/objects/asset/${hash}`,
-      );
-      await expect(download.locator("b")).toHaveCount(0);
-      await expect(
-        page.getByText(
-          "Legacy plain text must not be used as the rendered body.",
-        ),
-      ).toHaveCount(0);
-      await gotoAndWaitForReady(page, `/news/${missing}`);
-      await expect(
-        page.getByText("Private fallback must not render"),
-      ).toHaveCount(0);
-      await expect(page.locator(".publication-body")).toContainText(
-        /正文|body|content/i,
-      );
-    }
-    expect(errors).toEqual([]);
-  } finally {
-    await deletePublicationFixture(f);
-    await withE2ePrisma((db) =>
-      db.publicationObject.deleteMany({
-        where: { kind: "asset", sha256: hash },
-      }),
+    await expect(image).toHaveAttribute("src", f.imageUrl);
+    await expect(image).toHaveAttribute("title", title);
+    await expect(body.locator("figcaption")).toHaveText(caption);
+    await expect(body.locator("figcaption img, script, [onerror]")).toHaveCount(
+      0,
     );
-    publicationFixtureObjectCommand("delete", key);
+    const blocks = await body
+      .locator(":scope > p, :scope > figure")
+      .evaluateAll((nodes) =>
+        nodes.map((node) =>
+          node.tagName === "FIGURE" ? "image" : node.textContent,
+        ),
+      );
+    expect(blocks.slice(0, 4)).toEqual([
+      "This is the body text rendered by the public detail page.",
+      "第二段正文，验证段间距与首行缩进。",
+      "image",
+      "This paragraph follows the inline image.",
+    ]);
+    for (const name of [
+      "Article author",
+      "Article reporter",
+      "Article editor",
+      "Original publisher",
+    ])
+      await expect(
+        page.locator("dd").filter({ hasText: new RegExp(`^${name}$`) }),
+      ).toBeVisible();
+    const download = page.getByRole("link", { name: filename, exact: false });
+    await expect(download).toHaveAttribute(
+      "href",
+      `/api/publications/objects/asset/${hash}`,
+    );
+    await expect(download.locator("b")).toHaveCount(0);
+    await expect(
+      page.getByText(
+        "Legacy plain text must not be used as the rendered body.",
+      ),
+    ).toHaveCount(0);
+    await gotoAndWaitForReady(page, `/news/${missing}`);
+    await expect(
+      page.getByText("Private fallback must not render"),
+    ).toHaveCount(0);
+    await expect(page.locator(".publication-body")).toContainText(
+      /正文|body|content/i,
+    );
   }
+  expect(errors).toEqual([]);
 });

@@ -8,6 +8,7 @@ import {
 export { PublicSsr } from "../../../src/worker.js";
 
 const storagePath = "/__test/storage/uploads";
+const publicationStoragePath = "/__test/storage/publications";
 const ownedPrefix = /^uploads\/[0-9a-f-]{36}\/$/;
 const ownedKey = /^uploads\/[0-9a-f-]{36}\/(?:\d+-)?[0-9a-f-]{36}$/;
 type DeleteProbe = {
@@ -65,6 +66,7 @@ export default {
       NODE_ENV: string;
       E2E_STORAGE_SECRET: string;
       R2_UPLOADS: R2Bucket;
+      R2_PUBLICATIONS: R2Bucket;
     },
     context: ExecutionContext,
   ) {
@@ -72,7 +74,7 @@ export default {
     if (effectResponse) return effectResponse;
     const observed = observeCommunityEffects(request, env, context);
     const url = new URL(request.url);
-    if (url.pathname !== storagePath)
+    if (url.pathname !== storagePath && url.pathname !== publicationStoragePath)
       return productionWorker.fetch(
         request,
         deleteProbes.size
@@ -86,6 +88,41 @@ export default {
       request.headers.get("x-test-storage-secret") !== env.E2E_STORAGE_SECRET
     )
       return new Response(null, { status: 404 });
+
+    if (url.pathname === publicationStoragePath) {
+      const key = url.searchParams.get("key");
+      const object = key?.match(
+        /^publications\/(?:body_markdown|asset)\/sha256\/([0-9a-f]{2})\/([0-9a-f]{64})$/,
+      );
+      const image =
+        key && /^publications\/images\/url-sha256\/[0-9a-f]{64}$/.test(key);
+      if (!key || !(image || (object && object[1] === object[2].slice(0, 2))))
+        return new Response("Expected a publication fixture object key", {
+          status: 400,
+        });
+      if (request.method === "PUT") {
+        await env.R2_PUBLICATIONS.put(key, await request.arrayBuffer(), {
+          httpMetadata: {
+            contentType:
+              request.headers.get("content-type") ?? "application/octet-stream",
+          },
+        });
+        return new Response(null, { status: 204 });
+      }
+      if (request.method === "GET") {
+        const stored = await env.R2_PUBLICATIONS.get(key);
+        return stored
+          ? new Response(await stored.arrayBuffer(), {
+              headers: {
+                "content-type":
+                  stored.httpMetadata?.contentType ??
+                  "application/octet-stream",
+              },
+            })
+          : new Response(null, { status: 404 });
+      }
+      return new Response(null, { status: 405 });
+    }
 
     const prefix = url.searchParams.get("prefix");
     if (request.method === "GET" && prefix && ownedPrefix.test(prefix)) {

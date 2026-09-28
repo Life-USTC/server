@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import type { TestPrismaClient } from "../../../shared/prisma";
 import { withE2ePrisma } from "./prisma";
 
 export type PublicationFixture = {
@@ -49,7 +50,30 @@ export function publicationFixtureObjectCommand(
   );
 }
 
-export async function createPublicationFixture(prefix: string) {
+export type PutPublicationObject = (
+  key: string,
+  body: Buffer,
+  contentType: string,
+) => Promise<void>;
+
+export function createPublicationFixture(prefix: string) {
+  return withE2ePrisma((db) =>
+    arrangePublicationFixture(
+      db,
+      async (key, body, contentType) => {
+        publicationFixtureObjectCommand("put", key, body, contentType);
+      },
+      prefix,
+    ),
+  );
+}
+
+/** Arrange known content through explicit database and object-store adapters. */
+export async function arrangePublicationFixture(
+  db: TestPrismaClient,
+  putObject: PutPublicationObject,
+  prefix: string,
+) {
   const sourceId = `e2e-publication-${prefix}`;
   const sourceName = `E2E publication source ${prefix}`;
   const officeSourceId = `e2e-publication-office-${prefix}`;
@@ -78,20 +102,14 @@ export async function createPublicationFixture(prefix: string) {
   );
   const markdownHash = createHash("sha256").update(markdown).digest("hex");
   const markdownKey = `publications/body_markdown/sha256/${markdownHash.slice(0, 2)}/${markdownHash}`;
-  publicationFixtureObjectCommand(
-    "put",
-    markdownKey,
-    markdown,
-    "text/markdown",
-  );
-  publicationFixtureObjectCommand(
-    "put",
+  await putObject(markdownKey, markdown, "text/markdown");
+  await putObject(
     `publications/images/url-sha256/${imageId}`,
     readFileSync("public/images/icon.png"),
     "image/png",
   );
 
-  return withE2ePrisma(async (prisma) => {
+  return db.$transaction(async (prisma) => {
     const markdownObject = await prisma.publicationObject.create({
       data: {
         kind: "body_markdown",
