@@ -50,8 +50,15 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string) {
   ]).finally(() => clearTimeout(timer));
 }
 async function stopWorker(child: ChildProcess, exited: Promise<void>) {
-  if (child.exitCode === null && child.signalCode === null && child.connected)
-    child.send({ type: "stop" });
+  let sendError: unknown;
+  if (child.exitCode === null && child.signalCode === null && child.connected) {
+    try {
+      child.send({ type: "stop" });
+    } catch (error) {
+      sendError = error;
+      child.kill("SIGTERM");
+    }
+  }
   try {
     await withTimeout(
       exited,
@@ -70,6 +77,7 @@ async function stopWorker(child: ChildProcess, exited: Promise<void>) {
     await exited;
     throw error;
   }
+  if (sendError) throw sendError;
 }
 
 /** Global-state cases own the database and the actual workerd process/storage.
@@ -105,6 +113,9 @@ export const test = base.extend<
       const log = createWriteStream(testInfo.outputPath("isolated-worker.log"));
       const failures: unknown[] = [];
       log.on("error", (error) => failures.push(error));
+      const logClosed = new Promise<void>((resolve) =>
+        log.once("close", resolve),
+      );
       try {
         directory = await mkdtemp(join(tmpdir(), "life-ustc-worker-"));
         const port = await availablePort();
@@ -135,10 +146,12 @@ export const test = base.extend<
         );
         child.stdout?.pipe(log, { end: false });
         child.stderr?.pipe(log, { end: false });
-        exited = new Promise<void>((resolve) => {
-          child?.once("exit", () => resolve());
-          child?.once("error", () => resolve());
-        });
+        // close follows actual process exit AND stdio closure. IPC errors
+        // are observations, never evidence that a live child has stopped.
+        exited = new Promise<void>((resolve) =>
+          child?.once("close", () => resolve()),
+        );
+        child.on("error", (error) => failures.push(error));
         const ready = new Promise<void>((resolve, reject) => {
           child?.once("error", reject);
           child?.once("exit", (code, signal) =>
@@ -257,6 +270,7 @@ export const test = base.extend<
           }
         }
         log.end();
+        await logClosed;
         results.push(
           ...(await Promise.allSettled([
             database.dispose(),
