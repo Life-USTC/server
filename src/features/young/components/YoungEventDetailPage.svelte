@@ -7,15 +7,14 @@ import type {
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { page } from "$app/stores";
 import Panel from "$lib/components/Panel.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
-import { youngReturnHref } from "../lib/young-navigation";
 import YoungSourceNote from "./YoungSourceNote.svelte";
+import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
   commentsData?: CommentsInitialData | null;
@@ -53,16 +52,6 @@ onMount(() => {
 });
 
 const youngCopy = $derived(copy.youngEvents);
-const returnHref = $derived(
-  youngReturnHref($page.url.searchParams.get("returnTo")),
-);
-const returnLabel = $derived(
-  returnHref.includes("/calendar")
-    ? youngCopy.backToCalendar
-    : returnHref.includes("/organizers")
-      ? youngCopy.backToOrganizers
-      : youngCopy.backToList,
-);
 const badges = $derived(
   [
     ...new Set([
@@ -83,8 +72,11 @@ const badges = $derived(
       </a>
     {/if}
     <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,white_0%,white_28%,transparent_72%)] dark:bg-[linear-gradient(to_top,black_0%,black_28%,transparent_72%)]"></div>
-    <div class="relative flex h-64 flex-col justify-end gap-3 px-4 pb-6 sm:h-80 sm:px-5 lg:h-96 lg:px-6">
-      <h1 class="max-w-4xl text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">{event.name}</h1>
+    <div class="relative z-10 flex h-64 flex-col justify-end gap-3 px-4 pb-6 sm:h-80 sm:px-5 lg:h-96 lg:px-6">
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="min-w-0 flex-1 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">{event.name}</h1>
+        <YoungSubscriptionControl compact id={event.youngId} copy={youngCopy.workspace} />
+      </div>
       <div class="flex min-w-0 flex-wrap gap-2" data-testid="young-event-badges">
         <Badge variant={event.isActive ? "default" : "outline"}>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Badge>
         {#each badges as badge (badge)}
@@ -94,10 +86,6 @@ const badges = $derived(
     </div>
   </header>
   <div class="grid min-w-0 gap-8 px-4 py-6 sm:px-5 lg:px-6">
-    <div>
-      <Button href={returnHref} variant="outline">{returnLabel}</Button>
-    </div>
-
   {#if event.description}
     <Panel>
       {#snippet header()}

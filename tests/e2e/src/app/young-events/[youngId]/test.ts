@@ -7,7 +7,7 @@
  *
  * ## UI/UX Elements
  * - Full-width poster banner with the title and badges
- * - Back link to the event list
+ * - Subscribe button to the right of the title
  *
  * ## Edge Cases
  * - Unknown youngId renders the 404 error page
@@ -58,11 +58,16 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
       page.getByRole("navigation", { name: /面包屑|Breadcrumb/ }),
     ).toHaveCount(0);
 
-    const backLink = page.getByRole("link", {
-      name: /返回活动列表|Back to all events/i,
+    await expect(
+      page.getByRole("link", { name: /返回活动列表|Back to all events/i }),
+    ).toHaveCount(0);
+    const subscribe = banner.getByRole("button", {
+      name: /^(订阅活动|Subscribe to event)$/,
     });
-    await expect(backLink).toBeVisible();
-    await backLink.click();
+    await expect(subscribe).toBeVisible();
+    await youngNav
+      .getByRole("link", { name: /^(?:活动列表|Activity list)$/ })
+      .click();
     await page.waitForURL(/\/catalog\/young-events$/);
     await expect(
       page.getByRole("heading", {
@@ -183,7 +188,7 @@ for (const width of [1280, 390]) {
   });
 }
 
-test("详情页不渲染订阅控件，也不请求私人订阅数据", async ({ page }) => {
+test("未登录时标题右侧显示订阅活动，且不请求私人订阅数据", async ({ page }) => {
   let privateRequests = 0;
   page.on("request", (request) => {
     if (
@@ -195,9 +200,9 @@ test("详情页不渲染订阅控件，也不请求私人订阅数据", async ({
   });
   await gotoAndWaitForReady(page, DETAIL_PATH, { browserHealth: {} });
   await expect(
-    page.getByRole("button", {
-      name: /^(登录后订阅|订阅活动|Sign in to subscribe|Subscribe to event)$/,
+    page.getByTestId("young-event-banner").getByRole("button", {
+      name: /^(订阅活动|Subscribe to event)$/,
     }),
-  ).toHaveCount(0);
+  ).toBeVisible();
   expect(privateRequests).toBe(0);
 });

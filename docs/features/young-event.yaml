@@ -91,7 +91,8 @@ requirements:
 - id: young-event.display-known-values
   category: presentation
   rule: The default detail page shows the poster banner, title, and status badges. It does not show an
-    activity summary, official signup button, subscription control, or expandable statistics. It does not
+    activity summary, official signup button, or expandable statistics. A subscribe button sits to the
+    right of the title. It does not
     repeat the signup window, registration requirements, meeting information, attachment formats, external
     sponsor, organization contacts, occupancy, seat limit, or favorite count. isOnline reflects the upstream
     online-meeting option, not an exclusive activity format; false never implies in-person attendance.
@@ -111,8 +112,9 @@ requirements:
   category: presentation
   rule: The poster is a full-width banner at the top of the page. A fade from white, or black in dark
     mode, up to transparent covers the image. The title and status badges sit on that lower edge, and the
-    image link opens the full picture. The activity summary, official signup button, subscription control,
-    and expandable statistics stay off the page. Description images stay inside a bounded frame.
+    image link opens the full picture. A subscribe button sits to the right of the title. The page has no
+    back button, activity summary, official signup button, or expandable statistics. Description images
+    stay inside a bounded frame.
 - id: young-event.web-list-scan
   category: presentation
   rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of

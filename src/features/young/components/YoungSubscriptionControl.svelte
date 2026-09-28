@@ -21,6 +21,7 @@ let {
   kind = "events",
   copy,
   initialState,
+  compact = false,
 }: {
   id: string;
   kind?: "events" | "organizers";
@@ -31,6 +32,7 @@ let {
     remindDeadline?: boolean;
     remindStart?: boolean;
   };
+  compact?: boolean;
 } = $props();
 let subscribed = $state(untrack(() => initialState?.subscribed ?? false));
 let loaded = $state(untrack(() => initialState != null));
@@ -159,6 +161,15 @@ async function save(next: boolean) {
 }
 </script>
 
+{#if compact}
+  {#if failed}
+    <Button variant="outline" onclick={retry}>{copy.retry}</Button>
+  {:else}
+    <Button class="shrink-0" disabled={!loaded || busy} onclick={() => save(!subscribed)}>
+      {subscribed && loaded ? copy.unsubscribe : copy.subscribe}
+    </Button>
+  {/if}
+{:else}
 <div class="grid gap-3">
   <div class="flex flex-wrap items-center gap-3">
     {#if failed}
@@ -200,3 +211,4 @@ async function save(next: boolean) {
     </Collapsible.Root>
   {/if}
 </div>
+{/if}

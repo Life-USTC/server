@@ -118,9 +118,10 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       .click();
     await expect(page).toHaveURL(/returnTo=/);
     await expect(page.getByTestId("young-event-banner")).toBeVisible();
-    await page
-      .getByRole("link", { name: /返回活动列表|Back to all events/ })
-      .click();
+    await expect(
+      page.getByRole("link", { name: /返回活动列表|Back to all events/ }),
+    ).toHaveCount(0);
+    await page.goBack();
     await expect(page).toHaveURL(browseUrl);
     const youngNav = page.getByTestId("young-sidebar");
     await expect(youngNav).toBeVisible();
