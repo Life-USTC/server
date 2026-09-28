@@ -149,6 +149,16 @@ test("subscription.consume-protocols-known-state", async ({
           expect(body[key][0].section.id).toBe(own.section.id);
           expect(JSON.stringify(body)).not.toContain(foreign.course.code);
         }
+        const academic = await withE2ePrisma(async (db) => ({
+          schedule: await db.schedule.findFirstOrThrow({
+            where: { sectionId: own.section.id },
+            select: { id: true },
+          }),
+          exam: await db.exam.findFirstOrThrow({
+            where: { sectionId: own.section.id },
+            select: { id: true },
+          }),
+        }));
         const response = await page.request.get(
           `/api/workspace/calendar/events?${params}`,
         );
@@ -163,12 +173,44 @@ test("subscription.consume-protocols-known-state", async ({
           "todo_due",
           "young_event",
         ]);
+        expect(
+          body.data.map((event: { id: string }) => event.id).sort(),
+        ).toEqual(
+          [
+            `schedule-${academic.schedule.id}-${own.date}T09:00:00+08:00`,
+            `exam-${academic.exam.id}`,
+            `homework-${own.homework.id}`,
+            `todo-${own.todo.id}`,
+            `young-${own.young.youngId}`,
+          ].sort(),
+        );
         expect(body.data).toEqual(
           expect.arrayContaining([
+            expect.objectContaining({
+              type: "schedule",
+              title: own.course.nameCn,
+              url: `/catalog/sections/${own.section.jwId}`,
+            }),
+            expect.objectContaining({
+              type: "exam",
+              title: own.course.nameCn,
+              url: "/workspace/exams",
+            }),
+            expect.objectContaining({
+              type: "homework_due",
+              id: `homework-${own.homework.id}`,
+              title: own.homework.title,
+              url: "/workspace/homeworks",
+            }),
             expect.objectContaining({ id: `todo-${own.todo.id}` }),
             expect.objectContaining({ youngId: own.young.youngId }),
           ]),
         );
+        expect(JSON.stringify(body)).not.toContain(foreign.course.nameCn);
+        expect(JSON.stringify(body)).not.toContain(
+          `/catalog/sections/${foreign.section.jwId}`,
+        );
+        expect(JSON.stringify(body)).not.toContain(foreign.homework.id);
         expect(JSON.stringify(body)).not.toContain(foreign.todo.id);
         expect(JSON.stringify(body)).not.toContain(foreign.young.youngId);
       });
@@ -264,4 +306,73 @@ test("subscription.consume-anonymous-denied", async ({ request }) => {
   });
   expect(graph.status()).toBe(200);
   expect((await graph.json()).data.workspace).toBeNull();
+});
+
+test("subscription.consume-unsubscribed-known-state", async ({ page }) => {
+  const owners = await createOwners();
+  try {
+    // Arrange the absence directly; this consumer test does not depend on a
+    // successful unsubscribe operation through any product entry point.
+    await withE2ePrisma((db) =>
+      db.userSectionSubscription.deleteMany({
+        where: { userId: { in: owners.map((owner) => owner.users[0].id) } },
+      }),
+    );
+    for (const [index, own] of owners.entries()) {
+      const foreign = owners[1 - index];
+      const baseline = await observeSubscriptionState(own);
+      expect(baseline.sections).toEqual([]);
+      await signInSubscriptionOwner(page, own);
+      await test.step(`${index === 0 ? "Regular user" : "Suspended administrator"}: no academic records; independent personal items remain private`, async () => {
+        const params = `userId=${foreign.users[0].id}&dateFrom=${own.date}&dateTo=${own.activityDate}`;
+        const current = await page.request.get(
+          `/api/workspace/subscriptions/current?${params}`,
+        );
+        expect(current.status()).toBe(200);
+        expect((await current.json()).subscription).toMatchObject({
+          userId: own.users[0].id,
+          sections: [],
+        });
+        for (const [path, key] of [
+          ["schedules", "schedules"],
+          ["exams", "data"],
+          ["homeworks", "data"],
+        ] as const) {
+          const response = await page.request.get(
+            `/api/workspace/${path}?${params}`,
+          );
+          expect(response.status()).toBe(200);
+          const body = await response.json();
+          expect(body[key]).toEqual([]);
+          expect(JSON.stringify(body)).not.toContain(foreign.course.code);
+        }
+        const calendar = await page.request.get(
+          `/api/workspace/calendar/events?${params}`,
+        );
+        expect(calendar.status()).toBe(200);
+        const body = await calendar.json();
+        expect(
+          body.data.map((event: { type: string }) => event.type).sort(),
+        ).toEqual(["todo_due", "young_event"]);
+        expect(body.data).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: `todo-${own.todo.id}`,
+              title: own.todo.title,
+            }),
+            expect.objectContaining({
+              youngId: own.young.youngId,
+              title: own.young.name,
+            }),
+          ]),
+        );
+        expect(JSON.stringify(body)).not.toContain(foreign.todo.id);
+        expect(JSON.stringify(body)).not.toContain(foreign.young.youngId);
+        expect(JSON.stringify(body)).not.toContain(foreign.course.code);
+      });
+      expect(await observeSubscriptionState(own)).toEqual(baseline);
+    }
+  } finally {
+    for (const owner of owners) await owner.cleanup();
+  }
 });

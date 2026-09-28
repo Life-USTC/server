@@ -68,7 +68,19 @@ export async function expectSubscribedWebProjections(
       foreign.young.name,
     );
   };
-  await gotoAndWaitForReady(page, "/workspace/subscriptions");
+  await gotoAndWaitForReady(
+    page,
+    foreign
+      ? `/workspace/subscriptions?userId=${foreign.users[0].id}`
+      : "/workspace/subscriptions",
+  );
+  if (foreign) {
+    await expect(
+      page.locator(
+        `a[data-testid="subscription-course-link"][href="/catalog/sections/${foreign.section.jwId}"]`,
+      ),
+    ).toHaveCount(0);
+  }
   await expect(subscribedCourseLink(page, fixture)).toHaveText(
     String(fixture.course.nameEn),
   );
