@@ -1,28 +1,11 @@
 import { describe } from "vitest";
-import { actorFixture, DEV_SEED } from "../_harness";
-import { mcpTest } from "../_harness/context";
-
-const toolTest = mcpTest
-  .extend(
-    "owner",
-    actorFixture({
-      emailPrefix: "kind-owner",
-      name: "Kind owner",
-    }),
-  )
-  .extend(
-    "other",
-    actorFixture({
-      emailPrefix: "kind-other",
-      name: "Other owner",
-    }),
-  );
+import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 
 describe("subscription kind transport", () => {
   toolTest(
     "mcp.subscription-kind-projection",
-    async ({ owner, other, expect }) => {
-      const jwId = DEV_SEED.section.jwId;
+    async ({ mcpActor: owner, mcpOtherActor: other, mcpSection, expect }) => {
+      const jwId = mcpSection.jwId;
       await owner.client.call("workspace_subscription_add", { jwId });
       expect(
         await owner.client.call("workspace_subscription_kind_update", {
