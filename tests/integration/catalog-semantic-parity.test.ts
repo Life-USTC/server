@@ -201,6 +201,7 @@ it("interface-hierarchy.catalog-explicit-read-parity", async () => {
       nameCn: "2027春",
     },
   });
+  fixture.cleanupIds.semesters.push(newer.id);
   try {
     const [courseA, courseB] = fixture.courses;
     const [sectionA, sectionB] = fixture.sections;
@@ -410,6 +411,7 @@ it("interface-hierarchy.catalog-explicit-read-parity", async () => {
           nameCn: tieMarker,
         },
       });
+      fixture.cleanupIds.courses.push(course.id);
       const teacher = await db.teacher.create({
         data: {
           jwId: fixture.base + offset,
@@ -417,6 +419,7 @@ it("interface-hierarchy.catalog-explicit-read-parity", async () => {
           nameCn: tieMarker,
         },
       });
+      fixture.cleanupIds.teachers.push(teacher.id);
       const section = await db.section.create({
         data: {
           jwId: fixture.base + offset,
@@ -425,6 +428,7 @@ it("interface-hierarchy.catalog-explicit-read-parity", async () => {
           semesterId: fixture.semester.id,
         },
       });
+      fixture.cleanupIds.sections.push(section.id);
       tied.course.unshift(course.id);
       tied.teacher.unshift(teacher.id);
       tied.section.unshift(section.id);

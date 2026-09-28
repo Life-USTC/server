@@ -65,7 +65,15 @@ Choose concrete state transitions and invariants instead of the full Cartesian
 product of writers, readers, actors and presentation states. Preserve dedicated
 permission and transaction regressions as well as entry-point checks.
 
-New tests use explicit expected data maintained alongside the test. Existing typed
-comparison helpers remain in other features, but their metadata is not an acceptance
-coverage claim. Agents may author tests; reviewers own the requirements, oracle and
+Tests use explicit expected data maintained alongside the test. Shared helpers
+observe actual state and accept explicit expected values; they do not read feature
+specifications or record field-consumption receipts. Agents may author tests; reviewers own the requirements, oracle and
 assertion quality. Never weaken expectations or skip failures automatically.
+
+Mutable actors and records belong to a test, including resources acquired before
+the test body starts. Use runner fixtures with failure-safe teardown, atomic
+database-only setup, and exact owned IDs for cleanup. A shared immutable catalog
+fixture is acceptable; a shared user whose preferences are restored afterward is
+not a new isolation pattern. Global maintenance and version activation need their
+own database/service environment. Do not increase suite concurrency until the
+affected cases have passed standalone, reordered and concurrent validation.

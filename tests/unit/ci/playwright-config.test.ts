@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const workerDatabaseEnvironment = {
   FUNCTION_OWNER_DATABASE_URL:
@@ -34,6 +34,12 @@ async function loadApiConfig(ci: string) {
   }
   return (await import("../../../playwright.api.config")).default;
 }
+
+beforeEach(() => {
+  vi.stubEnv("E2E_PORT", undefined);
+  vi.stubEnv("E2E_INSPECTOR_PORT", undefined);
+  vi.stubEnv("E2E_REPORT_ROOT", undefined);
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();

@@ -171,7 +171,7 @@ requirements:
     - At the deadline the expired candidate is absent.
     test:
       file: tests/unit/features/young/young-reminders.test.ts
-      name: young-workspace.reminder-deadline-window
+      name: "Young reminders > signup_deadline reminder window > at the window opening"
 - id: young-workspace.reminder-start-window
   category: behavior
   applies_to:
@@ -196,7 +196,7 @@ requirements:
     - Eligibility begins exactly one hour before the event and expires at its start.
     test:
       file: tests/unit/features/young/young-reminders.test.ts
-      name: young-workspace.reminder-start-window
+      name: "Young reminders > event_start reminder window > at the window opening"
 - id: young-workspace.reminder-settings
   category: behavior
   rule: Signup-opening, deadline and event-start reminders are independently configurable.

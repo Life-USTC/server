@@ -1,44 +1,67 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
+import { expect } from "@playwright/test";
+import { test as calendarTest } from "../../../../utils/calendar-fixture";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
+import {
+  issueAccessTokenForClient,
+  parseTextContent,
+  registerPublicClient,
+} from "../../api/mcp/helpers";
 
-let fixture: Awaited<ReturnType<typeof createCalendarContractFixture>>;
-let clientId: string | undefined;
-let client: Client;
-test.beforeEach(async ({ page, request }) => {
-  fixture = await createCalendarContractFixture();
-  clientId = undefined;
-  await page.context().clearCookies();
-  await page
-    .context()
-    .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
-  const scope = "workspace.overview:read workspace.schedule:read";
-  const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-  const token = await issueAccessToken(page, request, {
-    scope,
-    clientScopes: scope.split(" "),
-    resource,
-  });
-  clientId = token.clientId;
-  client = new Client({ name: "overview-contract", version: "1" });
-  await client.connect(
-    new StreamableHTTPClientTransport(new URL(resource), {
-      requestInit: {
-        headers: { Authorization: `Bearer ${token.accessToken}` },
-      },
-    }),
-  );
-});
-test.afterEach(async () => {
-  await client?.close();
-  if (clientId)
-    await withE2ePrisma((db) => db.oAuthClient.delete({ where: { clientId } }));
-  await fixture?.cleanup();
+type CallTool = <Result>(
+  name: string,
+  args?: Record<string, unknown>,
+) => Promise<Result>;
+const test = calendarTest.extend<{ call: CallTool }>({
+  call: async ({ page, request, calendar }, use) => {
+    await page
+      .context()
+      .addCookies([await createSignedSessionCookie(calendar.users[0].id)]);
+    const scope = "workspace.overview:read workspace.schedule:read";
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const clientId = await registerPublicClient(request, scope);
+    const client = new Client({ name: "overview-contract", version: "1" });
+    try {
+      const { response, tokenBody } = await issueAccessTokenForClient(
+        page,
+        request,
+        {
+          clientId,
+          scope,
+          resource,
+        },
+      );
+      expect(response.status()).toBe(200);
+      expect(typeof tokenBody.access_token).toBe("string");
+      await client.connect(
+        new StreamableHTTPClientTransport(new URL(resource), {
+          requestInit: {
+            headers: { Authorization: `Bearer ${tokenBody.access_token}` },
+          },
+        }),
+      );
+      const call: CallTool = async <Result>(
+        name: string,
+        args: Record<string, unknown> = {},
+      ) => {
+        const response = await client.callTool({ name, arguments: args });
+        expect(response.isError).not.toBe(true);
+        return parseTextContent(response) as Result;
+      };
+      await use(call);
+    } finally {
+      try {
+        await client.close();
+      } finally {
+        await withE2ePrisma((db) =>
+          db.oAuthClient.delete({ where: { clientId } }),
+        );
+      }
+    }
+  },
 });
 type CalendarEvent = { payload: { id: string | number } };
 type SnapshotResult = {
@@ -51,16 +74,11 @@ type OverviewResult = {
   overview: { upcomingExamsCount: number };
   samples: { upcomingExams: { id: number }[] };
 };
-async function call<Result>(
-  name: string,
-  args: Record<string, unknown> = {},
-): Promise<Result> {
-  const response = await client.callTool({ name, arguments: args });
-  expect(response.isError).not.toBe(true);
-  return parseTextContent(response) as Result;
-}
-
-test("overview.upcoming-exam-counts", async ({ page }) => {
+test("overview.upcoming-exam-counts", async ({
+  page,
+  calendar: fixture,
+  call,
+}) => {
   const now = new Date();
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Shanghai",
@@ -145,7 +163,10 @@ test("overview.upcoming-exam-counts", async ({ page }) => {
   expect(graph.data.workspace.overview.upcomingExams).toBe(4);
 });
 
-test("overview.focused-extracts-share-window", async () => {
+test("overview.focused-extracts-share-window", async ({
+  calendar: fixture,
+  call,
+}) => {
   const atTime = "2026-04-29T08:00:00+08:00";
   const start = new Date(atTime).getTime();
   const day = 86400000;
@@ -246,7 +267,11 @@ test("overview.focused-extracts-share-window", async () => {
   ).toMatchObject({ found: false, nextClass: null });
 });
 
-test("overview.compact-operational-fields", async ({ page }) => {
+test("overview.compact-operational-fields", async ({
+  page,
+  calendar: fixture,
+  call,
+}) => {
   const result = await call<{
     overview: unknown;
     samples: {

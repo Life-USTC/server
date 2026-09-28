@@ -185,7 +185,7 @@ requirements:
     - The tested tool inventory exactly equals the declared MCP field-view inventory, so adding a declared tool requires a real SDK case.
     test:
       file: tests/integration/mcp/property-priority.test.ts
-      name: mcp.property-priority-parity
+      name: "MCP academic catalog preserves explicit compact and full projections"
 - id: mcp.actionable-errors
   category: presentation
   rule: Domain validation and missing-resource tool results contain a stable error classification and

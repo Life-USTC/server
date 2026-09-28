@@ -329,6 +329,7 @@ it("interface-hierarchy.subscription-read-parity", async () => {
         nameCn: "2030春",
       },
     });
+    fixture.cleanupIds.semesters.push(newer.id);
     const rows: { id: number; jwId: number; kind: string }[] = [];
     for (const offset of [15, 14, 13, 12, 11, 10]) {
       const section = await db.section.create({
@@ -342,6 +343,7 @@ it("interface-hierarchy.subscription-read-parity", async () => {
             : {}),
         },
       });
+      fixture.cleanupIds.sections.push(section.id);
       const kind = offset % 2 ? "auditor" : "regular";
       await db.userSectionSubscription.create({
         data: { userId: userIds[0], sectionId: section.id, kind },
@@ -356,6 +358,7 @@ it("interface-hierarchy.subscription-read-parity", async () => {
         semesterId: newer.id,
       },
     });
+    fixture.cleanupIds.sections.push(first.id);
     await db.userSectionSubscription.createMany({
       data: [
         { userId: userIds[0], sectionId: first.id, kind: "teaching_assistant" },

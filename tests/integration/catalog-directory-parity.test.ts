@@ -5,8 +5,6 @@ import { getSemestersRoute } from "@/lib/api/routes/academic-metadata-routes";
 import { getCatalogLinksRoute } from "@/lib/api/routes/catalog-link-routes";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { createFixturePrisma } from "../shared/prisma";
-import { bindDomainOperation } from "../shared/specifications/domain-contracts";
-import { semanticContract } from "../shared/specifications/semantic-contract";
 import {
   createAnonymousMcpHarness,
   type McpHarness,
@@ -41,16 +39,7 @@ async function graph(
   return body.data.catalog;
 }
 
-it("semester.list-order-pagination", async (context) => {
-  const contract = await semanticContract(
-    "semester.list-order-pagination",
-    "ordered_page",
-  );
-  const read = bindDomainOperation(
-    contract,
-    "src/lib/api/routes/academic-metadata-routes.ts",
-    getSemestersRoute,
-  );
+it("semester.list-order-pagination", async () => {
   const observed = new Map<string, number[]>([
     ["rest", []],
     ["graphql", []],
@@ -86,7 +75,7 @@ it("semester.list-order-pagination", async (context) => {
     const pageSize = 2;
     const pages = Math.ceil(expected.length / pageSize);
     for (let page = 1; page <= pages + 1; page++) {
-      const response = await read(
+      const response = await getSemestersRoute(
         new Request(
           `http://semester-${marker}.test/api/catalog/semesters?page=${page}&pageSize=${pageSize}`,
         ),
@@ -114,15 +103,13 @@ it("semester.list-order-pagination", async (context) => {
         const ids = rows.map((row: { id: number }) => row.id);
         observed.get(surface)?.push(...ids);
         expect(ids).toEqual(slice);
-        if (page > pages) contract.equal("/exhausted_items", ids.length);
+        if (page > pages) expect(ids).toEqual([]);
       }
       for (const pagination of [
         rest.pagination,
         gql.pageInfo,
         native.pagination,
       ]) {
-        contract.equal("/page_size_echoed", pagination.pageSize === pageSize);
-        contract.equal("/complete_total", pagination.total === all.length);
         expect(pagination).toEqual({
           page,
           pageSize,
@@ -131,8 +118,6 @@ it("semester.list-order-pagination", async (context) => {
         });
       }
     }
-    contract.set("/surfaces", [...observed.keys()]);
-    contract.equal("/model", "Semester");
     const byId = new Map(all.map((row) => [row.id, row]));
     for (const ids of observed.values()) {
       const rows = ids.map((id) => {
@@ -156,16 +141,10 @@ it("semester.list-order-pagination", async (context) => {
           row.startDate?.getTime() !== rows[index - 1].startDate?.getTime() ||
           rows[index - 1].jwId > row.jwId,
       );
-      contract.equal("/order", [
-        {
-          field: "startDate",
-          direction: datesDescending ? "desc" : "unordered",
-          nulls: nullsLast ? "last" : "mixed",
-        },
-        { field: "jwId", direction: tiesDescending ? "desc" : "unordered" },
-      ]);
+      expect(datesDescending).toBe(true);
+      expect(nullsLast).toBe(true);
+      expect(tiesDescending).toBe(true);
     }
-    contract.recordVitest(context);
   } finally {
     await db.semester.deleteMany({ where: { id: { in: created } } });
   }
