@@ -24,7 +24,6 @@
  * - Comment CRUD: post → edit → delete
  */
 import { expect, test } from "@playwright/test";
-import { openCommentComposer } from "../../../../utils/comments";
 import {
   arrangeDescription,
   test as communityTest,
@@ -32,7 +31,8 @@ import {
   storedDescription,
   storedDescriptionAudits,
   supplement,
-} from "../../../../utils/community-fixture";
+} from "../../../../utils/catalog-browser-fixture";
+import { openCommentComposer } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import {
@@ -80,8 +80,6 @@ async function jumpToTeacherSection(
 }
 
 test.describe("/catalog/teachers/[id] 教师详情页", () => {
-  test.describe.configure({ mode: "serial" });
-
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
       routePath: "/catalog/teachers/[id]",
@@ -250,6 +248,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     "已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）",
     async ({ page, account, community }, testInfo) => {
       const description = await arrangeDescription(
+        community.db,
         "teacher",
         community.teacher.id,
         account.id,
@@ -300,7 +299,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         testInfo,
         "teacher/description-updated",
       );
-      const persisted = await storedDescription(description.id);
+      const persisted = await storedDescription(community.db, description.id);
       expect(persisted).toMatchObject({
         content,
         lastEditedById: account.id,
@@ -314,7 +313,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         }),
       ]);
       await expect
-        .poll(() => storedDescriptionAudits(description.id))
+        .poll(() => storedDescriptionAudits(community.db, description.id))
         .toEqual([
           expect.objectContaining({
             userId: account.id,
@@ -367,7 +366,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       };
       expect(createResponseBody.id).toBeTruthy();
       const commentId = createResponseBody.id;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(await storedComment(community.db, commentId)).toMatchObject({
         userId: account.id,
         teacherId: community.teacher.id,
         body,
@@ -417,7 +416,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       );
       await editCard.getByRole("button", { name: /保存|Save/i }).click();
       await editResponse;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(await storedComment(community.db, commentId)).toMatchObject({
         body: editedBody,
         userId: account.id,
         status: "active",
@@ -463,7 +462,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(await storedComment(community.db, commentId)).toMatchObject({
         status: "deleted",
         deletedAt: expect.any(Date),
       });

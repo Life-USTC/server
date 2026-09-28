@@ -27,7 +27,6 @@ import { expect, test } from "@playwright/test";
 import scenarioData from "../../../../fixtures/scenario.json" with {
   type: "json",
 };
-import { openCommentComposer } from "../../../../utils/comments";
 import {
   arrangeDescription,
   test as communityTest,
@@ -35,7 +34,8 @@ import {
   storedDescription,
   storedDescriptionAudits,
   supplement,
-} from "../../../../utils/community-fixture";
+} from "../../../../utils/catalog-browser-fixture";
+import { openCommentComposer } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -68,8 +68,6 @@ async function jumpToCourseSection(
 }
 
 test.describe("/catalog/courses/[jwId] 课程详情", () => {
-  test.describe.configure({ mode: "serial" });
-
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
       routePath: "/catalog/courses/[jwId]",
@@ -266,6 +264,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     "登录用户可以编辑课程简介",
     async ({ page, account, community }, testInfo) => {
       const description = await arrangeDescription(
+        community.db,
         "course",
         community.course.id,
         account.id,
@@ -327,7 +326,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         historyPanel.getByText(/更新后|Updated/i).first(),
       ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
-      const persisted = await storedDescription(description.id);
+      const persisted = await storedDescription(community.db, description.id);
       expect(persisted).toMatchObject({
         content,
         lastEditedById: account.id,
@@ -341,7 +340,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         }),
       ]);
       await expect
-        .poll(() => storedDescriptionAudits(description.id))
+        .poll(() => storedDescriptionAudits(community.db, description.id))
         .toEqual([
           expect.objectContaining({
             userId: account.id,
@@ -387,7 +386,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       };
       expect(createResponseBody.id).toBeTruthy();
       const commentId = createResponseBody.id;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(await storedComment(community.db, commentId)).toMatchObject({
         userId: account.id,
         courseId: community.course.id,
         body,
@@ -427,7 +426,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       );
       await editCard.getByRole("button", { name: /保存|Save/i }).click();
       await editResponse;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(await storedComment(community.db, commentId)).toMatchObject({
         body: editedBody,
         userId: account.id,
         status: "active",
@@ -469,7 +468,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
-      expect(await storedComment(commentId)).toMatchObject({
+      expect(await storedComment(community.db, commentId)).toMatchObject({
         status: "deleted",
         deletedAt: expect.any(Date),
       });
