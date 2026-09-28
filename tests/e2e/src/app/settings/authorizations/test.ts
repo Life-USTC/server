@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../../utils/auth";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
@@ -50,6 +50,7 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
     page,
     account,
     authorization,
+    isolatedWorker,
   }, testInfo) => {
     const { name } = authorization;
     await gotoAndWaitForReady(page, "/account/settings");
@@ -76,9 +77,9 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
     await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(dialog).not.toBeVisible();
     expect(
-      await withE2ePrisma((db) =>
-        db.oAuthConsent.findUnique({ where: { id: authorization.consentId } }),
-      ),
+      await isolatedWorker.database.owner.oAuthConsent.findUnique({
+        where: { id: authorization.consentId },
+      }),
     ).toMatchObject({ userId: account.id });
     await expect(
       authorizationItem.getByText(name, { exact: true }),
@@ -89,9 +90,9 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
 
     await expect(dialog).not.toBeVisible();
     expect(
-      await withE2ePrisma((db) =>
-        db.oAuthConsent.findUnique({ where: { id: authorization.consentId } }),
-      ),
+      await isolatedWorker.database.owner.oAuthConsent.findUnique({
+        where: { id: authorization.consentId },
+      }),
     ).toBeNull();
     const revokeSuccessText = /已撤销应用授权|Application access revoked/i;
     await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);

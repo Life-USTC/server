@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../../utils/auth";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import {
   expectSettingsPage,
@@ -15,22 +15,24 @@ test.describe("/account/settings/security 安全活动", () => {
     await expectRequiresSignIn(page, "/account/settings/security");
   });
 
-  test("敏感活动分页展示且网络与设备信息脱敏", async ({ page, account }) => {
-    await withE2ePrisma((db) =>
-      db.auditLog.createMany({
-        data: Array.from({ length: 31 }, (_, index) => ({
-          action: "account_profile_update" as const,
-          channel: "web" as const,
-          outcome: "success" as const,
-          userId: account.id,
-          subjectUserId: account.id,
-          ipAddress: index === 30 ? "198.51.100.7" : "203.0.113.42",
-          userAgent:
-            "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/130.0 Safari/537.36",
-          createdAt: new Date(Date.UTC(2026, 0, 1, 0, index)),
-        })),
-      }),
-    );
+  test("敏感活动分页展示且网络与设备信息脱敏", async ({
+    page,
+    account,
+    isolatedWorker,
+  }) => {
+    await isolatedWorker.database.owner.auditLog.createMany({
+      data: Array.from({ length: 31 }, (_, index) => ({
+        action: "account_profile_update" as const,
+        channel: "web" as const,
+        outcome: "success" as const,
+        userId: account.id,
+        subjectUserId: account.id,
+        ipAddress: index === 30 ? "198.51.100.7" : "203.0.113.42",
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/130.0 Safari/537.36",
+        createdAt: new Date(Date.UTC(2026, 0, 1, 0, index)),
+      })),
+    });
     await gotoAndWaitForReady(page, "/account/settings/security");
     const region = page.getByRole("region", {
       name: /账户安全活动|Account security activity/i,
@@ -54,14 +56,16 @@ test.describe("/account/settings/security 安全活动", () => {
     await expect(older).toHaveCount(0);
   });
 
-  test("最近登录用户可以轮换私人日历链接", async ({ page, account }) => {
+  test("最近登录用户可以轮换私人日历链接", async ({
+    page,
+    account,
+    isolatedWorker,
+  }) => {
     const oldToken = crypto.randomUUID();
-    await withE2ePrisma((db) =>
-      db.user.update({
-        where: { id: account.id },
-        data: { calendarFeedToken: oldToken },
-      }),
-    );
+    await isolatedWorker.database.owner.user.update({
+      where: { id: account.id },
+      data: { calendarFeedToken: oldToken },
+    });
     const oldFeed = `/api/calendar-feeds/${account.id}:${oldToken}.ics`;
     expect((await page.request.get(oldFeed)).status()).toBe(200);
     await gotoAndWaitForReady(page, "/account/settings/security");
@@ -76,7 +80,9 @@ test.describe("/account/settings/security 安全活动", () => {
     );
     await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(dialog).not.toBeVisible();
-    expect(await storedProfile(account.id)).toMatchObject({
+    expect(
+      await storedProfile(isolatedWorker.database.owner, account.id),
+    ).toMatchObject({
       calendarFeedToken: oldToken,
     });
 
@@ -92,7 +98,10 @@ test.describe("/account/settings/security 安全活动", () => {
         .locator("[data-sonner-toast]")
         .filter({ hasText: /日历链接已轮换|Calendar link rotated/i }),
     ).toBeVisible();
-    const current = await storedProfile(account.id);
+    const current = await storedProfile(
+      isolatedWorker.database.owner,
+      account.id,
+    );
     expect(current?.calendarFeedToken).toEqual(expect.any(String));
     expect(current?.calendarFeedToken).not.toBe(oldToken);
     expect((await page.request.get(oldFeed)).status()).toBe(410);
