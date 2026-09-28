@@ -19,7 +19,9 @@ import {
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
-import { getDetailViewport, jumpToSection, SECTION_URL } from "./_helpers";
+import { getDetailViewport, jumpToSection } from "./_helpers";
+
+const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("页面契约", async ({ page }, testInfo) => {
@@ -93,7 +95,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .or(overview.getByText(DEV_SEED.campus.nameEn))
         .first(),
     ).toBeVisible();
-    await jumpToSection(page, /教师|Teachers/i, "#teachers");
+    await jumpToSection(page, SECTION_URL, /教师|Teachers/i, "#teachers");
     // section.teachers[] — teacher badge/link (locale-dependent)
     await expect(
       page
@@ -264,7 +266,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toBeVisible();
     await page.keyboard.press("Escape");
 
-    await jumpToSection(page, /评论|Comments/i, "#comments");
+    await jumpToSection(page, SECTION_URL, /评论|Comments/i, "#comments");
     await expect(actions).toBeInViewport();
     for (const width of [280, 320, 375]) {
       await page.setViewportSize({ width, height: 900 });

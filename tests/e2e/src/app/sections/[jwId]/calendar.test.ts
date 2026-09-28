@@ -6,14 +6,16 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { jumpToSection, SECTION_URL } from "./_helpers";
+import { jumpToSection } from "./_helpers";
+
+const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("schedule.schedule-as-context", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await jumpToSection(page, /日历|Calendar/i, "#calendar");
+    await jumpToSection(page, SECTION_URL, /日历|Calendar/i, "#calendar");
 
     const calendar = page.locator("#calendar");
     const scheduleTable = calendar.locator("table").first();
@@ -82,7 +84,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await jumpToSection(page, /日历|Calendar/i, "#calendar");
+    await jumpToSection(page, SECTION_URL, /日历|Calendar/i, "#calendar");
 
     const calendar = page.locator("#calendar");
     await expect(
@@ -100,7 +102,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("移动端日历使用可横向滚动的紧凑表格", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, SECTION_URL);
-    await jumpToSection(page, /日历|Calendar/i, "#calendar");
+    await jumpToSection(page, SECTION_URL, /日历|Calendar/i, "#calendar");
 
     const calendar = page.locator("#calendar");
     const table = calendar.getByTestId("section-calendar-table");
@@ -130,7 +132,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await jumpToSection(page, /日历|Calendar/i, "#calendar");
+    await jumpToSection(page, SECTION_URL, /日历|Calendar/i, "#calendar");
 
     // Navigate forward to find exam event — exam batch name or room should appear
     await expect(
