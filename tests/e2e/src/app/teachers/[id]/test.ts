@@ -24,14 +24,11 @@
  * - Comment CRUD: post → edit → delete
  */
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import {
-  cleanupCommentsForE2e,
-  openCommentComposer,
-} from "../../../../utils/comments";
+import { openCommentComposer } from "../../../../utils/comments";
 import {
   arrangeDescription,
   test as communityTest,
+  storedComment,
   storedDescription,
   storedDescriptionAudits,
   supplement,
@@ -336,33 +333,20 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
 
-  test("已登录用户可发布、编辑与删除评论", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/catalog/teachers");
-    await navigateToSeedTeacher(page);
-    let commentId: string | undefined;
-
-    try {
-      await expect(async () => {
-        if (!page.url().includes("/catalog/teachers/")) {
-          await navigateToSeedTeacher(page);
-        }
-        await jumpToTeacherSection(page, /评论|Comments/i, "#comments");
-        await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
-
+  communityTest(
+    "已登录用户可发布、编辑与删除评论",
+    async ({ page, account, community }, testInfo) => {
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/teachers/${community.teacher.id}#comments`,
+      );
+      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
       const composer = await openCommentComposer(page);
       const anonymousCheckbox = page
         .locator("#comments")
         .getByRole("checkbox", {
           name: /匿名|Anonymous/i,
         });
-      if (await anonymousCheckbox.isChecked()) {
-        await anonymousCheckbox.click();
-      }
       await expect(anonymousCheckbox).not.toBeChecked();
 
       const body = `e2e-teacher-comment-${Date.now()}`;
@@ -379,10 +363,17 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         .click();
       const createdCommentResponse = await createResponse;
       const createResponseBody = (await createdCommentResponse.json()) as {
-        id?: string;
+        id: string;
       };
       expect(createResponseBody.id).toBeTruthy();
-      commentId = createResponseBody.id;
+      const commentId = createResponseBody.id;
+      expect(await storedComment(commentId)).toMatchObject({
+        userId: account.id,
+        teacherId: community.teacher.id,
+        body,
+        isAnonymous: false,
+        status: "active",
+      });
       await waitForUiSettled(page);
 
       const commentCard = page
@@ -426,6 +417,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       );
       await editCard.getByRole("button", { name: /保存|Save/i }).click();
       await editResponse;
+      expect(await storedComment(commentId)).toMatchObject({
+        body: editedBody,
+        userId: account.id,
+        status: "active",
+      });
       await waitForUiSettled(page);
       await expect(page.getByText(editedBody).first()).toBeVisible();
       const editedCommentCard = page
@@ -438,6 +434,12 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           .locator("[data-sonner-toast]")
           .filter({ hasText: /评论已更新|Comment updated/i }),
       ).toBeVisible();
+
+      // The share route and a reload consume the persisted edit.
+      await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
+      await expect(editedCommentCard).toContainText(editedBody);
+      await page.reload();
+      await expect(editedCommentCard).toContainText(editedBody);
 
       // Delete
       await editedCommentCard.hover();
@@ -461,16 +463,19 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
+      expect(await storedComment(commentId)).toMatchObject({
+        status: "deleted",
+        deletedAt: expect.any(Date),
+      });
       await expect(
         page
           .locator("[data-sonner-toast]")
           .filter({ hasText: /评论已删除|Comment deleted/i }),
       ).toBeVisible();
+      await expect(page.locator(`#comment-${commentId}`)).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "teacher/comment-deleted");
-    } finally {
-      await cleanupCommentsForE2e([commentId]);
-    }
-  });
+    },
+  );
 });
 
 test("页面契约", async ({ page }, testInfo) => {
