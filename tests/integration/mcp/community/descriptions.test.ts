@@ -1,22 +1,33 @@
 import { describe } from "vitest";
-import * as fixtures from "../_harness";
-import { mcpTest } from "../_harness/context";
+import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 
 describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
-  const toolTest = mcpTest.extend(
-    "isolated",
-    fixtures.actorFixture({
-      emailPrefix: "mcp-descriptions",
-      name: "[integration-test] Descriptions",
-    }),
-  );
-
   toolTest(
     "description.mcp-markdown-projection",
-    async ({ isolated, expect }) => {
-      const section = await fixtures.prisma.section.findUnique({
-        where: { jwId: fixtures.DEV_SEED.section.jwId },
+    async ({
+      mcpActor: isolated,
+      mcpSection,
+      isolatedDatabase: { owner: db },
+      expect,
+    }) => {
+      const section = await db.section.findUnique({
+        where: { jwId: mcpSection.jwId },
         select: { id: true },
+      });
+      await db.description.create({
+        data: {
+          sectionId: mcpSection.id,
+          content: "## 课程建议\n先复习，再完成练习。",
+          lastEditedById: isolated.userId,
+          lastEditedAt: new Date("2026-04-29T00:00:00.000Z"),
+          edits: {
+            create: {
+              editorId: isolated.userId,
+              previousContent: "",
+              nextContent: "## 课程建议\n先复习，再完成练习。",
+            },
+          },
+        },
       });
       expect(section?.id).toBeTruthy();
 
@@ -38,7 +49,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
             "community_description_get",
             {
               targetType: "section",
-              sectionJwId: fixtures.DEV_SEED.section.jwId,
+              sectionJwId: mcpSection.jwId,
               mode,
             },
           ),
@@ -73,7 +84,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
 
   toolTest(
     "community_description_get 报告缺失的公开班级目标",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, expect }) => {
       const result = await isolated.client.call<{
         success?: boolean;
         found?: boolean;
@@ -93,103 +104,117 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
 
   toolTest(
     "community_description_set 创建、幂等重读、审计并清理",
-    async ({ isolated, expect }) => {
+    async ({ mcpActor: isolated, isolatedDatabase: { owner: db }, expect }) => {
       const marker = `[integration-test] mcp-description-${Date.now()}`;
-      const teacher = await fixtures.prisma.teacher.create({
+      const teacher = await db.teacher.create({
         data: {
           code: marker,
-          jwId: 2_140_000_000 + (Date.now() % 1_000_000),
+          jwId: 1,
           nameCn: marker,
         },
         select: { id: true },
       });
-      let descriptionId: string | undefined;
 
-      try {
-        type Result = {
-          success?: boolean;
-          id?: string;
-          updated?: boolean;
-          description?: {
-            content?: string;
-            id?: string | null;
-            renderedHtml?: string;
-          };
-          target?: { targetId?: number; type?: string };
+      type Result = {
+        success?: boolean;
+        id?: string;
+        updated?: boolean;
+        description?: {
+          content?: string;
+          id?: string | null;
+          renderedHtml?: string;
         };
-        const results: Array<{
-          mode: "default" | "full";
-          result: Result;
-        }> = [];
-        for (const mode of ["default", "full"] as const) {
-          results.push({
-            mode,
-            result: await isolated.client.call<Result>(
-              "community_description_set",
-              {
-                targetType: "teacher",
-                teacherId: teacher.id,
-                content: ` ${marker} `,
-                mode,
-              },
-            ),
-          });
-        }
-        const created = results[0]?.result ?? {};
-        descriptionId = created.id;
-
-        expect(created.success).toBe(true);
-        expect(created.updated).toBe(true);
-        expect(created.target).toMatchObject({
-          targetId: teacher.id,
-          type: "teacher",
+        target?: { targetId?: number; type?: string };
+      };
+      const results: Array<{
+        mode: "default" | "full";
+        result: Result;
+      }> = [];
+      for (const mode of ["default", "full"] as const) {
+        results.push({
+          mode,
+          result: await isolated.client.call<Result>(
+            "community_description_set",
+            {
+              targetType: "teacher",
+              teacherId: teacher.id,
+              content: ` ${marker} `,
+              mode,
+            },
+          ),
         });
-        expect(created.description?.id).toBe(descriptionId);
-        expect(created.description?.content).toBe(marker);
-        for (const { mode, result } of results) {
-          expect(result.id).toBe(descriptionId);
-          expect(Object.hasOwn(result.description ?? {}, "renderedHtml")).toBe(
-            mode === "full",
-          );
-        }
-
-        const auditLog = descriptionId
-          ? await fixtures.findDescriptionEditAuditLog(
-              descriptionId,
-              isolated.userId,
-              expect,
-            )
-          : null;
-        expect(auditLog?.metadata).toMatchObject({
-          source: "mcp",
-          targetType: "teacher",
-        });
-
-        const idempotent = results[1]?.result ?? {};
-
-        expect(idempotent.success).toBe(true);
-        expect(idempotent.id).toBe(descriptionId);
-        expect(idempotent.updated).toBe(false);
-        expect(idempotent.description?.content).toBe(marker);
-      } finally {
-        if (descriptionId) {
-          await fixtures.prisma.auditLog.deleteMany({
+      }
+      const created = results[0]?.result ?? {};
+      const descriptionId = created.id;
+      expect(created.success).toBe(true);
+      expect(created.updated).toBe(true);
+      expect(created.target).toMatchObject({
+        targetId: teacher.id,
+        type: "teacher",
+      });
+      expect(created.description?.id).toBe(descriptionId);
+      expect(created.description?.content).toBe(marker);
+      for (const { mode, result } of results) {
+        expect(result.id).toBe(descriptionId);
+        expect(Object.hasOwn(result.description ?? {}, "renderedHtml")).toBe(
+          mode === "full",
+        );
+      }
+      const auditLog = descriptionId
+        ? await db.auditLog.findFirst({
             where: {
               action: "description_edit",
               targetId: descriptionId,
               targetType: "description",
               userId: isolated.userId,
             },
-          });
-        }
-        await fixtures.prisma.descriptionEdit.deleteMany({
-          where: { description: { teacherId: teacher.id } },
-        });
-        await fixtures.prisma.description.deleteMany({
-          where: { teacherId: teacher.id },
-        });
-        await fixtures.prisma.teacher.deleteMany({ where: { id: teacher.id } });
-      }
+            select: { id: true, metadata: true },
+          })
+        : null;
+      expect(auditLog).not.toBeNull();
+      expect(auditLog?.metadata).toMatchObject({
+        source: "mcp",
+        targetType: "teacher",
+      });
+      const idempotent = results[1]?.result ?? {};
+      expect(idempotent.success).toBe(true);
+      expect(idempotent.id).toBe(descriptionId);
+      expect(idempotent.updated).toBe(false);
+      expect(idempotent.description?.content).toBe(marker);
+      await expect(
+        db.description.findMany({
+          select: {
+            id: true,
+            teacherId: true,
+            content: true,
+            lastEditedById: true,
+          },
+        }),
+      ).resolves.toEqual([
+        {
+          id: descriptionId,
+          teacherId: teacher.id,
+          content: marker,
+          lastEditedById: isolated.userId,
+        },
+      ]);
+      await expect(
+        db.descriptionEdit.findMany({
+          select: {
+            descriptionId: true,
+            editorId: true,
+            previousContent: true,
+            nextContent: true,
+          },
+        }),
+      ).resolves.toEqual([
+        {
+          descriptionId,
+          editorId: isolated.userId,
+          previousContent: null,
+          nextContent: marker,
+        },
+      ]);
     },
   );
 });

@@ -1,3 +1,4 @@
+import { setCloudflareCatalogInvalidator } from "@/lib/adapters/cloudflare-runtime";
 import { isolatedDatabaseTest } from "../../../shared/isolated-database";
 import { createNodeRuntime } from "../../../shared/node-runtime";
 import { createPrivateMcpBus } from "./bus-fixture";
@@ -63,7 +64,16 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
       USER_BATCH_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
     });
     try {
-      await use(runtime);
+      await use({
+        ...runtime,
+        run: (work) =>
+          runtime.run(() => {
+            // Direct SDK requests have no Worker HTML cache. Its real purge
+            // is covered by the Worker contracts, not this transport fixture.
+            setCloudflareCatalogInvalidator(async () => {});
+            return work();
+          }),
+      });
     } finally {
       await runtime.close();
     }
