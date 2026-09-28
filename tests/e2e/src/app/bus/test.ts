@@ -1,24 +1,14 @@
-/**
- * E2E tests for the bus workspace tab (/workspace/bus)
- *
- * ## Behavior
- * - /bus is the canonical public planner; /workspace/bus keeps saved preferences
- * - Public users get a client-side planner: weekday/Saturday/Sunday, start stop, end stop,
- *   reverse, and departed-trip toggle
- * - Applicable routes are ordered by the next bus available from the selected start stop
- * - Signed-in users have planner defaults auto-saved through /api/workspace/bus-preferences
- */
-import { expect, type Page, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../utils/auth";
+import { expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import {
-  getCurrentSessionUser,
-  setBusPreferenceFixture,
-} from "../../../utils/e2e-db";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
+  waitForUiSettled,
 } from "../../../utils/page-ready";
+import {
+  storedBusPreference,
+  test,
+} from "../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -127,7 +117,6 @@ async function expectDiscoverableTimetableScroll(page: Page) {
 }
 
 test.describe("校车面板标签页", () => {
-  test.describe.configure({ mode: "serial" });
   test.beforeEach(async ({ page }) => {
     await page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z"));
   });
@@ -207,7 +196,10 @@ test.describe("校车面板标签页", () => {
   test("bus.public-version-metadata-omitted", async ({
     page,
     baseURL,
+    busAccount: _account,
   }, testInfo) => {
+    const sessionCookies = await page.context().cookies();
+    await page.context().clearCookies();
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/catalog/bus");
     await expect(
@@ -219,7 +211,7 @@ test.describe("校车面板标签页", () => {
     ).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "bus-version-label-zh-public");
 
-    await signInAsDebugUser(page, "/catalog/bus");
+    await page.context().addCookies(sessionCookies);
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/catalog/bus");
     await expect(
@@ -243,8 +235,11 @@ test.describe("校车面板标签页", () => {
     ).toHaveCount(0);
   });
 
-  test("登录校车面板 SSR 渲染服务端时刻表数据", async ({ page }) => {
-    await signInAsDebugUser(page, "/catalog/bus");
+  test("登录校车面板 SSR 渲染服务端时刻表数据", async ({
+    page,
+    busAccount: _account,
+  }) => {
+    await gotoAndWaitForReady(page, "/catalog/bus");
 
     const response = await page.request.get("/catalog/bus");
     expect(response.status()).toBe(200);
@@ -479,9 +474,11 @@ test.describe("校车面板标签页", () => {
     }
   });
 
-  test("280px 登录规划器与时刻表保持在页面宽度内", async ({ page }) => {
+  test("280px 登录规划器与时刻表保持在页面宽度内", async ({
+    page,
+    busAccount: _account,
+  }) => {
     await page.setViewportSize({ width: 280, height: 900 });
-    await signInAsDebugUser(page, "/catalog/bus");
     await gotoAndWaitForReady(page, "/catalog/bus");
 
     const mapLink = page
@@ -495,83 +492,71 @@ test.describe("校车面板标签页", () => {
     await expectNoPageHorizontalOverflow(page);
   });
 
-  test("登录规划器自动保存到校车偏好设置", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/catalog/bus");
-    const user = await getCurrentSessionUser(page);
-    const originalResponse = await page.request.get(
-      "/api/workspace/bus-preferences",
-    );
-    expect(originalResponse.status()).toBe(200);
-    const original = (await originalResponse.json()) as {
-      preference?: {
-        preferredDestinationCampusId?: number | null;
-        preferredOriginCampusId?: number | null;
-        showDepartedTrips?: boolean;
-      };
+  test("登录规划器自动保存到校车偏好设置", async ({
+    page,
+    busPreferences,
+  }, testInfo) => {
+    expect(await storedBusPreference(busPreferences.id)).toEqual({
+      preferredOriginCampusId: null,
+      preferredDestinationCampusId: null,
+      showDepartedTrips: false,
+    });
+    await gotoAndWaitForReady(page, "/catalog/bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
+    await openRouteControls(page);
+    const departedToggle = page.getByRole("switch", {
+      name: /Show departed trips|显示已发车班次/,
+    });
+    await expect(departedToggle).not.toBeChecked();
+    const [toggleSaveResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/workspace/bus-preferences") &&
+          response.request().method() === "POST",
+      ),
+      departedToggle.click(),
+    ]);
+    expect(toggleSaveResponse.ok()).toBe(true);
+    await expect(departedToggle).toBeChecked();
+    const endSouthButton = page
+      .locator("[data-testid='bus-end-stop-group']")
+      .getByRole("radio", { name: /南区/ });
+    await expect(endSouthButton).toHaveAttribute("aria-checked", "false");
+    const [stopSaveResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/workspace/bus-preferences") &&
+          response.request().method() === "POST",
+      ),
+      endSouthButton.click(),
+    ]);
+    expect(stopSaveResponse.ok()).toBe(true);
+    const response = await page.request.get("/api/workspace/bus-preferences");
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    const expected = {
+      preferredOriginCampusId: 1,
+      preferredDestinationCampusId: 4,
+      showDepartedTrips: true,
     };
+    expect(body.preference).toMatchObject(expected);
+    await expect
+      .poll(() => storedBusPreference(busPreferences.id))
+      .toEqual(expected);
+    await captureStepScreenshot(page, testInfo, "bus-planner-autosave");
 
-    try {
-      await page.request.post("/api/workspace/bus-preferences", {
-        data: {
-          preferredOriginCampusId: null,
-          preferredDestinationCampusId: null,
-          showDepartedTrips: false,
-        },
-      });
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
-      await openRouteControls(page);
-
-      const departedToggle = page.getByRole("switch", {
-        name: /Show departed trips|显示已发车班次/,
-      });
-      const [toggleSaveResponse] = await Promise.all([
-        page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/workspace/bus-preferences") &&
-            response.request().method() === "POST",
-        ),
-        departedToggle.click(),
-      ]);
-      expect(toggleSaveResponse.ok()).toBe(true);
-
-      const endSouthButton = page
-        .locator("[data-testid='bus-end-stop-group']")
-        .getByRole("radio", { name: /南区/ });
-      if ((await endSouthButton.getAttribute("aria-checked")) !== "true") {
-        const [stopSaveResponse] = await Promise.all([
-          page.waitForResponse(
-            (response) =>
-              response.url().includes("/api/workspace/bus-preferences") &&
-              response.request().method() === "POST",
-          ),
-          endSouthButton.click(),
-        ]);
-        expect(stopSaveResponse.ok()).toBe(true);
-      }
-
-      const response = await page.request.get("/api/workspace/bus-preferences");
-      const body = (await response.json()) as {
-        preference?: {
-          preferredOriginCampusId?: number | null;
-          preferredDestinationCampusId?: number | null;
-        };
-      };
-      expect(body.preference?.preferredOriginCampusId).toBe(1);
-      expect(body.preference?.preferredDestinationCampusId).toBe(4);
-
-      await captureStepScreenshot(page, testInfo, "bus-planner-autosave");
-    } finally {
-      await setBusPreferenceFixture(user.id, {
-        preferredOriginCampusId:
-          original.preference?.preferredOriginCampusId ?? null,
-        preferredDestinationCampusId:
-          original.preference?.preferredDestinationCampusId ?? null,
-        showDepartedTrips: original.preference?.showDepartedTrips ?? false,
-      });
-    }
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForUiSettled(page);
+    await openRouteControls(page);
+    await expect(departedToggle).toBeChecked();
+    await expect(
+      page
+        .locator("[data-testid='bus-start-stop-group']")
+        .getByRole("radio", { name: /东区/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(endSouthButton).toHaveAttribute("aria-checked", "true");
   });
 });
 
