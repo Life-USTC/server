@@ -213,7 +213,7 @@ it("subscription.import-preserves-kind", async (context) => {
     sectionIds: [sectionId],
   });
   for (const [index, kind] of (
-    ["auditor", "teaching_assistant"] as const
+    ["regular", "auditor", "teaching_assistant"] as const
   ).entries()) {
     await updateSubscriptionKind({ userId: userIds[0], sectionJwId, kind });
     const before = await db.userSectionSubscription.findUniqueOrThrow({

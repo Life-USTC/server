@@ -50,8 +50,6 @@ requirements:
     - width: 390
       height: 900
     regions: 2
-    charts: 2
-    horizontal_scroll_regions: 0
   rationale: Accepted API location keys and provider mapping are independently owned by weather.location-key-boundary
     and weather.location-provider-mapping.
   acceptance:

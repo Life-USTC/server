@@ -59,14 +59,6 @@ test.describe("/catalog/weather", () => {
           "/regions",
           await page.getByTestId("weather-location").count(),
         );
-        contract.equal(
-          "/charts",
-          await page.getByTestId("weather-hourly-chart").count(),
-        );
-        contract.equal(
-          "/horizontal_scroll_regions",
-          await page.getByTestId("weather-hourly-scroll-region").count(),
-        );
         await expect(page.getByTestId("weather-location")).toHaveCount(2);
         await expect(page.getByTestId("weather-hourly-chart")).toHaveCount(2);
         await expect(

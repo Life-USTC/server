@@ -171,6 +171,24 @@ requirements:
     - nameSecondary
     - department
     - teacherTitle
+    nested_fields:
+      department:
+      - id
+      - code
+      - nameCn
+      - nameEn
+      - isCollege
+      - namePrimary
+      - nameSecondary
+      teacherTitle:
+      - id
+      - jwId
+      - nameCn
+      - nameEn
+      - code
+      - enabled
+      - namePrimary
+      - nameSecondary
     preserves:
       id: true
       jwId: true

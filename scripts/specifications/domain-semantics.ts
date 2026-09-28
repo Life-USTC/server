@@ -209,6 +209,26 @@ export function validateDomainExpectation(
               errors.push(`fields: unknown projected field ${String(field)}`);
             else validatedPaths.push(`/fields/${i}`);
           }
+        if (object(expectation.nested_fields))
+          for (const [path, names] of Object.entries(
+            expectation.nested_fields,
+          )) {
+            let nested: Record<string, unknown> | undefined = schema;
+            for (const key of path.split("/")) nested = property(nested, key);
+            if (!nested || !object(nested.properties) || !Array.isArray(names))
+              errors.push(`nested_fields: unknown object path ${path}`);
+            else
+              for (const [index, name] of names.entries()) {
+                if (typeof name !== "string" || !property(nested, name))
+                  errors.push(
+                    `nested_fields: unknown projected field ${path}/${String(name)}`,
+                  );
+                else
+                  validatedPaths.push(
+                    `/nested_fields/${pointer(path)}/${index}`,
+                  );
+              }
+          }
         if (object(expectation.preserves))
           for (const path of Object.keys(expectation.preserves)) {
             let target: Record<string, unknown> | undefined = schema;

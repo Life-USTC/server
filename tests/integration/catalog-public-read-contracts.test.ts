@@ -343,6 +343,11 @@ it("section.public-teacher-reference", async (context) => {
       path: "teachers/items",
     });
     contract.set("/fields", Object.keys(detail?.teachers[0] ?? {}));
+    for (const key of ["department", "teacherTitle"] as const)
+      contract.set(
+        `/nested_fields/${key}`,
+        Object.keys(detail?.teachers[0]?.[key] ?? {}),
+      );
     contract.equal(
       "/preserves",
       projectionPreservation(

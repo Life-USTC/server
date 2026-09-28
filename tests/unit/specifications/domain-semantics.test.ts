@@ -86,6 +86,8 @@ describe("domain expectation references", () => {
   it("rejects misspelled schema, projection and preserved-value paths", () => {
     for (const changed of [
       { ...projection, fields: ["privateOrMisspelled"] },
+      { ...projection, nested_fields: { department: ["private"] } },
+      { ...projection, nested_fields: { missing: ["id"] } },
       { ...projection, preserves: { "department/private": true } },
       {
         ...projection,

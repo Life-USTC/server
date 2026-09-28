@@ -217,6 +217,9 @@ requirements:
     - module: src/features/subscriptions/server/subscription-write-model.ts
       export: importUserSectionSubscriptionsByCodes
     cases:
+    - before: regular
+      after: regular
+      rows: 1
     - before: auditor
       after: auditor
       rows: 1
@@ -224,7 +227,7 @@ requirements:
       after: teaching_assistant
       rows: 1
   acceptance:
-    given: An existing subscription has auditor or teaching_assistant kind.
+    given: An existing subscription has regular, auditor or teaching_assistant kind.
     when: The actual add, batch add and code-import services repeatedly target it.
     then:
     - Every path preserves the existing kind and avoids duplicate memberships.
