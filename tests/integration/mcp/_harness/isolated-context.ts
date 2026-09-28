@@ -25,13 +25,27 @@ export type PrivateMcpActor = {
 
 /** Explicit private state; each SDK server request owns its runtime lifetime. */
 export const isolatedMcpTest = isolatedDatabaseTest.extend<{
+  _mcpCatalogRevision: undefined;
   mcpRuntime: Runtime;
   mcpSessions: Sessions;
   mcpActor: PrivateMcpActor;
   mcpOtherActor: PrivateMcpActor;
   mcpSection: { id: number; jwId: number; code: string };
 }>({
-  mcpRuntime: async ({ isolatedDatabase }, use) => {
+  _mcpCatalogRevision: async ({ isolatedDatabase }, use) => {
+    // Database-local IDs repeat across tests, while production L1 cache lives
+    // for the process. Publish a private import revision before any SDK request.
+    await isolatedDatabase.owner.staticImportState.create({
+      data: {
+        id: "global",
+        snapshotSha256: crypto.randomUUID().replaceAll("-", "").repeat(2),
+        snapshotGeneratedAt: new Date(),
+        transformRevision: 6,
+      },
+    });
+    await use(undefined);
+  },
+  mcpRuntime: async ({ isolatedDatabase, _mcpCatalogRevision }, use) => {
     const runtime = createNodeRuntime({
       APP_PUBLIC_ORIGIN: "https://life.example",
       APP_CANONICAL_ORIGIN: "https://life.example",
