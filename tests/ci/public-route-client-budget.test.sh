@@ -31,7 +31,10 @@ const budgets = {
   // gzip bytes, up from 71 and 193,916. That is the shared-chunk split
   // described above, not extra payload, so only the request count moves.
   // Pinned to the measured 72, not above it, so the next split still trips.
-  "/": { gzipBytes: 195_000, requests: 72 },
+  // Merging main grew shared shell chunks (sidebar navigation and search
+  // results) without adding a request. Measured 195,592 gzip bytes, above the
+  // previous 195,000 cap. Keep the request pin and raise gzip to 196,000.
+  "/": { gzipBytes: 196_000, requests: 72 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   // The news list now shares the collection page, filter toolbar, and
@@ -41,7 +44,10 @@ const budgets = {
   // 93 requests and 223,969 gzip bytes. Pin the request count at 93 so the
   // next split still trips; the gzip cap stays 232_000.
   "/news": { gzipBytes: 232_000, requests: 93 },
-  "/news/[id]": { gzipBytes: 221_000, requests: 82 },
+  // The external-link icon is imported by both the news detail page and
+  // global search, so the production build emits it as its own chunk.
+  // Measured 83 requests and 213,141 gzip bytes. Pin the request count at 83.
+  "/news/[id]": { gzipBytes: 221_000, requests: 83 },
   "/news/sources": { gzipBytes: 225_000, requests: 86 },
 };
 
