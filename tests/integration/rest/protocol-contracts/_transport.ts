@@ -76,3 +76,26 @@ export async function nativeEnvelope(response: Response) {
   if (!encoded) throw new Error("Missing transport response");
   return JSON.parse(encoded);
 }
+
+export async function invokeOperation(
+  origin: string,
+  transport: Transport,
+  operation: Operation,
+  token?: string,
+) {
+  const response = await sendOperation(origin, transport, operation, token);
+  const payload = await nativeEnvelope(response);
+  const content =
+    transport === "mcp" && payload.result?.content
+      ? JSON.parse(
+          payload.result.content.find(
+            (part: { type: string }) => part.type === "text",
+          ).text,
+        )
+      : transport === "graphql"
+        ? payload.data?.[operation.graphql.field]
+        : payload;
+  return { response, payload, content };
+}
+
+export type OperationResult = Awaited<ReturnType<typeof invokeOperation>>;

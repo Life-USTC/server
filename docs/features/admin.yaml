@@ -283,15 +283,16 @@ requirements:
     most 120 seconds old during refresh contention. Empty or older caches fail promptly with a 503 scrape
     rather than blocking or presenting zero activity. Collection recovers when refresh is available.
   acceptance:
-    given: Actual shared metric cache rows and an advisory refresh lock held by a separate database transaction.
-    when: Read fresh and 61-second-old snapshots, then scrape with empty or 121-second-old cache under
-      contention and release the lock.
+    given: Each case owns a separate database with the production metric schema and permissions.
+    when: Independently prepared cases read fresh and 61-second-old snapshots, or scrape empty and
+      121-second-old caches while a separate transaction holds the advisory refresh lock; contention
+      cases also release the lock and verify recovery.
     then:
     - Fresh gauges are reused; expired gauges refresh normally or serve bounded stale data during contention.
     - Unusable caches return 503 with no metric values and recover after lock release.
     test:
       file: tests/integration/prometheus-metrics-cache.test.ts
-      name: admin.prometheus-gauge-cache
+      name: returns native scrape 503 for empty activity while refresh is locked and recovers after release
 - id: admin.prometheus-windows
   category: behavior
   rule: Only exact distinct-user/client gauges use rolling 24-hour, 7-day and 30-day windows. Feature

@@ -1,58 +1,16 @@
 import { expect } from "@playwright/test";
+import {
+  expectSuccessfulOperation as successful,
+  expectAuthorizationRejected as unauthorized,
+} from "./_assertions";
 import { type ProtocolFixture, test as protocolTest } from "./_fixture";
 import {
-  nativeEnvelope,
+  invokeOperation as invoke,
   type Operation,
-  sendOperation,
+  type OperationResult as Result,
   type Transport,
   transports,
 } from "./_transport";
-
-async function invoke(
-  h: ProtocolFixture,
-  transport: Transport,
-  operation: Operation,
-  token?: string,
-) {
-  const response = await sendOperation(h.origin, transport, operation, token);
-  const payload = await nativeEnvelope(response);
-  const content =
-    transport === "mcp" && payload.result?.content
-      ? JSON.parse(
-          payload.result.content.find(
-            (part: { type: string }) => part.type === "text",
-          ).text,
-        )
-      : transport === "graphql"
-        ? payload.data?.[operation.graphql.field]
-        : payload;
-  return { response, payload, content };
-}
-type Result = Awaited<ReturnType<typeof invoke>>;
-function successful(transport: Transport, result: Result) {
-  expect(result.response.status, JSON.stringify(result.payload)).toBe(200);
-  if (transport === "graphql") expect(result.payload.errors).toBeUndefined();
-  if (transport === "mcp") {
-    expect(result.payload.error).toBeUndefined();
-    expect(result.payload.result.isError).not.toBe(true);
-    expect(result.content.success).toBe(true);
-  }
-  return result.content;
-}
-function unauthorized(
-  transport: Transport,
-  result: Result,
-  reason: "anonymous" | "read_scope",
-) {
-  expect(result.response.status).toBe(
-    reason === "anonymous" || transport === "rest" ? 401 : 403,
-  );
-  if (transport === "graphql")
-    expect(result.payload.errors[0].extensions.code).toBe(
-      reason === "anonymous" ? "UNAUTHENTICATED" : "FORBIDDEN",
-    );
-  if (transport === "mcp") expect(result.payload.error).toBeDefined();
-}
 
 const test = protocolTest.extend<{ youngFixture: undefined }>({
   youngFixture: [
@@ -240,7 +198,7 @@ for (const transport of transports)
           successful(
             transport,
             await invoke(
-              h,
+              h.origin,
               transport,
               subscription(h, target, true),
               actor.tokens[transport],
@@ -266,7 +224,7 @@ for (const transport of transports)
         successful(
           transport,
           await invoke(
-            h,
+            h.origin,
             transport,
             subscription(h, target, false),
             h.actors[1].tokens[transport],
@@ -292,7 +250,7 @@ for (const transport of transports)
         unauthorized(
           transport,
           await invoke(
-            h,
+            h.origin,
             transport,
             subscription(h, target, true),
             reason === "anonymous"
@@ -313,7 +271,7 @@ for (const transport of transports)
       missingSubscription(
         transport,
         await invoke(
-          h,
+          h.origin,
           transport,
           subscription(h, target, true, `${h.marker}-missing`),
           h.actors[0].tokens[transport],
@@ -336,7 +294,7 @@ for (const transport of transports)
           successful(
             transport,
             await invoke(
-              h,
+              h.origin,
               transport,
               subscription(h, target, subscribed),
               h.actors[0].tokens[transport],
@@ -374,7 +332,7 @@ for (const transport of transports)
         successful(
           transport,
           await invoke(
-            h,
+            h.origin,
             transport,
             subscription(h, target, false),
             h.actors[0].tokens[transport],
@@ -392,7 +350,7 @@ for (const transport of transports)
         successful(
           transport,
           await invoke(
-            h,
+            h.origin,
             transport,
             subscription(h, target, false),
             h.actors[0].tokens[transport],
@@ -415,7 +373,7 @@ for (const transport of transports) {
     ]) {
       missingNotification(
         transport,
-        await invoke(h, transport, readNotice(id), token),
+        await invoke(h.origin, transport, readNotice(id), token),
       );
       expect(await snapshot(h)).toEqual(before);
     }
@@ -430,7 +388,7 @@ for (const transport of transports) {
       unauthorized(
         transport,
         await invoke(
-          h,
+          h.origin,
           transport,
           readNotice(owned.id),
           reason === "anonymous"
@@ -454,7 +412,7 @@ for (const transport of transports) {
         successful(
           transport,
           await invoke(
-            h,
+            h.origin,
             transport,
             readNotice(notices[index].id),
             actor.tokens[transport],
@@ -471,7 +429,7 @@ for (const transport of transports) {
         successful(
           transport,
           await invoke(
-            h,
+            h.origin,
             transport,
             readNotice(notices[index].id),
             actor.tokens[transport],
@@ -494,7 +452,7 @@ for (const transport of transports) {
       successful(
         transport,
         await invoke(
-          h,
+          h.origin,
           transport,
           readNotice(owned.id),
           h.actors[0].tokens[transport],

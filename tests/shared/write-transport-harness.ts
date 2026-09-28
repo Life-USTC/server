@@ -8,32 +8,16 @@ import {
   runWithCloudflareRuntimeEnv,
   setCloudflareCatalogInvalidator,
 } from "@/lib/adapters/cloudflare-runtime";
-import { getCourseDetailRoute } from "@/lib/api/routes/academic-course-routes";
-import { getSectionDetailRoute } from "@/lib/api/routes/academic-section-routes";
-import { getTeacherDetailRoute } from "@/lib/api/routes/academic-teacher-routes";
-import { postBusPreferencesRoute } from "@/lib/api/routes/bus";
 import { postCommentReactionRoute } from "@/lib/api/routes/comment-reaction-create-route";
 import { deleteCommentReactionRoute } from "@/lib/api/routes/comment-reaction-delete-route";
 import { postCommentRoute } from "@/lib/api/routes/comments-create-route";
 import { patchCommentRoute } from "@/lib/api/routes/comments-update-route";
 import { postDescriptionRoute } from "@/lib/api/routes/description-upsert-route";
-import { putHomeworkCompletionRoute } from "@/lib/api/routes/homework-completion";
 import {
   patchHomeworkRoute,
   postHomeworkRoute,
 } from "@/lib/api/routes/homework-mutation-routes";
 import { mcpPostRoute } from "@/lib/api/routes/mcp";
-import { getCommunityUserRoute } from "@/lib/api/routes/public-user-profile";
-import { patchSubscriptionKindRoute } from "@/lib/api/routes/subscription-kind-route";
-import { postWorkspaceLinkPinRoute } from "@/lib/api/routes/workspace-link-pin-route";
-import {
-  getYoungEventDetailRoute,
-  getYoungOrganizerDetailRoute,
-} from "@/lib/api/routes/young-event-routes";
-import {
-  postYoungNotificationReadRoute,
-  putYoungSubscriptionRoute,
-} from "@/lib/api/routes/young-workspace-routes";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
@@ -68,11 +52,7 @@ export type Outcome =
   | "not_found"
   | "target_not_found"
   | "parent_not_found"
-  | "invalid_attachments"
-  | "invalid_slug"
-  | "invalid_bus_preference"
-  | "missing_notification"
-  | "young_not_found";
+  | "invalid_attachments";
 
 export async function createWriteTransportHarness(features: string[]) {
   const db = createFixturePrisma();
@@ -81,6 +61,7 @@ export async function createWriteTransportHarness(features: string[]) {
   const graphql = createGraphqlRequestHandler(false);
   let origin = "";
   let invalidations = 0;
+  const calendarRebuilds: unknown[] = [];
   function runtime<T>(work: () => T) {
     if (!process.env.DATABASE_URL || !process.env.AUTH_DATABASE_URL)
       throw new Error("Missing restricted runtime database URLs");
@@ -89,6 +70,11 @@ export async function createWriteTransportHarness(features: string[]) {
         APP_PUBLIC_ORIGIN: origin,
         HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
         HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
+        CALENDAR_EXPORT_REBUILD: {
+          async send(message: unknown) {
+            calendarRebuilds.push(structuredClone(message));
+          },
+        },
         // The rate-limit contract is independent of business authorization.
         USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
       },
@@ -117,51 +103,6 @@ export async function createWriteTransportHarness(features: string[]) {
               requestId: fixture.marker,
             },
           } as unknown as RequestEvent);
-        const publicDetail = path.match(
-          /^\/api\/(catalog\/(courses|sections|teachers|young-events|young-organizers)|community\/users)\/([^/]+)$/,
-        );
-        if (publicDetail) {
-          const id = decodeURIComponent(publicDetail[3]);
-          switch (publicDetail[2]) {
-            case "courses":
-              return getCourseDetailRoute(request, { jwId: id });
-            case "sections":
-              return getSectionDetailRoute(request, { jwId: id });
-            case "teachers":
-              return getTeacherDetailRoute(request, { id });
-            case "young-events":
-              return getYoungEventDetailRoute(request, { youngId: id });
-            case "young-organizers":
-              return getYoungOrganizerDetailRoute(request, { organizerId: id });
-            default:
-              return getCommunityUserRoute(id);
-          }
-        }
-        if (path === "/api/workspace/bus-preferences")
-          return postBusPreferencesRoute(request);
-        if (path === "/api/workspace/link-pins")
-          return postWorkspaceLinkPinRoute(request);
-        const membership = path.match(
-          /^\/api\/workspace\/subscriptions\/([^/]+)$/,
-        );
-        if (membership)
-          return patchSubscriptionKindRoute(request, membership[1]);
-        const young = path.match(
-          /^\/api\/workspace\/young-(event-subscriptions|organizer-subscriptions|notifications)\/([^/]+)(\/read)?$/,
-        );
-        if (young)
-          return young[1] === "notifications"
-            ? postYoungNotificationReadRoute(request, young[2])
-            : putYoungSubscriptionRoute(
-                request,
-                young[2],
-                young[1] === "event-subscriptions" ? "events" : "organizers",
-              );
-        const completion = path.match(
-          /^\/api\/workspace\/homeworks\/([^/]+)\/completion$/,
-        );
-        if (completion)
-          return putHomeworkCompletionRoute(request, { id: completion[1] });
         if (path === "/api/community/comments")
           return postCommentRoute(request);
         if (path === "/api/community/descriptions")
@@ -257,11 +198,6 @@ export async function createWriteTransportHarness(features: string[]) {
     }
     actors.push({ id, cookie, tokens, readTokens });
   }
-  const responses: {
-    transport: Transport;
-    operation: Operation;
-    allowed: boolean;
-  }[] = [];
   async function call(
     transport: Transport,
     operation: Operation,
@@ -332,23 +268,6 @@ export async function createWriteTransportHarness(features: string[]) {
       : text;
     if (!encoded) throw new Error("Missing transport response");
     const payload = JSON.parse(encoded);
-    const mcpContent =
-      transport === "mcp" && payload.result?.content
-        ? JSON.parse(
-            payload.result.content.find(
-              (part: { type: string }) => part.type === "text",
-            ).text,
-          )
-        : undefined;
-    responses.push({
-      transport,
-      operation,
-      allowed:
-        response.ok &&
-        !payload.errors &&
-        !payload.error &&
-        mcpContent?.success !== false,
-    });
     if (expected === "anonymous" || expected === "read_scope") {
       expect(response.status, text).toBe(
         expected === "anonymous" || transport === "rest" ? 401 : 403,
@@ -360,32 +279,11 @@ export async function createWriteTransportHarness(features: string[]) {
       if (transport === "mcp") expect(payload.error).toBeDefined();
       return {};
     }
-    if (expected === "missing_notification") {
-      expect(response.status, text).toBe(transport === "rest" ? 404 : 200);
-      if (transport === "graphql") {
-        expect(payload.errors).toBeUndefined();
-        expect(payload.data[operation.graphql.field].success).toBe(false);
-      }
-      if (transport === "mcp") {
-        expect(payload.error).toBeUndefined();
-        const content = JSON.parse(
-          payload.result.content.find(
-            (part: { type: string }) => part.type === "text",
-          ).text,
-        );
-        expect(content.success).toBe(false);
-      }
-      return payload;
-    }
-    const invalid =
-      expected === "invalid_slug" ||
-      expected === "invalid_bus_preference" ||
-      expected === "invalid_attachments";
+    const invalid = expected === "invalid_attachments";
     const missing = [
       "not_found",
       "target_not_found",
       "parent_not_found",
-      "young_not_found",
     ].includes(expected);
     if (transport === "mcp") {
       expect(response.status, text).toBe(200);
@@ -397,22 +295,11 @@ export async function createWriteTransportHarness(features: string[]) {
         ).text,
       );
       expect(content.success, text).toBe(expected === "success");
-      if (expected !== "success")
-        expect(content.error, text).toBe(
-          expected === "young_not_found" ? "not_found" : expected,
-        );
+      if (expected !== "success") expect(content.error, text).toBe(expected);
       return content;
     }
     if (expected !== "success") {
-      expect(response.status, text).toBe(
-        expected === "young_not_found" && transport === "graphql"
-          ? 200
-          : missing
-            ? 404
-            : invalid
-              ? 400
-              : 403,
-      );
+      expect(response.status, text).toBe(missing ? 404 : invalid ? 400 : 403);
       if (transport === "graphql")
         expect(payload.errors[0].extensions.code).toBe(
           missing ? "NOT_FOUND" : invalid ? "BAD_USER_INPUT" : "FORBIDDEN",
@@ -430,6 +317,7 @@ export async function createWriteTransportHarness(features: string[]) {
   async function snapshot() {
     return {
       invalidations,
+      calendarRebuilds: structuredClone(calendarRebuilds),
       comments: await db.comment.findMany({
         where: { sectionId: section.id },
         orderBy: { id: "asc" },
@@ -472,7 +360,6 @@ export async function createWriteTransportHarness(features: string[]) {
     fixture,
     section,
     actors,
-    responses,
     call,
     snapshot,
     async cleanup() {
