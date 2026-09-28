@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, expect, vi } from "vitest";
 import { prisma as runtimeDb } from "@/lib/db/prisma";
 import { DEV_SEED } from "../../fixtures/dev-seed";
 import {
@@ -9,13 +9,342 @@ import {
 import { createFixturePrisma } from "../../shared/prisma";
 import { cleanupMcpResources } from "./_harness/cleanup";
 import { createMcpHarness, type McpHarness } from "./_harness/client";
+import { mcpTest } from "./_harness/context";
+
+const contractTest = mcpTest.extend(
+  "state",
+  async ({ mcpConnections: _connections }, { onCleanup }) => {
+    const userId = crypto.randomUUID();
+    const userName = `Projection ${userId.slice(0, 8)}`;
+    const username = `projection${userId.slice(0, 8)}`;
+    const date = new Date().toLocaleDateString("sv-SE", {
+      timeZone: "Asia/Shanghai",
+    });
+    const atTime = `${date}T07:00:00+08:00`;
+    const dueAt = `${date}T18:00:00+08:00`;
+    const youngId = `projection-${crypto.randomUUID()}`;
+    let catalog: CatalogContractFixture;
+    let client: McpHarness;
+    let organizerId: string;
+    let campusId: number;
+    let batchId: number;
+    async function invoke(
+      name: string,
+      args: Row,
+      expected: Row,
+      mode: "default" | "full" = "default",
+    ) {
+      const result = await client.call(name, { ...args, mode });
+      expect(result.success, `${name}: ${JSON.stringify(result)}`).not.toBe(
+        false,
+      );
+      expect(result.found, name).not.toBe(false);
+      const fields = projectionFields[name];
+      const view = fields && {
+        visible: fields[0].split(" ").filter(Boolean),
+        full: fields[1].split(" ").filter(Boolean),
+      };
+      expect(view, name).toBeDefined();
+      if (!view) throw new Error(`Missing declaration for ${name}`);
+      for (const path of [
+        ...view.visible,
+        ...(mode === "full" ? view.full : []),
+      ]) {
+        const actual = values(result, path.split("."));
+        expect(
+          actual.length,
+          `${name}.${path} has populated records`,
+        ).toBeGreaterThan(0);
+        expect(actual, `${name}.${path} exists`).not.toContain(undefined);
+      }
+      for (const [path, expectedValue] of Object.entries(expected))
+        expect(
+          values(result, path.split(".")),
+          `${name}.${path}`,
+        ).toContainEqual(expectedValue);
+      expect(JSON.stringify(result), name).not.toContain(`secret-${userId}`);
+      return result;
+    }
+    async function pair(name: string, args: Row, expected: Row) {
+      const compact = await invoke(name, args, expected);
+      const full = await invoke(name, args, expected, "full");
+      const fields = projectionFields[name];
+      const view = fields && {
+        visible: fields[0].split(" ").filter(Boolean),
+        full: fields[1].split(" ").filter(Boolean),
+      };
+      if (!view) throw new Error(`Missing declaration for ${name}`);
+      for (const path of view.visible) {
+        const a = values(compact, path.split("."));
+        const b = values(full, path.split("."));
+        expect(
+          isProjection(a, b),
+          `${name}.${path}: compact preserves values`,
+        ).toBe(true);
+      }
+      return { compact, full };
+    }
+    onCleanup(async () => {
+      await cleanupMcpResources([
+        async () => {
+          await client?.close();
+        },
+        async () => {
+          await db.auditLog.deleteMany({
+            where: { OR: [{ userId }, { subjectUserId: userId }] },
+          });
+        },
+        async () => {
+          await db.comment.deleteMany({ where: { userId } });
+        },
+        async () => {
+          await db.user.deleteMany({ where: { id: userId } });
+        },
+        async () => {
+          await db.youngEvent.deleteMany({ where: { youngId } });
+        },
+        async () => {
+          if (organizerId)
+            await db.youngOrganizer.delete({ where: { id: organizerId } });
+        },
+        async () => {
+          if (catalog) await cleanupCatalogContractFixture(db, catalog);
+        },
+        async () => {
+          if (batchId) await db.examBatch.delete({ where: { id: batchId } });
+        },
+        async () => {
+          if (campusId) await db.campus.delete({ where: { id: campusId } });
+        },
+      ]);
+    });
+
+    catalog = await createCatalogContractFixture(db);
+    const currentSemesterId = (
+      await db.semester.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.semesterJwId },
+      })
+    ).id;
+    const campus = await db.campus.create({
+      data: {
+        jwId: catalog.base,
+        code: catalog.marker,
+        nameCn: `校区${catalog.marker}`,
+        nameEn: `Campus ${catalog.marker}`,
+      },
+    });
+    campusId = campus.id;
+    await db.section.updateMany({
+      where: { id: { in: catalog.sections.map((s) => s.id) } },
+      data: { campusId, semesterId: currentSemesterId },
+    });
+    await db.user.create({
+      data: {
+        id: userId,
+        name: userName,
+        username,
+        email: `${userId}@example.test`,
+        image: "https://example.test/projection.png",
+        calendarFeedToken: `secret-${userId}`,
+      },
+    });
+    await db.userSectionSubscription.create({
+      data: { userId, sectionId: catalog.sections[0].id },
+    });
+    const group = await db.scheduleGroup.create({
+      data: {
+        jwId: catalog.base,
+        sectionId: catalog.sections[0].id,
+        no: 1,
+        limitCount: 20,
+        stdCount: 10,
+        actualPeriods: 2,
+        isDefault: true,
+      },
+    });
+    const scheduleId = (
+      await db.schedule.create({
+        data: {
+          sectionId: catalog.sections[0].id,
+          scheduleGroupId: group.id,
+          date: new Date(date),
+          weekday: new Date(date).getUTCDay() || 7,
+          startTime: 800,
+          endTime: 935,
+          periods: 2,
+          weekIndex: 1,
+          startUnit: 1,
+          endUnit: 2,
+          customPlace: "Projection classroom",
+          teacherParticipations: {
+            create: {
+              teacherId: catalog.teachers[0].id,
+              periods: 2,
+              exerciseClass: false,
+            },
+          },
+        },
+      })
+    ).id;
+    batchId = (
+      await db.examBatch.create({
+        data: {
+          jwId: catalog.base,
+          nameCn: "契约考试批次",
+          nameEn: "Projection exam batch",
+        },
+      })
+    ).id;
+    await db.exam.create({
+      data: {
+        jwId: catalog.base,
+        sectionId: catalog.sections[0].id,
+        examBatchId: batchId,
+        examDate: new Date(date),
+        startTime: 1400,
+        endTime: 1600,
+        examMode: "闭卷",
+        examRooms: { create: { room: "Projection exam room", count: 12 } },
+      },
+    });
+    const homeworkId = (
+      await db.homework.create({
+        data: {
+          title: "Projection homework",
+          sectionId: catalog.sections[0].id,
+          createdById: userId,
+          publishedAt: new Date(atTime),
+          submissionDueAt: new Date(dueAt),
+          isMajor: true,
+          requiresTeam: true,
+          description: {
+            create: {
+              content: "Projection homework **Markdown**",
+              lastEditedById: userId,
+              lastEditedAt: new Date(atTime),
+            },
+          },
+        },
+      })
+    ).id;
+    const todoId = (
+      await db.todo.create({
+        data: {
+          userId,
+          title: "Projection todo",
+          content: "Projection todo details",
+          priority: "high",
+          dueAt: new Date(dueAt),
+        },
+      })
+    ).id;
+    const uploadId = (
+      await db.upload.create({
+        data: {
+          userId,
+          key: `uploads/${userId}/projection.txt`,
+          filename: "projection.txt",
+          contentType: "text/plain",
+          size: 321,
+        },
+      })
+    ).id;
+    organizerId = (
+      await db.youngOrganizer.create({
+        data: {
+          name: `Projection organizer ${catalog.marker}`,
+          normalizedName: catalog.marker,
+        },
+      })
+    ).id;
+    await db.youngEvent.create({
+      data: {
+        youngId,
+        name: `Projection event ${catalog.marker}`,
+        organizerId,
+        startAt: new Date(dueAt),
+        endAt: new Date(`${date}T20:00:00+08:00`),
+        location: "Projection event room",
+        category: "学术",
+        module: "智",
+        form: "讲座",
+        activityLevel: "校级",
+        status: "报名中",
+        isActive: true,
+        rawJson: { rawMarker: "raw-young-projection" },
+        description: "Projection event description",
+        applyStartAt: new Date(atTime),
+        applyEndAt: new Date(dueAt),
+      },
+    });
+    client = await createMcpHarness(userId);
+    const comment = await db.comment.create({
+      data: {
+        userId,
+        sectionId: catalog.sections[0].id,
+        body: "Projection comment **Markdown**",
+      },
+    });
+    const commentId = comment.id;
+    await db.comment.create({
+      data: {
+        userId,
+        sectionId: catalog.sections[0].id,
+        parentId: commentId,
+        rootId: commentId,
+        body: "Projection reply",
+      },
+    });
+    await db.description.create({
+      data: {
+        courseId: catalog.courses[0].id,
+        content: "Projection course **Markdown**",
+        lastEditedById: userId,
+        lastEditedAt: new Date(atTime),
+      },
+    });
+    await db.busUserPreference.create({
+      data: {
+        userId,
+        preferredOriginCampusId: DEV_SEED.bus.originCampusId,
+        preferredDestinationCampusId: DEV_SEED.bus.destinationCampusId,
+        showDepartedTrips: true,
+      },
+    });
+
+    return {
+      userId,
+      userName,
+      username,
+      date,
+      atTime,
+      dueAt,
+      youngId,
+      catalog,
+      client,
+      homeworkId,
+      todoId,
+      commentId,
+      uploadId,
+      organizerId,
+      campusId,
+      batchId,
+      scheduleId,
+      currentSemesterId,
+      invoke,
+      pair,
+    };
+  },
+);
 
 const external = vi.hoisted(() => ({
-  deleteObject: vi.fn(async () => undefined),
+  deletedKeys: new Set<string>(),
 }));
 vi.mock("@/lib/storage/r2-object", async (original) => ({
   ...(await original<object>()),
-  deleteStorageObject: external.deleteObject,
+  deleteStorageObject: async (key: string) => {
+    external.deletedKeys.add(key);
+  },
 }));
 vi.mock("@/features/weather/server/weather-cache", () => ({
   readWeatherCache: async (key: string) => ({
@@ -31,255 +360,7 @@ vi.mock("@/features/weather/server/weather-cache", () => ({
 }));
 
 const db = createFixturePrisma();
-const userId = crypto.randomUUID();
-const userName = `Projection ${userId.slice(0, 8)}`;
-const username = `projection${userId.slice(0, 8)}`;
-const date = new Date().toLocaleDateString("sv-SE", {
-  timeZone: "Asia/Shanghai",
-});
-const atTime = `${date}T07:00:00+08:00`;
-const dueAt = `${date}T18:00:00+08:00`;
-const youngId = `projection-${crypto.randomUUID()}`;
-let catalog: CatalogContractFixture;
-let client: McpHarness;
-let homeworkId: string;
-let todoId: string;
-let commentId: string;
-let uploadId: string;
-let organizerId: string;
-let campusId: number;
-let batchId: number;
-let scheduleId: number;
-let currentSemesterId: number;
 
-beforeEach(async () => {
-  catalog = await createCatalogContractFixture(db);
-  currentSemesterId = (
-    await db.semester.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.semesterJwId },
-    })
-  ).id;
-  const campus = await db.campus.create({
-    data: {
-      jwId: catalog.base,
-      code: catalog.marker,
-      nameCn: `校区${catalog.marker}`,
-      nameEn: `Campus ${catalog.marker}`,
-    },
-  });
-  campusId = campus.id;
-  await db.section.updateMany({
-    where: { id: { in: catalog.sections.map((s) => s.id) } },
-    data: { campusId, semesterId: currentSemesterId },
-  });
-  await db.user.create({
-    data: {
-      id: userId,
-      name: userName,
-      username,
-      email: `${userId}@example.test`,
-      image: "https://example.test/projection.png",
-      calendarFeedToken: `secret-${userId}`,
-    },
-  });
-  await db.userSectionSubscription.create({
-    data: { userId, sectionId: catalog.sections[0].id },
-  });
-  const group = await db.scheduleGroup.create({
-    data: {
-      jwId: catalog.base,
-      sectionId: catalog.sections[0].id,
-      no: 1,
-      limitCount: 20,
-      stdCount: 10,
-      actualPeriods: 2,
-      isDefault: true,
-    },
-  });
-  scheduleId = (
-    await db.schedule.create({
-      data: {
-        sectionId: catalog.sections[0].id,
-        scheduleGroupId: group.id,
-        date: new Date(date),
-        weekday: new Date(date).getUTCDay() || 7,
-        startTime: 800,
-        endTime: 935,
-        periods: 2,
-        weekIndex: 1,
-        startUnit: 1,
-        endUnit: 2,
-        customPlace: "Projection classroom",
-        teacherParticipations: {
-          create: {
-            teacherId: catalog.teachers[0].id,
-            periods: 2,
-            exerciseClass: false,
-          },
-        },
-      },
-    })
-  ).id;
-  batchId = (
-    await db.examBatch.create({
-      data: {
-        jwId: catalog.base,
-        nameCn: "契约考试批次",
-        nameEn: "Projection exam batch",
-      },
-    })
-  ).id;
-  await db.exam.create({
-    data: {
-      jwId: catalog.base,
-      sectionId: catalog.sections[0].id,
-      examBatchId: batchId,
-      examDate: new Date(date),
-      startTime: 1400,
-      endTime: 1600,
-      examMode: "闭卷",
-      examRooms: { create: { room: "Projection exam room", count: 12 } },
-    },
-  });
-  homeworkId = (
-    await db.homework.create({
-      data: {
-        title: "Projection homework",
-        sectionId: catalog.sections[0].id,
-        createdById: userId,
-        publishedAt: new Date(atTime),
-        submissionDueAt: new Date(dueAt),
-        isMajor: true,
-        requiresTeam: true,
-        description: {
-          create: {
-            content: "Projection homework **Markdown**",
-            lastEditedById: userId,
-            lastEditedAt: new Date(atTime),
-          },
-        },
-      },
-    })
-  ).id;
-  todoId = (
-    await db.todo.create({
-      data: {
-        userId,
-        title: "Projection todo",
-        content: "Projection todo details",
-        priority: "high",
-        dueAt: new Date(dueAt),
-      },
-    })
-  ).id;
-  uploadId = (
-    await db.upload.create({
-      data: {
-        userId,
-        key: `uploads/${userId}/projection.txt`,
-        filename: "projection.txt",
-        contentType: "text/plain",
-        size: 321,
-      },
-    })
-  ).id;
-  organizerId = (
-    await db.youngOrganizer.create({
-      data: {
-        name: `Projection organizer ${catalog.marker}`,
-        normalizedName: catalog.marker,
-      },
-    })
-  ).id;
-  await db.youngEvent.create({
-    data: {
-      youngId,
-      name: `Projection event ${catalog.marker}`,
-      organizerId,
-      startAt: new Date(dueAt),
-      endAt: new Date(`${date}T20:00:00+08:00`),
-      location: "Projection event room",
-      category: "学术",
-      module: "智",
-      form: "讲座",
-      activityLevel: "校级",
-      status: "报名中",
-      isActive: true,
-      rawJson: { rawMarker: "raw-young-projection" },
-      description: "Projection event description",
-      applyStartAt: new Date(atTime),
-      applyEndAt: new Date(dueAt),
-    },
-  });
-  client = await createMcpHarness(userId);
-  const comment = await db.comment.create({
-    data: {
-      userId,
-      sectionId: catalog.sections[0].id,
-      body: "Projection comment **Markdown**",
-    },
-  });
-  commentId = comment.id;
-  await db.comment.create({
-    data: {
-      userId,
-      sectionId: catalog.sections[0].id,
-      parentId: commentId,
-      rootId: commentId,
-      body: "Projection reply",
-    },
-  });
-  await db.description.create({
-    data: {
-      courseId: catalog.courses[0].id,
-      content: "Projection course **Markdown**",
-      lastEditedById: userId,
-      lastEditedAt: new Date(atTime),
-    },
-  });
-  await db.busUserPreference.create({
-    data: {
-      userId,
-      preferredOriginCampusId: DEV_SEED.bus.originCampusId,
-      preferredDestinationCampusId: DEV_SEED.bus.destinationCampusId,
-      showDepartedTrips: true,
-    },
-  });
-});
-afterEach(async () => {
-  await cleanupMcpResources([
-    async () => {
-      await client?.close();
-    },
-    async () => {
-      await db.auditLog.deleteMany({
-        where: { OR: [{ userId }, { subjectUserId: userId }] },
-      });
-    },
-    async () => {
-      await db.comment.deleteMany({ where: { userId } });
-    },
-    async () => {
-      await db.user.deleteMany({ where: { id: userId } });
-    },
-    async () => {
-      await db.youngEvent.deleteMany({ where: { youngId } });
-    },
-    async () => {
-      if (organizerId)
-        await db.youngOrganizer.delete({ where: { id: organizerId } });
-    },
-    async () => {
-      if (catalog) await cleanupCatalogContractFixture(db, catalog);
-    },
-    async () => {
-      if (batchId) await db.examBatch.delete({ where: { id: batchId } });
-    },
-    async () => {
-      if (campusId) await db.campus.delete({ where: { id: campusId } });
-    },
-  ]);
-});
 afterAll(async () => {
   await Promise.all([db.$disconnect(), runtimeDb.$disconnect()]);
 });
@@ -529,416 +610,420 @@ const projectionFields: Record<string, readonly [string, string]> = {
   ],
 };
 
-async function invoke(
-  name: string,
-  args: Row,
-  expected: Row,
-  mode: "default" | "full" = "default",
-) {
-  const result = await client.call(name, { ...args, mode });
-  expect(result.success, `${name}: ${JSON.stringify(result)}`).not.toBe(false);
-  expect(result.found, name).not.toBe(false);
-  const fields = projectionFields[name];
-  const view = fields && {
-    visible: fields[0].split(" ").filter(Boolean),
-    full: fields[1].split(" ").filter(Boolean),
-  };
-  expect(view, name).toBeDefined();
-  if (!view) throw new Error(`Missing declaration for ${name}`);
-  for (const path of [...view.visible, ...(mode === "full" ? view.full : [])]) {
-    const actual = values(result, path.split("."));
-    expect(
-      actual.length,
-      `${name}.${path} has populated records`,
-    ).toBeGreaterThan(0);
-    expect(actual, `${name}.${path} exists`).not.toContain(undefined);
-  }
-  for (const [path, expectedValue] of Object.entries(expected))
-    expect(values(result, path.split(".")), `${name}.${path}`).toContainEqual(
-      expectedValue,
+contractTest(
+  "MCP academic catalog preserves explicit compact and full projections",
+  async ({ state, expect }) => {
+    const { date, catalog, scheduleId, currentSemesterId, pair } = state;
+
+    const course = catalog.courses[0];
+    const section = catalog.sections[0];
+    const teacher = catalog.teachers[0];
+    const sectionArgs = { sectionJwId: section.jwId };
+    const range = { dateFrom: date, dateTo: date };
+    await pair(
+      "catalog_course_search",
+      { search: catalog.marker },
+      { "data.nameCn": course.nameCn, "data.code": course.code },
     );
-  expect(JSON.stringify(result), name).not.toContain(`secret-${userId}`);
-  return result;
-}
-async function pair(name: string, args: Row, expected: Row) {
-  const compact = await invoke(name, args, expected);
-  const full = await invoke(name, args, expected, "full");
-  const fields = projectionFields[name];
-  const view = fields && {
-    visible: fields[0].split(" ").filter(Boolean),
-    full: fields[1].split(" ").filter(Boolean),
-  };
-  if (!view) throw new Error(`Missing declaration for ${name}`);
-  for (const path of view.visible) {
-    const a = values(compact, path.split("."));
-    const b = values(full, path.split("."));
-    expect(
-      isProjection(a, b),
-      `${name}.${path}: compact preserves values`,
-    ).toBe(true);
-  }
-  return { compact, full };
-}
-it("MCP academic catalog preserves explicit compact and full projections", async () => {
-  const course = catalog.courses[0];
-  const section = catalog.sections[0];
-  const teacher = catalog.teachers[0];
-  const sectionArgs = { sectionJwId: section.jwId };
-  const range = { dateFrom: date, dateTo: date };
-  await pair(
-    "catalog_course_search",
-    { search: catalog.marker },
-    { "data.nameCn": course.nameCn, "data.code": course.code },
-  );
-  const coursePair = await pair(
-    "catalog_course_get",
-    { jwId: course.jwId },
-    { "course.nameCn": course.nameCn, "course.code": course.code },
-  );
-  expect(coursePair.compact.course).not.toHaveProperty("sections");
-  expect(values(coursePair.full, ["course", "sections", "jwId"])).toContain(
-    section.jwId,
-  );
-  await pair(
-    "catalog_teacher_search",
-    { search: catalog.marker },
-    {
-      "data.nameCn": teacher.nameCn,
-      "data.department.nameCn": catalog.departments[0].nameCn,
-    },
-  );
-  const teacherPair = await pair(
-    "catalog_teacher_get",
-    { id: teacher.id },
-    {
-      "teacher.nameCn": teacher.nameCn,
-      "teacher.teacherTitle.nameCn": catalog.titles[0].nameCn,
-    },
-  );
-  expect(teacherPair.compact.teacher).not.toHaveProperty("email");
-  expect(teacherPair.full.teacher).toHaveProperty("email", teacher.email);
-  await pair(
-    "catalog_section_search",
-    { jwIds: [section.jwId] },
-    {
-      "data.course.nameCn": course.nameCn,
-      "data.campus.nameCn": `校区${catalog.marker}`,
-      "data.teachers.nameCn": teacher.nameCn,
-    },
-  );
-  await pair(
-    "catalog_section_get",
-    { jwId: section.jwId },
-    { "section.course.nameCn": course.nameCn, "section.code": section.code },
-  );
-  await pair(
-    "catalog_section_match_preview",
-    { codes: [section.code], semesterId: currentSemesterId },
-    { matchedCodes: [section.code], unmatchedCodes: [] },
-  );
-  await pair(
-    "catalog_semester_list",
-    { limit: 100 },
-    { "data.id": catalog.semester.id, "data.nameCn": catalog.semester.nameCn },
-  );
-  await pair(
-    "catalog_semester_current",
-    {},
-    { "semester.id": currentSemesterId },
-  );
-  await pair(
-    "catalog_schedule_list",
-    { sectionId: section.id },
-    {
-      "data.id": scheduleId,
-      "data.customPlace": "Projection classroom",
-      "data.startTime": "08:00",
-      "data.endTime": "09:35",
-      "data.teachers.nameCn": teacher.nameCn,
-    },
-  );
-  await pair("catalog_section_schedule_list", sectionArgs, {
-    "schedules.id": scheduleId,
-    "schedules.customPlace": "Projection classroom",
-  });
-  await pair("workspace_schedule_list", range, {
-    "schedules.id": scheduleId,
-    "schedules.section.code": section.code,
-  });
-  await pair("catalog_section_exam_list", sectionArgs, {
-    "exams.examMode": "闭卷",
-    "exams.examBatch.namePrimary": "契约考试批次",
-  });
-  await pair("workspace_exam_list", range, {
-    "exams.examMode": "闭卷",
-    "exams.section.course.nameCn": course.nameCn,
-  });
-});
-it("MCP personal academic readers preserve explicit compact and full projections", async () => {
-  const course = catalog.courses[0];
-  const section = catalog.sections[0];
-  const teacher = catalog.teachers[0];
-  const sectionArgs = { sectionJwId: section.jwId };
-  const range = { dateFrom: date, dateTo: date };
-  await pair(
-    "workspace_homework_list",
-    {},
-    {
-      "homeworks.title": "Projection homework",
-      "homeworks.submissionDueAt": dueAt,
-      "homeworks.requiresTeam": true,
+    const coursePair = await pair(
+      "catalog_course_get",
+      { jwId: course.jwId },
+      { "course.nameCn": course.nameCn, "course.code": course.code },
+    );
+    expect(coursePair.compact.course).not.toHaveProperty("sections");
+    expect(values(coursePair.full, ["course", "sections", "jwId"])).toContain(
+      section.jwId,
+    );
+    await pair(
+      "catalog_teacher_search",
+      { search: catalog.marker },
+      {
+        "data.nameCn": teacher.nameCn,
+        "data.department.nameCn": catalog.departments[0].nameCn,
+      },
+    );
+    const teacherPair = await pair(
+      "catalog_teacher_get",
+      { id: teacher.id },
+      {
+        "teacher.nameCn": teacher.nameCn,
+        "teacher.teacherTitle.nameCn": catalog.titles[0].nameCn,
+      },
+    );
+    expect(teacherPair.compact.teacher).not.toHaveProperty("email");
+    expect(teacherPair.full.teacher).toHaveProperty("email", teacher.email);
+    await pair(
+      "catalog_section_search",
+      { jwIds: [section.jwId] },
+      {
+        "data.course.nameCn": course.nameCn,
+        "data.campus.nameCn": `校区${catalog.marker}`,
+        "data.teachers.nameCn": teacher.nameCn,
+      },
+    );
+    await pair(
+      "catalog_section_get",
+      { jwId: section.jwId },
+      { "section.course.nameCn": course.nameCn, "section.code": section.code },
+    );
+    await pair(
+      "catalog_section_match_preview",
+      { codes: [section.code], semesterId: currentSemesterId },
+      { matchedCodes: [section.code], unmatchedCodes: [] },
+    );
+    await pair(
+      "catalog_semester_list",
+      { limit: 100 },
+      {
+        "data.id": catalog.semester.id,
+        "data.nameCn": catalog.semester.nameCn,
+      },
+    );
+    await pair(
+      "catalog_semester_current",
+      {},
+      { "semester.id": currentSemesterId },
+    );
+    await pair(
+      "catalog_schedule_list",
+      { sectionId: section.id },
+      {
+        "data.id": scheduleId,
+        "data.customPlace": "Projection classroom",
+        "data.startTime": "08:00",
+        "data.endTime": "09:35",
+        "data.teachers.nameCn": teacher.nameCn,
+      },
+    );
+    await pair("catalog_section_schedule_list", sectionArgs, {
+      "schedules.id": scheduleId,
+      "schedules.customPlace": "Projection classroom",
+    });
+    await pair("workspace_schedule_list", range, {
+      "schedules.id": scheduleId,
+      "schedules.section.code": section.code,
+    });
+    await pair("catalog_section_exam_list", sectionArgs, {
+      "exams.examMode": "闭卷",
+      "exams.examBatch.namePrimary": "契约考试批次",
+    });
+    await pair("workspace_exam_list", range, {
+      "exams.examMode": "闭卷",
+      "exams.section.course.nameCn": course.nameCn,
+    });
+  },
+);
+contractTest(
+  "MCP personal academic readers preserve explicit compact and full projections",
+  async ({ state, expect }) => {
+    const {
+      date,
+      atTime,
+      dueAt,
+      catalog,
+      homeworkId,
+      todoId,
+      scheduleId,
+      pair,
+    } = state;
+
+    const course = catalog.courses[0];
+    const section = catalog.sections[0];
+    const teacher = catalog.teachers[0];
+    const sectionArgs = { sectionJwId: section.jwId };
+    const range = { dateFrom: date, dateTo: date };
+    await pair(
+      "workspace_homework_list",
+      {},
+      {
+        "homeworks.title": "Projection homework",
+        "homeworks.submissionDueAt": dueAt,
+        "homeworks.requiresTeam": true,
+        "homeworks.id": homeworkId,
+      },
+    );
+    await pair("community_section_homework_list", sectionArgs, {
       "homeworks.id": homeworkId,
-    },
-  );
-  await pair("community_section_homework_list", sectionArgs, {
-    "homeworks.id": homeworkId,
-    "homeworks.title": "Projection homework",
-  });
-  await pair(
-    "workspace_todo_list",
-    {},
-    {
-      "todos.id": todoId,
-      "todos.title": "Projection todo",
-      "todos.content": "Projection todo details",
-      "todos.priority": "high",
-      "todos.dueAt": dueAt,
-      "todos.completed": false,
-    },
-  );
-  await pair(
-    "workspace_subscription_list",
-    {},
-    { "sections.code": section.code, "sections.course.nameCn": course.nameCn },
-  );
-  await pair(
-    "workspace_calendar_feed_get",
-    {},
-    {
-      "subscription.currentSemesterSections.course.namePrimary": course.nameCn,
-      "subscription.sectionCount": 1,
-    },
-  );
-  await pair(
-    "catalog_section_calendar_feed_get",
-    { jwId: section.jwId },
-    { "section.code": section.code },
-  );
-  for (const [locale, name] of [
-    ["zh-cn", teacher.nameCn],
-    ["en-us", teacher.nameEn],
-  ] as const) {
+      "homeworks.title": "Projection homework",
+    });
+    await pair(
+      "workspace_todo_list",
+      {},
+      {
+        "todos.id": todoId,
+        "todos.title": "Projection todo",
+        "todos.content": "Projection todo details",
+        "todos.priority": "high",
+        "todos.dueAt": dueAt,
+        "todos.completed": false,
+      },
+    );
+    await pair(
+      "workspace_subscription_list",
+      {},
+      {
+        "sections.code": section.code,
+        "sections.course.nameCn": course.nameCn,
+      },
+    );
+    await pair(
+      "workspace_calendar_feed_get",
+      {},
+      {
+        "subscription.currentSemesterSections.course.namePrimary":
+          course.nameCn,
+        "subscription.sectionCount": 1,
+      },
+    );
     await pair(
       "catalog_section_calendar_feed_get",
-      { jwId: section.jwId, locale },
-      { "section.teachers.namePrimary": name },
+      { jwId: section.jwId },
+      { "section.code": section.code },
     );
-  }
-  for (const name of [
-    "workspace_calendar_event_list",
-    "workspace_calendar_timeline_get",
-  ]) {
-    const { compact, full } = await pair(
-      name,
-      { ...range, atTime },
-      { "events.type": "schedule" },
-    );
-    for (const type of ["schedule", "exam", "homework_due", "todo_due"]) {
-      const event = (compact.events as Row[]).find((row) => row.type === type);
-      expect(event, `${name}.${type}`).toBeDefined();
-      expect(
-        (full.events as Row[]).find((row) => row.type === type),
-      ).toBeDefined();
+    for (const [locale, name] of [
+      ["zh-cn", teacher.nameCn],
+      ["en-us", teacher.nameEn],
+    ] as const) {
+      await pair(
+        "catalog_section_calendar_feed_get",
+        { jwId: section.jwId, locale },
+        { "section.teachers.namePrimary": name },
+      );
     }
-    expect(values(compact, ["events", "payload", "title"])).toContain(
-      "Projection todo",
+    for (const name of [
+      "workspace_calendar_event_list",
+      "workspace_calendar_timeline_get",
+    ]) {
+      const { compact, full } = await pair(
+        name,
+        { ...range, atTime },
+        { "events.type": "schedule" },
+      );
+      for (const type of ["schedule", "exam", "homework_due", "todo_due"]) {
+        const event = (compact.events as Row[]).find(
+          (row) => row.type === type,
+        );
+        expect(event, `${name}.${type}`).toBeDefined();
+        expect(
+          (full.events as Row[]).find((row) => row.type === type),
+        ).toBeDefined();
+      }
+      expect(values(compact, ["events", "payload", "title"])).toContain(
+        "Projection todo",
+      );
+    }
+    await pair(
+      "workspace_snapshot_get",
+      { atTime },
+      { "nextClass.payload.id": scheduleId },
     );
-  }
-  await pair(
-    "workspace_snapshot_get",
-    { atTime },
-    { "nextClass.payload.id": scheduleId },
-  );
-  await pair(
-    "workspace_schedule_next",
-    { atTime },
-    { "nextClass.payload.id": scheduleId },
-  );
-  await pair(
-    "workspace_deadline_list",
-    { atTime },
-    { "deadlines.type": "homework_due" },
-  );
-  await pair(
-    "workspace_overview_get",
-    { atTime },
-    {
-      "overview.pendingHomeworksCount": 1,
-      "overview.pendingTodosCount": 1,
-      "overview.upcomingExamsCount": 1,
-      "overview.todaySchedulesCount": 1,
-    },
-  );
-});
-it("MCP bus and link projections retain display fields and personal state", async () => {
-  await pair(
-    "catalog_bus_timetable_get",
-    {},
-    { "routes.id": DEV_SEED.bus.recommendedRouteId },
-  );
-  await pair(
-    "catalog_bus_route_list",
-    {},
-    { "routes.id": DEV_SEED.bus.recommendedRouteId },
-  );
-  await pair(
-    "catalog_bus_route_get",
-    { routeId: DEV_SEED.bus.recommendedRouteId },
-    { "route.id": DEV_SEED.bus.recommendedRouteId },
-  );
-  const busArgs = {
-    originCampusId: DEV_SEED.bus.originCampusId,
-    destinationCampusId: DEV_SEED.bus.destinationCampusId,
-  };
-  await pair("catalog_bus_route_search", busArgs, {
-    "routes.id": DEV_SEED.bus.recommendedRouteId,
-  });
-  await pair(
-    "catalog_bus_departure_next",
-    { ...busArgs, atTime, dayType: "weekday" },
-    { "originCampus.id": DEV_SEED.bus.originCampusId },
-  );
-  await pair(
-    "workspace_bus_preferences_get",
-    {},
-    {
-      "preference.preferredOriginCampusId": DEV_SEED.bus.originCampusId,
-      "preference.showDepartedTrips": true,
-    },
-  );
-  const links = await pair("catalog_link_list", {}, {});
-  const firstLink = (links.compact.links as Row[])[0];
-  for (const mode of ["default", "full"] as const)
-    await invoke(
-      "workspace_link_pin_set",
-      { action: "pin", slug: firstLink.slug },
-      { success: true },
-      mode,
+    await pair(
+      "workspace_schedule_next",
+      { atTime },
+      { "nextClass.payload.id": scheduleId },
     );
-  await pair("workspace_link_pin_list", {}, { pinnedSlugs: [firstLink.slug] });
-});
-it("MCP community and uploads preserve explicit compact and full projections", async () => {
-  const course = catalog.courses[0];
-  const section = catalog.sections[0];
-  const sectionArgs = { sectionJwId: section.jwId };
-  await pair(
-    "community_comment_list",
-    { targetType: "section", ...sectionArgs },
-    {
-      "data.body": "Projection comment **Markdown**",
-      "data.author.name": userName,
-    },
-  );
-  const comments = await pair(
-    "community_comment_get",
-    { commentId },
-    {
-      "thread.body": "Projection comment **Markdown**",
-      "thread.author.name": userName,
-    },
-  );
-  expect((comments.compact.thread as Row[])[0]).not.toHaveProperty(
-    "renderedBody",
-  );
-  expect((comments.full.thread as Row[])[0]).toHaveProperty("renderedBody");
-  await pair(
-    "community_comment_replies",
-    { commentId },
-    { "thread.body": "Projection comment **Markdown**" },
-  );
-  await pair(
-    "community_description_get",
-    { targetType: "course", courseJwId: course.jwId },
-    {
-      "description.content": "Projection course **Markdown**",
-      "description.lastEditedBy.name": userName,
-    },
-  );
-  await pair(
-    "workspace_upload_list",
-    {},
-    {
-      "data.filename": "projection.txt",
-      "data.id": uploadId,
-      "data.size": 321,
-      "meta.usedBytes": 321,
-    },
-  );
-  await pair(
-    "account_profile_get",
-    {},
-    { name: userName, username, id: userId },
-  );
-  await pair(
-    "community_user_get",
-    { identifier: username },
-    { "user.name": userName, "user.username": username },
-  );
-  const weather = await pair(
-    "catalog_weather_get",
-    { locationKey: "ustc-main" },
-    { "location.key": "ustc-main", "current.temperature": 23 },
-  );
-  expect(weather.compact).not.toHaveProperty("extensions");
-  expect(weather.full).toHaveProperty(
-    "extensions.amap.privateMarker",
-    "raw-weather-projection",
-  );
-  await pair(
-    "catalog_young_event_list",
-    { search: catalog.marker },
-    {
-      "data.youngId": youngId,
-      "data.location": "Projection event room",
-      "data.status": "报名中",
-    },
-  );
-  const young = await pair(
-    "catalog_young_event_get",
-    { youngId },
-    { "event.youngId": youngId, "event.module": "智" },
-  );
-  expect(young.compact.event).not.toHaveProperty("rawJson");
-  expect(young.full.event).toHaveProperty(
-    "rawJson.rawMarker",
-    "raw-young-projection",
-  );
-  await pair(
-    "catalog_young_organizer_list",
-    { search: catalog.marker },
-    { "data.id": organizerId, "data.totalCount": 1 },
-  );
-  await pair(
-    "catalog_young_organizer_get",
-    { organizerId },
-    { "organizer.id": organizerId, "organizer.totalCount": 1 },
-  );
-  await pair(
-    "graphql_operation_run",
-    {
-      document: "query PriorityProfile { account { profile { id name } } }",
-      operationName: "PriorityProfile",
-    },
-    {
-      "data.account.profile.id": userId,
-      operationName: "PriorityProfile",
-      operationType: "query",
-    },
-  );
-});
-it.each(["default", "full"] as const)(
+    await pair(
+      "workspace_deadline_list",
+      { atTime },
+      { "deadlines.type": "homework_due" },
+    );
+    await pair(
+      "workspace_overview_get",
+      { atTime },
+      {
+        "overview.pendingHomeworksCount": 1,
+        "overview.pendingTodosCount": 1,
+        "overview.upcomingExamsCount": 1,
+        "overview.todaySchedulesCount": 1,
+      },
+    );
+  },
+);
+contractTest(
+  "MCP bus and link projections retain display fields and personal state",
+  async ({ state }) => {
+    const { atTime, invoke, pair } = state;
+
+    await pair(
+      "catalog_bus_timetable_get",
+      {},
+      { "routes.id": DEV_SEED.bus.recommendedRouteId },
+    );
+    await pair(
+      "catalog_bus_route_list",
+      {},
+      { "routes.id": DEV_SEED.bus.recommendedRouteId },
+    );
+    await pair(
+      "catalog_bus_route_get",
+      { routeId: DEV_SEED.bus.recommendedRouteId },
+      { "route.id": DEV_SEED.bus.recommendedRouteId },
+    );
+    const busArgs = {
+      originCampusId: DEV_SEED.bus.originCampusId,
+      destinationCampusId: DEV_SEED.bus.destinationCampusId,
+    };
+    await pair("catalog_bus_route_search", busArgs, {
+      "routes.id": DEV_SEED.bus.recommendedRouteId,
+    });
+    await pair(
+      "catalog_bus_departure_next",
+      { ...busArgs, atTime, dayType: "weekday" },
+      { "originCampus.id": DEV_SEED.bus.originCampusId },
+    );
+    await pair(
+      "workspace_bus_preferences_get",
+      {},
+      {
+        "preference.preferredOriginCampusId": DEV_SEED.bus.originCampusId,
+        "preference.showDepartedTrips": true,
+      },
+    );
+    const links = await pair("catalog_link_list", {}, {});
+    const firstLink = (links.compact.links as Row[])[0];
+    for (const mode of ["default", "full"] as const)
+      await invoke(
+        "workspace_link_pin_set",
+        { action: "pin", slug: firstLink.slug },
+        { success: true },
+        mode,
+      );
+    await pair(
+      "workspace_link_pin_list",
+      {},
+      { pinnedSlugs: [firstLink.slug] },
+    );
+  },
+);
+contractTest(
+  "MCP community and uploads preserve explicit compact and full projections",
+  async ({ state, expect }) => {
+    const {
+      userId,
+      userName,
+      username,
+      youngId,
+      catalog,
+      commentId,
+      uploadId,
+      organizerId,
+      pair,
+    } = state;
+
+    const course = catalog.courses[0];
+    const section = catalog.sections[0];
+    const sectionArgs = { sectionJwId: section.jwId };
+    await pair(
+      "community_comment_list",
+      { targetType: "section", ...sectionArgs },
+      {
+        "data.body": "Projection comment **Markdown**",
+        "data.author.name": userName,
+      },
+    );
+    const comments = await pair(
+      "community_comment_get",
+      { commentId },
+      {
+        "thread.body": "Projection comment **Markdown**",
+        "thread.author.name": userName,
+      },
+    );
+    expect((comments.compact.thread as Row[])[0]).not.toHaveProperty(
+      "renderedBody",
+    );
+    expect((comments.full.thread as Row[])[0]).toHaveProperty("renderedBody");
+    await pair(
+      "community_comment_replies",
+      { commentId },
+      { "thread.body": "Projection comment **Markdown**" },
+    );
+    await pair(
+      "community_description_get",
+      { targetType: "course", courseJwId: course.jwId },
+      {
+        "description.content": "Projection course **Markdown**",
+        "description.lastEditedBy.name": userName,
+      },
+    );
+    await pair(
+      "workspace_upload_list",
+      {},
+      {
+        "data.filename": "projection.txt",
+        "data.id": uploadId,
+        "data.size": 321,
+        "meta.usedBytes": 321,
+      },
+    );
+    await pair(
+      "account_profile_get",
+      {},
+      { name: userName, username, id: userId },
+    );
+    await pair(
+      "community_user_get",
+      { identifier: username },
+      { "user.name": userName, "user.username": username },
+    );
+    const weather = await pair(
+      "catalog_weather_get",
+      { locationKey: "ustc-main" },
+      { "location.key": "ustc-main", "current.temperature": 23 },
+    );
+    expect(weather.compact).not.toHaveProperty("extensions");
+    expect(weather.full).toHaveProperty(
+      "extensions.amap.privateMarker",
+      "raw-weather-projection",
+    );
+    await pair(
+      "catalog_young_event_list",
+      { search: catalog.marker },
+      {
+        "data.youngId": youngId,
+        "data.location": "Projection event room",
+        "data.status": "报名中",
+      },
+    );
+    const young = await pair(
+      "catalog_young_event_get",
+      { youngId },
+      { "event.youngId": youngId, "event.module": "智" },
+    );
+    expect(young.compact.event).not.toHaveProperty("rawJson");
+    expect(young.full.event).toHaveProperty(
+      "rawJson.rawMarker",
+      "raw-young-projection",
+    );
+    await pair(
+      "catalog_young_organizer_list",
+      { search: catalog.marker },
+      { "data.id": organizerId, "data.totalCount": 1 },
+    );
+    await pair(
+      "catalog_young_organizer_get",
+      { organizerId },
+      { "organizer.id": organizerId, "organizer.totalCount": 1 },
+    );
+    await pair(
+      "graphql_operation_run",
+      {
+        document: "query PriorityProfile { account { profile { id name } } }",
+        operationName: "PriorityProfile",
+      },
+      {
+        "data.account.profile.id": userId,
+        operationName: "PriorityProfile",
+        operationType: "query",
+      },
+    );
+  },
+);
+contractTest.for(["default", "full"] as const)(
   "MCP todo mutation projection in %s mode",
-  async (mode) => {
+  async (mode, { state, expect }) => {
+    const { dueAt, invoke } = state;
+
     const createdTodo = await invoke(
       "workspace_todo_create",
       {
@@ -988,9 +1073,11 @@ it.each(["default", "full"] as const)(
     );
   },
 );
-it.each(["default", "full"] as const)(
+contractTest.for(["default", "full"] as const)(
   "MCP homework mutation projection in %s mode",
-  async (mode) => {
+  async (mode, { state, expect }) => {
+    const { dueAt, catalog, invoke } = state;
+
     const sectionArgs = { sectionJwId: catalog.sections[0].jwId };
     const createdHomework = await invoke(
       "community_section_homework_create",
@@ -1037,9 +1124,11 @@ it.each(["default", "full"] as const)(
     );
   },
 );
-it.each(["default", "full"] as const)(
+contractTest.for(["default", "full"] as const)(
   "MCP subscription mutation projection in %s mode",
-  async (mode) => {
+  async (mode, { state }) => {
+    const { catalog, currentSemesterId, invoke } = state;
+
     await invoke(
       "workspace_subscription_import",
       { codes: [catalog.sections[1].code], semesterId: currentSemesterId },
@@ -1063,9 +1152,11 @@ it.each(["default", "full"] as const)(
     );
   },
 );
-it.each(["default", "full"] as const)(
+contractTest.for(["default", "full"] as const)(
   "MCP bus preference mutation projection in %s mode",
-  async (mode) => {
+  async (mode, { state }) => {
+    const { invoke } = state;
+
     await invoke(
       "workspace_bus_preferences_set",
       {
@@ -1081,9 +1172,11 @@ it.each(["default", "full"] as const)(
     );
   },
 );
-it.each(["default", "full"] as const)(
+contractTest.for(["default", "full"] as const)(
   "MCP comment mutation projection in %s mode",
-  async (mode) => {
+  async (mode, { state }) => {
+    const { catalog, invoke } = state;
+
     const sectionArgs = { sectionJwId: catalog.sections[0].jwId };
     const createdComment = await invoke(
       "community_comment_create",
@@ -1126,9 +1219,11 @@ it.each(["default", "full"] as const)(
     );
   },
 );
-it.each(["default", "full"] as const)(
+contractTest.for(["default", "full"] as const)(
   "MCP description mutation projection in %s mode",
-  async (mode) => {
+  async (mode, { state }) => {
+    const { userName, catalog, invoke } = state;
+
     const course = catalog.courses[0];
     await invoke(
       "community_description_set",
@@ -1145,9 +1240,11 @@ it.each(["default", "full"] as const)(
     );
   },
 );
-it.each(["default", "full"] as const)(
+contractTest.for(["default", "full"] as const)(
   "MCP upload mutation projection in %s mode",
-  async (mode) => {
+  async (mode, { state, expect }) => {
+    const { userId, invoke } = state;
+
     const upload = await db.upload.create({
       data: {
         userId,
@@ -1168,25 +1265,34 @@ it.each(["default", "full"] as const)(
       { success: true },
       mode,
     );
-    expect(external.deleteObject).toHaveBeenCalledWith(upload.key);
+    expect(external.deletedKeys.has(upload.key)).toBe(true);
     expect(await db.upload.count({ where: { id: upload.id } })).toBe(0);
   },
 );
-it("MCP completed todo consumers retain mode-specific fields", async () => {
-  await db.todo.update({ where: { id: todoId }, data: { completed: true } });
-  for (const mode of ["default", "full"] as const) {
-    const result = await client.call<{ todos: Row[] }>("workspace_todo_list", {
-      includeCompleted: true,
-      mode,
-    });
-    const completed = result.todos.find((todo) => todo.id === todoId);
-    expect(completed).toMatchObject({
-      title: "Projection todo",
-      completed: true,
-      priority: "high",
-      dueAt,
-    });
-    if (mode === "default") expect(completed).not.toHaveProperty("content");
-    else expect(completed).toHaveProperty("content", "Projection todo details");
-  }
-});
+contractTest(
+  "MCP completed todo consumers retain mode-specific fields",
+  async ({ state, expect }) => {
+    const { dueAt, client, todoId } = state;
+
+    await db.todo.update({ where: { id: todoId }, data: { completed: true } });
+    for (const mode of ["default", "full"] as const) {
+      const result = await client.call<{ todos: Row[] }>(
+        "workspace_todo_list",
+        {
+          includeCompleted: true,
+          mode,
+        },
+      );
+      const completed = result.todos.find((todo) => todo.id === todoId);
+      expect(completed).toMatchObject({
+        title: "Projection todo",
+        completed: true,
+        priority: "high",
+        dueAt,
+      });
+      if (mode === "default") expect(completed).not.toHaveProperty("content");
+      else
+        expect(completed).toHaveProperty("content", "Projection todo details");
+    }
+  },
+);

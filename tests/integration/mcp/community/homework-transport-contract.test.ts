@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, vi } from "vitest";
 import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import {
@@ -16,8 +16,6 @@ import {
 } from "@/lib/api/routes/homework-mutation-routes";
 import { handleMcpRequest } from "@/lib/api/routes/mcp-request-handler";
 import { getBetterAuthInstance } from "@/lib/auth/core";
-import { authPrisma } from "@/lib/db/auth-prisma";
-import { prisma } from "@/lib/db/prisma";
 import { createGraphqlYoga } from "@/lib/graphql/server";
 import {
   getJwksUrlForOAuthVerification,
@@ -28,225 +26,258 @@ import {
 import { createFixturePrisma } from "../../../shared/prisma";
 import { cleanupMcpResources } from "../_harness/cleanup";
 import { createMcpHarness, type McpHarness } from "../_harness/client";
+import { mcpTest } from "../_harness/context";
+
+const contractTest = mcpTest
+  .extend(
+    "transportRuntime",
+    { scope: "file", auto: true },
+    ({ mcpConnections: _connections }, { onCleanup }) => {
+      onCleanup(async () => {
+        setCalendarExportRebuildSenderForTest();
+        vi.unstubAllGlobals();
+      });
+      setCalendarExportRebuildSenderForTest(async () => {});
+      vi.stubGlobal(
+        "fetch",
+        async (input: RequestInfo | URL, init?: RequestInit) => {
+          const request = new Request(input, init);
+          if (request.url !== getJwksUrlForOAuthVerification())
+            throw new Error(`Unexpected remote request: ${request.url}`);
+          return getBetterAuthInstance().handler(request);
+        },
+      );
+      return true;
+    },
+  )
+  .extend("state", async ({ mcpConnections: _connections }, { onCleanup }) => {
+    const users = Array.from({ length: 3 }, () => crypto.randomUUID());
+    const clientId = `homework-transport-${crypto.randomUUID()}`;
+    const communityWrite = "community.section-homework:write";
+    const completionWrite = "workspace.homework:write";
+    const scopes = [communityWrite, completionWrite];
+    const grants: string[] = [];
+    const clients: McpHarness[] = [];
+    let onlyCommunity: Client;
+    let onlyCompletion: Client;
+    let sectionId: number;
+    const title = `Public homework ${crypto.randomUUID()}`;
+    const gqlDelete =
+      "mutation($id: ID!) { homeworkDelete(id: $id) { success id } }";
+    const gqlCreate =
+      "mutation($input: CreateHomeworkInput!) { homeworkCreate(input: $input) { id } }";
+    const gqlUpdate =
+      'mutation($id: ID!) { homeworkUpdate(id: $id, input: {title: "Updated through transport"}) { id } }';
+    const gqlComplete =
+      "mutation($id: ID!) { homeworkCompletionSet(homeworkId: $id, completed: true) { completed } }";
+    const gqlBatch =
+      "mutation($id: ID!) { homeworkCompletionsSet(items: [{homeworkId: $id, completed: false}]) { results { success completed } } }";
+    async function fixtureHomework(title = `Fixture ${crypto.randomUUID()}`) {
+      const row = await db.homework.create({
+        data: { sectionId, title, createdById: users[0] },
+      });
+      return row.id;
+    }
+    async function request(
+      index: number,
+      method: string,
+      body?: unknown,
+      allowedScopes = scopes,
+      audience = getOAuthRestAudienceUrls()[0],
+    ) {
+      const issuedAt = Math.floor(Date.now() / 1000);
+      const token = await signResourceBoundOAuthAccessToken({
+        clientId,
+        userId: users[index],
+        grantId: grants[index],
+        scopes: allowedScopes,
+        resources: [audience],
+        issuedAt,
+        expiresAt: issuedAt + 300,
+      });
+      if (!token) throw new Error("Expected signed resource token");
+      return new Request(
+        `https://example.test${audience === getOAuthGraphqlResourceUrl() ? "/api/graphql" : "/api/community/section-homeworks"}`,
+        {
+          method,
+          headers: {
+            authorization: `Bearer ${token}`,
+            ...(body !== undefined
+              ? { "content-type": "application/json" }
+              : {}),
+          },
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        },
+      );
+    }
+    async function graphql(
+      index: number,
+      query: string,
+      variables: Record<string, unknown>,
+      allowedScopes = scopes,
+    ) {
+      return (
+        await createGraphqlYoga(false).fetch(
+          await request(
+            index,
+            "POST",
+            { query, variables },
+            allowedScopes,
+            getOAuthGraphqlResourceUrl(),
+          ),
+          { locals: { locale: "zh-cn" } },
+        )
+      ).json();
+    }
+    async function httpMcp(scope: string) {
+      const signed = await request(
+        0,
+        "POST",
+        {},
+        [scope],
+        getOAuthMcpResourceUrl(),
+      );
+      const client = new Client({
+        name: "homework-scope-contract",
+        version: "1.0.0",
+      });
+      const transport = new StreamableHTTPClientTransport(
+        new URL(getOAuthMcpResourceUrl()),
+        {
+          requestInit: {
+            headers: {
+              authorization: signed.headers.get("authorization") ?? "",
+            },
+          },
+          fetch: async (input, init) =>
+            handleMcpRequest(new Request(input, init)),
+        },
+      );
+      await client.connect(transport);
+      return client;
+    }
+    async function httpCall(
+      client: Client,
+      name: string,
+      args: Record<string, unknown>,
+    ) {
+      const result = await client.callTool({ name, arguments: args });
+      if (result.isError) throw new Error(JSON.stringify(result));
+      if (result.structuredContent) return result.structuredContent;
+      const content = result.content as { type: string; text?: string }[];
+      const text = content.find((block) => block.type === "text")?.text;
+      if (!text) throw new Error("Expected MCP JSON result");
+      return JSON.parse(text);
+    }
+    onCleanup(async () => {
+      await cleanupMcpResources([
+        async () => {
+          await Promise.all([
+            ...clients.map((client) => client.close()),
+            onlyCommunity?.close(),
+            onlyCompletion?.close(),
+          ]);
+        },
+        async () => {
+          await db.auditLog.deleteMany({ where: { userId: { in: users } } });
+        },
+        async () => {
+          if (sectionId) {
+            await db.homework.deleteMany({ where: { sectionId } });
+            await db.section.delete({ where: { id: sectionId } });
+          }
+        },
+        async () => {
+          await db.oAuthConsent.deleteMany({ where: { clientId } });
+        },
+        async () => {
+          await db.oAuthClient.deleteMany({ where: { clientId } });
+        },
+        async () => {
+          await db.user.deleteMany({ where: { id: { in: users } } });
+        },
+      ]);
+    });
+
+    grants.length = 0;
+    clients.length = 0;
+    sectionId = 0;
+    await db.user.createMany({
+      data: users.map((id, index) => ({
+        id,
+        name: `Homework transport ${index}`,
+        email: `${id}@test.invalid`,
+        isAdmin: index === 2,
+      })),
+    });
+    await db.oAuthClient.create({
+      data: {
+        clientId,
+        name: "Homework transport",
+        scopes,
+        redirectUris: ["https://client.example/callback"],
+      },
+    });
+    for (const userId of users) {
+      grants.push(
+        (await db.oAuthConsent.create({ data: { clientId, userId, scopes } }))
+          .grantId,
+      );
+      clients.push(await createMcpHarness(userId, scopes));
+    }
+    onlyCommunity = await httpMcp(communityWrite);
+    onlyCompletion = await httpMcp(completionWrite);
+    const course = await db.course.findFirstOrThrow({ select: { id: true } });
+    const sectionJwId = 1_500_000_000 + Math.floor(Math.random() * 100_000_000);
+    sectionId = (
+      await db.section.create({
+        data: {
+          jwId: sectionJwId,
+          code: `HWTRANSPORT.${sectionJwId}`,
+          courseId: course.id,
+        },
+      })
+    ).id;
+    const publicId = await fixtureHomework(title);
+    await db.description.create({
+      data: { homeworkId: publicId, content: "Public assignment details" },
+    });
+    await db.homeworkCompletion.create({
+      data: { userId: users[0], homeworkId: publicId },
+    });
+
+    return {
+      users,
+      clientId,
+      communityWrite,
+      completionWrite,
+      scopes,
+      grants,
+      clients,
+      onlyCommunity,
+      onlyCompletion,
+      sectionId,
+      sectionJwId,
+      publicId,
+      title,
+      gqlDelete,
+      gqlCreate,
+      gqlUpdate,
+      gqlComplete,
+      gqlBatch,
+      fixtureHomework,
+      request,
+      graphql,
+      httpMcp,
+      httpCall,
+    };
+  });
 
 const db = createFixturePrisma();
-const users = Array.from({ length: 3 }, () => crypto.randomUUID());
-const clientId = `homework-transport-${crypto.randomUUID()}`;
-const communityWrite = "community.section-homework:write";
-const completionWrite = "workspace.homework:write";
-const scopes = [communityWrite, completionWrite];
-const grants: string[] = [];
-const clients: McpHarness[] = [];
-let onlyCommunity: Client;
-let onlyCompletion: Client;
-let sectionId: number;
-let sectionJwId: number;
-let publicId: string;
-const title = `Public homework ${crypto.randomUUID()}`;
-beforeEach(async () => {
-  grants.length = 0;
-  clients.length = 0;
-  sectionId = 0;
-  setCalendarExportRebuildSenderForTest(async () => {});
-  await db.user.createMany({
-    data: users.map((id, index) => ({
-      id,
-      name: `Homework transport ${index}`,
-      email: `${id}@test.invalid`,
-      isAdmin: index === 2,
-    })),
-  });
-  await db.oAuthClient.create({
-    data: {
-      clientId,
-      name: "Homework transport",
-      scopes,
-      redirectUris: ["https://client.example/callback"],
-    },
-  });
-  for (const userId of users) {
-    grants.push(
-      (await db.oAuthConsent.create({ data: { clientId, userId, scopes } }))
-        .grantId,
-    );
-    clients.push(await createMcpHarness(userId, scopes));
-  }
-  vi.stubGlobal(
-    "fetch",
-    async (input: RequestInfo | URL, init?: RequestInit) => {
-      const request = new Request(input, init);
-      if (request.url !== getJwksUrlForOAuthVerification())
-        throw new Error(`Unexpected remote request: ${request.url}`);
-      return getBetterAuthInstance().handler(request);
-    },
-  );
-  onlyCommunity = await httpMcp(communityWrite);
-  onlyCompletion = await httpMcp(completionWrite);
-  const course = await db.course.findFirstOrThrow({ select: { id: true } });
-  sectionJwId = 1_500_000_000 + Math.floor(Math.random() * 100_000_000);
-  sectionId = (
-    await db.section.create({
-      data: {
-        jwId: sectionJwId,
-        code: `HWTRANSPORT.${sectionJwId}`,
-        courseId: course.id,
-      },
-    })
-  ).id;
-  publicId = await fixtureHomework(title);
-  await db.description.create({
-    data: { homeworkId: publicId, content: "Public assignment details" },
-  });
-  await db.homeworkCompletion.create({
-    data: { userId: users[0], homeworkId: publicId },
-  });
-});
-afterEach(async () => {
-  await cleanupMcpResources([
-    async () => {
-      setCalendarExportRebuildSenderForTest();
-    },
-    async () => {
-      await Promise.all([
-        ...clients.map((client) => client.close()),
-        onlyCommunity?.close(),
-        onlyCompletion?.close(),
-      ]);
-    },
-    async () => {
-      vi.unstubAllGlobals();
-    },
-    async () => {
-      await db.auditLog.deleteMany({ where: { userId: { in: users } } });
-    },
-    async () => {
-      if (sectionId) {
-        await db.homework.deleteMany({ where: { sectionId } });
-        await db.section.delete({ where: { id: sectionId } });
-      }
-    },
-    async () => {
-      await db.oAuthConsent.deleteMany({ where: { clientId } });
-    },
-    async () => {
-      await db.oAuthClient.deleteMany({ where: { clientId } });
-    },
-    async () => {
-      await db.user.deleteMany({ where: { id: { in: users } } });
-    },
-    async () => {
-      await Promise.all([
-        db.$disconnect(),
-        prisma.$disconnect(),
-        authPrisma.$disconnect(),
-      ]);
-    },
-  ]);
-});
-async function fixtureHomework(title = `Fixture ${crypto.randomUUID()}`) {
-  const row = await db.homework.create({
-    data: { sectionId, title, createdById: users[0] },
-  });
-  return row.id;
-}
-async function request(
-  index: number,
-  method: string,
-  body?: unknown,
-  allowedScopes = scopes,
-  audience = getOAuthRestAudienceUrls()[0],
-) {
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const token = await signResourceBoundOAuthAccessToken({
-    clientId,
-    userId: users[index],
-    grantId: grants[index],
-    scopes: allowedScopes,
-    resources: [audience],
-    issuedAt,
-    expiresAt: issuedAt + 300,
-  });
-  if (!token) throw new Error("Expected signed resource token");
-  return new Request(
-    `https://example.test${audience === getOAuthGraphqlResourceUrl() ? "/api/graphql" : "/api/community/section-homeworks"}`,
-    {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        ...(body !== undefined ? { "content-type": "application/json" } : {}),
-      },
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    },
-  );
-}
-async function graphql(
-  index: number,
-  query: string,
-  variables: Record<string, unknown>,
-  allowedScopes = scopes,
-) {
-  return (
-    await createGraphqlYoga(false).fetch(
-      await request(
-        index,
-        "POST",
-        { query, variables },
-        allowedScopes,
-        getOAuthGraphqlResourceUrl(),
-      ),
-      { locals: { locale: "zh-cn" } },
-    )
-  ).json();
-}
-async function httpMcp(scope: string) {
-  const signed = await request(
-    0,
-    "POST",
-    {},
-    [scope],
-    getOAuthMcpResourceUrl(),
-  );
-  const client = new Client({
-    name: "homework-scope-contract",
-    version: "1.0.0",
-  });
-  const transport = new StreamableHTTPClientTransport(
-    new URL(getOAuthMcpResourceUrl()),
-    {
-      requestInit: {
-        headers: { authorization: signed.headers.get("authorization") ?? "" },
-      },
-      fetch: async (input, init) => handleMcpRequest(new Request(input, init)),
-    },
-  );
-  await client.connect(transport);
-  return client;
-}
-async function httpCall(
-  client: Client,
-  name: string,
-  args: Record<string, unknown>,
-) {
-  const result = await client.callTool({ name, arguments: args });
-  if (result.isError) throw new Error(JSON.stringify(result));
-  if (result.structuredContent) return result.structuredContent;
-  const content = result.content as { type: string; text?: string }[];
-  const text = content.find((block) => block.type === "text")?.text;
-  if (!text) throw new Error("Expected MCP JSON result");
-  return JSON.parse(text);
-}
-const gqlDelete =
-  "mutation($id: ID!) { homeworkDelete(id: $id) { success id } }";
-const gqlCreate =
-  "mutation($input: CreateHomeworkInput!) { homeworkCreate(input: $input) { id } }";
-const gqlUpdate =
-  'mutation($id: ID!) { homeworkUpdate(id: $id, input: {title: "Updated through transport"}) { id } }';
-const gqlComplete =
-  "mutation($id: ID!) { homeworkCompletionSet(homeworkId: $id, completed: true) { completed } }";
-const gqlBatch =
-  "mutation($id: ID!) { homeworkCompletionsSet(items: [{homeworkId: $id, completed: false}]) { results { success completed } } }";
 
-it("homework.public-section-read", async () => {
+contractTest("homework.public-section-read", async ({ state, expect }) => {
+  const { sectionJwId, publicId, title } = state;
+
   const response = await getHomeworksRoute(
     new Request(
       `https://example.test/api/community/section-homeworks?sectionJwId=${sectionJwId}`,
@@ -294,7 +325,10 @@ it("homework.public-section-read", async () => {
   ).toBe(1);
 });
 
-it("homework.transport-creator-delete", async () => {
+contractTest("homework.transport-creator-delete", async ({ state, expect }) => {
+  const { users, clients, gqlDelete, fixtureHomework, request, graphql } =
+    state;
+
   for (const transport of ["rest", "graphql", "mcp"] as const) {
     const id = await fixtureHomework();
     for (const foreign of [1, 2]) {
@@ -337,7 +371,26 @@ it("homework.transport-creator-delete", async () => {
   }
 });
 
-it("homework.oauth-write-gates", async () => {
+contractTest("homework.oauth-write-gates", async ({ state, expect }) => {
+  const {
+    users,
+    communityWrite,
+    completionWrite,
+    onlyCommunity,
+    onlyCompletion,
+    sectionId,
+    sectionJwId,
+    gqlDelete,
+    gqlCreate,
+    gqlUpdate,
+    gqlComplete,
+    gqlBatch,
+    fixtureHomework,
+    request,
+    graphql,
+    httpCall,
+  } = state;
+
   for (const transport of ["rest", "graphql", "mcp"] as const) {
     const id = await fixtureHomework();
     const input = { sectionJwId, title: `Scope-gated ${transport}` };
@@ -536,3 +589,5 @@ it("homework.oauth-write-gates", async () => {
     ).toBe(0);
   }
 });
+
+afterAll(() => db.$disconnect());

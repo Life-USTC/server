@@ -1,10 +1,11 @@
-import { expect } from "vitest";
+import type { ExpectStatic } from "vitest";
 import { prisma } from "./fixtures";
 
 type AuditLogRow = { id: string; metadata: unknown };
 
 async function pollForAuditLog(
   lookup: () => Promise<AuditLogRow | null | undefined>,
+  expect: ExpectStatic,
 ) {
   let log: AuditLogRow | null = null;
   await expect
@@ -26,21 +27,24 @@ async function pollForAuditLog(
 export async function findDescriptionEditAuditLog(
   descriptionId: string,
   userId: string,
+  expect: ExpectStatic,
 ) {
   if (!userId) {
     throw new Error("userId is required for findDescriptionEditAuditLog");
   }
 
-  return pollForAuditLog(() =>
-    prisma.auditLog.findFirst({
-      where: {
-        action: "description_edit",
-        targetId: descriptionId,
-        targetType: "description",
-        userId,
-      },
-      select: { id: true, metadata: true },
-    }),
+  return pollForAuditLog(
+    () =>
+      prisma.auditLog.findFirst({
+        where: {
+          action: "description_edit",
+          targetId: descriptionId,
+          targetType: "description",
+          userId,
+        },
+        select: { id: true, metadata: true },
+      }),
+    expect,
   );
 }
 
@@ -64,6 +68,7 @@ export async function findCommentAuditLog(input: {
   commentId: string;
   metadata: Record<string, unknown>;
   userId: string;
+  expect: ExpectStatic;
 }) {
   if (!input.userId) {
     throw new Error("userId is required for findCommentAuditLog");
@@ -84,13 +89,14 @@ export async function findCommentAuditLog(input: {
     return logs.find((entry) =>
       metadataMatches(entry.metadata, input.metadata),
     );
-  });
+  }, input.expect);
 }
 
 export async function findUploadDeleteAuditLog(input: {
   metadata: Record<string, unknown>;
   uploadId: string;
   userId: string;
+  expect: ExpectStatic;
 }) {
   if (!input.userId) {
     throw new Error("userId is required for findUploadDeleteAuditLog");
@@ -111,7 +117,7 @@ export async function findUploadDeleteAuditLog(input: {
     return logs.find((entry) =>
       metadataMatches(entry.metadata, input.metadata),
     );
-  });
+  }, input.expect);
 }
 
 export async function deleteCommentRecords(commentIds: string[]) {
