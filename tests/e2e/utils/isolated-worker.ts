@@ -1,7 +1,7 @@
 import { type ChildProcess, fork } from "node:child_process";
 import { createHmac } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createWriteStream, mkdirSync, mkdtempSync } from "node:fs";
+import { rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -9,11 +9,12 @@ import { type APIRequestContext, test as base } from "@playwright/test";
 import { getCookies } from "better-auth/cookies";
 import type { Unstable_DevOptions } from "wrangler";
 import {
-  createDatabaseTemplate,
-  createIsolatedDatabase,
   type DatabaseTemplate,
   databaseConnectionsFromEnvironment,
   type IsolatedDatabase,
+  type OwnedDatabaseTemplate,
+  ownDatabaseTemplate,
+  ownIsolatedDatabase,
 } from "../../shared/isolated-database-lifecycle";
 import { getWorkerProcessEnvironment } from "./worker-database-env";
 
@@ -92,26 +93,59 @@ async function stopWorker(child: ChildProcess, exited: Promise<void>) {
 export const test = base.extend<
   {
     isolatedWorker: IsolatedWorker;
+    _workerResources: { start: () => Promise<IsolatedWorker> };
   },
-  { databaseTemplate: DatabaseTemplate }
+  {
+    databaseTemplate: DatabaseTemplate;
+    _templateResources: OwnedDatabaseTemplate;
+  }
 >({
-  databaseTemplate: [
+  _templateResources: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructured fixture dependencies.
-    async ({}, use) => {
-      const template = await createDatabaseTemplate(
+    async ({}, use, workerInfo) => {
+      mkdirSync(workerInfo.project.outputDir, { recursive: true });
+      const template = ownDatabaseTemplate(
         databaseConnectionsFromEnvironment(process.env),
       );
+      const errors: unknown[] = [];
       try {
         await use(template);
-      } finally {
-        await template.dispose();
+      } catch (error) {
+        errors.push(error);
       }
+      const cleanup = await Promise.allSettled([
+        writeFile(
+          join(
+            workerInfo.project.outputDir,
+            `template-state-${template.name}.json`,
+          ),
+          JSON.stringify(template.state()),
+        ),
+        template.dispose(),
+      ]);
+      errors.push(
+        ...cleanup.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        ),
+      );
+      if (errors.length === 1) throw errors[0];
+      if (errors.length)
+        throw new AggregateError(errors, "Database template fixture failed");
     },
     { scope: "worker", timeout: 60_000 },
   ],
-  isolatedWorker: [
+  databaseTemplate: [
+    async ({ _templateResources }, use) => {
+      await _templateResources.initialize();
+      await use(_templateResources);
+    },
+    { scope: "worker", timeout: 60_000 },
+  ],
+  _workerResources: [
     async ({ databaseTemplate, playwright }, use, testInfo) => {
-      const database = await createIsolatedDatabase(databaseTemplate);
+      const database = ownIsolatedDatabase(databaseTemplate);
+      const abort = new AbortController();
+      let starting: Promise<IsolatedWorker> | undefined;
       let directory: string | undefined;
       let child: ChildProcess | undefined;
       let exited: Promise<void> | undefined;
@@ -122,152 +156,190 @@ export const test = base.extend<
       const logClosed = new Promise<void>((resolve) =>
         log.once("close", resolve),
       );
-      try {
-        directory = await mkdtemp(join(tmpdir(), "life-ustc-worker-"));
-        const port = await availablePort();
-        const origin = `http://localhost:${port}`;
-        const environment = getWorkerProcessEnvironment({
-          ...process.env,
-          FUNCTION_OWNER_DATABASE_URL: database.connections.owner,
-          DATABASE_URL: database.connections.app,
-          AUTH_DATABASE_URL: database.connections.auth,
-          MAINTENANCE_DATABASE_URL: database.connections.maintenance,
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE:
-            database.connections.app,
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH:
-            database.connections.auth,
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE:
-            database.connections.maintenance,
-          WRANGLER_SEND_METRICS: "false",
-        });
-        child = fork(
-          resolve("tests/ci/fixtures/isolated-worker-process.mjs"),
-          [],
-          {
-            env: environment,
-            detached: true,
-            execArgv: [],
-            silent: true,
-          },
-        );
-        child.stdout?.pipe(log, { end: false });
-        child.stderr?.pipe(log, { end: false });
-        // close follows actual process exit AND stdio closure. IPC errors
-        // are observations, never evidence that a live child has stopped.
-        exited = new Promise<void>((resolve) =>
-          child?.once("close", () => resolve()),
-        );
-        child.on("error", (error) => failures.push(error));
-        const ready = new Promise<void>((resolve, reject) => {
-          child?.once("error", reject);
-          child?.once("exit", (code, signal) =>
-            reject(
-              new Error(
-                `Private Worker exited before ready (${code ?? signal})`,
+      const start = () => {
+        if (starting) throw new Error("Private Worker was started twice");
+        starting = (async () => {
+          await writeFile(
+            testInfo.outputPath("isolated-worker-state.json"),
+            JSON.stringify({
+              database: database.name,
+              template: databaseTemplate.name,
+            }),
+          );
+          abort.signal.throwIfAborted();
+          await database.initialize(abort.signal);
+          abort.signal.throwIfAborted();
+          directory = mkdtempSync(join(tmpdir(), "life-ustc-worker-"));
+          const port = await availablePort();
+          abort.signal.throwIfAborted();
+          const origin = `http://localhost:${port}`;
+          const environment = getWorkerProcessEnvironment({
+            ...process.env,
+            FUNCTION_OWNER_DATABASE_URL: database.connections.owner,
+            DATABASE_URL: database.connections.app,
+            AUTH_DATABASE_URL: database.connections.auth,
+            MAINTENANCE_DATABASE_URL: database.connections.maintenance,
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE:
+              database.connections.app,
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH:
+              database.connections.auth,
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE:
+              database.connections.maintenance,
+            WRANGLER_SEND_METRICS: "false",
+          });
+          child = fork(
+            resolve("tests/ci/fixtures/isolated-worker-process.mjs"),
+            [],
+            {
+              env: environment,
+              detached: true,
+              execArgv: [],
+              silent: true,
+            },
+          );
+          child.stdout?.pipe(log, { end: false });
+          child.stderr?.pipe(log, { end: false });
+          // close follows actual process exit AND stdio closure. IPC errors
+          // are observations, never evidence that a live child has stopped.
+          exited = new Promise<void>((resolve) =>
+            child?.once("close", () => resolve()),
+          );
+          child.on("error", (error) => failures.push(error));
+          const ready = new Promise<void>((resolve, reject) => {
+            child?.once("error", reject);
+            child?.once("exit", (code, signal) =>
+              reject(
+                new Error(
+                  `Private Worker exited before ready (${code ?? signal})`,
+                ),
               ),
-            ),
-          );
-          child?.on(
-            "message",
-            (message: { type?: string; port?: number; message?: string }) => {
-              if (message.type === "error") reject(new Error(message.message));
-              if (message.type === "ready") {
-                if (message.port !== port)
-                  reject(new Error("Private Worker bound an unexpected port"));
-                else resolve();
-              }
-            },
-          );
-        });
-        void ready.catch(() => undefined);
-        await writeFile(
-          testInfo.outputPath("isolated-worker-state.json"),
-          JSON.stringify({
-            database: database.name,
-            template: databaseTemplate.name,
-            directory,
-            processGroup: child.pid,
-            origin,
-          }),
-        );
-        const options: Unstable_DevOptions = {
-          config: resolve("wrangler.e2e.jsonc"),
-          envFiles: [],
-          local: true,
-          port,
-          inspectorPort: 0,
-          vars: { APP_PUBLIC_ORIGIN: origin },
-          persistTo: directory,
-          logLevel: "error",
-          experimental: { disableDevRegistry: true, watch: false },
-        };
-        child.send({
-          type: "start",
-          script: resolve("tests/ci/fixtures/e2e-storage-worker.ts"),
-          options,
-        });
-        await withTimeout(
-          ready,
-          60_000,
-          "Private Worker startup timed out; see isolated-worker.log",
-        );
-        const health = await fetch(`${origin}/api/health`);
-        const healthBody = await health.text();
-        if (health.status !== 200 || healthBody !== "ok\n")
-          throw new Error(
-            `Private Worker failed health check: ${health.status} ${healthBody.slice(0, 300)}`,
-          );
-        async function createSession(id: string): Promise<Actor> {
-          await database.owner.user.findUniqueOrThrow({ where: { id } });
-          const sessionToken = crypto.randomUUID();
-          await database.owner.session.create({
-            data: {
-              userId: id,
-              sessionToken,
-              expires: new Date(Date.now() + 60 * 60 * 1000),
-            },
+            );
+            child?.on(
+              "message",
+              (message: { type?: string; port?: number; message?: string }) => {
+                if (message.type === "error")
+                  reject(new Error(message.message));
+                if (message.type === "ready") {
+                  if (message.port !== port)
+                    reject(
+                      new Error("Private Worker bound an unexpected port"),
+                    );
+                  else resolve();
+                }
+              },
+            );
           });
-          const signature = createHmac("sha256", authSecret)
-            .update(sessionToken)
-            .digest("base64");
-          const cookie = {
-            name: getCookies({ baseURL: origin }).sessionToken.name,
-            value: encodeURIComponent(`${sessionToken}.${signature}`),
-            url: origin,
-          };
-          const request = await playwright.request.newContext({
-            baseURL: origin,
-            extraHTTPHeaders: {
-              cookie: `${cookie.name}=${cookie.value}`,
+          void ready.catch(() => undefined);
+          const cancelled = new Promise<never>((_, reject) => {
+            abort.signal.addEventListener(
+              "abort",
+              () => reject(abort.signal.reason),
+              { once: true },
+            );
+          });
+          void cancelled.catch(() => undefined);
+          await writeFile(
+            testInfo.outputPath("isolated-worker-state.json"),
+            JSON.stringify({
+              database: database.name,
+              template: databaseTemplate.name,
+              directory,
+              processGroup: child.pid,
               origin,
-            },
+            }),
+          );
+          abort.signal.throwIfAborted();
+          const options: Unstable_DevOptions = {
+            config: resolve("wrangler.e2e.jsonc"),
+            envFiles: [],
+            local: true,
+            port,
+            inspectorPort: 0,
+            vars: { APP_PUBLIC_ORIGIN: origin },
+            persistTo: directory,
+            logLevel: "error",
+            experimental: { disableDevRegistry: true, watch: false },
+          };
+          child.send({
+            type: "start",
+            script: resolve("tests/ci/fixtures/e2e-storage-worker.ts"),
+            options,
           });
-          requests.push(request);
-          return { id, cookie, request };
-        }
-        await use({
-          origin,
-          database,
-          createSession,
-          createActor: async ({ isAdmin = false } = {}) => {
-            const id = crypto.randomUUID();
-            await database.owner.user.create({
+          await withTimeout(
+            Promise.race([ready, cancelled]),
+            60_000,
+            "Private Worker startup timed out; see isolated-worker.log",
+          );
+          abort.signal.throwIfAborted();
+          const health = await fetch(`${origin}/api/health`, {
+            signal: abort.signal,
+          });
+          const healthBody = await health.text();
+          abort.signal.throwIfAborted();
+          if (health.status !== 200 || healthBody !== "ok\n")
+            throw new Error(
+              `Private Worker failed health check: ${health.status} ${healthBody.slice(0, 300)}`,
+            );
+          async function createSession(id: string): Promise<Actor> {
+            await database.owner.user.findUniqueOrThrow({ where: { id } });
+            const sessionToken = crypto.randomUUID();
+            await database.owner.session.create({
               data: {
-                id,
-                email: `${id}@isolated-worker.test`,
-                emailVerified: true,
-                username: `iw${id.replaceAll("-", "").slice(0, 17)}`,
-                name: "Isolated Worker actor",
-                isAdmin,
+                userId: id,
+                sessionToken,
+                expires: new Date(Date.now() + 60 * 60 * 1000),
               },
             });
-            return createSession(id);
-          },
-        });
+            const signature = createHmac("sha256", authSecret)
+              .update(sessionToken)
+              .digest("base64");
+            const cookie = {
+              name: getCookies({ baseURL: origin }).sessionToken.name,
+              value: encodeURIComponent(`${sessionToken}.${signature}`),
+              url: origin,
+            };
+            const request = await playwright.request.newContext({
+              baseURL: origin,
+              extraHTTPHeaders: {
+                cookie: `${cookie.name}=${cookie.value}`,
+                origin,
+              },
+            });
+            requests.push(request);
+            return { id, cookie, request };
+          }
+          return {
+            origin,
+            database,
+            createSession,
+            createActor: async ({ isAdmin = false } = {}) => {
+              const id = crypto.randomUUID();
+              await database.owner.user.create({
+                data: {
+                  id,
+                  email: `${id}@isolated-worker.test`,
+                  emailVerified: true,
+                  username: `iw${id.replaceAll("-", "").slice(0, 17)}`,
+                  name: "Isolated Worker actor",
+                  isAdmin,
+                },
+              });
+              return createSession(id);
+            },
+          };
+        })();
+        void starting.catch(() => undefined);
+        return starting;
+      };
+      try {
+        // Register native teardown before the dependent fixture allocates or waits.
+        await use({ start });
       } catch (error) {
         failures.push(error);
       }
       {
+        abort.abort(new Error("Private Worker resources disposed"));
+        await starting?.catch(() => undefined);
         const results = await Promise.allSettled(
           requests.map((request) => request.dispose()),
         );
@@ -299,6 +371,12 @@ export const test = base.extend<
         if (errors.length)
           throw new AggregateError(errors, "Private Worker lifecycle failed");
       }
+    },
+    { timeout: 90_000 },
+  ],
+  isolatedWorker: [
+    async ({ _workerResources }, use) => {
+      await use(await _workerResources.start());
     },
     { timeout: 90_000 },
   ],
