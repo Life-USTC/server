@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { decodeJwt } from "jose";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
@@ -9,8 +9,7 @@ import {
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
   restReadScope,
 } from "@/lib/oauth/constants";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
+import { test } from "./_fixture";
 import {
   expectAccessTokenCannotInitializeMcp,
   issueAccessToken,
@@ -21,16 +20,15 @@ import {
 } from "./helpers";
 
 test.describe("/api/mcp - OAuth token 资源绑定", () => {
-  test.describe.configure({ mode: "serial" });
-
   test("授权码已绑定 resource 时 token exchange 可省略 resource", async ({
     page,
     request,
+    oauth,
   }) => {
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    await signInAsDebugUser(page, "/");
+    const resource = `${oauth.worker.origin}/api/mcp`;
 
     const { accessToken } = await issueAccessToken(page, request, {
+      owner: oauth,
       scope: MCP_CLIENT_SCOPE,
       clientScopes: MCP_CLIENT_SCOPES,
       resource,
@@ -66,20 +64,22 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
   test("同一客户端增权后签发精确绑定且包含累计 scope 的 MCP token", async ({
     page,
     request,
+    oauth,
   }) => {
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const resource = `${oauth.worker.origin}/api/mcp`;
     const baselineScopes = [
       restReadScope("account.profile"),
       OAUTH_OFFLINE_ACCESS_SCOPE,
     ];
     const expandedScopes = [...baselineScopes, restReadScope("workspace.todo")];
-    await signInAsDebugUser(page, "/");
     const clientId = await registerPublicClient(
       request,
       expandedScopes.join(" "),
+      oauth,
     );
 
     const baseline = await issueAccessTokenForClient(page, request, {
+      owner: oauth,
       clientId,
       resource,
       scope: baselineScopes.join(" "),
@@ -87,6 +87,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     expect(baseline.response.status()).toBe(200);
 
     const expanded = await issueAccessTokenForClient(page, request, {
+      owner: oauth,
       clientId,
       resource,
       scope: expandedScopes.join(" "),
@@ -107,8 +108,8 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       name: "incremental-scope-e2e-client",
       version: "1.0.0",
     });
-    await client.connect(transport);
     try {
+      await client.connect(transport);
       await expect(
         client.callTool({ name: "workspace_todo_list", arguments: {} }),
       ).resolves.toMatchObject({ structuredContent: { success: true } });
@@ -117,11 +118,15 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     }
   });
 
-  test("MCP resource JWT 被受保护 REST 路由拒绝", async ({ page, request }) => {
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    await signInAsDebugUser(page, "/");
+  test("MCP resource JWT 被受保护 REST 路由拒绝", async ({
+    page,
+    request,
+    oauth,
+  }) => {
+    const resource = `${oauth.worker.origin}/api/mcp`;
 
     const { accessToken } = await issueAccessToken(page, request, {
+      owner: oauth,
       scope: MCP_CLIENT_SCOPE,
       clientScopes: MCP_CLIENT_SCOPES,
       resource,
@@ -142,11 +147,12 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
   test("无 resource 的 MCP refresh token 可刷新为可用的 MCP access token", async ({
     page,
     request,
+    oauth,
   }) => {
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    await signInAsDebugUser(page, "/");
+    const resource = `${oauth.worker.origin}/api/mcp`;
 
     const { clientId, refreshToken } = await issueAccessToken(page, request, {
+      owner: oauth,
       scope: `${MCP_CLIENT_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
       clientScopes: [...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE],
       resource,
@@ -197,10 +203,10 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
   test("无 resource 的 MCP refresh token 不能省略 resource 来签发 MCP access token", async ({
     page,
     request,
+    oauth,
   }) => {
-    await signInAsDebugUser(page, "/");
-
     const { clientId, refreshToken } = await issueAccessToken(page, request, {
+      owner: oauth,
       scope: `${MCP_CLIENT_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
       clientScopes: [...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE],
     });
@@ -232,16 +238,17 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
   test("仅 REST 的 refresh token 不能省略 resource 来签发 MCP access token", async ({
     page,
     request,
+    oauth,
   }) => {
-    const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
+    const restResource = `${oauth.worker.origin}/api/auth`;
     const restClientScopes = [
       ...DEFAULT_OAUTH_CLIENT_SCOPES,
       OAUTH_OFFLINE_ACCESS_SCOPE,
       restReadScope("workspace.todo"),
     ];
-    await signInAsDebugUser(page, "/");
 
     const { clientId, refreshToken } = await issueAccessToken(page, request, {
+      owner: oauth,
       scope: restClientScopes.join(" "),
       clientScopes: restClientScopes,
       resource: restResource,
