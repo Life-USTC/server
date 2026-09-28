@@ -1,11 +1,12 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../../utils/auth";
+import { test } from "../../../../utils/isolated-worker";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
+import { expectSettingsPage } from "../../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -19,10 +20,9 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
     );
   });
 
-  test("legacy query 输入规范到语义路径", async ({
-    page,
-    account: _account,
-  }) => {
+  test("legacy query 输入规范到语义路径", async ({ page, isolatedWorker }) => {
+    const actor = await isolatedWorker.createActor();
+    await page.context().addCookies([actor.cookie]);
     await gotoAndWaitForReady(page, "/account/settings/preferences");
 
     const response = await page.request.get(
@@ -38,8 +38,10 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
 
   test("外观选择立即应用并写入既有 localStorage", async ({
     page,
-    account: _account,
+    isolatedWorker,
   }, testInfo) => {
+    const actor = await isolatedWorker.createActor();
+    await page.context().addCookies([actor.cookie]);
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/account/settings/preferences");
 
@@ -77,11 +79,15 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
 
   test("语言选择复用 locale API 且 URL 不增加语言目录", async ({
     page,
-    account: _account,
+    isolatedWorker,
   }, testInfo) => {
-    await page.request.post("/api/account/preferences", {
-      data: { locale: "zh-cn" },
-    });
+    const actor = await isolatedWorker.createActor();
+    await page
+      .context()
+      .addCookies([
+        actor.cookie,
+        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+      ]);
     await gotoAndWaitForReady(page, "/account/settings/preferences");
 
     const localeResponse = page.waitForResponse(
@@ -111,7 +117,9 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
   });
 });
 
-test("页面契约", async ({ page, account: _account }, testInfo) => {
+test("页面契约", async ({ page, isolatedWorker }, testInfo) => {
+  const actor = await isolatedWorker.createActor();
+  await page.context().addCookies([actor.cookie]);
   await expectSettingsPage(page, "/account/settings/preferences", testInfo);
   await expect(page.getByText(/外观|Appearance/i).first()).toBeVisible();
 });
