@@ -78,8 +78,9 @@ requirements:
   acceptance:
     given: An isolated acting owner and another owner have distinct memberships. The acting owner
       is checked independently as a regular user and as a suspended administrator.
-    when: REST and GraphQL session and OAuth clients and an HTTP MCP client independently add,
-      update and remove memberships; anonymous and read-only clients attempt writes.
+    when: Browser journeys add and remove memberships, REST and GraphQL session and OAuth clients
+      and an HTTP MCP client independently add, update and remove memberships, and anonymous and
+      read-only clients attempt writes.
     then:
     - Each successful transition produces the explicitly expected persisted membership and personal kind.
     - The other owner's complete membership records and unrelated own membership remain unchanged.
