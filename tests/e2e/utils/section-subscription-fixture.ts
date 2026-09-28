@@ -1,5 +1,5 @@
 import { test as communityTest } from "./community-fixture";
-import { withSettledPagePosts } from "./settled-page-posts";
+import { withSettledPageWrites } from "./settled-page-writes";
 
 type Section = { id: number; jwId: number; path: string };
 
@@ -9,7 +9,7 @@ export const test = communityTest.extend<{
 }>({
   section: async ({ community, page }, use) => {
     const path = `/catalog/sections/${community.section.jwId}`;
-    await withSettledPagePosts(
+    await withSettledPageWrites(
       page,
       (url) => url.pathname === path,
       async () => {
