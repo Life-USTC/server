@@ -227,7 +227,7 @@ requirements:
     - The new committed revision refreshes API and page data and makes the previously missing identity
       readable.
     test:
-      file: tests/integration/catalog-public-read-contracts.test.ts
+      file: tests/integration/section-public-detail-cache.test.ts
       name: section.public-detail-cache
 - id: section.relational-course-filter
   category: validation

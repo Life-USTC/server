@@ -153,7 +153,7 @@ requirements:
     - The new committed revision refreshes API and page data and makes the previously missing identity
       readable.
     test:
-      file: tests/integration/catalog-public-read-contracts.test.ts
+      file: tests/integration/teacher-public-detail-cache.test.ts
       name: teacher.public-detail-cache
 - id: teacher.history-page-default
   category: behavior
