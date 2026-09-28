@@ -191,6 +191,9 @@ export const test = accountTest.extend<{
                 OR: [{ userId: { in: ids } }, { subjectUserId: { in: ids } }],
               },
             }),
+            db.featureOperationEvent.deleteMany({
+              where: { userId: { in: ids } },
+            }),
             db.user.deleteMany({ where: { id: { in: ids } } }),
           ]),
         );
