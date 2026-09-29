@@ -1,6 +1,8 @@
 import type { TestPrismaClient } from "./prisma";
 
-export async function createYoungBrowseFixture(db: TestPrismaClient) {
+export async function createYoungBrowseFixture(
+  db: Pick<TestPrismaClient, "youngOrganizer" | "youngEvent">,
+) {
   const marker = `young-browse-${crypto.randomUUID()}`;
   const organizerIds = Array.from(
     { length: 24 },
