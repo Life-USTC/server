@@ -28,22 +28,23 @@ Use the actual debug-provider sign-in flow when testing login itself.
 tests/integration/mcp/
   workspace/ · catalog/ · community/ · bus/
   profile.test.ts
-  _harness/      client, context, fixtures, cleanup
+  _harness/      SDK client, private runtime, domain fixtures, audit observer
 ```
 
 ## Harness (`_harness/`)
 
 - `createMcpHarness` / `createAnonymousMcpHarness` — `client.ts`
-- `mcpTest` — native Vitest fixtures with file-owned database connections
-- `readerFixture()` — a fresh reader identity for each test
-- `actorFixture()` — throwaway user and client injected into each mutation test
-- `academicActorFixture()` — isolated user + private academic fixture
-  (`sectionId`, `sectionJwId`, `sectionCode`); shared metadata stays read-only
-- `createEphemeralMcpUser()` — single-`it` user; call `close()` after cleanup
-- App queries: `createTestPrisma()` from `tests/shared/prisma.ts` (restricted role).
-- Fixture setup, cleanup, and authoritative DB assertions: `createFixturePrisma()`.
-  Never pass that owner client into application services or add user context around
+- `isolatedMcpTest` — a native per-test database, restricted-role runtime and owned SDK sessions
+- `mcpActor` / `mcpOtherActor` — independent actors inside that test's private database
+- `mcpSessions.own()` / `ownAnonymous()` — register session ownership before initialization;
+  cleanup closes every session and drains in-flight handlers before disposing the runtime/database
+- `mcpSection`, `mcpSchedules`, `mcpBus` and domain fixtures arrange only their explicit rows;
+  consumers never read a shared seeded graph
+- `isolatedDatabase.owner` — authoritative setup and state observations only.
+  Never pass the owner client into application services or add user context around
   a service call to compensate for missing context inside the application.
+- Direct REST-handler or Web-use-case comparisons must run within `mcpRuntime.run()`;
+  their private database bindings still use the application role.
 
 The MCP in-memory client verifies tool behavior and serialization; real Worker
 HTTP authentication is a separate layer. `fileParallelism` remains off for the
@@ -77,4 +78,4 @@ The harness rejects a mismatched dump client; it does not rewrite schema SQL.
 
 - `DEV_SEED_ANCHOR` from `tests/fixtures/dev-seed.ts`
 - Mutation markers: `[integration-test] ...`
-- Clean up created data; pass explicit `userId` into audit helpers when isolated
+- Audit observers receive the private database and an explicit `userId`; no eager shared Prisma singleton

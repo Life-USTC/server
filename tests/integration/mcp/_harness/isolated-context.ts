@@ -50,7 +50,10 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
     });
     await use(undefined);
   },
-  mcpRuntime: async ({ isolatedDatabase, _mcpCatalogRevision }, use) => {
+  mcpRuntime: async (
+    { isolatedDatabase, _mcpCatalogRevision, onTestFinished },
+    use,
+  ) => {
     const runtime = createNodeRuntime({
       APP_PUBLIC_ORIGIN: "https://life.example",
       APP_CANONICAL_ORIGIN: "https://life.example",
@@ -65,22 +68,30 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
       USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
       USER_BATCH_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
     });
+    const requestRuntime: Runtime = {
+      ...runtime,
+      run: (work) =>
+        runtime.run(() => {
+          // Direct SDK requests have no Worker HTML cache. Its real purge
+          // is covered by the Worker contracts, not this transport fixture.
+          setCloudflareCatalogInvalidator(async () => {});
+          return work();
+        }),
+    };
     try {
-      await use({
-        ...runtime,
-        run: (work) =>
-          runtime.run(() => {
-            // Direct SDK requests have no Worker HTML cache. Its real purge
-            // is covered by the Worker contracts, not this transport fixture.
-            setCloudflareCatalogInvalidator(async () => {});
-            return work();
-          }),
-      });
+      await use(requestRuntime);
     } finally {
-      await runtime.close();
+      try {
+        await requestRuntime.close();
+      } catch (error) {
+        // Keep dependency cleanup running; the case still fails with this exact error.
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
-  mcpSessions: async ({ mcpRuntime }, use) => {
+  mcpSessions: async ({ mcpRuntime, onTestFinished }, use) => {
     const clients: McpHarness[] = [];
     let closed = false;
     function requireOpen() {
@@ -119,7 +130,15 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
       // Teardown is registered before dependents create/initialize clients.
       await use(sessions);
     } finally {
-      await closeSessions();
+      try {
+        await sessions.close();
+      } catch (error) {
+        // Vitest 5 stops a fixture cleanup chain at the first rejection. Report
+        // after the runtime and database fixtures have finished their own cleanup.
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
   mcpActor: async ({ isolatedDatabase, mcpSessions }, use) => {

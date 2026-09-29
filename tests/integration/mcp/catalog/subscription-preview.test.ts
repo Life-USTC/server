@@ -1,28 +1,5 @@
-import { actorFixture, DEV_SEED, prisma } from "../_harness";
-import { mcpTest } from "../_harness/context";
-
-const toolTest = mcpTest
-  .extend(
-    "context",
-    actorFixture({
-      emailPrefix: "subscription-preview",
-      name: "Subscription preview owner",
-    }),
-  )
-  .extend("state", async ({ context: _context }, { onCleanup }) => {
-    const state = { semesterIds: [] as number[], courseId: 0 };
-    onCleanup(async () => {
-      await prisma.section.deleteMany({
-        where: { semesterId: { in: state.semesterIds } },
-      });
-      await prisma.semester.deleteMany({
-        where: { id: { in: state.semesterIds } },
-      });
-      if (state.courseId)
-        await prisma.course.deleteMany({ where: { id: state.courseId } });
-    });
-    return state;
-  });
+import type { TestPrismaClient } from "../../../shared/prisma";
+import { catalogMcpTest as toolTest } from "../_harness/catalog-fixture";
 
 type Preview = {
   success: boolean;
@@ -34,7 +11,10 @@ type Preview = {
   note: string;
 };
 
-async function userState(context: { userId: string }) {
+async function userState(
+  prisma: TestPrismaClient,
+  context: { userId: string },
+) {
   const userId = context.userId;
   return {
     user: await prisma.user.findUniqueOrThrow({ where: { id: userId } }),
@@ -55,39 +35,44 @@ async function userState(context: { userId: string }) {
 
 toolTest(
   "cases.mcp-assistant-workflows.preview-before-write-1",
-  async ({ context, state, expect }) => {
-    const { semesterIds } = state;
+  async ({ mcpActor: context, mcpCatalog, isolatedDatabase, expect }) => {
+    const prisma = isolatedDatabase.owner;
     const nonce = crypto.randomUUID().replaceAll("-", "").slice(0, 8);
     const baseJwId = 1_400_000_000 + Math.floor(Math.random() * 100_000_000);
     const code = `PREVIEW${nonce}.01`;
-    const course = await prisma.course.create({
-      data: { jwId: baseJwId, code, nameCn: `Preview ${nonce}` },
-    });
-    state.courseId = course.id;
-    for (const offset of [0, 1]) {
-      const semester = await prisma.semester.create({
-        data: {
-          jwId: baseJwId + offset,
-          code: `preview-${nonce}-${offset}`,
-          nameCn: `Preview semester ${nonce} ${offset}`,
-        },
-      });
-      semesterIds.push(semester.id);
-    }
-    const sections = [];
-    for (const offset of [0, 1, 2]) {
-      sections.push(
-        await prisma.section.create({
-          data: {
-            jwId: baseJwId + offset,
-            code,
-            courseId: course.id,
-            semesterId: semesterIds[offset === 2 ? 1 : 0],
-          },
-        }),
-      );
-    }
-    const before = await userState(context);
+    const { semesterIds, sections } = await prisma.$transaction(
+      async (prisma) => {
+        const semesterIds: number[] = [];
+        const course = await prisma.course.create({
+          data: { jwId: baseJwId, code, nameCn: `Preview ${nonce}` },
+        });
+        for (const offset of [0, 1]) {
+          const semester = await prisma.semester.create({
+            data: {
+              jwId: baseJwId + offset,
+              code: `preview-${nonce}-${offset}`,
+              nameCn: `Preview semester ${nonce} ${offset}`,
+            },
+          });
+          semesterIds.push(semester.id);
+        }
+        const sections = [];
+        for (const offset of [0, 1, 2]) {
+          sections.push(
+            await prisma.section.create({
+              data: {
+                jwId: baseJwId + offset,
+                code,
+                courseId: course.id,
+                semesterId: semesterIds[offset === 2 ? 1 : 0],
+              },
+            }),
+          );
+        }
+        return { semesterIds, sections };
+      },
+    );
+    const before = await userState(prisma, context);
     expect(before.memberships).toEqual([]);
     for (const mode of ["default", "full"]) {
       for (const [index, expectedSections] of [
@@ -121,21 +106,21 @@ toolTest(
           "only affect your workspace and calendar here",
         );
         expect(preview.note).toContain("not official USTC course enrollment");
-        expect(await userState(context)).toEqual(before);
+        expect(await userState(prisma, context)).toEqual(before);
       }
     }
     const current = await context.client.call<Preview>(
       "catalog_section_match_preview",
       {
-        codes: [DEV_SEED.section.code],
+        codes: [mcpCatalog.section.code],
       },
     );
     expect(current.success).toBe(true);
-    expect(current.semester.nameCn).toBe(DEV_SEED.semesterNameCn);
+    expect(current.semester.nameCn).toBe(mcpCatalog.semester.nameCn);
     expect(current.sections.map((section) => section.jwId)).toContain(
-      DEV_SEED.section.jwId,
+      mcpCatalog.section.jwId,
     );
-    expect(await userState(context)).toEqual(before);
+    expect(await userState(prisma, context)).toEqual(before);
 
     const imported = await context.client.call(
       "workspace_subscription_import",
