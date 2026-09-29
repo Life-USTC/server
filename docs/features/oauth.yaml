@@ -156,15 +156,15 @@ requirements:
   acceptance:
     given: Recent administrator and ordinary sessions, all three actual admin client patterns, and separate
       users with private todos.
-    when: Create clients, resolve active grants without consent, spoof provenance metadata, and use a
-      trusted client token against workspace and administrator routes.
+    when: Create clients through real HTTP actions, request delegated resources without consent, spoof
+      provenance metadata, and use a trusted client token against workspace and administrator routes.
     then:
     - Only the administrator-created trusted pattern receives persisted trust; ordinary users cannot create
       it, and names, callback hosts, discovery source, or upstream metadata never confer trust.
     - Trusted tokens read only their user-owned resources and cannot access session-only admin routes;
       clearing trust immediately removes the consent exemption.
     test:
-      file: tests/integration/oauth-admin-client-contracts.test.ts
+      file: tests/integration/rest/oauth/admin-client-contracts.test.ts
       name: oauth.trusted-clients-admin-backend
 - id: oauth.public-clients-pkce
   category: authorization
@@ -238,7 +238,7 @@ requirements:
       client.
     - Administrator input/provider validation failures return 400 rather than an internal server error.
     test:
-      file: tests/integration/oauth-admin-client-contracts.test.ts
+      file: tests/integration/rest/oauth/admin-client-contracts.test.ts
       name: oauth.client-validation-from-provider
 - id: oauth.external-account-issuer-identity
   category: authorization
