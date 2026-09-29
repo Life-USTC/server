@@ -28,6 +28,7 @@ export type HomeworkEffects = {
   >;
 };
 export type HomeworkEffectContext = {
+  checkpoint: (name: string, expected: HomeworkEffects) => Promise<void>;
   headers: Record<string, string>;
   readHeaders: (incoming: Request) => Record<string, string>;
   activeReads: () => Request[];
@@ -153,7 +154,7 @@ export async function withHomeworkEffects(
     };
   }
 
-  async function collect() {
+  async function collect(expectedMessages = calendarMessages.length) {
     let snapshot:
       | { producer: ProducerObservation; consumer: CalendarObservation }
       | undefined;
@@ -172,8 +173,8 @@ export async function withHomeworkEffects(
           const consumer: CalendarObservation = await consumerResponse.json();
           snapshot = { producer, consumer };
           return (
-            producer.messages.length >= calendarMessages.length &&
-            consumer.attempts.length >= calendarMessages.length &&
+            producer.messages.length >= expectedMessages &&
+            consumer.attempts.length >= expectedMessages &&
             consumer.attempts.every((attempt) => attempt.complete)
           );
         },
@@ -255,8 +256,19 @@ export async function withHomeworkEffects(
     }
   }
 
-  async function observe() {
-    const { producer, consumer } = await collect();
+  async function observe(
+    expected: HomeworkEffects = {
+      calendarMessages,
+      calendarTokenCreated,
+      auditActions,
+    },
+  ) {
+    const {
+      calendarMessages,
+      calendarTokenCreated = false,
+      auditActions = {},
+    } = expected;
+    const { producer, consumer } = await collect(calendarMessages.length);
     assertServerReads(producer);
     expect(producer.backgroundErrors).toEqual([]);
     expect(
@@ -393,6 +405,63 @@ export async function withHomeworkEffects(
     };
   }
 
+  async function settleReads(expectedMessages: number) {
+    // Route continuations/writes settle independently of response() promises
+    // that Chromium can strand when their originating document is replaced.
+    while (pending.size) await Promise.allSettled(pending);
+    if (observeReads && registered) {
+      await expect
+        .poll(
+          () =>
+            [...ownedReads.values()].filter(
+              (owned) => !owned.settled && !owned.retiredBy,
+            ).length,
+          {
+            timeout: 15_000,
+            message: "Current document reads receive a native browser terminal",
+          },
+        )
+        .toBe(0);
+      // A retired browser request may reach its native handler after navigation.
+      // Retry only this read-only observation; missing completion still fails.
+      await expect(async () => {
+        assertServerReads((await collect(expectedMessages)).producer);
+      }).toPass({ timeout: 15_000 });
+    }
+  }
+
+  const checkpoints: {
+    name: string;
+    expected: HomeworkEffects;
+    status: "pending" | "passed" | "failed";
+    observation?: Pick<
+      Awaited<ReturnType<typeof observe>>,
+      "producer" | "consumer" | "audits"
+    >;
+  }[] = [];
+
+  async function checkpoint(name: string, expectation: HomeworkEffects) {
+    if (!accepting || page.isClosed())
+      throw new Error("Homework checkpoint requires an active workflow");
+    const entry: (typeof checkpoints)[number] = {
+      name,
+      expected: structuredClone(expectation),
+      status: "pending",
+    };
+    checkpoints.push(entry);
+    try {
+      await settleReads(entry.expected.calendarMessages.length);
+      const { producer, consumer, audits } = await observe(entry.expected);
+      entry.observation = { producer, consumer, audits };
+      entry.status = "passed";
+    } catch (error) {
+      entry.status = "failed";
+      // A callback catching the assertion cannot erase a failed checkpoint.
+      errors.push(error);
+      throw error;
+    }
+  }
+
   try {
     expect((await request.get(producerPath)).status()).toBe(404);
     expect((await request.get(consumerPath)).status()).toBe(404);
@@ -476,6 +545,7 @@ export async function withHomeworkEffects(
         }),
     );
     await work({
+      checkpoint,
       headers,
       readHeaders,
       activeReads: browserReads.activeReads,
@@ -486,28 +556,8 @@ export async function withHomeworkEffects(
   } finally {
     accepting = false;
     try {
-      // Route continuations/writes settle independently of response() promises
-      // that Chromium can strand when their originating document is replaced.
-      while (pending.size) await Promise.allSettled(pending);
+      await settleReads(calendarMessages.length);
       if (observeReads && registered) {
-        await expect
-          .poll(
-            () =>
-              [...ownedReads.values()].filter(
-                (owned) => !owned.settled && !owned.retiredBy,
-              ).length,
-            {
-              timeout: 15_000,
-              message:
-                "Current document reads receive a native browser terminal",
-            },
-          )
-          .toBe(0);
-        // A retired browser request may reach its native handler after navigation.
-        // Retry only this read-only observation; missing completion still fails.
-        await expect(async () =>
-          assertServerReads((await collect()).producer),
-        ).toPass({ timeout: 15_000 });
         browserReads.prepareRetiredClose();
       }
     } catch (error) {
@@ -516,7 +566,7 @@ export async function withHomeworkEffects(
     if (!observeReads && registered)
       try {
         await testInfo.attach("homework-effects", {
-          body: JSON.stringify(await observe(), null, 2),
+          body: JSON.stringify({ ...(await observe()), checkpoints }, null, 2),
           contentType: "application/json",
         });
       } catch (error) {
@@ -543,7 +593,7 @@ export async function withHomeworkEffects(
     if (observeReads && registered)
       try {
         await testInfo.attach("homework-effects", {
-          body: JSON.stringify(await observe(), null, 2),
+          body: JSON.stringify({ ...(await observe()), checkpoints }, null, 2),
           contentType: "application/json",
         });
       } catch (error) {
