@@ -148,7 +148,8 @@ export default {
       );
       const image =
         key && /^publications\/images\/url-sha256\/[0-9a-f]{64}$/.test(key);
-      if (!key || !(image || (object && object[1] === object[2].slice(0, 2))))
+      const youngPoster = key === "young-events/images/group1/contract/poster.jpg";
+      if (!key || !(youngPoster || image || (object && object[1] === object[2].slice(0, 2))))
         return new Response("Expected a publication fixture object key", {
           status: 400,
         });
