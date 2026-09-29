@@ -29,6 +29,7 @@ export default defineConfig({
     "src/app/**/*.spec.ts",
     "src/app/**/*.test.ts",
     "src/app/**/test.ts",
+    "src/testing/**/*.test.ts",
   ],
   outputDir: `${reportRoot}/e2e-results`,
   fullyParallel: false,
