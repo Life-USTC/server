@@ -1,10 +1,9 @@
+import { arrangeBusTimetable } from "../../shared/bus-timetable";
 import type { TestPrismaClient } from "../../shared/prisma";
 import {
   test as collectionTest,
   type OtherCollectionPolicyFixture,
 } from "./other-collection-policy-fixture";
-
-import { arrangeBusTimetable } from "./personal-preferences-fixture";
 import { withSettledPageWrites } from "./settled-page-writes";
 
 export async function arrangeEmbeddedTablePolicyFixture(
