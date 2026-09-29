@@ -83,7 +83,7 @@ requirements:
     - Every operation still returns the persisted event.
     - No upstream network request is attempted.
     test:
-      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      file: tests/integration/mcp/catalog/young-public-static-snapshot-contract.test.ts
       name: young-event.static-snapshot-sourced
 - id: young-event.snapshot-authoritative
   category: consistency

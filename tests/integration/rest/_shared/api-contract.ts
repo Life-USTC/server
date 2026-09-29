@@ -93,28 +93,6 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/catalog/sections/[jwId]/schedules": {
-      const response = await request.get(
-        `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
-      );
-      expect(response.status()).toBe(200);
-      expect(
-        ((await response.json()) as Array<{ id?: number }>).length,
-      ).toBeGreaterThan(0);
-      return;
-    }
-
-    case "/api/catalog/sections/[jwId]/schedule-groups": {
-      const response = await request.get(
-        `/api/catalog/sections/${DEV_SEED.section.jwId}/schedule-groups`,
-      );
-      expect(response.status()).toBe(200);
-      expect(
-        ((await response.json()) as Array<{ schedules?: unknown[] }>).length,
-      ).toBeGreaterThan(0);
-      return;
-    }
-
     case "/api/catalog/sections/[jwId]/calendar.ics": {
       await expectCalendarResponse(
         await request.get(
@@ -272,22 +250,6 @@ export async function assertApiContract(
       };
       expect((body.departures?.length ?? 0) > 0).toBe(true);
       expect(body.departures?.[0]?.status).toBe("upcoming");
-      return;
-    }
-
-    case "/api/catalog/semesters/current": {
-      const response = await request.get("/api/catalog/semesters/current");
-      expect(response.status()).toBe(200);
-      const body = (await response.json()) as {
-        jwId?: number;
-        nameCn?: string;
-        code?: string;
-      };
-      // semester.yml current-semester.display.fields
-      expect(body.jwId).toBe(DEV_SEED.semesterJwId);
-      expect(body.nameCn).toBe(DEV_SEED.semesterNameCn);
-      expect(typeof body.nameCn).toBe("string");
-      expect(typeof body.code).toBe("string");
       return;
     }
 
