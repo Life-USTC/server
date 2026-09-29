@@ -28,6 +28,7 @@ export async function createCalendarContractFixture(
         users.push(
           await db.user.create({
             data: {
+              id: crypto.randomUUID(),
               name,
               username: `cal${role}${marker}`,
               email: `${name}@example.test`,

@@ -123,7 +123,7 @@ test("calendar body completion retains real deferred OAuth usage and runtime cle
           expect(body.data).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
-                type: "todo",
+                type: "todo_due",
                 title: calendar.todo.title,
               }),
             ]),

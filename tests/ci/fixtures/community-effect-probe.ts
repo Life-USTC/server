@@ -16,6 +16,7 @@ type Probe = {
   backgroundErrors: string[];
   purges: Effect[];
   messages: Effect[];
+  requests: Effect[];
 };
 const probes = new Map<string, Probe>();
 const path = "/__test/community-effects";
@@ -276,6 +277,7 @@ export async function handleCommunityEffectProbe(
       backgroundErrors: [],
       purges: [],
       messages: [],
+      requests: [],
     });
     return new Response(null, { status: 201 });
   }
@@ -291,6 +293,7 @@ export async function handleCommunityEffectProbe(
     purges: probe.purges,
     messages: probe.messages,
     backgroundErrors: probe.backgroundErrors,
+    requests: probe.requests,
   });
 }
 
@@ -301,11 +304,101 @@ export function observeCommunityEffects<
     E2E_STORAGE_SECRET: string;
     CALENDAR_EXPORT_REBUILD?: Queue;
   },
->(request: Request, env: T, context: ExecutionContext) {
+>(
+  request: Request,
+  env: T,
+  context: ExecutionContext,
+  entrypoint?: "PublicSsr",
+) {
   const id = request.headers.get("x-test-community-probe") ?? "";
   const probe =
     authorized(request, env) && validId.test(id) ? probes.get(id) : undefined;
-  if (!probe) return { env, context };
+  const fetch = (forward: () => Response | Promise<Response>) => {
+    const operation = Promise.resolve().then(forward);
+    if (!probe) return operation;
+    const requestState: Effect = {
+      outcome: "pending",
+      value: {
+        method: request.method,
+        path: new URL(request.url).pathname,
+        ...(entrypoint ? { entrypoint } : {}),
+        ...(request.headers.has("x-test-community-request")
+          ? { requestId: request.headers.get("x-test-community-request") }
+          : {}),
+      },
+    };
+    probe.requests.push(requestState);
+    const fail = (error: unknown) => {
+      requestState.outcome = "rejected";
+      requestState.error = errorMessage(error);
+    };
+    const tracked = operation.then(
+      (response) => {
+        requestState.result = response.status;
+        if (!response.body) {
+          requestState.outcome = "fulfilled";
+          return response;
+        }
+        // Runtime cleanup may register waitUntil work at response EOF/cancel.
+        // Own the genuine stream until then, preserving chunks/backpressure.
+        const reader = response.body.getReader();
+        let cancelling = false;
+        let complete!: () => void;
+        probe.tasks.push(new Promise<void>((resolve) => (complete = resolve)));
+        const finish = () => {
+          if (requestState.outcome === "pending")
+            requestState.outcome = "fulfilled";
+          complete();
+        };
+        return new Response(
+          new ReadableStream<Uint8Array>(
+            {
+              async pull(controller) {
+                try {
+                  const chunk = await reader.read();
+                  // cancel() resolves pending reads before the underlying
+                  // cancellation callback (and its cleanup) has completed.
+                  if (cancelling) return;
+                  if (!chunk.done) {
+                    controller.enqueue(chunk.value);
+                    return;
+                  }
+                  finish();
+                  controller.close();
+                } catch (error) {
+                  fail(error);
+                  if (!cancelling) finish();
+                  controller.error(error);
+                }
+              },
+              async cancel(reason) {
+                cancelling = true;
+                try {
+                  await reader.cancel(reason);
+                } catch (error) {
+                  fail(error);
+                  throw error;
+                } finally {
+                  finish();
+                }
+              },
+            },
+            { highWaterMark: 0 },
+          ),
+          response,
+        );
+      },
+      (error) => {
+        fail(error);
+        throw error;
+      },
+    );
+    // Register the actual handler before its first await. A browser abort is
+    // not evidence that server SQL or later waitUntil registration has ended.
+    probe.tasks.push(tracked);
+    return tracked;
+  };
+  if (!probe) return { env, context, fetch };
   async function observe<T>(
     effects: Effect[],
     value: unknown,
@@ -385,5 +478,5 @@ export function observeCommunityEffects<
       return typeof value === "function" ? value.bind(target) : value;
     },
   });
-  return { env: observedEnv, context: observedContext };
+  return { env: observedEnv, context: observedContext, fetch };
 }
