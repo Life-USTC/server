@@ -24,48 +24,10 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../utils/academic-events";
 import { test as calendarTest } from "../../../../utils/calendar-presentation-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { test as publicTest } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘日历", () => {
   test.describe.configure({ mode: "parallel" });
-  publicTest(
-    "未登录旧 calendar tab 重定向到语义路径",
-    async ({ publicFlow, page }) => {
-      await publicFlow.run(async () => {
-        const response = await page.request.get(
-          "/?tab=calendar&calendarView=week",
-          {
-            maxRedirects: 0,
-          },
-        );
-
-        expect(response.status()).toBe(308);
-        expect(response.headers().location).toBe(
-          "/workspace/calendar?calendarView=week",
-        );
-      }, {});
-    },
-  );
-
-  publicTest(
-    "workspace 查询 tab 也仅作为永久兼容入口",
-    async ({ publicFlow, page }) => {
-      await publicFlow.run(async () => {
-        const response = await page.request.get(
-          "/workspace?tab=calendar&calendarView=week",
-          {
-            maxRedirects: 0,
-          },
-        );
-
-        expect(response.status()).toBe(308);
-        expect(response.headers().location).toBe(
-          "/workspace/calendar?calendarView=week",
-        );
-      }, {});
-    },
-  );
 
   test("登录后显示日历，包含班级事件链接和星期标签", async ({
     page,

@@ -309,7 +309,7 @@ requirements:
     - Nested schedule teachers/participations and exam rooms preserve page metadata and cap 101-item inputs
       at the requested 20 or 100.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-pagination.test.ts
       name: graphql.pagination
 - id: graphql.search-boundary
   category: validation
@@ -395,7 +395,7 @@ requirements:
     - Matching fields return the authenticated data; every missing feature produces a 403 with its exact
       required scope.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-scoped-query-auth.test.ts
       name: graphql.scoped-query-auth
 - id: graphql.workspace-ownership
   category: authorization
@@ -410,7 +410,7 @@ requirements:
     - Workspace field arguments and filter schemas do not accept userId, sectionIds or internal visibility/shape
       switches.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-workspace-ownership.test.ts
       name: graphql.workspace-ownership
 - id: graphql.homework-completion-requirement
   category: consistency
@@ -768,7 +768,7 @@ requirements:
     then:
     - The response respects the principal boundary and returns only the permitted root data.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-anonymous-roots.test.ts
       name: graphql.anonymous-roots
 - id: graphql.session-query-authority
   category: authorization
@@ -780,7 +780,7 @@ requirements:
     then:
     - The response respects the principal boundary and returns only the permitted root data.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-session-query-authority.test.ts
       name: graphql.session-query-authority
 - id: graphql.mcp-mutation-confirmation
   category: validation

@@ -26,72 +26,10 @@ import {
   sidebarNavigationLink,
 } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { test as publicTest } from "../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
 test.describe("仪表盘", () => {
   test.describe.configure({ mode: "parallel" });
-  publicTest(
-    "未登录旧 homework tab 永久重定向到受保护语义路径",
-    async ({ publicFlow, page }) => {
-      await publicFlow.run(async () => {
-        const response = await page.request.get(
-          "/?tab=homeworks&homeworkView=list",
-          {
-            maxRedirects: 0,
-          },
-        );
-
-        expect(response.status()).toBe(308);
-        expect(response.headers().location).toBe(
-          "/workspace/homeworks?homeworkView=list",
-        );
-      }, {});
-    },
-  );
-
-  publicTest(
-    "无效 tab 不再选择其他公共资源",
-    async ({ publicFlow, page }, testInfo) => {
-      await publicFlow.run(async () => {
-        await gotoAndWaitForReady(page, "/?tab=unknown", {
-          testInfo,
-          screenshotLabel: "home-invalid-tab",
-        });
-
-        await expect(page).toHaveURL(/\/\?tab=unknown$/);
-        await expect(
-          page.getByRole("heading", {
-            level: 1,
-            name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
-          }),
-        ).toBeVisible();
-        await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
-      }, {});
-    },
-  );
-
-  publicTest(
-    "/workspace 默认永久重定向到 overview 语义路径",
-    async ({ publicFlow, page }) => {
-      await publicFlow.run(async () => {
-        for (const method of ["GET", "HEAD"]) {
-          const response = await page.request.fetch(
-            "/workspace?overviewWeek=next",
-            {
-              maxRedirects: 0,
-              method,
-            },
-          );
-
-          expect(response.status()).toBe(308);
-          expect(response.headers().location).toBe(
-            "/workspace/overview?overviewWeek=next",
-          );
-        }
-      }, {});
-    },
-  );
 
   test("登录后首页显示总览、所有标签和独立数据", async ({
     page,

@@ -22,6 +22,7 @@ type Expected = {
 type RouteMatch = Parameters<Page["route"]>[0];
 export type CommunityFlow = {
   run: (work: () => Promise<void>, expected?: Expected) => Promise<void>;
+  assertAnonymousNoEffects: () => Promise<void>;
   newContext: (
     options?: Parameters<Browser["newContext"]>[0],
   ) => Promise<BrowserContext>;
@@ -108,7 +109,7 @@ export async function withCommunityFlow(
     }
     while (pending.size) await Promise.allSettled([...pending]);
   }
-  async function preparePageClose(current: Page) {
+  async function waitForActiveReads(current: Page) {
     const reader = reads.get(current);
     if (!reader || current.isClosed()) return;
     await expect
@@ -123,6 +124,11 @@ export async function withCommunityFlow(
         },
       )
       .toBe(0);
+  }
+  async function preparePageClose(current: Page) {
+    const reader = reads.get(current);
+    if (!reader || current.isClosed()) return;
+    await waitForActiveReads(current);
     reader.prepareRetiredClose();
   }
   async function closePage(current: Page) {
@@ -213,6 +219,91 @@ export async function withCommunityFlow(
       });
     } else throw new Error("Unexpected community browser write: " + path);
   }
+  async function readProducer() {
+    const response = await observer.get(probePath, { headers: secret });
+    expect(response.status()).toBe(200);
+    const producer = await response.json();
+    return producer;
+  }
+  function assertProducer(producer: Awaited<ReturnType<typeof readProducer>>) {
+    expect(producer.backgroundErrors).toEqual([]);
+    expect(producer.messages).toEqual([]);
+    expect(producer.requests.length).toBeGreaterThan(0);
+    for (const request of producer.requests) {
+      expect(request.outcome).toBe("fulfilled");
+      expect(request.result).toEqual(expect.any(Number));
+      if (!account) expect(["GET", "HEAD"]).toContain(request.value.method);
+    }
+    for (const purge of producer.purges) {
+      expect(purge.outcome).toBe("fulfilled");
+      expect(purge.result).toMatchObject({ ok: true });
+    }
+  }
+  async function readAnonymousState() {
+    return {
+      users: await db.user.count(),
+      comments: await db.comment.count(),
+      homeworks: await db.homework.count(),
+      todos: await db.todo.count(),
+      subscriptions: await db.userSectionSubscription.count(),
+      courses: await db.course.count(),
+    };
+  }
+  function assertAnonymousState(state: Record<string, number>) {
+    expect(state).toEqual({
+      users: 0,
+      comments: 0,
+      homeworks: 0,
+      todos: 0,
+      subscriptions: 0,
+      courses: 0,
+    });
+  }
+  async function assertAnonymousNoEffects() {
+    try {
+      open();
+      if (account || !registered || !actualBody || completed)
+        throw new Error(
+          "Anonymous effect checks require an active owned public flow",
+        );
+      // Keep the page and admission open. Retired-document reads remain owned by
+      // the finalizer; only the current document must reach its browser terminal.
+      while (pending.size) await Promise.allSettled([...pending]);
+      for (const current of reads.keys()) await waitForActiveReads(current);
+      open();
+      // GET drains this probe's actual requests and their appended background work
+      // without clearing cumulative observations or closing its Worker.
+      const producer = await readProducer();
+      const audits = await db.auditLog.findMany();
+      const state = await readAnonymousState();
+      await testInfo.attach("anonymous-no-effects", {
+        contentType: "application/json",
+        body: JSON.stringify({
+          database: isolatedWorker.database.name,
+          origin,
+          producer,
+          audits,
+          writes,
+          anonymousState: state,
+          errors: errors.map(String),
+          browserErrors: [...reads.values()].flatMap((reader) =>
+            reader.errors.map(String),
+          ),
+        }),
+      });
+      assertProducer(producer);
+      expect(expected).toEqual({});
+      expect(producer.purges).toEqual([]);
+      expect(writes).toEqual([]);
+      expect(audits).toEqual([]);
+      expect(errors).toEqual([]);
+      for (const reader of reads.values()) expect(reader.errors).toEqual([]);
+      assertAnonymousState(state);
+    } catch (error) {
+      remember(error);
+      throw error;
+    }
+  }
   function finalize() {
     finalization ??= (async () => {
       closing = true;
@@ -245,22 +336,8 @@ export async function withCommunityFlow(
       }
       if (registered) {
         try {
-          const response = await observer.get(probePath, { headers: secret });
-          expect(response.status()).toBe(200);
-          const producer = await response.json();
-          expect(producer.backgroundErrors).toEqual([]);
-          expect(producer.messages).toEqual([]);
-          expect(producer.requests.length).toBeGreaterThan(0);
-          for (const request of producer.requests) {
-            expect(request.outcome).toBe("fulfilled");
-            expect(request.result).toEqual(expect.any(Number));
-            if (!account)
-              expect(["GET", "HEAD"]).toContain(request.value.method);
-          }
-          for (const purge of producer.purges) {
-            expect(purge.outcome).toBe("fulfilled");
-            expect(purge.result).toMatchObject({ ok: true });
-          }
+          const producer = await readProducer();
+          assertProducer(producer);
           const readAudits = () =>
             db.auditLog.findMany({
               where: account ? { userId: account.id } : undefined,
@@ -305,22 +382,8 @@ export async function withCommunityFlow(
               // Anonymous checks own an empty database; no synthetic actor or
               // seeded account is needed to observe their public projections.
               expect(expected).toEqual({});
-              anonymousState = {
-                users: await db.user.count(),
-                comments: await db.comment.count(),
-                homeworks: await db.homework.count(),
-                todos: await db.todo.count(),
-                subscriptions: await db.userSectionSubscription.count(),
-                courses: await db.course.count(),
-              };
-              expect(anonymousState).toEqual({
-                users: 0,
-                comments: 0,
-                homeworks: 0,
-                todos: 0,
-                subscriptions: 0,
-                courses: 0,
-              });
+              anonymousState = await readAnonymousState();
+              assertAnonymousState(anonymousState);
             }
           }
           await testInfo.attach("community-shell-effects", {
@@ -386,6 +449,7 @@ export async function withCommunityFlow(
     await withBrowserWorkflow(page, async (workflow) => {
       try {
         await use({
+          assertAnonymousNoEffects,
           onClosing(release) {
             open();
             releases.push(release);

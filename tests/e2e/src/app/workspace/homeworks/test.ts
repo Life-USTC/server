@@ -33,43 +33,10 @@ import {
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { test as publicTest } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
-
-  publicTest(
-    "未登录旧 homework tab 重定向到语义路径",
-    async ({ publicFlow, page }) => {
-      await publicFlow.run(async () => {
-        const response = await page.request.get(
-          "/?tab=homeworks&homeworkView=list",
-          {
-            maxRedirects: 0,
-          },
-        );
-
-        expect(response.status()).toBe(308);
-        expect(response.headers().location).toBe(
-          "/workspace/homeworks?homeworkView=list",
-        );
-      }, {});
-    },
-  );
-
-  publicTest("未登录语义路径要求登录", async ({ publicFlow, page }) => {
-    await publicFlow.run(async () => {
-      const response = await page.request.get("/workspace/homeworks", {
-        maxRedirects: 0,
-      });
-
-      expect(response.status()).toBe(303);
-      expect(response.headers().location).toBe(
-        "/account/sign-in?callbackUrl=%2Fworkspace%2Fhomeworks",
-      );
-    }, {});
-  });
 
   test("登录后显示独立作业及所有必填字段", async ({
     page,

@@ -22,26 +22,10 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/academic-events";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { test as publicTest } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘考试", () => {
   test.describe.configure({ mode: "parallel" });
-  publicTest(
-    "未登录旧 exams tab 重定向到语义路径",
-    async ({ publicFlow, page }) => {
-      await publicFlow.run(async () => {
-        const response = await page.request.get("/?tab=exams&examView=list", {
-          maxRedirects: 0,
-        });
-
-        expect(response.status()).toBe(308);
-        expect(response.headers().location).toBe(
-          "/workspace/exams?examView=list",
-        );
-      }, {});
-    },
-  );
 
   test("登录后显示考试筛选工具栏和列表", async ({
     page,

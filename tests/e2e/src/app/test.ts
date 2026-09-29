@@ -5,9 +5,77 @@ import { captureStepScreenshot } from "../../utils/screenshot";
 import { test as shellTest } from "../../utils/shell-fixture";
 import { assertPageContract } from "./_shared/page-contract";
 
-test("/", async ({ publicFlow, page }, testInfo) => {
+test("anonymous landing and keyboard access", async ({
+  publicFlow,
+  page,
+}, testInfo) => {
   await publicFlow.run(async () => {
-    await assertPageContract(page, { routePath: "/", testInfo });
+    await test.step("ui.navigation-landmarks-4", async () => {
+      await gotoAndWaitForReady(page, "/");
+
+      await page.keyboard.press("Tab");
+      const skipLink = page.getByRole("link", {
+        name: /跳转到主要内容|Skip to main content/i,
+      });
+      await expect(skipLink).toBeFocused();
+      await expect(skipLink).toBeVisible();
+      await expect(skipLink).toHaveCSS("position", "fixed");
+      await page.keyboard.press("Enter");
+      await expect(page.locator("#main-content")).toBeFocused();
+      await publicFlow.assertAnonymousNoEffects();
+    });
+    await test.step("/", async () => {
+      await assertPageContract(page, { routePath: "/", testInfo });
+      await publicFlow.assertAnonymousNoEffects();
+    });
+    await test.step("/ 首页快速入口可见", async () => {
+      await gotoAndWaitForReady(page, "/", {
+        testInfo,
+        screenshotLabel: "home",
+      });
+
+      await expect(page.locator("#app-logo")).toBeVisible();
+      await expect(page.locator("#app-user-menu")).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
+        }),
+      ).toBeVisible();
+      const main = page.locator("#main-content");
+      await expect(
+        main.getByRole("link", { name: /^(课程|Courses)$/i }),
+      ).toBeVisible();
+      // Bus and links are independent public destinations in the shell.
+      await expect(
+        main.getByRole("link", { name: /^(校车|Bus)$/i }),
+      ).toBeVisible();
+      await expect(
+        main.getByRole("link", { name: /^(网站|Websites)$/i }),
+      ).toBeVisible();
+      await expect(
+        main.locator('a[href="/account/sign-in"]').first(),
+      ).toBeVisible();
+      await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
+      await captureStepScreenshot(page, testInfo, "home-shortcuts");
+      await publicFlow.assertAnonymousNoEffects();
+    });
+    await test.step("仪表盘 › 无效 tab 不再选择其他公共资源", async () => {
+      await gotoAndWaitForReady(page, "/?tab=unknown", {
+        testInfo,
+        screenshotLabel: "home-invalid-tab",
+      });
+
+      await expect(page).toHaveURL(/\/\?tab=unknown$/);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
+        }),
+      ).toBeVisible();
+      await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
+      await publicFlow.assertAnonymousNoEffects();
+    });
   }, {});
 });
 
@@ -29,37 +97,6 @@ shellTest(
     }, {});
   },
 );
-
-test("/ 首页快速入口可见", async ({ publicFlow, page }, testInfo) => {
-  await publicFlow.run(async () => {
-    await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
-
-    await expect(page.locator("#app-logo")).toBeVisible();
-    await expect(page.locator("#app-user-menu")).toHaveCount(0);
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
-      }),
-    ).toBeVisible();
-    const main = page.locator("#main-content");
-    await expect(
-      main.getByRole("link", { name: /^(课程|Courses)$/i }),
-    ).toBeVisible();
-    // Bus and links are independent public destinations in the shell.
-    await expect(
-      main.getByRole("link", { name: /^(校车|Bus)$/i }),
-    ).toBeVisible();
-    await expect(
-      main.getByRole("link", { name: /^(网站|Websites)$/i }),
-    ).toBeVisible();
-    await expect(
-      main.locator('a[href="/account/sign-in"]').first(),
-    ).toBeVisible();
-    await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
-    await captureStepScreenshot(page, testInfo, "home-shortcuts");
-  }, {});
-});
 
 test("/ shell 匿名 390px 抽屉只展示公开导航", async ({
   publicFlow,
@@ -292,22 +329,6 @@ test("ui.theme-no-js", async ({ publicFlow, baseURL }) => {
     } finally {
       await publicFlow.closeContext(context);
     }
-  }, {});
-});
-
-test("ui.navigation-landmarks-4", async ({ publicFlow, page }) => {
-  await publicFlow.run(async () => {
-    await gotoAndWaitForReady(page, "/");
-
-    await page.keyboard.press("Tab");
-    const skipLink = page.getByRole("link", {
-      name: /跳转到主要内容|Skip to main content/i,
-    });
-    await expect(skipLink).toBeFocused();
-    await expect(skipLink).toBeVisible();
-    await expect(skipLink).toHaveCSS("position", "fixed");
-    await page.keyboard.press("Enter");
-    await expect(page.locator("#main-content")).toBeFocused();
   }, {});
 });
 
