@@ -1,7 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../../utils/activity-fixture";
 import { openCommentComposer } from "../../../../../utils/comments";
-import { withE2ePrisma } from "../../../../../utils/e2e-db/prisma";
 import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
@@ -12,50 +11,53 @@ test("活动、主办方订阅和提醒入口可用", async ({
   page,
   activity,
   activityConsumer,
+  activityRun,
 }, testInfo) => {
-  const response = await gotoAndWaitForReady(
-    page,
-    "/workspace/subscriptions/activities",
-    {
-      browserHealth: {},
-      expectMeaningfulContent: true,
-      expectNoHorizontalOverflow: true,
-      uiQuality: {},
-      testInfo,
-    },
-  );
-  expect(response?.ok()).toBe(true);
-  await expandWorkspaceSidebarGroup(page);
-  await expect(sidebarNavigationLink(page, /^(今天|Today)$/i)).toBeVisible();
-  // This consumer starts from independently arranged state; it never relies on
-  // one of the subscription mutation journeys having run first.
-  const views = [
-    {
-      view: "events",
-      title: activity.name,
-      href: `/catalog/young-events/${activity.youngId}`,
-    },
-    {
-      view: "organizers",
-      title: activityConsumer.organizerName,
-      href: `/catalog/young-events/organizers/${activityConsumer.organizerId}`,
-    },
-    {
-      view: "notifications",
-      title: activityConsumer.notificationTitle,
-      href: `/catalog/young-events/${activity.youngId}`,
-    },
-  ];
-  for (const { view, title, href } of views) {
-    await page.locator(`nav a[href="?view=${view}"]`).click();
-    await expect(page).toHaveURL(new RegExp(`view=${view}`));
-    await expect(page.locator("main")).toBeVisible();
-    const link = page
-      .locator("main")
-      .getByRole("link", { name: title, exact: true });
-    await expect(link).toBeVisible();
-    await expect(link).toHaveAttribute("href", href);
-  }
+  await activityRun(async () => {
+    const response = await gotoAndWaitForReady(
+      page,
+      "/workspace/subscriptions/activities",
+      {
+        browserHealth: {},
+        expectMeaningfulContent: true,
+        expectNoHorizontalOverflow: true,
+        uiQuality: {},
+        testInfo,
+      },
+    );
+    expect(response?.ok()).toBe(true);
+    await expandWorkspaceSidebarGroup(page);
+    await expect(sidebarNavigationLink(page, /^(今天|Today)$/i)).toBeVisible();
+    // This consumer starts from independently arranged state; it never relies on
+    // one of the subscription mutation journeys having run first.
+    const views = [
+      {
+        view: "events",
+        title: activity.name,
+        href: `/catalog/young-events/${activity.youngId}`,
+      },
+      {
+        view: "organizers",
+        title: activityConsumer.organizerName,
+        href: `/catalog/young-events/organizers/${activityConsumer.organizerId}`,
+      },
+      {
+        view: "notifications",
+        title: activityConsumer.notificationTitle,
+        href: `/catalog/young-events/${activity.youngId}`,
+      },
+    ];
+    for (const { view, title, href } of views) {
+      await page.locator(`nav a[href="?view=${view}"]`).click();
+      await expect(page).toHaveURL(new RegExp(`view=${view}`));
+      await expect(page.locator("main")).toBeVisible();
+      const link = page
+        .locator("main")
+        .getByRole("link", { name: title, exact: true });
+      await expect(link).toBeVisible();
+      await expect(link).toHaveAttribute("href", href);
+    }
+  });
 });
 
 for (const viewport of [
@@ -66,106 +68,112 @@ for (const viewport of [
     page,
     account,
     activity,
+    activityRun,
+    activityDb,
   }) => {
-    const youngId = activity.youngId;
-    const subscriptions = () =>
-      withE2ePrisma((db) =>
-        db.userYoungEventSubscription.findMany({
-          where: { userId: account.id },
-          select: {
-            userId: true,
-            youngId: true,
-            remindSignup: true,
-            remindDeadline: true,
-            remindStart: true,
-          },
+    await activityRun(async () => {
+      const youngId = activity.youngId;
+      const subscriptions = () =>
+        activityDb((db) =>
+          db.userYoungEventSubscription.findMany({
+            where: { userId: account.id },
+            select: {
+              userId: true,
+              youngId: true,
+              remindSignup: true,
+              remindDeadline: true,
+              remindStart: true,
+            },
+          }),
+        );
+      expect(await subscriptions()).toEqual([]);
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.setViewportSize(viewport);
+      await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
+      await page
+        .getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ })
+        .click();
+      await expect(
+        page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
+      ).toBeVisible();
+      expect(await subscriptions()).toEqual([
+        {
+          userId: account.id,
+          youngId,
+          remindSignup: true,
+          remindDeadline: true,
+          remindStart: true,
+        },
+      ]);
+      const reminder = page.getByRole("checkbox", {
+        name: /报名截止前|registration closes/i,
+      });
+      await expect(reminder).toBeHidden();
+      await page
+        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+        .click();
+      await reminder.uncheck();
+      await page
+        .getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ })
+        .click();
+      await expect(
+        page.getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ }),
+      ).toBeEnabled();
+      expect(await subscriptions()).toEqual([
+        {
+          userId: account.id,
+          youngId,
+          remindSignup: true,
+          remindDeadline: false,
+          remindStart: true,
+        },
+      ]);
+      await page.reload();
+      await expect(reminder).toBeHidden();
+      await page
+        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+        .click();
+      await expect(reminder).not.toBeChecked();
+      await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
+      await expect(
+        page.getByRole("link", {
+          name: "Browser activity subscription",
+          exact: true,
         }),
-      );
-    expect(await subscriptions()).toEqual([]);
-    const errors: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    await page.setViewportSize(viewport);
-    await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
-    await page
-      .getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ })
-      .click();
-    await expect(
-      page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
-    ).toBeVisible();
-    expect(await subscriptions()).toEqual([
-      {
-        userId: account.id,
-        youngId,
-        remindSignup: true,
-        remindDeadline: true,
-        remindStart: true,
-      },
-    ]);
-    const reminder = page.getByRole("checkbox", {
-      name: /报名截止前|registration closes/i,
+      ).toBeVisible();
+      await expect(page.getByRole("checkbox")).toHaveCount(0);
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await expect(
+        page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
+      ).toBeEnabled();
+      await page.screenshot({
+        path: test
+          .info()
+          .outputPath(`young-subscriptions-${viewport.width}.png`),
+        fullPage: true,
+      });
+      await page
+        .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ })
+        .click();
+      await expect(
+        page.getByRole("link", {
+          name: "Browser activity subscription",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      expect(await subscriptions()).toEqual([]);
+      await page.reload();
+      await expect(
+        page.getByRole("link", { name: activity.name, exact: true }),
+      ).toHaveCount(0);
+      expect(errors).toEqual([]);
     });
-    await expect(reminder).toBeHidden();
-    await page
-      .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
-      .click();
-    await reminder.uncheck();
-    await page
-      .getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ })
-      .click();
-    await expect(
-      page.getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ }),
-    ).toBeEnabled();
-    expect(await subscriptions()).toEqual([
-      {
-        userId: account.id,
-        youngId,
-        remindSignup: true,
-        remindDeadline: false,
-        remindStart: true,
-      },
-    ]);
-    await page.reload();
-    await expect(reminder).toBeHidden();
-    await page
-      .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
-      .click();
-    await expect(reminder).not.toBeChecked();
-    await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
-    await expect(
-      page.getByRole("link", {
-        name: "Browser activity subscription",
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(page.getByRole("checkbox")).toHaveCount(0);
-    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-    await expect(
-      page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
-    ).toBeEnabled();
-    await page.screenshot({
-      path: test.info().outputPath(`young-subscriptions-${viewport.width}.png`),
-      fullPage: true,
-    });
-    await page
-      .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ })
-      .click();
-    await expect(
-      page.getByRole("link", {
-        name: "Browser activity subscription",
-        exact: true,
-      }),
-    ).toHaveCount(0);
-    expect(await subscriptions()).toEqual([]);
-    await page.reload();
-    await expect(
-      page.getByRole("link", { name: activity.name, exact: true }),
-    ).toHaveCount(0);
-    expect(errors).toEqual([]);
   });
 }
 
@@ -173,48 +181,53 @@ test("activity detail posts comments to the public youngId and preserves them on
   page,
   account,
   activity,
+  activityRun,
+  activityDb,
 }) => {
-  const body = "Independent public activity comment";
-  await gotoAndWaitForReady(page, `/catalog/young-events/${activity.youngId}`);
-  const composer = await openCommentComposer(page);
-  await composer.fill(body);
-  const response = page.waitForResponse(
-    (r) =>
-      r.url().endsWith("/api/community/comments") &&
-      r.request().method() === "POST",
-  );
-  await page
-    .locator("#comments")
-    .getByRole("button", { name: /发布评论|Post comment/i })
-    .click();
-  const created = await response;
-  expect(created.request().postDataJSON()).toMatchObject({
-    targetType: "young-event",
-    youngId: activity.youngId,
-  });
-  expect(created.status()).toBe(201);
-  const id = (await created.json()).id;
-  expect(
-    await withE2ePrisma((db) =>
-      db.comment.findUniqueOrThrow({ where: { id } }),
-    ),
-  ).toMatchObject({
-    userId: account.id,
-    youngEventId: activity.id,
-    body,
-    status: "active",
-    visibility: "public",
-  });
-  await expect(
-    page.locator("#comments").getByText(body, { exact: true }),
-  ).toBeVisible();
-  await page.reload();
-  await expect(
-    page.locator("#comments").getByText(body, { exact: true }),
-  ).toBeVisible();
-  await page.screenshot({
-    path: test.info().outputPath("young-comments.png"),
-    fullPage: true,
+  await activityRun(async () => {
+    const body = "Independent public activity comment";
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/young-events/${activity.youngId}`,
+    );
+    const composer = await openCommentComposer(page);
+    await composer.fill(body);
+    const response = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/api/community/comments") &&
+        r.request().method() === "POST",
+    );
+    await page
+      .locator("#comments")
+      .getByRole("button", { name: /发布评论|Post comment/i })
+      .click();
+    const created = await response;
+    expect(created.request().postDataJSON()).toMatchObject({
+      targetType: "young-event",
+      youngId: activity.youngId,
+    });
+    expect(created.status()).toBe(201);
+    const id = (await created.json()).id;
+    expect(
+      await activityDb((db) => db.comment.findUniqueOrThrow({ where: { id } })),
+    ).toMatchObject({
+      userId: account.id,
+      youngEventId: activity.id,
+      body,
+      status: "active",
+      visibility: "public",
+    });
+    await expect(
+      page.locator("#comments").getByText(body, { exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.locator("#comments").getByText(body, { exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: test.info().outputPath("young-comments.png"),
+      fullPage: true,
+    });
   });
 });
 
@@ -224,102 +237,106 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     account,
     activity,
     baseURL,
+    activityRun,
+    activityDb,
   }) => {
-    const marker = activity.youngId;
-    if (!baseURL) throw new Error("Activity browser tests require baseURL");
-    await page
-      .context()
-      .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
-    await page.setViewportSize({ width: 390, height: 844 });
-    const createdAt = new Date();
-    await withE2ePrisma((db) =>
-      db.youngNotification.create({
-        data: {
+    await activityRun(async () => {
+      const marker = activity.youngId;
+      if (!baseURL) throw new Error("Activity browser tests require baseURL");
+      await page
+        .context()
+        .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+      await page.setViewportSize({ width: 390, height: 844 });
+      const createdAt = new Date();
+      await activityDb((db) =>
+        db.youngNotification.create({
+          data: {
+            id: marker,
+            userId: account.id,
+            youngId: marker,
+            kind: "signup_deadline",
+            title: marker,
+            body: "报名即将截止 / Registration closes soon",
+            createdAt,
+            dedupeKey: marker,
+          },
+        }),
+      );
+      const notifications = () =>
+        activityDb((db) =>
+          db.youngNotification.findMany({ where: { userId: account.id } }),
+        );
+      const before = await notifications();
+      expect(before).toEqual([
+        expect.objectContaining({
           id: marker,
           userId: account.id,
           youngId: marker,
-          kind: "signup_deadline",
-          title: marker,
-          body: "报名即将截止 / Registration closes soon",
-          createdAt,
-          dedupeKey: marker,
-        },
-      }),
-    );
-    const notifications = () =>
-      withE2ePrisma((db) =>
-        db.youngNotification.findMany({ where: { userId: account.id } }),
+          readAt: null,
+        }),
+      ]);
+      await gotoAndWaitForReady(
+        page,
+        "/workspace/subscriptions/activities?view=notifications&unread=true",
       );
-    const before = await notifications();
-    expect(before).toEqual([
-      expect.objectContaining({
-        id: marker,
-        userId: account.id,
-        youngId: marker,
-        readAt: null,
-      }),
-    ]);
-    await gotoAndWaitForReady(
-      page,
-      "/workspace/subscriptions/activities?view=notifications&unread=true",
-    );
-    const card = page
-      .locator('[data-slot="item"]')
-      .filter({ has: page.getByRole("link", { name: marker, exact: true }) });
-    await expect(card).toBeVisible();
-    const unreadFilter = page.getByRole("radio", {
-      name: /^(仅未读|Unread only)$/,
+      const card = page
+        .locator('[data-slot="item"]')
+        .filter({ has: page.getByRole("link", { name: marker, exact: true }) });
+      await expect(card).toBeVisible();
+      const unreadFilter = page.getByRole("radio", {
+        name: /^(仅未读|Unread only)$/,
+      });
+      await expect(unreadFilter).toBeChecked();
+      await unreadFilter.click();
+      await expect(unreadFilter).toBeChecked();
+      await expect(page).toHaveURL(/unread=true/);
+      await expect(
+        card.getByText(
+          locale === "zh-cn" ? "报名即将截止" : "Registration deadline",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        card.getByText("报名即将截止 / Registration closes soon", {
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(card.locator("time")).toHaveAttribute("datetime", /T/);
+      await expect(
+        card.getByRole("link", { name: /^(查看活动|View activity)$/ }),
+      ).toHaveAttribute("href", `/catalog/young-events/${marker}`);
+      const read = card.getByRole("button", { name: /^(标记已读|Mark read)$/ });
+      await page.route(
+        `**/api/workspace/young-notifications/${marker}/read`,
+        (route) => route.fulfill({ status: 503, body: "unavailable" }),
+        { times: 1 },
+      );
+      await read.click();
+      await expect(
+        page.getByText(/操作失败，请重试|Could not complete the request/),
+      ).toBeVisible();
+      await expect(card).toBeVisible();
+      expect(await notifications()).toEqual(before);
+      await read.click();
+      await expect(card).toHaveCount(0);
+      await page
+        .getByRole("radio", { name: /^(全部提醒|All reminders)$/ })
+        .click();
+      await expect(page).not.toHaveURL(/unread=true/);
+      await expect(card).toBeVisible();
+      await expect(read).toHaveCount(0);
+      expect(await notifications()).toEqual([
+        { ...before[0], readAt: expect.any(Date) },
+      ]);
+      await page.reload();
+      await expect(card).toBeVisible();
+      await expect(read).toHaveCount(0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
     });
-    await expect(unreadFilter).toBeChecked();
-    await unreadFilter.click();
-    await expect(unreadFilter).toBeChecked();
-    await expect(page).toHaveURL(/unread=true/);
-    await expect(
-      card.getByText(
-        locale === "zh-cn" ? "报名即将截止" : "Registration deadline",
-        { exact: true },
-      ),
-    ).toBeVisible();
-    await expect(
-      card.getByText("报名即将截止 / Registration closes soon", {
-        exact: true,
-      }),
-    ).toHaveCount(0);
-    await expect(card.locator("time")).toHaveAttribute("datetime", /T/);
-    await expect(
-      card.getByRole("link", { name: /^(查看活动|View activity)$/ }),
-    ).toHaveAttribute("href", `/catalog/young-events/${marker}`);
-    const read = card.getByRole("button", { name: /^(标记已读|Mark read)$/ });
-    await page.route(
-      `**/api/workspace/young-notifications/${marker}/read`,
-      (route) => route.fulfill({ status: 503, body: "unavailable" }),
-      { times: 1 },
-    );
-    await read.click();
-    await expect(
-      page.getByText(/操作失败，请重试|Could not complete the request/),
-    ).toBeVisible();
-    await expect(card).toBeVisible();
-    expect(await notifications()).toEqual(before);
-    await read.click();
-    await expect(card).toHaveCount(0);
-    await page
-      .getByRole("radio", { name: /^(全部提醒|All reminders)$/ })
-      .click();
-    await expect(page).not.toHaveURL(/unread=true/);
-    await expect(card).toBeVisible();
-    await expect(read).toHaveCount(0);
-    expect(await notifications()).toEqual([
-      { ...before[0], readAt: expect.any(Date) },
-    ]);
-    await page.reload();
-    await expect(card).toBeVisible();
-    await expect(read).toHaveCount(0);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
   });
 }
 
@@ -327,85 +344,89 @@ test("reading the last unread reminder on page two returns to the remaining remi
   page,
   account,
   activity,
+  activityRun,
+  activityDb,
 }) => {
-  const marker = activity.youngId;
-  const createdAt = Date.now();
-  const notifications = () =>
-    withE2ePrisma((db) =>
-      db.youngNotification.findMany({
-        where: { userId: account.id },
-        orderBy: { createdAt: "desc" },
-        select: { id: true, userId: true, readAt: true },
+  await activityRun(async () => {
+    const marker = activity.youngId;
+    const createdAt = Date.now();
+    const notifications = () =>
+      activityDb((db) =>
+        db.youngNotification.findMany({
+          where: { userId: account.id },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, userId: true, readAt: true },
+        }),
+      );
+    await activityDb((db) =>
+      db.youngNotification.createMany({
+        data: Array.from({ length: 21 }, (_, index) => ({
+          id: `${marker}-${index}`,
+          userId: account.id,
+          youngId: marker,
+          kind: "event_changed",
+          title: `${marker} ${index}`,
+          body: "Activity details changed",
+          createdAt: new Date(createdAt - index * 1000),
+          dedupeKey: `${marker}-${index}`,
+        })),
       }),
     );
-  await withE2ePrisma((db) =>
-    db.youngNotification.createMany({
-      data: Array.from({ length: 21 }, (_, index) => ({
+    const before = await notifications();
+    expect(before).toEqual(
+      Array.from({ length: 21 }, (_, index) => ({
         id: `${marker}-${index}`,
         userId: account.id,
-        youngId: marker,
-        kind: "event_changed",
-        title: `${marker} ${index}`,
-        body: "Activity details changed",
-        createdAt: new Date(createdAt - index * 1000),
-        dedupeKey: `${marker}-${index}`,
+        readAt: null,
       })),
-    }),
-  );
-  const before = await notifications();
-  expect(before).toEqual(
-    Array.from({ length: 21 }, (_, index) => ({
-      id: `${marker}-${index}`,
-      userId: account.id,
-      readAt: null,
-    })),
-  );
-  await gotoAndWaitForReady(
-    page,
-    "/workspace/subscriptions/activities?view=notifications&unread=true&page=2",
-  );
-  await expect(
-    page.getByRole("link", { name: `${marker} 20`, exact: true }),
-  ).toBeVisible();
-  const reminderNavigation = page
-    .locator('[data-shell-navigation="desktop"]')
-    .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
-  await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
-  const reminderBadge = page
-    .locator(
-      '[data-shell-navigation="desktop"] [data-slot="sidebar-menu-item"]',
-    )
-    .filter({
-      has: page.getByRole("link", {
-        name: /^(活动提醒|Activity reminders)$/,
-      }),
-    })
-    .locator('[data-slot="sidebar-menu-badge"]');
-  await expect(reminderBadge).toHaveText("21");
-  await page
-    .locator("main")
-    .getByRole("button", { name: /^(标记已读|Mark read)$/ })
-    .click();
-  await expect(page).toHaveURL(/view=notifications&unread=true&page=1/);
-  await expect(reminderBadge).toHaveText("20");
-  expect(await notifications()).toEqual(
-    before.map((item, index) => ({
-      ...item,
-      readAt: index === 20 ? expect.any(Date) : null,
-    })),
-  );
-  await expect(
-    page.getByRole("link", { name: `${marker} 0`, exact: true }),
-  ).toBeVisible();
-  await expect(
-    page
+    );
+    await gotoAndWaitForReady(
+      page,
+      "/workspace/subscriptions/activities?view=notifications&unread=true&page=2",
+    );
+    await expect(
+      page.getByRole("link", { name: `${marker} 20`, exact: true }),
+    ).toBeVisible();
+    const reminderNavigation = page
+      .locator('[data-shell-navigation="desktop"]')
+      .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
+    await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
+    const reminderBadge = page
+      .locator(
+        '[data-shell-navigation="desktop"] [data-slot="sidebar-menu-item"]',
+      )
+      .filter({
+        has: page.getByRole("link", {
+          name: /^(活动提醒|Activity reminders)$/,
+        }),
+      })
+      .locator('[data-slot="sidebar-menu-badge"]');
+    await expect(reminderBadge).toHaveText("21");
+    await page
       .locator("main")
-      .getByRole("button", { name: /^(标记已读|Mark read)$/ }),
-  ).toHaveCount(20);
-  await expect(
-    page.getByText(/已读完所有提醒|You’re all caught up/),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("radio", { name: /^(仅未读|Unread only)$/ }),
-  ).toBeChecked();
+      .getByRole("button", { name: /^(标记已读|Mark read)$/ })
+      .click();
+    await expect(page).toHaveURL(/view=notifications&unread=true&page=1/);
+    await expect(reminderBadge).toHaveText("20");
+    expect(await notifications()).toEqual(
+      before.map((item, index) => ({
+        ...item,
+        readAt: index === 20 ? expect.any(Date) : null,
+      })),
+    );
+    await expect(
+      page.getByRole("link", { name: `${marker} 0`, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("main")
+        .getByRole("button", { name: /^(标记已读|Mark read)$/ }),
+    ).toHaveCount(20);
+    await expect(
+      page.getByText(/已读完所有提醒|You’re all caught up/),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("radio", { name: /^(仅未读|Unread only)$/ }),
+    ).toBeChecked();
+  });
 });

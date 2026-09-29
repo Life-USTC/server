@@ -1,7 +1,14 @@
-import type { ExecutionContext, R2Bucket } from "@cloudflare/workers-types";
+import type {
+  ExecutionContext,
+  KVNamespace,
+  MessageBatch,
+  R2Bucket,
+} from "@cloudflare/workers-types";
 import productionWorker from "../../../src/worker.js";
 import {
+  handleCalendarConsumerProbe,
   handleCommunityEffectProbe,
+  observeCalendarConsumer,
   observeCommunityEffects,
 } from "./community-effect-probe";
 
@@ -60,6 +67,19 @@ function observeDeletes(bucket: R2Bucket): R2Bucket {
 // observations use the same R2 binding/runtime as the production request.
 export default {
   ...productionWorker,
+  async queue(
+    batch: MessageBatch,
+    env: {
+      NODE_ENV: string;
+      E2E_STORAGE_SECRET: string;
+      CALENDAR_EXPORTS: KVNamespace;
+    },
+    context: ExecutionContext,
+  ) {
+    return observeCalendarConsumer(batch, env, context, (observed, execution) =>
+      productionWorker.queue(observed, env, execution),
+    );
+  },
   async fetch(
     request: Request,
     env: {
@@ -67,11 +87,14 @@ export default {
       E2E_STORAGE_SECRET: string;
       R2_UPLOADS: R2Bucket;
       R2_PUBLICATIONS: R2Bucket;
+      CALENDAR_EXPORTS: KVNamespace;
     },
     context: ExecutionContext,
   ) {
     const effectResponse = await handleCommunityEffectProbe(request, env);
     if (effectResponse) return effectResponse;
+    const consumerResponse = await handleCalendarConsumerProbe(request, env);
+    if (consumerResponse) return consumerResponse;
     const observed = observeCommunityEffects(request, env, context);
     const url = new URL(request.url);
     if (url.pathname !== storagePath && url.pathname !== publicationStoragePath)
