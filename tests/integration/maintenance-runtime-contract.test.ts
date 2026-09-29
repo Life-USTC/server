@@ -52,7 +52,7 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
       });
     });
 
-    it("has no table grants and only the cleanup function grant", async ({
+    it("has no table grants and only audited maintenance function grants", async ({
       isolatedDatabase: { maintenance: maintenancePrisma },
     }) => {
       const tableGrants = await maintenancePrisma.$queryRaw<
@@ -96,6 +96,10 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
         {
           signature:
             "public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE",
+        },
+        {
+          signature:
+            "public.list_section_calendar_subscribers(p_section_id integer, p_after_user_id text, p_batch_size integer):EXECUTE",
         },
         {
           signature:
