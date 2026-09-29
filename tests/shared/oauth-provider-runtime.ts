@@ -10,12 +10,15 @@ type ProviderRuntime = {
 // Each installed-provider consumer owns an isolated Vitest file/process because
 // Better Auth and its resource policy cache retain process-level state.
 export const oauthProviderTest = isolatedDatabaseTest.extend<{
+  oauthEnvironment: Record<string, string>;
   oauthRuntime: ProviderRuntime;
 }>({
-  oauthRuntime: async ({ isolatedDatabase }, use) => {
+  oauthEnvironment: {},
+  oauthRuntime: async ({ isolatedDatabase, oauthEnvironment }, use) => {
     const { connections } = isolatedDatabase;
     const env = {
       APP_PUBLIC_ORIGIN: "http://localhost:3000",
+      ...oauthEnvironment,
       HYPERDRIVE: { connectionString: connections.app },
       HYPERDRIVE_AUTH: { connectionString: connections.auth },
     };
