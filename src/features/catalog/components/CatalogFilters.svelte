@@ -3,6 +3,7 @@ import type { Snippet } from "svelte";
 import ActiveFilters from "$lib/components/ActiveFilters.svelte";
 import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
+import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button";
 
 let {
@@ -36,10 +37,10 @@ let {
 <div class="grid min-w-0 gap-3">
   <FilterToolbar {filterTitle} {filterDescription} activeCount={activeFilters.length} bind:open>
     {#snippet primary()}
-      <form method="get" class="flex min-w-0 items-end gap-2">
+      <form method="get" class="flex min-w-0 flex-1 items-center gap-2">
         <SearchField id={searchId} name="search" label={searchLabel} placeholder={searchPlaceholder} bind:value={searchValue} />
         {#each hiddenFilters as filter}{#if filter.value}<input type="hidden" name={filter.name} value={filter.value} />{/if}{/each}
-        <Button type="submit" class="h-11">{searchLabel}</Button>
+        <Button type="submit" class={toolbarControlClass}>{searchLabel}</Button>
       </form>
     {/snippet}
     {#snippet advanced()}{@render children()}{/snippet}

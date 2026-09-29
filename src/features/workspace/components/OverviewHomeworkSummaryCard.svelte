@@ -7,7 +7,7 @@ import type {
   WorkspaceHomeworkItem,
   WorkspaceHomeworksCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import * as Empty from "$lib/components/ui/empty/index.js";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
@@ -31,11 +31,7 @@ export let viewAllLabel = "View all";
   viewAllVisible={pendingHomeworks.length > previewLimit}
 >
   {#if pendingHomeworks.length === 0}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{workspaceCopy.homeworks.empty}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={workspaceCopy.homeworks.empty} />
   {:else}
     {@const homeworkPreview = pendingHomeworks.slice(0, previewLimit)}
     <Item.Group class="gap-0">

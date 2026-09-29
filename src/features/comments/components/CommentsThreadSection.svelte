@@ -2,8 +2,8 @@
 import type { CommentTargetLoadState } from "@/features/comments/lib/comment-panel-data";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import CommentsThreadList from "./CommentsThreadList.svelte";
 import type {
@@ -119,11 +119,7 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
   {/if}
 
   {#if comments.length === 0 && targetLoadStates.some((state) => state.loaded)}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{commentCopy.emptyTitle}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={commentCopy.emptyTitle} />
   {:else}
     <CommentsThreadList
       bind:actionMenuId

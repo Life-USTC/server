@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  groupYoungEventsByStartDate,
   youngCapacity,
+  youngClockTime,
   youngDateRange,
   youngDateTime,
+  youngListDayLabel,
+  youngMonthDay,
 } from "@/features/young/lib/young-event-display";
 
 const copy = { startsAt: "开始：{value}", endsAt: "截止：{value}" };
@@ -22,6 +26,44 @@ describe("young event display", () => {
     expect(youngDateTime(null)).toBeNull();
   });
 
+  it("groups a page into Shanghai start dates and keeps a short clock", () => {
+    expect(youngClockTime("2026-10-16T12:30:00+08:00")).toBe("12:30");
+    expect(youngMonthDay("2026-10-16T12:30:00+08:00")).toBe("10-16");
+    expect(youngListDayLabel("", "zh-cn", "时间待公布")).toBe("时间待公布");
+    const groups = groupYoungEventsByStartDate([
+      { startAt: "2026-09-28T12:20:00+08:00", name: "later" },
+      { startAt: "2026-09-27T20:00:00+08:00", name: "evening" },
+      { startAt: "2026-09-27T15:00:00+08:00", name: "afternoon" },
+      { startAt: null, name: "unknown" },
+    ]);
+    expect(groups.map((group) => group.key)).toEqual([
+      "2026-09-27",
+      "2026-09-28",
+      "",
+    ]);
+    expect(groups[0]?.events.map((event) => event.name)).toEqual([
+      "afternoon",
+      "evening",
+    ]);
+  });
+
+  it("young-event.web-list-scan", () => {
+    const groups = groupYoungEventsByStartDate([
+      { startAt: "2026-09-28T12:20:00+08:00", name: "later" },
+      { startAt: "2026-09-27T20:00:00+08:00", name: "evening" },
+      { startAt: "2026-09-27T15:00:00+08:00", name: "afternoon" },
+      { startAt: null, name: "unknown" },
+    ]);
+    expect(groups.map((group) => group.key)).toEqual([
+      "2026-09-27",
+      "2026-09-28",
+      "",
+    ]);
+    expect(groups.find((group) => group.key === "")?.events).toEqual([
+      { startAt: null, name: "unknown" },
+    ]);
+  });
+
   it("labels partial ranges rather than presenting a missing endpoint as a date", () => {
     expect(youngDateRange(null, null, copy)).toBeNull();
     expect(youngDateRange("2026-09-24T08:30:00+08:00", null, copy)).toBe(
@@ -32,6 +74,6 @@ describe("young event display", () => {
     );
     expect(
       youngDateRange("2026-09-24 08:30:00", "2026-09-24 09:30:00", copy),
-    ).toBe("2026-09-24 08:30 – 2026-09-24 09:30");
+    ).toBe("2026-09-24 08:30–09:30");
   });
 });

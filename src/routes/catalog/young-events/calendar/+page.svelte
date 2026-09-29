@@ -11,12 +11,10 @@ let { data }: { data: PageData } = $props();
 
 <YoungCalendarPage
   anchorDate={data.anchorDate}
-  categories={data.categories}
   copy={data.copy}
   data={data.data}
   filters={data.filters}
   locale={data.locale}
-  organizers={data.organizers}
   range={data.range}
   source={data.source}
   unknownDateCount={data.unknownDateCount}

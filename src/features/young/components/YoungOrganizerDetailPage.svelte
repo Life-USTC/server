@@ -1,4 +1,5 @@
 <script lang="ts">
+import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventPage,
   YoungEventSummary,
@@ -7,17 +8,17 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
+import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
-import { youngDateRange, youngDateTime } from "../lib/young-event-display";
+import { youngDateRange } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
-import YoungBrowseNav from "./YoungBrowseNav.svelte";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
@@ -30,16 +31,19 @@ type Props = {
 let { copy, organizer, source, events }: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
+const summary = $derived(
+  catalogShowingSummary(
+    events.pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing,
+    events.data.length,
+    events.pagination.total,
+  ),
+);
 
 function formatRange(event: YoungEventSummary) {
   return (
     youngDateRange(event.startAt, event.endAt, youngCopy) ??
     youngCopy.unknownTime
   );
-}
-
-function formatSourceDate(value: string | null) {
-  return youngDateTime(value) ?? youngCopy.unknownValue;
 }
 
 function pageHref(page: number) {
@@ -51,45 +55,22 @@ function pageHref(page: number) {
       <ListPagination ariaLabel={copy.common.pagination} nextLabel={copy.common.next} nextPageLabel={copy.common.nextPage} previousLabel={copy.common.previous} previousPageLabel={copy.common.previousPage} page={events.pagination.page} totalPages={events.pagination.totalPages} {pageHref} />
 {/snippet}
 
-<PageLayout>
-  {#snippet header()}<PageHeader title={organizer.name} description={youngCopy.organizersDescription} />{/snippet}
-  <YoungBrowseNav current="organizers" copy={youngCopy} />
-  <div class="grid gap-5">
-    <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
-      <span class="text-muted-foreground">
-        {#if source.status === "fresh"}
-          {youngCopy.sourceFresh}
-        {:else if source.status === "stale"}
-          {youngCopy.sourceStale}
-        {:else}
-          {youngCopy.sourceUnknown}
-        {/if}
-        {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-      </span>
-      <div class="flex flex-wrap gap-2">
+<CollectionPage
+  description={youngCopy.organizersDescription}
+  layout="detail"
+  title={organizer.name}
+>
+  {#snippet actions()}
         <Button href={`/catalog/young-events?organizerId=${encodeURIComponent(organizer.id)}`} variant="outline">
           {youngCopy.organizerEvents}
         </Button>
-        <Button href="/catalog/young-events/organizers" variant="outline">
-          {youngCopy.viewOrganizers}
-        </Button>
-      </div>
-    </div>
-
-    <YoungSubscriptionControl id={organizer.id} kind="organizers" copy={youngCopy.workspace} />
-    <dl class="flex flex-wrap gap-6 text-sm">
-      <div><dt class="text-muted-foreground">{youngCopy.organizerEvents}</dt><dd>{organizer.totalCount}</dd></div>
-      <div><dt class="text-muted-foreground">{youngCopy.activeEvents}</dt><dd>{organizer.activeCount}</dd></div>
-      <div><dt class="text-muted-foreground">{youngCopy.upcomingEvents}</dt><dd>{organizer.upcomingCount}</dd></div>
-      <div><dt class="text-muted-foreground">{youngCopy.historyEvents}</dt><dd>{organizer.historyCount}</dd></div>
-    </dl>
-    <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
+  {/snippet}
       <Panel footer={events.pagination.totalPages > 1 ? paginationFooter : undefined}>
         {#snippet header()}
           <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
         {/snippet}
         <div class="grid gap-3">
-        <ResultsSummary summary={(events.pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing).replace("{count}", String(events.data.length)).replace("{total}", String(events.pagination.total))} page={events.pagination.page} totalPages={events.pagination.totalPages} />
+        <ResultsSummary {summary} page={events.pagination.page} totalPages={events.pagination.totalPages} />
         {#if events.data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}
@@ -123,12 +104,16 @@ function pageHref(page: number) {
         {/if}
         </div>
       </Panel>
-
-
-    <div>
-      <Button href="/catalog/young-events/organizers" variant="outline">
-        {youngCopy.viewOrganizers}
-      </Button>
-    </div>
-  </div>
-</PageLayout>
+  {#snippet aside()}
+    <YoungSubscriptionControl id={organizer.id} kind="organizers" copy={youngCopy.workspace} />
+    <DetailDefinitionList
+      items={[
+        { label: youngCopy.organizerEvents, value: String(organizer.totalCount) },
+        { label: youngCopy.activeEvents, value: String(organizer.activeCount) },
+        { label: youngCopy.upcomingEvents, value: String(organizer.upcomingCount) },
+        { label: youngCopy.historyEvents, value: String(organizer.historyCount) },
+      ]}
+    />
+    <YoungSourceNote labels={youngCopy} {source} />
+  {/snippet}
+</CollectionPage>

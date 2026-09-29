@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   getClientShellBootstrap,
   parseShellBootstrapPayload,
+  shouldRequestClientShellBootstrap,
   workspaceNavigationFromPageData,
 } from "@/lib/shell/shell-bootstrap";
 
@@ -23,18 +24,84 @@ const navigation = {
   subscribedSectionCount: 5,
 };
 
+test("rendering-and-cache.personal-overlays-12", () => {
+  const anonymous = {
+    navigationUserId: null,
+    resolveViewerOnClient: true,
+    sectionsReady: false,
+    viewerUserId: null,
+  };
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "mount",
+      shellResolved: false,
+    }),
+  ).toBe(true);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "link",
+      shellResolved: true,
+    }),
+  ).toBe(false);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "popstate",
+      shellResolved: true,
+    }),
+  ).toBe(false);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "goto",
+      shellResolved: true,
+    }),
+  ).toBe(true);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "link",
+      shellResolved: false,
+    }),
+  ).toBe(true);
+  expect(
+    shouldRequestClientShellBootstrap({
+      navigationType: "link",
+      navigationUserId: "user-1",
+      resolveViewerOnClient: true,
+      sectionsReady: true,
+      shellResolved: true,
+      viewerUserId: "user-1",
+    }),
+  ).toBe(false);
+  expect(
+    shouldRequestClientShellBootstrap({
+      navigationType: "mount",
+      navigationUserId: null,
+      resolveViewerOnClient: false,
+      sectionsReady: false,
+      shellResolved: false,
+      viewerUserId: null,
+    }),
+  ).toBe(false);
+});
+
 describe("shell bootstrap client", () => {
   test("accepts explicit anonymous and matched authenticated payloads", () => {
     expect(
       parseShellBootstrapPayload({ viewer: null, navigation: null }),
-    ).toEqual({ viewer: null, navigation: null });
+    ).toEqual({ viewer: null, navigation: null, subscribedSections: [] });
     expect(parseShellBootstrapPayload({ viewer, navigation: null })).toEqual({
       viewer,
       navigation: null,
+      subscribedSections: [],
     });
     expect(parseShellBootstrapPayload({ viewer, navigation })).toEqual({
       viewer,
       navigation,
+      subscribedSections: [],
     });
   });
 
@@ -89,6 +156,7 @@ describe("shell bootstrap client", () => {
     await expect(getClientShellBootstrap(fetcher)).resolves.toEqual({
       viewer,
       navigation,
+      subscribedSections: [],
     });
     expect(fetcher).toHaveBeenCalledWith("/_internal/shell-bootstrap", {
       cache: "no-store",

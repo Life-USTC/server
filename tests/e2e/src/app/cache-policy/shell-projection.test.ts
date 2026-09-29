@@ -179,13 +179,20 @@ test("rendering-and-cache.personal-overlays-4", async ({
     const anonymous = await request.get("/_internal/shell-bootstrap");
     expect(anonymous.status()).toBe(200);
     expectPrivate(anonymous);
-    expect(await anonymous.json()).toEqual({ viewer: null, navigation: null });
+    expect(await anonymous.json()).toEqual({
+      viewer: null,
+      navigation: null,
+      subscribedSections: [],
+    });
     for (const [index, user] of users.entries()) {
       const context = await browser.newContext({
         baseURL: PLAYWRIGHT_BASE_URL,
       });
       try {
-        await context.addCookies([await createSignedSessionCookie(user.id)]);
+        await context.addCookies([
+          await createSignedSessionCookie(user.id),
+          { name: "NEXT_LOCALE", value: "zh-cn", url: PLAYWRIGHT_BASE_URL },
+        ]);
         const response = await context.request.get(
           "/_internal/shell-bootstrap",
         );
@@ -344,7 +351,11 @@ test("rendering-and-cache.personal-overlays-7", async ({ page, context }) => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("#app-user-menu")).toHaveCount(0);
     const anonymous = await page.request.get("/_internal/shell-bootstrap");
-    expect(await anonymous.json()).toEqual({ viewer: null, navigation: null });
+    expect(await anonymous.json()).toEqual({
+      viewer: null,
+      navigation: null,
+      subscribedSections: [],
+    });
 
     await context.addCookies([await createSignedSessionCookie(users[1].id)]);
     await gotoAndWaitForReady(page, "/catalog/courses");

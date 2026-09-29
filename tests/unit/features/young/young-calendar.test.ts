@@ -7,6 +7,7 @@ import {
   youngCalendarNextDate,
   youngCalendarPreviousDate,
   youngCalendarRange,
+  youngEventStartsOnDay,
 } from "@/features/young/lib/young-calendar";
 import type { YoungEventSummary } from "@/features/young/server/young-event-service";
 
@@ -76,14 +77,14 @@ function event(
 }
 
 describe("Young calendar", () => {
-  it("builds Shanghai Monday based ranges and preserves day deep links", () => {
+  it("builds Shanghai Sunday based ranges and preserves day deep links", () => {
     expect(youngCalendarRange("week", "2026-09-16")).toEqual({
-      start: "2026-09-14",
-      end: "2026-09-20",
+      start: "2026-09-13",
+      end: "2026-09-19",
     });
     expect(youngCalendarRange("month", "2026-09-16")).toEqual({
-      start: "2026-08-31",
-      end: "2026-10-04",
+      start: "2026-08-30",
+      end: "2026-10-03",
     });
     expect(youngCalendarPreviousDate("week", "2026-09-16")).toBe("2026-09-09");
     expect(youngCalendarNextDate("month", "2026-09-16")).toBe("2026-10-16");
@@ -114,11 +115,41 @@ describe("Young calendar", () => {
     );
     expect(days).toHaveLength(1);
     expect(days[0]?.events.map(({ youngId }) => youngId)).toEqual([
-      "before",
       "missing-end",
       "after",
+      "before",
     ]);
     expect(days[0]?.isToday).toBe(true);
+  });
+
+  it("young-event.web-calendar-density", () => {
+    expect(youngCalendarRange("week", "2026-09-16")).toEqual({
+      start: "2026-09-13",
+      end: "2026-09-19",
+    });
+    const days = youngCalendarDays(
+      "day",
+      { start: "2026-09-10", end: "2026-09-10" },
+      [
+        event(
+          "before",
+          "2026-09-09T23:00:00+08:00",
+          "2026-09-10T01:00:00+08:00",
+        ),
+        event(
+          "after",
+          "2026-09-10T23:00:00+08:00",
+          "2026-09-11T01:00:00+08:00",
+        ),
+        event("missing-end", "2026-09-10T12:00:00+08:00", null),
+      ],
+      new Date("2026-09-10T04:00:00.000Z"),
+    );
+    expect(days[0]?.events.map(({ youngId }) => youngId)).toEqual([
+      "missing-end",
+      "after",
+      "before",
+    ]);
   });
 
   it("does not duplicate an event that ends at the next midnight", () => {
@@ -140,6 +171,22 @@ describe("Young calendar", () => {
     expect(days[1]?.events).toEqual([]);
   });
 
+  it("treats only the Shanghai start date as the day an event begins", () => {
+    const ongoing = event(
+      "ongoing",
+      "2026-09-01T00:00:00+08:00",
+      "2026-09-30T23:00:00+08:00",
+    );
+    const starting = event(
+      "starting",
+      "2026-09-27T08:00:00+08:00",
+      "2026-09-27T10:00:00+08:00",
+    );
+    expect(youngEventStartsOnDay(ongoing, "2026-09-01")).toBe(true);
+    expect(youngEventStartsOnDay(ongoing, "2026-09-27")).toBe(false);
+    expect(youngEventStartsOnDay(starting, "2026-09-27")).toBe(true);
+  });
+
   it("marks the days outside the anchor month as muted", () => {
     const range = youngCalendarRange("month", "2026-09-16");
     const days = youngCalendarDays(
@@ -150,9 +197,9 @@ describe("Young calendar", () => {
       "activity",
       "2026-09-16",
     );
-    expect(days.find((day) => day.key === "2026-08-31")?.isMuted).toBe(true);
+    expect(days.find((day) => day.key === "2026-08-30")?.isMuted).toBe(true);
     expect(days.find((day) => day.key === "2026-09-01")?.isMuted).toBe(false);
-    expect(days.find((day) => day.key === "2026-10-04")?.isMuted).toBe(true);
+    expect(days.find((day) => day.key === "2026-10-03")?.isMuted).toBe(true);
   });
 
   it("places events by registration dates when requested", () => {
@@ -181,8 +228,8 @@ describe("calendar browsing hierarchy", () => {
       "Friday, September 25, 2026",
     );
     const week = youngCalendarHeading("week", "2026-09-25", "en-us");
-    expect(week).toContain("21");
-    expect(week).toContain("27");
+    expect(week).toContain("20");
+    expect(week).toContain("26");
     expect(week).toContain("2026");
   });
   it("starts the mobile month agenda at the selected day and retains all earlier month dates", () => {

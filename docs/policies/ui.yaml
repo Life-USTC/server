@@ -55,7 +55,7 @@ requirements:
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
-  rule: Shared collection and detail layouts reuse the feature-neutral primitives appropriate to their structure. Public browse panels use PageLayout, PageHeader and Panel; other workspace and administrative pages use PageLayout and PageHeader. Course and teacher details use DetailPageLayout, section detail reuses PageHeader in its streaming shell, profiles reuse Card, and homework/todo overlays reuse Dialog. Route navigation and local settings navigation reuse PageSectionNav and DetailSectionNav respectively; catalog/Young filters and workspace task/profile identity fields reuse Field.
+  rule: Shared collection and detail layouts reuse the feature-neutral primitives appropriate to their structure. Public browse pages use CollectionPage, which composes PageLayout, PageHeader and Panel. Course and teacher details use CollectionPage with DetailPageLayout. The second-classroom event page uses a full-bleed banner and Panel. Section detail reuses PageHeader in its streaming shell, profiles reuse Panel, and homework/todo overlays reuse Dialog. Route navigation lives in the shell sidebar. PageSectionNav is only an in-page anchor index, such as publication source groups. Catalog, second-classroom, workspace task, and profile identity fields reuse Field.
   rationale: Section streaming and profile identity composition have specific layout needs; primitive reuse does not require turning those shells into browse panels. Feature data and interaction ownership remains independently required by ui.feature-interaction-ownership.
   acceptance:
     given: The collection, detail, overlay, route/local navigation and form owners.
@@ -255,13 +255,14 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: Route tabs use PageSectionNav; settings retains DetailSectionNav.
-  rationale: This component ownership boundary covers second-classroom browse/detail/reminder tabs, moderation tabs and publication source grouping. App-shell navigation, calendar date controls and document anchor indexes are separate navigation concerns.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings routes replace the primary sidebar with a settings sidebar whose top control returns home. Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list. The home page keeps the primary sidebar.
+  rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
-    given: Every current route-tab owner and the settings page controller.
+    given: Second-classroom pages, moderation, settings, and the publication source directory.
     when: The Svelte compiler resolves the actually rendered imported component graph for each owner.
     then:
-    - Route-tab graphs render PageSectionNav and never DetailSectionNav; the settings graph renders DetailSectionNav and never PageSectionNav.
+    - Sidebar-owned pages render neither PageSectionNav nor DetailSectionNav.
+    - The publication source directory renders PageSectionNav for its in-page groups.
     test:
       file: tests/unit/lib/components/navigation-ownership.test.ts
       name: ui.list-table-9
@@ -705,16 +706,16 @@ requirements:
 - id: ui.context-tabs-3
   category: presentation
   topic: context-tabs
-  rule: Contextual section navigation, currently used by account settings, uses a scrollable horizontal row
-    on mobile and a vertical rail on desktop. The active destination has aria-current=page and is scrolled
-    into view; keyboard-focused destinations remain fully visible and reachable through overflow.
+  rule: Account settings uses the level-2 sidebar as its section navigation. The rail is vertical on desktop
+    and inside the mobile shell menu. The active destination has aria-current=page and stays inside the
+    navigation viewport; keyboard Tab and Enter reach every settings section.
   rationale: Public catalog details use continuous reading streams. Young catalog view switches use a
     separate browse-navigation component; they are not contextual section rails.
   acceptance:
     given: An isolated signed-in user opens the last account-settings destination at 1280, 390 and 280 CSS pixels.
     when: The actual navigation reveals the active destination and the user visits every settings section with Tab and Enter.
     then:
-    - Desktop links form a vertical rail; mobile links occupy one horizontally scrollable row without document overflow.
+    - Settings links form a vertical rail on desktop and in the opened mobile menu, without document overflow.
     - The directly opened active link and every keyboard-focused destination are fully inside the navigation viewport.
     - Each activated route renders its panel and has exactly one aria-current=page link.
     test:
@@ -1023,15 +1024,13 @@ requirements:
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
-  rule: Settings navigation uses a desktop rail and a horizontally scrollable mobile row containing every declared
-    settings destination with localized labels.
+  rule: Settings routes replace the primary sidebar with a settings sidebar. Its top control returns home. Desktop shows that sidebar beside the active panel. Mobile opens it from the shell menu.
   acceptance:
-    given: A signed-in user opens the default profile-settings page at 390 pixels.
-    when: The browser measures the mobile navigation and panel, then reloads settings at 1280 pixels and measures
-      their desktop placement.
+    given: A signed-in user opens profile settings at desktop width, returns home, then opens danger settings on a phone.
+    when: The browser measures the desktop sidebar against the panel, follows the home control, and opens the mobile menu.
     then:
-    - Settings navigation uses a desktop rail and a horizontally scrollable mobile row containing every declared
-      settings destination with localized labels.
+    - The desktop settings sidebar sits to the left of the panel, marks profile current, and its top control returns home.
+    - Home restores the primary sidebar. The mobile menu shows the settings sidebar with danger current.
     test:
       file: tests/e2e/src/app/settings/test.ts
       name: ui.settings-navigation-1
@@ -1084,15 +1083,12 @@ requirements:
 - id: ui.settings-navigation-6
   category: presentation
   topic: settings-navigation
-  rule: Within settings navigation, exactly one link identifies the active page with aria-current=page, and
-    that link is visible in the mobile scroll region after navigation.
+  rule: Within the settings sidebar, exactly one link identifies the active page with aria-current=page, and that link is visible after the mobile menu opens.
   acceptance:
-    given: A signed-in user selects Chinese and directly opens danger settings.
-    when: The browser reloads danger settings at 280, 320, and 375 pixels and measures the current link within
-      the horizontally scrollable navigation and edge fades.
+    given: A signed-in user selects Chinese and directly opens danger settings on a narrow screen.
+    when: The browser opens the shell menu.
     then:
-    - Within settings navigation, exactly one link identifies the active page with aria-current=page, and that
-      link is visible in the mobile scroll region after navigation.
+    - The settings sidebar contains exactly one aria-current link, and that link is visible.
     test:
       file: tests/e2e/src/app/settings/test.ts
       name: ui.settings-navigation-6
@@ -1421,13 +1417,14 @@ requirements:
 - id: ui.navigation-landmarks-7
   category: presentation
   topic: navigation-landmarks
-  rule: Activity and calendar navigation preserves the applied filters when opening a detail and returning
-    to the list. The active view remains programmatically identified.
+  rule: Activity detail links record the originating list or calendar URL. The second-classroom sidebar identifies the active list or calendar view. The detail page does not render a return link.
   acceptance:
     given: Isolated activities match every supported list and calendar filter, with activity and signup dates and more than one result page.
-    when: A browser opens a detail from page two of the activity list and from day, week and month calendar views under both time bases, then follows the detail return link.
+    when: A browser opens a detail from page two of the activity list and from day, week and month calendar views under both time bases, then uses the browser back control.
     then:
-    - Detail and return links preserve the exact originating filters, pagination and calendar date/view; returned records remain present and the active browse and calendar views are programmatically identified.
+    - Detail links record the exact originating filters, pagination and calendar date/view.
+    - The detail page has no return link.
+    - Browser back restores the originating records, and the active sidebar and calendar views stay programmatically identified.
     test:
       file: tests/e2e/src/app/shared-policy/young-return-navigation.test.ts
       name: ui.navigation-landmarks-7

@@ -622,15 +622,16 @@ test("/ shell 390px 设置子路由保持唯一当前位置", async ({ page }) =
     .click();
 
   const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+  const settingsNav = sidebar.getByTestId("settings-sidebar");
+  await expect(
+    settingsNav.getByRole("link", { name: /偏好设置|Preferences/i }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(settingsNav.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(sidebar.getByTestId("settings-sidebar-back")).toBeVisible();
   await sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }).click();
   await expect(
     page.getByRole("menuitem", { name: /^(设置|Settings)$/i }),
   ).toHaveAttribute("aria-current", "page");
-  await expect(
-    sidebar
-      .getByRole("navigation", { name: /次级导航|Secondary navigation/i })
-      .locator('[aria-current="page"]'),
-  ).toHaveCount(0);
   await expect(
     page.getByRole("menu").locator('[aria-current="page"]'),
   ).toHaveCount(1);

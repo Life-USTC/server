@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const { getWorkspaceNavigationSummaryMock, logRouteFailureMock } = vi.hoisted(
-  () => ({
-    getWorkspaceNavigationSummaryMock: vi.fn(),
-    logRouteFailureMock: vi.fn(),
-  }),
-);
+const {
+  getWorkspaceNavigationSummaryMock,
+  listShellSubscribedSectionsMock,
+  logRouteFailureMock,
+} = vi.hoisted(() => ({
+  getWorkspaceNavigationSummaryMock: vi.fn(),
+  listShellSubscribedSectionsMock: vi.fn(),
+  logRouteFailureMock: vi.fn(),
+}));
 
 vi.mock("@/features/workspace/server/workspace-navigation-summary", () => ({
   getWorkspaceNavigationSummary: getWorkspaceNavigationSummaryMock,
+  listShellSubscribedSections: listShellSubscribedSectionsMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
@@ -38,7 +42,7 @@ function event(input?: {
   user?: typeof authUser | null;
 }) {
   return {
-    locals: { authUser: input?.user ?? null },
+    locals: { authUser: input?.user ?? null, locale: "zh-cn" },
     request: new Request("https://life.example/_internal/shell-bootstrap", {
       headers: input?.authorization
         ? { authorization: input.authorization }
@@ -57,6 +61,7 @@ describe("shell bootstrap Web endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getWorkspaceNavigationSummaryMock.mockResolvedValue(navigation);
+    listShellSubscribedSectionsMock.mockResolvedValue([]);
   });
 
   test("returns an explicit anonymous payload without querying workspace data", async () => {
@@ -68,6 +73,7 @@ describe("shell bootstrap Web endpoint", () => {
     await expect(response.json()).resolves.toEqual({
       viewer: null,
       navigation: null,
+      subscribedSections: [],
     });
     expect(getWorkspaceNavigationSummaryMock).not.toHaveBeenCalled();
   });
@@ -81,7 +87,12 @@ describe("shell bootstrap Web endpoint", () => {
     await expect(response.json()).resolves.toEqual({
       viewer: authUser,
       navigation,
+      subscribedSections: [],
     });
+    expect(listShellSubscribedSectionsMock).toHaveBeenCalledWith(
+      "user-1",
+      "zh-cn",
+    );
     expect(getWorkspaceNavigationSummaryMock).toHaveBeenCalledWith("user-1");
   });
 
@@ -108,6 +119,7 @@ describe("shell bootstrap Web endpoint", () => {
     await expect(response.json()).resolves.toEqual({
       viewer: authUser,
       navigation: null,
+      subscribedSections: [],
     });
     expect(logRouteFailureMock).toHaveBeenCalledOnce();
   });

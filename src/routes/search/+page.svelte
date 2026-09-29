@@ -16,8 +16,7 @@ import {
 } from "@/features/search/lib/global-search-keyboard";
 import { afterNavigate, goto } from "$app/navigation";
 import { page } from "$app/stores";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import type { PageData } from "./$types";
@@ -71,14 +70,8 @@ afterNavigate(({ to }) => {
   <title>{data.copy.pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<PageLayout>
-{#snippet header()}
-  <PageHeader
-    title={data.copy.pageTitle}
-    description={data.copy.pageDescription}
-  />
-{/snippet}
-
+<CollectionPage description={data.copy.pageDescription} title={data.copy.pageTitle}>
+  {#snippet toolbar()}
   <Field.Field class="gap-1">
     <Field.Label class="sr-only" for="global-search-page-input">
       {data.copy.pageTitle}
@@ -108,8 +101,8 @@ afterNavigate(({ to }) => {
       />
     </InputGroup.Root>
   </Field.Field>
+  {/snippet}
 
-  <div class="rounded-xl border bg-card p-2 shadow-sm">
     <GlobalSearchResults
       activeItemId={$activeItemId}
       copy={data.copy}
@@ -121,5 +114,4 @@ afterNavigate(({ to }) => {
         handleResultKeydown(event, itemIndex, inputElement)}
       onSelect={navigateTo}
     />
-  </div>
-</PageLayout>
+</CollectionPage>

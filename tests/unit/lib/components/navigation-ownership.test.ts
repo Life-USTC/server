@@ -61,7 +61,7 @@ async function renderedComponents(root: string) {
 }
 
 it("ui.list-table-9", async () => {
-  const routeTabOwners = [
+  const sidebarRouteOwners = [
     "src/features/young/components/YoungEventsPage.svelte",
     "src/features/young/components/YoungEventDetailPage.svelte",
     "src/features/young/components/YoungCalendarPage.svelte",
@@ -69,20 +69,20 @@ it("ui.list-table-9", async () => {
     "src/features/young/components/YoungOrganizerDetailPage.svelte",
     "src/features/young/components/YoungActivityRemindersPage.svelte",
     "src/features/admin/components/AdminModerationPageController.svelte",
-    "src/features/publications/components/PublicationSourceDirectoryPage.svelte",
+    "src/features/settings/components/SettingsPageController.svelte",
   ];
-  for (const root of routeTabOwners) {
+  for (const root of sidebarRouteOwners) {
     const components = await renderedComponents(root);
-    expect(components, root).toContain(
+    expect(components, root).not.toContain(
       "src/lib/components/PageSectionNav.svelte",
     );
     expect(components, root).not.toContain(
       "src/lib/components/DetailSectionNav.svelte",
     );
   }
-  const settings = await renderedComponents(
-    "src/features/settings/components/SettingsPageController.svelte",
+  const sources = await renderedComponents(
+    "src/features/publications/components/PublicationSourceDirectoryPage.svelte",
   );
-  expect(settings).toContain("src/lib/components/DetailSectionNav.svelte");
-  expect(settings).not.toContain("src/lib/components/PageSectionNav.svelte");
+  expect(sources).toContain("src/lib/components/PageSectionNav.svelte");
+  expect(sources).not.toContain("src/lib/components/DetailSectionNav.svelte");
 });

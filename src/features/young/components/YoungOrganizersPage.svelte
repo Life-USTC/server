@@ -1,4 +1,5 @@
 <script lang="ts">
+import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungOrganizerSummary,
   YoungSourceFreshness,
@@ -6,21 +7,19 @@ import type {
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page as appPage } from "$app/stores";
 import ActiveFilters from "$lib/components/ActiveFilters.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
+import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { removeYoungFilter } from "../lib/young-navigation";
-import YoungBrowseNav from "./YoungBrowseNav.svelte";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
   copy: AppPageCopy;
@@ -54,73 +53,52 @@ function eventsHref(id: string) {
   return `/catalog/young-events?active=true&organizerId=${encodeURIComponent(id)}`;
 }
 
-function formatSourceDate(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
-}
-
 const summary = $derived(
-  (pagination.total === 1
-    ? youngCopy.organizersShowingOne
-    : youngCopy.organizersShowing
-  )
-    .replace("{count}", String(data.length))
-    .replace("{total}", String(pagination.total)),
+  catalogShowingSummary(
+    pagination.total === 1
+      ? youngCopy.organizersShowingOne
+      : youngCopy.organizersShowing,
+    data.length,
+    pagination.total,
+  ),
 );
 </script>
 
 {#snippet paginationFooter()}
-  <ListPagination
-    ariaLabel={commonLabels.pagination}
-    class="py-0"
-    nextLabel={commonLabels.next}
-    nextPageLabel={commonLabels.nextPage}
-    page={pagination.page}
-    {pageHref}
-    previousLabel={commonLabels.previous}
-    previousPageLabel={commonLabels.previousPage}
-    totalPages={pagination.totalPages}
-  />
+  {#if pagination.totalPages > 1}
+    <ListPagination
+      ariaLabel={commonLabels.pagination}
+      class="py-0"
+      nextLabel={commonLabels.next}
+      nextPageLabel={commonLabels.nextPage}
+      page={pagination.page}
+      {pageHref}
+      previousLabel={commonLabels.previous}
+      previousPageLabel={commonLabels.previousPage}
+      totalPages={pagination.totalPages}
+    />
+  {/if}
 {/snippet}
 
-<PageLayout>
-  {#snippet header()}<PageHeader title={youngCopy.organizersTitle} description={youngCopy.organizersDescription} />{/snippet}
-  <YoungBrowseNav current="organizers" copy={youngCopy} />
-  <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
-    <span class="text-muted-foreground">
-      {#if source.status === "fresh"}
-        {youngCopy.sourceFresh}
-      {:else if source.status === "stale"}
-        {youngCopy.sourceStale}
-      {:else}
-        {youngCopy.sourceUnknown}
-      {/if}
-      {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-    </span>
-
-  </div>
-
-  <Panel footer={pagination.totalPages > 1 ? paginationFooter : undefined}>
-    {#snippet header()}
+<CollectionPage
+  description={youngCopy.organizersDescription}
+  footer={pagination.totalPages > 1 ? paginationFooter : undefined}
+  title={youngCopy.organizersTitle}
+>
+  {#snippet toolbar()}
       <FilterToolbar>
         {#snippet primary()}
-          <form action="/catalog/young-events/organizers" method="get">
-            <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
-            <div class="min-w-48 flex-1"><SearchField id="young-organizer-search" label={commonLabels.search} name="search" placeholder={youngCopy.organizerSearchPlaceholder} value={search ?? ""} /></div>
-            <Button type="submit" class="h-11">{commonLabels.search}</Button>
-            </Field.FieldGroup>
+          <form action="/catalog/young-events/organizers" method="get" class="flex min-w-0 flex-1 items-center gap-2">
+            <SearchField id="young-organizer-search" label={commonLabels.search} name="search" placeholder={youngCopy.organizerSearchPlaceholder} value={search ?? ""} />
+            <Button type="submit" class={toolbarControlClass}>{commonLabels.search}</Button>
           </form>
         {/snippet}
       </FilterToolbar>
       <ActiveFilters items={search ? [{ href: removeYoungFilter($appPage.url, "search"), label: search, removeLabel: youngCopy.removeFilter.replace("{value}", search) }] : []} ariaLabel={youngCopy.activeFilters} clearHref="/catalog/young-events/organizers" clearLabel={commonLabels.clear} />
     {/snippet}
 
-    <section class="grid min-w-0 gap-3">
-      <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
-      <ResultsSummary
-        {summary}
-        page={pagination.page}
-        totalPages={pagination.totalPages}
-      />
+    <section class="flex min-h-[calc(100dvh-16rem)] min-w-0 flex-col gap-3">
+      <ResultsSummary {summary} page={pagination.page} totalPages={pagination.totalPages} />
       {#if data.length > 0}
         <ResponsiveCollection>
           {#snippet mobile()}
@@ -156,9 +134,9 @@ const summary = $derived(
               <Table.Header>
                 <Table.Row>
                   <Table.Head>{youngCopy.organizer}</Table.Head>
-                  <Table.Head class="text-right">{youngCopy.activeEvents}</Table.Head>
-                  <Table.Head class="text-right">{youngCopy.upcomingEvents}</Table.Head>
-                  <Table.Head class="text-right">{youngCopy.historyEvents}</Table.Head>
+                  <Table.Head class="text-right" style="text-align: right">{youngCopy.activeEvents}</Table.Head>
+                  <Table.Head class="text-right" style="text-align: right">{youngCopy.upcomingEvents}</Table.Head>
+                  <Table.Head class="text-right" style="text-align: right">{youngCopy.historyEvents}</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -169,11 +147,11 @@ const summary = $derived(
                         {organizer.name}
                       </a>
                     </Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">
                       <a class="underline underline-offset-4" href={eventsHref(organizer.id)}>{organizer.activeCount}</a>
                     </Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">{organizer.upcomingCount}</Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">{organizer.historyCount}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{organizer.upcomingCount}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{organizer.historyCount}</Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>
@@ -188,6 +166,8 @@ const summary = $derived(
           />
         </div>
       {/if}
+      <div class="mt-auto grid justify-items-end gap-1 pt-8">
+        <YoungSourceNote labels={youngCopy} {source} />
+      </div>
     </section>
-  </Panel>
-</PageLayout>
+</CollectionPage>

@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  toolbarControlClass,
+  toolbarSelectClass,
+} from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
@@ -18,7 +22,7 @@ export let educationLevelOptions: CourseListOption[];
 export let filters: CourseListFilters;
 export let idPrefix = "course";
 
-const controlClass = "w-full";
+const controlClass = `w-full ${toolbarSelectClass}`;
 </script>
 <form method="GET">
   <input name="search" type="hidden" value={courseSearch} />
@@ -82,8 +86,8 @@ const controlClass = "w-full";
       </NativeSelect.Root>
     </Field.Field>
     <div class="flex flex-wrap gap-2">
-      <Button type="submit">{commonLabels.applyFilters}</Button>
-      <Button href="/catalog/courses" variant="outline">{commonLabels.clear}</Button>
+      <Button type="submit" class={toolbarControlClass}>{commonLabels.applyFilters}</Button>
+      <Button href="/catalog/courses" variant="outline" class={toolbarControlClass}>{commonLabels.clear}</Button>
     </div>
   </Field.Group>
 </form>

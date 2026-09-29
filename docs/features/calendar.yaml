@@ -80,7 +80,7 @@ requirements:
 - id: calendar.week-starts-monday
   category: presentation
   rule: All personal academic and activity calendar grids start on Monday and end on Sunday. Date cells
-    remain aligned with their weekday headers.
+    remain aligned with their weekday headers. The public second-classroom calendar is a separate Sunday-start grid.
   rationale: One weekday order keeps dates in the same columns when viewers change mode or add course
     subscriptions, matching the campus workweek.
   acceptance:

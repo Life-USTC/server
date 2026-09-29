@@ -55,7 +55,7 @@ requirements:
     when: The actual browser fetches personal overlays, then the private request reaches the real API without its session cookie.
     then:
     - Anonymous browsing makes no private overlay request; signed-in overlays use no-store.
-    - The real 401 response restores the sign-in control on both surfaces.
+    - The real 401 response restores the subscribe button on the detail page and the sign-in conflict status on the calendar.
     test:
       file: tests/e2e/src/app/young-events/interaction-contract.test.ts
       name: young-event.private-client-overlays
@@ -68,7 +68,7 @@ requirements:
     when: The actual detail page renders and the viewer returns to the public catalog.
     then:
     - Activity facts and public navigation are available without sign-in.
-    - Official registration links to young.ustc.edu.cn.
+    - The detail page does not show an official registration link.
     test:
       file: tests/e2e/src/app/young-events/[youngId]/test.ts
       name: young-event.public-no-signin
@@ -246,28 +246,26 @@ requirements:
       name: young-event.structured-participation
 - id: young-event.display-known-values
   category: presentation
-  rule: Published registration requirements, meeting information, accepted attachment formats and external
-    sponsor are shown when supplied.
+  rule: The default detail page shows the poster banner, title, status badges, and a subscribe button to the right of the title. It does not show an activity summary, official signup button, expandable statistics, registration requirements, meeting information, attachment formats, or an external sponsor.
   acceptance:
-    given: A persisted activity provides registration requirements, accepted attachments, online meeting
-      information and an external sponsor.
+    given: A persisted activity provides registration requirements, accepted attachments, online meeting information and an external sponsor.
     when: The actual detail page renders at desktop and mobile widths.
     then:
-    - Every supplied participation fact is visible.
+    - The banner, title, and subscribe button are visible.
+    - Those participation facts are not repeated on the default page.
     test:
       file: tests/e2e/src/app/young-events/detail-contract.test.ts
       name: young-event.display-known-values
 - id: young-event.web-browse-context
   category: presentation
-  rule: Activity list and calendar retain shared search/category/module/level/organizer/source-list filters;
-    detail return links preserve the originating catalog browse route. Unknown-date results show their
-    active filter explicitly.
+  rule: The activity list retains search/category/module/level/organizer/source-list filters. The calendar does not show that toolbar. The second-classroom sidebar links to the list, calendar, and organizers. Unknown-date results show their active filter on the list.
   acceptance:
     given: Isolated events have shared search, category, module, level, organizer and source-list filters plus missing activity or registration starts.
-    when: Desktop and mobile browsers switch between list and calendar and open details from list, calendar and organizer history.
+    when: Desktop and mobile browsers open the filtered list, the calendar, and an event detail, then return through the sidebar.
     then:
-    - All shared filters survive list/calendar navigation and the detail return link restores the exact originating browse URL.
-    - Unknown-date results visibly identify the selected time basis and retain the filter when the search form is submitted.
+    - The list keeps the shared filters and shows the unknown-date time basis.
+    - The calendar page does not show the filter toolbar.
+    - The sidebar activity-list link returns to the activity list.
     test:
       file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
       name: young-event.web-browse-context
@@ -288,17 +286,39 @@ requirements:
       name: young-event.web-organizer-order
 - id: young-event.web-detail-priority
   category: presentation
-  rule: Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external;
-    poster, statistics and record metadata are expandable.
+  rule: The poster is a full-width banner at the top of the page. A fade from white, or black in dark mode, up to transparent covers the image. The title, subscribe button, and status badges sit on that lower edge. The page has no back button, activity summary, official signup button, or expandable statistics.
   acceptance:
-    given: An isolated activity supplies time, venue, credited hours, signup deadline, a poster, statistics and record timestamps.
-    when: The actual detail page renders at desktop and mobile widths, then the visitor expands its optional sections.
+    given: An isolated activity supplies a poster, time, venue, credited hours, and a signup deadline.
+    when: The actual detail page renders at desktop and mobile widths.
     then:
-    - The initial summary shows the decision facts before the collapsed poster and record sections.
-    - The official registration link opens externally; expansion reveals the poster, statistics and record facts.
+    - The banner contains the title, subscribe button, and status badges.
+    - There is no activity summary, back button, official signup button, or expandable statistics toggle.
     test:
       file: tests/e2e/src/app/young-events/interaction-contract.test.ts
       name: young-event.web-detail-priority
+- id: young-event.web-list-scan
+  category: presentation
+  rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of place, module, level, hours and signup deadline, and the signup status. The platform name in the description links to the official site.
+  acceptance:
+    given: Activities start on different Shanghai dates, including one without a start time.
+    when: The list groups those activities.
+    then:
+    - Events with the same start date share one group, and an unknown start is its own group.
+    test:
+      file: tests/unit/features/young/young-event-display.test.ts
+      name: young-event.web-list-scan
+- id: young-event.web-calendar-density
+  category: presentation
+  rule: Month and week grids start on Sunday. Day cells show the date number; weekday names stay in the column header. Month and week grids list events that start that day. The day view lists continuing overlaps after events that start that day.
+  acceptance:
+    given: A Wednesday anchor and events that start on that day or only continue into it.
+    when: The calendar builds the week range and the day list.
+    then:
+    - The week starts on Sunday.
+    - Events that start that day precede continuing overlaps.
+    test:
+      file: tests/unit/features/young/young-calendar.test.ts
+      name: young-event.web-calendar-density
 - id: young-event.web-mobile-calendar
   category: presentation
   rule: Month mobile agendas exclude adjacent-month padding and initially show the selected date onward;
@@ -325,11 +345,12 @@ requirements:
   rationale: Fixed standard choices coexist with unknown upstream facts; preserving current URL filters and unfiltered results avoids hiding those activities.
   acceptance:
     given: Source activities include unknown module and level values and a browse URL already filters by those values.
-    when: A browser opens list and calendar filter sheets, submits unchanged filters, replaces them with standard choices or clears the active chips.
+    when: A browser opens the list filter sheet, submits unchanged filters, replaces them with standard choices or clears the active chips, and opens the calendar.
     then:
     - Selectable module and level choices remain the five standard values plus the unfiltered option.
     - Unknown values remain visible in unfiltered activity results and active filter context; they are not additional selectable taxonomy choices.
     - Unchanged primary and advanced submissions preserve unknown filters, standard choices replace them and clear links remove them explicitly.
+    - The calendar page does not offer a filter sheet.
     test:
       file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
       name: young-event.fixed-browse-filter-options
@@ -401,36 +422,35 @@ requirements:
       name: young-event.online-option-uncertainty
 - id: young-event.occupancy-uncertainty
   category: presentation
-  rule: Unknown activity occupancy is displayed as unknown rather than zero.
+  rule: The detail page and activity list omit occupancy counts, so an unknown registration count is never rendered as zero.
   acceptance:
     given: Persisted activities have unknown or explicitly zero registrations and capacity 20.
-    when: The detail pages render on desktop/mobile, then the desktop catalog table renders.
+    when: The detail page and the matching list row render.
     then:
-    - Unknown counts are omitted from detail facts and shown as unknown in the catalog.
-    - A known zero remains an explicit zero.
+    - Neither page shows a registration count or a zero-capacity cell.
     test:
       file: tests/e2e/src/app/young-events/detail-contract.test.ts
       name: young-event.occupancy-uncertainty
 - id: young-event.partial-time-uncertainty
   category: presentation
-  rule: Partial time ranges label the known endpoint in Asia/Shanghai.
+  rule: A missing activity endpoint is not rendered as a date. The default detail page does not show an activity summary.
   acceptance:
     given: Persisted activities have only a start or only an end timestamp.
-    when: Their actual detail summaries render on desktop and mobile.
+    when: Their actual detail pages render on desktop and mobile.
     then:
-    - Each summary labels the known endpoint and formats its instant in Shanghai time.
+    - The detail page has no activity summary and does not show an invalid date.
     test:
       file: tests/e2e/src/app/young-events/detail-contract.test.ts
       name: young-event.partial-time-uncertainty
 - id: young-event.scope-uncertainty
   category: presentation
-  rule: Unknown signup-scope codes are never translated into eligibility claims.
+  rule: Unknown signup-scope codes are never translated into eligibility claims. The default detail page does not repeat an eligibility notice.
   acceptance:
     given: A persisted activity has an unrecognized signup-scope code and opaque source department identity.
     when: The actual detail page renders on desktop and mobile.
     then:
-    - The page directs viewers to the official eligibility source.
-    - It does not invent an eligibility claim or present opaque IDs as audience labels.
+    - The page does not show the unrecognized scope code or the opaque department id.
+    - It does not invent an eligibility claim or an official-eligibility sentence.
     test:
       file: tests/e2e/src/app/young-events/detail-contract.test.ts
       name: young-event.scope-uncertainty
@@ -538,44 +558,16 @@ capabilities:
         web-detail:
           primary:
           - event.name
-          - event.startAt
-          - event.endAt
           - event.status
           secondary:
           - event.activityLevel
-          - event.allowedAttachmentTypes
-          - event.appliedCount
-          - event.applyEndAt
-          - event.applyStartAt
-          - event.capacity
-          - event.category
-          - event.contactName
-          - event.contactTel
-          - event.department
           - event.description
-          - event.duration
-          - event.externalSponsor
-          - event.favCount
           - event.form
-          - event.grades
-          - event.hours
           - event.imageUrl
           - event.isActive
           - event.isOnline
-          - event.limitNum
-          - event.location
           - event.module
-          - event.onlineMeetingInfo
-          - event.organizer
-          - event.partakeNum
           - event.participationNotes
-          - event.places
-          - event.requiresSignup
-          - event.requiresSignupInfo
-          - event.serviceHour
-          - event.sponsor
-          - event.sumHours
-          - event.sumPersons
           tertiary:
           - event.youngId
           - event.organizerId
@@ -648,5 +640,12 @@ capabilities:
           - organizer.upcomingCount
           tertiary: []
       items:
+      - event name
+      - category (单次项目 / 系列项目), module (德/智/体/美/劳), activity level, and participation form
       - Rich descriptions and participation notes use sanitized content with proxied images.
+      - title and status badges on the lower edge of the poster banner
+      - status and source freshness as a short footnote
+      - organizer and stable organizer ID
+      - sourceMissing and lastSeenAt when applicable
       - Per-slot venues take precedence over the single location.
+      - Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list

@@ -24,13 +24,6 @@ function closeAccountNavigation() {
   closeMenus();
   sidebar.setOpenMobile(false);
 }
-
-function isSettingsPath(pathname: string) {
-  return (
-    pathname === "/account/settings" ||
-    pathname.startsWith("/account/settings/")
-  );
-}
 </script>
 
 {#if user}
@@ -43,8 +36,7 @@ function isSettingsPath(pathname: string) {
               {...props}
               aria-label={copy.shell.profileMenu}
               class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              isActive={currentPathname === profileHref ||
-                isSettingsPath(currentPathname)}
+              isActive={currentPathname === profileHref}
               size="lg"
               tooltipContent={user.name ?? copy.shell.profileMenu}
             >
@@ -96,7 +88,7 @@ function isSettingsPath(pathname: string) {
               {#snippet child({ props })}
                 <a
                   {...props}
-                  aria-current={isSettingsPath(currentPathname)
+                  aria-current={currentPathname === "/account/settings/preferences"
                     ? "page"
                     : undefined}
                   href="/account/settings/preferences"

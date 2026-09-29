@@ -1,6 +1,10 @@
 <script lang="ts">
 import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
+import {
+  toolbarControlClass,
+  toolbarSelectClass,
+} from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
@@ -36,24 +40,24 @@ export let tab: string;
 
 $: filterGroupClass =
   tab === "descriptions"
-    ? "gap-3 md:grid md:grid-cols-[180px_180px_minmax(0,1fr)_auto] md:items-end"
-    : "gap-3 md:grid md:grid-cols-[180px_minmax(0,1fr)_auto] md:items-end";
+    ? "grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 md:grid-cols-[180px_180px_minmax(0,1fr)_auto] md:gap-3"
+    : "grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 md:grid-cols-[180px_minmax(0,1fr)_auto] md:gap-3";
 $: searchPlaceholder =
   tab === "comments" ? copy.searchPlaceholder : copy.searchAllPlaceholder;
 </script>
 
 <FilterToolbar>
   {#snippet primary()}
-    <form class="grid min-w-0 gap-3" method="GET">
+    <form class="min-w-0 w-full" method="GET">
       <input type="hidden" name="tab" value={tab} />
       <Field.Group class={filterGroupClass}>
         {#if tab === "descriptions"}
-          <Field.Field>
+          <Field.Field class="col-span-2 md:col-span-1">
             <Field.Label for="admin-moderation-description-target">
               {copy.descriptionTarget}
             </Field.Label>
             <NativeSelect.Root
-              class="w-full [&_select]:h-11"
+              class="w-full {toolbarSelectClass}"
               id="admin-moderation-description-target"
               name="descriptionTarget"
               value={filters.descriptionTarget ?? "all"}
@@ -65,12 +69,12 @@ $: searchPlaceholder =
               {/each}
             </NativeSelect.Root>
           </Field.Field>
-          <Field.Field>
+          <Field.Field class="col-span-2 md:col-span-1">
             <Field.Label for="admin-moderation-description-content">
               {copy.descriptionContent}
             </Field.Label>
             <NativeSelect.Root
-              class="w-full [&_select]:h-11"
+              class="w-full {toolbarSelectClass}"
               id="admin-moderation-description-content"
               name="descriptionContent"
               value={filters.descriptionContent ?? "all"}
@@ -84,10 +88,10 @@ $: searchPlaceholder =
           </Field.Field>
           <input type="hidden" name="status" value={filters.status ?? "all"} />
         {:else}
-          <Field.Field>
+          <Field.Field class="col-span-2 md:col-span-1">
             <Field.Label for="admin-moderation-status">{copy.status}</Field.Label>
             <NativeSelect.Root
-              class="w-full [&_select]:h-11"
+              class="w-full {toolbarSelectClass}"
               id="admin-moderation-status"
               name="status"
               value={filters.status ?? "all"}
@@ -111,7 +115,7 @@ $: searchPlaceholder =
           />
         {/if}
         <SearchField id="admin-moderation-search" name="search" label={searchPlaceholder} placeholder={searchPlaceholder} bind:value={searchQuery} />
-        <Button class="h-11 w-full md:w-auto" type="submit">
+        <Button class={toolbarControlClass} type="submit">
           {copy.filterAction}
         </Button>
       </Field.Group>

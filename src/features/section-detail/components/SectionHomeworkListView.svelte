@@ -1,6 +1,6 @@
 <script lang="ts">
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
@@ -18,11 +18,7 @@ export let selectHomework: (homework: SectionHomework) => void | Promise<void>;
 
 <div data-testid="section-homeworks-list">
   {#if homeworks.length === 0}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{sectionCopy.noHomework}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={sectionCopy.noHomework} />
   {:else}
     <div class="md:hidden" data-testid="section-homeworks-items">
       <Item.Group class="gap-0">

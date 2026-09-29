@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Empty from "$lib/components/ui/empty/index.js";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import AdminModerationCommentsMobile from "./AdminModerationCommentsMobile.svelte";
 import AdminModerationCommentsTable from "./AdminModerationCommentsTable.svelte";
 import type {
@@ -41,10 +41,6 @@ export let targetLabel: AdminModerationCommentFormatter;
       {targetLabel}
     />
   {:else}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{copy.noComments}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={copy.noComments} />
   {/if}
 </section>

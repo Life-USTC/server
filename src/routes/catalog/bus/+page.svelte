@@ -4,8 +4,7 @@ import type { BusUserPreferenceSummary } from "@/features/bus/lib/bus-types";
 import BusTab from "@/features/workspace/components/BusTab.svelte";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { invalidateAll } from "$app/navigation";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import * as Alert from "$lib/components/ui/alert";
 import { Button } from "$lib/components/ui/button";
 import { Skeleton } from "$lib/components/ui/skeleton";
@@ -97,13 +96,7 @@ onMount(() => {
   <title>{data.copy.workspace.nav.bus.title} - Life@USTC</title>
 </svelte:head>
 
-<PageLayout>
-{#snippet header()}
-  <PageHeader
-    description={data.copy.workspace.nav.bus.description}
-    title={data.copy.workspace.nav.bus.title}
-  />
-{/snippet}
+<CollectionPage description={data.copy.workspace.nav.bus.description} panel={false} title={data.copy.workspace.nav.bus.title}>
 
   {#if preferencesFailed}
     <Alert.Root variant="destructive">
@@ -122,4 +115,4 @@ onMount(() => {
     onPlannerChange={() => { plannerInteracted = true; }}
   />
   {/key}
-</PageLayout>
+</CollectionPage>

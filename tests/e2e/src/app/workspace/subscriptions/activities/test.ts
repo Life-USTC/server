@@ -17,7 +17,11 @@ test("活动、主办方订阅和提醒入口可用", async ({ page }, testInfo)
   });
   await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
   for (const view of ["events", "organizers", "notifications"]) {
-    await page.locator(`nav a[href="?view=${view}"]`).click();
+    await page
+      .locator('[data-shell-navigation="desktop"]')
+      .locator(`a[href="/workspace/subscriptions/activities?view=${view}"]`)
+      .first()
+      .click();
     await expect(page).toHaveURL(new RegExp(`view=${view}`));
     await expect(page.locator("main")).toBeVisible();
   }
@@ -54,24 +58,48 @@ for (const viewport of [
       await expect(
         page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
       ).toBeVisible();
-      const reminder = page.getByRole("checkbox", {
+      await expect(
+        page.getByRole("button", { name: /^(提醒设置|Reminder settings)$/ }),
+      ).toHaveCount(0);
+      await gotoAndWaitForReady(
+        page,
+        "/workspace/subscriptions/activities?view=events",
+      );
+      const subscription = page.locator('[data-slot="item"]').filter({
+        has: page.getByRole("link", {
+          name: "Browser activity subscription",
+          exact: true,
+        }),
+      });
+      const reminder = subscription.getByRole("checkbox", {
         name: /报名截止前|registration closes/i,
       });
       await expect(reminder).toBeHidden();
-      await page
+      await subscription
         .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
         .click();
       await reminder.uncheck();
-      await page
+      const saved = page.waitForResponse(
+        (response) =>
+          response.request().method() === "PUT" &&
+          response
+            .url()
+            .includes("/api/workspace/young-event-subscriptions/") &&
+          response.status() === 200,
+      );
+      await subscription
         .getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ })
         .click();
+      expect((await (await saved).json()).remindDeadline).toBe(false);
       await page.reload();
       await expect(reminder).toBeHidden();
-      await page
+      await subscription
         .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
         .click();
       await expect(reminder).not.toBeChecked();
-      await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
+      await subscription
+        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+        .click();
       await expect(
         page.getByRole("link", {
           name: "Browser activity subscription",
@@ -301,7 +329,7 @@ test("reading the last unread reminder on page two returns to the remaining remi
     ).toBeVisible();
     const reminderNavigation = page
       .locator('[data-shell-navigation="desktop"]')
-      .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
+      .getByRole("link", { name: /^(活动通知|Activity notifications)$/ });
     await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
     const reminderBadge = page
       .locator(

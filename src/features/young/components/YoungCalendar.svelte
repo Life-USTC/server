@@ -3,7 +3,6 @@ import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "$lib/components/ui/button";
 import * as Collapsible from "$lib/components/ui/collapsible";
-import * as Item from "$lib/components/ui/item/index.js";
 import {
   type YoungCalendarView,
   youngCalendarAgenda,
@@ -13,6 +12,7 @@ import {
   youngCalendarPreviousDate,
   youngCalendarRange,
   youngCalendarWeeks,
+  youngEventStartsOnDay,
 } from "../lib/young-calendar";
 import type {
   YoungEventSummary,
@@ -31,7 +31,6 @@ export let unknownDatesHref = "/catalog/young-events?dateUnknown=true";
 export let labels: {
   agenda: string;
   earlierDates: string;
-  empty: string;
   month: string;
   next: string;
   previous: string;
@@ -39,6 +38,7 @@ export let labels: {
   unknownDates: string;
   week: string;
   day: string;
+  moreEvents: string;
   sourceMissing: string;
 };
 export let hrefFor: (view: YoungCalendarView, date: string) => string = (
@@ -72,26 +72,44 @@ $: weeks = youngCalendarWeeks(
       timeZone: "Asia/Shanghai",
       day: "numeric",
     }).format(day.date),
-    sublabel: new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Shanghai",
-      weekday: "short",
-    }).format(day.date),
     isToday: day.isToday,
     isMuted: day.isMuted,
-    events: day.events.map((event) => ({
+    events: (view === "day"
+      ? day.events
+      : day.events.filter((event) =>
+          youngEventStartsOnDay(event, day.key, timeBasis),
+        )
+    ).map((event) => ({
       href: eventHref(event),
       label: event.name,
-      meta: formatTime(event),
+      meta: formatClock(event),
+      title: [
+        event.name,
+        formatTime(event),
+        event.location,
+        conflictIds.has(event.youngId) ? conflictLabel : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
       badge: conflictIds.has(event.youngId) ? conflictLabel : undefined,
-      detail: event.sourceMissing
-        ? `${event.location ?? ""}${event.location ? " · " : ""}${labels.sourceMissing}`
-        : (event.location ?? ""),
       tone: event.sourceMissing ? ("neutral" as const) : ("primary" as const),
     })),
   })),
 }));
 $: heading = youngCalendarHeading(view, anchorDate, locale);
 $: agenda = youngCalendarAgenda(days, anchorDate);
+
+function formatClock(event: YoungEventSummary) {
+  const start =
+    timeBasis === "registration" ? event.applyStartAt : event.startAt;
+  if (!start) return "";
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "Asia/Shanghai",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(start));
+}
 
 function formatTime(event: YoungEventSummary) {
   const start =
@@ -102,6 +120,7 @@ function formatTime(event: YoungEventSummary) {
     timeZone: "Asia/Shanghai",
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
   return `${start ? formatter.format(new Date(start)) : "?"} – ${end ? formatter.format(new Date(end)) : "?"}`;
 }
@@ -119,52 +138,56 @@ function eventMeta(event: YoungEventSummary) {
 
 {#snippet agendaRows(agendaDays: typeof days)}
       {#each agendaDays as day}
+        {@const visible = view === "day" ? day.events : day.events.filter((event) => youngEventStartsOnDay(event, day.key, timeBasis))}
+        {@const limit = view === "week" ? 6 : view === "month" ? 3 : visible.length}
         <section aria-labelledby={`young-agenda-${day.key}`} class="grid gap-2">
           <h3 id={`young-agenda-${day.key}`} class="text-sm font-medium">
-            {new Intl.DateTimeFormat(locale, {
-              timeZone: "Asia/Shanghai",
-              weekday: "long",
-              month: "short",
-              day: "numeric",
-            }).format(day.date)}
+            <a class="hover:underline" href={hrefFor("day", day.key)}>
+              {new Intl.DateTimeFormat(locale, {
+                timeZone: "Asia/Shanghai",
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              }).format(day.date)}
+            </a>
             {#if day.isToday}<Badge variant="secondary">{labels.today}</Badge>{/if}
           </h3>
-          {#if day.events.length > 0}
-            <Item.Group class="grid gap-2">
-              {#each day.events as event (event.youngId)}
-                <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
-                  {#snippet child({ props })}
-                    <a href={eventHref(event)} {...props}>
-                      <Item.Content>
-                        <Item.Title>{event.name}</Item.Title>
-                        <Item.Description>{eventMeta(event)}</Item.Description>
-                        {#if event.sourceMissing}
-                          <Item.Description>{labels.sourceMissing}</Item.Description>
-                        {/if}
-                      </Item.Content>
-                    </a>
-                  {/snippet}
-                </Item.Root>
+          {#if visible.length > 0}
+            <ul class="divide-y">
+              {#each visible.slice(0, limit) as event (event.youngId)}
+                <li>
+                  <a class="grid grid-cols-[3.25rem_minmax(0,1fr)] items-baseline gap-3 py-2 text-sm hover:bg-muted/60" href={eventHref(event)}>
+                    <time class="tabular-nums text-muted-foreground">{formatClock(event) || "–"}</time>
+                    <span class="min-w-0">
+                      <span class="block truncate font-medium" data-slot="item-title">{event.name}</span>
+                      <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{eventMeta(event)}</span>
+                      {#if event.sourceMissing}
+                        <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{labels.sourceMissing}</span>
+                      {/if}
+                    </span>
+                  </a>
+                </li>
               {/each}
-            </Item.Group>
-          {:else}
-            <p class="text-sm text-muted-foreground">{labels.empty}</p>
+            </ul>
+            {#if visible.length > limit}
+              <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
+            {/if}
           {/if}
         </section>
       {/each}
 {/snippet}
 
 <section class="grid gap-4" data-testid="young-calendar">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-2">
-      <Button aria-label={labels.previous} variant="outline" href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}>‹</Button>
-      <Button variant="outline" href={hrefFor(view, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date()))}>{labels.today}</Button>
-      <Button aria-label={labels.next} variant="outline" href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}>›</Button>
+  <div class="flex min-w-0 items-center justify-between gap-1 sm:gap-3">
+    <div class="flex shrink-0 items-center gap-1 sm:gap-2">
+      <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.previous} variant="outline" href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}>‹</Button>
+      <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant="outline" href={hrefFor(view, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date()))}>{labels.today}</Button>
+      <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.next} variant="outline" href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}>›</Button>
     </div>
-    <h2 class="font-medium text-sm sm:text-base">{heading}</h2>
-    <nav aria-label={labels.agenda} class="flex items-center gap-1">
+    <h2 class="min-w-0 flex-1 truncate text-center font-medium text-sm sm:text-base">{heading}</h2>
+    <nav aria-label={labels.agenda} class="flex shrink-0 items-center gap-1">
       {#each ["day", "week", "month"] as targetView}
-        <Button variant={view === targetView ? "secondary" : "ghost"} aria-current={view === targetView ? "page" : undefined} href={hrefFor(targetView as YoungCalendarView, anchorDate)}>{labels[targetView as YoungCalendarView]}</Button>
+        <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant={view === targetView ? "secondary" : "ghost"} aria-current={view === targetView ? "page" : undefined} href={hrefFor(targetView as YoungCalendarView, anchorDate)}>{labels[targetView as YoungCalendarView]}</Button>
       {/each}
     </nav>
   </div>
@@ -193,37 +216,36 @@ function eventMeta(event: YoungEventSummary) {
             }).format(day.date)}
           </div>
           {#each day.events as event (event.youngId)}
-            <a class="rounded-lg border p-3 hover:bg-muted" href={eventHref(event)}>
+            <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
               <div class="font-medium">{event.name}</div>
-              <div class="text-muted-foreground text-sm">{eventMeta(event)}</div>
-              {#if event.sourceMissing}<div class="text-muted-foreground text-xs">{labels.sourceMissing}</div>{/if}
+              <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
+              <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
             </a>
-          {:else}
-            <p class="text-sm text-muted-foreground">{labels.empty}</p>
           {/each}
         </div>
-      {:else}
-        <p class="text-sm text-muted-foreground">{labels.empty}</p>
       {/if}
     {:else}
       <CalendarGrid
-        emptyLabel={labels.empty}
-        eventLimit={view === "week" ? 8 : 5}
-        moreLabel={(count) => `+${count}`}
+        density="lines"
+        emptyLabel=""
+        eventLimit={view === "week" ? 6 : 3}
+        moreLabel={(count) => labels.moreEvents.replace("{count}", String(count))}
         minWidth="760px"
         {weeks}
         variant={view === "week" ? "week" : "month"}
-        weekdays={weeks[0]?.days.map((day) => day.sublabel ?? "") ?? []}
+        weekdays={weeks[0]?.days.map((day) =>
+          new Intl.DateTimeFormat(locale, {
+            timeZone: "Asia/Shanghai",
+            weekday: "short",
+          }).format(new Date(`${day.key}T12:00:00+08:00`)),
+        ) ?? []}
       />
     {/if}
   </div>
 
   {#if unknownDateCount > 0}
-    <section class="grid gap-2" data-testid="young-calendar-unknown-dates">
-      <h3 class="font-medium text-sm">{labels.unknownDates}</h3>
-      <p class="text-muted-foreground text-sm">
-        <a class="underline underline-offset-4" href={unknownDatesHref}>{unknownDateCount} {labels.unknownDates}</a>
-      </p>
-    </section>
+    <p class="text-right text-xs text-muted-foreground" data-testid="young-calendar-unknown-dates">
+      <a class="underline underline-offset-4" href={unknownDatesHref}>{unknownDateCount} {labels.unknownDates}</a>
+    </p>
   {/if}
 </section>

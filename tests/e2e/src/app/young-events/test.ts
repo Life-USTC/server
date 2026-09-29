@@ -9,7 +9,7 @@
  * ## UI/UX Elements
  * - Search input (searchbox) with submit and clear buttons
  * - Signup status and category selects (native comboboxes)
- * - Desktop table / mobile item list with links to /catalog/young-events/{youngId}
+ * - Date-grouped rows with links to /catalog/young-events/{youngId}
  * - URL-driven pagination
  * - Empty state when no events match
  *
@@ -87,7 +87,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     ).toBeVisible();
   });
 
-  test("筛选面板保值并在日历与详情之间保留上下文", async ({ page }) => {
+  test("筛选面板保值，详情可返回，边栏进入日历", async ({ page }) => {
     const search = encodeURIComponent(DEV_SEED.youngEvent.name);
     await gotoAndWaitForReady(
       page,
@@ -117,22 +117,30 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       .first()
       .click();
     await expect(page).toHaveURL(/returnTo=/);
-    await expect(page.getByTestId("young-event-overview")).toBeVisible();
-    await page
-      .getByRole("link", { name: /返回活动列表|Back to all events/ })
-      .click();
+    await expect(page.getByTestId("young-event-banner")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /返回活动列表|Back to all events/ }),
+    ).toHaveCount(0);
+    await page.goBack();
     await expect(page).toHaveURL(browseUrl);
-    await page
-      .getByTestId("young-browse-nav")
-      .getByRole("link", { name: /^(日历|Calendar)$/ })
+    const youngNav = page.getByTestId("young-sidebar");
+    await expect(youngNav).toBeVisible();
+    await expect(page.getByTestId("young-sidebar-back")).toHaveAttribute(
+      "href",
+      "/",
+    );
+    await expect(
+      youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(
+      youngNav.getByRole("link", {
+        name: new RegExp(DEV_SEED.youngEvent.name),
+      }),
+    ).toHaveCount(0);
+    await youngNav
+      .getByRole("link", { name: /^(?:活动日历|Event calendar)$/ })
       .click();
-    await expect(page).toHaveURL(/calendar\?/);
-    expect(new URL(page.url()).searchParams.get("search")).toBe(
-      DEV_SEED.youngEvent.name,
-    );
-    expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
-      "dev-scenario-young-organizer",
-    );
+    await expect(page).toHaveURL(/\/catalog\/young-events\/calendar$/);
   });
 
   test("手机日历从所选日期开始并可展开此前日期", async ({ page }) => {
@@ -248,34 +256,6 @@ for (const width of [1280, 390]) {
   });
 }
 
-test("calendar sheet preserves selected dates and unsubmitted primary filters", async ({
-  page,
-}) => {
-  await gotoAndWaitForReady(
-    page,
-    "/catalog/young-events/calendar?view=week&date=2035-09-15&category=sport",
-  );
-  await page.getByRole("searchbox").fill("calendar draft");
-  await page.locator("#young-calendar-active").selectOption("false");
-  await page.locator("#young-calendar-time-basis").selectOption("registration");
-  await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
-  const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
-  await sheet.locator("#young-calendar-module").selectOption("智");
-  await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-  await expect(page).toHaveURL(
-    (url) => url.searchParams.get("module") === "智",
-  );
-  const params = new URL(page.url()).searchParams;
-  expect(Object.fromEntries(params)).toMatchObject({
-    view: "week",
-    date: "2035-09-15",
-    search: "calendar draft",
-    active: "false",
-    timeBasis: "registration",
-    category: "sport",
-  });
-});
-
 for (const width of [1280, 390]) {
   test(`calendar has all pages, day drilldown, and independent registration times at ${width}px`, async ({
     page,
@@ -308,7 +288,9 @@ for (const width of [1280, 390]) {
       );
       const root = page.getByTestId("young-calendar");
       if (width > 700)
-        await root.getByRole("link", { name: "+101", exact: true }).click();
+        await root
+          .getByRole("link", { name: /^(?:还有 103 场|103 more)$/ })
+          .click();
       else await root.getByRole("link", { name: /^(日|Day)$/ }).click();
       await expect(page).toHaveURL(/view=day/);
       await expect(
@@ -318,16 +300,10 @@ for (const width of [1280, 390]) {
       ).toBeVisible();
       await root.getByRole("link", { name: /^(周|Week)$/ }).click();
       await expect(page).toHaveURL(/view=week/);
-      await page
-        .locator("#young-calendar-time-basis")
-        .selectOption("registration");
-      await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-      await expect(page).toHaveURL(/timeBasis=registration/);
-      await expect(
-        root.getByRole("link", { name: /^(日|Day)$/ }),
-      ).toHaveAttribute("href", /timeBasis=registration/);
-      await root.getByRole("link", { name: /^(日|Day)$/ }).click();
-      await expect(page).toHaveURL(/view=day/);
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/young-events/calendar?view=day&date=2035-09-15&organizerId=${marker}&timeBasis=registration`,
+      );
       await expect(
         root
           .getByRole("link", { name: /Calendar activity/ })

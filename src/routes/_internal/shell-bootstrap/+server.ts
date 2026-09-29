@@ -1,4 +1,7 @@
-import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
+import {
+  getWorkspaceNavigationSummary,
+  listShellSubscribedSections,
+} from "@/features/workspace/server/workspace-navigation-summary";
 import { jsonResponse } from "@/lib/api/responses";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { layoutUserSummary } from "@/lib/shell/layout-server-data";
@@ -35,12 +38,33 @@ export const GET: RequestHandler = async ({ locals, request }) => {
     return privateJson({
       viewer: null,
       navigation: null,
+      subscribedSections: [],
     } satisfies ShellBootstrapPayload);
   }
 
   try {
     const navigation = await getWorkspaceNavigationSummary(viewer.id);
-    return privateJson({ viewer, navigation } satisfies ShellBootstrapPayload);
+    let subscribedSections: ShellBootstrapPayload["subscribedSections"] = [];
+    try {
+      subscribedSections = await listShellSubscribedSections(
+        viewer.id,
+        locals.locale,
+      );
+    } catch (error) {
+      logRouteFailure(
+        "Failed to load subscribed sections for the shell",
+        500,
+        error,
+        {
+          source: "web-shell-bootstrap",
+        },
+      );
+    }
+    return privateJson({
+      viewer,
+      navigation,
+      subscribedSections,
+    } satisfies ShellBootstrapPayload);
   } catch (error) {
     logRouteFailure("Failed to load shell bootstrap", 500, error, {
       source: "web-shell-bootstrap",
@@ -48,6 +72,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
     return privateJson({
       viewer,
       navigation: null,
+      subscribedSections: [],
     } satisfies ShellBootstrapPayload);
   }
 };

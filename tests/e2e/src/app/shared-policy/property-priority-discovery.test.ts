@@ -688,108 +688,7 @@ test("ui.model-property-priority-discovery-views", async ({
             page,
             `/catalog/young-events/${f.young.youngId}`,
           );
-          await main
-            .getByRole("button", { name: y.poster, exact: true })
-            .click();
-          await main
-            .getByRole("button", { name: y.moreDetails, exact: true })
-            .click();
-          const dd = (label: string) =>
-            main
-              .locator("dt")
-              .filter({
-                hasText: new RegExp(
-                  `^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-                ),
-              })
-              .first()
-              .locator("..")
-              .locator("dd");
-          const fieldValues: Record<string, [string, string]> = {
-            "event.allowedAttachmentTypes": [
-              y.allowedAttachmentTypes,
-              "PDF, DOCX",
-            ],
-            "event.appliedCount": [y.appliedCount, "13"],
-            "event.applyEndAt": [y.signupWindow, "2035-09-14 20:00"],
-            "event.applyStartAt": [y.signupWindow, "2035-09-01 08:00"],
-            "event.capacity": [y.capacity, "47"],
-            "event.contactName": [y.contactName, "Priority contact"],
-            "event.contactTel": [y.contactTel, "0551-63600000"],
-            "event.department": [y.department, "Priority department"],
-            "event.duration": [
-              y.duration,
-              y.durationHours.replace("{value}", "2"),
-            ],
-            "event.externalSponsor": [y.externalSponsor, "Priority partner"],
-            "event.favCount": [y.favCount, "7"],
-            "event.grades": [y.grades, "2026 cohort"],
-            "event.hours": [y.hours, "2.5"],
-            "event.limitNum": [y.limitNum, "41"],
-            "event.location": [y.location, "Priority venue"],
-            "event.onlineMeetingInfo": [
-              y.onlineMeetingInfo,
-              "Priority meeting 8123",
-            ],
-            "event.organizer": [y.organizer, f.organizer.name],
-            "event.partakeNum": [y.partakeNum, "17"],
-            "event.requiresSignup": [y.signupRequirement, y.signupRequired],
-            "event.serviceHour": [y.serviceHour, "3.5"],
-            "event.sponsor": [y.sponsor, "Priority sponsor"],
-            "event.sumHours": [y.sumHours, "59"],
-            "event.sumPersons": [y.sumPersons, "23"],
-          };
-          const secondary = Object.fromEntries(
-            Object.entries(fieldValues).map(([field, [label, value]]) => [
-              field,
-              visible(dd(label), value),
-            ]),
-          );
           const badges = main.getByTestId("young-event-badges");
-          Object.assign(secondary, {
-            "event.activityLevel": visible(
-              badges.getByText("校级", { exact: true }),
-              "校级",
-            ),
-            "event.category": visible(dd(y.category), "Priority category"),
-            "event.description": visible(
-              main.getByText("Priority event description", { exact: true }),
-              "Priority event description",
-            ),
-            "event.form": visible(
-              badges.getByText("讲座", { exact: true }),
-              "讲座",
-            ),
-            "event.imageUrl": icon(
-              main.getByRole("img", { name: f.young.name, exact: true }),
-              /^\/api\/catalog\/young-events\//,
-              "src",
-            ),
-            "event.isActive": visible(
-              badges.getByText("报名中", { exact: true }),
-              "报名中",
-            ),
-            "event.isOnline": visible(
-              badges.getByText(y.online, { exact: true }),
-              y.online,
-            ),
-            "event.module": visible(
-              badges.getByText("智", { exact: true }),
-              "智",
-            ),
-            "event.participationNotes": visible(
-              main.getByText("Priority participation notes", { exact: true }),
-              "Priority participation notes",
-            ),
-            "event.places": visible(
-              main.getByText("Priority room 3A204", { exact: true }),
-              "Priority room 3A204",
-            ),
-            "event.requiresSignupInfo": visible(
-              main.getByText(y.signupInfoRequired, { exact: true }),
-              y.signupInfoRequired,
-            ),
-          });
           await audit.check({
             feature: "young-event",
             capability: "young-event",
@@ -798,29 +697,52 @@ test("ui.model-property-priority-discovery-views", async ({
             identity: title(),
             primary: {
               "event.name": visible(title(), f.young.name),
-              "event.startAt": visible(dd(y.eventTime), "2035-09-15 10:00"),
-              "event.endAt": visible(dd(y.eventTime), "2035-09-15 12:00"),
               "event.status": visible(
                 badges.getByText("报名中", { exact: true }),
                 "报名中",
               ),
             },
-            secondary,
+            secondary: {
+              "event.activityLevel": visible(
+                badges.getByText("校级", { exact: true }),
+                "校级",
+              ),
+              "event.description": visible(
+                main.getByText("Priority event description", { exact: true }),
+                "Priority event description",
+              ),
+              "event.form": visible(
+                badges.getByText("讲座", { exact: true }),
+                "讲座",
+              ),
+              "event.imageUrl": icon(
+                main.getByRole("img", { name: f.young.name, exact: true }),
+                /^\/api\/catalog\/young-events\//,
+                "src",
+              ),
+              "event.isActive": visible(
+                badges.getByText("报名中", { exact: true }),
+                "报名中",
+              ),
+              "event.isOnline": visible(
+                badges.getByText(y.online, { exact: true }),
+                y.online,
+              ),
+              "event.module": visible(
+                badges.getByText("智", { exact: true }),
+                "智",
+              ),
+              "event.participationNotes": visible(
+                main.getByText("Priority participation notes", { exact: true }),
+                "Priority participation notes",
+              ),
+            },
             tertiary: {
               "event.youngId": { value: f.young.youngId },
               "event.organizerId": { value: f.organizer.id },
-              "event.createdAtUpstream": {
-                value: "2035-08-01 09:11",
-                locator: dd(y.createdAtUpstream),
-              },
-              "event.auditedAt": {
-                value: "2035-08-02 09:12",
-                locator: dd(y.auditedAt),
-              },
-              "event.updatedAtUpstream": {
-                value: "2035-08-03 09:13",
-                locator: dd(y.updatedAtUpstream),
-              },
+              "event.createdAtUpstream": { value: "2035-08-01 09:11" },
+              "event.auditedAt": { value: "2035-08-02 09:12" },
+              "event.updatedAtUpstream": { value: "2035-08-03 09:13" },
               "event.sourceMissing": {
                 value: y.sourceMissing,
                 locator: main
@@ -924,7 +846,7 @@ test("ui.model-property-priority-discovery-views", async ({
           });
           const location = page.getByTestId("weather-location").first();
           const card = location.locator(
-            'xpath=ancestor::*[@data-slot="card"][1]',
+            'xpath=ancestor::*[@data-slot="page-section"][1]',
           );
           const heading = card.getByRole("heading", { level: 2 });
           const chart = location.getByTestId("weather-hourly-chart");

@@ -150,7 +150,7 @@ test.describe("/community/users/[identifier]", () => {
       `/community/users/${DEV_SEED.adminUsername}`,
     );
 
-    const summary = page.locator('[data-slot="card"]').filter({
+    const summary = page.locator('[data-slot="page-section"]').filter({
       has: page.getByRole("heading", { level: 1, name: DEV_SEED.adminName }),
     });
     await expect(summary).toBeVisible();

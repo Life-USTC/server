@@ -5,6 +5,10 @@ import { page } from "$app/stores";
 import ActiveFilters from "$lib/components/ActiveFilters.svelte";
 import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
+import {
+  toolbarControlClass,
+  toolbarSelectClass,
+} from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button";
 import * as Field from "$lib/components/ui/field";
 import * as NativeSelect from "$lib/components/ui/native-select";
@@ -141,36 +145,36 @@ const activeFilters = $derived(
 
 <FilterToolbar bind:open {activeCount} filterTitle={labels.moreFilters} filterDescription={labels.description}>
   {#snippet primary()}
-    <form {action} method="get">
-      <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
+    <form {action} method="get" class="contents">
       {@render browseContext()}
       {#each advancedKeys as key}
         {#if filters[key]}<input type="hidden" name={key} value={filters[key]} />{/if}
       {/each}
-      <div class="min-w-48 flex-1">
+      <div class="order-1 min-w-0 flex-1">
         <SearchField id={`${prefix}-search`} label={copy.common.search} name="search" placeholder={labels.searchPlaceholder} bind:value={searchDraft} />
       </div>
-      <Field.Field class="w-auto">
-        <Field.FieldLabel for={`${prefix}-active`}>{labels.signupStatus}</Field.FieldLabel>
-        <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-active`} name="active" bind:value={activeDraft}>
-          <NativeSelect.Option value="">{labels.statusAll}</NativeSelect.Option>
-          <NativeSelect.Option value="true">{labels.statusActive}</NativeSelect.Option>
-          <NativeSelect.Option value="false">{labels.statusEnded}</NativeSelect.Option>
-        </NativeSelect.Root>
-      </Field.Field>
-      {#if calendar}
+      <div class="order-3 grid w-full gap-2 md:order-2 md:flex md:w-auto">
         <Field.Field class="w-auto">
-          <Field.FieldLabel for="young-calendar-time-basis">{labels.timeBasis}</Field.FieldLabel>
-          <NativeSelect.Root class="[&_select]:h-11" id="young-calendar-time-basis" name="timeBasis" bind:value={timeBasisDraft}>
-            <NativeSelect.Option value="activity">{labels.eventTime}</NativeSelect.Option>
-            <NativeSelect.Option value="registration">{labels.signupWindow}</NativeSelect.Option>
+          <Field.FieldLabel for={`${prefix}-active`}>{labels.signupStatus}</Field.FieldLabel>
+          <NativeSelect.Root class={toolbarSelectClass} id={`${prefix}-active`} name="active" bind:value={activeDraft}>
+            <NativeSelect.Option value="">{labels.statusAll}</NativeSelect.Option>
+            <NativeSelect.Option value="true">{labels.statusActive}</NativeSelect.Option>
+            <NativeSelect.Option value="false">{labels.statusEnded}</NativeSelect.Option>
           </NativeSelect.Root>
         </Field.Field>
-      {:else}
-        <input type="hidden" name="timeBasis" value={timeBasisDraft} />
-      {/if}
-      <Button type="submit" class="h-11">{copy.common.search}</Button>
-      </Field.FieldGroup>
+        {#if calendar}
+          <Field.Field class="w-auto">
+            <Field.FieldLabel for="young-calendar-time-basis">{labels.timeBasis}</Field.FieldLabel>
+            <NativeSelect.Root class={toolbarSelectClass} id="young-calendar-time-basis" name="timeBasis" bind:value={timeBasisDraft}>
+              <NativeSelect.Option value="activity">{labels.eventTime}</NativeSelect.Option>
+              <NativeSelect.Option value="registration">{labels.signupWindow}</NativeSelect.Option>
+            </NativeSelect.Root>
+          </Field.Field>
+        {:else}
+          <input type="hidden" name="timeBasis" value={timeBasisDraft} />
+        {/if}
+      </div>
+      <Button type="submit" class="{toolbarControlClass} order-2 md:order-3">{copy.common.search}</Button>
     </form>
   {/snippet}
   {#snippet advanced()}
@@ -183,7 +187,7 @@ const activeFilters = $derived(
       <Field.FieldGroup>
         <Field.Field>
           <Field.FieldLabel for={`${prefix}-organizer`}>{labels.organizerFilter}</Field.FieldLabel>
-          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-organizer`} name="organizerId" bind:value={advancedDraft.organizerId}>
+          <NativeSelect.Root class={toolbarSelectClass} id={`${prefix}-organizer`} name="organizerId" bind:value={advancedDraft.organizerId}>
             <NativeSelect.Option value="">{labels.allOrganizers}</NativeSelect.Option>
             {#if advancedDraft.organizerId && !organizers.some((item) => item.id === advancedDraft.organizerId)}<NativeSelect.Option value={advancedDraft.organizerId}>{advancedDraft.organizerId}</NativeSelect.Option>{/if}
             {#each organizers as organizer (organizer.id)}<NativeSelect.Option value={organizer.id}>{organizer.name}</NativeSelect.Option>{/each}
@@ -191,7 +195,7 @@ const activeFilters = $derived(
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for={`${prefix}-category`}>{labels.category}</Field.FieldLabel>
-          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-category`} name="category" bind:value={advancedDraft.category}>
+          <NativeSelect.Root class={toolbarSelectClass} id={`${prefix}-category`} name="category" bind:value={advancedDraft.category}>
             <NativeSelect.Option value="">{labels.allCategories}</NativeSelect.Option>
             {#if advancedDraft.category && !categories.includes(advancedDraft.category)}<NativeSelect.Option value={advancedDraft.category}>{advancedDraft.category}</NativeSelect.Option>{/if}
             {#each categories as category (category)}<NativeSelect.Option value={category}>{category}</NativeSelect.Option>{/each}
@@ -200,7 +204,7 @@ const activeFilters = $derived(
         <Field.Field>
           <Field.FieldLabel for={`${prefix}-module`}>{labels.module}</Field.FieldLabel>
           {#if unknownModule}<input type="hidden" name="module" value={advancedDraft.module} />{/if}
-          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-module`} name={unknownModule ? undefined : "module"} bind:value={advancedDraft.module}>
+          <NativeSelect.Root class={toolbarSelectClass} id={`${prefix}-module`} name={unknownModule ? undefined : "module"} bind:value={advancedDraft.module}>
             <NativeSelect.Option value="">{labels.allModules}</NativeSelect.Option>
             {#if unknownModule}<NativeSelect.Option value={advancedDraft.module} disabled>{advancedDraft.module}</NativeSelect.Option>{/if}
             {#each modules as module (module)}<NativeSelect.Option value={module}>{module}</NativeSelect.Option>{/each}
@@ -209,14 +213,14 @@ const activeFilters = $derived(
         <Field.Field>
           <Field.FieldLabel for={`${prefix}-activity-level`}>{labels.activityLevel}</Field.FieldLabel>
           {#if unknownLevel}<input type="hidden" name="activityLevel" value={advancedDraft.activityLevel} />{/if}
-          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-activity-level`} name={unknownLevel ? undefined : "activityLevel"} bind:value={advancedDraft.activityLevel}>
+          <NativeSelect.Root class={toolbarSelectClass} id={`${prefix}-activity-level`} name={unknownLevel ? undefined : "activityLevel"} bind:value={advancedDraft.activityLevel}>
             <NativeSelect.Option value="">{labels.allActivityLevels}</NativeSelect.Option>
             {#if unknownLevel}<NativeSelect.Option value={advancedDraft.activityLevel} disabled>{advancedDraft.activityLevel}</NativeSelect.Option>{/if}
             {#each levels as level (level)}<NativeSelect.Option value={level}>{level}</NativeSelect.Option>{/each}
           </NativeSelect.Root>
         </Field.Field>
       </Field.FieldGroup>
-      <Button type="submit" class="h-11">{copy.common.search}</Button>
+      <Button type="submit" class={toolbarControlClass}>{copy.common.search}</Button>
     </form>
   {/snippet}
 </FilterToolbar>

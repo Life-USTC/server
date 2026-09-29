@@ -1,5 +1,7 @@
 <script lang="ts">
+import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
@@ -9,7 +11,17 @@ import type {
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
 import AppUserMenu from "./AppUserMenu.svelte";
+import SettingsGlyph from "./SettingsGlyph.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
+
+export type SectionSidebar = {
+  backHref: string;
+  backLabel: string;
+  backTestId: string;
+  level: "settings" | "young";
+  navLabel: string;
+  testId: string;
+};
 
 let {
   avatarFallback,
@@ -21,6 +33,7 @@ let {
   mobileNavGroups,
   navGroups,
   profileHref,
+  sectionSidebar = null,
   setUserMenuOpen,
   showAccountFooter = true,
   user,
@@ -36,6 +49,7 @@ let {
   mobileNavGroups: ShellNavGroup[];
   navGroups: ShellNavGroup[];
   profileHref: string;
+  sectionSidebar?: SectionSidebar | null;
   setUserMenuOpen: (open: boolean) => void;
   showAccountFooter?: boolean;
   user: LayoutUserSummary;
@@ -45,6 +59,19 @@ let {
 
 const sidebar = Sidebar.useSidebar();
 const groupOpen = $state<Record<string, boolean>>({});
+let submenuOverride = $state<Record<string, { open: boolean; path: string }>>(
+  {},
+);
+
+function submenuIsOpen(href: string, autoOpen: boolean, path: string) {
+  const saved = submenuOverride[href];
+  if (saved?.path === path) return saved.open;
+  return autoOpen;
+}
+
+function setSubmenuOpen(href: string, path: string, open: boolean) {
+  submenuOverride = { ...submenuOverride, [href]: { open, path } };
+}
 
 function hasActiveChild(link: ShellLink): boolean {
   return (
@@ -78,34 +105,55 @@ function closeMobileSidebar(): void {
 
 {#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
   <nav
-    aria-label={mobile
-      ? copy.shell.secondaryNavigation
-      : copy.shell.primaryNavigation}
+    aria-label={sectionSidebar
+      ? sectionSidebar.navLabel
+      : mobile
+        ? copy.shell.secondaryNavigation
+        : copy.shell.primaryNavigation}
     data-shell-navigation={mobile ? "secondary" : "desktop"}
+    data-sidebar-level={sectionSidebar?.level}
+    data-testid={sectionSidebar?.testId}
     class="flex min-h-0 flex-1 flex-col"
   >
     <Sidebar.Header>
       <Sidebar.Menu>
         <Sidebar.MenuItem>
-          <Sidebar.MenuButton tooltipContent="Life@USTC">
-            {#snippet child({ props })}
-              <a
-                {...props}
-                id="app-logo"
-                href="/"
-                aria-label="Life@USTC"
-                onclick={closeMobileSidebar}
-              >
-                <img
-                  class="size-6 rounded-md"
-                  src={appIconUrl}
-                  alt=""
-                  aria-hidden="true"
-                />
-                <span>Life@USTC</span>
-              </a>
-            {/snippet}
-          </Sidebar.MenuButton>
+          {#if sectionSidebar}
+            {@const section = sectionSidebar}
+            <Sidebar.MenuButton tooltipContent={section.backLabel}>
+              {#snippet child({ props })}
+                <a
+                  {...props}
+                  href={section.backHref}
+                  data-testid={section.backTestId}
+                  onclick={closeMobileSidebar}
+                >
+                  <ArrowLeftIcon />
+                  <span>{section.backLabel}</span>
+                </a>
+              {/snippet}
+            </Sidebar.MenuButton>
+          {:else}
+            <Sidebar.MenuButton tooltipContent="Life@USTC">
+              {#snippet child({ props })}
+                <a
+                  {...props}
+                  id="app-logo"
+                  href="/"
+                  aria-label="Life@USTC"
+                  onclick={closeMobileSidebar}
+                >
+                  <img
+                    class="size-6 rounded-md"
+                    src={appIconUrl}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span>Life@USTC</span>
+                </a>
+              {/snippet}
+            </Sidebar.MenuButton>
+          {/if}
         </Sidebar.MenuItem>
       </Sidebar.Menu>
     </Sidebar.Header>
@@ -147,6 +195,11 @@ function closeMobileSidebar(): void {
                       {@const childActive = hasActiveChild(link)}
                       {@const ownActive = isActiveLink(link) && !childActive}
                       {@const active = showActiveState(ownActive)}
+                      {@const submenuOpen = submenuIsOpen(
+                        link.href,
+                        ownActive || childActive,
+                        currentPathname,
+                      )}
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
@@ -160,7 +213,9 @@ function closeMobileSidebar(): void {
                               aria-current={active ? "page" : undefined}
                               onclick={closeMobileSidebar}
                             >
-                              {#if link.icon}
+                              {#if link.glyph}
+                                <SettingsGlyph name={link.glyph} />
+                              {:else if link.icon}
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
@@ -168,11 +223,30 @@ function closeMobileSidebar(): void {
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        <Sidebar.MenuAction
+                          aria-expanded={submenuOpen}
+                          aria-label={link.label}
+                          class={link.badge != null && link.badge > 0
+                            ? "right-8"
+                            : undefined}
+                          onclick={(event) => {
+                            event.preventDefault();
+                            setSubmenuOpen(
+                              link.href,
+                              currentPathname,
+                              !submenuOpen,
+                            );
+                          }}
+                        >
+                          <ChevronRightIcon
+                            class={submenuOpen ? "rotate-90" : undefined}
+                          />
+                        </Sidebar.MenuAction>
                         {#if link.badge != null && link.badge > 0}
                           <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
                         {/if}
 
-                        {#if ownActive || childActive}
+                        {#if submenuOpen}
                           <Sidebar.MenuSub>
                             {#each link.items as subLink}
                               {@const nestedActive = hasActiveChild(subLink)}
@@ -247,7 +321,9 @@ function closeMobileSidebar(): void {
                               aria-current={active ? "page" : undefined}
                               onclick={closeMobileSidebar}
                             >
-                              {#if link.icon}
+                              {#if link.glyph}
+                                <SettingsGlyph name={link.glyph} />
+                              {:else if link.icon}
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}

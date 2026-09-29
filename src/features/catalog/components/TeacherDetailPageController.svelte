@@ -7,8 +7,7 @@ import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
-import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
@@ -45,7 +44,12 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { loadFailed: string; retry: string; title: string };
-    common: { next: string; previous: string; home: string; teachers: string };
+    common: {
+      home: string;
+      next: string;
+      previous: string;
+      teachers: string;
+    };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
     teacherDetail: TeacherDetailCopy["teacherDetail"] & {
@@ -75,18 +79,14 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
   {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
 </svelte:head>
 
-<DetailPageLayout>
-  {#snippet header()}
-    <PageHeader
-      title={catalogPrimaryName(data.teacher) || displayName}
-      titleClass="text-2xl leading-tight sm:text-3xl"
-    >
-      {#snippet titleExtra()}
-        {#if data.locale === "en-us" && catalogSecondaryName(data.teacher) && catalogSecondaryName(data.teacher) !== catalogPrimaryName(data.teacher)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.teacher)})</span>{/if}
-      {/snippet}
-    </PageHeader>
+<CollectionPage
+  layout="detail"
+  title={catalogPrimaryName(data.teacher) || displayName}
+  titleClass="text-2xl leading-tight sm:text-3xl"
+>
+  {#snippet titleExtra()}
+    {#if data.locale === "en-us" && catalogSecondaryName(data.teacher) && catalogSecondaryName(data.teacher) !== catalogPrimaryName(data.teacher)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.teacher)})</span>{/if}
   {/snippet}
-
   {#snippet identity()}
     <TeacherDetailIdentity copy={detailCopy} teacher={data.teacher} {primaryName} {notAvailable} />
   {/snippet}
@@ -153,4 +153,4 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
           />
         </section>
   {/snippet}
-</DetailPageLayout>
+</CollectionPage>

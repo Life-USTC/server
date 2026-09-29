@@ -64,10 +64,10 @@ test("ui.list-table-1", async ({ page, baseURL }) => {
         frame.locator(":scope > header").getByRole("heading", { level: 1 }),
       ).toHaveCount(1);
       const panel = frame.locator(
-        ':scope > [data-slot="page-layout-content"] > [data-slot="card"]',
+        ':scope > [data-slot="page-layout-content"] > [data-slot="page-section"]',
       );
       await expect(panel).toHaveCount(1);
-      const filters = panel.locator('[data-slot="card-header"]');
+      const filters = panel.locator('[data-slot="page-section-header"]');
       await expect(filters.getByRole("searchbox").first()).toBeVisible();
       const summary = panel.locator('[data-slot="results-summary"]');
       const rows = records(page, item.name, width);
@@ -75,9 +75,13 @@ test("ui.list-table-1", async ({ page, baseURL }) => {
       const pagination = panel.locator('[data-slot="list-pagination"]');
       await expect(pagination).toHaveCount(1);
       const ordered = await panel.evaluate((element) => {
-        const filter = element.querySelector('[data-slot="card-header"]');
+        const filter = element.querySelector(
+          '[data-slot="page-section-header"]',
+        );
         const summary = element.querySelector('[data-slot="results-summary"]');
-        const footer = element.querySelector('[data-slot="card-footer"]');
+        const footer = element.querySelector(
+          '[data-slot="page-section-footer"]',
+        );
         if (!filter || !summary || !footer) return false;
         return (
           Boolean(
@@ -93,17 +97,17 @@ test("ui.list-table-1", async ({ page, baseURL }) => {
       expect(ordered, item.name).toBe(true);
       expect(
         await summary.evaluate((node) =>
-          Boolean(node.closest('[data-slot="card-content"]')),
+          Boolean(node.closest('[data-slot="page-section-body"]')),
         ),
       ).toBe(true);
       expect(
         await rows.first().evaluate((node) => {
-          const content = node.closest('[data-slot="card-content"]');
+          const content = node.closest('[data-slot="page-section-body"]');
           const summary = content?.querySelector(
             '[data-slot="results-summary"]',
           );
           const footer = content?.parentElement?.querySelector(
-            '[data-slot="card-footer"]',
+            '[data-slot="page-section-footer"]',
           );
           return Boolean(
             summary &&
@@ -117,7 +121,7 @@ test("ui.list-table-1", async ({ page, baseURL }) => {
       ).toBe(true);
       expect(
         await pagination.evaluate((node) =>
-          Boolean(node.closest('[data-slot="card-footer"]')),
+          Boolean(node.closest('[data-slot="page-section-footer"]')),
         ),
       ).toBe(true);
     }

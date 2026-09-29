@@ -7,8 +7,7 @@ import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
-import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   catalogLocalizedDisplayName,
@@ -45,7 +44,12 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { loadFailed: string; retry: string };
-    common: { next: string; previous: string; courses: string; home: string };
+    common: {
+      courses: string;
+      home: string;
+      next: string;
+      previous: string;
+    };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
       basicInfoDescription: string;
@@ -87,21 +91,17 @@ $: displayName =
   {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
 </svelte:head>
 
-<DetailPageLayout>
-  {#snippet header()}
-    <PageHeader
-      title={catalogPrimaryName(data.course) || displayName}
-      titleClass="text-2xl leading-tight sm:text-3xl"
-    >
-      {#snippet titleExtra()}
-        {#if data.locale === "en-us" && catalogSecondaryName(data.course) && catalogSecondaryName(data.course) !== catalogPrimaryName(data.course)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.course)})</span>{/if}
-      {/snippet}
-      {#snippet eyebrowContent()}
-        <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
-      {/snippet}
-    </PageHeader>
+<CollectionPage
+  layout="detail"
+  title={catalogPrimaryName(data.course) || displayName}
+  titleClass="text-2xl leading-tight sm:text-3xl"
+>
+  {#snippet titleExtra()}
+    {#if data.locale === "en-us" && catalogSecondaryName(data.course) && catalogSecondaryName(data.course) !== catalogPrimaryName(data.course)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.course)})</span>{/if}
   {/snippet}
-
+  {#snippet eyebrowContent()}
+    <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
+  {/snippet}
   {#snippet identity()}
     <CourseDetailIdentity copy={detailCopy} course={data.course} {primaryName} />
   {/snippet}
@@ -170,4 +170,4 @@ $: displayName =
           />
         </section>
   {/snippet}
-</DetailPageLayout>
+</CollectionPage>

@@ -575,6 +575,12 @@
     "oauthDescription": "OAuth 应用",
     "busTitle": "校车管理",
     "busDescription": "校车时刻表",
+    "queues": {
+      "comments": "评论",
+      "descriptions": "课程简介",
+      "homeworks": "作业",
+      "suspensions": "封禁"
+    },
     "workspace": {
       "active": "活跃",
       "deleted": "已删除",
@@ -2706,6 +2712,7 @@
   },
   "youngEvents": {
     "title": "第二课堂",
+    "activitiesTitle": "活动列表",
     "calendarTitle": "活动日历",
     "organizersTitle": "主办方",
     "calendarDescription": "按日、周或月浏览第二课堂活动。",
@@ -2714,7 +2721,8 @@
     "conflictUnavailable": "暂时无法核对个人日程，请稍后刷新重试。",
     "conflictScope": "冲突提示仅基于已同步的课程、考试及已订阅活动；不代表报名资格。",
     "organizersDescription": "优先展示有当前报名列表活动的主办方，也可按名称查找。",
-    "description": "来自第二课堂平台（young.ustc.edu.cn）的报名活动。",
+    "description": "来自第二课堂平台的报名活动。",
+    "platformName": "第二课堂平台",
     "searchPlaceholder": "按活动名称搜索...",
     "showing": "显示 {total} 个活动中的 {count} 个",
     "showingOne": "显示 {total} 个活动中的 {count} 个",
@@ -2774,6 +2782,7 @@
     "day": "日",
     "week": "周",
     "month": "月",
+    "moreEvents": "还有 {count} 场",
     "agenda": "活动日历导航",
     "today": "今天",
     "previous": "上一页",

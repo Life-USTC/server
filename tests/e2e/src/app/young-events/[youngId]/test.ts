@@ -2,20 +2,17 @@
  * E2E tests for /catalog/young-events/[youngId] — 第二课堂活动详情
  *
  * ## Data Represented
- * - One signup event: name, category, status, event time, signup window,
- *   location, organizer, department, hours, capacity
+ * - One signup event: name and status badges on the poster banner
  * - Seed event: DEV_SEED.youngEvent (youngId dev-scenario-young-event)
  *
  * ## UI/UX Elements
- * - Field grid with event metadata
- * - External signup link to young.ustc.edu.cn
- * - Back link to the event list
+ * - Full-width poster banner with the title and badges
+ * - Subscribe button to the right of the title
  *
  * ## Edge Cases
  * - Unknown youngId renders the 404 error page
  */
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -34,28 +31,43 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
   test("young-event.public-no-signin", async ({ page }) => {
     await gotoAndWaitForReady(page, DETAIL_PATH);
 
+    const banner = page.getByTestId("young-event-banner");
     await expect(
-      page.getByRole("heading", { level: 1, name: DEV_SEED.youngEvent.name }),
+      banner.getByRole("heading", { level: 1, name: DEV_SEED.youngEvent.name }),
     ).toBeVisible();
-    await expect(visibleText(page, DEV_SEED.youngEvent.location)).toBeVisible();
     await expect(
-      visibleText(page, DEV_SEED.youngEvent.organizer),
+      banner.getByText(DEV_SEED.youngEvent.activityLevel),
     ).toBeVisible();
+    await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /更多活动资料|More activity details/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: /前往官方平台|official site/i }),
+    ).toHaveCount(0);
 
-    const signupLink = page.getByRole("link", {
-      name: /前往官方平台|official site/i,
-    });
-    await expect(signupLink).toBeVisible();
-    await expect(signupLink).toHaveAttribute(
-      "href",
-      "https://young.ustc.edu.cn",
-    );
+    const youngNav = page.getByTestId("young-sidebar");
+    await expect(youngNav).toBeVisible();
+    await expect(
+      youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
+    ).not.toHaveAttribute("aria-current", "page");
+    await expect(
+      youngNav.getByRole("link", { name: DEV_SEED.youngEvent.name }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(
+      page.getByRole("navigation", { name: /面包屑|Breadcrumb/ }),
+    ).toHaveCount(0);
 
-    const backLink = page.getByRole("link", {
-      name: /返回活动列表|Back to all events/i,
+    await expect(
+      page.getByRole("link", { name: /返回活动列表|Back to all events/i }),
+    ).toHaveCount(0);
+    const subscribe = banner.getByRole("button", {
+      name: /^(订阅活动|Subscribe to event)$/,
     });
-    await expect(backLink).toBeVisible();
-    await backLink.click();
+    await expect(subscribe).toBeVisible();
+    await youngNav
+      .getByRole("link", { name: /^(?:活动列表|Activity list)$/ })
+      .click();
     await page.waitForURL(/\/catalog\/young-events$/);
     await expect(
       page.getByRole("heading", {
@@ -103,28 +115,31 @@ for (const width of [1280, 390]) {
     try {
       await page.setViewportSize({ width, height: 844 });
       await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
-      await expect(
-        page.getByText("800-414-186", { exact: true }),
-      ).toBeVisible();
-      await expect(page.getByText("PDF, DOCX", { exact: true })).toBeVisible();
-      await expect(
-        page.getByText(/提供线上会议|Online meeting available/, {
-          exact: true,
-        }),
-      ).toBeVisible();
-      await expect(
-        page
-          .getByTestId("young-event-overview")
-          .getByText("东区学生活动中心", { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText("校外合作机构", { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText("800-414-186", { exact: true })).toHaveCount(
+        0,
+      );
+      await expect(page.getByText("PDF, DOCX", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("校外合作机构", { exact: true })).toHaveCount(
+        0,
+      );
       await expect(
         page.getByText(
           /报名时需填写补充信息|Additional information required at registration/,
         ),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", {
+          name: /^(?:时间与报名|报名与参与|组织与联系|场地安排|活动概览|Time and registration|Registration and participation|Organization and contact|Venues|Activity at a glance)$/,
+        }),
+      ).toHaveCount(0);
+      await expect(
+        page
+          .getByTestId("young-event-banner")
+          .getByText(/提供线上会议|Online meeting available/, {
+            exact: true,
+          }),
       ).toBeVisible();
+      await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
       await expect(
         page.getByText("opaque-department-id", { exact: true }),
       ).toHaveCount(0);
@@ -144,10 +159,6 @@ for (const width of [1280, 390]) {
         `/catalog/young-events?search=${encodeURIComponent("线上学术交流 · 参与信息测试")}`,
       );
       await expect(visibleText(page, /东区学生活动中心/)).toBeVisible();
-      if (width >= 1280)
-        await expect(
-          page.getByRole("cell", { name: /未提供 \/ 20|Not provided \/ 20/ }),
-        ).toBeVisible();
       // Imported public facts are cached by snapshot revision. Use a second
       // fixture for the false state rather than mutating an already-read row.
       await db.youngEvent.create({
@@ -177,59 +188,7 @@ for (const width of [1280, 390]) {
   });
 }
 
-for (const status of [200, 401]) {
-  test(`subscription resolves independently of unavailable shell navigation (${status})`, async ({
-    page,
-  }) => {
-    await signInAsDebugUser(page, "/workspace/overview");
-    const session = await (
-      await page.request.get("/api/auth/get-session")
-    ).json();
-    let bootstrapRequests = 0;
-    await page.route("**/_internal/shell-bootstrap", async (route) => {
-      bootstrapRequests++;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ viewer: session.user, navigation: null }),
-      });
-    });
-    await page.route(
-      `**/api/workspace/young-event-subscriptions/${DEV_SEED.youngEvent.youngId}`,
-      async (route) => {
-        await route.fulfill({
-          status,
-          contentType: "application/json",
-          body: JSON.stringify(
-            status === 200
-              ? {
-                  youngId: DEV_SEED.youngEvent.youngId,
-                  subscribed: false,
-                  remindSignup: true,
-                  remindDeadline: true,
-                  remindStart: true,
-                }
-              : { error: "Unauthorized" },
-          ),
-        });
-      },
-    );
-    await gotoAndWaitForReady(page, DETAIL_PATH);
-    await expect(
-      page.getByRole("button", {
-        name:
-          status === 200
-            ? /^(订阅活动|Subscribe to event)$/
-            : /^(登录后订阅|Sign in to subscribe)$/,
-      }),
-    ).toBeEnabled();
-    await expect.poll(() => bootstrapRequests).toBe(1);
-  });
-}
-
-test("anonymous subscription state does not request private data", async ({
-  page,
-}) => {
+test("未登录时标题右侧显示订阅活动，且不请求私人订阅数据", async ({ page }) => {
   let privateRequests = 0;
   page.on("request", (request) => {
     if (
@@ -241,7 +200,9 @@ test("anonymous subscription state does not request private data", async ({
   });
   await gotoAndWaitForReady(page, DETAIL_PATH, { browserHealth: {} });
   await expect(
-    page.getByRole("button", { name: /^(登录后订阅|Sign in to subscribe)$/ }),
-  ).toBeEnabled();
+    page.getByTestId("young-event-banner").getByRole("button", {
+      name: /^(订阅活动|Subscribe to event)$/,
+    }),
+  ).toBeVisible();
   expect(privateRequests).toBe(0);
 });

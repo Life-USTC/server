@@ -1,7 +1,6 @@
 <script lang="ts">
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 
 export let index: number;
 export let previewTitle: string;
@@ -12,28 +11,22 @@ export let section: {
 };
 </script>
 
-<section class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-  <Card.Root>
-    <Card.Header>
+<section class="grid gap-6 lg:grid-cols-2">
+  <div class="grid min-w-0 gap-3">
+    <div class="grid gap-1">
       <div class="flex items-center gap-2">
         <Badge variant="outline">{String(index + 1).padStart(2, "0")}</Badge>
-        <Card.Title>{section.title}</Card.Title>
+        <h2 class="font-medium text-sm">{section.title}</h2>
       </div>
-      <Card.Description>{section.description}</Card.Description>
-    </Card.Header>
-    <Card.Content>
-      <pre class="overflow-x-auto wrap-anywhere whitespace-pre-wrap rounded-md border border-border bg-muted p-4 font-mono text-sm"><code>{section.code}</code></pre>
-    </Card.Content>
-  </Card.Root>
+      <p class="text-muted-foreground text-sm">{section.description}</p>
+    </div>
+    <pre class="overflow-x-auto wrap-anywhere whitespace-pre-wrap rounded-md border border-border bg-muted p-4 font-mono text-sm"><code>{section.code}</code></pre>
+  </div>
 
-  <Card.Root>
-    <Card.Header>
-      <Card.Title>{previewTitle}</Card.Title>
-    </Card.Header>
-    <Card.Content>
-      <div class="rounded-md border border-border bg-background p-5 shadow-sm">
-        <MarkdownPreview content={section.code} />
-      </div>
-    </Card.Content>
-  </Card.Root>
+  <div class="grid min-w-0 gap-3">
+    <h2 class="font-medium text-sm">{previewTitle}</h2>
+    <div class="rounded-md border border-border bg-background p-5">
+      <MarkdownPreview content={section.code} />
+    </div>
+  </div>
 </section>

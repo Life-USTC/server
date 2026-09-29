@@ -1,8 +1,16 @@
 import type { Component } from "svelte";
 
+export type ShellGlyph =
+  | "profile"
+  | "preferences"
+  | "accounts"
+  | "key"
+  | "danger";
+
 export type ShellLink = {
   ariaLabel?: string;
   badge?: number | null;
+  glyph?: ShellGlyph;
   href: string;
   icon?: Component;
   items?: ShellLink[];
