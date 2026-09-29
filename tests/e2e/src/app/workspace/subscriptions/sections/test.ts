@@ -23,26 +23,22 @@
  * - Calendar link format: /api/calendar-feeds/{userId}:{token}.ics
  */
 import { expect } from "@playwright/test";
-import { DEV_SEED } from "../../../../../utils/dev-seed";
 import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
+import { test as anonymousTest } from "../../../../../utils/owned-worker";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
-import {
-  storedSectionSubscriptions,
-  test,
-} from "../../../../../utils/subscription-catalog";
+import { test } from "../../../../../utils/subscription-catalog";
 
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
 async function openBulkImportDialog(page: import("@playwright/test").Page) {
   const textarea = page.getByRole("textbox", {
     name: /班级或课程代码|Section or course codes|粘贴|Paste/i,
@@ -55,10 +51,9 @@ async function openBulkImportDialog(page: import("@playwright/test").Page) {
       .first()
       .click();
   }
-  await expect(textarea.first()).toBeVisible({ timeout: 5_000 });
+  await expect(textarea.first()).toBeVisible({ timeout: 5000 });
   return textarea.first();
 }
-
 async function assertDialogViewportSafe(
   page: import("@playwright/test").Page,
   dialog: import("@playwright/test").Locator,
@@ -73,14 +68,12 @@ async function assertDialogViewportSafe(
   const closeBox = await dialog
     .getByRole("button", { name: "Close" })
     .boundingBox();
-
   expect(dialogBox).not.toBeNull();
   expect(footerBox).not.toBeNull();
   expect(closeBox).not.toBeNull();
   if (!dialogBox || !footerBox || !closeBox) {
     throw new Error("Expected the mobile dialog bounds");
   }
-
   expect(dialogBox.x).toBeGreaterThanOrEqual(16);
   expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(viewportWidth - 16);
   expect(dialogBox.y).toBeGreaterThanOrEqual(0);
@@ -92,907 +85,903 @@ async function assertDialogViewportSafe(
   await expect(dialog.locator('[data-slot="dialog-footer"]')).toBeInViewport();
   await expect(dialog.getByRole("button", { name: "Close" })).toBeInViewport();
 }
-
 test.describe("仪表盘教学班订阅", () => {
   test.describe.configure({ mode: "parallel" });
-  test.beforeEach(async ({ context, baseURL }) => {
-    await context.addCookies([
-      {
-        name: "NEXT_LOCALE",
-        value: "zh-cn",
-        url: absoluteTestUrl("/", baseURL),
-        sameSite: "Lax",
-      },
-    ]);
-  });
-
   test("旧版 /workspace/subscriptions/sections 重定向到教学班订阅页面", async ({
     page,
     account: _account,
+    subscriptionRun,
   }) => {
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-    await gotoAndWaitForReady(page, "/workspace/subscriptions/sections");
-
-    await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
+    await subscriptionRun(async () => {
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await gotoAndWaitForReady(page, "/workspace/subscriptions/sections");
+      await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
+    });
   });
-
-  test("未登录旧 subscriptions tab 重定向到语义路径", async ({ page }) => {
-    const response = await page.request.get(
-      "/?tab=subscriptions&semester=2026-spring",
-      { maxRedirects: 0 },
-    );
-
-    expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe(
-      "/workspace/subscriptions?semester=2026-spring",
-    );
-  });
-
+  anonymousTest(
+    "未登录旧 subscriptions tab 重定向到语义路径",
+    async ({ request, run }) => {
+      await run(async () => {
+        const response = await request.get(
+          "/?tab=subscriptions&semester=2026-spring",
+          { maxRedirects: 0 },
+        );
+        expect(response.status()).toBe(308);
+        expect(response.headers().location).toBe(
+          "/workspace/subscriptions?semester=2026-spring",
+        );
+      });
+    },
+  );
   test("登录后显示独立教学班订阅、必填字段和英文单复数文案", async ({
     page,
     subscriptions: catalog,
     baseURL,
+    subscriptionRun,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-    const sidebar = page.getByTestId("app-sidebar");
-    await expect(
-      sidebar.getByRole("link", {
-        name: /教学班订阅|Section Subscriptions/i,
-      }),
-    ).toHaveAttribute("aria-current", "page");
-    await expect(
-      sidebar.locator(`a[href="/catalog/sections/${catalog.section.jwId}"]`),
-    ).toHaveCount(0);
-
-    const subscriptionsContent = page.locator("#main-content").first();
-    const courseLink = subscriptionsContent
-      .getByTestId("subscription-course-link")
-      .filter({ visible: true })
-      .filter({
-        hasText: new RegExp(
-          `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
-        ),
-      })
-      .first();
-    await expect(courseLink).toBeVisible({ timeout: 3_000 });
-    await expect(courseLink).toHaveAttribute(
-      "href",
-      `/catalog/sections/${catalog.section.jwId}`,
-    );
-
-    // subscription.sections[].course.namePrimary
-    await expect(
-      subscriptionsContent
-        .locator("td:visible")
+    await subscriptionRun(async () => {
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
+      await expect(page.locator("#main-content")).toBeVisible();
+      const sidebar = page.getByTestId("app-sidebar");
+      await expect(
+        sidebar.getByRole("link", {
+          name: /教学班订阅|Section Subscriptions/i,
+        }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(
+        sidebar.locator(`a[href="/catalog/sections/${catalog.section.jwId}"]`),
+      ).toHaveCount(0);
+      const subscriptionsContent = page.locator("#main-content").first();
+      const courseLink = subscriptionsContent
+        .getByTestId("subscription-course-link")
+        .filter({ visible: true })
         .filter({
           hasText: new RegExp(
             `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
           ),
         })
-        .first(),
-    ).toBeVisible({ timeout: 3_000 });
-    // section.teachers[] (locale-dependent)
-    await expect(
-      subscriptionsContent
-        .locator("td:visible")
-        .filter({
-          hasText: new RegExp(
-            `${escapeForRegExp(catalog.teacher.nameCn)}|${escapeForRegExp(catalog.teacher.nameEn)}`,
-          ),
-        })
-        .first(),
-    ).toBeVisible({ timeout: 3_000 });
-    // section.credits
-    await expect(
-      subscriptionsContent
-        .getByText(String(catalog.section.credits))
-        .filter({ visible: true })
-        .first(),
-    ).toBeVisible({ timeout: 3_000 });
-    // semester group label — semester name shown as group header
-    await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible({
-      timeout: 3_000,
+        .first();
+      await expect(courseLink).toBeVisible({ timeout: 3000 });
+      await expect(courseLink).toHaveAttribute(
+        "href",
+        `/catalog/sections/${catalog.section.jwId}`,
+      );
+      // subscription.sections[].course.namePrimary
+      await expect(
+        subscriptionsContent
+          .locator("td:visible")
+          .filter({
+            hasText: new RegExp(
+              `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
+            ),
+          })
+          .first(),
+      ).toBeVisible({ timeout: 3000 });
+      // section.teachers[] (locale-dependent)
+      await expect(
+        subscriptionsContent
+          .locator("td:visible")
+          .filter({
+            hasText: new RegExp(
+              `${escapeForRegExp(catalog.teacher.nameCn)}|${escapeForRegExp(catalog.teacher.nameEn)}`,
+            ),
+          })
+          .first(),
+      ).toBeVisible({ timeout: 3000 });
+      // section.credits
+      await expect(
+        subscriptionsContent
+          .getByText(String(catalog.section.credits))
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible({ timeout: 3000 });
+      // semester group label — semester name shown as group header
+      await expect(page.getByText(catalog.current.nameCn).first()).toBeVisible({
+        timeout: 3000,
+      });
+      await captureStepScreenshot(page, testInfo, "subscriptions/seed-fields");
+      await page.context().addCookies([
+        {
+          name: "NEXT_LOCALE",
+          value: "en-us",
+          url: absoluteTestUrl("/", baseURL),
+          sameSite: "Lax",
+        },
+      ]);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await expect(
+        page.getByText("3 sections included", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("1 section included", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("1 sections included", { exact: true }),
+      ).toHaveCount(0);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "subscriptions/single-section-en-us",
+      );
     });
-
-    await captureStepScreenshot(page, testInfo, "subscriptions/seed-fields");
-    await page.context().addCookies([
-      {
-        name: "NEXT_LOCALE",
-        value: "en-us",
-        url: absoluteTestUrl("/", baseURL),
-        sameSite: "Lax",
-      },
-    ]);
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    await expect(
-      page.getByText("3 sections included", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("1 section included", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("1 sections included", { exact: true }),
-    ).toHaveCount(0);
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "subscriptions/single-section-en-us",
-    );
   });
-
   test("超宽屏按时间倒序分表并渐进增强为瀑布流", async ({
     page,
-    subscriptions: _catalog,
+    subscriptions: catalog,
+    subscriptionRun,
   }, testInfo) => {
-    await page.setViewportSize({ height: 1000, width: 1700 });
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    const tables = page.locator("#main-content table");
-    const semesterGroups = page.getByTestId("subscription-semester-groups");
-    const semesterHeadings = semesterGroups.locator(":scope > section h3");
-    await expect(tables).toHaveCount(2);
-    await expect(semesterGroups).toBeVisible();
-    await expect(semesterHeadings.nth(0)).toContainText(
-      DEV_SEED.semesterNameCn,
-    );
-    await expect(semesterHeadings.nth(1)).toContainText(
-      DEV_SEED.previousSemesterNameCn,
-    );
-    const firstTable = await tables.nth(0).boundingBox();
-    const secondTable = await tables.nth(1).boundingBox();
-    expect(firstTable).not.toBeNull();
-    expect(secondTable).not.toBeNull();
-    expect(secondTable?.y).toBeGreaterThan((firstTable?.y ?? 0) + 8);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-wide-masonry",
-    );
+    await subscriptionRun(async () => {
+      await page.setViewportSize({ height: 1000, width: 1700 });
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      const tables = page.locator("#main-content table");
+      const semesterGroups = page.getByTestId("subscription-semester-groups");
+      const semesterHeadings = semesterGroups.locator(":scope > section h3");
+      await expect(tables).toHaveCount(2);
+      await expect(semesterGroups).toBeVisible();
+      await expect(semesterHeadings.nth(0)).toContainText(
+        catalog.current.nameCn,
+      );
+      await expect(semesterHeadings.nth(1)).toContainText(
+        catalog.previous.nameCn,
+      );
+      const firstTable = await tables.nth(0).boundingBox();
+      const secondTable = await tables.nth(1).boundingBox();
+      expect(firstTable).not.toBeNull();
+      expect(secondTable).not.toBeNull();
+      expect(secondTable?.y).toBeGreaterThan((firstTable?.y ?? 0) + 8);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-wide-masonry",
+      );
+    });
   });
-
-  test("空状态提供发现操作", async ({ page, account: _account }, testInfo) => {
-    test.setTimeout(60000);
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-    await waitForUiSettled(page);
-    await expect(
-      page
-        .getByRole("button", {
-          name: /批量添加订阅|Bulk Add Subscriptions/i,
-        })
-        .first(),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByRole("link", {
-          name: /浏览班级|Browse Sections/i,
-        })
-        .first(),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByRole("link", {
-          name: /浏览课程|Browse Courses/i,
-        })
-        .first(),
-    ).toBeVisible();
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-empty-state",
-    );
+  test("空状态提供发现操作", async ({
+    page,
+    account: _account,
+    subscriptionRun,
+  }, testInfo) => {
+    await subscriptionRun(async () => {
+      test.setTimeout(60000);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await waitForUiSettled(page);
+      await expect(
+        page
+          .getByRole("button", {
+            name: /批量添加订阅|Bulk Add Subscriptions/i,
+          })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page
+          .getByRole("link", {
+            name: /浏览班级|Browse Sections/i,
+          })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page
+          .getByRole("link", {
+            name: /浏览课程|Browse Courses/i,
+          })
+          .first(),
+      ).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-empty-state",
+      );
+    });
   });
-
   test("移动端订阅列表与操作区不产生页面级横向滚动", async ({
     page,
     subscriptions: catalog,
+    subscriptionRun,
   }, testInfo) => {
-    await page.setViewportSize({ height: 844, width: 390 });
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    await expect(
-      page.getByRole("button", { name: /添加订阅|Add Subscription/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByRole("button", {
-          name: /批量添加订阅|Bulk Add Subscriptions/i,
-        })
-        .first(),
-    ).toBeVisible();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-    const topbar = page.locator("[data-shell-topbar]");
-    await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
-    const mobileSidebar = page.getByRole("dialog", { name: /Sidebar/i });
-    await expect(mobileSidebar).toBeVisible();
-    await expect(
-      mobileSidebar.locator(
-        `a[href="/catalog/sections/${catalog.section.jwId}"]`,
-      ),
-    ).toHaveCount(0);
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-mobile-responsive",
-    );
+    await subscriptionRun(async () => {
+      await page.setViewportSize({ height: 844, width: 390 });
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await expect(
+        page
+          .getByRole("button", { name: /添加订阅|Add Subscription/i })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page
+          .getByRole("button", {
+            name: /批量添加订阅|Bulk Add Subscriptions/i,
+          })
+          .first(),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      const topbar = page.locator("[data-shell-topbar]");
+      await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
+      const mobileSidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      await expect(mobileSidebar).toBeVisible();
+      await expect(
+        mobileSidebar.locator(
+          `a[href="/catalog/sections/${catalog.section.jwId}"]`,
+        ),
+      ).toHaveCount(0);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-mobile-responsive",
+      );
+    });
   });
-
   test("课程名称链接到教学班主页", async ({
     page,
     subscriptions: catalog,
+    subscriptionRun,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    const courseLink = page
-      .getByTestId("subscription-course-link")
-      .filter({
-        hasText: new RegExp(
-          `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
-        ),
-      })
-      .first();
-    await expect(courseLink).toHaveAttribute(
-      "href",
-      `/catalog/sections/${catalog.section.jwId}`,
-    );
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-section-link",
-    );
-  });
-
-  test("取消订阅操作确认后移除订阅", async ({
-    page,
-    subscriptions: catalog,
-    account,
-  }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    const courseLink = page
-      .getByTestId("subscription-course-link")
-      .filter({ visible: true })
-      .filter({
-        hasText: new RegExp(
-          `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
-        ),
-      })
-      .first();
-    await expect(courseLink).toBeVisible();
-
-    const courseRow = page
-      .locator("tr")
-      .filter({
-        has: courseLink,
-      })
-      .first();
-    await courseRow
-      .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/i })
-      .click();
-
-    const confirmDialog = page.getByRole("alertdialog", {
-      name: /确认取消订阅|Unsubscribe from this section/i,
-    });
-    await expect(confirmDialog).toBeVisible();
-    await expect(confirmDialog).not.toContainText(catalog.section.code);
-
-    const unsubscribeResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/workspace/subscriptions/batch") &&
-        response.request().method() === "POST" &&
-        response.ok(),
-    );
-    await confirmDialog
-      .getByRole("button", {
-        name: /确认取消订阅|Confirm Unsubscribe/i,
-      })
-      .click();
-    await unsubscribeResponse;
-    await expect(confirmDialog).not.toBeVisible();
-    await expect(courseLink).toHaveCount(0);
-    expect(
-      (await storedSectionSubscriptions(account.id)).map(
-        (row) => row.sectionId,
-      ),
-    ).toEqual(catalog.sections.slice(1).map((section) => section.id));
-    await expect(
-      page.locator("[data-sonner-toast]").filter({
-        hasText:
-          /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-slot="alert"][role="alert"]').filter({
-        hasText:
-          /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
-      }),
-    ).toHaveCount(0);
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-opt-out-confirmed",
-    );
-  });
-
-  test("复制日历链接生成有效的 iCal URL", async ({
-    page,
-    subscriptions: _catalog,
-  }, testInfo) => {
-    await page
-      .context()
-      .grantPermissions(["clipboard-read", "clipboard-write"]);
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    const copyButton = page
-      .getByRole("button", { name: /复制日历链接|iCal/i })
-      .first();
-    await expect(copyButton).toBeVisible();
-    await copyButton.click();
-
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: /^复制$|^Copy$/i }).click();
-
-    const clipboardText = await page.evaluate(async () =>
-      navigator.clipboard.readText(),
-    );
-    expect(clipboardText).toContain("/api/calendar-feeds/");
-    expect(clipboardText).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
-
-    // Verify the calendar endpoint returns valid iCal data
-    const calendarResponse = await page.request.get(clipboardText);
-    expect(calendarResponse.status()).toBe(200);
-    expect(calendarResponse.headers()["content-type"]).toContain(
-      "text/calendar",
-    );
-    const calendarBody = await calendarResponse.text();
-    expect(calendarBody).toContain("BEGIN:VCALENDAR");
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-ical-copied",
-    );
-  });
-
-  test("批量导入打开确认对话框并可取消", async ({
-    page,
-    catalog,
-    account,
-  }, testInfo) => {
-    test.setTimeout(60_000);
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    const textarea = await openBulkImportDialog(page);
-    const importDialog = page.getByRole("dialog");
-    await expect(
-      importDialog.getByRole("link", { name: "本科生教务系统" }),
-    ).toHaveAttribute("href", "https://jw.ustc.edu.cn");
-    await expect(
-      importDialog.getByRole("link", { name: "研究生信息系统" }),
-    ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn");
-    await expect(importDialog).toContainText("MATH1001.01");
-    await textarea.fill(catalog.section.code);
-
-    const matchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/workspace/subscriptions/query") &&
-        response.request().method() === "POST" &&
-        response.status() === 200,
-    );
-    await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
-    await matchResponse;
-
-    const dialog = page
-      .getByRole("dialog", {
-        name: /确认订阅|Confirm .*section subscriptions/i,
-      })
-      .first();
-    await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-    const matchedSectionCheckbox = dialog
-      .getByRole("checkbox", {
-        name: new RegExp(
-          `选择 ${escapeForRegExp(catalog.section.code)}|Select ${escapeForRegExp(catalog.section.code)}`,
-          "i",
-        ),
-      })
-      .first();
-    await expect(matchedSectionCheckbox).toBeChecked();
-    await matchedSectionCheckbox.click();
-    await expect(matchedSectionCheckbox).not.toBeChecked();
-    await matchedSectionCheckbox.click();
-    await expect(matchedSectionCheckbox).toBeChecked();
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-bulk-import-dialog",
-    );
-
-    await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
-    await expect(dialog).not.toBeVisible();
-    expect(await storedSectionSubscriptions(account.id)).toEqual([]);
-  });
-
-  test("单个添加弹窗可按课程名和教师名搜索并直接关注", async ({
-    page,
-    catalog,
-    account,
-  }, testInfo) => {
-    test.setTimeout(60_000);
-    await page.setViewportSize({ height: 844, width: 390 });
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    await page
-      .getByRole("button", { name: /添加订阅|Add Subscription/i })
-      .first()
-      .click();
-    const quickAddDialog = page
-      .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
-      .first();
-    await expect(quickAddDialog).toBeVisible();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-    await quickAddDialog
-      .getByRole("textbox", {
-        name: /搜索课程或教师|Search courses or teachers/i,
-      })
-      .fill(catalog.course.nameCn);
-
-    const matchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/catalog/sections?") &&
-        response.request().method() === "GET" &&
-        response.status() === 200,
-    );
-    await quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click();
-    await matchResponse;
-
-    await expect(
-      quickAddDialog.getByText(catalog.section.code).first(),
-    ).toBeVisible();
-    await assertDialogViewportSafe(page, quickAddDialog);
-    const footer = quickAddDialog.locator('[data-slot="dialog-footer"]');
-    const closeButton = quickAddDialog.getByRole("button", {
-      name: "Close",
-    });
-    const footerBox = await footer.boundingBox();
-    expect(footerBox).not.toBeNull();
-    if (!footerBox) {
-      throw new Error("Expected the mobile quick-add footer bounds");
-    }
-    expect(await quickAddDialog.evaluate((element) => element.scrollTop)).toBe(
-      0,
-    );
-    await expect(footer).toBeInViewport();
-    await expect(closeButton).toBeInViewport();
-    const subscribeButton = quickAddDialog.getByRole("button", {
-      name: /订阅所选|Subscribe selected/i,
-    });
-    await expect(subscribeButton).toBeInViewport();
-    const resultViewport = quickAddDialog
-      .locator('[data-slot="scroll-area-viewport"]')
-      .first();
-    const resultMetrics = await resultViewport.evaluate((element) => ({
-      clientHeight: element.clientHeight,
-      scrollHeight: element.scrollHeight,
-    }));
-    expect(resultMetrics.clientHeight).toBeGreaterThan(0);
-    const resultBox = await resultViewport.boundingBox();
-    expect(resultBox).not.toBeNull();
-    if (!resultBox) {
-      throw new Error("Expected the quick-add results scroll area bounds");
-    }
-    expect(resultBox.y + resultBox.height).toBeLessThanOrEqual(footerBox.y + 1);
-    if (resultMetrics.scrollHeight > resultMetrics.clientHeight) {
-      const scrollTopBefore = await resultViewport.evaluate(
-        (element) => element.scrollTop,
-      );
-      await resultViewport.evaluate((element) => {
-        element.scrollTop = element.scrollHeight;
-      });
-      const scrollTopAfter = await resultViewport.evaluate(
-        (element) => element.scrollTop,
-      );
-      const maxScrollTop =
-        resultMetrics.scrollHeight - resultMetrics.clientHeight;
-      if (scrollTopBefore < maxScrollTop - 1) {
-        expect(scrollTopAfter).toBeGreaterThan(scrollTopBefore);
-      }
-      expect(scrollTopAfter).toBeGreaterThanOrEqual(maxScrollTop - 1);
-    }
-    await expect(subscribeButton).toBeInViewport();
-    const separator = quickAddDialog.locator(
-      '[data-slot="separator"][data-orientation="horizontal"]',
-    );
-    const resultsLabel = quickAddDialog.getByText(
-      /找到 \d+ 个教学班|Found \d+ sections?/i,
-    );
-    const searchInput = quickAddDialog.getByRole("textbox", {
-      name: /搜索课程或教师|Search courses or teachers/i,
-    });
-    await expect(
-      quickAddDialog.getByText(
-        /最多显示 20 个教学班，请增加限定条件|Up to 20 sections are shown/i,
-      ),
-    ).toBeVisible();
-    await expect(
-      quickAddDialog.getByText(
-        /搜索范围仅限所选学期|Results are limited to the selected semester/i,
-      ),
-    ).toHaveCount(0);
-    const [separatorBox, resultsLabelBox, searchInputBox] = await Promise.all([
-      separator.boundingBox(),
-      resultsLabel.boundingBox(),
-      searchInput.boundingBox(),
-    ]);
-    expect(separatorBox).not.toBeNull();
-    expect(resultsLabelBox).not.toBeNull();
-    expect(searchInputBox).not.toBeNull();
-    expect(
-      (separatorBox?.y ?? 0) -
-        ((searchInputBox?.y ?? 0) + (searchInputBox?.height ?? 0)),
-    ).toBeLessThan(24);
-    expect(
-      (resultsLabelBox?.y ?? 0) -
-        ((separatorBox?.y ?? 0) + (separatorBox?.height ?? 0)),
-    ).toBeLessThan(24);
-    await quickAddDialog
-      .getByRole("textbox", {
-        name: /搜索课程或教师|Search courses or teachers/i,
-      })
-      .fill(catalog.teacher.nameCn);
-    const teacherResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/catalog/sections?") &&
-        new URL(response.url()).searchParams.get("search") ===
-          catalog.teacher.nameCn &&
-        response.status() === 200,
-    );
-    await quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click();
-    await teacherResponse;
-    await expect(
-      quickAddDialog.getByText(catalog.section.code).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("dialog", {
-        name: /确认订阅|Confirm .*section subscriptions/i,
-      }),
-    ).toHaveCount(0);
-
-    const sectionCheckbox = quickAddDialog.getByRole("checkbox", {
-      name: new RegExp(escapeForRegExp(catalog.section.code), "i"),
-    });
-    await expect(sectionCheckbox).toBeChecked();
-    await sectionCheckbox.click();
-    await expect(sectionCheckbox).not.toBeChecked();
-    await sectionCheckbox.click();
-    await expect(sectionCheckbox).toBeChecked();
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-quick-add-results",
-    );
-
-    const subscribeResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/workspace/subscriptions/batch") &&
-        response.request().method() === "POST" &&
-        response.status() === 200,
-    );
-    await quickAddDialog
-      .getByRole("button", {
-        name: /订阅所选|Subscribe selected/i,
-      })
-      .click();
-    await subscribeResponse;
-    await expect(quickAddDialog).not.toBeVisible();
-    await expect(
-      page.locator("[data-sonner-toast]").filter({
-        hasText:
-          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-slot="alert"][role="alert"]').filter({
-        hasText:
-          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
-      }),
-    ).toHaveCount(0);
-    await waitForUiSettled(page);
-    expect(
-      (await storedSectionSubscriptions(account.id)).map(
-        (row) => row.sectionId,
-      ),
-    ).toEqual([catalog.section.id]);
-    await expect(
-      page
+    await subscriptionRun(async () => {
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      const courseLink = page
         .getByTestId("subscription-course-link")
         .filter({
           hasText: new RegExp(
             `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
           ),
         })
-        .filter({ visible: true })
-        .first(),
-    ).toBeVisible();
-  });
-
-  for (const width of [1280, 390]) {
-    test(`subscription.web-quick-add-selection (${width}px)`, async ({
-      page,
-      catalog,
-      account,
-    }, testInfo) => {
-      await page.setViewportSize({ width, height: 844 });
-      await gotoAndWaitForReady(page, "/workspace/subscriptions");
-      await gotoAndWaitForReady(page, "/workspace/subscriptions");
-      const openDialog = async () => {
-        await page
-          .getByRole("button", { name: /添加订阅|Add Subscription/i })
-          .first()
-          .click();
-      };
-      const dialog = page.getByRole("dialog", {
-        name: /添加订阅|Add Subscription/i,
-      });
-      const search = async (query: string) => {
-        await dialog
-          .getByRole("textbox", {
-            name: /搜索课程或教师|Search courses or teachers/i,
-          })
-          .fill(query);
-        const response = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/catalog/sections?") &&
-            response.request().method() === "GET",
-        );
-        await dialog.getByRole("button", { name: /^(搜索|Search)$/i }).click();
-        expect((await response).ok()).toBe(true);
-      };
-      const submit = dialog.getByRole("button", {
-        name: /订阅所选|Subscribe selected/i,
-      });
-      const first = dialog.getByRole("checkbox", {
-        name: new RegExp(escapeForRegExp(catalog.section.code), "i"),
-      });
-      const second = dialog.getByRole("checkbox", {
-        name: new RegExp(escapeForRegExp(catalog.sections[1].code), "i"),
-      });
-      await openDialog();
-      await search(catalog.sharedTeacher.nameCn);
-      await expect(dialog.getByRole("checkbox")).toHaveCount(2);
-      await expect(first).not.toBeChecked();
-      await expect(second).not.toBeChecked();
-      await expect(submit).toBeDisabled();
+        .first();
+      await expect(courseLink).toHaveAttribute(
+        "href",
+        `/catalog/sections/${catalog.section.jwId}`,
+      );
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await captureStepScreenshot(
         page,
         testInfo,
-        `quick-add-multiple-unselected-${width}`,
+        "workspace-subscriptions-section-link",
       );
-      await first.click();
-      await expect(submit).toBeEnabled();
-      await search(catalog.section.code);
-      await expect(dialog.getByRole("checkbox")).toHaveCount(1);
-      await expect(first).toBeChecked();
-      await expect(submit).toBeEnabled();
-      await search(catalog.sharedTeacher.nameCn);
-      await expect(dialog.getByRole("checkbox")).toHaveCount(2);
-      await expect(first).not.toBeChecked();
-      await expect(second).not.toBeChecked();
-      await expect(submit).toBeDisabled();
-      await first.click();
-      const subscribed = page.waitForResponse(
+    });
+  });
+  test("取消订阅操作确认后移除订阅", async ({
+    page,
+    subscriptions: catalog,
+    account,
+    storedSectionSubscriptions,
+    subscriptionRun,
+  }, testInfo) => {
+    await subscriptionRun(async () => {
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      const courseLink = page
+        .getByTestId("subscription-course-link")
+        .filter({ visible: true })
+        .filter({
+          hasText: new RegExp(
+            `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
+          ),
+        })
+        .first();
+      await expect(courseLink).toBeVisible();
+      const courseRow = page
+        .locator("tr")
+        .filter({
+          has: courseLink,
+        })
+        .first();
+      await courseRow
+        .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/i })
+        .click();
+      const confirmDialog = page.getByRole("alertdialog", {
+        name: /确认取消订阅|Unsubscribe from this section/i,
+      });
+      await expect(confirmDialog).toBeVisible();
+      await expect(confirmDialog).not.toContainText(catalog.section.code);
+      const unsubscribeResponse = page.waitForResponse(
         (response) =>
           response.url().includes("/api/workspace/subscriptions/batch") &&
-          response.request().method() === "POST",
+          response.request().method() === "POST" &&
+          response.ok(),
       );
-      await submit.click();
-      expect((await subscribed).ok()).toBe(true);
-      await expect(dialog).toBeHidden();
-      await gotoAndWaitForReady(page, "/workspace/subscriptions");
-      await openDialog();
-      await search(catalog.sharedTeacher.nameCn);
-      await expect(dialog.getByRole("checkbox")).toHaveCount(2);
-      await expect(first).toBeChecked();
-      await expect(first).toBeDisabled();
-      await expect(second).not.toBeChecked();
-      await expect(submit).toBeDisabled();
-      await search(catalog.section.code);
-      await expect(dialog.getByRole("checkbox")).toHaveCount(1);
-      await expect(first).toBeDisabled();
-      await expect(submit).toBeDisabled();
-      await search(catalog.sections[1].code);
-      await expect(dialog.getByRole("checkbox")).toHaveCount(1);
-      await expect(second).toBeChecked();
-      await expect(second).toBeEnabled();
-      await expect(submit).toBeEnabled();
+      await confirmDialog
+        .getByRole("button", {
+          name: /确认取消订阅|Confirm Unsubscribe/i,
+        })
+        .click();
+      await unsubscribeResponse;
+      await expect(confirmDialog).not.toBeVisible();
+      await expect(courseLink).toHaveCount(0);
+      expect(
+        (await storedSectionSubscriptions(account.id)).map(
+          (row) => row.sectionId,
+        ),
+      ).toEqual(catalog.sections.slice(1).map((section) => section.id));
+      await expect(
+        page.locator("[data-sonner-toast]").filter({
+          hasText:
+            /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-slot="alert"][role="alert"]').filter({
+          hasText:
+            /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+        }),
+      ).toHaveCount(0);
       await captureStepScreenshot(
         page,
         testInfo,
-        `quick-add-single-selected-${width}`,
+        "workspace-subscriptions-opt-out-confirmed",
       );
+    });
+  });
+  test("复制日历链接生成有效的 iCal URL", async ({
+    page,
+    subscriptions: _catalog,
+    subscriptionRun,
+  }, testInfo) => {
+    await subscriptionRun(async () => {
+      await page
+        .context()
+        .grantPermissions(["clipboard-read", "clipboard-write"]);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      const copyButton = page
+        .getByRole("button", { name: /复制日历链接|iCal/i })
+        .first();
+      await expect(copyButton).toBeVisible();
+      await copyButton.click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole("button", { name: /^复制$|^Copy$/i }).click();
+      const clipboardText = await page.evaluate(async () =>
+        navigator.clipboard.readText(),
+      );
+      expect(clipboardText).toContain("/api/calendar-feeds/");
+      expect(clipboardText).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
+      // Verify the calendar endpoint returns valid iCal data
+      const calendarResponse = await page.request.get(clipboardText);
+      expect(calendarResponse.status()).toBe(200);
+      expect(calendarResponse.headers()["content-type"]).toContain(
+        "text/calendar",
+      );
+      const calendarBody = await calendarResponse.text();
+      expect(calendarBody).toContain("BEGIN:VCALENDAR");
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-ical-copied",
+      );
+    });
+  });
+  test("批量导入打开确认对话框并可取消", async ({
+    page,
+    catalog,
+    account,
+    storedSectionSubscriptions,
+    subscriptionRun,
+  }, testInfo) => {
+    await subscriptionRun(async () => {
+      test.setTimeout(60000);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      const textarea = await openBulkImportDialog(page);
+      const importDialog = page.getByRole("dialog");
+      await expect(
+        importDialog.getByRole("link", { name: "本科生教务系统" }),
+      ).toHaveAttribute("href", "https://jw.ustc.edu.cn");
+      await expect(
+        importDialog.getByRole("link", { name: "研究生信息系统" }),
+      ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn");
+      await expect(importDialog).toContainText("MATH1001.01");
+      await textarea.fill(catalog.section.code);
+      const matchResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/workspace/subscriptions/query") &&
+          response.request().method() === "POST" &&
+          response.status() === 200,
+      );
+      await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
+      await matchResponse;
+      const dialog = page
+        .getByRole("dialog", {
+          name: /确认订阅|Confirm .*section subscriptions/i,
+        })
+        .first();
+      await expect(dialog).toBeVisible({ timeout: 15000 });
+      const matchedSectionCheckbox = dialog
+        .getByRole("checkbox", {
+          name: new RegExp(
+            `选择 ${escapeForRegExp(catalog.section.code)}|Select ${escapeForRegExp(catalog.section.code)}`,
+            "i",
+          ),
+        })
+        .first();
+      await expect(matchedSectionCheckbox).toBeChecked();
+      await matchedSectionCheckbox.click();
+      await expect(matchedSectionCheckbox).not.toBeChecked();
+      await matchedSectionCheckbox.click();
+      await expect(matchedSectionCheckbox).toBeChecked();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-bulk-import-dialog",
+      );
+      await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(dialog).not.toBeVisible();
+      expect(await storedSectionSubscriptions(account.id)).toEqual([]);
+    });
+  });
+  test("单个添加弹窗可按课程名和教师名搜索并直接关注", async ({
+    page,
+    catalog,
+    account,
+    storedSectionSubscriptions,
+    subscriptionRun,
+  }, testInfo) => {
+    await subscriptionRun(async () => {
+      test.setTimeout(60000);
+      await page.setViewportSize({ height: 844, width: 390 });
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await page
+        .getByRole("button", { name: /添加订阅|Add Subscription/i })
+        .first()
+        .click();
+      const quickAddDialog = page
+        .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
+        .first();
+      await expect(quickAddDialog).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await quickAddDialog
+        .getByRole("textbox", {
+          name: /搜索课程或教师|Search courses or teachers/i,
+        })
+        .fill(catalog.course.nameCn);
+      const matchResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/catalog/sections?") &&
+          response.request().method() === "GET" &&
+          response.status() === 200,
+      );
+      await quickAddDialog
+        .getByRole("button", { name: /搜索|Search/i })
+        .click();
+      await matchResponse;
+      await expect(
+        quickAddDialog.getByText(catalog.section.code).first(),
+      ).toBeVisible();
+      await assertDialogViewportSafe(page, quickAddDialog);
+      const footer = quickAddDialog.locator('[data-slot="dialog-footer"]');
+      const closeButton = quickAddDialog.getByRole("button", {
+        name: "Close",
+      });
+      const footerBox = await footer.boundingBox();
+      expect(footerBox).not.toBeNull();
+      if (!footerBox) {
+        throw new Error("Expected the mobile quick-add footer bounds");
+      }
+      expect(
+        await quickAddDialog.evaluate((element) => element.scrollTop),
+      ).toBe(0);
+      await expect(footer).toBeInViewport();
+      await expect(closeButton).toBeInViewport();
+      const subscribeButton = quickAddDialog.getByRole("button", {
+        name: /订阅所选|Subscribe selected/i,
+      });
+      await expect(subscribeButton).toBeInViewport();
+      const resultViewport = quickAddDialog
+        .locator('[data-slot="scroll-area-viewport"]')
+        .first();
+      const resultMetrics = await resultViewport.evaluate((element) => ({
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      }));
+      expect(resultMetrics.clientHeight).toBeGreaterThan(0);
+      const resultBox = await resultViewport.boundingBox();
+      expect(resultBox).not.toBeNull();
+      if (!resultBox) {
+        throw new Error("Expected the quick-add results scroll area bounds");
+      }
+      expect(resultBox.y + resultBox.height).toBeLessThanOrEqual(
+        footerBox.y + 1,
+      );
+      if (resultMetrics.scrollHeight > resultMetrics.clientHeight) {
+        const scrollTopBefore = await resultViewport.evaluate(
+          (element) => element.scrollTop,
+        );
+        await resultViewport.evaluate((element) => {
+          element.scrollTop = element.scrollHeight;
+        });
+        const scrollTopAfter = await resultViewport.evaluate(
+          (element) => element.scrollTop,
+        );
+        const maxScrollTop =
+          resultMetrics.scrollHeight - resultMetrics.clientHeight;
+        if (scrollTopBefore < maxScrollTop - 1) {
+          expect(scrollTopAfter).toBeGreaterThan(scrollTopBefore);
+        }
+        expect(scrollTopAfter).toBeGreaterThanOrEqual(maxScrollTop - 1);
+      }
+      await expect(subscribeButton).toBeInViewport();
+      const separator = quickAddDialog.locator(
+        '[data-slot="separator"][data-orientation="horizontal"]',
+      );
+      const resultsLabel = quickAddDialog.getByText(
+        /找到 \d+ 个教学班|Found \d+ sections?/i,
+      );
+      const searchInput = quickAddDialog.getByRole("textbox", {
+        name: /搜索课程或教师|Search courses or teachers/i,
+      });
+      await expect(
+        quickAddDialog.getByText(
+          /最多显示 20 个教学班，请增加限定条件|Up to 20 sections are shown/i,
+        ),
+      ).toBeVisible();
+      await expect(
+        quickAddDialog.getByText(
+          /搜索范围仅限所选学期|Results are limited to the selected semester/i,
+        ),
+      ).toHaveCount(0);
+      const [separatorBox, resultsLabelBox, searchInputBox] = await Promise.all(
+        [
+          separator.boundingBox(),
+          resultsLabel.boundingBox(),
+          searchInput.boundingBox(),
+        ],
+      );
+      expect(separatorBox).not.toBeNull();
+      expect(resultsLabelBox).not.toBeNull();
+      expect(searchInputBox).not.toBeNull();
+      expect(
+        (separatorBox?.y ?? 0) -
+          ((searchInputBox?.y ?? 0) + (searchInputBox?.height ?? 0)),
+      ).toBeLessThan(24);
+      expect(
+        (resultsLabelBox?.y ?? 0) -
+          ((separatorBox?.y ?? 0) + (separatorBox?.height ?? 0)),
+      ).toBeLessThan(24);
+      await quickAddDialog
+        .getByRole("textbox", {
+          name: /搜索课程或教师|Search courses or teachers/i,
+        })
+        .fill(catalog.teacher.nameCn);
+      const teacherResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/catalog/sections?") &&
+          new URL(response.url()).searchParams.get("search") ===
+            catalog.teacher.nameCn &&
+          response.status() === 200,
+      );
+      await quickAddDialog
+        .getByRole("button", { name: /搜索|Search/i })
+        .click();
+      await teacherResponse;
+      await expect(
+        quickAddDialog.getByText(catalog.section.code).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("dialog", {
+          name: /确认订阅|Confirm .*section subscriptions/i,
+        }),
+      ).toHaveCount(0);
+      const sectionCheckbox = quickAddDialog.getByRole("checkbox", {
+        name: new RegExp(escapeForRegExp(catalog.section.code), "i"),
+      });
+      await expect(sectionCheckbox).toBeChecked();
+      await sectionCheckbox.click();
+      await expect(sectionCheckbox).not.toBeChecked();
+      await sectionCheckbox.click();
+      await expect(sectionCheckbox).toBeChecked();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-quick-add-results",
+      );
+      const subscribeResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/workspace/subscriptions/batch") &&
+          response.request().method() === "POST" &&
+          response.status() === 200,
+      );
+      await quickAddDialog
+        .getByRole("button", {
+          name: /订阅所选|Subscribe selected/i,
+        })
+        .click();
+      await subscribeResponse;
+      await expect(quickAddDialog).not.toBeVisible();
+      await expect(
+        page.locator("[data-sonner-toast]").filter({
+          hasText:
+            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-slot="alert"][role="alert"]').filter({
+          hasText:
+            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+        }),
+      ).toHaveCount(0);
+      await waitForUiSettled(page);
       expect(
         (await storedSectionSubscriptions(account.id)).map(
           (row) => row.sectionId,
         ),
       ).toEqual([catalog.section.id]);
+      await expect(
+        page
+          .getByTestId("subscription-course-link")
+          .filter({
+            hasText: new RegExp(
+              `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
+            ),
+          })
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
+    });
+  });
+  for (const width of [1280, 390]) {
+    test(`subscription.web-quick-add-selection (${width}px)`, async ({
+      page,
+      catalog,
+      account,
+      storedSectionSubscriptions,
+      subscriptionRun,
+    }, testInfo) => {
+      await subscriptionRun(async () => {
+        await page.setViewportSize({ width, height: 844 });
+        await gotoAndWaitForReady(page, "/workspace/subscriptions");
+        await gotoAndWaitForReady(page, "/workspace/subscriptions");
+        const openDialog = async () => {
+          await page
+            .getByRole("button", { name: /添加订阅|Add Subscription/i })
+            .first()
+            .click();
+        };
+        const dialog = page.getByRole("dialog", {
+          name: /添加订阅|Add Subscription/i,
+        });
+        const search = async (query: string) => {
+          await dialog
+            .getByRole("textbox", {
+              name: /搜索课程或教师|Search courses or teachers/i,
+            })
+            .fill(query);
+          const response = page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/catalog/sections?") &&
+              response.request().method() === "GET",
+          );
+          await dialog
+            .getByRole("button", { name: /^(搜索|Search)$/i })
+            .click();
+          expect((await response).ok()).toBe(true);
+        };
+        const submit = dialog.getByRole("button", {
+          name: /订阅所选|Subscribe selected/i,
+        });
+        const first = dialog.getByRole("checkbox", {
+          name: new RegExp(escapeForRegExp(catalog.section.code), "i"),
+        });
+        const second = dialog.getByRole("checkbox", {
+          name: new RegExp(escapeForRegExp(catalog.sections[1].code), "i"),
+        });
+        await openDialog();
+        await search(catalog.sharedTeacher.nameCn);
+        await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+        await expect(first).not.toBeChecked();
+        await expect(second).not.toBeChecked();
+        await expect(submit).toBeDisabled();
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          `quick-add-multiple-unselected-${width}`,
+        );
+        await first.click();
+        await expect(submit).toBeEnabled();
+        await search(catalog.section.code);
+        await expect(dialog.getByRole("checkbox")).toHaveCount(1);
+        await expect(first).toBeChecked();
+        await expect(submit).toBeEnabled();
+        await search(catalog.sharedTeacher.nameCn);
+        await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+        await expect(first).not.toBeChecked();
+        await expect(second).not.toBeChecked();
+        await expect(submit).toBeDisabled();
+        await first.click();
+        const subscribed = page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/workspace/subscriptions/batch") &&
+            response.request().method() === "POST",
+        );
+        await submit.click();
+        expect((await subscribed).ok()).toBe(true);
+        await expect(dialog).toBeHidden();
+        await gotoAndWaitForReady(page, "/workspace/subscriptions");
+        await openDialog();
+        await search(catalog.sharedTeacher.nameCn);
+        await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+        await expect(first).toBeChecked();
+        await expect(first).toBeDisabled();
+        await expect(second).not.toBeChecked();
+        await expect(submit).toBeDisabled();
+        await search(catalog.section.code);
+        await expect(dialog.getByRole("checkbox")).toHaveCount(1);
+        await expect(first).toBeDisabled();
+        await expect(submit).toBeDisabled();
+        await search(catalog.sections[1].code);
+        await expect(dialog.getByRole("checkbox")).toHaveCount(1);
+        await expect(second).toBeChecked();
+        await expect(second).toBeEnabled();
+        await expect(submit).toBeEnabled();
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          `quick-add-single-selected-${width}`,
+        );
+        expect(
+          (await storedSectionSubscriptions(account.id)).map(
+            (row) => row.sectionId,
+          ),
+        ).toEqual([catalog.section.id]);
+      });
     });
   }
-
   test("单个添加弹窗在 320×568 视口保持关闭控件和操作区可达", async ({
     page,
     account: _account,
+    subscriptionRun,
   }) => {
-    await page.setViewportSize({ height: 568, width: 320 });
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    await page
-      .getByRole("button", { name: /添加订阅|Add Subscription/i })
-      .first()
-      .click();
-    const quickAddDialog = page
-      .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
-      .first();
-    await expect(quickAddDialog).toBeVisible();
-    await assertDialogViewportSafe(page, quickAddDialog);
-
-    await quickAddDialog.getByRole("button", { name: "Close" }).click();
-    await expect(quickAddDialog).not.toBeVisible();
+    await subscriptionRun(async () => {
+      await page.setViewportSize({ height: 568, width: 320 });
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await page
+        .getByRole("button", { name: /添加订阅|Add Subscription/i })
+        .first()
+        .click();
+      const quickAddDialog = page
+        .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
+        .first();
+      await expect(quickAddDialog).toBeVisible();
+      await assertDialogViewportSafe(page, quickAddDialog);
+      await quickAddDialog.getByRole("button", { name: "Close" }).click();
+      await expect(quickAddDialog).not.toBeVisible();
+    });
   });
-
   test("单个添加弹窗在无匹配结果时保留搜索上下文", async ({
     page,
     account: _account,
+    subscriptionRun,
   }, testInfo) => {
-    await page.setViewportSize({ height: 844, width: 390 });
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    await page
-      .getByRole("button", { name: /添加订阅|Add Subscription/i })
-      .first()
-      .click();
-    const quickAddDialog = page
-      .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
-      .first();
-    await quickAddDialog
-      .getByRole("textbox", {
-        name: /搜索课程或教师|Search courses or teachers/i,
-      })
-      .fill("DEVXX000.99");
-
-    const matchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/catalog/sections?") &&
-        response.request().method() === "GET" &&
-        response.status() === 200,
-    );
-    await quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click();
-    await matchResponse;
-
-    await expect(
-      quickAddDialog.getByText(/没有找到教学班|No sections found/i),
-    ).toBeVisible();
-    await expect(
-      quickAddDialog.getByRole("button", {
-        name: /订阅所选|Subscribe selected/i,
-      }),
-    ).toBeDisabled();
-    await expect(
-      quickAddDialog.getByRole("textbox", {
-        name: /搜索课程或教师|Search courses or teachers/i,
-      }),
-    ).toHaveValue("DEVXX000.99");
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-quick-add-empty",
-    );
+    await subscriptionRun(async () => {
+      await page.setViewportSize({ height: 844, width: 390 });
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await page
+        .getByRole("button", { name: /添加订阅|Add Subscription/i })
+        .first()
+        .click();
+      const quickAddDialog = page
+        .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
+        .first();
+      await quickAddDialog
+        .getByRole("textbox", {
+          name: /搜索课程或教师|Search courses or teachers/i,
+        })
+        .fill("DEVXX000.99");
+      const matchResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/catalog/sections?") &&
+          response.request().method() === "GET" &&
+          response.status() === 200,
+      );
+      await quickAddDialog
+        .getByRole("button", { name: /搜索|Search/i })
+        .click();
+      await matchResponse;
+      await expect(
+        quickAddDialog.getByText(/没有找到教学班|No sections found/i),
+      ).toBeVisible();
+      await expect(
+        quickAddDialog.getByRole("button", {
+          name: /订阅所选|Subscribe selected/i,
+        }),
+      ).toBeDisabled();
+      await expect(
+        quickAddDialog.getByRole("textbox", {
+          name: /搜索课程或教师|Search courses or teachers/i,
+        }),
+      ).toHaveValue("DEVXX000.99");
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-quick-add-empty",
+      );
+    });
   });
-
   test("批量导入可确认并显示成功", async ({
     page,
     catalog,
     account,
+    storedSectionSubscriptions,
+    subscriptionRun,
   }, testInfo) => {
-    test.setTimeout(60_000);
-    await gotoAndWaitForReady(page, "/workspace/subscriptions");
-
-    const textarea = await openBulkImportDialog(page);
-    // Include a valid code and an invalid one
-    await textarea.fill(`\n${catalog.section.code}\nDEVXX000.99\n`);
-
-    const matchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/workspace/subscriptions/query") &&
-        response.request().method() === "POST" &&
-        response.status() === 200,
-    );
-    await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
-    await matchResponse;
-
-    const dialog = page
-      .getByRole("dialog", {
-        name: /确认订阅|Confirm .*section subscriptions/i,
-      })
-      .first();
-    await expect(dialog).toBeVisible({ timeout: 15_000 });
-    await expect(dialog.getByText(catalog.section.code).first()).toBeVisible();
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-bulk-import-ready",
-    );
-
-    await dialog
-      .getByRole("button", {
-        name: /订阅已选的 \d+ 个教学班|订阅已选|Subscribe to \d+ sections|Subscribe/i,
-      })
-      .click();
-
-    await expect(
-      page.locator("[data-sonner-toast]").filter({
-        hasText:
-          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
-      }),
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(
-      page.locator('[data-slot="alert"][role="alert"]').filter({
-        hasText:
-          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
-      }),
-    ).toHaveCount(0);
-    await waitForUiSettled(page);
-    expect(
-      (await storedSectionSubscriptions(account.id)).map(
-        (row) => row.sectionId,
-      ),
-    ).toEqual([catalog.section.id]);
-    await expect(
-      page
-        .getByTestId("subscription-course-link")
-        .filter({
-          hasText: new RegExp(
-            `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
-          ),
+    await subscriptionRun(async () => {
+      test.setTimeout(60000);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      const textarea = await openBulkImportDialog(page);
+      // Include a valid code and an invalid one
+      await textarea.fill(`\n${catalog.section.code}\nDEVXX000.99\n`);
+      const matchResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/workspace/subscriptions/query") &&
+          response.request().method() === "POST" &&
+          response.status() === 200,
+      );
+      await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
+      await matchResponse;
+      const dialog = page
+        .getByRole("dialog", {
+          name: /确认订阅|Confirm .*section subscriptions/i,
         })
-        .filter({ visible: true })
-        .first(),
-    ).toBeVisible();
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-subscriptions-bulk-import-success",
-    );
+        .first();
+      await expect(dialog).toBeVisible({ timeout: 15000 });
+      await expect(
+        dialog.getByText(catalog.section.code).first(),
+      ).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-bulk-import-ready",
+      );
+      await dialog
+        .getByRole("button", {
+          name: /订阅已选的 \d+ 个教学班|订阅已选|Subscribe to \d+ sections|Subscribe/i,
+        })
+        .click();
+      await expect(
+        page.locator("[data-sonner-toast]").filter({
+          hasText:
+            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+        }),
+      ).toBeVisible({ timeout: 15000 });
+      await expect(
+        page.locator('[data-slot="alert"][role="alert"]').filter({
+          hasText:
+            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+        }),
+      ).toHaveCount(0);
+      await waitForUiSettled(page);
+      expect(
+        (await storedSectionSubscriptions(account.id)).map(
+          (row) => row.sectionId,
+        ),
+      ).toEqual([catalog.section.id]);
+      await expect(
+        page
+          .getByTestId("subscription-course-link")
+          .filter({
+            hasText: new RegExp(
+              `${escapeForRegExp(catalog.course.nameCn)}|${escapeForRegExp(catalog.course.nameEn)}`,
+            ),
+          })
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-subscriptions-bulk-import-success",
+      );
+    });
   });
 });
-
 for (const routePath of [
   "/workspace/subscriptions",
   "/workspace/subscriptions/sections",
@@ -1000,19 +989,24 @@ for (const routePath of [
   test(`页面契约 ${routePath}`, async ({
     page,
     account: _account,
+    subscriptionRun,
   }, testInfo) => {
-    const response = await gotoAndWaitForReady(page, routePath, {
-      browserHealth: {},
-      expectMeaningfulContent: true,
-      expectNoHorizontalOverflow: true,
-      uiQuality: {},
-      testInfo,
-      screenshotLabel: "contract",
+    await subscriptionRun(async () => {
+      const response = await gotoAndWaitForReady(page, routePath, {
+        browserHealth: {},
+        expectMeaningfulContent: true,
+        expectNoHorizontalOverflow: true,
+        uiQuality: {},
+        testInfo,
+        screenshotLabel: "contract",
+      });
+      expect(response?.ok()).toBe(true);
+      await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
+      await expect(page.locator("#main-content")).toBeVisible();
+      await expandWorkspaceSidebarGroup(page);
+      await expect(
+        sidebarNavigationLink(page, /^(今天|Today)$/i),
+      ).toBeVisible();
     });
-    expect(response?.ok()).toBe(true);
-    await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expandWorkspaceSidebarGroup(page);
-    await expect(sidebarNavigationLink(page, /^(今天|Today)$/i)).toBeVisible();
   });
 }
