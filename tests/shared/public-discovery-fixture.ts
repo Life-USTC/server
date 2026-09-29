@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { vi } from "vitest";
-import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
+import type { CloudflareAnalyticsEngineDataPoint } from "@/lib/adapters/cloudflare-runtime";
 import {
   type CatalogContractFixture,
   createCatalogContractFixture,
@@ -10,31 +10,44 @@ import { createNodeRuntime } from "./node-runtime";
 import type { TestPrismaClient } from "./prisma";
 
 type StoredResponse = { body: string; status: number; headers: Headers };
-type PublicDiscovery = {
-  db: TestPrismaClient;
-  catalog: CatalogContractFixture;
-  users: { id: string }[];
+type DiscoveryLifetime = {
   start: number;
   kv: Map<string, string>;
   colo: Map<string, StoredResponse>;
+  analytics: CloudflareAnalyticsEngineDataPoint[];
+  run<T>(work: () => T | Promise<T>): Promise<T>;
   request<T>(read: () => T | Promise<T>): Promise<T>;
+};
+type PublicDiscovery = DiscoveryLifetime & {
+  db: TestPrismaClient;
+  catalog: CatalogContractFixture;
+  users: { id: string }[];
   revise(label: string): Promise<void>;
 };
 
-// Each consumer has one test in an isolated Vitest file because the production
-// memory cache, Cache API binding and Date are process globals.
+// Each consumer has one test in an isolated Vitest file. Its process owns the
+// production memory cache and fake Date; colo/KV below are controlled bindings.
 export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
+  _discoveryLifetime: DiscoveryLifetime;
   discovery: PublicDiscovery;
 }>({
-  discovery: async ({ isolatedDatabase }, use) => {
-    const db = isolatedDatabase.owner;
+  _discoveryLifetime: async ({ isolatedDatabase }, use) => {
     const { connections } = isolatedDatabase;
     const start = new Date("2031-01-12T00:00:00.000Z").getTime();
     const kv = new Map<string, string>();
     const colo = new Map<string, StoredResponse>();
-    const { run: request, close } = createNodeRuntime({
+    const analytics: CloudflareAnalyticsEngineDataPoint[] = [];
+    // The complete callback can still issue requests after the test times out.
+    // Keep the request runtime open until this outer owner has drained it.
+    const lifetime = createNodeRuntime({});
+    const requests = createNodeRuntime({
       HYPERDRIVE: { connectionString: connections.app },
       HYPERDRIVE_AUTH: { connectionString: connections.auth },
+      ANALYTICS: {
+        writeDataPoint: (point: CloudflareAnalyticsEngineDataPoint) => {
+          analytics.push(point);
+        },
+      },
       CATALOG_DETAIL_CORE: {
         get: async (key: string) => {
           const value = kv.get(key);
@@ -45,19 +58,17 @@ export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
         },
       },
     });
-
+    const failures: unknown[] = [];
     try {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(start);
-      resetPublicRuntimeCacheForTest();
       vi.stubGlobal("caches", {
         open: async () => ({
           match: async (request: Request) => {
             const stored = colo.get(request.url);
             return stored ? new Response(stored.body, stored) : undefined;
           },
-          // Store consumed bytes, like the Cache API, rather than retaining
-          // unread tee branches for every response clone.
+          // Consume bytes like the Cache API instead of retaining tee branches.
           put: async (request: Request, response: Response) => {
             colo.set(request.url, {
               body: await response.text(),
@@ -67,6 +78,37 @@ export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
           },
         }),
       });
+      // Register teardown before catalog setup or a dependent fixture can time out.
+      await use({
+        start,
+        kv,
+        colo,
+        analytics,
+        run: lifetime.run,
+        request: requests.run,
+      });
+    } catch (error) {
+      failures.push(error);
+    }
+    const results = await Promise.allSettled([lifetime.close()]);
+    results.push(...(await Promise.allSettled([requests.close()])));
+    // Response completion alone does not mean the outer DB assertions finished.
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    failures.push(
+      ...results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      ),
+    );
+    if (failures.length)
+      throw new AggregateError(failures, "Public discovery cleanup failed");
+  },
+  discovery: async (
+    { isolatedDatabase, _discoveryLifetime: lifetime },
+    use,
+  ) => {
+    const state = await lifetime.run(async () => {
+      const db = isolatedDatabase.owner;
       const catalog = await createCatalogContractFixture(db);
       const users = [0, 1].map((index) => ({
         id: `${catalog.marker}-cache-${index}`,
@@ -90,22 +132,9 @@ export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
         });
       }
       await revise("initial");
-      await use({ db, catalog, users, start, kv, colo, request, revise });
-    } finally {
-      await cleanup();
-    }
-    async function cleanup() {
-      try {
-        await close();
-      } finally {
-        vi.useRealTimers();
-        vi.unstubAllGlobals();
-        resetPublicRuntimeCacheForTest();
-        kv.clear();
-        colo.clear();
-      }
-      // The parent fixture drops this case's whole database, including partial
-      // setup, revision, catalog additions, private rows and observations.
-    }
+      return { ...lifetime, db, catalog, users, revise };
+    });
+    await use(state);
+    // The parent fixture drops this case's database, including partial setup.
   },
 });
