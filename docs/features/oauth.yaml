@@ -103,7 +103,7 @@ requirements:
     - Registration succeeds with only the device-code grant, no client secret, and an empty redirect list.
     - Neither persisted nor returned metadata contains the temporary adapter callback.
     test:
-      file: tests/integration/oauth-registration-contracts.test.ts
+      file: tests/integration/oauth-device-client-registration.test.ts
       name: oauth.dcr-device-only-no-redirect
 - id: oauth.dcr-rules-from-provider
   category: consistency
@@ -121,7 +121,7 @@ requirements:
     - Public requested scopes are accepted within the provider-advertised allowlist.
     - Invalid scopes and unsupported service-account grants fail without persisting a client.
     test:
-      file: tests/integration/oauth-registration-contracts.test.ts
+      file: tests/integration/oauth-registration-policy-contract.test.ts
       name: oauth.dcr-rules-from-provider
 - id: oauth.llm-platform-oauth-compatibility
   category: consistency
@@ -177,7 +177,7 @@ requirements:
     - The fixed token authentication method is none and no client secret is returned or stored.
     - Missing/plain PKCE fails; S256 proceeds to the real sign-in flow.
     test:
-      file: tests/integration/oauth-registration-contracts.test.ts
+      file: tests/integration/oauth-public-client-pkce-contract.test.ts
       name: oauth.public-clients-pkce
 - id: oauth.client-authentication-inventory
   category: presentation
