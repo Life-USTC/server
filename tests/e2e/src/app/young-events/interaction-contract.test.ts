@@ -109,7 +109,7 @@ test("young-event.overlay-shared-viewer-state", async ({ page, calendar: fixture
     let viewerId: string | undefined;
     const readBootstrap = (response: import("@playwright/test").Response) => {
       if (new URL(response.url()).pathname === "/_internal/shell-bootstrap")
-        void observation.own(async () => {
+        void observation.ownBrowser(async () => {
           const body = await response.json();
           viewerId = body.viewer?.id;
         });
@@ -138,12 +138,13 @@ test("young-event.overlay-shared-viewer-state", async ({ page, calendar: fixture
         ).toBeEnabled();
       expect(bootstrap).toBe(1);
       await expect.poll(() => viewerId).toBe(fixture.users[0].id);
-      await observation.drain();
+      await observation.drainBrowser();
     }
     } finally {
       page.off("response", readBootstrap);
       page.off("request", countBootstrap);
-      await observation.drain();
+      // youngRun joins body callbacks after calendarRun closes the page.
+      // A failed viewer assertion must not wait for a stalled body here.
     }
   });
 });
@@ -200,7 +201,7 @@ test("young-event.web-detail-priority", async ({ page, calendar: fixture, calend
       expect((await summary.boundingBox())?.y).toBeLessThan(
         (await poster.boundingBox())?.y ?? 0,
       );
-      const posterResponse = observation.own(() => page.waitForResponse((response) =>
+      const posterResponse = observation.ownBrowser(() => page.waitForResponse((response) =>
         new URL(response.url()).pathname === "/api/catalog/young-events/images/group1/contract/poster.jpg"));
       await poster.click();
       await expect(
