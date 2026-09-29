@@ -2,8 +2,8 @@ import { type APIRequestContext, expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
 test("cases.content-security.upload-attachment-download-1", async ({
   page,

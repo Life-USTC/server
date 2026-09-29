@@ -3,8 +3,8 @@ import { formatBytes } from "@/shared/lib/format-bytes";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 import { assertPageContract } from "../_shared/page-contract";
 
 async function fixture(page: Page) {

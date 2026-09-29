@@ -16,7 +16,7 @@ import {
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { assertPriorityView } from "../../../utils/property-priority";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 const oauthScopeLabel = (
   locale: "en-us" | "zh-cn",

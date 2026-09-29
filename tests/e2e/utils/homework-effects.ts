@@ -27,6 +27,15 @@ export type HomeworkEffects = {
     >
   >;
 };
+export type HomeworkEffectContext = {
+  headers: Record<string, string>;
+  readHeaders: (incoming: Request) => Record<string, string>;
+  activeReads: () => Request[];
+  duringRemoval: (
+    requests: readonly Request[],
+    action: () => Promise<void>,
+  ) => Promise<void>;
+};
 type CalendarObservation = {
   attempts: {
     id: string;
@@ -102,10 +111,7 @@ export async function withHomeworkEffects(
     // Consumer scenarios must drain GET waitUntil work before asserting no effects.
     observeReads?: boolean;
   },
-  work: (effects: {
-    headers: Record<string, string>;
-    readHeaders: (incoming: Request) => Record<string, string>;
-  }) => Promise<void>,
+  work: (effects: HomeworkEffectContext) => Promise<void>,
 ) {
   const request = page.request;
   const workerAsset = observeReads ? configuredWorkerAssets() : () => false;
@@ -119,6 +125,7 @@ export async function withHomeworkEffects(
   const errors: unknown[] = [];
   const writes: { method: string; path: string; status: number }[] = [];
   const retiredNativeStatuses = new Map<number, number>();
+  const removedNativeStatuses = new Map<number, number>();
   let accepting = true;
   let registered = false;
   const browserReads = ownBrowserReads(
@@ -131,6 +138,7 @@ export async function withHomeworkEffects(
     reads,
     supersededCalendarReads,
     retiredReads,
+    removedReads,
     pendingReads,
   } = browserReads;
 
@@ -212,6 +220,13 @@ export async function withHomeworkEffects(
           `Worker completed ${owned.method} ${owned.path}${read ? ` (${read.status})` : " (no browser response)"}`,
         ).toBeGreaterThanOrEqual(0);
         const [native] = unmatched.splice(index, 1);
+        if (removedReads.some((removed) => removed.order === owned.order)) {
+          expect(
+            native.result,
+            `Removed component ${owned.method} ${owned.path}`,
+          ).toBe(200);
+          removedNativeStatuses.set(owned.order, native.result);
+        }
         if (
           !read &&
           ((!owned.settled && owned.retiredBy) ||
@@ -355,6 +370,10 @@ export async function withHomeworkEffects(
       writes,
       reads,
       supersededCalendarReads,
+      removedReads: removedReads.map((read) => ({
+        ...read,
+        nativeStatus: removedNativeStatuses.get(read.order),
+      })),
       retiredReads: retiredReads.map((read) => ({
         ...read,
         nativeStatus: retiredNativeStatuses.get(read.order),
@@ -456,7 +475,12 @@ export async function withHomeworkEffects(
           body: "",
         }),
     );
-    await work({ headers, readHeaders });
+    await work({
+      headers,
+      readHeaders,
+      activeReads: browserReads.activeReads,
+      duringRemoval: browserReads.duringRemoval,
+    });
   } catch (error) {
     errors.push(error);
   } finally {

@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { expectNoPageHorizontalOverflow } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 async function openPlanner(page: Page, width: number, locale = "en-us") {
   await page.setViewportSize({ width, height: 1000 });

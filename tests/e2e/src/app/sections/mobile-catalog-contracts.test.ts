@@ -9,7 +9,7 @@ import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 let fixture: CatalogContractFixture;
 let user: { id: string };

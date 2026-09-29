@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../../utils/signed-session-cookie";
 
 test("calendar.activity-owner-transition", async ({ page }) => {
   test.setTimeout(120_000);

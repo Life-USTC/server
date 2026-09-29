@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 async function createFixture() {
   const suffix = crypto.randomUUID().slice(0, 8);

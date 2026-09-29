@@ -4,7 +4,7 @@ import type { Comment, User } from "../../../src/generated/prisma-node/client";
 import { DEV_SEED } from "./dev-seed";
 import { withE2ePrisma } from "./e2e-db/prisma";
 import { test as accountTest } from "./isolated-account";
-import { createSignedSessionCookie } from "./workspace-task-filters";
+import { createSignedSessionCookie } from "./signed-session-cookie";
 
 type Target = {
   type: "course" | "section" | "teacher";

@@ -3,7 +3,7 @@ import { createCalendarContractFixture } from "../../../../utils/calendar-contra
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../../utils/signed-session-cookie";
 
 test("calendar.subscription-badges", async ({ page }, testInfo) => {
   // Two locales × three subscription kinds × four viewport/view combinations.

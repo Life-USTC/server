@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 async function accountFixture(page: Page) {
   const username = `policy${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;

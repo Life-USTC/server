@@ -100,7 +100,9 @@ async function authorizeAndGetCode(
   expect(callbackUrl.searchParams.get("state")).toBe(state);
   const code = callbackUrl.searchParams.get("code");
   expect(typeof code).toBe("string");
-  return code as string;
+  expect(code).toBeTruthy();
+  if (!code) throw new Error("Missing authorization code");
+  return code;
 }
 
 export async function issueAccessTokenForClient(

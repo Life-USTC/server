@@ -411,7 +411,7 @@ requirements:
     - The anonymous result does not reveal another owner’s completion state.
     - The existing private completion remains intact.
     test:
-      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      file: tests/integration/mcp/community/homework-public-section-read.test.ts
       name: homework.public-section-read
 - id: homework.active-collaborator-write
   category: authorization
@@ -466,7 +466,7 @@ requirements:
     - MCP uses the actual HTTP scope guard and verifies signed JWTs against the real issuer’s JWKS handler;
       the in-memory tool harness is not used to prove scope enforcement.
     test:
-      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      file: tests/integration/mcp/community/homework-oauth-write-gates.test.ts
       name: homework.oauth-write-gates
 - id: homework.responsive-workspace-view
   category: presentation
@@ -548,7 +548,7 @@ requirements:
       unset.
     - The creator succeeds through each surface and the stored deletion attribution names that creator.
     test:
-      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      file: tests/integration/mcp/community/homework-creator-delete.test.ts
       name: homework.transport-creator-delete
 - id: homework.section-completed-deadline-display
   category: presentation

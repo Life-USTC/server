@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { withE2ePrisma } from "./e2e-db/prisma";
+import { createSignedSessionCookie } from "./signed-session-cookie";
 import { createUploadedFileViaApi } from "./uploads";
-import { createSignedSessionCookie } from "./workspace-task-filters";
 
 export const PRIORITY_AVATAR =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZ1sAAAAASUVORK5CYII=";

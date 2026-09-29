@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
 test("browser responses correlate with audit rows and replace spoofed request IDs", async ({
   page,
