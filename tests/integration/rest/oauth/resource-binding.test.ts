@@ -192,159 +192,166 @@ async function prepareResourceBinding({
 const test = oauthTest.extend<{
   binding: Awaited<ReturnType<typeof prepareResourceBinding>>;
 }>({
-  binding: async ({ oauth }, use) => {
-    await use(await prepareResourceBinding(oauth));
+  binding: async ({ oauth, run }, use) => {
+    await use(await run(() => prepareResourceBinding(oauth)));
   },
 });
 
-test("oauth.authorization-code-resource-binding", async ({ binding }) => {
-  const {
-    db,
-    mcp,
-    graphql,
-    policies,
-    authorize,
-    exchange,
-    consent,
-    expectAccess,
-    storedRefresh,
-  } = binding;
-  for (const requestedResource of [mcp, graphql]) {
-    const code = await authorize(mcp);
-    const row = await db.verificationToken.findFirstOrThrow({
-      where: { identifier: hash(code) },
-    });
-    expect(JSON.parse(row.token).query.resource).toBe(mcp);
-    const grant = await consent();
-    const beforeRefresh = await db.oAuthRefreshToken.findMany({
-      orderBy: { id: "asc" },
-    });
-    const beforeAccess = await db.oAuthAccessToken.findMany({
-      orderBy: { id: "asc" },
-    });
-    const response = await exchange(code, requestedResource);
-    const result = response.body;
-    if (requestedResource === mcp) {
-      expect(response.status, JSON.stringify(result)).toBe(200);
-      expect(decodeJwt(result.access_token).aud).toEqual([
-        mcp,
-        new URL("/api/auth/oauth2/userinfo", mcp).toString(),
-      ]);
-      expect(typeof result.refresh_token).toBe("string");
-      expectAccess(result.access_token, grant.grantId);
-      await storedRefresh(result.refresh_token, grant.grantId);
-      expect(await db.oAuthRefreshToken.count()).toBe(beforeRefresh.length + 1);
-    } else {
-      expect(response.status, JSON.stringify(result)).toBe(400);
-      expect(result.error).toBe("invalid_target");
-      expect(result.access_token).toBeUndefined();
-      expect(result.refresh_token).toBeUndefined();
-      expect(
-        await db.oAuthRefreshToken.findMany({ orderBy: { id: "asc" } }),
-      ).toEqual(beforeRefresh);
-      expect(
-        await db.oAuthAccessToken.findMany({ orderBy: { id: "asc" } }),
-      ).toEqual(beforeAccess);
+test("oauth.authorization-code-resource-binding", async ({ binding, run }) =>
+  run(async () => {
+    const {
+      db,
+      mcp,
+      graphql,
+      policies,
+      authorize,
+      exchange,
+      consent,
+      expectAccess,
+      storedRefresh,
+    } = binding;
+    for (const requestedResource of [mcp, graphql]) {
+      const code = await authorize(mcp);
+      const row = await db.verificationToken.findFirstOrThrow({
+        where: { identifier: hash(code) },
+      });
+      expect(JSON.parse(row.token).query.resource).toBe(mcp);
+      const grant = await consent();
+      const beforeRefresh = await db.oAuthRefreshToken.findMany({
+        orderBy: { id: "asc" },
+      });
+      const beforeAccess = await db.oAuthAccessToken.findMany({
+        orderBy: { id: "asc" },
+      });
+      const response = await exchange(code, requestedResource);
+      const result = response.body;
+      if (requestedResource === mcp) {
+        expect(response.status, JSON.stringify(result)).toBe(200);
+        expect(decodeJwt(result.access_token).aud).toEqual([
+          mcp,
+          new URL("/api/auth/oauth2/userinfo", mcp).toString(),
+        ]);
+        expect(typeof result.refresh_token).toBe("string");
+        expectAccess(result.access_token, grant.grantId);
+        await storedRefresh(result.refresh_token, grant.grantId);
+        expect(await db.oAuthRefreshToken.count()).toBe(
+          beforeRefresh.length + 1,
+        );
+      } else {
+        expect(response.status, JSON.stringify(result)).toBe(400);
+        expect(result.error).toBe("invalid_target");
+        expect(result.access_token).toBeUndefined();
+        expect(result.refresh_token).toBeUndefined();
+        expect(
+          await db.oAuthRefreshToken.findMany({ orderBy: { id: "asc" } }),
+        ).toEqual(beforeRefresh);
+        expect(
+          await db.oAuthAccessToken.findMany({ orderBy: { id: "asc" } }),
+        ).toEqual(beforeAccess);
+      }
     }
-  }
-  expect(await resourcePolicies(db)).toEqual(policies);
-});
+    expect(await resourcePolicies(db)).toEqual(policies);
+  }));
 
-test("oauth.rotated-refresh-replay", async ({ binding }) => {
-  const {
-    db,
-    mcp,
-    policies,
-    authorize,
-    exchange,
-    token,
-    consent,
-    expectAccess,
-    storedRefresh,
-  } = binding;
-  const code = await authorize(mcp);
-  const grant = await consent();
-  const issued = await exchange(code, mcp);
-  const first = issued.body;
-  expect(issued.status, JSON.stringify(first)).toBe(200);
-  expect(typeof first.refresh_token).toBe("string");
-  expectAccess(first.access_token, grant.grantId);
-  const initial = await storedRefresh(first.refresh_token, grant.grantId);
-  expect(await db.oAuthRefreshToken.count()).toBe(1);
-  const rotated = await token({
-    grant_type: "refresh_token",
-    refresh_token: first.refresh_token,
-    resource: mcp,
-  });
-  const replacement = rotated.body;
-  expect(rotated.status, JSON.stringify(replacement)).toBe(200);
-  expect(typeof replacement.refresh_token).toBe("string");
-  expect(replacement.refresh_token).not.toBe(first.refresh_token);
-  expectAccess(replacement.access_token, grant.grantId);
-  const current = await storedRefresh(replacement.refresh_token, grant.grantId);
-  expect(current.id).not.toBe(initial.id);
-  expect(current.revoked).toBeNull();
-  expect(await db.oAuthRefreshToken.count()).toBe(2);
-  const old = await storedRefresh(first.refresh_token, grant.grantId);
-  expect(old.rotatedAt ?? old.revoked).not.toBeNull();
-  expect(old.rotationReplayExpiresAt).not.toBeNull();
-  expect(old.rotationReplayExpiresAt?.getTime()).toBeGreaterThan(Date.now());
-  // Move the persisted retry window outside its allowed interval. The installed
-  // provider tests rotationReplayExpiresAt, in addition to the rotation marker.
-  const expired = new Date(Date.now() - 60_000);
-  const aged = await db.oAuthRefreshToken.update({
-    where: { id: old.id },
-    data: {
-      ...(old.rotatedAt ? { rotatedAt: expired } : {}),
-      ...(old.revoked ? { revoked: expired } : {}),
-      rotationReplayExpiresAt: expired,
-    },
-  });
-  expect(aged.rotationReplayExpiresAt).toEqual(expired);
-  const replay = await token({
-    grant_type: "refresh_token",
-    refresh_token: first.refresh_token,
-    resource: mcp,
-  });
-  expect(replay.status).toBe(400);
-  const failure = replay.body;
-  expect(failure.error).toBe("invalid_grant");
-  expect(failure).not.toHaveProperty("access_token");
-  expect(failure).not.toHaveProperty("refresh_token");
-  expect(failure.error_description).toBe(
-    "The refresh token no longer has an active user grant.",
-  );
-  // The application's replay guard invalidates this generation and retains a
-  // revoked marker so a racing replacement cannot revive the old lineage.
-  const remaining = await db.oAuthRefreshToken.findMany();
-  expect(remaining).toHaveLength(1);
-  expect(remaining[0]).toMatchObject({
-    id: old.id,
-    token: hash(first.refresh_token),
-    clientId,
-    userId: binding.userId,
-    referenceId: grant.grantId,
-    resources: [mcp],
-    revoked: expired,
-  });
-  expect([...remaining[0].scopes].sort()).toEqual(
-    [...scopes, "urn:life-ustc:oauth:refresh-replay-tombstone"].sort(),
-  );
-  expect(await db.oAuthRefreshToken.count({ where: { revoked: null } })).toBe(
-    0,
-  );
-  expect(
-    await db.oAuthRefreshToken.findUnique({ where: { id: current.id } }),
-  ).toBeNull();
-  expect(await db.oAuthAccessToken.count()).toBe(0);
-  const invalidated = await consent();
-  expect(invalidated.grantId).not.toBe(grant.grantId);
-  expect(invalidated).toMatchObject({
-    id: grant.id,
-    clientId,
-    userId: binding.userId,
-    scopes: grant.scopes,
-    resources: grant.resources,
-  });
-  expect(await resourcePolicies(db)).toEqual(policies);
-});
+test("oauth.rotated-refresh-replay", async ({ binding, run }) =>
+  run(async () => {
+    const {
+      db,
+      mcp,
+      policies,
+      authorize,
+      exchange,
+      token,
+      consent,
+      expectAccess,
+      storedRefresh,
+    } = binding;
+    const code = await authorize(mcp);
+    const grant = await consent();
+    const issued = await exchange(code, mcp);
+    const first = issued.body;
+    expect(issued.status, JSON.stringify(first)).toBe(200);
+    expect(typeof first.refresh_token).toBe("string");
+    expectAccess(first.access_token, grant.grantId);
+    const initial = await storedRefresh(first.refresh_token, grant.grantId);
+    expect(await db.oAuthRefreshToken.count()).toBe(1);
+    const rotated = await token({
+      grant_type: "refresh_token",
+      refresh_token: first.refresh_token,
+      resource: mcp,
+    });
+    const replacement = rotated.body;
+    expect(rotated.status, JSON.stringify(replacement)).toBe(200);
+    expect(typeof replacement.refresh_token).toBe("string");
+    expect(replacement.refresh_token).not.toBe(first.refresh_token);
+    expectAccess(replacement.access_token, grant.grantId);
+    const current = await storedRefresh(
+      replacement.refresh_token,
+      grant.grantId,
+    );
+    expect(current.id).not.toBe(initial.id);
+    expect(current.revoked).toBeNull();
+    expect(await db.oAuthRefreshToken.count()).toBe(2);
+    const old = await storedRefresh(first.refresh_token, grant.grantId);
+    expect(old.rotatedAt ?? old.revoked).not.toBeNull();
+    expect(old.rotationReplayExpiresAt).not.toBeNull();
+    expect(old.rotationReplayExpiresAt?.getTime()).toBeGreaterThan(Date.now());
+    // Move the persisted retry window outside its allowed interval. The installed
+    // provider tests rotationReplayExpiresAt, in addition to the rotation marker.
+    const expired = new Date(Date.now() - 60_000);
+    const aged = await db.oAuthRefreshToken.update({
+      where: { id: old.id },
+      data: {
+        ...(old.rotatedAt ? { rotatedAt: expired } : {}),
+        ...(old.revoked ? { revoked: expired } : {}),
+        rotationReplayExpiresAt: expired,
+      },
+    });
+    expect(aged.rotationReplayExpiresAt).toEqual(expired);
+    const replay = await token({
+      grant_type: "refresh_token",
+      refresh_token: first.refresh_token,
+      resource: mcp,
+    });
+    expect(replay.status).toBe(400);
+    const failure = replay.body;
+    expect(failure.error).toBe("invalid_grant");
+    expect(failure).not.toHaveProperty("access_token");
+    expect(failure).not.toHaveProperty("refresh_token");
+    expect(failure.error_description).toBe(
+      "The refresh token no longer has an active user grant.",
+    );
+    // The application's replay guard invalidates this generation and retains a
+    // revoked marker so a racing replacement cannot revive the old lineage.
+    const remaining = await db.oAuthRefreshToken.findMany();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]).toMatchObject({
+      id: old.id,
+      token: hash(first.refresh_token),
+      clientId,
+      userId: binding.userId,
+      referenceId: grant.grantId,
+      resources: [mcp],
+      revoked: expired,
+    });
+    expect([...remaining[0].scopes].sort()).toEqual(
+      [...scopes, "urn:life-ustc:oauth:refresh-replay-tombstone"].sort(),
+    );
+    expect(await db.oAuthRefreshToken.count({ where: { revoked: null } })).toBe(
+      0,
+    );
+    expect(
+      await db.oAuthRefreshToken.findUnique({ where: { id: current.id } }),
+    ).toBeNull();
+    expect(await db.oAuthAccessToken.count()).toBe(0);
+    const invalidated = await consent();
+    expect(invalidated.grantId).not.toBe(grant.grantId);
+    expect(invalidated).toMatchObject({
+      id: grant.id,
+      clientId,
+      userId: binding.userId,
+      scopes: grant.scopes,
+      resources: grant.resources,
+    });
+    expect(await resourcePolicies(db)).toEqual(policies);
+  }));
