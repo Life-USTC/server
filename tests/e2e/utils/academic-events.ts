@@ -1,14 +1,13 @@
 import type { Exam } from "../../../src/generated/prisma-node/client";
 import { DEV_SEED_ANCHOR } from "./dev-seed";
-import { withE2ePrisma } from "./e2e-db/prisma";
 import { test as academicTest } from "./homework-fixture";
 
 export const test = academicTest.extend<{
   pastExam: Exam;
   calendarUrl: string;
 }>({
-  pastExam: async ({ academic }, use) => {
-    const exam = await withE2ePrisma((db) =>
+  pastExam: async ({ academic, academicDb }, use) => {
+    const exam = await academicDb((db) =>
       db.exam.create({
         data: {
           jwId: academic.section.jwId,
@@ -23,8 +22,8 @@ export const test = academicTest.extend<{
     );
     await use(exam);
   },
-  calendarUrl: async ({ academic, page }, use) => {
-    await withE2ePrisma((db) =>
+  calendarUrl: async ({ academic, academicDb }, use) => {
+    await academicDb((db) =>
       db.$transaction(async (tx) => {
         const group = await tx.scheduleGroup.create({
           data: {
@@ -64,25 +63,8 @@ export const test = academicTest.extend<{
         });
       }),
     );
-    try {
-      await use(
-        `/workspace/calendar?calendarSemester=${academic.section.semesterId}&snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`,
-      );
-    } finally {
-      try {
-        await page.close();
-      } finally {
-        await withE2ePrisma((db) =>
-          db.$transaction([
-            db.schedule.deleteMany({
-              where: { sectionId: academic.section.id },
-            }),
-            db.scheduleGroup.deleteMany({
-              where: { sectionId: academic.section.id },
-            }),
-          ]),
-        );
-      }
-    }
+    await use(
+      `/workspace/calendar?calendarSemester=${academic.section.semesterId}&snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`,
+    );
   },
 });

@@ -184,39 +184,67 @@ test("ui.layout-principles-2", async ({ page }) => {
   }
 });
 
-async function eachWorkspacePage(
-  page: Page,
-  assertion: (title: string) => Promise<void>,
-) {
-  test.setTimeout(90_000);
-  await signInAsDebugUser(page, "/workspace/overview");
-  for (const [index, locale] of locales.entries()) {
-    await setLocale(page, locale);
-    await page.setViewportSize(viewports[index]);
-    for (const [tab, titles] of Object.entries(workspace)) {
-      await gotoAndWaitForReady(page, `/workspace/${tab}`);
-      await assertion(titles[index]);
-    }
-  }
+for (const [index, locale] of locales.entries()) {
+  taskFilterTest(
+    `workspace branch identities ${locale}/${viewports[index].width}`,
+    async ({ page, isolatedWorker, taskFilterRun }) => {
+      taskFilterTest.setTimeout(90_000);
+      await taskFilterRun(
+        async ({ checkpoint }) => {
+          // Locale is browser state; this consumer does not exercise its editor.
+          await page.context().addCookies([
+            {
+              name: "NEXT_LOCALE",
+              value: locale,
+              url: isolatedWorker.origin,
+            },
+          ]);
+          await page.setViewportSize(viewports[index]);
+          for (const [tab, titles] of Object.entries(workspace)) {
+            await taskFilterTest.step(
+              `${tab}: heading, landmark and title`,
+              async () => {
+                const route = `/workspace/${tab}`;
+                const response = await gotoAndWaitForReady(page, route);
+                expect(response?.status()).toBe(200);
+                expect(response?.headers()["content-language"]).toBe(locale);
+                expect(response?.headers()["cache-control"]).toBe(
+                  "private, no-store",
+                );
+                expect(
+                  response?.headers()["cloudflare-cdn-cache-control"],
+                ).toBe("no-store");
+                await expect(page).toHaveURL(
+                  new URL(route, isolatedWorker.origin).href,
+                );
+                await expect(page.locator("html")).toHaveAttribute(
+                  "lang",
+                  locale,
+                );
+                await expect(
+                  page.getByRole("heading", { level: 1 }),
+                ).toHaveCount(1);
+                await expect(
+                  page.getByRole("heading", { level: 1 }),
+                ).toHaveText(titles[index]);
+                await expect(page.getByRole("main")).toHaveCount(1);
+                await expect(page.getByRole("main")).toHaveAccessibleName(
+                  titles[index],
+                );
+                await expect(page).toHaveTitle(`${titles[index]} - Life@USTC`);
+                await checkpoint(`${locale}/${tab}`, {
+                  calendarMessages: [],
+                  calendarTokenCreated: tab !== "overview",
+                });
+              },
+            );
+          }
+        },
+        { calendarMessages: [], calendarTokenCreated: true },
+      );
+    },
+  );
 }
-
-test("ui.workspace-page-identity-1", async ({ page }) => {
-  await eachWorkspacePage(page, async (title) => {
-    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-  });
-});
-test("ui.workspace-page-identity-2", async ({ page }) => {
-  await eachWorkspacePage(page, async (title) => {
-    await expect(page.getByRole("main")).toHaveCount(1);
-    await expect(page.getByRole("main")).toHaveAccessibleName(title);
-  });
-});
-test("ui.workspace-page-identity-3", async ({ page }) => {
-  await eachWorkspacePage(page, async (title) => {
-    await expect(page).toHaveTitle(`${title} - Life@USTC`);
-  });
-});
 
 test("ui.navigation-landmarks-1", async ({ page }) => {
   await page.setViewportSize(viewports[0]);

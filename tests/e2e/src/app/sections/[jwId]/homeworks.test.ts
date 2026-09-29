@@ -14,7 +14,7 @@ import {
 import {
   readHomeworkCompletion,
   readHomeworks,
-} from "../../../../utils/homework-fixture";
+} from "../../../../utils/homework-state";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,

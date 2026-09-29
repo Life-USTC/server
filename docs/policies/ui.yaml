@@ -1142,40 +1142,40 @@ requirements:
   topic: workspace-page-identity
   rule: Every signed-in workspace branch exposes exactly one localized level-one heading.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
       and reads each level-one heading.
     then:
     - Every signed-in workspace branch exposes exactly one localized level-one heading.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-1
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-2
   category: presentation
   topic: workspace-page-identity
   rule: The main content landmark uses the same localized branch label.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
       and reads the accessible name of each main landmark.
     then:
     - The main content landmark uses the same localized branch label.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-2
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-3
   category: presentation
   topic: workspace-page-identity
   rule: The document title identifies the active branch before the Life@USTC suffix.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and reads
       each document title.
     then:
     - The document title identifies the active branch before the Life@USTC suffix.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-3
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-4
   category: presentation
   topic: workspace-page-identity

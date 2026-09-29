@@ -1,118 +1,104 @@
-import { randomInt } from "node:crypto";
 import type {
-  Course,
   Homework,
-  Section,
+  Semester,
+  User,
 } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
+import { withBrowserWorkflow } from "./browser-workflow";
 import { DEV_SEED } from "./dev-seed";
-import { withE2ePrisma } from "./e2e-db/prisma";
-import { test as accountTest } from "./isolated-account";
+import { type HomeworkEffects, withHomeworkEffects } from "./homework-effects";
+import {
+  type AcademicState,
+  createHomeworkAcademic,
+  createHomeworkRows,
+  readHomeworkCompletion,
+  readHomeworks,
+} from "./homework-state";
+import type { IsolatedWorker } from "./isolated-worker";
+import { test as workerTest } from "./owned-worker";
 
-export const homeworkDescription =
-  "Private assignment instructions: submit a PDF with the derivation.";
-export type AcademicState = {
-  course: Course & { nameEn: string };
-  section: Section;
-};
-
-export function createHomeworkAcademic(
-  db: TestPrismaClient,
-  userId: string,
-  semesterId: number,
-) {
-  const marker = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
-  const jwId = randomInt(1_000_000_000, 1_100_000_000);
-  return db.$transaction(async (tx) => {
-    const course = await tx.course.create({
-      data: {
-        jwId,
-        code: `HW${marker}`,
-        nameCn: `独立作业课程 ${marker}`,
-        nameEn: `Isolated homework course ${marker}`,
-      },
-    });
-    const section = await tx.section.create({
-      data: {
-        jwId: jwId + 1,
-        code: `${course.code}.01`,
-        courseId: course.id,
-        semesterId,
-      },
-    });
-    await tx.userSectionSubscription.create({
-      data: { userId, sectionId: section.id },
-    });
-    if (!course.nameEn) throw new Error("Expected bilingual fixture course");
-    return { course: { ...course, nameEn: course.nameEn }, section };
-  });
-}
-
-export function createHomeworkRows(
-  db: TestPrismaClient,
-  userId: string,
-  academic: AcademicState,
-) {
-  return db.$transaction(async (tx) => {
-    const records = [];
-    for (const isMajor of [false, true]) {
-      records.push(
-        await tx.homework.create({
-          data: {
-            sectionId: academic.section.id,
-            createdById: userId,
-            title: `Isolated ${isMajor ? "major" : "standard"} homework ${academic.course.code}`,
-            isMajor,
-            requiresTeam: isMajor,
-            publishedAt: new Date("2026-01-01T09:10:00+08:00"),
-            submissionStartAt: new Date("2026-01-02T10:20:00+08:00"),
-            submissionDueAt: new Date("2099-01-03T12:30:00+08:00"),
-            description: {
-              create: {
-                content: homeworkDescription,
-                lastEditedById: userId,
-              },
-            },
-          },
-        }),
-      );
-    }
-    return records;
-  });
-}
-
-/** Writes own their catalog rows. The shared semester is only read. */
-export const test = accountTest.extend<{
+/** Every workflow owns its catalog, identity, mutations and real queue consumers. */
+export const test = workerTest.extend<{
+  actor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
+  account: User;
+  semesters: { current: Semester; previous: Semester };
   academic: AcademicState;
   homeworks: Homework[];
   homeworkStates: Homework[];
+  academicDb: <T>(work: (db: TestPrismaClient) => Promise<T>) => Promise<T>;
+  storedHomeworks: (
+    sectionId: number,
+  ) => Promise<Awaited<ReturnType<typeof readHomeworks>>>;
+  storedHomeworkCompletion: (
+    userId: string,
+    homeworkId: string,
+  ) => Promise<Awaited<ReturnType<typeof readHomeworkCompletion>>>;
+  homeworkRun: (
+    work: Parameters<typeof withHomeworkEffects>[1],
+    effects: HomeworkEffects,
+  ) => Promise<void>;
 }>({
-  academic: async ({ account, page }, use) => {
-    const academic = await withE2ePrisma(async (db) => {
-      const semester = await db.semester.findUniqueOrThrow({
-        where: { jwId: DEV_SEED.semesterJwId },
-      });
-      return createHomeworkAcademic(db, account.id, semester.id);
-    });
-    try {
-      await use(academic);
-    } finally {
-      try {
-        await page.close();
-      } finally {
-        // Cascades cover all homework created by the UI, even when a failing
-        // assertion prevents the test from learning the new homework ID.
-        await withE2ePrisma((db) =>
-          db.$transaction([
-            db.section.delete({ where: { id: academic.section.id } }),
-            db.course.delete({ where: { id: academic.course.id } }),
-          ]),
-        );
-      }
-    }
+  actor: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => isolatedWorker.createActor()));
   },
-  homeworkStates: async ({ account, homeworks }, use) => {
-    const overdue = await withE2ePrisma((db) =>
+  account: async ({ actor, academicDb }, use) => {
+    await use(
+      await academicDb((db) =>
+        db.user.findUniqueOrThrow({ where: { id: actor.id } }),
+      ),
+    );
+  },
+  academicDb: async ({ isolatedWorker, run }, use) => {
+    await use((work) => run(() => work(isolatedWorker.database.owner)));
+  },
+  storedHomeworks: async ({ academicDb }, use) => {
+    await use((sectionId) => academicDb((db) => readHomeworks(db, sectionId)));
+  },
+  storedHomeworkCompletion: async ({ academicDb }, use) => {
+    await use((userId, homeworkId) =>
+      academicDb((db) => readHomeworkCompletion(db, userId, homeworkId)),
+    );
+  },
+  semesters: async ({ academicDb }, use) => {
+    await use(
+      await academicDb((db) =>
+        db.$transaction(async (tx) => ({
+          current: await tx.semester.create({
+            data: {
+              jwId: DEV_SEED.semesterJwId,
+              code: "421",
+              nameCn: DEV_SEED.semesterNameCn,
+              startDate: new Date("2026-04-08T00:00:00Z"),
+              endDate: new Date(Date.now() + 180 * 86_400_000),
+            },
+          }),
+          previous: await tx.semester.create({
+            data: {
+              jwId: DEV_SEED.previousSemesterJwId,
+              code: "420",
+              nameCn: DEV_SEED.previousSemesterNameCn,
+              startDate: new Date("2025-10-21T00:00:00Z"),
+              endDate: new Date("2026-03-30T00:00:00Z"),
+            },
+          }),
+        })),
+      ),
+    );
+  },
+  academic: async ({ account, semesters, academicDb }, use) => {
+    await use(
+      await academicDb((db) =>
+        createHomeworkAcademic(db, account.id, semesters.current.id),
+      ),
+    );
+  },
+  homeworks: async ({ account, academic, academicDb }, use) => {
+    await use(
+      await academicDb((db) => createHomeworkRows(db, account.id, academic)),
+    );
+  },
+  homeworkStates: async ({ account, homeworks, academicDb }, use) => {
+    const overdue = await academicDb((db) =>
       db.$transaction(async (tx) => {
         const overdue = await tx.homework.update({
           where: { id: homeworks[0].id },
@@ -126,36 +112,33 @@ export const test = accountTest.extend<{
     );
     await use([overdue, homeworks[1]]);
   },
-  homeworks: async ({ account, academic }, use) => {
-    const homeworks = await withE2ePrisma((db) =>
-      createHomeworkRows(db, account.id, academic),
-    );
-    await use(homeworks);
+  homeworkRun: async (
+    { isolatedWorker, page, actor, academic, run },
+    use,
+    testInfo,
+  ) => {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use((work, effects) =>
+        workflow.run(() =>
+          run(() =>
+            withHomeworkEffects(
+              {
+                page,
+                isolatedWorker,
+                account: actor,
+                sectionId: academic.section.id,
+                testInfo,
+                ...effects,
+                observeReads: true,
+              },
+              async (effects) => {
+                await page.context().addCookies([actor.cookie]);
+                await workflow.body(() => work(effects));
+              },
+            ),
+          ),
+        ),
+      );
+    });
   },
 });
-
-export function readHomeworks(db: TestPrismaClient, sectionId: number) {
-  return db.homework.findMany({
-    where: { sectionId },
-    include: { description: true },
-    orderBy: { createdAt: "asc" },
-  });
-}
-
-export function readHomeworkCompletion(
-  db: TestPrismaClient,
-  userId: string,
-  homeworkId: string,
-) {
-  return db.homeworkCompletion.findUnique({
-    where: { userId_homeworkId: { userId, homeworkId } },
-  });
-}
-
-export function storedHomeworks(sectionId: number) {
-  return withE2ePrisma((db) => readHomeworks(db, sectionId));
-}
-
-export function storedHomeworkCompletion(userId: string, homeworkId: string) {
-  return withE2ePrisma((db) => readHomeworkCompletion(db, userId, homeworkId));
-}
