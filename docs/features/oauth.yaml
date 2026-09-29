@@ -348,7 +348,7 @@ requirements:
     - No client identifier, resource value, cookie, token, code, verifier, secret, or raw error content
       appears in exported telemetry.
     test:
-      file: tests/integration/oauth-observability-contracts.test.ts
+      file: tests/integration/oauth-token-observability.test.ts
       name: oauth.token-endpoint-observability
 - id: oauth.provider-resource-policy-cache
   category: consistency
@@ -365,7 +365,7 @@ requirements:
     - Provider writes invalidate the policy immediately; repeated token route handling leaves the initialized
       rows unchanged.
     test:
-      file: tests/integration/oauth-observability-contracts.test.ts
+      file: tests/integration/oauth-resource-policy-cache.test.ts
       name: oauth.provider-resource-policy-cache
 - id: oauth.oauth-proxy-for-dev
   category: behavior
