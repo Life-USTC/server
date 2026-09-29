@@ -32,7 +32,7 @@ requirements:
     - Read-only scopes cannot write; governance and credential mutation reject bearer-only requests; client
       activity rejects cookies and ingestion rejects both end-user credentials.
     test:
-      file: tests/integration/rest-state-setting-contract.test.ts
+      file: tests/integration/rest-session-bearer-authority.test.ts
       name: openapi.session-and-bearer
 - id: openapi.crawler-ingestion-rest-only
   category: behavior
@@ -71,7 +71,7 @@ requirements:
     - Repeated normalized targets return 400 and leave the stored record exactly unchanged.
     - Distinct targets reach the domain service and return the ordered per-item failures.
     test:
-      file: tests/integration/rest-state-setting-contract.test.ts
+      file: tests/integration/rest-batch-unique-targets.test.ts
       name: openapi.rest-batch-unique-targets
 - id: openapi.openapi-drift-gate
   category: consistency
@@ -253,7 +253,7 @@ requirements:
     - Utility and provider requests succeed without consuming the authenticated mutation budget.
     - Better Auth keeps its independently enabled provider limiter.
     test:
-      file: tests/integration/rest-state-setting-contract.test.ts
+      file: tests/integration/rest-rate-limit-accuracy.test.ts
       name: openapi.rate-limit-accuracy-boundary
 - id: openapi.unknown-api-json-errors
   category: validation
