@@ -2,12 +2,9 @@ import { type APIRequestContext, expect } from "@playwright/test";
 import { symmetricDecrypt } from "better-auth/crypto";
 import { parse } from "devalue";
 import { importJWK, SignJWT } from "jose";
-import {
-  type IsolatedWorker,
-  test as workerTest,
-} from "../../../e2e/utils/isolated-worker";
+import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
+import { test as workerTest } from "../../../e2e/utils/owned-worker";
 
-type Run = <T>(work: () => Promise<T>) => Promise<T>;
 type CreatedClient = {
   createdClientId: string;
   createdClientName: string;
@@ -182,31 +179,8 @@ async function prepare(worker: IsolatedWorker, request: APIRequestContext) {
 }
 
 const test = workerTest.extend<{
-  run: Run;
   state: Awaited<ReturnType<typeof prepare>>;
 }>({
-  run: async ({ isolatedWorker: _isolatedWorker }, use) => {
-    const operations: Promise<unknown>[] = [];
-    let closing = false;
-    const run: Run = (work) => {
-      if (closing)
-        return Promise.reject(new Error("Admin OAuth fixture is closing"));
-      const operation = Promise.resolve().then(work);
-      operations.push(
-        operation.then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
-      return operation;
-    };
-    try {
-      await use(run);
-    } finally {
-      closing = true;
-      await Promise.all(operations);
-    }
-  },
   state: async ({ isolatedWorker, request, run }, use) => {
     await use(await run(() => prepare(isolatedWorker, request)));
   },
