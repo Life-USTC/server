@@ -29,7 +29,11 @@ test("overview.decision-page", async ({ page, calendarRun }) => {
           await entries.evaluateAll((nodes) =>
             nodes.slice(0, 3).map((node) => node.getAttribute("href")),
           ),
-        ).toEqual(["/catalog/courses", "/catalog/sections", "/catalog/teachers"]);
+        ).toEqual([
+          "/catalog/courses",
+          "/catalog/sections",
+          "/catalog/teachers",
+        ]);
         for (const path of ["courses", "sections", "teachers"]) {
           const link = page.locator(
             `#main-content a[data-slot="item"][href="/catalog/${path}"]`,
