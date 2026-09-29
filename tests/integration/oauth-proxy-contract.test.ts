@@ -1,82 +1,138 @@
 import { betterAuth } from "better-auth";
 import { genericOAuth } from "better-auth/plugins";
-import { afterAll, expect, it, vi } from "vitest";
+import { expect } from "vitest";
 import { buildBetterAuthOptions } from "@/lib/auth/better-auth-options";
-import { createFixturePrisma } from "../shared/prisma";
+import { isolatedDatabaseTest } from "../shared/isolated-database";
+import { createNodeRuntime } from "../shared/node-runtime";
 
-const db = createFixturePrisma();
-const marker = crypto.randomUUID();
 const production = "https://production.example";
 const preview = "https://preview-unique.example";
-const email = `proxy-${marker}@example.test`;
-const sharedSecret = `shared-proxy-${marker}-encryption-key`;
-const exchanges: Array<{
-  code: string;
-  redirectURI: string;
-  codeVerifier?: string;
-}> = [];
-function instance(origin: string, proxySecret = sharedSecret) {
-  vi.stubEnv("APP_CANONICAL_ORIGIN", production);
-  vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
-  vi.stubEnv("OAUTH_PROXY_SECRET", proxySecret);
-  const options = buildBetterAuthOptions();
-  const proxy = options.plugins.find((plugin) => plugin.id === "oauth-proxy");
-  if (!proxy) throw new Error("Application must install OAuth proxy");
-  return betterAuth({
-    ...options,
-    baseURL: origin,
-    secret: `${origin}-${marker}-instance-specific-secret`,
-    trustedOrigins: [production, preview],
-    plugins: [
-      proxy,
-      genericOAuth({
-        config: [
-          {
-            providerId: "contract",
-            clientId: "external-provider-client",
-            clientSecret: "external-provider-secret",
-            accountIssuer: "https://external-provider.example",
-            authorizationUrl: "https://external-provider.example/authorize",
-            tokenUrl: "https://external-provider.example/token",
-            pkce: true,
-            getToken: async (input) => {
-              exchanges.push(input);
-              return {
-                accessToken: "upstream-private-access",
-                scopes: ["profile"],
-              };
-            },
-            getUserInfo: async () => ({
-              id: marker,
-              email,
-              emailVerified: true,
-              name: "Proxy contract user",
+
+type ProxyInstance = {
+  handler(request: Request): Promise<Response>;
+  passkey:
+    | ReturnType<typeof buildBetterAuthOptions>["plugins"][number]
+    | undefined;
+};
+type ProxyFixture = {
+  marker: string;
+  email: string;
+  sharedSecret: string;
+  exchanges: Array<{
+    code: string;
+    redirectURI: string;
+    codeVerifier?: string;
+  }>;
+  instance(origin: string, proxySecret?: string): Promise<ProxyInstance>;
+};
+
+const test = isolatedDatabaseTest.extend<{ proxy: ProxyFixture }>({
+  proxy: async ({ isolatedDatabase }, use) => {
+    const marker = crypto.randomUUID();
+    const email = `proxy-${marker}@example.test`;
+    const sharedSecret = `shared-proxy-${marker}-encryption-key`;
+    const exchanges: ProxyFixture["exchanges"] = [];
+    const runtimes: ReturnType<typeof createNodeRuntime>[] = [];
+    let closed = false;
+    async function instance(origin: string, proxySecret = sharedSecret) {
+      if (closed) throw new Error("Proxy fixture is closed");
+      const runtime = createNodeRuntime({
+        APP_CANONICAL_ORIGIN: production,
+        APP_PUBLIC_ORIGIN: origin,
+        OAUTH_PROXY_SECRET: proxySecret,
+        HYPERDRIVE: { connectionString: isolatedDatabase.connections.app },
+        HYPERDRIVE_AUTH: {
+          connectionString: isolatedDatabase.connections.auth,
+        },
+        HYPERDRIVE_MAINTENANCE: {
+          connectionString: isolatedDatabase.connections.maintenance,
+        },
+      });
+      // Own initialization and each real handler Response before awaiting them.
+      runtimes.push(runtime);
+      const { auth, passkey } = await runtime.run(async () => {
+        const options = buildBetterAuthOptions();
+        const proxy = options.plugins.find(
+          (plugin) => plugin.id === "oauth-proxy",
+        );
+        if (!proxy) throw new Error("Application must install OAuth proxy");
+        const auth = betterAuth({
+          ...options,
+          baseURL: origin,
+          secret: `${origin}-${marker}-instance-specific-secret`,
+          trustedOrigins: [production, preview],
+          plugins: [
+            proxy,
+            genericOAuth({
+              config: [
+                {
+                  providerId: "contract",
+                  clientId: "external-provider-client",
+                  clientSecret: "external-provider-secret",
+                  accountIssuer: "https://external-provider.example",
+                  authorizationUrl:
+                    "https://external-provider.example/authorize",
+                  tokenUrl: "https://external-provider.example/token",
+                  pkce: true,
+                  getToken: async (input) => {
+                    exchanges.push(input);
+                    return {
+                      accessToken: "upstream-private-access",
+                      scopes: ["profile"],
+                    };
+                  },
+                  getUserInfo: async () => ({
+                    id: marker,
+                    email,
+                    emailVerified: true,
+                    name: "Proxy contract user",
+                  }),
+                },
+              ],
             }),
-          },
-        ],
-      }),
-    ],
-  });
-}
-afterAll(async () => {
-  await db.user.deleteMany({ where: { email } });
-  await db.$disconnect();
-  vi.unstubAllEnvs();
+          ],
+        });
+        await auth.$context;
+        return {
+          auth,
+          passkey: options.plugins.find((plugin) => plugin.id === "passkey"),
+        };
+      });
+      return {
+        handler: (request: Request) => runtime.run(() => auth.handler(request)),
+        passkey,
+      };
+    }
+    const failures: unknown[] = [];
+    try {
+      await use({ marker, email, sharedSecret, exchanges, instance });
+    } catch (error) {
+      failures.push(error);
+    } finally {
+      closed = true;
+      const results = await Promise.allSettled(runtimes.map((r) => r.close()));
+      failures.push(
+        ...results.flatMap((r) => (r.status === "rejected" ? [r.reason] : [])),
+      );
+    }
+    if (failures.length)
+      throw new AggregateError(failures, "Proxy runtime cleanup failed");
+  },
 });
 
-it("oauth.oauth-proxy-for-dev", async () => {
-  const current = instance(preview);
-  const configured = buildBetterAuthOptions().plugins.find(
-    (plugin) => plugin.id === "passkey",
-  );
+test("oauth.oauth-proxy-for-dev", async ({ isolatedDatabase, proxy }) => {
+  const db = isolatedDatabase.owner;
+  const { marker, email, sharedSecret, exchanges, instance } = proxy;
+  const current = await instance(preview);
+  const configured = current.passkey;
   if (!configured || !("options" in configured))
     throw new Error("Expected configured Passkey plugin");
   expect(configured.options).toMatchObject({
     rpID: "preview-unique.example",
     origin: [preview],
   });
-  const canonical = instance(production);
-  const wrongKey = instance(preview, `incorrect-${sharedSecret}`);
+  const canonical = await instance(production);
+  const wrongKey = await instance(preview, `incorrect-${sharedSecret}`);
   const signIn = await current.handler(
     new Request(`${preview}/api/auth/sign-in/social`, {
       method: "POST",
@@ -154,4 +210,7 @@ it("oauth.oauth-proxy-for-dev", async () => {
   expect(await db.session.count({ where: { userId: account.userId } })).toBe(
     sessionCount,
   );
+  expect(await db.user.count()).toBe(1);
+  expect(await db.account.count()).toBe(1);
+  expect(await db.session.count()).toBe(1);
 });
