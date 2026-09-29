@@ -76,6 +76,14 @@ stateful tests should own their Worker even when they use a private account.
 A private account on a shared Worker does not isolate deferred work or queues.
 Stateless anonymous checks can keep using Playwright's base fixture.
 
+Use `utils/owned-worker.ts` to own complete asynchronous preparation, request and
+observation callbacks with `run()`. Browser workflow fixtures must also depend on
+the native `page` fixture and wait for the complete workflow before releasing it;
+request ownership alone does not keep a page alive. Observe actual UI write
+responses and required persisted effects before completing the workflow. Worker
+bundles and storage belong to the private temporary directory, which the parent
+removes even when the Worker cannot shut down gracefully.
+
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 
