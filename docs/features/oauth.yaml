@@ -252,7 +252,7 @@ requirements:
     - Each issuer resolves only its own account and owner; an unregistered issuer resolves no account.
     - The database rejects a duplicate issuer/subject even when its provider alias differs.
     test:
-      file: tests/integration/oauth-admin-client-contracts.test.ts
+      file: tests/integration/oauth-external-account-identity.test.ts
       name: oauth.external-account-issuer-identity
 - id: oauth.loopback-redirect-tolerance
   category: validation
