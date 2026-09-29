@@ -69,38 +69,41 @@ const contractTest = isolatedMcpTest.extend(
       limit?: number,
       homeworkWindowDays?: number,
     ) {
-      return mcpRuntime.run(async () => {
-        const query = new URLSearchParams({
-          atTime,
-          locale: "en-us",
-          userId: users[2],
-          ...(limit === undefined ? {} : { limit: String(limit) }),
-          ...(homeworkWindowDays === undefined
-            ? {}
-            : { homeworkWindowDays: String(homeworkWindowDays) }),
-        });
-        const response = await getMyCompactOverviewRoute(
-          await request(owner, `/api/workspace/overview?${query}`),
-        );
-        expect(response.status).toBe(200);
-        return (await response.json()) as RestOverview;
+      const query = new URLSearchParams({
+        atTime,
+        locale: "en-us",
+        userId: users[2],
+        ...(limit === undefined ? {} : { limit: String(limit) }),
+        ...(homeworkWindowDays === undefined
+          ? {}
+          : { homeworkWindowDays: String(homeworkWindowDays) }),
       });
+      // Register the Response before assertions or parsing can fail, so the
+      // runtime also owns cancellation of an unread response body.
+      const response = await mcpRuntime.run(async () =>
+        getMyCompactOverviewRoute(
+          await request(owner, `/api/workspace/overview?${query}`),
+        ),
+      );
+      expect(response.status).toBe(200);
+      return (await response.json()) as RestOverview;
     }
     async function graphRead(owner: number, atTime: string) {
-      return mcpRuntime.run(async () => {
-        const response = await createGraphqlYoga(false).fetch(
+      const response = await mcpRuntime.run(async () =>
+        createGraphqlYoga(false).fetch(
           await request(owner, "/api/graphql", {
             query:
               "query($atTime: DateTime!) { workspace { overview(atTime: $atTime) { atTime today homeworkWindowEnd incompleteTodos completedTodos overdueTodos pendingHomeworks dueSoonHomeworks todaySchedules upcomingExams } } }",
             variables: { atTime },
           }),
           { locals: { locale: "en-us" } },
-        );
-        const result = await response.json();
-        expect(result.errors).toBeUndefined();
-        return result.data.workspace.overview;
-      });
+        ),
+      );
+      const result = await response.json();
+      expect(result.errors).toBeUndefined();
+      return result.data.workspace.overview;
     }
+
     const { courseId, sectionId } = await owner.$transaction(async (db) => {
       await db.user.createMany({
         data: users.map((id, i) => ({
