@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
-  findManyMock,
+  querySubscribersMock,
   getUserCalendarRecordMock,
   buildUserCalendarExportMock,
   logAppEventMock,
   storeBuiltUserCalendarExportMock,
   writeCalendarQueueBatchAnalyticsMock,
 } = vi.hoisted(() => ({
-  findManyMock: vi.fn(),
+  querySubscribersMock: vi.fn(),
   getUserCalendarRecordMock: vi.fn(),
   buildUserCalendarExportMock: vi.fn(),
   logAppEventMock: vi.fn(),
@@ -16,12 +16,8 @@ const {
   writeCalendarQueueBatchAnalyticsMock: vi.fn(),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    userSectionSubscription: {
-      findMany: findManyMock,
-    },
-  },
+vi.mock("@/lib/db/maintenance-prisma", () => ({
+  maintenancePrisma: { $queryRaw: querySubscribersMock },
 }));
 
 vi.mock("@/features/calendar/server/calendar-export-data", () => ({
@@ -52,12 +48,72 @@ import {
 
 describe("calendar export rebuild fan-out", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.useRealTimers();
   });
 
+  it("enumerates every bounded page with the section and last subscriber cursor", async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      userId: `subscriber-${String(index).padStart(3, "0")}`,
+    }));
+    querySubscribersMock
+      .mockResolvedValueOnce(firstPage)
+      .mockResolvedValueOnce([{ userId: "subscriber-100" }]);
+
+    await expect(
+      collectCalendarExportRebuildUserIds([{ type: "section", sectionId: 9 }]),
+    ).resolves.toEqual([
+      ...firstPage.map((row) => row.userId),
+      "subscriber-100",
+    ]);
+    expect(querySubscribersMock).toHaveBeenCalledTimes(2);
+    expect(querySubscribersMock).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Array),
+      9,
+      null,
+    );
+    expect(querySubscribersMock).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Array),
+      9,
+      "subscriber-099",
+    );
+  });
+
+  it("retries the batch when subscriber enumeration fails on a later page", async () => {
+    querySubscribersMock
+      .mockResolvedValueOnce(
+        Array.from({ length: 100 }, (_, index) => ({
+          userId: `subscriber-${index}`,
+        })),
+      )
+      .mockRejectedValueOnce(new Error("Recipient query failed"));
+    const section = {
+      ack: vi.fn(),
+      retry: vi.fn(),
+      body: { type: "section", sectionId: 9 },
+    };
+    await expect(
+      handleCalendarExportRebuildBatch({ messages: [section] }),
+    ).resolves.toEqual({ outcome: "retry" });
+    expect(section.ack).not.toHaveBeenCalled();
+    expect(section.retry).toHaveBeenCalledOnce();
+    expect(getUserCalendarRecordMock).not.toHaveBeenCalled();
+    expect(storeBuiltUserCalendarExportMock).not.toHaveBeenCalled();
+    expect(writeCalendarQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: "retry",
+        noSubscriberMessageCount: 0,
+        noOpMessageCount: 0,
+        processedUserCount: 0,
+        retriedMessageCount: 1,
+      }),
+    );
+  });
+
   it("coalesces duplicate user ids across user and section messages", async () => {
-    findManyMock.mockResolvedValue([
+    querySubscribersMock.mockResolvedValue([
       { userId: "user-1" },
       { userId: "user-2" },
       { userId: "user-1" },
@@ -70,16 +126,17 @@ describe("calendar export rebuild fan-out", () => {
       { type: "section", sectionId: 10 },
     ]);
 
-    expect(findManyMock).toHaveBeenCalledTimes(1);
-    expect(findManyMock).toHaveBeenCalledWith({
-      where: { sectionId: 10 },
-      select: { userId: true },
-    });
+    expect(querySubscribersMock).toHaveBeenCalledTimes(1);
+    expect(querySubscribersMock).toHaveBeenCalledWith(
+      expect.any(Array),
+      10,
+      null,
+    );
     expect(userIds.sort()).toEqual(["user-1", "user-2", "user-3"]);
   });
 
   it("rebuilds each coalesced user once for a mixed batch", async () => {
-    findManyMock.mockResolvedValue([
+    querySubscribersMock.mockResolvedValue([
       { userId: "user-1" },
       { userId: "user-2" },
     ]);
@@ -114,7 +171,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("records coalescing-aware counts once for a successful batch", async () => {
-    findManyMock.mockResolvedValue([
+    querySubscribersMock.mockResolvedValue([
       { userId: "user-1" },
       { userId: "user-2" },
     ]);
@@ -173,7 +230,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("counts each no-subscriber section message as a no-op", async () => {
-    findManyMock.mockResolvedValue([]);
+    querySubscribersMock.mockResolvedValue([]);
     const first = {
       ack: vi.fn(),
       body: { type: "section", sectionId: 99 },
@@ -204,7 +261,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("counts a user deleted after section fan-out as a no-op for every contribution", async () => {
-    findManyMock.mockResolvedValue([{ userId: "user-1" }]);
+    querySubscribersMock.mockResolvedValue([{ userId: "user-1" }]);
     getUserCalendarRecordMock.mockResolvedValue(null);
     const direct = {
       ack: vi.fn(),
@@ -238,7 +295,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("preserves duplicate section-message contributions for a deleted user", async () => {
-    findManyMock.mockResolvedValue([{ userId: "user-1" }]);
+    querySubscribersMock.mockResolvedValue([{ userId: "user-1" }]);
     getUserCalendarRecordMock.mockResolvedValue(null);
     const first = {
       ack: vi.fn(),
@@ -255,7 +312,7 @@ describe("calendar export rebuild fan-out", () => {
       handleCalendarExportRebuildBatch({ messages: [first, second] }),
     ).resolves.toEqual({ outcome: "success" });
 
-    expect(findManyMock).toHaveBeenCalledOnce();
+    expect(querySubscribersMock).toHaveBeenCalledOnce();
     expect(getUserCalendarRecordMock).toHaveBeenCalledOnce();
     expect(first.ack).toHaveBeenCalledOnce();
     expect(second.ack).toHaveBeenCalledOnce();
@@ -274,7 +331,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("sums overlapping section contributions for one deleted user", async () => {
-    findManyMock.mockResolvedValue([{ userId: "user-1" }]);
+    querySubscribersMock.mockResolvedValue([{ userId: "user-1" }]);
     getUserCalendarRecordMock.mockResolvedValue(null);
     const first = {
       ack: vi.fn(),
@@ -291,15 +348,19 @@ describe("calendar export rebuild fan-out", () => {
       handleCalendarExportRebuildBatch({ messages: [first, second] }),
     ).resolves.toEqual({ outcome: "success" });
 
-    expect(findManyMock).toHaveBeenCalledTimes(2);
-    expect(findManyMock).toHaveBeenNthCalledWith(1, {
-      where: { sectionId: 10 },
-      select: { userId: true },
-    });
-    expect(findManyMock).toHaveBeenNthCalledWith(2, {
-      where: { sectionId: 11 },
-      select: { userId: true },
-    });
+    expect(querySubscribersMock).toHaveBeenCalledTimes(2);
+    expect(querySubscribersMock).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Array),
+      10,
+      null,
+    );
+    expect(querySubscribersMock).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Array),
+      11,
+      null,
+    );
     expect(getUserCalendarRecordMock).toHaveBeenCalledOnce();
     expect(writeCalendarQueueBatchAnalyticsMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -315,7 +376,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("acks valid messages and sends invalid envelopes toward the DLQ", async () => {
-    findManyMock.mockResolvedValue([]);
+    querySubscribersMock.mockResolvedValue([]);
     getUserCalendarRecordMock.mockResolvedValue(null);
 
     const valid = {
@@ -362,7 +423,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("logs safe batch context before retrying a failed batch", async () => {
-    findManyMock.mockResolvedValue([{ userId: "subscriber-secret" }]);
+    querySubscribersMock.mockResolvedValue([{ userId: "subscriber-secret" }]);
     getUserCalendarRecordMock.mockRejectedValue(
       new Error("failure for user-secret"),
     );
@@ -444,7 +505,7 @@ describe("calendar export rebuild fan-out", () => {
   });
 
   it("classifies an all-valid batch as success after acknowledging once", async () => {
-    findManyMock.mockResolvedValue([]);
+    querySubscribersMock.mockResolvedValue([]);
     getUserCalendarRecordMock.mockResolvedValue(null);
     const valid = {
       ack: vi.fn(),
