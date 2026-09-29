@@ -37,6 +37,7 @@ async function withProbe(
   const url = `https://probe.test/__test/community-effects?id=${id}`;
   const releases: (() => void)[] = [];
   const disposers: (() => Promise<unknown>)[] = [];
+  const acquisitions: Promise<Response>[] = [];
   const operations: Promise<unknown>[] = [];
   const scheduled: Promise<unknown>[] = [];
   const track = <T>(operation: Promise<T>) => {
@@ -68,8 +69,8 @@ async function withProbe(
       },
       track,
       cleanup: (dispose) => disposers.push(dispose),
-      fetch: (forward) =>
-        track(
+      fetch: (forward) => {
+        const acquisition = track(
           owned.fetch(forward).then((response) => {
             disposers.push(async () => {
               if (response.body && !response.body.locked)
@@ -77,7 +78,10 @@ async function withProbe(
             });
             return response;
           }),
-        ),
+        );
+        acquisitions.push(acquisition);
+        return acquisition;
+      },
       snapshot: () =>
         track(
           call("GET").then(async (response) => {
@@ -88,6 +92,7 @@ async function withProbe(
     });
   } finally {
     for (const release of releases) release();
+    await Promise.allSettled(acquisitions);
     await Promise.allSettled(disposers.map((dispose) => dispose()));
     await Promise.allSettled(operations);
     expect((await call("DELETE"))?.status).toBe(204);
@@ -104,6 +109,35 @@ async function expectPending(operation: Promise<unknown>) {
 }
 
 describe("community effect observation owns asynchronous request completion", () => {
+  it("cleans up an unread response acquired after the test callback fails", async () => {
+    const failure = new Error("scenario assertion failed");
+    const order: string[] = [];
+    await expect(
+      withProbe(7, async (probe) => {
+        const handler = probe.gate();
+        void probe.fetch(async () => {
+          await handler.promise;
+          order.push("handler-resolved");
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              cancel() {
+                order.push("body-cancelled");
+              },
+            }),
+          );
+        });
+        void probe.snapshot();
+        order.push("callback-failed");
+        throw failure;
+      }),
+    ).rejects.toBe(failure);
+    expect(order).toEqual([
+      "callback-failed",
+      "handler-resolved",
+      "body-cancelled",
+    ]);
+  });
+
   it("waits for a blocked handler and the background work it registers later", async () => {
     await withProbe(1, async (probe) => {
       const handler = probe.gate();
