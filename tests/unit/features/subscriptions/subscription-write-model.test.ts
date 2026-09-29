@@ -443,6 +443,7 @@ describe("subscription write model", () => {
       sectionIds: [2, 3, 3],
       semesterId: 12,
     });
+    expect(mocks.invalidateCache).toHaveBeenCalledExactlyOnceWith(USER_ID);
     expect(mocks.acquireLocks).toHaveBeenCalledWith(tx, [2, 3], "shared");
     expect(mocks.subscriptionDeleteMany).toHaveBeenCalledWith({
       where: { userId: USER_ID, sectionId: { in: [2, 3] } },
@@ -488,6 +489,31 @@ describe("subscription write model", () => {
         userId: USER_ID,
       }),
     ).resolves.toBeNull();
+    expect(mocks.invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it("does not rebuild a calendar when the removal transaction fails", async () => {
+    const failure = new Error("subscription removal rolled back");
+    mocks.transactionContext.mockImplementationOnce(
+      async (
+        _userId: string,
+        callback: (client: Prisma.TransactionClient) => Promise<unknown>,
+      ) => {
+        await callback(tx);
+        expect(mocks.subscriptionDeleteMany).toHaveBeenCalledExactlyOnceWith({
+          where: { userId: USER_ID, sectionId: { in: [2] } },
+        });
+        expect(mocks.invalidateCache).not.toHaveBeenCalled();
+        throw failure;
+      },
+    );
+    const { removeUserSectionSubscriptions } = await import(
+      "@/features/subscriptions/server/subscription-write-model"
+    );
+    await expect(removeUserSectionSubscriptions(USER_ID, [2])).rejects.toBe(
+      failure,
+    );
+    expect(mocks.invalidateCache).not.toHaveBeenCalled();
   });
 
   it("subscribes and unsubscribes by JW ID with the correct retired-row policy", async () => {
@@ -567,7 +593,7 @@ describe("subscription write model", () => {
       select: { id: true },
     });
     expect(mocks.subscriptionDeleteMany).toHaveBeenLastCalledWith({
-      where: { userId: USER_ID, sectionId: 3 },
+      where: { userId: USER_ID, sectionId: { in: [3] } },
     });
   });
 
