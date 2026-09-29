@@ -3,65 +3,105 @@ import type {
   Section,
   User,
 } from "../../../src/generated/prisma-node/client";
+import { type HomeworkEffects, withHomeworkEffects } from "./homework-effects";
 import {
   type AcademicState,
   createHomeworkAcademic,
   createHomeworkRows,
 } from "./homework-fixture";
-import { test as workerTest } from "./isolated-worker";
-import { withSettledPageWrites } from "./settled-page-writes";
+import type { IsolatedWorker } from "./isolated-worker";
+import { test as workerTest } from "./owned-worker";
 
-// The private Worker owns asynchronous tasks, queues, database, and KV/R2.
-// Its teardown stops workerd before dropping this case's entire state.
+// Keep complete preparation and browser workflows alive before their private
+// Worker, page and database can close. Each scenario declares its expected
+// native calendar deliveries and audits alongside the original UI assertions.
 export const test = workerTest.extend<{
+  actor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
   account: User;
   academic: AcademicState;
   homeworks: Homework[];
   section: Section & { path: string };
+  sectionRun: (
+    work: (effects: { headers: Record<string, string> }) => Promise<void>,
+    effects?: HomeworkEffects,
+  ) => Promise<void>;
 }>({
-  account: async ({ isolatedWorker, page }, use) => {
-    const actor = await isolatedWorker.createActor();
-    await page.context().addCookies([actor.cookie]);
-    await use(
-      await isolatedWorker.database.owner.user.findUniqueOrThrow({
-        where: { id: actor.id },
-      }),
-    );
+  actor: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => isolatedWorker.createActor()));
   },
-  academic: async ({ isolatedWorker, account }, use) => {
-    const db = isolatedWorker.database.owner;
-    const semester = await db.semester.create({
-      data: {
-        jwId: 1,
-        code: "2026-autumn",
-        nameCn: "2026年秋季学期",
-        startDate: new Date("2026-08-31T00:00:00Z"),
-        endDate: new Date("2027-01-31T00:00:00Z"),
-      },
-    });
-    await use(await createHomeworkAcademic(db, account.id, semester.id));
-  },
-  homeworks: async ({ isolatedWorker, academic, account }, use) => {
+  account: async ({ isolatedWorker, actor, run }, use) => {
     await use(
-      await createHomeworkRows(
-        isolatedWorker.database.owner,
-        account.id,
-        academic,
+      await run(() =>
+        isolatedWorker.database.owner.user.findUniqueOrThrow({
+          where: { id: actor.id },
+        }),
       ),
     );
   },
-  section: async ({ academic, page }, use) => {
-    await withSettledPageWrites(
-      page,
-      (url) =>
-        url.pathname === "/api/community/section-homeworks" ||
-        url.pathname.startsWith("/api/community/section-homeworks/") ||
-        /^\/api\/workspace\/homeworks\/[^/]+\/completion$/.test(url.pathname),
-      () =>
-        use({
-          ...academic.section,
-          path: `/catalog/sections/${academic.section.jwId}`,
-        }),
+  academic: async ({ isolatedWorker, account, run }, use) => {
+    await use(
+      await run(async () => {
+        const db = isolatedWorker.database.owner;
+        const semester = await db.semester.create({
+          data: {
+            jwId: 1,
+            code: "2026-autumn",
+            nameCn: "2026年秋季学期",
+            startDate: new Date("2026-08-31T00:00:00Z"),
+            endDate: new Date("2027-01-31T00:00:00Z"),
+          },
+        });
+        return createHomeworkAcademic(db, account.id, semester.id);
+      }),
     );
+  },
+  homeworks: async ({ isolatedWorker, academic, account, run }, use) => {
+    await use(
+      await run(() =>
+        createHomeworkRows(isolatedWorker.database.owner, account.id, academic),
+      ),
+    );
+  },
+  section: async ({ academic }, use) => {
+    await use({
+      ...academic.section,
+      path: `/catalog/sections/${academic.section.jwId}`,
+    });
+  },
+  sectionRun: async (
+    { isolatedWorker, page, actor, academic, run },
+    use,
+    testInfo,
+  ) => {
+    let closing = false;
+    let operation: Promise<void> | undefined;
+    try {
+      await use((work, effects = { calendarMessages: [] }) => {
+        if (closing || operation)
+          return Promise.reject(
+            new Error("Section homework workflow is already owned or closing"),
+          );
+        operation = run(() =>
+          withHomeworkEffects(
+            {
+              page,
+              isolatedWorker,
+              account: actor,
+              sectionId: academic.section.id,
+              testInfo,
+              ...effects,
+            },
+            async (observer) => {
+              await page.context().addCookies([actor.cookie]);
+              await work(observer);
+            },
+          ),
+        );
+        return operation;
+      });
+    } finally {
+      closing = true;
+      await operation;
+    }
   },
 });
