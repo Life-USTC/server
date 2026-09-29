@@ -1,28 +1,33 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import {
-  cleanupYoungBrowseFixture,
   createYoungBrowseFixture,
   type YoungBrowseFixture,
 } from "../../../../shared/young-browse-fixture";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { test as workerTest } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
-let fixture: YoungBrowseFixture;
 const root = "/catalog/young-events";
-test.beforeEach(async () => {
-  fixture = await withE2ePrisma(createYoungBrowseFixture);
+const test = workerTest.extend<{ fixture: YoungBrowseFixture }>({
+  fixture: async ({ isolatedWorker }, use) => {
+    await use(
+      await isolatedWorker.database.owner.$transaction(
+        createYoungBrowseFixture,
+      ),
+    );
+  },
 });
-test.afterEach(async () => {
-  await withE2ePrisma((db) => cleanupYoungBrowseFixture(db, fixture));
-});
-function eventLink(page: Page, index: number) {
+function eventLink(page: Page, fixture: YoungBrowseFixture, index: number) {
   return page
     .locator(`a[href^="${root}/${fixture.eventIds[index]}?"]:visible`)
     .first();
 }
-async function returnFromDetail(page: Page, index: number) {
+async function returnFromDetail(
+  page: Page,
+  fixture: YoungBrowseFixture,
+  index: number,
+) {
   const origin = page.url();
-  await eventLink(page, index).click();
+  await eventLink(page, fixture, index).click();
   await expect(page).toHaveURL(
     (url) => url.pathname === `${root}/${fixture.eventIds[index]}`,
   );
@@ -42,7 +47,7 @@ function sharedContext(page: Page, expected: Record<string, string>) {
   );
 }
 
-test("young-event.web-browse-context", async ({ page }) => {
+test("young-event.web-browse-context", async ({ page, fixture }) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 844 });
     const filters = {
@@ -55,7 +60,7 @@ test("young-event.web-browse-context", async ({ page }) => {
       timeBasis: "activity",
     };
     await gotoAndWaitForReady(page, `${root}?${new URLSearchParams(filters)}`);
-    await returnFromDetail(page, 0);
+    await returnFromDetail(page, fixture, 0);
     await page
       .getByTestId("young-browse-nav")
       .getByRole("link", { name: /^(日历|Calendar)$/ })
@@ -65,7 +70,7 @@ test("young-event.web-browse-context", async ({ page }) => {
     calendarUrl.searchParams.set("date", "2035-09-15");
     calendarUrl.searchParams.set("view", "day");
     await gotoAndWaitForReady(page, calendarUrl.pathname + calendarUrl.search);
-    await returnFromDetail(page, 0);
+    await returnFromDetail(page, fixture, 0);
     await page
       .getByTestId("young-browse-nav")
       .getByRole("link", { name: /^(活动名称|Event name|活动|Events|Event)$/ })
@@ -75,7 +80,7 @@ test("young-event.web-browse-context", async ({ page }) => {
       page,
       `${root}/organizers/${fixture.organizerIds[0]}?page=1`,
     );
-    await returnFromDetail(page, 0);
+    await returnFromDetail(page, fixture, 0);
     for (const timeBasis of ["activity", "registration"]) {
       await gotoAndWaitForReady(
         page,
@@ -90,7 +95,7 @@ test("young-event.web-browse-context", async ({ page }) => {
           : /报名时间未知|Unknown signup date/,
       );
       await expect(
-        eventLink(page, timeBasis === "activity" ? 7 : 10),
+        eventLink(page, fixture, timeBasis === "activity" ? 7 : 10),
       ).toBeVisible();
       await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
       await expect(page).toHaveURL(
@@ -101,7 +106,7 @@ test("young-event.web-browse-context", async ({ page }) => {
   }
 });
 
-test("young-event.web-organizer-order", async ({ page }) => {
+test("young-event.web-organizer-order", async ({ page, fixture }) => {
   const webOrder = [
     ...fixture.organizerIds.slice(0, 6),
     ...fixture.organizerIds.slice(12),
@@ -140,14 +145,17 @@ test("young-event.web-organizer-order", async ({ page }) => {
   }
 });
 
-test("young-event.fixed-browse-filter-options", async ({ page }, testInfo) => {
+test("young-event.fixed-browse-filter-options", async ({
+  page,
+  fixture,
+}, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoAndWaitForReady(
     page,
     `${root}?${new URLSearchParams({ search: fixture.search })}`,
   );
-  await expect(eventLink(page, 7)).toContainText("未知模块");
-  await expect(eventLink(page, 7)).toContainText("未知级别");
+  await expect(eventLink(page, fixture, 7)).toContainText("未知模块");
+  await expect(eventLink(page, fixture, 7)).toContainText("未知级别");
   for (const view of ["events", "calendar"]) {
     const prefix = view === "events" ? "young-event" : "young-calendar";
     const path = view === "events" ? root : `${root}/calendar`;
