@@ -1,20 +1,31 @@
-import { expect, type Page, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect, type Page } from "@playwright/test";
+import type { User } from "../../../../../src/generated/prisma-node/client";
+import {
+  type IsolatedWorker,
+  test as workerTest,
+} from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-async function signIn(page: Page) {
-  const user = await withE2ePrisma((db) =>
-    db.user.create({
-      data: {
-        name: "Shell policy user",
-        username: `shell${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
-        email: `shell-policy-${crypto.randomUUID()}@example.test`,
-        isAdmin: true,
-      },
-    }),
-  );
-  await page.context().addCookies([await createSignedSessionCookie(user.id)]);
+// The footer scenario visits public content before explicitly signing in.
+const test = workerTest.extend<{ shellUser: User }>({
+  shellUser: async ({ isolatedWorker }, use) => {
+    await use(
+      await isolatedWorker.database.owner.user.create({
+        data: {
+          name: "Shell policy user",
+          username: `shell${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
+          email: `shell-policy-${crypto.randomUUID()}@example.test`,
+          isAdmin: true,
+        },
+      }),
+    );
+  },
+});
+
+async function signIn(page: Page, worker: IsolatedWorker, userId: string) {
+  await page
+    .context()
+    .addCookies([(await worker.createSession(userId)).cookie]);
   expect(
     (
       await page.request.post("/api/account/preferences", {
@@ -22,7 +33,6 @@ async function signIn(page: Page) {
       })
     ).status(),
   ).toBe(200);
-  return user;
 }
 
 test("ui.shell-layout-1", async ({ page }) => {
@@ -68,47 +78,43 @@ test("ui.shell-layout-1", async ({ page }) => {
   );
 });
 
-test("ui.shell-layout-5", async ({ page }) => {
-  const user = await signIn(page);
-  try {
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/workspace/todos");
-      const topbar = page.locator("[data-shell-topbar]");
-      for (const name of [/Language/, /Theme/]) {
-        const control = topbar.getByRole("button", { name });
-        await expect(control).toBeVisible();
-        await control.focus();
-        await page.keyboard.press("Enter");
-        await expect(page.getByRole("menu")).toBeVisible();
-        await expect(page.getByRole("menuitemradio").first()).toBeVisible();
-        await page.keyboard.press("Escape");
-        await expect(control).toBeFocused();
-      }
-      await expect(
-        topbar.getByRole("button", { name: "Profile menu" }),
-      ).toHaveCount(0);
-      if (width < 768)
-        await topbar.getByRole("button", { name: "Menu", exact: true }).click();
-      const shell =
-        width < 768
-          ? page.getByRole("dialog", { name: "Sidebar", exact: true })
-          : page.getByTestId("app-sidebar");
-      const profile = shell
-        .locator('[data-slot="sidebar-footer"]')
-        .getByRole("button", { name: "Profile menu", exact: true });
-      await expect(profile).toBeVisible();
-      await profile.focus();
+test("ui.shell-layout-5", async ({ page, shellUser, isolatedWorker }) => {
+  await signIn(page, isolatedWorker, shellUser.id);
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoAndWaitForReady(page, "/workspace/todos");
+    const topbar = page.locator("[data-shell-topbar]");
+    for (const name of [/Language/, /Theme/]) {
+      const control = topbar.getByRole("button", { name });
+      await expect(control).toBeVisible();
+      await control.focus();
       await page.keyboard.press("Enter");
-      for (const name of ["Personal page", "Settings", "Sign Out"])
-        await expect(
-          page.getByRole("menuitem", { name, exact: true }),
-        ).toBeVisible();
+      await expect(page.getByRole("menu")).toBeVisible();
+      await expect(page.getByRole("menuitemradio").first()).toBeVisible();
       await page.keyboard.press("Escape");
-      await expect(profile).toBeFocused();
+      await expect(control).toBeFocused();
     }
-  } finally {
-    await withE2ePrisma((db) => db.user.delete({ where: { id: user.id } }));
+    await expect(
+      topbar.getByRole("button", { name: "Profile menu" }),
+    ).toHaveCount(0);
+    if (width < 768)
+      await topbar.getByRole("button", { name: "Menu", exact: true }).click();
+    const shell =
+      width < 768
+        ? page.getByRole("dialog", { name: "Sidebar", exact: true })
+        : page.getByTestId("app-sidebar");
+    const profile = shell
+      .locator('[data-slot="sidebar-footer"]')
+      .getByRole("button", { name: "Profile menu", exact: true });
+    await expect(profile).toBeVisible();
+    await profile.focus();
+    await page.keyboard.press("Enter");
+    for (const name of ["Personal page", "Settings", "Sign Out"])
+      await expect(
+        page.getByRole("menuitem", { name, exact: true }),
+      ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(profile).toBeFocused();
   }
 });
 
@@ -130,55 +136,53 @@ test("ui.shell-layout-7", async ({ page }) => {
   }
 });
 
-test("ui.workspace-footer-policy-2", async ({ page }) => {
+test("ui.workspace-footer-policy-2", async ({
+  page,
+  shellUser,
+  isolatedWorker,
+}) => {
   await gotoAndWaitForReady(page, "/terms");
   await expect(
     page.getByRole("navigation", { name: /Footer navigation|页脚导航/ }),
   ).toBeVisible();
-  const user = await signIn(page);
-  try {
-    for (const path of [
-      "/workspace/overview",
-      "/workspace/calendar",
-      "/workspace/homeworks",
-      "/workspace/todos",
-      "/workspace/exams",
-      "/workspace/subscriptions",
-      "/account/settings/profile",
-      "/account/settings/accounts",
-      "/account/settings/preferences",
-      "/account/settings/danger",
-      "/admin/users",
-      "/admin/moderation",
-      "/admin/bus",
-    ]) {
-      await gotoAndWaitForReady(page, path);
-      await expect(page).toHaveURL(new RegExp(`${path}$`));
-      await expect(
-        page.getByRole("navigation", {
-          name: "Footer navigation",
-          exact: true,
-        }),
-      ).toHaveCount(0);
-    }
-    await withE2ePrisma((db) =>
-      db.user.update({
-        where: { id: user.id },
-        data: { name: "", username: null },
-      }),
-    );
-    await gotoAndWaitForReady(page, "/account/welcome");
-    await expect(page).toHaveURL(/\/account\/welcome$/);
+  await signIn(page, isolatedWorker, shellUser.id);
+  for (const path of [
+    "/workspace/overview",
+    "/workspace/calendar",
+    "/workspace/homeworks",
+    "/workspace/todos",
+    "/workspace/exams",
+    "/workspace/subscriptions",
+    "/account/settings/profile",
+    "/account/settings/accounts",
+    "/account/settings/preferences",
+    "/account/settings/danger",
+    "/admin/users",
+    "/admin/moderation",
+    "/admin/bus",
+  ]) {
+    await gotoAndWaitForReady(page, path);
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
     await expect(
-      page.getByRole("navigation", { name: "Footer navigation", exact: true }),
+      page.getByRole("navigation", {
+        name: "Footer navigation",
+        exact: true,
+      }),
     ).toHaveCount(0);
-  } finally {
-    await withE2ePrisma((db) => db.user.delete({ where: { id: user.id } }));
   }
+  await isolatedWorker.database.owner.user.update({
+    where: { id: shellUser.id },
+    data: { name: "", username: null },
+  });
+  await gotoAndWaitForReady(page, "/account/welcome");
+  await expect(page).toHaveURL(/\/account\/welcome$/);
+  await expect(
+    page.getByRole("navigation", { name: "Footer navigation", exact: true }),
+  ).toHaveCount(0);
 });
 
-test("ui.shell-layout-4", async ({ page }) => {
-  const user = await signIn(page);
+test("ui.shell-layout-4", async ({ page, shellUser, isolatedWorker }) => {
+  await signIn(page, isolatedWorker, shellUser.id);
   const cdp = await page.context().newCDPSession(page);
   try {
     await page.setViewportSize({ width: 390, height: 700 });
@@ -242,7 +246,6 @@ test("ui.shell-layout-4", async ({ page }) => {
   } finally {
     await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: {} });
     await cdp.detach();
-    await withE2ePrisma((db) => db.user.delete({ where: { id: user.id } }));
   }
 });
 
