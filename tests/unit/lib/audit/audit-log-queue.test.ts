@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 const { logAppEventMock, writeAuditLogsMock, writeQueueBatchAnalyticsMock } =
   vi.hoisted(() => ({
@@ -285,6 +285,13 @@ describe("audit log write queue", () => {
     );
 
     const handling = handleAuditLogWriteBatch({ messages });
+    const outcome = Promise.allSettled([handling]);
+    onTestFinished(async () => {
+      resolveWrite();
+      for (const result of await outcome) {
+        if (result.status === "rejected") throw result.reason;
+      }
+    });
     await Promise.resolve();
     expect(writeAuditLogsMock).toHaveBeenCalledOnce();
     expect(writeAuditLogsMock.mock.calls[0]?.[0]).toHaveLength(20);

@@ -1,5 +1,5 @@
 import { setImmediate } from "node:timers/promises";
-import { expect, it, vi } from "vitest";
+import { expect, it, onTestFinished, vi } from "vitest";
 import {
   getCloudflareRuntimeTaskScheduler,
   registerCloudflareRuntimeCleanup,
@@ -31,6 +31,9 @@ it("preserves native business errors and includes simultaneous background failur
 
 it("returns an unread response and cancels only its runtime wrapper once", async () => {
   const runtime = createNodeRuntime({});
+  onTestFinished(async () => {
+    await runtime.close();
+  });
   const cancel = vi.fn();
   const cleanup = vi.fn();
   const response = await runtime.run(() => {
@@ -53,6 +56,9 @@ it("returns an unread response and cancels only its runtime wrapper once", async
 
 it("owns the wrapped response when background failure prevents returning it to the caller", async () => {
   const runtime = createNodeRuntime({});
+  onTestFinished(async () => {
+    await runtime.close();
+  });
   const cancel = vi.fn();
   const failure = new Error("background failed after Response");
   await expect(
@@ -77,6 +83,15 @@ it("waits for requests before closing their returned responses and rejects later
   const closing = runtime.close().finally(() => {
     finished = true;
   });
+  const outcome = Promise.allSettled([request, closing]);
+  onTestFinished(async () => {
+    gate.resolve();
+    const errors = (await outcome).flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+    if (errors.length)
+      throw new AggregateError(errors, "Request or runtime cleanup failed");
+  });
   try {
     await expect(runtime.run(() => null)).rejects.toThrow(
       "Node runtime is closing",
@@ -95,6 +110,17 @@ it("waits for requests before closing their returned responses and rejects later
 it("drains tasks created by response cancellation even if another cancellation fails", async () => {
   const runtime = createNodeRuntime({});
   const gate = createDeferred();
+  let cleanupOutcome: Promise<PromiseSettledResult<void>[]> | undefined;
+  onTestFinished(async () => {
+    gate.resolve();
+    if (cleanupOutcome) {
+      for (const result of await cleanupOutcome) {
+        if (result.status === "rejected") throw result.reason;
+      }
+    } else {
+      await runtime.close();
+    }
+  });
   const cancelFailure = new Error("cancel failed");
   const taskFailure = new Error("late task failed");
   const cleanup = vi.fn();
@@ -129,6 +155,7 @@ it("drains tasks created by response cancellation even if another cancellation f
   const failure = expect(closing).rejects.toMatchObject({
     errors: [cancelFailure, { errors: [taskFailure] }],
   });
+  cleanupOutcome = Promise.allSettled([failure]);
   try {
     await setImmediate();
     expect(finished).toBe(false);
@@ -144,6 +171,17 @@ it("drains tasks created by response cancellation even if another cancellation f
 it("drains cleanup scheduled at EOF without cancelling a consumed response again", async () => {
   const runtime = createNodeRuntime({});
   const gate = createDeferred();
+  let cleanupOutcome: Promise<PromiseSettledResult<void>[]> | undefined;
+  onTestFinished(async () => {
+    gate.resolve();
+    if (cleanupOutcome) {
+      for (const result of await cleanupOutcome) {
+        if (result.status === "rejected") throw result.reason;
+      }
+    } else {
+      await runtime.close();
+    }
+  });
   const cleanup = vi.fn();
   const cancel = vi.fn();
   const response = await runtime.run(() => {
@@ -169,6 +207,7 @@ it("drains cleanup scheduled at EOF without cancelling a consumed response again
   const closing = runtime.close().finally(() => {
     finished = true;
   });
+  cleanupOutcome = Promise.allSettled([closing]);
   try {
     await setImmediate();
     expect(finished).toBe(false);

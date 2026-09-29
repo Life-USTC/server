@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { DEV_SEED_ANCHOR } from "../../../fixtures/dev-seed";
 import { createDeferred } from "../../../shared/deferred";
 
@@ -273,6 +273,14 @@ describe("compact workspace overview read model", () => {
     );
 
     const overviewPromise = getCompactOverview("user-1", { atTime: AT_TIME });
+    const outcome = Promise.allSettled([overviewPromise]);
+    onTestFinished(async () => {
+      resolveTodoSummary({ counts: TODO_COUNTS, todos: [{ id: "todo-1" }] });
+      resolveSubscriptionReads(SUBSCRIPTION_READS);
+      for (const result of await outcome) {
+        if (result.status === "rejected") throw result.reason;
+      }
+    });
 
     await vi.waitFor(() => {
       expect(loadOverviewSubscriptionReadsMock).toHaveBeenCalled();
