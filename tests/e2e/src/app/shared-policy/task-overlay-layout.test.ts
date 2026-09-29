@@ -140,7 +140,9 @@ test("ui.layout-principles-5", async ({
               : width >= 768
                 ? page.getByRole("table")
                 : page.getByTestId("workspace-todos-cards");
-          await surface.getByRole("button", { name: title, exact: true }).click();
+          await surface
+            .getByRole("button", { name: title, exact: true })
+            .click();
           const dialog = page.getByRole("dialog", { name: title, exact: true });
           await expect(dialog).toBeVisible();
           const heading = dialog.getByRole("heading", {
@@ -175,7 +177,9 @@ test("ui.layout-principles-5", async ({
             expect(parts[index].y).toBeGreaterThanOrEqual(
               parts[index - 1].y + parts[index - 1].height - 1,
             );
-            expect(Math.abs(parts[index].x - parts[0].x)).toBeLessThanOrEqual(1);
+            expect(Math.abs(parts[index].x - parts[0].x)).toBeLessThanOrEqual(
+              1,
+            );
           }
           const initialHeading = await bounds(heading);
           const footer = dialog.locator('[data-slot="dialog-footer"]');
@@ -199,7 +203,10 @@ test("ui.layout-principles-5", async ({
           if (kind === "homework") {
             const discussion = dialog
               .getByTestId("homework-discussion")
-              .getByRole("heading", { name: "Homework discussion", exact: true });
+              .getByRole("heading", {
+                name: "Homework discussion",
+                exact: true,
+              });
             await discussion.scrollIntoViewIfNeeded();
             await expect(discussion).toBeInViewport();
             expect((await bounds(discussion)).y).toBeGreaterThan(
@@ -216,7 +223,9 @@ test("ui.layout-principles-5", async ({
             await expect(action).toBeInViewport();
           }
           expect(
-            await dialog.evaluate((node) => node.scrollWidth <= node.clientWidth),
+            await dialog.evaluate(
+              (node) => node.scrollWidth <= node.clientWidth,
+            ),
           ).toBe(true);
           await page.keyboard.press("Escape");
           await expect(dialog).toBeHidden();
