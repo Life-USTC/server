@@ -65,8 +65,8 @@ async function loopbackHelpers({ origin, request, session }: OAuthState) {
 const test = oauthTest.extend<{
   loopback: Awaited<ReturnType<typeof loopbackHelpers>>;
 }>({
-  loopback: async ({ oauth }, use) => {
-    await use(await loopbackHelpers(oauth));
+  loopback: async ({ oauth, run }, use) => {
+    await use(await run(() => loopbackHelpers(oauth)));
   },
 });
 
@@ -75,76 +75,84 @@ test.describe("oauth.loopback-redirect-tolerance", () => {
     const registered = `http://${host}:61000/callback?instance=desktop`;
     test(`completes registered ${host} callbacks with allowed ports`, async ({
       loopback,
-    }) => {
-      const { register, authorize, consent, exchange } = loopback;
-      const clientId = await register(registered);
-      const allowed =
-        host === "localhost"
-          ? [registered]
-          : [registered, registered.replace(":61000", ":62000")];
-      for (const redirectUri of allowed) {
-        const page = await authorize(clientId, redirectUri);
-        expect(page.pathname).toBe("/oauth/authorize");
-        expect(page.searchParams.get("redirect_uri")).toBe(redirectUri);
-        const callback = await consent(page.searchParams);
-        const code = callback.searchParams.get("code");
-        expect(code, callback.toString()).toBeTruthy();
-        expect(callback.origin).toBe(new URL(redirectUri).origin);
-        expect(callback.pathname).toBe("/callback");
-        expect(callback.searchParams.get("instance")).toBe("desktop");
-        if (!code) throw new Error("Missing authorization code");
-        const issued = await exchange(clientId, code, redirectUri);
-        expect(issued.response.status(), JSON.stringify(issued.body)).toBe(200);
-        expect(typeof issued.body.access_token).toBe("string");
-      }
-    });
+      run,
+    }) =>
+      run(async () => {
+        const { register, authorize, consent, exchange } = loopback;
+        const clientId = await register(registered);
+        const allowed =
+          host === "localhost"
+            ? [registered]
+            : [registered, registered.replace(":61000", ":62000")];
+        for (const redirectUri of allowed) {
+          const page = await authorize(clientId, redirectUri);
+          expect(page.pathname).toBe("/oauth/authorize");
+          expect(page.searchParams.get("redirect_uri")).toBe(redirectUri);
+          const callback = await consent(page.searchParams);
+          const code = callback.searchParams.get("code");
+          expect(code, callback.toString()).toBeTruthy();
+          expect(callback.origin).toBe(new URL(redirectUri).origin);
+          expect(callback.pathname).toBe("/callback");
+          expect(callback.searchParams.get("instance")).toBe("desktop");
+          if (!code) throw new Error("Missing authorization code");
+          const issued = await exchange(clientId, code, redirectUri);
+          expect(issued.response.status(), JSON.stringify(issued.body)).toBe(
+            200,
+          );
+          expect(typeof issued.body.access_token).toBe("string");
+        }
+      }));
     test(`rejects unregistered ${host} callback components`, async ({
       loopback,
-    }) => {
-      const { origin, register, authorize } = loopback;
-      const clientId = await register(registered);
-      const replacements = [
-        registered.replace(
-          host,
-          host === "localhost" ? "127.0.0.1" : "localhost",
-        ),
-        registered.replace("/callback", "/other"),
-        registered.replace("instance=desktop", "instance=other"),
-        registered.replace("http:", "https:"),
-        ...(host === "localhost"
-          ? [registered.replace(":61000", ":62000")]
-          : []),
-      ];
-      for (const rejectedUri of replacements) {
-        const rejected = await authorize(clientId, rejectedUri);
-        expect(rejected.searchParams.get("error"), rejectedUri).toBe(
-          "invalid_redirect",
-        );
-        expect(rejected.searchParams.get("code")).toBeNull();
-        expect(rejected.origin).toBe(origin);
-      }
-    });
+      run,
+    }) =>
+      run(async () => {
+        const { origin, register, authorize } = loopback;
+        const clientId = await register(registered);
+        const replacements = [
+          registered.replace(
+            host,
+            host === "localhost" ? "127.0.0.1" : "localhost",
+          ),
+          registered.replace("/callback", "/other"),
+          registered.replace("instance=desktop", "instance=other"),
+          registered.replace("http:", "https:"),
+          ...(host === "localhost"
+            ? [registered.replace(":61000", ":62000")]
+            : []),
+        ];
+        for (const rejectedUri of replacements) {
+          const rejected = await authorize(clientId, rejectedUri);
+          expect(rejected.searchParams.get("error"), rejectedUri).toBe(
+            "invalid_redirect",
+          );
+          expect(rejected.searchParams.get("code")).toBeNull();
+          expect(rejected.origin).toBe(origin);
+        }
+      }));
     test(`binds ${host} token exchange to the authorized URI`, async ({
       loopback,
-    }) => {
-      const { register, authorize, consent, exchange } = loopback;
-      const clientId = await register(registered);
-      // The exchange must match the URI authorized with the code, including its port.
-      for (const changed of [
-        registered.replace(
-          host,
-          host === "localhost" ? "127.0.0.1" : "localhost",
-        ),
-        registered.replace(":61000", ":62001"),
-      ]) {
-        const page = await authorize(clientId, registered);
-        const callback = await consent(page.searchParams);
-        const code = callback.searchParams.get("code");
-        if (!code) throw new Error("Missing authorization code");
-        const denied = await exchange(clientId, code, changed);
-        expect(denied.response.status()).toBe(400);
-        expect(denied.body.access_token).toBeUndefined();
-      }
-    });
+      run,
+    }) =>
+      run(async () => {
+        const { register, authorize, consent, exchange } = loopback;
+        const clientId = await register(registered);
+        // The exchange must match the URI authorized with the code, including its port.
+        for (const changed of [
+          registered.replace(
+            host,
+            host === "localhost" ? "127.0.0.1" : "localhost",
+          ),
+          registered.replace(":61000", ":62001"),
+        ]) {
+          const page = await authorize(clientId, registered);
+          const callback = await consent(page.searchParams);
+          const code = callback.searchParams.get("code");
+          if (!code) throw new Error("Missing authorization code");
+          const denied = await exchange(clientId, code, changed);
+          expect(denied.response.status()).toBe(400);
+          expect(denied.body.access_token).toBeUndefined();
+        }
+      }));
   }
 });
