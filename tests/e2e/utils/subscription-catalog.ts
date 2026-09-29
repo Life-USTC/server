@@ -7,6 +7,7 @@ import type {
   Teacher,
 } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
+import { withBrowserWorkflow } from "./browser-workflow";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
 
@@ -187,354 +188,350 @@ export const test = workerTest.extend<{
     use,
     testInfo,
   ) => {
-    let closing = false;
-    let operation: Promise<void> | undefined;
-    try {
+    await withBrowserWorkflow(page, async (workflow) => {
       await use((work) => {
-        if (closing || operation)
-          return Promise.reject(
-            new Error("Subscription workflow is already owned or closing"),
-          );
-        operation = run(async () => {
-          const db = isolatedWorker.database.owner;
-          const request = account.request;
-          const headers = {
-            "x-test-storage-secret": "local-test-storage-observer",
-          };
-          const probeId = crypto.randomUUID();
-          const producerPath = `/__test/community-effects?id=${probeId}`;
-          const consumerPath = `/__test/calendar-consumer?userId=${account.id}`;
-          const pending = new Set<Promise<void>>();
-          const errors: unknown[] = [];
-          const mutations: unknown[] = [];
-          let accepting = true;
-          let registered = false;
-          let expectedMessages = 0;
-          const subscriptions = () =>
-            db.userSectionSubscription.findMany({
-              where: { userId: account.id },
-              orderBy: { sectionId: "asc" },
-            });
-          const settleEffects = async () => {
-            let snapshot:
-              | { effects: Effects; observed: CalendarObservation }
-              | undefined;
-            await expect
-              .poll(
-                async () => {
-                  const producer = await request.get(producerPath, { headers });
-                  expect(producer.status()).toBe(200);
-                  const effects: Effects = await producer.json();
-                  const consumer = await request.get(consumerPath, { headers });
-                  expect(consumer.status()).toBe(200);
-                  const observed: CalendarObservation = await consumer.json();
-                  snapshot = { effects, observed };
-                  return (
-                    effects.messages.length >= expectedMessages &&
-                    observed.attempts.length >= expectedMessages &&
-                    observed.attempts.every((attempt) => attempt.complete)
-                  );
-                },
-                {
-                  timeout: 15_000,
-                  message: "Native subscription calendar consumers complete",
-                },
-              )
-              .toBe(true);
-            if (!snapshot)
-              throw new Error("Missing subscription calendar observations");
-            const { effects, observed } = snapshot;
-            expect(effects.backgroundErrors).toEqual([]);
-            expect(
-              effects.purges.every((purge) => purge.outcome === "fulfilled"),
-            ).toBe(true);
-            expect(effects.messages).toEqual(
-              Array.from({ length: expectedMessages }, () => ({
-                outcome: "fulfilled",
-                value: { type: "user", userId: account.id },
-              })),
-            );
-            expect(observed.attempts).toHaveLength(expectedMessages);
-            expect(
-              new Set(observed.attempts.map((attempt) => attempt.id)).size,
-            ).toBe(expectedMessages);
-            for (const attempt of observed.attempts)
-              expect(attempt).toMatchObject({
-                attempts: 1,
-                userId: account.id,
-                ackCalls: 1,
-                retryCalls: 0,
-                complete: true,
-                errors: [],
-                calendar: expect.any(String),
+        return workflow.run(() =>
+          run(async () => {
+            const db = isolatedWorker.database.owner;
+            const request = account.request;
+            const headers = {
+              "x-test-storage-secret": "local-test-storage-observer",
+            };
+            const probeId = crypto.randomUUID();
+            const producerPath = `/__test/community-effects?id=${probeId}`;
+            const consumerPath = `/__test/calendar-consumer?userId=${account.id}`;
+            const pending = new Set<Promise<void>>();
+            const errors: unknown[] = [];
+            const mutations: unknown[] = [];
+            let accepting = true;
+            let registered = false;
+            let expectedMessages = 0;
+            const subscriptions = () =>
+              db.userSectionSubscription.findMany({
+                where: { userId: account.id },
+                orderBy: { sectionId: "asc" },
               });
-            if (expectedMessages) {
-              expect(
-                observed.attempts.some(
-                  (attempt) => attempt.calendar === observed.calendar,
-                ),
-              ).toBe(true);
-              if (!observed.calendar)
-                throw new Error("Native consumer did not store its export");
-              const calendar = JSON.parse(observed.calendar);
-              expect(calendar).toMatchObject({
-                version: 2,
-                text: expect.any(String),
-              });
-              expect(calendar.text).toContain("BEGIN:VCALENDAR");
-            }
-            // Reading the workspace can mint a feed token and asynchronously
-            // write its audit. Observe the actual row, not just queue admission.
-            const actor = await db.user.findUniqueOrThrow({
-              where: { id: account.id },
-            });
-            let tokenAudits: unknown[] = [];
-            if (actor.calendarFeedToken) {
-              const readAudits = () =>
-                db.auditLog.findMany({
-                  where: {
-                    userId: account.id,
-                    action: "account_calendar_token_create",
-                  },
-                  select: {
-                    action: true,
-                    channel: true,
-                    outcome: true,
-                    targetId: true,
-                    targetType: true,
-                    userId: true,
-                    subjectUserId: true,
-                  },
-                });
+            const settleEffects = async () => {
+              let snapshot:
+                | { effects: Effects; observed: CalendarObservation }
+                | undefined;
               await expect
-                .poll(async () => (await readAudits()).length, {
-                  timeout: 15_000,
-                  message: "Actual calendar token audit is persisted",
-                })
-                .toBe(1);
-              tokenAudits = await readAudits();
-              expect(tokenAudits).toEqual([
-                {
-                  action: "account_calendar_token_create",
-                  channel: "system",
-                  outcome: "success",
-                  targetId: account.id,
-                  targetType: "calendar_feed",
+                .poll(
+                  async () => {
+                    const producer = await request.get(producerPath, {
+                      headers,
+                    });
+                    expect(producer.status()).toBe(200);
+                    const effects: Effects = await producer.json();
+                    const consumer = await request.get(consumerPath, {
+                      headers,
+                    });
+                    expect(consumer.status()).toBe(200);
+                    const observed: CalendarObservation = await consumer.json();
+                    snapshot = { effects, observed };
+                    return (
+                      effects.messages.length >= expectedMessages &&
+                      observed.attempts.length >= expectedMessages &&
+                      observed.attempts.every((attempt) => attempt.complete)
+                    );
+                  },
+                  {
+                    timeout: 15_000,
+                    message: "Native subscription calendar consumers complete",
+                  },
+                )
+                .toBe(true);
+              if (!snapshot)
+                throw new Error("Missing subscription calendar observations");
+              const { effects, observed } = snapshot;
+              expect(effects.backgroundErrors).toEqual([]);
+              expect(
+                effects.purges.every((purge) => purge.outcome === "fulfilled"),
+              ).toBe(true);
+              expect(effects.messages).toEqual(
+                Array.from({ length: expectedMessages }, () => ({
+                  outcome: "fulfilled",
+                  value: { type: "user", userId: account.id },
+                })),
+              );
+              expect(observed.attempts).toHaveLength(expectedMessages);
+              expect(
+                new Set(observed.attempts.map((attempt) => attempt.id)).size,
+              ).toBe(expectedMessages);
+              for (const attempt of observed.attempts)
+                expect(attempt).toMatchObject({
+                  attempts: 1,
                   userId: account.id,
-                  subjectUserId: account.id,
+                  ackCalls: 1,
+                  retryCalls: 0,
+                  complete: true,
+                  errors: [],
+                  calendar: expect.any(String),
+                });
+              if (expectedMessages) {
+                expect(
+                  observed.attempts.some(
+                    (attempt) => attempt.calendar === observed.calendar,
+                  ),
+                ).toBe(true);
+                if (!observed.calendar)
+                  throw new Error("Native consumer did not store its export");
+                const calendar = JSON.parse(observed.calendar);
+                expect(calendar).toMatchObject({
+                  version: 2,
+                  text: expect.any(String),
+                });
+                expect(calendar.text).toContain("BEGIN:VCALENDAR");
+              }
+              // Reading the workspace can mint a feed token and asynchronously
+              // write its audit. Observe the actual row, not just queue admission.
+              const actor = await db.user.findUniqueOrThrow({
+                where: { id: account.id },
+              });
+              let tokenAudits: unknown[] = [];
+              if (actor.calendarFeedToken) {
+                const readAudits = () =>
+                  db.auditLog.findMany({
+                    where: {
+                      userId: account.id,
+                      action: "account_calendar_token_create",
+                    },
+                    select: {
+                      action: true,
+                      channel: true,
+                      outcome: true,
+                      targetId: true,
+                      targetType: true,
+                      userId: true,
+                      subjectUserId: true,
+                    },
+                  });
+                await expect
+                  .poll(async () => (await readAudits()).length, {
+                    timeout: 15_000,
+                    message: "Actual calendar token audit is persisted",
+                  })
+                  .toBe(1);
+                tokenAudits = await readAudits();
+                expect(tokenAudits).toEqual([
+                  {
+                    action: "account_calendar_token_create",
+                    channel: "system",
+                    outcome: "success",
+                    targetId: account.id,
+                    targetType: "calendar_feed",
+                    userId: account.id,
+                    subjectUserId: account.id,
+                  },
+                ]);
+              }
+              return {
+                expectedMessages,
+                effects,
+                observed,
+                tokenAudits,
+                mutations,
+              };
+            };
+            try {
+              expect((await request.get(producerPath)).status()).toBe(404);
+              expect((await request.get(consumerPath)).status()).toBe(404);
+              expect(
+                (await request.post(producerPath, { headers })).status(),
+              ).toBe(201);
+              expect(
+                (await request.post(consumerPath, { headers })).status(),
+              ).toBe(201);
+              registered = true;
+              await page.route(
+                (url) =>
+                  url.origin === isolatedWorker.origin &&
+                  (url.pathname.startsWith("/workspace/subscriptions") ||
+                    url.pathname.startsWith("/api/workspace/subscriptions") ||
+                    url.pathname === "/api/catalog/sections"),
+                async (route) => {
+                  let fulfilled = false;
+                  const completion = (async () => {
+                    try {
+                      if (!accepting)
+                        throw new Error(
+                          "Subscription request started during teardown",
+                        );
+                      const incoming = route.request();
+                      const url = new URL(incoming.url());
+                      const mutation =
+                        url.pathname === "/api/workspace/subscriptions/batch";
+                      const before = mutation ? await subscriptions() : [];
+                      const input = mutation
+                        ? (incoming.postDataJSON() as {
+                            action: "add" | "remove";
+                            sectionIds: number[];
+                          })
+                        : undefined;
+                      if (input) {
+                        expect(incoming.method()).toBe("POST");
+                        expect(Object.keys(input).sort()).toEqual([
+                          "action",
+                          "sectionIds",
+                        ]);
+                        expect(["add", "remove"]).toContain(input.action);
+                        expect(input.sectionIds.length).toBeGreaterThan(0);
+                        expect(new Set(input.sectionIds).size).toBe(
+                          input.sectionIds.length,
+                        );
+                        expect(
+                          await db.section.count({
+                            where: { id: { in: input.sectionIds } },
+                          }),
+                        ).toBe(input.sectionIds.length);
+                        expectedMessages++;
+                      }
+                      const response = await route.fetch({
+                        maxRedirects: 0,
+                        headers: {
+                          ...incoming.headers(),
+                          ...headers,
+                          "x-test-community-probe": probeId,
+                        },
+                      });
+                      const text = await response.text();
+                      // Release the real response before asynchronous consumers settle.
+                      // The complete workflow still joins observations before page teardown.
+                      await route.fulfill({ response });
+                      fulfilled = true;
+                      expect([200, 303, 308]).toContain(response.status());
+                      if (input) {
+                        expect(response.status()).toBe(200);
+                        const body = JSON.parse(text);
+                        const priorIds = before.map((row) => row.sectionId);
+                        const selected = new Set(input.sectionIds);
+                        const expectedIds =
+                          input.action === "add"
+                            ? [
+                                ...new Set([...priorIds, ...input.sectionIds]),
+                              ].sort((a, b) => a - b)
+                            : priorIds.filter((id) => !selected.has(id));
+                        const changed =
+                          input.action === "add"
+                            ? input.sectionIds.filter(
+                                (id) => !priorIds.includes(id),
+                              ).length
+                            : priorIds.filter((id) => selected.has(id)).length;
+                        expect(body).toMatchObject({
+                          semester: null,
+                          matchedCodes: [],
+                          unmatchedCodes: [],
+                          suggestions: {},
+                          matchedSectionIds: input.sectionIds,
+                          unmatchedSectionIds: [],
+                          action: input.action,
+                          total: input.sectionIds.length,
+                          addedCount: input.action === "add" ? changed : 0,
+                          removedCount: input.action === "remove" ? changed : 0,
+                          unchangedCount: input.sectionIds.length - changed,
+                          subscription: { userId: account.id },
+                        });
+                        expect(
+                          body.sections
+                            .map((section: { id: number }) => section.id)
+                            .sort((a: number, b: number) => a - b),
+                        ).toEqual([...input.sectionIds].sort((a, b) => a - b));
+                        expect(
+                          body.subscription.sections
+                            .map((section: { id: number }) => section.id)
+                            .sort((a: number, b: number) => a - b),
+                        ).toEqual(expectedIds);
+                        const stored = await subscriptions();
+                        expect(stored.map((row) => row.sectionId)).toEqual(
+                          expectedIds,
+                        );
+                        for (const row of stored) {
+                          const prior = before.find(
+                            (item) => item.sectionId === row.sectionId,
+                          );
+                          if (prior) expect(row).toEqual(prior);
+                          else
+                            expect(row).toMatchObject({
+                              userId: account.id,
+                              kind: "regular",
+                              createdAt: expect.any(Date),
+                            });
+                        }
+                        mutations.push({
+                          input,
+                          status: response.status(),
+                          body,
+                          stored,
+                        });
+                      }
+                    } catch (error) {
+                      errors.push(error);
+                      if (!fulfilled)
+                        try {
+                          await route.abort("aborted");
+                        } catch (abortError) {
+                          errors.push(abortError);
+                        }
+                    }
+                  })();
+                  pending.add(completion);
+                  try {
+                    await completion;
+                  } finally {
+                    pending.delete(completion);
+                  }
+                },
+              );
+              // Only Google's exact analytics script is outside these business tests.
+              await page.route(
+                (url) =>
+                  url.href ===
+                  "https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R",
+                (route) =>
+                  route.fulfill({
+                    status: 200,
+                    contentType: "application/javascript",
+                    body: "",
+                  }),
+              );
+              await page.context().addCookies([
+                account.cookie,
+                {
+                  name: "NEXT_LOCALE",
+                  value: "zh-cn",
+                  url: isolatedWorker.origin,
+                  sameSite: "Lax",
                 },
               ]);
-            }
-            return {
-              expectedMessages,
-              effects,
-              observed,
-              tokenAudits,
-              mutations,
-            };
-          };
-          try {
-            expect((await request.get(producerPath)).status()).toBe(404);
-            expect((await request.get(consumerPath)).status()).toBe(404);
-            expect(
-              (await request.post(producerPath, { headers })).status(),
-            ).toBe(201);
-            expect(
-              (await request.post(consumerPath, { headers })).status(),
-            ).toBe(201);
-            registered = true;
-            await page.route(
-              (url) =>
-                url.origin === isolatedWorker.origin &&
-                (url.pathname.startsWith("/workspace/subscriptions") ||
-                  url.pathname.startsWith("/api/workspace/subscriptions") ||
-                  url.pathname === "/api/catalog/sections"),
-              async (route) => {
-                let fulfilled = false;
-                const completion = (async () => {
-                  try {
-                    if (!accepting)
-                      throw new Error(
-                        "Subscription request started during teardown",
-                      );
-                    const incoming = route.request();
-                    const url = new URL(incoming.url());
-                    const mutation =
-                      url.pathname === "/api/workspace/subscriptions/batch";
-                    const before = mutation ? await subscriptions() : [];
-                    const input = mutation
-                      ? (incoming.postDataJSON() as {
-                          action: "add" | "remove";
-                          sectionIds: number[];
-                        })
-                      : undefined;
-                    if (input) {
-                      expect(incoming.method()).toBe("POST");
-                      expect(Object.keys(input).sort()).toEqual([
-                        "action",
-                        "sectionIds",
-                      ]);
-                      expect(["add", "remove"]).toContain(input.action);
-                      expect(input.sectionIds.length).toBeGreaterThan(0);
-                      expect(new Set(input.sectionIds).size).toBe(
-                        input.sectionIds.length,
-                      );
-                      expect(
-                        await db.section.count({
-                          where: { id: { in: input.sectionIds } },
-                        }),
-                      ).toBe(input.sectionIds.length);
-                      expectedMessages++;
-                    }
-                    const response = await route.fetch({
-                      maxRedirects: 0,
-                      headers: {
-                        ...incoming.headers(),
-                        ...headers,
-                        "x-test-community-probe": probeId,
-                      },
-                    });
-                    const text = await response.text();
-                    // Release the real response before asynchronous consumers settle.
-                    // The complete workflow still joins observations before page teardown.
-                    await route.fulfill({ response });
-                    fulfilled = true;
-                    expect([200, 303, 308]).toContain(response.status());
-                    if (input) {
-                      expect(response.status()).toBe(200);
-                      const body = JSON.parse(text);
-                      const priorIds = before.map((row) => row.sectionId);
-                      const selected = new Set(input.sectionIds);
-                      const expectedIds =
-                        input.action === "add"
-                          ? [
-                              ...new Set([...priorIds, ...input.sectionIds]),
-                            ].sort((a, b) => a - b)
-                          : priorIds.filter((id) => !selected.has(id));
-                      const changed =
-                        input.action === "add"
-                          ? input.sectionIds.filter(
-                              (id) => !priorIds.includes(id),
-                            ).length
-                          : priorIds.filter((id) => selected.has(id)).length;
-                      expect(body).toMatchObject({
-                        semester: null,
-                        matchedCodes: [],
-                        unmatchedCodes: [],
-                        suggestions: {},
-                        matchedSectionIds: input.sectionIds,
-                        unmatchedSectionIds: [],
-                        action: input.action,
-                        total: input.sectionIds.length,
-                        addedCount: input.action === "add" ? changed : 0,
-                        removedCount: input.action === "remove" ? changed : 0,
-                        unchangedCount: input.sectionIds.length - changed,
-                        subscription: { userId: account.id },
-                      });
-                      expect(
-                        body.sections
-                          .map((section: { id: number }) => section.id)
-                          .sort((a: number, b: number) => a - b),
-                      ).toEqual([...input.sectionIds].sort((a, b) => a - b));
-                      expect(
-                        body.subscription.sections
-                          .map((section: { id: number }) => section.id)
-                          .sort((a: number, b: number) => a - b),
-                      ).toEqual(expectedIds);
-                      const stored = await subscriptions();
-                      expect(stored.map((row) => row.sectionId)).toEqual(
-                        expectedIds,
-                      );
-                      for (const row of stored) {
-                        const prior = before.find(
-                          (item) => item.sectionId === row.sectionId,
-                        );
-                        if (prior) expect(row).toEqual(prior);
-                        else
-                          expect(row).toMatchObject({
-                            userId: account.id,
-                            kind: "regular",
-                            createdAt: expect.any(Date),
-                          });
-                      }
-                      mutations.push({
-                        input,
-                        status: response.status(),
-                        body,
-                        stored,
-                      });
-                    }
-                  } catch (error) {
-                    errors.push(error);
-                    if (!fulfilled)
-                      try {
-                        await route.abort("aborted");
-                      } catch (abortError) {
-                        errors.push(abortError);
-                      }
-                  }
-                })();
-                pending.add(completion);
+              await workflow.body(work);
+            } catch (error) {
+              errors.push(error);
+            } finally {
+              accepting = false;
+              while (pending.size) await Promise.all(pending);
+              if (registered)
                 try {
-                  await completion;
-                } finally {
-                  pending.delete(completion);
+                  await testInfo.attach("subscription-effects", {
+                    body: JSON.stringify(await settleEffects(), null, 2),
+                    contentType: "application/json",
+                  });
+                } catch (error) {
+                  errors.push(error);
                 }
-              },
-            );
-            // Only Google's exact analytics script is outside these business tests.
-            await page.route(
-              (url) =>
-                url.href ===
-                "https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R",
-              (route) =>
-                route.fulfill({
-                  status: 200,
-                  contentType: "application/javascript",
-                  body: "",
-                }),
-            );
-            await page.context().addCookies([
-              account.cookie,
-              {
-                name: "NEXT_LOCALE",
-                value: "zh-cn",
-                url: isolatedWorker.origin,
-                sameSite: "Lax",
-              },
-            ]);
-            await work();
-          } catch (error) {
-            errors.push(error);
-          } finally {
-            accepting = false;
-            while (pending.size) await Promise.all(pending);
-            if (registered)
               try {
-                await testInfo.attach("subscription-effects", {
-                  body: JSON.stringify(await settleEffects(), null, 2),
-                  contentType: "application/json",
-                });
+                await page.close();
               } catch (error) {
                 errors.push(error);
               }
-            try {
-              await page.close();
-            } catch (error) {
-              errors.push(error);
             }
-          }
-          if (errors.length)
-            throw new AggregateError(
-              errors,
-              "Owned subscription workflow failed",
-            );
-        });
-        return operation;
+            if (errors.length)
+              throw new AggregateError(
+                errors,
+                "Owned subscription workflow failed",
+              );
+          }),
+        );
       });
-    } finally {
-      closing = true;
-      await operation;
-    }
+    });
   },
 });

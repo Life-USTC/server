@@ -3,6 +3,7 @@ import type {
   Section,
   User,
 } from "../../../src/generated/prisma-node/client";
+import { withBrowserWorkflow } from "./browser-workflow";
 import { type HomeworkEffects, withHomeworkEffects } from "./homework-effects";
 import {
   type AcademicState,
@@ -73,35 +74,27 @@ export const test = workerTest.extend<{
     use,
     testInfo,
   ) => {
-    let closing = false;
-    let operation: Promise<void> | undefined;
-    try {
+    await withBrowserWorkflow(page, async (workflow) => {
       await use((work, effects = { calendarMessages: [] }) => {
-        if (closing || operation)
-          return Promise.reject(
-            new Error("Section homework workflow is already owned or closing"),
-          );
-        operation = run(() =>
-          withHomeworkEffects(
-            {
-              page,
-              isolatedWorker,
-              account: actor,
-              sectionId: academic.section.id,
-              testInfo,
-              ...effects,
-            },
-            async (observer) => {
-              await page.context().addCookies([actor.cookie]);
-              await work(observer);
-            },
+        return workflow.run(() =>
+          run(() =>
+            withHomeworkEffects(
+              {
+                page,
+                isolatedWorker,
+                account: actor,
+                sectionId: academic.section.id,
+                testInfo,
+                ...effects,
+              },
+              async (observer) => {
+                await page.context().addCookies([actor.cookie]);
+                await workflow.body(() => work(observer));
+              },
+            ),
           ),
         );
-        return operation;
       });
-    } finally {
-      closing = true;
-      await operation;
-    }
+    });
   },
 });
