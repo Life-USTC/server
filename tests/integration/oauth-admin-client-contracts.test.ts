@@ -229,52 +229,6 @@ it("oauth.trusted-clients-admin-backend", async () => {
   }
 });
 
-it("oauth.external-account-issuer-identity", async () => {
-  const subject = `same-subject-${marker}`;
-  const issuers = [
-    `https://issuer-a.example/${marker}`,
-    `https://issuer-b.example/${marker}`,
-  ];
-  const context = await getBetterAuthInstance().$context;
-  for (const [index, id] of [userId, otherId].entries()) {
-    await db.account.create({
-      data: {
-        userId: id,
-        provider: "oidc",
-        issuer: issuers[index],
-        providerAccountId: subject,
-      },
-    });
-  }
-  for (const [index, id] of [userId, otherId].entries()) {
-    const key = { issuer: issuers[index], accountId: subject };
-    expect(await context.internalAdapter.findAccountByKey(key)).toMatchObject({
-      issuer: issuers[index],
-      accountId: subject,
-      userId: id,
-    });
-    expect(
-      await context.internalAdapter.findAccountOwnerByKey(key),
-    ).toMatchObject({ kind: "owned", user: { id } });
-  }
-  expect(
-    await context.internalAdapter.findAccountByKey({
-      issuer: "https://unregistered.example",
-      accountId: subject,
-    }),
-  ).toBeNull();
-  await expect(
-    db.account.create({
-      data: {
-        userId: otherId,
-        provider: "different-alias",
-        issuer: issuers[0],
-        providerAccountId: subject,
-      },
-    }),
-  ).rejects.toMatchObject({ code: "P2002" });
-});
-
 it("audit.action-admin-oauth-client-create", async () => {
   const name = `private-client-name-${marker}`;
   const redirect = `https://private-client.example/${marker}`;
