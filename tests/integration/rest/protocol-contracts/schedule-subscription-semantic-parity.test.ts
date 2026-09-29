@@ -1,182 +1,141 @@
-import { createServer, type Server } from "node:http";
-import type { RequestEvent } from "@sveltejs/kit";
-import { getRequest, setResponse } from "@sveltejs/kit/node";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
-import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { getSchedulesRoute } from "@/lib/api/routes/academic-schedule-routes";
-import { getSectionSchedulesRoute } from "@/lib/api/routes/academic-section-routes";
-import { getCurrentCalendarSubscriptionRoute } from "@/lib/api/routes/calendar-subscriptions";
-import { mcpPostRoute } from "@/lib/api/routes/mcp";
-import { createGraphqlRequestHandler } from "@/lib/graphql/server";
-import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
-import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
-import {
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../shared/catalog-contract-fixture";
-import { createFixturePrisma } from "../shared/prisma";
+import { expect } from "@playwright/test";
+import { symmetricDecrypt } from "better-auth/crypto";
+import { importJWK, SignJWT } from "jose";
+import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
+import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
+import { test } from "../../../e2e/utils/owned-worker";
+import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import { nativeEnvelope } from "./_transport";
 
-const db = createFixturePrisma();
-const graphql = createGraphqlRequestHandler(false);
-let server: Server;
-let origin: string;
 type Filter = Record<string, number | string>;
-function runtime<T>(work: () => T) {
-  if (!process.env.DATABASE_URL || !process.env.AUTH_DATABASE_URL)
-    throw new Error("Missing restricted database URLs");
-  return runWithCloudflareRuntimeEnv(
-    {
-      HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
-      HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
-    },
-    work,
-  );
-}
-beforeAll(async () => {
-  server = createServer(async (incoming, outgoing) => {
-    try {
-      const request = await getRequest({ request: incoming, base: origin });
-      const response = await runtime(async () => {
-        const path = new URL(request.url).pathname;
-        if (path === "/api/auth/jwks") {
-          const { getBetterAuthInstance } = await import("@/lib/auth/core");
-          return getBetterAuthInstance().handler(request);
-        }
-        if (path === "/api/mcp") return mcpPostRoute(request);
-        if (path === "/api/graphql")
-          return graphql({
-            request,
-            locals: {
-              authUser: null,
-              locale: "zh-cn",
-              requestId: "schedule-subscription-parity",
-            },
-          } as unknown as RequestEvent);
-        if (path === "/api/catalog/schedules")
-          return getSchedulesRoute(request);
-        if (path === "/api/workspace/subscriptions/current")
-          return getCurrentCalendarSubscriptionRoute(request);
-        const section = /^\/api\/catalog\/sections\/(\d+)\/schedules$/.exec(
-          path,
-        );
-        return section
-          ? getSectionSchedulesRoute(request, { jwId: section[1] })
-          : new Response(null, { status: 404 });
-      });
-      await setResponse(outgoing, response);
-    } catch (error) {
-      outgoing.statusCode = 500;
-      outgoing.end(String(error));
-    }
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  if (!address || typeof address === "string")
-    throw new Error("Missing HTTP address");
-  origin = `http://127.0.0.1:${address.port}`;
-  vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
-});
-afterAll(async () => {
-  if (server)
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-      server.closeAllConnections();
+function createReaders(origin: string) {
+  async function rest(path: string, filter: Filter = {}, token?: string) {
+    const params = new URLSearchParams(
+      Object.entries(filter).map(([key, value]) => [key, String(value)]),
+    );
+    const response = await fetch(`${origin}${path}?${params}`, {
+      headers: token ? { authorization: `Bearer ${token}` } : {},
     });
-  await db.$disconnect();
-  vi.unstubAllEnvs();
-});
-async function rest(path: string, filter: Filter = {}, token?: string) {
-  const params = new URLSearchParams(
-    Object.entries(filter).map(([key, value]) => [key, String(value)]),
-  );
-  const response = await fetch(`${origin}${path}?${params}`, {
-    headers: token ? { authorization: `Bearer ${token}` } : {},
-  });
-  const body = await response.json();
-  expect(response.status, JSON.stringify(body)).toBe(200);
-  return body;
-}
-async function mcp(name: string, args: Filter = {}, token?: string) {
-  const response = await fetch(`${origin}/api/mcp`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: { name, arguments: { ...args, locale: "zh-cn", mode: "full" } },
-    }),
-  });
-  const text = await response.text();
-  expect(response.status, text).toBe(200);
-  const data = response.headers
-    .get("content-type")
-    ?.includes("text/event-stream")
-    ? text
-        .split("\n")
-        .filter((line) => line.startsWith("data: "))
-        .at(-1)
-        ?.slice(6)
-    : text;
-  if (!data) throw new Error("Missing MCP response");
-  const body = JSON.parse(data);
-  expect(body.error).toBeUndefined();
-  expect(body.result.isError, data).not.toBe(true);
-  return JSON.parse(
-    body.result.content.find((part: { type: string }) => part.type === "text")
-      .text,
-  );
+    const body = await response.json();
+    expect(response.status, JSON.stringify(body)).toBe(200);
+    return body;
+  }
+  async function mcp(name: string, args: Filter = {}, token?: string) {
+    const response = await fetch(`${origin}/api/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name, arguments: { ...args, locale: "zh-cn", mode: "full" } },
+      }),
+    });
+    const body = await nativeEnvelope(response);
+    expect(response.status, JSON.stringify(body)).toBe(200);
+    expect(body.error).toBeUndefined();
+    expect(body.result.isError, JSON.stringify(body)).not.toBe(true);
+    return JSON.parse(
+      body.result.content.find((part: { type: string }) => part.type === "text")
+        .text,
+    );
+  }
+  async function compareSchedules(filter: Filter, expected: number[]) {
+    const pageSize = 2;
+    const pages = Math.max(1, Math.ceil(expected.length / pageSize));
+    for (let page = 1; page <= pages + 1; page++) {
+      const response = await rest("/api/catalog/schedules", {
+        ...filter,
+        page,
+        pageSize,
+      });
+      const tool = await mcp("catalog_schedule_list", {
+        ...filter,
+        page,
+        limit: pageSize,
+      });
+      expect(ids(response.data), JSON.stringify(filter)).toEqual(
+        expected.slice((page - 1) * pageSize, page * pageSize),
+      );
+      expect(ids(tool.data)).toEqual(ids(response.data));
+      expect(response.pagination).toEqual({
+        page,
+        pageSize,
+        total: expected.length,
+        totalPages: pages,
+      });
+      expect(tool.pagination).toEqual(response.pagination);
+    }
+  }
+  return { rest, mcp, compareSchedules };
 }
 const ids = (rows: { id: number }[]) => rows.map((row) => row.id);
-async function compareSchedules(filter: Filter, expected: number[]) {
-  const pageSize = 2;
-  const pages = Math.max(1, Math.ceil(expected.length / pageSize));
-  for (let page = 1; page <= pages + 1; page++) {
-    const response = await rest("/api/catalog/schedules", {
-      ...filter,
-      page,
-      pageSize,
-    });
-    const tool = await mcp("catalog_schedule_list", {
-      ...filter,
-      page,
-      limit: pageSize,
-    });
-    expect(ids(response.data), JSON.stringify(filter)).toEqual(
-      expected.slice((page - 1) * pageSize, page * pageSize),
-    );
-    expect(ids(tool.data)).toEqual(ids(response.data));
-    expect(response.pagination).toEqual({
-      page,
-      pageSize,
-      total: expected.length,
-      totalPages: pages,
-    });
-    expect(tool.pagination).toEqual(response.pagination);
-  }
+
+/** Fixture credentials use the private Worker's actual key and resource audience. */
+async function createSubscriptionSigner(worker: IsolatedWorker) {
+  const response = await fetch(`${worker.origin}/api/auth/jwks`);
+  const { keys } = (await response.json()) as { keys: { kid: string }[] };
+  expect(response.status).toBe(200);
+  const key = await worker.database.owner.jwks.findFirstOrThrow({
+    where: { id: { in: keys.map((key) => key.kid) } },
+    orderBy: { createdAt: "desc" },
+  });
+  expect(key.alg).toBe("EdDSA");
+  const privateJwk = await symmetricDecrypt({
+    key: "e2e-dev-secret-not-for-production",
+    data: JSON.parse(key.privateKey),
+  });
+  const signingKey = await importJWK(JSON.parse(privateJwk), "EdDSA");
+  return (input: {
+    clientId: string;
+    grantId: string;
+    userId: string;
+    scopes: string[];
+    resource: string;
+    issuedAt: number;
+    expiresAt: number;
+  }) =>
+    new SignJWT({
+      azp: input.clientId,
+      scope: input.scopes.join(" "),
+      [OAUTH_GRANT_ID_CLAIM]: input.grantId,
+    })
+      .setProtectedHeader({ alg: "EdDSA", kid: key.id, typ: "JWT" })
+      .setSubject(input.userId)
+      .setAudience(input.resource)
+      .setIssuer(`${worker.origin}/api/auth`)
+      .setIssuedAt(input.issuedAt)
+      .setExpirationTime(input.expiresAt)
+      .sign(signingKey);
 }
-it("interface-hierarchy.public-schedule-read-parity", async () => {
-  const fixture = await createCatalogContractFixture(db);
-  const rooms = await Promise.all(
-    [0, 1].map((index) =>
-      db.room.create({
-        data: {
-          jwId: fixture.base + index,
-          code: `${fixture.marker}-room-${index}`,
-          nameCn: `契约教室${index}`,
-          virtual: false,
-          seats: 40,
-          seatsForSection: 40,
-        },
-      }),
-    ),
-  );
-  try {
+
+test("interface-hierarchy.public-schedule-read-parity", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const origin = isolatedWorker.origin;
+    const { rest, mcp, compareSchedules } = createReaders(origin);
+    const fixture = await createCatalogContractFixture(db);
+    const rooms = await Promise.all(
+      [0, 1].map((index) =>
+        db.room.create({
+          data: {
+            jwId: fixture.base + index,
+            code: `${fixture.marker}-room-${index}`,
+            nameCn: `契约教室${index}`,
+            virtual: false,
+            seats: 40,
+            seatsForSection: 40,
+          },
+        }),
+      ),
+    );
     const section = fixture.sections[0];
     const group = await db.scheduleGroup.create({
       data: {
@@ -234,7 +193,6 @@ it("interface-hierarchy.public-schedule-read-parity", async () => {
       });
       other.push(row.id);
     }
-    resetPublicRuntimeCacheForTest();
     const all = [...tied, ...other];
     for (const filter of [
       { sectionId: section.id },
@@ -293,22 +251,22 @@ it("interface-hierarchy.public-schedule-read-parity", async () => {
       expect(tool.found).toBe(true);
       expect(tool.section.jwId).toBe(section.jwId);
     }
-  } finally {
-    await cleanupCatalogContractFixture(db, fixture);
-    await db.room.deleteMany({
-      where: { id: { in: rooms.map((room) => room.id) } },
-    });
-    resetPublicRuntimeCacheForTest();
-  }
-});
+  }));
 
-it("interface-hierarchy.subscription-read-parity", async () => {
-  const fixture = await createCatalogContractFixture(db);
-  const userIds = [0, 1, 2].map(
-    (index) => `${fixture.marker}-subscriber-${index}`,
-  );
-  const clientId = `${fixture.marker}-subscription-client`;
-  try {
+test("interface-hierarchy.subscription-read-parity", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const origin = isolatedWorker.origin;
+    const { rest, mcp } = createReaders(origin);
+    const signToken = await createSubscriptionSigner(isolatedWorker);
+    const fixture = await createCatalogContractFixture(db);
+    const userIds = [0, 1, 2].map(
+      (index) => `${fixture.marker}-subscriber-${index}`,
+    );
+    const clientId = `${fixture.marker}-subscription-client`;
     await db.user.createMany({
       data: userIds.map((id) => ({ id, email: `${id}@example.test` })),
     });
@@ -329,7 +287,6 @@ it("interface-hierarchy.subscription-read-parity", async () => {
         nameCn: "2030春",
       },
     });
-    fixture.cleanupIds.semesters.push(newer.id);
     const rows: { id: number; jwId: number; kind: string }[] = [];
     for (const offset of [15, 14, 13, 12, 11, 10]) {
       const section = await db.section.create({
@@ -343,7 +300,6 @@ it("interface-hierarchy.subscription-read-parity", async () => {
             : {}),
         },
       });
-      fixture.cleanupIds.sections.push(section.id);
       const kind = offset % 2 ? "auditor" : "regular";
       await db.userSectionSubscription.create({
         data: { userId: userIds[0], sectionId: section.id, kind },
@@ -358,7 +314,6 @@ it("interface-hierarchy.subscription-read-parity", async () => {
         semesterId: newer.id,
       },
     });
-    fixture.cleanupIds.sections.push(first.id);
     await db.userSectionSubscription.createMany({
       data: [
         { userId: userIds[0], sectionId: first.id, kind: "teaching_assistant" },
@@ -398,22 +353,20 @@ it("interface-hierarchy.subscription-read-parity", async () => {
       if (!grantId) throw new Error("Missing fixture grant");
       const tokens: Record<string, string> = {};
       for (const [transport, resource] of Object.entries({
-        rest: getOAuthRestAudienceUrls()[0],
+        rest: `${origin}/api/auth`,
         graphql: `${origin}/api/graphql`,
         mcp: `${origin}/api/mcp`,
       })) {
         const issuedAt = Math.floor(Date.now() / 1000);
-        const token = await runtime(() =>
-          signResourceBoundOAuthAccessToken({
-            clientId,
-            grantId,
-            userId,
-            scopes,
-            resources: [resource],
-            issuedAt,
-            expiresAt: issuedAt + 300,
-          }),
-        );
+        const token = await signToken({
+          clientId,
+          grantId,
+          userId,
+          scopes,
+          resource,
+          issuedAt,
+          expiresAt: issuedAt + 300,
+        });
         if (!token) throw new Error("Missing signed token");
         tokens[transport] = token;
       }
@@ -464,9 +417,4 @@ it("interface-hierarchy.subscription-read-parity", async () => {
         });
       }
     }
-  } finally {
-    await db.oAuthClient.deleteMany({ where: { clientId } });
-    await db.user.deleteMany({ where: { id: { in: userIds } } });
-    await cleanupCatalogContractFixture(db, fixture);
-  }
-});
+  }));

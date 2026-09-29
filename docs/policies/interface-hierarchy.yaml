@@ -225,7 +225,7 @@ requirements:
     - Conflicting identifiers and row/JW substitutions select no rows; tied sort keys use ascending row IDs.
     - Section-specific results retain the selected section JW identity and requested ordered prefix.
     test:
-      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.public-schedule-read-parity
 - id: interface-hierarchy.subscription-read-parity
   category: consistency
@@ -246,7 +246,7 @@ requirements:
     - GraphQL totals and exhausted pages match the complete REST/MCP sequence, including same-key boundaries.
     - The empty owner receives no records and forged query identity cannot select another user's membership.
     test:
-      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.subscription-read-parity
 - id: interface-hierarchy.comment-read-parity
   category: consistency
