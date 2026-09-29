@@ -247,6 +247,7 @@ export function ownDatabaseTemplate(
               targetDatabase(connections.owner, name),
               "-X",
               "--set=ON_ERROR_STOP=1",
+              "--single-transaction",
               "--file",
               schema,
             ],
