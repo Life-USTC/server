@@ -360,7 +360,7 @@ requirements:
     - The persisted client and one audit event have matching IDs.
     - Audit metadata contains changed field names, never client secret, client name or redirect URI values.
     test:
-      file: tests/integration/oauth-admin-client-contracts.test.ts
+      file: tests/integration/rest/oauth/admin-client-contracts.test.ts
       name: audit.action-admin-oauth-client-create
 - id: audit.action-admin-oauth-client-delete
   category: privacy
@@ -373,7 +373,7 @@ requirements:
     - The client is deleted and exactly one successful event records its ID and administrator.
     - The retry reports not found without producing another event or leaking the secret.
     test:
-      file: tests/integration/oauth-admin-client-contracts.test.ts
+      file: tests/integration/rest/oauth/admin-client-contracts.test.ts
       name: audit.action-admin-oauth-client-delete
 - id: audit.action-admin-bus-version-activate
   category: privacy
