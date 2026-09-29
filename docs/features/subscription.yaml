@@ -108,6 +108,25 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/subscriptions/subscription-journeys.test.ts
       name: subscription.journey-web-projections-and-cancellation
+- id: subscription.calendar-export-membership
+  category: consistency
+  rule: A committed section unsubscribe requests an asynchronous rebuild of the owner's stored iCalendar
+    export. The real consumer removes that section's academic events without requiring a calendar-feed
+    read to repair the cache. Failed transactions and missing owners do not request a rebuild.
+  rationale: A successful mutation response and an empty subscription table do not establish that an
+    already stored calendar stopped exposing the removed section.
+  acceptance:
+    given: An isolated owner has subscribed to a dated academic event and the native queue consumer has
+      stored an export containing its UID, title and location.
+    when: REST batch removal or GraphQL subscriptionRemove deletes the membership, and the native calendar
+      queue consumes the resulting rebuild request.
+    then:
+    - The mutation response and independently read membership confirm removal.
+    - A second native delivery completes without retry and stores an export without the removed event.
+    - No calendar-feed read or direct exporter invocation repairs the cache during verification.
+    test:
+      file: tests/integration/rest/protocol-contracts/subscription-calendar-invalidation.test.ts
+      name: subscription removal rebuilds the stored calendar through rest-batch
 - id: subscription.bounded-batch-input
   category: validation
   rule: Subscription query and mutation requests accept at most 500 section ID entries and at most 500
