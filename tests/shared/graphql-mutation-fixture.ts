@@ -1,19 +1,15 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { test } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import {
-  type CloudflareR2Bucket,
-  runWithCloudflareRuntimeEnv,
-} from "@/lib/adapters/cloudflare-runtime";
+import type { CloudflareR2Bucket } from "@/lib/adapters/cloudflare-runtime";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restWriteScope } from "@/lib/oauth/scope-registry";
-import { DEV_SEED } from "../fixtures/dev-seed";
 import {
-  createMcpHarness,
   type McpHarness,
+  ownMcpHarness,
 } from "../integration/mcp/_harness/client";
-import { createFixturePrisma, type TestPrismaClient } from "./prisma";
+import { nodeProtocolTest } from "./node-protocol-fixture";
+import type { TestPrismaClient } from "./prisma";
 
 type GraphqlPayload = {
   data?: Record<string, unknown> | null;
@@ -106,101 +102,83 @@ type GraphqlMutationState = {
   signToken(scopes: string[]): Promise<string>;
 };
 
-export const graphqlMutationTest = test.extend<{
+// Installed Better Auth caches are process-owned: each consumer of this fixture
+// has one native Vitest case per file, as in the other OAuth protocol contracts.
+export const graphqlMutationTest = nodeProtocolTest.extend<{
+  protocolBindings: Record<string, unknown>;
+  mutationBucket: MemoryR2Bucket;
+  mutationMcp: { userId: string; owned: ReturnType<typeof ownMcpHarness> };
   graphql: GraphqlMutationState;
 }>({
   // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
-  graphql: async ({}, use) => {
-    const db = createFixturePrisma();
+  mutationBucket: async ({}, use) => {
+    const bucket = new MemoryR2Bucket();
+    try {
+      await use(bucket);
+    } finally {
+      bucket.objects.clear();
+      bucket.deletedKeys.length = 0;
+    }
+  },
+  protocolBindings: async ({ mutationBucket }, use) => {
+    await use({ R2_UPLOADS: mutationBucket });
+  },
+  mutationMcp: async ({ protocolRuntime }, use) => {
+    const userId = `graphql-owner-${crypto.randomUUID()}`;
+    const owned = ownMcpHarness(userId, undefined, {
+      run: protocolRuntime.request,
+    });
+    const failures: unknown[] = [];
+    try {
+      // Register transport ownership before dependent setup initializes it.
+      await use({ userId, owned });
+    } catch (error) {
+      failures.push(error);
+    } finally {
+      // Closing the SDK transport rejects pending initialization/client calls;
+      // its owner also waits for real server handlers and their background work.
+      const results = await Promise.allSettled([owned.client.close()]);
+      results.push(...(await Promise.allSettled([protocolRuntime.drain()])));
+      failures.push(
+        ...results.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        ),
+      );
+    }
+    if (failures.length === 1) throw failures[0];
+    if (failures.length)
+      throw new AggregateError(failures, "GraphQL MCP lifecycle failed");
+  },
+  graphql: async (
+    {
+      isolatedDatabase: { owner: db },
+      protocolRuntime,
+      mutationBucket: bucket,
+      mutationMcp: { userId, owned },
+    },
+    use,
+  ) => {
     const nonce = crypto.randomUUID();
     const marker = `[integration-test] graphql-remaining-${nonce}`;
-    const userId = `graphql-owner-${nonce}`;
     const otherUserId = `graphql-other-${nonce}`;
     const oauthClientId = `graphql-client-${nonce}`;
     const grantId = `graphql-grant-${nonce}`;
     const ownedCommentId = `graphql-comment-owner-${nonce}`;
     const otherCommentId = `graphql-comment-other-${nonce}`;
     const mcpCommentId = `graphql-comment-mcp-${nonce}`;
-    const userIds = [userId, otherUserId];
-    const commentIds = [ownedCommentId, otherCommentId, mcpCommentId];
-    const bucket = new MemoryR2Bucket();
-    const responses = new Set<Response>();
-    const operations: Promise<void>[] = [];
-    let mcp: McpHarness | undefined;
     const handler = createGraphqlRequestHandler(false);
-    const app = process.env.DATABASE_URL;
-    const auth = process.env.AUTH_DATABASE_URL;
-
-    function run<T>(work: () => T | Promise<T>): Promise<T> {
-      const tasks: Promise<PromiseSettledResult<unknown>>[] = [];
-      const operation = runWithCloudflareRuntimeEnv(
-        {
-          APP_PUBLIC_ORIGIN: "http://localhost:3000",
-          HYPERDRIVE: { connectionString: app },
-          HYPERDRIVE_AUTH: { connectionString: auth },
-          R2_UPLOADS: bucket,
-          USER_BATCH_WRITE_RATE_LIMITER: {
-            limit: async () => ({ success: true }),
-          },
-          USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
-        },
-        async () => {
-          const [outcome] = await Promise.allSettled([
-            Promise.resolve().then(work),
-          ]);
-          const failures: unknown[] = [];
-          for (let index = 0; index < tasks.length; index++) {
-            const result = await tasks[index];
-            if (result.status === "rejected") failures.push(result.reason);
-          }
-          if (outcome.status === "rejected") {
-            if (!failures.length) throw outcome.reason;
-            failures.unshift(outcome.reason);
-          }
-          if (failures.length) {
-            // Failed background work prevents the runtime from returning its
-            // wrapped response; only then do we own the original body.
-            if (
-              outcome.status === "fulfilled" &&
-              outcome.value instanceof Response
-            )
-              responses.add(outcome.value);
-            throw new AggregateError(failures, "GraphQL mutation work failed");
-          }
-          if (outcome.status === "rejected") throw outcome.reason;
-          return outcome.value;
-        },
-        {
-          waitUntil: (task: Promise<unknown>) => {
-            tasks.push(
-              task.then(
-                (value) => ({ status: "fulfilled" as const, value }),
-                (reason) => ({ status: "rejected" as const, reason }),
-              ),
-            );
-          },
-        },
-      ).then((result) => {
-        if (result instanceof Response) responses.add(result);
-        return result;
-      });
-      operations.push(
-        operation.then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
-      return operation;
-    }
+    const run = protocolRuntime.request;
 
     async function execute(body: unknown, token: string) {
-      const response = await run(() => handler(requestEvent(body, token)));
-      return { response, payload: (await response.json()) as GraphqlPayload };
+      return protocolRuntime.request(async () => {
+        const response = await handler(requestEvent(body, token));
+        return { response, payload: (await response.json()) as GraphqlPayload };
+      });
     }
     async function signToken(scopes: string[]) {
-      const issuedAt = Math.floor(Date.now() / 1000);
-      const token = await run(() =>
-        signResourceBoundOAuthAccessToken({
+      return protocolRuntime.request(async () => {
+        const issuedAt = Math.floor(Date.now() / 1000);
+        const token = await signResourceBoundOAuthAccessToken({
           clientId: oauthClientId,
           expiresAt: issuedAt + 300,
           grantId,
@@ -208,76 +186,34 @@ export const graphqlMutationTest = test.extend<{
           resources: [getOAuthGraphqlResourceUrl()],
           scopes,
           userId,
-        }),
-      );
-      if (!token) throw new Error("Expected a signed GraphQL access token");
-      return token;
-    }
-
-    async function cleanup() {
-      for (let index = 0; index < operations.length; index++)
-        await operations[index];
-      const settled = await Promise.allSettled([
-        ...(mcp ? [mcp.close()] : []),
-        ...[...responses].map((response) =>
-          response.body && !response.bodyUsed
-            ? response.body.cancel()
-            : undefined,
-        ),
-      ]);
-      try {
-        await db.$transaction(async (tx) => {
-          await tx.auditLog.deleteMany({
-            where: {
-              OR: [
-                { userId: { in: userIds } },
-                { subjectUserId: { in: userIds } },
-              ],
-            },
-          });
-          await tx.featureOperationEvent.deleteMany({
-            where: { userId: { in: userIds } },
-          });
-          await tx.comment.deleteMany({ where: { id: { in: commentIds } } });
-          await tx.uploadPending.deleteMany({
-            where: { userId: { in: userIds } },
-          });
-          await tx.upload.deleteMany({ where: { userId: { in: userIds } } });
-          await tx.workspaceLinkPin.deleteMany({
-            where: { userId: { in: userIds } },
-          });
-          await tx.oAuthClient.deleteMany({
-            where: { clientId: oauthClientId },
-          });
-          await tx.user.deleteMany({ where: { id: { in: userIds } } });
-          await tx.section.deleteMany({ where: { code: marker } });
         });
-      } finally {
-        bucket.objects.clear();
-        bucket.deletedKeys.length = 0;
-      }
-      const failures = settled.flatMap((result) =>
-        result.status === "rejected" ? [result.reason] : [],
-      );
-      if (failures.length)
-        throw new AggregateError(failures, "GraphQL fixture cleanup failed");
+        if (!token) throw new Error("Expected a signed GraphQL access token");
+        return token;
+      });
     }
 
-    try {
-      if (!app || !auth)
-        throw new Error(
-          "GraphQL tests require restricted app and auth database URLs",
-        );
+    await protocolRuntime.run(async () => {
       await db.$transaction(async (tx) => {
-        const source = await tx.section.findUniqueOrThrow({
-          where: { jwId: DEV_SEED.section.jwId },
-          select: { courseId: true, semesterId: true },
+        const semester = await tx.semester.create({
+          data: {
+            jwId: 1,
+            code: "graphql-mutations",
+            nameCn: "GraphQL semester",
+          },
+        });
+        const course = await tx.course.create({
+          data: {
+            jwId: 1,
+            code: "graphql-mutations",
+            nameCn: "GraphQL course",
+          },
         });
         const section = await tx.section.create({
           data: {
-            ...source,
+            courseId: course.id,
+            semesterId: semester.id,
             code: marker,
-            jwId: 1_800_000_000 + Math.floor(Math.random() * 100_000_000),
+            jwId: 1,
           },
         });
         await tx.user.createMany({
@@ -335,29 +271,23 @@ export const graphqlMutationTest = test.extend<{
           ],
         });
       });
-      mcp = await run(() => createMcpHarness(userId));
-      await use({
-        fixturePrisma: db,
-        bucket,
-        marker,
-        userId,
-        otherUserId,
-        oauthClientId,
-        grantId,
-        ownedCommentId,
-        otherCommentId,
-        mcpCommentId,
-        mcp,
-        run,
-        execute,
-        signToken,
-      });
-    } finally {
-      try {
-        await cleanup();
-      } finally {
-        await db.$disconnect();
-      }
-    }
+      await owned.initialize();
+    });
+    await use({
+      fixturePrisma: db,
+      bucket,
+      marker,
+      userId,
+      otherUserId,
+      oauthClientId,
+      grantId,
+      ownedCommentId,
+      otherCommentId,
+      mcpCommentId,
+      mcp: owned.client,
+      run,
+      execute,
+      signToken,
+    });
   },
 });
