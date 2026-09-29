@@ -1,10 +1,13 @@
 import type {
+  CloudflareWorkersModule,
   ExecutionContext,
   KVNamespace,
   MessageBatch,
   R2Bucket,
 } from "@cloudflare/workers-types";
-import productionWorker from "../../../src/worker.js";
+import productionWorker, {
+  PublicSsr as ProductionPublicSsr,
+} from "../../../src/worker.js";
 import {
   handleCalendarConsumerProbe,
   handleCommunityEffectProbe,
@@ -12,7 +15,31 @@ import {
   observeCommunityEffects,
 } from "./community-effect-probe";
 
-export { PublicSsr } from "../../../src/worker.js";
+// The JS production module's inferred type omits its native base constructor.
+type PublicSsrEnv = Parameters<typeof handleCommunityEffectProbe>[1];
+const PublicSsrBase = ProductionPublicSsr as unknown as new (
+  ...args: ConstructorParameters<
+    typeof CloudflareWorkersModule.WorkerEntrypoint<PublicSsrEnv>
+  >
+) => CloudflareWorkersModule.WorkerEntrypoint<PublicSsrEnv> &
+  ProductionPublicSsr;
+
+export class PublicSsr extends PublicSsrBase {
+  async fetch(
+    request: Parameters<ProductionPublicSsr["fetch"]>[0],
+  ): ReturnType<ProductionPublicSsr["fetch"]> {
+    const observed = observeCommunityEffects(
+      request,
+      this.env,
+      this.ctx,
+      "PublicSsr",
+    );
+    // Delegate to the production entrypoint with its native bindings/context.
+    // Its waitUntil work belongs to the initiating request's probe as well.
+    const entrypoint = new PublicSsrBase(observed.context, observed.env);
+    return observed.fetch(() => entrypoint.fetch(request));
+  }
+}
 
 const storagePath = "/__test/storage/uploads";
 const publicationStoragePath = "/__test/storage/publications";
@@ -98,12 +125,14 @@ export default {
     const observed = observeCommunityEffects(request, env, context);
     const url = new URL(request.url);
     if (url.pathname !== storagePath && url.pathname !== publicationStoragePath)
-      return productionWorker.fetch(
-        request,
-        deleteProbes.size
-          ? { ...observed.env, R2_UPLOADS: observeDeletes(env.R2_UPLOADS) }
-          : observed.env,
-        observed.context,
+      return observed.fetch(() =>
+        productionWorker.fetch(
+          request,
+          deleteProbes.size
+            ? { ...observed.env, R2_UPLOADS: observeDeletes(env.R2_UPLOADS) }
+            : observed.env,
+          observed.context,
+        ),
       );
     if (
       env.NODE_ENV !== "test" ||
