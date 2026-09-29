@@ -21,7 +21,7 @@ export const test = workerTest.extend<{
   calendar: CalendarFixture;
   calendarDb: <T>(work: (db: TestPrismaClient) => Promise<T>) => Promise<T>;
   calendarRun: (
-    work: () => Promise<void>,
+    work: Parameters<typeof withHomeworkEffects>[1],
     effects: { accountIndex: 0 | 1; calendarTokenCreated: boolean },
   ) => Promise<void>;
 }>({

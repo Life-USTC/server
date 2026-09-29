@@ -74,7 +74,10 @@ export async function withHomeworkEffects(
     // Consumer scenarios must drain GET waitUntil work before asserting no effects.
     observeReads?: boolean;
   },
-  work: (effects: { headers: Record<string, string> }) => Promise<void>,
+  work: (effects: {
+    headers: Record<string, string>;
+    readHeaders: (incoming: Request) => Record<string, string>;
+  }) => Promise<void>,
 ) {
   const request = page.request;
   const db = isolatedWorker.database.owner;
@@ -101,6 +104,17 @@ export async function withHomeworkEffects(
   const ownedReads = new Map<Request, string>();
   let accepting = true;
   let registered = false;
+
+  function readHeaders(incoming: Request) {
+    const requestId = ownedReads.get(incoming);
+    if (!requestId)
+      throw new Error("Calendar read is not owned by this workflow");
+    return {
+      ...incoming.headers(),
+      ...headers,
+      "x-test-community-request": requestId,
+    };
+  }
 
   function observeRead(incoming: Request) {
     const predecessor = incoming.redirectedFrom();
@@ -362,16 +376,11 @@ export async function withHomeworkEffects(
           !["POST", "PUT", "PATCH", "DELETE"].includes(route.request().method())
         ) {
           if (!observeReads) return route.continue();
-          const requestId = ownedReads.get(route.request());
-          if (!requestId) return route.abort("aborted");
+          if (!ownedReads.has(route.request())) return route.abort("aborted");
           // Native continuation preserves the browser's redirects and carries
           // the probe headers to every request in that chain.
           return route.continue({
-            headers: {
-              ...route.request().headers(),
-              ...headers,
-              "x-test-community-request": requestId,
-            },
+            headers: readHeaders(route.request()),
           });
         }
         let fulfilled = false;
@@ -422,7 +431,7 @@ export async function withHomeworkEffects(
           body: "",
         }),
     );
-    await work({ headers });
+    await work({ headers, readHeaders });
   } catch (error) {
     errors.push(error);
   } finally {
