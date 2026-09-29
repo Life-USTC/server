@@ -1,4 +1,5 @@
-import { unstable_startWorker } from "wrangler";
+import { createRequire } from "node:module";
+import { unstable_readConfig, unstable_startWorker } from "wrangler";
 
 let worker;
 let starting;
@@ -12,7 +13,21 @@ const cancelled = new Promise((_, reject) => {
 void cancelled.catch(() => undefined);
 
 async function start(options) {
-  worker = await unstable_startWorker(options);
+  const config = unstable_readConfig({ config: options.config });
+  const require = createRequire(options.config);
+  // The process owns its temporary build directory. Resolve configured aliases
+  // from the source config before Wrangler bundles from that private directory.
+  worker = await unstable_startWorker({
+    ...options,
+    build: {
+      alias: Object.fromEntries(
+        Object.entries(config.alias ?? {}).map(([name, target]) => [
+          name,
+          require.resolve(target),
+        ]),
+      ),
+    },
+  });
   const fail = (event) => {
     const error =
       event instanceof Error
