@@ -1,112 +1,152 @@
-import type { APIRequestContext } from "@playwright/test";
-import { DEV_SEED } from "../../../fixtures/dev-seed";
-import {
-  createFixturePrisma,
-  type TestPrismaClient,
-} from "../../../shared/prisma";
-import { test as actorTest } from "../_harness/actor";
+import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
+import { test as workerTest } from "../../../e2e/utils/owned-worker";
 
-type Actor = { id: string; request: APIRequestContext };
-type Section = { id: number; jwId: number; code: string; semesterId: number };
-type CalendarState = {
-  db: TestPrismaClient;
-  owner: Actor;
-  other: Actor;
-  section: Section;
-  second: Section;
-  previous: Section;
-  scheduleGroupId: number;
-  teacherId: number;
+export const calendarCatalog = {
+  courseNameCn: "独立订阅课程",
+  teacher: {
+    jwId: 1_800_000_000,
+    nameCn: "独立教师",
+    nameEn: "Private Teacher",
+    departmentNameCn: "独立院系",
+    titleNameCn: "独立职称",
+  },
 };
 
-export const test = actorTest.extend<{ calendarState: CalendarState }>({
-  calendarState: async ({ createActor }, use) => {
-    const db = createFixturePrisma();
-    const marker = `rest-calendar-${crypto.randomUUID()}`;
-    const codes = [0, 1, 2].map((index) => `${marker}-${index}`);
-    try {
-      const owner = await createActor();
-      const other = await createActor();
-      const source = await db.section.findUniqueOrThrow({
-        where: { jwId: DEV_SEED.section.jwId },
-        select: { courseId: true, semesterId: true },
-      });
-      const previousSource = await db.section.findUniqueOrThrow({
-        where: { jwId: DEV_SEED.previousSection.jwId },
-        select: { courseId: true, semesterId: true },
-      });
-      if (source.semesterId === null || previousSource.semesterId === null) {
-        throw new Error("The immutable calendar prerequisites need semesters");
-      }
-      const teacher = await db.teacher.findUniqueOrThrow({
-        where: { jwId: DEV_SEED.teacher.jwId },
-        select: { id: true },
-      });
-      const { section, second, previous, group } = await db.$transaction(
-        async (tx) => {
-          const sections: Section[] = [];
-          for (const [index, data] of [
-            source,
-            source,
-            previousSource,
-          ].entries()) {
-            const semesterId = data.semesterId;
-            if (semesterId === null)
-              throw new Error("Fixture section needs a semester");
-            const created = await tx.section.create({
-              data: {
-                ...data,
-                semesterId,
-                code: codes[index],
-                jwId: 1_800_000_000 + Math.floor(Math.random() * 100_000_000),
-              },
-              select: { id: true, jwId: true, code: true },
-            });
-            sections.push({ ...created, semesterId });
-          }
-          const [section, second, previous] = sections;
-          const group = await tx.scheduleGroup.create({
-            data: {
-              sectionId: section.id,
-              jwId: section.jwId,
-              no: 1,
-              limitCount: 10,
-              stdCount: 0,
-              actualPeriods: 2,
-              isDefault: true,
-            },
-          });
-          return { section, second, previous, group };
-        },
+async function prepareCalendar(worker: IsolatedWorker, assertOpen: () => void) {
+  const db = worker.database.owner;
+  const owner = await worker.createActor();
+  assertOpen();
+  const other = await worker.createActor();
+  assertOpen();
+  const domain = await db.$transaction(async (tx) => {
+    assertOpen();
+    const course = await tx.course.create({
+      data: {
+        jwId: 1_800_000_000,
+        code: "PRIVATE-CALENDAR",
+        nameCn: calendarCatalog.courseNameCn,
+        nameEn: "Private subscription course",
+      },
+    });
+    const department = await tx.department.create({
+      data: {
+        jwId: 1_800_000_000,
+        code: "PRIVATE-DEPARTMENT",
+        nameCn: calendarCatalog.teacher.departmentNameCn,
+      },
+    });
+    const title = await tx.teacherTitle.create({
+      data: {
+        jwId: 1_800_000_000,
+        code: "PRIVATE-TITLE",
+        nameCn: calendarCatalog.teacher.titleNameCn,
+      },
+    });
+    const teacher = await tx.teacher.create({
+      data: {
+        jwId: calendarCatalog.teacher.jwId,
+        nameCn: calendarCatalog.teacher.nameCn,
+        nameEn: calendarCatalog.teacher.nameEn,
+        departmentId: department.id,
+        teacherTitleId: title.id,
+      },
+    });
+    const semesters = [];
+    for (const [index, term] of [
+      {
+        code: "2026-spring",
+        nameCn: "2026年春季学期",
+        start: "2026-02-01",
+        end: "2026-07-01",
+      },
+      {
+        code: "2025-fall",
+        nameCn: "2025年秋季学期",
+        start: "2025-09-01",
+        end: "2026-01-31",
+      },
+    ].entries()) {
+      semesters.push(
+        await tx.semester.create({
+          data: {
+            jwId: 1_800_000_000 + index,
+            code: term.code,
+            nameCn: term.nameCn,
+            startDate: new Date(term.start),
+            endDate: new Date(term.end),
+          },
+        }),
       );
+    }
+    const sections = [];
+    for (const index of [0, 1, 2]) {
+      sections.push(
+        await tx.section.create({
+          data: {
+            jwId: 1_800_000_000 + index,
+            code: `PRIVATE-CALENDAR-${index}`,
+            courseId: course.id,
+            teachers: { connect: { id: teacher.id } },
+            semesterId: semesters[index === 2 ? 1 : 0].id,
+          },
+        }),
+      );
+    }
+    const group = await tx.scheduleGroup.create({
+      data: {
+        sectionId: sections[0].id,
+        jwId: sections[0].jwId,
+        no: 1,
+        limitCount: 10,
+        stdCount: 0,
+        actualPeriods: 2,
+        isDefault: true,
+      },
+    });
+    assertOpen();
+    return { sections, scheduleGroupId: group.id, teacherId: teacher.id };
+  });
+  const [section, second, previous] = domain.sections;
+  return {
+    db,
+    owner,
+    other,
+    section,
+    second,
+    previous,
+    scheduleGroupId: domain.scheduleGroupId,
+    teacherId: domain.teacherId,
+  };
+}
+
+type CalendarState = Awaited<ReturnType<typeof prepareCalendar>>;
+export const test = workerTest.extend<{
+  createActor: IsolatedWorker["createActor"];
+  _calendarSetup: { prepare: () => Promise<CalendarState> };
+  calendarState: CalendarState;
+}>({
+  createActor: async ({ isolatedWorker, run }, use) => {
+    await use((options) => run(() => isolatedWorker.createActor(options)));
+  },
+  _calendarSetup: async ({ isolatedWorker, run }, use) => {
+    let closing = false;
+    const assertOpen = () => {
+      if (closing) throw new Error("Calendar setup is closing");
+    };
+    try {
       await use({
-        db,
-        owner,
-        other,
-        section,
-        second,
-        previous,
-        scheduleGroupId: group.id,
-        teacherId: teacher.id,
+        prepare: () =>
+          run(() => {
+            assertOpen();
+            return prepareCalendar(isolatedWorker, assertOpen);
+          }),
       });
     } finally {
-      try {
-        const sections = await db.section.findMany({
-          where: { code: { in: codes } },
-          select: { id: true },
-        });
-        const sectionIds = sections.map(({ id }) => id);
-        // Schedule and group relations restrict deletion, unlike homework/exam cascades.
-        await db.schedule.deleteMany({
-          where: { sectionId: { in: sectionIds } },
-        });
-        await db.scheduleGroup.deleteMany({
-          where: { sectionId: { in: sectionIds } },
-        });
-        await db.section.deleteMany({ where: { id: { in: sectionIds } } });
-      } finally {
-        await db.$disconnect();
-      }
+      // Cancel before the prerequisite run owner waits for pending setup.
+      closing = true;
     }
+  },
+  calendarState: async ({ _calendarSetup }, use) => {
+    await use(await _calendarSetup.prepare());
   },
 });
