@@ -198,16 +198,21 @@ requirements:
 - id: oauth.rotated-refresh-replay
   category: authorization
   rule: Reusing a rotated refresh token outside the provider-configured bounded retry interval is rejected
-    and never issues new access or refresh credentials.
+    and never issues new access or refresh credentials. Replay invalidates the old consent generation
+    and active credentials while retaining a revoked marker that prevents revival of the old lineage.
   acceptance:
-    given: An authorization code exchanged by the actual token route and then a successfully rotated real
-      refresh token.
-    when: Move its recorded rotation outside the provider retry interval and replay the old token.
+    given: A private Worker with actual HTTP authorization, consent, code exchange, and a successfully
+      rotated real refresh token.
+    when: Move its recorded rotation and retry-window expiry outside the provider retry interval and
+      replay the old token over HTTP.
     then:
-    - The initial rotation issues a distinct replacement refresh token.
+    - The initial rotation issues a distinct replacement refresh token with the same approved resource,
+      scopes, user, client, and grant generation.
     - Replaying the old token returns invalid_grant and no access or refresh token.
+    - The old token remains only as a revoked replay marker; active replacement and access-token rows
+      disappear, and the consent generation changes while its scopes and resources remain unchanged.
     test:
-      file: tests/integration/oauth-resource-binding.test.ts
+      file: tests/integration/rest/oauth/resource-binding.test.ts
       name: oauth.rotated-refresh-replay
 - id: oauth.user-delegated-grants-only
   category: authorization
@@ -732,16 +737,18 @@ requirements:
   rule: Authorization codes retain the resource approved at consent. Token exchange cannot substitute
     a different protected resource.
   acceptance:
-    given: A real public PKCE client, user session row, accepted consent, and authorization codes created
-      by the consent service.
-    when: Exchange MCP-bound codes at the production token route with matching MCP and substituted GraphQL
+    given: A private Worker with a real public PKCE client and session, and authorization codes issued
+      through its actual HTTP authorization and consent endpoints.
+    when: Exchange MCP-bound codes at the real HTTP token route with matching MCP and substituted GraphQL
       resource indicators.
     then:
     - The stored code contains the approved MCP resource; matching exchange returns a token whose audience
-      includes MCP and OIDC userinfo.
-    - Resource substitution returns400 invalid_target without an access token.
+      includes MCP and OIDC userinfo, with the approved user, client, scopes, and grant generation.
+    - Issued refresh tokens persist the approved MCP resource and scopes under that same grant.
+    - Resource substitution returns 400 invalid_target without access or refresh credentials and leaves
+      existing access-token and refresh-token rows unchanged.
     test:
-      file: tests/integration/oauth-resource-binding.test.ts
+      file: tests/integration/rest/oauth/resource-binding.test.ts
       name: oauth.authorization-code-resource-binding
 - id: oauth.refresh-confirmation-binding
   category: authorization
