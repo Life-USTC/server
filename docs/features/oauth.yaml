@@ -221,7 +221,7 @@ requirements:
     - Only authorization_code, refresh_token, and the custom device_code grant are advertised; the device
       endpoint points to the local authorization server.
     test:
-      file: tests/integration/oauth-discovery-contracts.test.ts
+      file: tests/e2e/src/app/oauth/discovery.test.ts
       name: oauth.user-delegated-grants-only
 - id: oauth.client-validation-from-provider
   category: consistency
@@ -402,7 +402,7 @@ requirements:
     - The canonical metadata responses identify the configured issuer or exact MCP/GraphQL resource.
     - MCP HEAD is bodyless and extra root/MCP-relative aliases return 404.
     test:
-      file: tests/integration/oauth-discovery-contracts.test.ts
+      file: tests/e2e/src/app/oauth/discovery.test.ts
       name: oauth.canonical-discovery-paths
   rationale: 'The issuer is /api/auth: RFC 8414 inserts well-known before its path, while OIDC Discovery
     appends openid-configuration to it; both supported issuer-derived forms remain. RFC 9728 inserts well-known
@@ -424,7 +424,7 @@ requirements:
       write scopes are absent.
     - DPoP metadata is absent.
     test:
-      file: tests/integration/oauth-discovery-contracts.test.ts
+      file: tests/e2e/src/app/oauth/discovery.test.ts
       name: oauth.protected-resource-scope-advertisement
 - id: oauth.discovery-cors
   category: behavior
@@ -439,7 +439,7 @@ requirements:
     - Metadata GET succeeds and OPTIONS returns 204; both provide wildcard origin and consistent discovery
       methods/headers.
     test:
-      file: tests/integration/oauth-discovery-contracts.test.ts
+      file: tests/e2e/src/app/oauth/discovery.test.ts
       name: oauth.discovery-cors
 - id: oauth.transport-cors
   category: behavior
