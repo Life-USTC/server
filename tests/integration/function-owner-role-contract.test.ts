@@ -116,6 +116,13 @@ const expectedFunctions = [
   },
   {
     securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.list_section_calendar_subscribers(p_section_id integer, p_after_user_id text, p_batch_size integer)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
     settings: ["search_path=pg_catalog, public"],
     signature:
       "public.list_young_notification_recipients(after_id text, batch_size integer)",
@@ -216,7 +223,6 @@ const expectedTablePrivileges = [
   "public.UploadPending:UPDATE",
   "public.User:DELETE",
   "public.User:SELECT",
-  "public.UserSectionSubscription:SELECT",
   "public.UserSuspension:SELECT",
   "public.VerificationToken:DELETE",
   "public.VerificationToken:SELECT",
@@ -231,6 +237,8 @@ const expectedColumnPrivileges = [
   "public.OAuthRefreshToken:id:UPDATE",
   "public.Session:id:UPDATE",
   "public.User:id:UPDATE",
+  "public.UserSectionSubscription:sectionId:SELECT",
+  "public.UserSectionSubscription:userId:SELECT",
   "public.UserYoungEventSubscription:userId:SELECT",
   "public.UserYoungOrganizerSubscription:userId:SELECT",
   "public.VerificationToken:id:UPDATE",
@@ -696,7 +704,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           checkExpression: null,
           command: "SELECT",
           permissive: "PERMISSIVE",
-          policyName: "UserSectionSubscription_profile_reader",
+          policyName: "UserSectionSubscription_calendar_recipients",
           roles: [functionOwnerRole],
           schemaName: "public",
           tableName: "UserSectionSubscription",
