@@ -424,84 +424,99 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   communityTest(
     "已登录用户可编辑班级简介",
-    async ({ page, account, community }, testInfo) => {
-      const description = await arrangeDescription(
-        "section",
-        community.section.id,
-        account.id,
-      );
-      await gotoAndWaitForReady(
-        page,
-        `/catalog/sections/${community.section.jwId}#introduction`,
-      );
-      const introduction = page.locator("#introduction");
-      await expect(introduction).toBeVisible();
-      await expect(introduction.getByTestId("description-edit")).toBeVisible({
-        timeout: 60_000,
-      });
+    async ({ page, account, community, communityFlow }, testInfo) => {
+      await communityFlow.run(
+        async () => {
+          const description = await arrangeDescription(
+            community.db,
+            "section",
+            community.section.id,
+            account.id,
+          );
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/sections/${community.section.jwId}#introduction`,
+          );
+          const introduction = page.locator("#introduction");
+          await expect(introduction).toBeVisible();
+          await expect(
+            introduction.getByTestId("description-edit"),
+          ).toBeVisible({
+            timeout: 60_000,
+          });
 
-      const content = `e2e-section-desc-${Date.now()}`;
-      const editor = introduction.locator(
-        '[data-slot="markdown-editor"] textarea',
-      );
-      const editButton = introduction.getByTestId("description-edit");
-      await editButton.scrollIntoViewIfNeeded();
-      await editButton.click();
-      await expect(editor).toBeVisible();
-      await editor.fill(content);
-      await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
-      await expect(
-        introduction
-          .getByRole("tabpanel", { name: /预览|Preview/i })
-          .getByText(content),
-      ).toBeVisible();
+          const content = `e2e-section-desc-${Date.now()}`;
+          const editor = introduction.locator(
+            '[data-slot="markdown-editor"] textarea',
+          );
+          const editButton = introduction.getByTestId("description-edit");
+          await editButton.scrollIntoViewIfNeeded();
+          await editButton.click();
+          await expect(editor).toBeVisible();
+          await editor.fill(content);
+          await introduction
+            .getByRole("tab", { name: /预览|Preview/i })
+            .click();
+          await expect(
+            introduction
+              .getByRole("tabpanel", { name: /预览|Preview/i })
+              .getByText(content),
+          ).toBeVisible();
 
-      const saveResponse = page.waitForResponse(
-        (r) =>
-          r.url().includes("/api/community/descriptions") &&
-          r.request().method() === "POST" &&
-          r.status() === 200,
+          const saveResponse = page.waitForResponse(
+            (r) =>
+              r.url().includes("/api/community/descriptions") &&
+              r.request().method() === "POST" &&
+              r.status() === 200,
+          );
+          await introduction
+            .getByRole("button", { name: /保存|Save/i })
+            .click();
+          await saveResponse;
+          await expect(
+            introduction
+              .getByRole("tabpanel", { name: /简介|Description/i })
+              .getByText(content),
+          ).toBeVisible();
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "section/description-updated",
+          );
+          const persisted = await storedDescription(
+            community.db,
+            description.id,
+          );
+          expect(persisted).toMatchObject({
+            content,
+            lastEditedById: account.id,
+            lastEditedAt: expect.any(Date),
+          });
+          expect(persisted?.edits).toEqual([
+            expect.objectContaining({
+              editorId: account.id,
+              previousContent: supplement,
+              nextContent: content,
+            }),
+          ]);
+          await expect
+            .poll(() => storedDescriptionAudits(community.db, description.id))
+            .toEqual([
+              expect.objectContaining({
+                userId: account.id,
+                action: "description_edit",
+                outcome: "success",
+              }),
+            ]);
+          await page.reload();
+          await expect(
+            introduction
+              .getByRole("tabpanel", { name: /简介|Description/i })
+              .getByText(content),
+          ).toBeVisible();
+        },
+        { auditActions: { description_edit: 1 }, catalogPurges: 1 },
       );
-      await introduction.getByRole("button", { name: /保存|Save/i }).click();
-      await saveResponse;
-      await expect(
-        introduction
-          .getByRole("tabpanel", { name: /简介|Description/i })
-          .getByText(content),
-      ).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/description-updated",
-      );
-      const persisted = await storedDescription(description.id);
-      expect(persisted).toMatchObject({
-        content,
-        lastEditedById: account.id,
-        lastEditedAt: expect.any(Date),
-      });
-      expect(persisted?.edits).toEqual([
-        expect.objectContaining({
-          editorId: account.id,
-          previousContent: supplement,
-          nextContent: content,
-        }),
-      ]);
-      await expect
-        .poll(() => storedDescriptionAudits(description.id))
-        .toEqual([
-          expect.objectContaining({
-            userId: account.id,
-            action: "description_edit",
-            outcome: "success",
-          }),
-        ]);
-      await page.reload();
-      await expect(
-        introduction
-          .getByRole("tabpanel", { name: /简介|Description/i })
-          .getByText(content),
-      ).toBeVisible();
     },
   );
 });
