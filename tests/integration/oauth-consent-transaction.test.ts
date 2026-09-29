@@ -1,92 +1,86 @@
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { describe, expect } from "vitest";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
 import { createAcceptedOAuthAuthorization } from "@/features/oauth/server/oauth-consent-action";
-import { authPrisma } from "@/lib/db/auth-prisma";
 import { getOAuthMcpResourceUrl } from "@/lib/oauth/resource-urls";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
-import { createFixturePrisma } from "../shared/prisma";
+import { isolatedNodeTest as test } from "../shared/isolated-node-fixture";
+import type { TestPrismaClient } from "../shared/prisma";
 
-// Direct database access arranges and verifies fixtures; the OAuth services use authPrisma.
-const prisma = createFixturePrisma();
-
-describe("OAuth consent transaction", { concurrent: false }, () => {
-  const marker = crypto.randomUUID();
-  const clientIds: string[] = [];
-  const userIds: string[] = [];
-  const verificationIdentifiers: string[] = [];
+// Private owner access prepares/observes state; consent services retain auth roles.
+function createConsentFixture(prisma: TestPrismaClient) {
+  const marker = "consent";
   const encoder = new TextEncoder();
-
   async function createFixture(label: string, skipConsent = false) {
-    const user = await prisma.user.create({
-      data: {
-        email: `oauth-consent-${label}-${marker}@example.test`,
-        name: `OAuth consent ${label}`,
-      },
-      select: { id: true },
-    });
-    const clientId = `oauth-consent-${label}-${marker}`;
-    await prisma.oAuthClient.create({
-      data: {
-        clientId,
-        name: `OAuth consent ${label}`,
-        grantTypes: ["authorization_code", "refresh_token"],
-        public: true,
-        requirePKCE: true,
-        redirectUris: ["https://client.example/callback"],
-        responseTypes: ["code"],
-        scopes: ["openid", "profile", "workspace.todo:read"],
-        skipConsent,
-        tokenEndpointAuthMethod: "none",
-      },
-    });
-    const consent = await prisma.oAuthConsent.create({
-      data: {
-        clientId,
-        scopes: ["profile"],
-        userId: user.id,
-      },
-      select: { grantId: true, id: true },
-    });
-    const refresh = await prisma.oAuthRefreshToken.create({
-      data: {
-        clientId,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-        grantId: consent.grantId,
-        referenceId: consent.grantId,
-        scopes: ["profile"],
-        token: `refresh-${label}-${marker}`,
-        userId: user.id,
-      },
-      select: { id: true },
-    });
-    await Promise.all([
-      prisma.oAuthAccessToken.create({
+    return prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.create({
+        data: {
+          email: `oauth-consent-${label}-${marker}@example.test`,
+          name: `OAuth consent ${label}`,
+        },
+        select: { id: true },
+      });
+      const clientId = `oauth-consent-${label}-${marker}`;
+      await prisma.oAuthClient.create({
         data: {
           clientId,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          name: `OAuth consent ${label}`,
+          grantTypes: ["authorization_code", "refresh_token"],
+          public: true,
+          requirePKCE: true,
+          redirectUris: ["https://client.example/callback"],
+          responseTypes: ["code"],
+          scopes: ["openid", "profile", "workspace.todo:read"],
+          skipConsent,
+          tokenEndpointAuthMethod: "none",
+        },
+      });
+      const consent = await prisma.oAuthConsent.create({
+        data: {
+          clientId,
+          scopes: ["profile"],
+          userId: user.id,
+        },
+        select: { grantId: true, id: true },
+      });
+      const refresh = await prisma.oAuthRefreshToken.create({
+        data: {
+          clientId,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
           grantId: consent.grantId,
           referenceId: consent.grantId,
-          refreshId: refresh.id,
           scopes: ["profile"],
-          token: `access-${label}-${marker}`,
+          token: `refresh-${label}-${marker}`,
           userId: user.id,
         },
-      }),
-      prisma.deviceCode.create({
-        data: {
-          clientId,
-          deviceCode: `device-${label}-${marker}`,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-          scopes: ["profile"],
-          status: "approved",
-          userCode: `user-code-${label}-${marker}`,
-          userId: user.id,
-        },
-      }),
-    ]);
-    clientIds.push(clientId);
-    userIds.push(user.id);
-    return { clientId, consent, userId: user.id };
+        select: { id: true },
+      });
+      await Promise.all([
+        prisma.oAuthAccessToken.create({
+          data: {
+            clientId,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+            grantId: consent.grantId,
+            referenceId: consent.grantId,
+            refreshId: refresh.id,
+            scopes: ["profile"],
+            token: `access-${label}-${marker}`,
+            userId: user.id,
+          },
+        }),
+        prisma.deviceCode.create({
+          data: {
+            clientId,
+            deviceCode: `device-${label}-${marker}`,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+            scopes: ["profile"],
+            status: "approved",
+            userCode: `user-code-${label}-${marker}`,
+            userId: user.id,
+          },
+        }),
+      ]);
+      return { clientId, consent, userId: user.id };
+    });
   }
 
   function authorizeQuery(clientId: string) {
@@ -180,180 +174,182 @@ describe("OAuth consent transaction", { concurrent: false }, () => {
     });
   }
 
-  afterAll(async () => {
-    await prisma.verificationToken.deleteMany({
-      where: { identifier: { in: verificationIdentifiers } },
-    });
-    await prisma.auditLog.deleteMany({
-      where: { oauthClientId: { in: clientIds } },
-    });
-    await prisma.oAuthClient.deleteMany({
-      where: { clientId: { in: clientIds } },
-    });
-    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-    await Promise.all([prisma.$disconnect(), authPrisma.$disconnect()]);
-  });
+  return {
+    marker,
+    createFixture,
+    authorizeQuery,
+    session,
+    createSessionCookie,
+    expectFixtureUnchanged,
+  };
+}
 
-  it("原子扩展 consent、保留旧凭据并创建 exact-bound code", async () => {
-    const fixture = await createFixture("success");
-    const query = authorizeQuery(fixture.clientId);
-    const resource = getOAuthMcpResourceUrl();
-    query.append("resource", resource);
-    query.set(
-      "claims",
-      JSON.stringify({
-        userinfo: {
-          preferred_username: null,
-          unsupported_claim: null,
-        },
-      }),
-    );
-    const authorization = await createAcceptedOAuthAuthorization({
-      acceptedScopes: ["openid", "profile"],
-      authorizeQuery: query,
-      session: session(fixture.userId),
-    });
-    expect(authorization).not.toBeNull();
-    if (!authorization) throw new Error("Expected authorization");
-
-    const callback = new URL(authorization.redirectTarget);
-    const code = callback.searchParams.get("code");
-    expect(code).toBeTruthy();
-    if (!code) throw new Error("Expected authorization code");
-    const identifier = await hashOAuthClientSecretForDbStorage(code);
-    verificationIdentifiers.push(identifier);
-    const [consent, codeRow, counts] = await Promise.all([
-      prisma.oAuthConsent.findUniqueOrThrow({
-        where: {
-          clientId_userId: {
-            clientId: fixture.clientId,
-            userId: fixture.userId,
+describe("OAuth consent transaction", () => {
+  test("原子扩展 consent、保留旧凭据并创建 exact-bound code", async ({
+    isolatedDatabase: { owner: prisma },
+    nodeRuntime,
+  }) =>
+    nodeRuntime.run(async () => {
+      const {
+        marker,
+        createFixture,
+        authorizeQuery,
+        session,
+        createSessionCookie,
+      } = createConsentFixture(prisma);
+      const fixture = await createFixture("success");
+      const query = authorizeQuery(fixture.clientId);
+      const resource = getOAuthMcpResourceUrl();
+      query.append("resource", resource);
+      query.set(
+        "claims",
+        JSON.stringify({
+          userinfo: {
+            preferred_username: null,
+            unsupported_claim: null,
           },
-        },
-        select: {
-          grantId: true,
-          requestedUserInfoClaims: true,
-          resources: true,
-          scopes: true,
-        },
-      }),
-      prisma.verificationToken.findFirstOrThrow({
-        where: { identifier },
-        select: { token: true },
-      }),
-      Promise.all([
-        prisma.oAuthAccessToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
         }),
-        prisma.oAuthRefreshToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-        prisma.deviceCode.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-      ]),
-    ]);
-
-    expect(consent.grantId).toBe(fixture.consent.grantId);
-    expect(consent.requestedUserInfoClaims).toEqual(["preferred_username"]);
-    expect(consent.resources).toEqual([resource]);
-    expect(consent.scopes).toEqual(["profile", "openid"]);
-    expect(counts).toEqual([1, 1, 1]);
-    expect(JSON.parse(codeRow.token)).toMatchObject({
-      query: {
-        resource,
-      },
-      referenceId: consent.grantId,
-      type: "authorization_code",
-    });
-    await expect(
-      bindOAuthAuthorizationCodeRedirectToActiveGrant(
-        authorization.redirectTarget,
-        fixture.clientId,
-        "https://life.example/oauth/authorize",
-        consent.grantId,
-      ),
-    ).resolves.toBe(true);
-
-    const noResourceQuery = new URLSearchParams(query);
-    noResourceQuery.delete("resource");
-    const noResourceAuthorization = await createAcceptedOAuthAuthorization({
-      acceptedScopes: ["openid", "profile"],
-      authorizeQuery: noResourceQuery,
-      session: session(fixture.userId),
-    });
-    expect(noResourceAuthorization).not.toBeNull();
-    if (!noResourceAuthorization) {
-      throw new Error("Expected authorization without resource");
-    }
-    const noResourceCode = new URL(
-      noResourceAuthorization.redirectTarget,
-    ).searchParams.get("code");
-    expect(noResourceCode).toBeTruthy();
-    if (noResourceCode) {
-      verificationIdentifiers.push(
-        await hashOAuthClientSecretForDbStorage(noResourceCode),
       );
-    }
-    await expect(
-      prisma.oAuthConsent.findUniqueOrThrow({
-        where: {
-          clientId_userId: {
-            clientId: fixture.clientId,
-            userId: fixture.userId,
+      const authorization = await createAcceptedOAuthAuthorization({
+        acceptedScopes: ["openid", "profile"],
+        authorizeQuery: query,
+        session: session(fixture.userId),
+      });
+      expect(authorization).not.toBeNull();
+      if (!authorization) throw new Error("Expected authorization");
+
+      const callback = new URL(authorization.redirectTarget);
+      const code = callback.searchParams.get("code");
+      expect(code).toBeTruthy();
+      if (!code) throw new Error("Expected authorization code");
+      const identifier = await hashOAuthClientSecretForDbStorage(code);
+      const [consent, codeRow, counts] = await Promise.all([
+        prisma.oAuthConsent.findUniqueOrThrow({
+          where: {
+            clientId_userId: {
+              clientId: fixture.clientId,
+              userId: fixture.userId,
+            },
           },
+          select: {
+            grantId: true,
+            requestedUserInfoClaims: true,
+            resources: true,
+            scopes: true,
+          },
+        }),
+        prisma.verificationToken.findFirstOrThrow({
+          where: { identifier },
+          select: { token: true },
+        }),
+        Promise.all([
+          prisma.oAuthAccessToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.oAuthRefreshToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.deviceCode.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+        ]),
+      ]);
+
+      expect(consent.grantId).toBe(fixture.consent.grantId);
+      expect(consent.requestedUserInfoClaims).toEqual(["preferred_username"]);
+      expect(consent.resources).toEqual([resource]);
+      expect(consent.scopes).toEqual(["profile", "openid"]);
+      expect(counts).toEqual([1, 1, 1]);
+      expect(JSON.parse(codeRow.token)).toMatchObject({
+        query: {
+          resource,
         },
-        select: { resources: true },
-      }),
-    ).resolves.toEqual({ resources: [resource] });
+        referenceId: consent.grantId,
+        type: "authorization_code",
+      });
+      await expect(
+        bindOAuthAuthorizationCodeRedirectToActiveGrant(
+          authorization.redirectTarget,
+          fixture.clientId,
+          "https://life.example/oauth/authorize",
+          consent.grantId,
+        ),
+      ).resolves.toBe(true);
 
-    await expect(
-      Promise.all([
-        prisma.oAuthAccessToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
+      const noResourceQuery = new URLSearchParams(query);
+      noResourceQuery.delete("resource");
+      const noResourceAuthorization = await createAcceptedOAuthAuthorization({
+        acceptedScopes: ["openid", "profile"],
+        authorizeQuery: noResourceQuery,
+        session: session(fixture.userId),
+      });
+      expect(noResourceAuthorization).not.toBeNull();
+      if (!noResourceAuthorization) {
+        throw new Error("Expected authorization without resource");
+      }
+      const noResourceCode = new URL(
+        noResourceAuthorization.redirectTarget,
+      ).searchParams.get("code");
+      expect(noResourceCode).toBeTruthy();
+      await expect(
+        prisma.oAuthConsent.findUniqueOrThrow({
+          where: {
+            clientId_userId: {
+              clientId: fixture.clientId,
+              userId: fixture.userId,
+            },
+          },
+          select: { resources: true },
         }),
-        prisma.oAuthRefreshToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-        prisma.deviceCode.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-      ]),
-    ).resolves.toEqual([1, 1, 1]);
+      ).resolves.toEqual({ resources: [resource] });
 
-    const reuseQuery = new URLSearchParams(query);
-    reuseQuery.set("prompt", "none");
-    reuseQuery.set("state", `reuse-${marker}`);
-    const { getBetterAuthInstance } = await import("@/lib/auth/core");
-    const reuseResponse = await getBetterAuthInstance().handler(
-      new Request(
-        `http://localhost:3000/api/auth/oauth2/authorize?${reuseQuery}`,
-        { headers: { cookie: await createSessionCookie(fixture.userId) } },
-      ),
-    );
-    expect(reuseResponse.status).toBe(302);
-    const reuseLocation = new URL(reuseResponse.headers.get("location") ?? "");
-    expect(reuseLocation.searchParams.get("error")).toBeNull();
-    const reuseCode = reuseLocation.searchParams.get("code");
-    expect(typeof reuseCode).toBe("string");
-    if (reuseCode) {
-      verificationIdentifiers.push(
-        await hashOAuthClientSecretForDbStorage(reuseCode),
+      await expect(
+        Promise.all([
+          prisma.oAuthAccessToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.oAuthRefreshToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.deviceCode.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+        ]),
+      ).resolves.toEqual([1, 1, 1]);
+
+      const reuseQuery = new URLSearchParams(query);
+      reuseQuery.set("prompt", "none");
+      reuseQuery.set("state", `reuse-${marker}`);
+      const { getBetterAuthInstance } = await import("@/lib/auth/core");
+      const reuseResponse = await nodeRuntime.run(async () =>
+        getBetterAuthInstance().handler(
+          new Request(
+            `http://localhost:3000/api/auth/oauth2/authorize?${reuseQuery}`,
+            { headers: { cookie: await createSessionCookie(fixture.userId) } },
+          ),
+        ),
       );
-    }
-  });
+      expect(reuseResponse.status).toBe(302);
+      const reuseLocation = new URL(
+        reuseResponse.headers.get("location") ?? "",
+      );
+      expect(reuseLocation.searchParams.get("error")).toBeNull();
+      const reuseCode = reuseLocation.searchParams.get("code");
+      expect(typeof reuseCode).toBe("string");
+    }));
 
-  it("重复 consent 不生成新 grant 或撤销旧凭据", async () => {
-    const fixture = await createFixture("grant-reuse");
-    await prisma.oAuthConsent.update({
-      where: { id: fixture.consent.id },
-      data: { scopes: ["profile", "workspace.todo:read"] },
-    });
-    const randomUuid = vi
-      .spyOn(crypto, "randomUUID")
-      .mockReturnValue("11111111-1111-4111-8111-111111111111");
-
-    try {
+  test("重复 consent 不生成新 grant 或撤销旧凭据", async ({
+    isolatedDatabase: { owner: prisma },
+    nodeRuntime,
+  }) =>
+    nodeRuntime.run(async () => {
+      const { createFixture, authorizeQuery, session } =
+        createConsentFixture(prisma);
+      const fixture = await createFixture("grant-reuse");
+      await prisma.oAuthConsent.update({
+        where: { id: fixture.consent.id },
+        data: { scopes: ["profile", "workspace.todo:read"] },
+      });
       const authorization = await createAcceptedOAuthAuthorization({
         acceptedScopes: ["openid", "profile"],
         authorizeQuery: authorizeQuery(fixture.clientId),
@@ -363,77 +359,77 @@ describe("OAuth consent transaction", { concurrent: false }, () => {
       const code = authorization
         ? new URL(authorization.redirectTarget).searchParams.get("code")
         : null;
-      if (code) {
-        verificationIdentifiers.push(
-          await hashOAuthClientSecretForDbStorage(code),
-        );
-      }
-    } finally {
-      randomUuid.mockRestore();
-    }
-    const [consent, counts] = await Promise.all([
-      prisma.oAuthConsent.findUniqueOrThrow({
-        where: {
-          clientId_userId: {
-            clientId: fixture.clientId,
-            userId: fixture.userId,
+      expect(code).toBeTruthy();
+      const [consent, counts] = await Promise.all([
+        prisma.oAuthConsent.findUniqueOrThrow({
+          where: {
+            clientId_userId: {
+              clientId: fixture.clientId,
+              userId: fixture.userId,
+            },
           },
+          select: { grantId: true, scopes: true },
+        }),
+        Promise.all([
+          prisma.oAuthAccessToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.oAuthRefreshToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.deviceCode.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+        ]),
+      ]);
+      expect(consent).toEqual({
+        grantId: fixture.consent.grantId,
+        scopes: ["profile", "workspace.todo:read", "openid"],
+      });
+      expect(counts).toEqual([1, 1, 1]);
+    }));
+
+  test("authorization code 写入失败时回滚 consent 扩展", async ({
+    isolatedDatabase: { owner: prisma },
+    nodeRuntime,
+  }) =>
+    nodeRuntime.run(async () => {
+      const {
+        marker,
+        createFixture,
+        authorizeQuery,
+        session,
+        expectFixtureUnchanged,
+      } = createConsentFixture(prisma);
+      const fixture = await createFixture("code-rollback");
+      const fixedNow = Date.parse("2026-07-20T01:00:00.000Z");
+      const code = "a".repeat(32);
+      const identifier = await hashOAuthClientSecretForDbStorage(code);
+      const query = authorizeQuery(fixture.clientId);
+      query.set("scope", "openid profile");
+      query.delete("prompt");
+      const token = JSON.stringify({
+        type: "authorization_code",
+        query: Object.fromEntries(query.entries()),
+        userId: fixture.userId,
+        sessionId: `session-${marker}`,
+        referenceId: fixture.consent.grantId,
+        authTime: Date.parse("2026-07-20T00:00:00.000Z"),
+      });
+      await prisma.verificationToken.create({
+        data: {
+          identifier,
+          token,
+          expires: new Date(fixedNow + 10 * 60 * 1000),
         },
-        select: { grantId: true, scopes: true },
-      }),
-      Promise.all([
-        prisma.oAuthAccessToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-        prisma.oAuthRefreshToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-        prisma.deviceCode.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-      ]),
-    ]);
-    expect(consent).toEqual({
-      grantId: fixture.consent.grantId,
-      scopes: ["profile", "workspace.todo:read", "openid"],
-    });
-    expect(counts).toEqual([1, 1, 1]);
-  });
+      });
 
-  it("authorization code 写入失败时回滚 consent 扩展", async () => {
-    const fixture = await createFixture("code-rollback");
-    const fixedNow = Date.parse("2026-07-20T01:00:00.000Z");
-    const code = "a".repeat(32);
-    const identifier = await hashOAuthClientSecretForDbStorage(code);
-    verificationIdentifiers.push(identifier);
-    const query = authorizeQuery(fixture.clientId);
-    query.set("scope", "openid profile");
-    query.delete("prompt");
-    const token = JSON.stringify({
-      type: "authorization_code",
-      query: Object.fromEntries(query.entries()),
-      userId: fixture.userId,
-      sessionId: `session-${marker}`,
-      referenceId: fixture.consent.grantId,
-      authTime: Date.parse("2026-07-20T00:00:00.000Z"),
-    });
-    await prisma.verificationToken.create({
-      data: {
-        identifier,
-        token,
-        expires: new Date(fixedNow + 10 * 60 * 1000),
-      },
-    });
-
-    const randomValues = vi
-      .spyOn(crypto, "getRandomValues")
-      .mockImplementation(((array: Uint8Array) => {
-        array.fill(0);
-        return array;
-      }) as typeof crypto.getRandomValues);
-    const now = vi.spyOn(Date, "now").mockReturnValue(fixedNow);
-
-    try {
+      const beforeCodes = await prisma.verificationToken.findMany();
+      // This private database permits only one verification row. The second
+      // insertion must hit a real unique violation after consent expansion.
+      await prisma.$executeRawUnsafe(
+        'CREATE UNIQUE INDEX consent_one_code ON "VerificationToken" ((1))',
+      );
       await expect(
         createAcceptedOAuthAuthorization({
           acceptedScopes: ["openid", "profile"],
@@ -441,63 +437,70 @@ describe("OAuth consent transaction", { concurrent: false }, () => {
           session: session(fixture.userId),
         }),
       ).rejects.toMatchObject({ code: "P2002" });
-    } finally {
-      randomValues.mockRestore();
-      now.mockRestore();
-    }
-    await expectFixtureUnchanged({
-      clientId: fixture.clientId,
-      grantId: fixture.consent.grantId,
-      userId: fixture.userId,
-    });
-  });
+      await expect(prisma.verificationToken.findMany()).resolves.toEqual(
+        beforeCodes,
+      );
+      await expect(prisma.auditLog.count()).resolves.toBe(0);
+      await expectFixtureUnchanged({
+        clientId: fixture.clientId,
+        grantId: fixture.consent.grantId,
+        userId: fixture.userId,
+      });
+    }));
 
-  it("trusted client 不创建 consent 且保留旧 generation 证据", async () => {
-    const fixture = await createFixture("trusted", true);
-    const authorization = await createAcceptedOAuthAuthorization({
-      acceptedScopes: ["openid", "profile"],
-      authorizeQuery: authorizeQuery(fixture.clientId),
-      session: session(fixture.userId),
-    });
-    expect(authorization).not.toBeNull();
-    if (!authorization) throw new Error("Expected trusted authorization");
+  test("trusted client 不创建 consent 且保留旧 generation 证据", async ({
+    isolatedDatabase: { owner: prisma },
+    nodeRuntime,
+  }) =>
+    nodeRuntime.run(async () => {
+      const { createFixture, authorizeQuery, session } =
+        createConsentFixture(prisma);
+      const fixture = await createFixture("trusted", true);
+      const authorization = await createAcceptedOAuthAuthorization({
+        acceptedScopes: ["openid", "profile"],
+        authorizeQuery: authorizeQuery(fixture.clientId),
+        session: session(fixture.userId),
+      });
+      expect(authorization).not.toBeNull();
+      if (!authorization) throw new Error("Expected trusted authorization");
 
-    const code = new URL(authorization.redirectTarget).searchParams.get("code");
-    if (!code) throw new Error("Expected authorization code");
-    const identifier = await hashOAuthClientSecretForDbStorage(code);
-    verificationIdentifiers.push(identifier);
-    const codeRow = await prisma.verificationToken.findFirstOrThrow({
-      where: { identifier },
-      select: { token: true },
-    });
+      const code = new URL(authorization.redirectTarget).searchParams.get(
+        "code",
+      );
+      if (!code) throw new Error("Expected authorization code");
+      const identifier = await hashOAuthClientSecretForDbStorage(code);
+      const codeRow = await prisma.verificationToken.findFirstOrThrow({
+        where: { identifier },
+        select: { token: true },
+      });
 
-    const [consentCount, accessCount, refreshCount, deviceCount] =
-      await Promise.all([
-        prisma.oAuthConsent.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-        prisma.oAuthAccessToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-        prisma.oAuthRefreshToken.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
-        prisma.deviceCode.count({
-          where: { clientId: fixture.clientId, userId: fixture.userId },
-        }),
+      const [consentCount, accessCount, refreshCount, deviceCount] =
+        await Promise.all([
+          prisma.oAuthConsent.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.oAuthAccessToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.oAuthRefreshToken.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+          prisma.deviceCode.count({
+            where: { clientId: fixture.clientId, userId: fixture.userId },
+          }),
+        ]);
+      expect([consentCount, accessCount, refreshCount, deviceCount]).toEqual([
+        0, 1, 1, 1,
       ]);
-    expect([consentCount, accessCount, refreshCount, deviceCount]).toEqual([
-      0, 1, 1, 1,
-    ]);
-    const stored = JSON.parse(codeRow.token);
-    expect(stored.referenceId).toBe(authorization.expectedGrantId);
-    await expect(
-      bindOAuthAuthorizationCodeRedirectToActiveGrant(
-        authorization.redirectTarget,
-        fixture.clientId,
-        "https://life.example/oauth/authorize",
-        authorization.expectedGrantId,
-      ),
-    ).resolves.toBe(true);
-  });
+      const stored = JSON.parse(codeRow.token);
+      expect(stored.referenceId).toBe(authorization.expectedGrantId);
+      await expect(
+        bindOAuthAuthorizationCodeRedirectToActiveGrant(
+          authorization.redirectTarget,
+          fixture.clientId,
+          "https://life.example/oauth/authorize",
+          authorization.expectedGrantId,
+        ),
+      ).resolves.toBe(true);
+    }));
 });
