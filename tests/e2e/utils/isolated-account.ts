@@ -1,7 +1,7 @@
 import { test as base } from "@playwright/test";
 import type { User } from "../../../src/generated/prisma-node/client";
 import { withE2ePrisma } from "./e2e-db/prisma";
-import { createSignedSessionCookie } from "./workspace-task-filters";
+import { createSignedSessionCookie } from "./signed-session-cookie";
 
 /** Only tests requesting account receive a fresh signed-in identity. */
 export const test = base.extend<{ account: User }>({

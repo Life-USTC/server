@@ -12,8 +12,8 @@ import {
 } from "../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 import { parseTextContent } from "../api/mcp/helpers";
 
 async function createActors() {

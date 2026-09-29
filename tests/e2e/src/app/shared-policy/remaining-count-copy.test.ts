@@ -6,7 +6,7 @@ import {
   resetCountSubscriptions,
   setCountPublications,
 } from "../../../utils/remaining-count-policy-fixture";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 test("ui.localized-count-copy-1", async ({ page, baseURL }, testInfo) => {
   test.setTimeout(300_000);

@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createWorkspaceTaskFilterFixture } from "../../../utils/workspace-task-filters";
+import { test as taskFilterTest } from "../../../utils/workspace-task-filters";
 
 const viewports = [
   { width: 1280, height: 900 },
@@ -331,90 +331,102 @@ test("ui.public-legal-help-navigation", async ({ page }) => {
   }
 });
 
-test("ui.workspace-filters-and-empty-states-3", async ({ page }) => {
-  const fixture = await createWorkspaceTaskFilterFixture(page, {
-    includePending: false,
-  });
-  try {
-    for (const viewport of viewports) {
-      await page.setViewportSize(viewport);
-      for (const tab of ["homeworks", "todos", "exams"]) {
-        await gotoAndWaitForReady(page, `/workspace/${tab}`);
-        const clear = page
-          .getByRole("button", { name: /清除筛选|Clear filter/i })
-          .filter({ visible: true });
-        const empty = page
-          .locator('[data-slot="empty"]')
-          .filter({ has: clear });
-        await expect(empty).toBeVisible();
-        await expect(empty.locator("svg, img")).toHaveCount(0);
-        expect(
-          await empty.evaluate((node) => ({
-            background: getComputedStyle(node).backgroundColor,
-            align: getComputedStyle(node).textAlign,
-          })),
-        ).toEqual({ background: "rgba(0, 0, 0, 0)", align: "left" });
-        const description = empty.locator('[data-slot="empty-description"]');
-        await expect(description).toBeVisible();
-        const descriptionBox = await description.boundingBox();
-        const clearBox = await clear.boundingBox();
-        if (!descriptionBox || !clearBox)
-          throw new Error("Missing empty-state geometry");
-        expect(clearBox.y).toBeGreaterThan(
-          descriptionBox.y + descriptionBox.height,
-        );
-        expect(
-          await clear.evaluate((node) =>
-            Number.parseFloat(getComputedStyle(node).borderTopWidth),
-          ),
-        ).toBeGreaterThan(0);
-        if (viewport.width >= 768)
-          await expect(page.getByRole("columnheader").first()).toBeVisible();
-      }
-    }
-  } finally {
-    await fixture.cleanup();
-  }
-});
+taskFilterTest(
+  "ui.workspace-filters-and-empty-states-3",
+  async ({ page, taskFilterState, taskFilterRun }) => {
+    await taskFilterState(false);
+    await taskFilterRun(
+      async () => {
+        for (const viewport of viewports) {
+          await page.setViewportSize(viewport);
+          for (const tab of ["homeworks", "todos", "exams"]) {
+            await gotoAndWaitForReady(page, `/workspace/${tab}`);
+            const clear = page
+              .getByRole("button", { name: /清除筛选|Clear filter/i })
+              .filter({ visible: true });
+            const empty = page
+              .locator('[data-slot="empty"]')
+              .filter({ has: clear });
+            await expect(empty).toBeVisible();
+            await expect(empty.locator("svg, img")).toHaveCount(0);
+            expect(
+              await empty.evaluate((node) => ({
+                background: getComputedStyle(node).backgroundColor,
+                align: getComputedStyle(node).textAlign,
+              })),
+            ).toEqual({ background: "rgba(0, 0, 0, 0)", align: "left" });
+            const description = empty.locator(
+              '[data-slot="empty-description"]',
+            );
+            await expect(description).toBeVisible();
+            const descriptionBox = await description.boundingBox();
+            const clearBox = await clear.boundingBox();
+            if (!descriptionBox || !clearBox)
+              throw new Error("Missing empty-state geometry");
+            expect(clearBox.y).toBeGreaterThan(
+              descriptionBox.y + descriptionBox.height,
+            );
+            expect(
+              await clear.evaluate((node) =>
+                Number.parseFloat(getComputedStyle(node).borderTopWidth),
+              ),
+            ).toBeGreaterThan(0);
+            if (viewport.width >= 768)
+              await expect(
+                page.getByRole("columnheader").first(),
+              ).toBeVisible();
+          }
+        }
+      },
+      { calendarMessages: [], calendarTokenCreated: true },
+    );
+  },
+);
 
-test("ui.workspace-filters-and-empty-states-5", async ({ page }) => {
-  const fixture = await createWorkspaceTaskFilterFixture(page, {
-    includePending: false,
-  });
-  try {
-    for (const tab of ["homeworks", "todos", "exams"]) {
-      await gotoAndWaitForReady(page, `/workspace/${tab}`);
-      const clear = page
-        .getByRole("button", { name: /清除筛选|Clear filter/i })
-        .filter({ visible: true });
-      const empty = page.locator('[data-slot="empty"]').filter({ has: clear });
-      await expect(empty.locator('[data-slot="empty-title"]')).toHaveText(/.+/);
-      await expect(empty.locator('[data-slot="empty-description"]')).toHaveText(
-        /.+/,
-      );
-      await clear.click();
-      await expect(
-        page.locator('[data-slot="toggle-group"] [aria-checked="true"]'),
-      ).toHaveAttribute("data-value", "all");
-      await expect(clear).toHaveCount(0);
-      await expect(
-        page
-          .locator(
-            tab === "exams"
-              ? '[data-testid="room-map-preview"]'
-              : "#main-content",
-          )
-          .filter({
-            hasText:
-              fixture.completedTitle[
-                tab as keyof typeof fixture.completedTitle
-              ],
-          })
-          .filter({ visible: true })
-          .first(),
-      ).toBeVisible();
-    }
-  } finally {
-    await fixture.cleanup();
-  }
-});
+taskFilterTest(
+  "ui.workspace-filters-and-empty-states-5",
+  async ({ page, taskFilterState, taskFilterRun }) => {
+    const fixture = await taskFilterState(false);
+    await taskFilterRun(
+      async () => {
+        for (const tab of ["homeworks", "todos", "exams"]) {
+          await gotoAndWaitForReady(page, `/workspace/${tab}`);
+          const clear = page
+            .getByRole("button", { name: /清除筛选|Clear filter/i })
+            .filter({ visible: true });
+          const empty = page
+            .locator('[data-slot="empty"]')
+            .filter({ has: clear });
+          await expect(empty.locator('[data-slot="empty-title"]')).toHaveText(
+            /.+/,
+          );
+          await expect(
+            empty.locator('[data-slot="empty-description"]'),
+          ).toHaveText(/.+/);
+          await clear.click();
+          await expect(
+            page.locator('[data-slot="toggle-group"] [aria-checked="true"]'),
+          ).toHaveAttribute("data-value", "all");
+          await expect(clear).toHaveCount(0);
+          await expect(
+            page
+              .locator(
+                tab === "exams"
+                  ? '[data-testid="room-map-preview"]'
+                  : "#main-content",
+              )
+              .filter({
+                hasText:
+                  fixture.completedTitle[
+                    tab as keyof typeof fixture.completedTitle
+                  ],
+              })
+              .filter({ visible: true })
+              .first(),
+          ).toBeVisible();
+        }
+      },
+      { calendarMessages: [], calendarTokenCreated: true },
+    );
+  },
+);

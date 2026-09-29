@@ -12,7 +12,7 @@ import {
 } from "../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 test("rendering-and-cache.personal-overlays-9", async ({
   playwright,

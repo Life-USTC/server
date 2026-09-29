@@ -11,7 +11,7 @@ import {
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 test("user.account-security-activity", async ({ page }) => {
   const marker = `security-view-${crypto.randomUUID()}`;

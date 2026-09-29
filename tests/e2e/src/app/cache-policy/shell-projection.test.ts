@@ -14,7 +14,7 @@ import {
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 async function createUsers() {
   return withE2ePrisma(async (db) => {

@@ -8,7 +8,7 @@ import {
   assertPriorityView,
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 function required<T>(value: T | null | undefined): T {
   if (value == null) throw new Error("Missing priority fixture field");

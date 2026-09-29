@@ -49,7 +49,7 @@ requirements:
     - Anonymous REST and MCP reads are rejected and GraphQL returns no workspace; anonymous and
       read-scope writes across all three HTTP transports are rejected before changing stored state.
     test:
-      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      file: tests/integration/mcp/workspace/young-workspace-ownership.test.ts
       name: young-workspace.ownership
 - id: young-workspace.list-transport-pagination
   category: consistency
@@ -145,7 +145,7 @@ requirements:
     - 'Every successful REST response uses Cache-Control: private, no-store.'
     - Lists retain actual personal data and individual subscribed state remains correct.
     test:
-      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      file: tests/integration/mcp/workspace/young-workspace-private-response-cache.test.ts
       name: young-workspace.private-response-cache
 - id: young-workspace.reminder-deadline-window
   category: behavior
@@ -268,7 +268,7 @@ requirements:
       personal item identities.
     - The other owner’s REST calendar contains only their subscribed activity.
     test:
-      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      file: tests/integration/mcp/workspace/young-workspace-calendar-pagination.test.ts
       name: young-workspace.calendar-transport-pagination
 capabilities:
   workspace-young-event-subscription-list:
