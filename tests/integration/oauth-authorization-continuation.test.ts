@@ -1,134 +1,9 @@
-import { makeSignature } from "better-auth/crypto";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { authPostRoute } from "@/lib/api/routes/auth";
+import { describe, expect } from "vitest";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
-import { createFixturePrisma } from "../shared/prisma";
+import { continuationTest } from "../shared/oauth-continuation-fixture";
 
-const fixturePrisma = createFixturePrisma();
-
-const { authHandlerMock, authSecret, getSessionFromHeadersMock } = vi.hoisted(
-  () => ({
-    authHandlerMock: vi.fn(),
-    authSecret:
-      "oauth-authorization-continuation-test-secret-at-least-32-bytes",
-    getSessionFromHeadersMock: vi.fn(),
-  }),
-);
-
-vi.mock("@/lib/auth/core", () => ({
-  betterAuthInstance: {
-    $context: Promise.resolve({ secret: authSecret }),
-    handler: authHandlerMock,
-  },
-  getSessionFromHeaders: getSessionFromHeadersMock,
-}));
-
-describe("OAuth authorization continuation grant binding", {
-  concurrent: false,
-}, () => {
-  const marker = crypto.randomUUID();
-  const clientId = `oauth-continuation-${marker}`;
-  const verificationIdentifiers: string[] = [];
-  let grantId = "";
-  let userId = "";
-
-  async function signedOAuthQuery(prompt: string, state: string) {
-    const query = new URLSearchParams({
-      response_type: "code",
-      client_id: clientId,
-      redirect_uri: "https://client.example/callback",
-      scope: "profile",
-      state,
-      prompt,
-      code_challenge: "integration-code-challenge",
-      code_challenge_method: "S256",
-      exp: String(Math.floor(Date.now() / 1000) + 600),
-    });
-    for (const name of [...new Set([...query.keys(), "ba_param"])].sort()) {
-      query.append("ba_param", name);
-    }
-    const canonical = new URLSearchParams(
-      [...query.entries()].sort(([keyA, valueA], [keyB, valueB]) => {
-        if (keyA < keyB) return -1;
-        if (keyA > keyB) return 1;
-        if (valueA < valueB) return -1;
-        if (valueA > valueB) return 1;
-        return 0;
-      }),
-    );
-    query.set("sig", await makeSignature(canonical.toString(), authSecret));
-    return query.toString();
-  }
-
-  beforeAll(async () => {
-    const user = await fixturePrisma.user.create({
-      data: {
-        email: `oauth-continuation-${marker}@example.test`,
-        name: "OAuth continuation user",
-      },
-      select: { id: true },
-    });
-    userId = user.id;
-    await fixturePrisma.oAuthClient.create({
-      data: {
-        clientId,
-        name: "OAuth continuation client",
-        redirectUris: ["https://client.example/callback"],
-        scopes: ["profile"],
-      },
-    });
-    const consent = await fixturePrisma.oAuthConsent.create({
-      data: {
-        clientId,
-        scopes: ["profile"],
-        userId,
-      },
-      select: { grantId: true },
-    });
-    grantId = consent.grantId;
-    getSessionFromHeadersMock.mockResolvedValue({ user: { id: userId } });
-
-    authHandlerMock.mockImplementation(async (request: Request) => {
-      const body = (await request.clone().json()) as {
-        oauth_query: string;
-      };
-      const signed = new URLSearchParams(body.oauth_query);
-      const state = signed.get("state") ?? "";
-      for (const field of ["sig", "exp", "ba_iat", "ba_pl", "ba_param"]) {
-        signed.delete(field);
-      }
-      const code = `continuation-${state}-${marker}`;
-      const identifier = await hashOAuthClientSecretForDbStorage(code);
-      verificationIdentifiers.push(identifier);
-      await fixturePrisma.verificationToken.create({
-        data: {
-          identifier,
-          token: JSON.stringify({
-            type: "authorization_code",
-            query: Object.fromEntries(signed.entries()),
-            userId,
-            sessionId: `session-${marker}`,
-          }),
-          expires: new Date(Date.now() + 10 * 60 * 1000),
-        },
-      });
-      return Response.json({
-        redirect: true,
-        url: `https://client.example/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
-      });
-    });
-  });
-
-  afterAll(async () => {
-    await fixturePrisma.verificationToken.deleteMany({
-      where: { identifier: { in: verificationIdentifiers } },
-    });
-    await fixturePrisma.oAuthClient.deleteMany({ where: { clientId } });
-    await fixturePrisma.user.deleteMany({ where: { id: userId } });
-    await fixturePrisma.$disconnect();
-  });
-
-  it.each([
+describe("OAuth authorization continuation grant binding", () => {
+  for (const entry of [
     {
       body: { login: true },
       name: "login",
@@ -153,66 +28,84 @@ describe("OAuth authorization continuation grant binding", {
       path: "/api/auth/oauth2/continue",
       prompt: "consent",
     },
-  ])(
-    "真实 binder 为 $name continuation 绑定委托前 generation",
-    async (entry) => {
-      const state = `${entry.name}-${marker}`;
-      const oauthQuery = await signedOAuthQuery(entry.prompt, state);
-      const request = new Request(`https://life.example${entry.path}`, {
-        body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
-        headers: { "content-type": "application/json" },
-        method: "POST",
-      });
+  ]) {
+    continuationTest(
+      `真实 binder 为 ${entry.name} continuation 绑定委托前 generation`,
+      async ({
+        continuation,
+        continuationRuntime,
+        isolatedDatabase: { owner: fixturePrisma },
+      }) => {
+        await continuationRuntime.run(async () => {
+          const { marker, userId, grantId, signedOAuthQuery } = continuation;
+          const state = `${entry.name}-${marker}`;
+          const oauthQuery = await signedOAuthQuery(entry.prompt, state);
+          const request = new Request(`https://life.example${entry.path}`, {
+            body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
+            headers: { "content-type": "application/json" },
+            method: "POST",
+          });
 
-      const response = await authPostRoute(request);
-      expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toMatchObject({
-        url: expect.stringContaining("code="),
-      });
+          const response = await continuation.authorize(request);
+          expect(response.status).toBe(200);
+          await expect(response.json()).resolves.toMatchObject({
+            url: expect.stringContaining("code="),
+          });
 
-      const code = `continuation-${state}-${marker}`;
-      const row = await fixturePrisma.verificationToken.findFirstOrThrow({
-        where: {
-          identifier: await hashOAuthClientSecretForDbStorage(code),
-        },
-        select: { token: true },
-      });
-      expect(JSON.parse(row.token)).toMatchObject({
-        referenceId: grantId,
-        type: "authorization_code",
-        userId,
+          const code = `continuation-${state}-${marker}`;
+          const row = await fixturePrisma.verificationToken.findFirstOrThrow({
+            where: {
+              identifier: await hashOAuthClientSecretForDbStorage(code),
+            },
+            select: { token: true },
+          });
+          expect(JSON.parse(row.token)).toMatchObject({
+            referenceId: grantId,
+            type: "authorization_code",
+            userId,
+          });
+        });
+      },
+    );
+  }
+  continuationTest(
+    "login 前无 session 时绑定登录后 code user 的当前 generation",
+    async ({
+      continuation,
+      continuationRuntime,
+      isolatedDatabase: { owner: fixturePrisma },
+    }) => {
+      await continuationRuntime.run(async () => {
+        const { marker, userId, grantId, signedOAuthQuery } = continuation;
+        const state = `logged-out-login-${marker}`;
+        const request = new Request(
+          "https://life.example/api/auth/sign-in/passkey",
+          {
+            body: JSON.stringify({
+              login: true,
+              oauth_query: await signedOAuthQuery("login", state),
+            }),
+            headers: { "content-type": "application/json" },
+            method: "POST",
+          },
+        );
+
+        const response = await continuation.authorize(request, false);
+        expect(response.status).toBe(200);
+        await response.text();
+        const code = `continuation-${state}-${marker}`;
+        const row = await fixturePrisma.verificationToken.findFirstOrThrow({
+          where: {
+            identifier: await hashOAuthClientSecretForDbStorage(code),
+          },
+          select: { token: true },
+        });
+        expect(JSON.parse(row.token)).toMatchObject({
+          referenceId: grantId,
+          type: "authorization_code",
+          userId,
+        });
       });
     },
   );
-
-  it("login 前无 session 时绑定登录后 code user 的当前 generation", async () => {
-    getSessionFromHeadersMock.mockResolvedValueOnce(null);
-    const state = `logged-out-login-${marker}`;
-    const request = new Request(
-      "https://life.example/api/auth/sign-in/passkey",
-      {
-        body: JSON.stringify({
-          login: true,
-          oauth_query: await signedOAuthQuery("login", state),
-        }),
-        headers: { "content-type": "application/json" },
-        method: "POST",
-      },
-    );
-
-    const response = await authPostRoute(request);
-    expect(response.status).toBe(200);
-    const code = `continuation-${state}-${marker}`;
-    const row = await fixturePrisma.verificationToken.findFirstOrThrow({
-      where: {
-        identifier: await hashOAuthClientSecretForDbStorage(code),
-      },
-      select: { token: true },
-    });
-    expect(JSON.parse(row.token)).toMatchObject({
-      referenceId: grantId,
-      type: "authorization_code",
-      userId,
-    });
-  });
 });
