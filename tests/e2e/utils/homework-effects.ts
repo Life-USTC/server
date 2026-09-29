@@ -5,6 +5,7 @@ type CalendarMessage =
   | { type: "section"; sectionId: number }
   | { type: "user"; userId: string };
 export type HomeworkEffects = {
+  calendarTokenCreated?: boolean;
   calendarMessages: CalendarMessage[];
   auditActions?: Partial<
     Record<
@@ -45,6 +46,7 @@ export async function withHomeworkEffects(
     sectionId,
     testInfo,
     calendarMessages,
+    calendarTokenCreated = false,
     auditActions = {},
   }: HomeworkEffects & {
     page: Page;
@@ -154,8 +156,10 @@ export async function withHomeworkEffects(
       where: { id: account.id },
     });
     const expectedActions: Record<string, number> = { ...auditActions };
-    if (actor.calendarFeedToken)
-      expectedActions.account_calendar_token_create = 1;
+    expect(actor.calendarFeedToken).toEqual(
+      calendarTokenCreated ? expect.any(String) : null,
+    );
+    if (calendarTokenCreated) expectedActions.account_calendar_token_create = 1;
     const readAudits = () =>
       db.auditLog.findMany({
         where: { userId: account.id },
@@ -202,6 +206,7 @@ export async function withHomeworkEffects(
     expect(actualActions).toEqual(expectedActions);
     return {
       calendarMessages,
+      calendarTokenCreated,
       auditActions,
       producer,
       consumer,
