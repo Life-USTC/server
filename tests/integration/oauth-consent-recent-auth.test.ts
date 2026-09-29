@@ -192,105 +192,108 @@ for (const { name, expansion, state } of [
     state: "expired",
   },
 ] as const) {
-  isolatedNodeTest(name, async ({ isolatedDatabase, nodeRuntime }) => {
-    const db = isolatedDatabase.owner;
-    const f = await nodeRuntime.run(() =>
-      createConsentFixture(db, expansion, crypto.randomUUID()),
-    );
-    // Prime the same per-request session cache used by authenticated request hooks.
-    expect(
-      (await nodeRuntime.run(() => getSessionFromHeaders(f.request.headers)))
-        ?.user.id,
-    ).toBe(f.userId);
-    if (state === "revoked")
-      await db.session.delete({ where: { id: f.session.id } });
-    else if (state === "expired")
-      await db.session.update({
-        where: { id: f.session.id },
-        data: { expires: new Date(0) },
-      });
-    else if (state !== "fresh")
-      await db.session.update({
-        where: { id: f.session.id },
-        data: {
-          createdAt: new Date(
-            Date.now() +
-              (state === "future"
-                ? 60_000
-                : state === "boundary"
-                  ? -900_000
-                  : -1_800_000),
-          ),
-        },
-      });
-
-    // Keep the same Headers identity: the hook cache still contains the
-    // original session even after its persisted row changes.
-    expect(
-      (await nodeRuntime.run(() => getSessionFromHeaders(f.request.headers)))
-        ?.user.id,
-    ).toBe(f.userId);
-    // A real request boundary drains the denied audit before DB observation.
-    const result = await nodeRuntime
-      .run(() =>
-        submitOAuthConsentAction({
-          request: f.request,
-        }),
-      )
-      .catch((error: unknown) => error);
-    expect(result).toMatchObject({ status: 303 });
-    const location = (result as { location: string }).location;
-    const [consent, codes, audits] = await Promise.all([
-      db.oAuthConsent.findUnique({
-        where: {
-          clientId_userId: { clientId: f.clientId, userId: f.userId },
-        },
-      }),
-      db.verificationToken.findMany({
-        where: { token: { contains: f.clientId } },
-      }),
-      db.auditLog.findMany({ where: { oauthClientId: f.clientId } }),
-    ]);
-    if (state === "fresh") {
-      const callback = new URL(location);
-      expect(callback.origin).toBe("https://client.example");
-      expect(callback.searchParams.get("code")).toBeTruthy();
-      expect(consent?.scopes).toEqual(["profile", "email"]);
-      if (f.consent) expect(consent?.grantId).toBe(f.consent.grantId);
-      expect(codes).toHaveLength(1);
-      expect(JSON.parse(codes[0].token)).toMatchObject({
-        userId: f.userId,
-        sessionId: f.session.id,
-        referenceId: consent?.grantId,
-      });
-      expect(audits).toEqual([
-        expect.objectContaining({ outcome: "success", userId: f.userId }),
-      ]);
-    } else {
-      expect(location, `${expansion}:${state}`).toBe(
-        "/error?error=recent_auth_required",
+  isolatedNodeTest(name, async ({ isolatedDatabase, nodeRuntime }) =>
+    // Own fixture writes and final DB observations as well as each request.
+    nodeRuntime.run(async () => {
+      const db = isolatedDatabase.owner;
+      const f = await nodeRuntime.run(() =>
+        createConsentFixture(db, expansion, crypto.randomUUID()),
       );
-      expect(codes).toHaveLength(0);
-      expect(consent).toEqual(f.consent);
-      if (state === "stale" || state === "boundary" || state === "future") {
-        expect(audits).toEqual([
-          expect.objectContaining({
-            action: expansion
-              ? "oauth_authorization_update"
-              : "oauth_authorization_grant",
-            channel: "web",
-            outcome: "denied",
-            userId: f.userId,
-            sessionId: f.session.id,
-            metadata: {
-              reason:
-                state === "future" ? "unauthenticated" : "session_not_fresh",
-            },
+      // Prime the same per-request session cache used by authenticated request hooks.
+      expect(
+        (await nodeRuntime.run(() => getSessionFromHeaders(f.request.headers)))
+          ?.user.id,
+      ).toBe(f.userId);
+      if (state === "revoked")
+        await db.session.delete({ where: { id: f.session.id } });
+      else if (state === "expired")
+        await db.session.update({
+          where: { id: f.session.id },
+          data: { expires: new Date(0) },
+        });
+      else if (state !== "fresh")
+        await db.session.update({
+          where: { id: f.session.id },
+          data: {
+            createdAt: new Date(
+              Date.now() +
+                (state === "future"
+                  ? 60_000
+                  : state === "boundary"
+                    ? -900_000
+                    : -1_800_000),
+            ),
+          },
+        });
+
+      // Keep the same Headers identity: the hook cache still contains the
+      // original session even after its persisted row changes.
+      expect(
+        (await nodeRuntime.run(() => getSessionFromHeaders(f.request.headers)))
+          ?.user.id,
+      ).toBe(f.userId);
+      // A real request boundary drains the denied audit before DB observation.
+      const result = await nodeRuntime
+        .run(() =>
+          submitOAuthConsentAction({
+            request: f.request,
           }),
+        )
+        .catch((error: unknown) => error);
+      expect(result).toMatchObject({ status: 303 });
+      const location = (result as { location: string }).location;
+      const [consent, codes, audits] = await Promise.all([
+        db.oAuthConsent.findUnique({
+          where: {
+            clientId_userId: { clientId: f.clientId, userId: f.userId },
+          },
+        }),
+        db.verificationToken.findMany({
+          where: { token: { contains: f.clientId } },
+        }),
+        db.auditLog.findMany({ where: { oauthClientId: f.clientId } }),
+      ]);
+      if (state === "fresh") {
+        const callback = new URL(location);
+        expect(callback.origin).toBe("https://client.example");
+        expect(callback.searchParams.get("code")).toBeTruthy();
+        expect(consent?.scopes).toEqual(["profile", "email"]);
+        if (f.consent) expect(consent?.grantId).toBe(f.consent.grantId);
+        expect(codes).toHaveLength(1);
+        expect(JSON.parse(codes[0].token)).toMatchObject({
+          userId: f.userId,
+          sessionId: f.session.id,
+          referenceId: consent?.grantId,
+        });
+        expect(audits).toEqual([
+          expect.objectContaining({ outcome: "success", userId: f.userId }),
         ]);
+      } else {
+        expect(location, `${expansion}:${state}`).toBe(
+          "/error?error=recent_auth_required",
+        );
+        expect(codes).toHaveLength(0);
+        expect(consent).toEqual(f.consent);
+        if (state === "stale" || state === "boundary" || state === "future") {
+          expect(audits).toEqual([
+            expect.objectContaining({
+              action: expansion
+                ? "oauth_authorization_update"
+                : "oauth_authorization_grant",
+              channel: "web",
+              outcome: "denied",
+              userId: f.userId,
+              sessionId: f.session.id,
+              metadata: {
+                reason:
+                  state === "future" ? "unauthenticated" : "session_not_fresh",
+              },
+            }),
+          ]);
+        }
       }
-    }
-  });
+    }),
+  );
 }
 it("oauth.authorization-management.recent-auth-copy", () => {
   expect(getOAuthCopy("en-us").errorRecentAuthRequired).toContain(
