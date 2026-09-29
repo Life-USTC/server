@@ -26,8 +26,7 @@ not retried. Wrangler output, child status, and health probes are retained
 under `playwright-report/worker/` for CI artifact inspection.
 
 The side-effect-free description reads in `description.public-web-personal-overlay`
-and OpenAPI/schedule/group reads in `section.schedule-response-schema` use
-Playwright's per-request `maxRetries: 1`. This recovers one `ECONNRESET` transport
+use Playwright's per-request `maxRetries: 1`. This recovers one `ECONNRESET` transport
 failure from a closed pooled connection; it does not retry HTTP errors, test
 bodies, or business assertions. Keep it explicit on these reads, never in a
 shared request wrapper or blanket GET policy: even a GET such as catalog link
