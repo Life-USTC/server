@@ -326,7 +326,7 @@ requirements:
     - Scope downselection to profile removes implicit binding; scope escalation from a profile-only stored
       grant cannot create it.
     test:
-      file: tests/integration/oauth-resource-binding.test.ts
+      file: tests/integration/oauth-refresh-resource-contracts.test.ts
       name: oauth.mcp-refresh-resource-binding
 - id: oauth.token-endpoint-observability
   category: privacy
@@ -761,7 +761,7 @@ requirements:
     - Malformed or conflicting confirmations, dropped sender constraint, inconsistent token types, and
       invalid signatures produce no replacement.
     test:
-      file: tests/integration/oauth-resource-binding.test.ts
+      file: tests/integration/oauth-refresh-resource-contracts.test.ts
       name: oauth.refresh-confirmation-binding
 capabilities:
   authorization:
