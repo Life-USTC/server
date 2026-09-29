@@ -33,195 +33,251 @@ import {
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { test as publicTest } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("未登录旧 homework tab 重定向到语义路径", async ({ page }) => {
-    const response = await page.request.get(
-      "/?tab=homeworks&homeworkView=list",
-      {
+  publicTest(
+    "未登录旧 homework tab 重定向到语义路径",
+    async ({ publicFlow, page }) => {
+      await publicFlow.run(async () => {
+        const response = await page.request.get(
+          "/?tab=homeworks&homeworkView=list",
+          {
+            maxRedirects: 0,
+          },
+        );
+
+        expect(response.status()).toBe(308);
+        expect(response.headers().location).toBe(
+          "/workspace/homeworks?homeworkView=list",
+        );
+      }, {});
+    },
+  );
+
+  publicTest("未登录语义路径要求登录", async ({ publicFlow, page }) => {
+    await publicFlow.run(async () => {
+      const response = await page.request.get("/workspace/homeworks", {
         maxRedirects: 0,
-      },
-    );
+      });
 
-    expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe(
-      "/workspace/homeworks?homeworkView=list",
-    );
-  });
-
-  test("未登录语义路径要求登录", async ({ page }) => {
-    const response = await page.request.get("/workspace/homeworks", {
-      maxRedirects: 0,
-    });
-
-    expect(response.status()).toBe(303);
-    expect(response.headers().location).toBe(
-      "/account/sign-in?callbackUrl=%2Fworkspace%2Fhomeworks",
-    );
+      expect(response.status()).toBe(303);
+      expect(response.headers().location).toBe(
+        "/account/sign-in?callbackUrl=%2Fworkspace%2Fhomeworks",
+      );
+    }, {});
   });
 
   test("登录后显示独立作业及所有必填字段", async ({
     page,
     academic,
     homeworks,
+    homeworkRun,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
-    });
+    await homeworkRun(
+      async () => {
+        await gotoAndWaitForReady(page, "/workspace/homeworks", {
+          testInfo,
+          screenshotLabel: "homeworks",
+        });
 
-    // Switch to All to see all homeworks
-    await page
-      .getByRole("radio", { name: /全部|All/i })
-      .first()
-      .click();
+        // Switch to All to see all homeworks
+        await page
+          .getByRole("radio", { name: /全部|All/i })
+          .first()
+          .click();
 
-    const hwRow = page
-      .getByRole("row")
-      .filter({ hasText: homeworks[1].title })
-      .first();
-    await expect(hwRow).toBeVisible();
+        const hwRow = page
+          .getByRole("row")
+          .filter({ hasText: homeworks[1].title })
+          .first();
+        await expect(hwRow).toBeVisible();
 
-    // homework.title
-    await expect(hwRow.getByText(homeworks[1].title)).toBeVisible();
-    await expect(hwRow.getByText(/\d{1,2}:\d{2}/).first()).toBeVisible();
+        // homework.title
+        await expect(hwRow.getByText(homeworks[1].title)).toBeVisible();
+        await expect(hwRow.getByText(/\d{1,2}:\d{2}/).first()).toBeVisible();
 
-    // section.course.namePrimary appears in the homework subtitle.
-    await expect(
-      hwRow
-        .getByText(academic.course.nameCn)
-        .or(hwRow.getByText(academic.course.nameEn))
-        .first(),
-    ).toBeVisible();
+        // section.course.namePrimary appears in the homework subtitle.
+        await expect(
+          hwRow
+            .getByText(academic.course.nameCn)
+            .or(hwRow.getByText(academic.course.nameEn))
+            .first(),
+        ).toBeVisible();
 
-    const detailButton = hwRow.getByRole("button", {
-      name: new RegExp(homeworks[1].title),
-    });
-    await detailButton.focus();
-    await page.keyboard.press("Enter");
-    await expect(
-      page.locator('[data-slot="dialog-content"]').first(),
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
+        const detailButton = hwRow.getByRole("button", {
+          name: new RegExp(homeworks[1].title),
+        });
+        await detailButton.focus();
+        await page.keyboard.press("Enter");
+        await expect(
+          page.locator('[data-slot="dialog-content"]').first(),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
 
-    await captureStepScreenshot(page, testInfo, "homeworks/seed-list-fields");
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          "homeworks/seed-list-fields",
+        );
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
   });
 
-  test("协作作业显示重要和团队徽章", async ({ page, homeworks }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
-    });
+  test("协作作业显示重要和团队徽章", async ({
+    page,
+    homeworks,
+    homeworkRun,
+  }, testInfo) => {
+    await homeworkRun(
+      async () => {
+        await gotoAndWaitForReady(page, "/workspace/homeworks", {
+          testInfo,
+          screenshotLabel: "homeworks",
+        });
 
-    await page
-      .getByRole("radio", { name: /全部|All/i })
-      .first()
-      .click();
+        await page
+          .getByRole("radio", { name: /全部|All/i })
+          .first()
+          .click();
 
-    const hwRow = page
-      .getByRole("row")
-      .filter({ hasText: homeworks[1].title })
-      .first();
-    await expect(hwRow).toBeVisible();
-    await expect(
-      hwRow
-        .locator('[data-slot="badge"]')
-        .filter({ hasText: /重要|Major|重大/i }),
-    ).toBeVisible();
-    await expect(hwRow.getByText(/团队|Team/i)).toBeVisible();
+        const hwRow = page
+          .getByRole("row")
+          .filter({ hasText: homeworks[1].title })
+          .first();
+        await expect(hwRow).toBeVisible();
+        await expect(
+          hwRow
+            .locator('[data-slot="badge"]')
+            .filter({ hasText: /重要|Major|重大/i }),
+        ).toBeVisible();
+        await expect(hwRow.getByText(/团队|Team/i)).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "homeworks/major-team-badges");
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          "homeworks/major-team-badges",
+        );
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
   });
 
-  test("可在筛选标签之间切换", async ({ page, homeworkStates }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
-    });
-    await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
+  test("可在筛选标签之间切换", async ({
+    page,
+    homeworkStates,
+    homeworkRun,
+  }, testInfo) => {
+    await homeworkRun(
+      async () => {
+        await gotoAndWaitForReady(page, "/workspace/homeworks", {
+          testInfo,
+          screenshotLabel: "homeworks",
+        });
+        await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
 
-    // Completed filter
-    const completedTab = page
-      .getByRole("radio", { name: /已完成|Completed/i })
-      .first();
-    await expect(completedTab).toBeVisible();
-    await completedTab.click();
-    await expect(visibleText(page, homeworkStates[1].title)).toBeVisible();
-    await expect(visibleText(page, homeworkStates[0].title)).toHaveCount(0);
-    await captureStepScreenshot(page, testInfo, "homeworks/filter-completed");
+        // Completed filter
+        const completedTab = page
+          .getByRole("radio", { name: /已完成|Completed/i })
+          .first();
+        await expect(completedTab).toBeVisible();
+        await completedTab.click();
+        await expect(visibleText(page, homeworkStates[1].title)).toBeVisible();
+        await expect(visibleText(page, homeworkStates[0].title)).toHaveCount(0);
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          "homeworks/filter-completed",
+        );
 
-    // All filter
-    const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
-    await expect(allTab).toBeVisible();
-    await allTab.click();
-    await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
+        // All filter
+        const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
+        await expect(allTab).toBeVisible();
+        await allTab.click();
+        await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
+        await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
   });
 
   test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({
     page,
     homeworks,
+    homeworkRun,
   }) => {
-    await gotoAndWaitForReady(page, "/workspace/homeworks");
+    await homeworkRun(
+      async () => {
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
-    await page
-      .getByRole("radio", { name: /全部|All/i })
-      .first()
-      .click();
+        await page
+          .getByRole("radio", { name: /全部|All/i })
+          .first()
+          .click();
 
-    const row = page
-      .getByRole("row")
-      .filter({ hasText: homeworks[1].title })
-      .first();
-    await row
-      .getByRole("button", { name: new RegExp(homeworks[1].title) })
-      .first()
-      .click();
+        const row = page
+          .getByRole("row")
+          .filter({ hasText: homeworks[1].title })
+          .first();
+        await row
+          .getByRole("button", { name: new RegExp(homeworks[1].title) })
+          .first()
+          .click();
 
-    const dialog = detailDialog(page);
-    await expect(dialog).toBeVisible();
-    await expectHomeworkDetailOrder(dialog);
-    await expectSingleColumnDiscussion(dialog);
-    await expectComfortablePopupWidth(page, dialog);
-    await expectIconOnlyCloseButton(dialog);
-    await closeDetailDialog(page, dialog);
+        const dialog = detailDialog(page);
+        await expect(dialog).toBeVisible();
+        await expectHomeworkDetailOrder(dialog);
+        await expectSingleColumnDiscussion(dialog);
+        await expectComfortablePopupWidth(page, dialog);
+        await expectIconOnlyCloseButton(dialog);
+        await closeDetailDialog(page, dialog);
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
   });
 
   test("作业详情链接到班级页面且不打开第二层详情", async ({
     page,
     academic,
     homeworks,
+    homeworkRun,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
-    });
+    await homeworkRun(
+      async () => {
+        await gotoAndWaitForReady(page, "/workspace/homeworks", {
+          testInfo,
+          screenshotLabel: "homeworks",
+        });
 
-    await page
-      .getByRole("radio", { name: /全部|All/i })
-      .first()
-      .click();
+        await page
+          .getByRole("radio", { name: /全部|All/i })
+          .first()
+          .click();
 
-    const detailRow = page
-      .getByRole("row")
-      .filter({ hasText: homeworks[1].title })
-      .first();
-    await detailRow
-      .getByRole("button", { name: new RegExp(homeworks[1].title) })
-      .first()
-      .click();
-    const popout = page.locator('[data-slot="dialog-content"]').first();
-    await expect(popout).toBeVisible();
-    const sectionLink = popout
-      .locator(`a[href="/catalog/sections/${academic.section.jwId}"]`)
-      .first();
-    await expect(sectionLink).toBeVisible();
-    await sectionLink.click();
+        const detailRow = page
+          .getByRole("row")
+          .filter({ hasText: homeworks[1].title })
+          .first();
+        await detailRow
+          .getByRole("button", { name: new RegExp(homeworks[1].title) })
+          .first()
+          .click();
+        const popout = page.locator('[data-slot="dialog-content"]').first();
+        await expect(popout).toBeVisible();
+        const sectionLink = popout
+          .locator(`a[href="/catalog/sections/${academic.section.jwId}"]`)
+          .first();
+        await expect(sectionLink).toBeVisible();
+        await sectionLink.click();
 
-    await expect(page).toHaveURL(/\/catalog\/sections\/\d+$/);
-    await captureStepScreenshot(page, testInfo, "homeworks/view-details");
+        await expect(page).toHaveURL(/\/catalog\/sections\/\d+$/);
+        await captureStepScreenshot(page, testInfo, "homeworks/view-details");
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
   });
 });

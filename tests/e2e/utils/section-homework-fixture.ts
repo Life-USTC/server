@@ -9,7 +9,7 @@ import {
   type AcademicState,
   createHomeworkAcademic,
   createHomeworkRows,
-} from "./homework-fixture";
+} from "./homework-state";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
 
