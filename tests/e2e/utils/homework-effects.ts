@@ -12,7 +12,8 @@ export type HomeworkEffects = {
       | "homework_create"
       | "homework_update"
       | "homework_delete"
-      | "comment_create",
+      | "comment_create"
+      | "description_edit",
       number
     >
   >;
