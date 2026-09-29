@@ -14,10 +14,13 @@ bun run build && bun run rest:test
 ## REST (`tests/integration/rest/`)
 
 Playwright request tests (`playwright.api.config.ts`) use the real Worker.
-`_harness/actor.ts` supplies `createActor()` with a test-owned user, session and
-request context. Use it for ordinary domain cases; keep `_harness/auth.ts` debug
-provider sign-in for tests of that login flow. Public domain records require their
-own fixture because deleting their author does not necessarily delete the record.
+Stateful domain fixtures extend `tests/e2e/utils/owned-worker.ts`. Prepare their
+catalog through `isolatedWorker.database.owner` and create private users, sessions
+and request contexts with `isolatedWorker.createActor()`. Wrap complete setup and
+test workflows in `run()`, including response consumption and independent state
+observations. Its teardown waits for admitted work before disposing requests,
+the Worker and its database; it does not roll back a timed-out operation.
+Use the actual debug-provider sign-in flow when testing login itself.
 
 ## MCP layout
 
