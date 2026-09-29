@@ -1,12 +1,11 @@
-import { type APIRequestContext, test as base, expect } from "@playwright/test";
+import { type APIRequestContext, expect } from "@playwright/test";
 import { symmetricDecrypt } from "better-auth/crypto";
 import { importJWK, SignJWT } from "jose";
 import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
-import { PLAYWRIGHT_BASE_URL } from "../../../e2e/utils/e2e-db";
-import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
+import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
+import { test as base } from "../../../e2e/utils/owned-worker";
+import type { TestPrismaClient } from "../../../shared/prisma";
 
-export const GRAPHQL_RESOURCE = `${PLAYWRIGHT_BASE_URL}/api/graphql`;
-export const WRONG_RESOURCE = `${PLAYWRIGHT_BASE_URL}/api/auth`;
 export const PROFILE_READ_SCOPE = "account.profile:read";
 export const TODO_READ_SCOPE = "workspace.todo:read";
 export const TODO_WRITE_SCOPE = "workspace.todo:write";
@@ -17,6 +16,10 @@ export const GRAPHQL_SCOPES = [
 ];
 
 type GraphqlFixture = {
+  catalog: {
+    course: { jwId: number; code: string };
+    section: { jwId: number; code: string };
+  };
   marker: string;
   keyIds: string[];
   clientId: string;
@@ -26,257 +29,311 @@ type GraphqlFixture = {
   };
 };
 
-async function createGraphqlFixture(keyIds: string[]): Promise<GraphqlFixture> {
+async function createGraphqlFixture(
+  prisma: TestPrismaClient,
+  origin: string,
+  keyIds: string[],
+  assertOpen: () => void,
+): Promise<GraphqlFixture> {
   const marker = `rest-graphql-${crypto.randomUUID()}`;
   const clientId = `${marker}-client`;
-  return withE2ePrisma((prisma) =>
-    prisma.$transaction(async (tx) => {
-      const userA = await tx.user.create({
-        data: {
-          email: `${marker}-a@example.test`,
-          name: "REST GraphQL A",
+  return prisma.$transaction(async (tx) => {
+    assertOpen();
+    const course = await tx.course.create({
+      data: {
+        jwId: 1_700_000_000,
+        code: "GRAPHQL-COURSE",
+        nameCn: "GraphQL public course",
+      },
+      select: { jwId: true, code: true, id: true },
+    });
+    const section = await tx.section.create({
+      data: {
+        jwId: 1_700_000_001,
+        code: "GRAPHQL-SECTION",
+        courseId: course.id,
+      },
+      select: { jwId: true, code: true },
+    });
+    const userA = await tx.user.create({
+      data: {
+        email: `${marker}-a@example.test`,
+        name: "REST GraphQL A",
+      },
+      select: { id: true },
+    });
+    const userB = await tx.user.create({
+      data: {
+        email: `${marker}-b@example.test`,
+        name: "REST GraphQL B",
+      },
+      select: { id: true },
+    });
+    const todoA = await tx.todo.create({
+      data: {
+        title: `${marker}-todo-a`,
+        userId: userA.id,
+      },
+      select: { id: true, title: true },
+    });
+    const todoB = await tx.todo.create({
+      data: {
+        title: `${marker}-todo-b`,
+        userId: userB.id,
+      },
+      select: { id: true, title: true },
+    });
+    const client = await tx.oAuthClient.create({
+      data: {
+        clientId,
+        name: "REST GraphQL Worker test",
+        redirectUris: [`${origin}/graphql-test/callback`],
+        scopes: GRAPHQL_SCOPES,
+        consents: {
+          create: [
+            {
+              resources: [`${origin}/api/graphql`],
+              scopes: GRAPHQL_SCOPES,
+              userId: userA.id,
+            },
+            {
+              resources: [`${origin}/api/graphql`],
+              scopes: GRAPHQL_SCOPES,
+              userId: userB.id,
+            },
+          ],
         },
-        select: { id: true },
-      });
-      const userB = await tx.user.create({
-        data: {
-          email: `${marker}-b@example.test`,
-          name: "REST GraphQL B",
-        },
-        select: { id: true },
-      });
-      const todoA = await tx.todo.create({
-        data: {
-          title: `${marker}-todo-a`,
-          userId: userA.id,
-        },
-        select: { id: true, title: true },
-      });
-      const todoB = await tx.todo.create({
-        data: {
-          title: `${marker}-todo-b`,
-          userId: userB.id,
-        },
-        select: { id: true, title: true },
-      });
-      const client = await tx.oAuthClient.create({
-        data: {
-          clientId,
-          name: "REST GraphQL Worker test",
-          redirectUris: [`${PLAYWRIGHT_BASE_URL}/graphql-test/callback`],
-          scopes: GRAPHQL_SCOPES,
-          consents: {
-            create: [
-              {
-                resources: [GRAPHQL_RESOURCE],
-                scopes: GRAPHQL_SCOPES,
-                userId: userA.id,
-              },
-              {
-                resources: [GRAPHQL_RESOURCE],
-                scopes: GRAPHQL_SCOPES,
-                userId: userB.id,
-              },
-            ],
-          },
-        },
-        select: {
-          clientId: true,
-          consents: { select: { grantId: true, userId: true } },
-        },
-      });
-      const consentA = client.consents.find(
-        (consent) => consent.userId === userA.id,
-      );
-      const consentB = client.consents.find(
-        (consent) => consent.userId === userB.id,
-      );
-      if (!consentA || !consentB) {
-        throw new Error("Expected OAuth consent fixtures for both users");
-      }
+      },
+      select: {
+        clientId: true,
+        consents: { select: { grantId: true, userId: true } },
+      },
+    });
+    const consentA = client.consents.find(
+      (consent) => consent.userId === userA.id,
+    );
+    const consentB = client.consents.find(
+      (consent) => consent.userId === userB.id,
+    );
+    if (!consentA || !consentB) {
+      throw new Error("Expected OAuth consent fixtures for both users");
+    }
 
-      return {
-        marker,
-        keyIds,
-        clientId: client.clientId,
-        users: {
-          a: {
-            grantId: consentA.grantId,
-            id: userA.id,
-            todoId: todoA.id,
-            todoTitle: todoA.title,
-          },
-          b: {
-            grantId: consentB.grantId,
-            id: userB.id,
-            todoId: todoB.id,
-            todoTitle: todoB.title,
-          },
+    assertOpen();
+    return {
+      catalog: { course, section },
+      marker,
+      keyIds,
+      clientId: client.clientId,
+      users: {
+        a: {
+          grantId: consentA.grantId,
+          id: userA.id,
+          todoId: todoA.id,
+          todoTitle: todoA.title,
         },
-      };
-    }),
-  );
-}
-
-async function deleteGraphqlFixture(fixture: GraphqlFixture) {
-  const userIds = [fixture.users.a.id, fixture.users.b.id];
-  await withE2ePrisma((db) =>
-    db.$transaction(async (prisma) => {
-      await prisma.auditLog.deleteMany({
-        where: {
-          OR: [{ userId: { in: userIds } }, { subjectUserId: { in: userIds } }],
+        b: {
+          grantId: consentB.grantId,
+          id: userB.id,
+          todoId: todoB.id,
+          todoTitle: todoB.title,
         },
-      });
-      await prisma.featureOperationEvent.deleteMany({
-        where: { userId: { in: userIds } },
-      });
-      await prisma.oAuthClient.deleteMany({
-        where: { clientId: fixture.clientId },
-      });
-      await prisma.user.deleteMany({
-        where: {
-          id: { in: userIds },
-        },
-      });
-    }),
-  );
+      },
+    };
+  });
 }
 
 export async function signGraphqlToken(
-  fixture: GraphqlFixture,
+  fixture: GraphqlState,
   userId: string,
   grantId: string,
   scopes: string[],
-  resource = GRAPHQL_RESOURCE,
+  resource = `${fixture.origin}/api/graphql`,
 ) {
-  // Sign fixtures with the real Worker's key. Loading the application auth
-  // singleton here would initialize the Cloudflare Prisma client inside Node.
-  const key = await withE2ePrisma((prisma) =>
-    prisma.jwks.findFirstOrThrow({
+  return fixture.run(async () => {
+    // Sign fixtures with the real Worker's key. Loading the application auth
+    // singleton here would initialize the Cloudflare Prisma client inside Node.
+    const key = await fixture.db.jwks.findFirstOrThrow({
       where: { id: { in: fixture.keyIds } },
       orderBy: { createdAt: "desc" },
-    }),
-  );
-  expect(key.alg).toBe("EdDSA");
-  const privateJwk = await symmetricDecrypt({
-    key: "e2e-dev-secret-not-for-production", // wrangler.e2e.jsonc
-    data: JSON.parse(key.privateKey),
+    });
+    expect(key.alg).toBe("EdDSA");
+    const privateJwk = await symmetricDecrypt({
+      key: "e2e-dev-secret-not-for-production", // wrangler.e2e.jsonc
+      data: JSON.parse(key.privateKey),
+    });
+    return new SignJWT({
+      azp: fixture.clientId,
+      scope: scopes.join(" "),
+      [OAUTH_GRANT_ID_CLAIM]: grantId,
+    })
+      .setProtectedHeader({ alg: "EdDSA", kid: key.id, typ: "JWT" })
+      .setSubject(userId)
+      .setAudience(resource)
+      .setIssuer(`${fixture.origin}/api/auth`)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(await importJWK(JSON.parse(privateJwk), "EdDSA"));
   });
-  return new SignJWT({
-    azp: fixture.clientId,
-    scope: scopes.join(" "),
-    [OAUTH_GRANT_ID_CLAIM]: grantId,
-  })
-    .setProtectedHeader({ alg: "EdDSA", kid: key.id, typ: "JWT" })
-    .setSubject(userId)
-    .setAudience(resource)
-    .setIssuer(`${PLAYWRIGHT_BASE_URL}/api/auth`)
-    .setIssuedAt()
-    .setExpirationTime("5m")
-    .sign(await importJWK(JSON.parse(privateJwk), "EdDSA"));
 }
 
-type GraphqlState = GraphqlFixture & {
+type Run = <T>(operation: () => Promise<T>) => Promise<T>;
+export type GraphqlState = GraphqlFixture & {
+  db: TestPrismaClient;
+  origin: string;
   request: Pick<APIRequestContext, "post">;
+  run: Run;
+  observe: <T>(operation: (db: TestPrismaClient) => Promise<T>) => Promise<T>;
+  createSession: IsolatedWorker["createSession"];
 };
-export const test = base.extend<{ graphql: GraphqlState }>({
-  graphql: async ({ playwright, request }, use) => {
-    // Signing keys come from the real Worker. No Node auth singleton is used.
-    const jwks = await request.get("/api/auth/jwks");
-    expect(jwks.status()).toBe(200);
-    const { keys } = (await jwks.json()) as { keys: { kid: string }[] };
-    expect(keys.length).toBeGreaterThan(0);
-    const fixture = await createGraphqlFixture(keys.map((key) => key.kid));
+
+export const test = base.extend<{
+  graphql: GraphqlState;
+  _graphqlResources: { start: () => Promise<GraphqlState> };
+}>({
+  _graphqlResources: async (
+    { isolatedWorker, playwright, request, run },
+    use,
+  ) => {
     const probeId = crypto.randomUUID();
     const probePath = `/__test/community-effects?id=${probeId}`;
     const probeHeaders = {
       "x-test-storage-secret": "local-test-storage-observer",
     };
     let ownedRequest: APIRequestContext | undefined;
-    const requests: Promise<PromiseSettledResult<unknown>>[] = [];
-    const outcomes = await Promise.allSettled([
-      (async () => {
-        expect(
-          (await request.post(probePath, { headers: probeHeaders })).status(),
-        ).toBe(201);
+    let probeCreated = false;
+    let closing = false;
+    const operations: Promise<PromiseSettledResult<unknown>>[] = [];
+    const assertOpen = () => {
+      if (closing) throw new Error("GraphQL resources are closing");
+    };
+    const own: Run = (operation) => {
+      if (closing)
+        return Promise.reject(new Error("GraphQL resources are closing"));
+      const result = run(async () => {
+        assertOpen();
+        return operation();
+      });
+      operations.push(
+        result.then(
+          (value) => ({ status: "fulfilled", value }),
+          (reason) => ({ status: "rejected", reason }),
+        ),
+      );
+      return result;
+    };
+    const start = () =>
+      own(async () => {
+        const jwks = await request.get("/api/auth/jwks");
+        let keyIds: string[];
+        try {
+          expect(jwks.status()).toBe(200);
+          const { keys } = (await jwks.json()) as { keys: { kid: string }[] };
+          expect(keys.length).toBeGreaterThan(0);
+          keyIds = keys.map((key) => key.kid);
+        } finally {
+          await jwks.dispose();
+        }
+        assertOpen();
+        const fixture = await createGraphqlFixture(
+          isolatedWorker.database.owner,
+          isolatedWorker.origin,
+          keyIds,
+          assertOpen,
+        );
+        assertOpen();
+        const probe = await request.post(probePath, { headers: probeHeaders });
+        try {
+          expect(probe.status()).toBe(201);
+          probeCreated = true;
+          await probe.body();
+        } finally {
+          await probe.dispose();
+        }
+        assertOpen();
         ownedRequest = await playwright.request.newContext({
-          baseURL: PLAYWRIGHT_BASE_URL,
+          baseURL: isolatedWorker.origin,
           extraHTTPHeaders: {
             ...probeHeaders,
             "x-test-community-probe": probeId,
           },
         });
+        assertOpen();
         const context = ownedRequest;
-        await use({
+        return {
           ...fixture,
+          db: isolatedWorker.database.owner,
+          origin: isolatedWorker.origin,
+          run: own,
+          observe: (operation) =>
+            own(() => operation(isolatedWorker.database.owner)),
+          createSession: (id) => own(() => isolatedWorker.createSession(id)),
           request: {
-            post: (...args) => {
-              const pending = context.post(...args);
-              requests.push(
-                pending.then(
-                  (value) => ({ status: "fulfilled", value }),
-                  (reason) => ({ status: "rejected", reason }),
-                ),
-              );
-              return pending;
-            },
+            post: (...args) =>
+              own(async () => {
+                const response = await context.post(...args);
+                await response.body();
+                return response;
+              }),
           },
+        } satisfies GraphqlState;
+      });
+    try {
+      // Native teardown is registered before JWKS, SQL, contexts or bodies start.
+      await use({ start });
+    } catch (reason) {
+      operations.push(Promise.resolve({ status: "rejected", reason }));
+    }
+    {
+      closing = true;
+      // Drain whole Node chains before checking their producer tasks or closing contexts.
+      const results = await Promise.all(operations);
+      try {
+        const response = await request.get(probePath, {
+          headers: probeHeaders,
         });
-      })(),
-    ]);
-    const cleanup = async () => {
-      // A timed-out or interrupted body can still have a request in flight.
-      // Finish those requests before draining the Worker's deferred tasks.
-      const results: PromiseSettledResult<unknown>[] = [];
-      for (let next = 0; next < requests.length; next++) {
-        results.push(await requests[next]);
+        try {
+          if (probeCreated) expect(response.status()).toBe(200);
+          if (response.status() !== 404) {
+            expect(response.status()).toBe(200);
+            const effects = await response.json();
+            expect(effects.backgroundErrors).toEqual([]);
+            expect(
+              [...effects.messages, ...effects.purges].every(
+                (effect: { outcome: string }) => effect.outcome === "fulfilled",
+              ),
+            ).toBe(true);
+          }
+        } finally {
+          await response.dispose();
+        }
+      } catch (reason) {
+        results.push({ status: "rejected", reason });
       }
-      // Wait for this test's real request tasks before deleting their identities.
-      // The observation endpoint delegates actual queue and cache operations.
+      // This observes real producer completion; it does not claim consumer delivery.
       results.push(
         ...(await Promise.allSettled([
           (async () => {
+            const response = await request.delete(probePath, {
+              headers: probeHeaders,
+            });
             try {
-              const response = await request.get(probePath, {
-                headers: probeHeaders,
-              });
-              if (response.status() !== 404) {
-                expect(response.status()).toBe(200);
-                const effects = await response.json();
-                expect(effects.backgroundErrors).toEqual([]);
-                expect(
-                  [...effects.messages, ...effects.purges].every(
-                    (effect: { outcome: string }) =>
-                      effect.outcome === "fulfilled",
-                  ),
-                ).toBe(true);
-              }
+              expect([204, 404]).toContain(response.status());
             } finally {
-              expect([204, 404]).toContain(
-                (
-                  await request.delete(probePath, { headers: probeHeaders })
-                ).status(),
-              );
+              await response.dispose();
             }
           })(),
+          ownedRequest?.dispose(),
         ])),
-      );
-      results.push(...(await Promise.allSettled([ownedRequest?.dispose()])));
-      results.push(
-        ...(await Promise.allSettled([deleteGraphqlFixture(fixture)])),
       );
       const failures = results.flatMap((result) =>
         result.status === "rejected" ? [result.reason] : [],
       );
       if (failures.length)
         throw new AggregateError(failures, "GraphQL fixture cleanup failed");
-    };
-    outcomes.push(...(await Promise.allSettled([cleanup()])));
-    const failures = outcomes.flatMap((result) =>
-      result.status === "rejected" ? [result.reason] : [],
-    );
-    if (failures.length === 1) throw failures[0];
-    if (failures.length)
-      throw new AggregateError(failures, "GraphQL fixture and cleanup failed");
+    }
+  },
+  graphql: async ({ _graphqlResources }, use) => {
+    await use(await _graphqlResources.start());
   },
 });
