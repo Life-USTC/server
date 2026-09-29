@@ -1,53 +1,62 @@
-/**
- * E2E tests for GET /api/catalog/semesters/current
- *
- * ## Endpoints
- * - `GET /api/catalog/semesters/current` — Get the current semester (date range contains now).
- *
- * ## Request
- * - No query params
- *
- * ## Response
- * - 200: Semester object `{ jwId, nameCn, code, startDate, endDate, ... }`
- * - 404: `{ error: "No current semester found" }` when no semester covers today
- *
- * ## Auth Requirements
- * - Public (no authentication required)
- *
- * ## Edge Cases
- * - Time-sensitive: relies on seed semester date range covering the current date
- * - Returns a single semester object (not paginated)
- */
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
-import { assertApiContract } from "../../_shared/api-contract";
+/** Public current-semester reads own dated catalog rows and a real Worker. */
+import { expect } from "@playwright/test";
+import { test } from "../../_shared/public-academic-fixture";
 
 test.describe("GET /api/catalog/semesters/current", () => {
-  test("契约", async ({ request }) => {
-    await assertApiContract(request, {
-      routePath: "/api/catalog/semesters/current",
+  test("契约", async ({ run, request, academic }) => {
+    await run(async () => {
+      const response = await request.get("/api/catalog/semesters/current");
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        jwId?: number;
+        nameCn?: string;
+        code?: string;
+      };
+      expect(body.jwId).toBe(academic.semester.jwId);
+      expect(body.nameCn).toBe(academic.semester.nameCn);
+      expect(typeof body.nameCn).toBe("string");
+      expect(typeof body.code).toBe("string");
     });
   });
 
-  test("返回 seed 学期", async ({ request }) => {
-    const response = await request.get("/api/catalog/semesters/current");
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      jwId?: number;
-      nameCn?: string;
-      code?: string;
-    };
-    expect(body.jwId).toBe(DEV_SEED.semesterJwId);
-    expect(typeof body.nameCn).toBe("string");
+  test("返回 seed 学期", async ({ run, request, academic }) => {
+    await run(async () => {
+      const response = await request.get("/api/catalog/semesters/current");
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        jwId?: number;
+        nameCn?: string;
+        code?: string;
+      };
+      expect(body.jwId).toBe(academic.semester.jwId);
+      expect(typeof body.nameCn).toBe("string");
+      expect(body.code).toBe("PRIVATE-CURRENT");
+    });
   });
 
-  test("响应包含预期字段", async ({ request }) => {
-    const response = await request.get("/api/catalog/semesters/current");
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as Record<string, unknown>;
-    expect(body).toHaveProperty("jwId");
-    expect(body).toHaveProperty("nameCn");
-    expect(body).toHaveProperty("startDate");
-    expect(body).toHaveProperty("endDate");
+  test("响应包含预期字段", async ({ run, request, academic }) => {
+    await run(async () => {
+      const response = await request.get("/api/catalog/semesters/current");
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("jwId");
+      expect(body).toHaveProperty("nameCn");
+      expect(body).toHaveProperty("startDate");
+      expect(body).toHaveProperty("endDate");
+      expect(body).toMatchObject({
+        jwId: academic.semester.jwId,
+        nameCn: "独立当前学期",
+        startDate: expect.stringMatching(
+          new RegExp(
+            `^${academic.semester.startDate?.toISOString().slice(0, 10)}`,
+          ),
+        ),
+        endDate: expect.stringMatching(
+          new RegExp(
+            `^${academic.semester.endDate?.toISOString().slice(0, 10)}`,
+          ),
+        ),
+      });
+    });
   });
 });
