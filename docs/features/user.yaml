@@ -479,7 +479,7 @@ requirements:
     - Pagination follows descending event IDs across the equal-timestamp cursor boundary; forged query identities cannot change ownership.
     - The REST client-specific view rejects a cookie session.
     test:
-      file: tests/integration/account-profile-contract.test.ts
+      file: tests/integration/account-client-activity-isolation.test.ts
       name: user.oauth-client-activity-isolation
 - id: user.account-profile-oauth-projection
   category: privacy
@@ -493,7 +493,7 @@ requirements:
     - OAuth projections always hide admin status and expose email only with its scope.
     - A caller-supplied userId cannot replace the authenticated profile owner.
     test:
-      file: tests/integration/account-profile-contract.test.ts
+      file: tests/integration/account-profile-oauth-projection.test.ts
       name: user.account-profile-oauth-projection
 - id: user.public-comment-contribution-privacy
   category: privacy

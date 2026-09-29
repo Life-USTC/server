@@ -3,10 +3,8 @@ import { Readable } from "node:stream";
 import { finished, pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { getRequest } from "@sveltejs/kit/node";
-import {
-  type NodeProtocolRuntime,
-  nodeProtocolTest,
-} from "./node-protocol-fixture";
+import { nodeProtocolTest } from "./node-protocol-fixture";
+import type { NodeProtocolRuntime } from "./node-protocol-runtime";
 
 type Handler = (request: Request) => Response | Promise<Response>;
 
