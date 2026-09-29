@@ -109,7 +109,7 @@ requirements:
     - Only the token with both scopes at the REST audience receives the stored calendar credential and its separate feed URL.
     - Missing subscription scope, anonymous requests and a wrong audience return 401 without membership or credential data.
     test:
-      file: tests/integration/rest-subscription-kind-contract.test.ts
+      file: tests/integration/rest-subscription-feed-disclosure.test.ts
       name: interface-hierarchy.representative-cross-surface-contract-4
 - id: interface-hierarchy.representative-cross-surface-contract-6
   category: consistency
@@ -481,7 +481,7 @@ requirements:
     - Each lookup returns the record whose JW ID matches, even when another record has that numeric row ID.
     - Each kind update changes only the section selected by its public JW ID.
     test:
-      file: tests/integration/rest-subscription-kind-contract.test.ts
+      file: tests/integration/rest-catalog-identifier-parity.test.ts
       name: interface-hierarchy.semantic-parity-12
 - id: interface-hierarchy.semantic-parity-13
   category: consistency
@@ -508,7 +508,7 @@ requirements:
     then:
     - Only the target membership changes; the complete witness membership, including its kind and timestamps, stays unchanged.
     test:
-      file: tests/integration/rest-subscription-kind-contract.test.ts
+      file: tests/integration/rest-subscription-single-identifier.test.ts
       name: interface-hierarchy.semantic-parity-15
 - id: interface-hierarchy.locale-caching-and-seo-1
   category: consistency

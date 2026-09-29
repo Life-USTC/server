@@ -1,17 +1,20 @@
 import { describe, expect } from "vitest";
 import { resolveGraphqlPrincipal } from "@/lib/graphql/auth";
-import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
+import {
+  getOAuthGraphqlResourceUrl,
+  getOAuthMcpResourceUrl,
+} from "@/lib/oauth/resource-urls";
 import { graphqlAuthTest } from "../shared/graphql-auth-contract-fixture";
 
 describe("GraphQL OAuth resource isolation", () => {
-  graphqlAuthTest(
-    "接受 GraphQL-bound JWT principal",
-    async ({
-      authorization: { clientId, userId, signToken },
-      oauthRuntime,
-    }) => {
+  graphqlAuthTest.for([["MCP", getOAuthMcpResourceUrl()]])(
+    "拒绝重放 %s-bound JWT",
+    async (
+      [_surface, resource],
+      { authorization: { signToken }, oauthRuntime },
+    ) => {
       await oauthRuntime.run(async () => {
-        const token = await signToken(getOAuthGraphqlResourceUrl());
+        const token = await signToken(resource);
 
         await expect(
           resolveGraphqlPrincipal(
@@ -19,12 +22,7 @@ describe("GraphQL OAuth resource isolation", () => {
               headers: { authorization: `Bearer ${token}` },
             }),
           ),
-        ).resolves.toMatchObject({
-          kind: "oauth",
-          userId,
-          resource: getOAuthGraphqlResourceUrl(),
-          clientId,
-        });
+        ).rejects.toMatchObject({ code: "UNAUTHENTICATED", status: 401 });
       });
     },
   );
