@@ -180,7 +180,7 @@ requirements:
     - All three transports return the same ordered IDs and matching total on every page, including empty results and reverse-inserted rows with tied primary sort keys.
     - Equivalent detail keys resolve the same entity; row IDs are never silently substituted for course or section JW IDs.
     test:
-      file: tests/integration/catalog-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/catalog-semantic-parity.test.ts
       name: interface-hierarchy.catalog-explicit-read-parity
 - id: interface-hierarchy.workspace-explicit-read-parity
   category: consistency
@@ -371,7 +371,7 @@ requirements:
     - Ordered IDs, complete totals, unknownDateCount and exhausted empty pages match the independently arranged fixture.
     - Both date bases retain Shanghai overlap boundaries and missing-date records without guessing times.
     test:
-      file: tests/integration/young-public-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/young-public-semantic-parity.test.ts
       name: interface-hierarchy.young-public-read-parity
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
