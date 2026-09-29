@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 async function fixture() {
   const suffix = crypto.randomUUID().slice(0, 8);

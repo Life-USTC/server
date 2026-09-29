@@ -6,7 +6,7 @@ import {
 import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 function requiredText(value: string | null) {
   if (!value) throw new Error("Expected nonempty isolated fixture fact");

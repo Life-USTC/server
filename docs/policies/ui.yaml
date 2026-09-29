@@ -950,17 +950,17 @@ requirements:
     results, and completing the last pending task. Only an explicit selection or clear action changes the applied
     filter.
   acceptance:
-    given: An isolated signed-in user has completed task records and, in a second case, one pending record,
-      on each homework, todo, and exam page at desktop and mobile widths.
+    given: Twelve independently arranged scenarios cover each homework, todo, and exam page at desktop and mobile
+      widths, with completed records and either no pending record or one pending record.
     when: The user repeatedly clicks and keyboard-activates filters while offline; after reconnecting, the user
-      completes the last pending record and clears the resulting filter-empty state.
+      completes the last pending homework or todo and clears the resulting filter-empty state.
     then:
     - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
       results, and completing the last pending task. Only an explicit selection or clear action changes the
       applied filter.
     test:
       file: tests/e2e/src/app/workspace/task-filters.test.ts
-      name: ui.workspace-filters-and-empty-states-1
+      name: ui.workspace-filters-and-empty-states-1 (homeworks, desktop, pending)
 - id: ui.workspace-filters-and-empty-states-2
   category: presentation
   topic: workspace-filters-and-empty-states

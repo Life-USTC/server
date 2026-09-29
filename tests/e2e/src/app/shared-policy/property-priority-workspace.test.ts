@@ -8,7 +8,7 @@ import {
 } from "../../../utils/property-priority-workspace-fixture";
 import { checkWorkspaceOverviewPriorityViews } from "../../../utils/property-priority-workspace-overview";
 import { checkWorkspaceTaskPriorityViews } from "../../../utils/property-priority-workspace-tasks";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 // Each consumer owns a fresh state and can be scheduled without earlier views.
 test.describe.configure({ mode: "parallel" });

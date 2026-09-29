@@ -15,7 +15,7 @@ import {
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 import { parseTextContent } from "../api/mcp/helpers";
 
 test("cases.content-security.suspended-user-1", async ({ page }) => {

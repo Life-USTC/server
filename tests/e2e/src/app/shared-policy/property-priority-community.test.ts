@@ -17,7 +17,7 @@ import {
   assertPriorityView,
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 for (const locale of ["en-us", "zh-cn"] as const)
   for (const width of [390, 1280]) {

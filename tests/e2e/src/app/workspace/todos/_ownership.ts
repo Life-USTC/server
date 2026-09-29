@@ -8,11 +8,11 @@ import {
   type Page,
 } from "@playwright/test";
 import type { Todo } from "../../../../../../src/generated/prisma-node/client";
-import { sha256Base64Url } from "../../../../../shared/crypto";
 import type { TestPrismaClient } from "../../../../../shared/prisma";
 import { withBrowserWorkflow } from "../../../../utils/browser-workflow";
 import { test as workerTest } from "../../../../utils/owned-worker";
 import { withSettledPageWrites } from "../../../../utils/settled-page-writes";
+import { issueAccessToken } from "../../api/mcp/helpers";
 
 export { expect };
 export const roles = ["member", "suspended administrator"] as const;
@@ -414,76 +414,16 @@ export const test = workerTest.extend<{
       };
       const token = async (channel: "rest" | "graphql" | "mcp") => {
         const request = await anonymous();
-        const clientName = `todo-ownership-${crypto.randomUUID()}`;
-        // Register ownership before the request: a lost response must not leak the client.
-        clientNames.push(clientName);
-        const scope = "workspace.todo:read workspace.todo:write";
-        const redirectUri = `${origin}/e2e/oauth/callback`;
-        const resource = `${origin}/api/${channel === "rest" ? "auth" : channel}`;
-        const registration = await request.post("/api/auth/oauth2/register", {
-          data: {
-            application_type: "native",
-            client_name: clientName,
-            redirect_uris: [redirectUri],
-            token_endpoint_auth_method: "none",
-            grant_types: ["authorization_code"],
-            response_types: ["code"],
-            scope,
-          },
-        });
-        expect(registration.status()).toBe(201);
-        const { client_id: clientId } = await registration.json();
-        expect(typeof clientId).toBe("string");
         const consent = await page();
-        const verifier = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
-        const state = crypto.randomUUID();
-        const authorization = await consent.request.get(
-          "/api/auth/oauth2/authorize",
-          {
-            maxRedirects: 0,
-            params: {
-              response_type: "code",
-              client_id: clientId,
-              redirect_uri: redirectUri,
-              scope,
-              state,
-              prompt: "consent",
-              code_challenge: await sha256Base64Url(verifier),
-              code_challenge_method: "S256",
-              resource,
-            },
-          },
-        );
-        expect(authorization.status()).toBe(302);
-        expect(authorization.headers().location).toContain("/oauth/authorize?");
-        await consent.goto(authorization.headers().location);
-        await expect(
-          consent.getByText(/回调主机|Redirect host/i),
-        ).toBeVisible();
-        await expect(
-          consent.getByText(/本地应用|application on your device/i),
-        ).toBeVisible();
-        await consent.getByRole("button", { name: /允许|Allow/i }).click();
-        await consent.waitForURL("**/e2e/oauth/callback**");
-        const callback = new URL(consent.url());
-        expect(callback.searchParams.get("state")).toBe(state);
-        const code = callback.searchParams.get("code");
-        expect(code).toBeTruthy();
-        if (!code) throw new Error("Missing authorization code");
-        const exchanged = await request.post("/api/auth/oauth2/token", {
-          form: {
-            grant_type: "authorization_code",
-            client_id: clientId,
-            code,
-            code_verifier: verifier,
-            redirect_uri: redirectUri,
-            resource,
-          },
+        const resource = `${origin}/api/${channel === "rest" ? "auth" : channel}`;
+        const scopes = ["workspace.todo:read", "workspace.todo:write"];
+        const { accessToken } = await issueAccessToken(consent, request, {
+          scope: scopes.join(" "),
+          clientScopes: scopes,
+          owner: { worker: isolatedWorker, clientNames },
+          resource,
         });
-        expect(exchanged.status()).toBe(200);
-        const body = await exchanged.json();
-        expect(typeof body.access_token).toBe("string");
-        return { accessToken: body.access_token as string, resource };
+        return { accessToken, resource };
       };
 
       const provide = async (workflow?: BrowserWorkflow) => {

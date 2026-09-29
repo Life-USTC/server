@@ -25,7 +25,7 @@ import { test as academicTest } from "../../../../utils/academic-events";
 import { test as calendarTest } from "../../../../utils/calendar-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { createSignedSessionCookie } from "../../../../utils/signed-session-cookie";
 
 const test = mergeTests(academicTest, calendarTest);
 
