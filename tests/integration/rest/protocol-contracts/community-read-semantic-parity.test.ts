@@ -1,189 +1,95 @@
-import { createServer, type Server } from "node:http";
-import { getRequest, setResponse } from "@sveltejs/kit/node";
-import { makeSignature } from "better-auth/crypto";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { expect } from "@playwright/test";
 import { encodeCommentReplyCursor } from "@/features/comments/server/comment-reply-pagination";
 import type { CommentNode } from "@/features/comments/server/comment-types";
-import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
-import { getCommentRepliesRoute } from "@/lib/api/routes/comments-replies-route";
-import { getCommentRoute } from "@/lib/api/routes/comments-thread-route";
-import { getDescriptionRoute } from "@/lib/api/routes/description-read-route";
-import { getHomeworksRoute } from "@/lib/api/routes/homework-list-read-route";
-import { mcpPostRoute } from "@/lib/api/routes/mcp";
-import { getBetterAuthInstance } from "@/lib/auth/core";
-import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
-import {
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../shared/catalog-contract-fixture";
-import { createFixturePrisma } from "../shared/prisma";
+import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
+import { test } from "../../../e2e/utils/owned-worker";
+import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import { createParityTokenSigner } from "./_parity-auth";
+import { nativeEnvelope } from "./_transport";
 
-const db = createFixturePrisma();
-let server: Server;
-let origin: string;
 type Filter = Record<string, string | number | boolean | undefined>;
 type Reader = { id: string; clientId: string; cookie: string; token: string };
-function runtime<T>(work: () => T) {
-  if (!process.env.DATABASE_URL || !process.env.AUTH_DATABASE_URL)
-    throw new Error("Missing restricted database URLs");
-  return runWithCloudflareRuntimeEnv(
-    {
-      HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
-      HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
-    },
-    work,
-  );
-}
-beforeAll(async () => {
-  server = createServer(async (incoming, outgoing) => {
-    try {
-      const request = await getRequest({ request: incoming, base: origin });
-      const response = await runtime(async () => {
-        const path = new URL(request.url).pathname;
-        const comment = path.match(
-          /^\/api\/community\/comments\/([^/]+)(\/replies)?$/,
-        );
-        if (comment) {
-          return comment[2]
-            ? getCommentRepliesRoute(request, { id: comment[1] })
-            : getCommentRoute(request, { id: comment[1] });
-        }
-        switch (path) {
-          case "/api/community/comments":
-            return getCommentsRoute(request);
-          case "/api/auth/jwks":
-            return getBetterAuthInstance().handler(request);
-          case "/api/mcp":
-            return mcpPostRoute(request);
-          case "/api/community/section-homeworks":
-            return getHomeworksRoute(request);
-          case "/api/community/descriptions":
-            return getDescriptionRoute(request);
-          default:
-            return new Response(null, { status: 404 });
-        }
-      });
-      await setResponse(outgoing, response);
-    } catch (error) {
-      outgoing.statusCode = 500;
-      outgoing.end(String(error));
-    }
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  if (!address || typeof address === "string")
-    throw new Error("Missing HTTP address");
-  origin = `http://127.0.0.1:${address.port}`;
-  vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
-});
-afterAll(async () => {
-  if (server)
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-      server.closeAllConnections();
+async function createCommunityReaders(worker: IsolatedWorker) {
+  const db = worker.database.owner;
+  const origin = worker.origin;
+  const signToken = await createParityTokenSigner(worker);
+  async function createReader(marker: string): Promise<Reader> {
+    const id = `${marker}-reader`;
+    const clientId = `${marker}-client`;
+    const scopes = [
+      "community.section-homework:read",
+      "community.description:read",
+      "community.comment:read",
+    ];
+    await db.user.create({
+      data: { id, email: `${id}@example.test`, name: id },
     });
-  await db.$disconnect();
-  vi.unstubAllEnvs();
-});
-async function createReader(marker: string): Promise<Reader> {
-  const id = `${marker}-reader`;
-  const clientId = `${marker}-client`;
-  const scopes = [
-    "community.section-homework:read",
-    "community.description:read",
-    "community.comment:read",
-  ];
-  await db.user.create({ data: { id, email: `${id}@example.test`, name: id } });
-  const sessionToken = crypto.randomUUID();
-  await db.session.create({
-    data: { userId: id, sessionToken, expires: new Date(Date.now() + 3600000) },
-  });
-  const context = await runtime(() => getBetterAuthInstance().$context);
-  const cookie = `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${sessionToken}.${await makeSignature(sessionToken, context.secret)}`)}`;
-  const client = await db.oAuthClient.create({
-    data: {
-      clientId,
-      name: "Community read parity",
-      redirectUris: ["https://example.test/callback"],
-      consents: { create: { userId: id, scopes } },
-    },
-    include: { consents: true },
-  });
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const token = await runtime(() =>
-    signResourceBoundOAuthAccessToken({
+    const session = await worker.createSession(id);
+    const cookie = `${session.cookie.name}=${session.cookie.value}`;
+    const client = await db.oAuthClient.create({
+      data: {
+        clientId,
+        name: "Community read parity",
+        redirectUris: ["https://example.test/callback"],
+        consents: { create: { userId: id, scopes } },
+      },
+      include: { consents: true },
+    });
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const token = await signToken({
       clientId,
       userId: id,
       grantId: client.consents[0].grantId,
       scopes,
-      resources: [`${origin}/api/mcp`],
+      resource: `${origin}/api/mcp`,
       issuedAt,
       expiresAt: issuedAt + 600,
-    }),
-  );
-  if (!token) throw new Error("Missing signed MCP token");
-  return { id, clientId, cookie, token };
-}
-async function cleanupReaders(readers: Reader[]) {
-  const ids = readers.map((reader) => reader.id);
-  await db.auditLog.deleteMany({
-    where: { OR: [{ userId: { in: ids } }, { subjectUserId: { in: ids } }] },
-  });
-  await db.oAuthClient.deleteMany({
-    where: { clientId: { in: readers.map((reader) => reader.clientId) } },
-  });
-  await db.user.deleteMany({ where: { id: { in: ids } } });
-}
-async function response(path: string, filter: Filter, reader?: Reader) {
-  const params = new URLSearchParams(
-    Object.entries(filter)
-      .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return fetch(`${origin}${path}?${params}`, {
-    headers: reader ? { cookie: reader.cookie } : {},
-  });
-}
-async function rest(path: string, filter: Filter, reader?: Reader) {
-  const result = await response(path, filter, reader);
-  const body = await result.json();
-  expect(result.status, JSON.stringify(body)).toBe(200);
-  return body;
-}
-async function mcp(name: string, args: Filter, reader?: Reader) {
-  const result = await fetch(`${origin}/api/mcp`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-      ...(reader ? { authorization: `Bearer ${reader.token}` } : {}),
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: { name, arguments: { ...args, locale: "zh-cn", mode: "full" } },
-    }),
-  });
-  const text = await result.text();
-  expect(result.status, text).toBe(200);
-  const data = result.headers.get("content-type")?.includes("text/event-stream")
-    ? text
-        .split("\n")
-        .filter((line) => line.startsWith("data: "))
-        .at(-1)
-        ?.slice(6)
-    : text;
-  if (!data) throw new Error("Missing MCP response");
-  const body = JSON.parse(data);
-  expect(body.error).toBeUndefined();
-  expect(body.result.isError, data).not.toBe(true);
-  return JSON.parse(
-    body.result.content.find((part: { type: string }) => part.type === "text")
-      .text,
-  );
+    });
+    if (!token) throw new Error("Missing signed MCP token");
+    return { id, clientId, cookie, token };
+  }
+  async function response(path: string, filter: Filter, reader?: Reader) {
+    const params = new URLSearchParams(
+      Object.entries(filter)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [key, String(value)]),
+    );
+    const result = await fetch(`${origin}${path}?${params}`, {
+      headers: reader ? { cookie: reader.cookie } : {},
+    });
+    return { status: result.status, body: await result.text() };
+  }
+  async function rest(path: string, filter: Filter, reader?: Reader) {
+    const result = await response(path, filter, reader);
+    const body = JSON.parse(result.body);
+    expect(result.status, JSON.stringify(body)).toBe(200);
+    return body;
+  }
+  async function mcp(name: string, args: Filter, reader?: Reader) {
+    const result = await fetch(`${origin}/api/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        ...(reader ? { authorization: `Bearer ${reader.token}` } : {}),
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name, arguments: { ...args, locale: "zh-cn", mode: "full" } },
+      }),
+    });
+    const body = await nativeEnvelope(result);
+    expect(result.status, JSON.stringify(body)).toBe(200);
+    expect(body.error).toBeUndefined();
+    expect(body.result.isError, JSON.stringify(body)).not.toBe(true);
+    return JSON.parse(
+      body.result.content.find((part: { type: string }) => part.type === "text")
+        .text,
+    );
+  }
+  return { createReader, response, rest, mcp };
 }
 const homeworkPath = "/api/community/section-homeworks";
 function projectHomework(rows: Record<string, unknown>[]) {
@@ -197,18 +103,25 @@ function projectHomework(rows: Record<string, unknown>[]) {
   );
 }
 
-it("interface-hierarchy.public-homework-read-parity", async () => {
-  const fixture = await createCatalogContractFixture(db);
-  const readers = [
-    await createReader(`${fixture.marker}-owner`),
-    await createReader(`${fixture.marker}-other`),
-  ];
-  const [section, otherSection] = fixture.sections;
-  const ids = Array.from(
-    { length: 10 },
-    (_, i) => `${fixture.marker}-homework-${String(i).padStart(2, "0")}`,
-  );
-  try {
+// Prepared-state read consumers; mutation side effects require separate observations.
+test("interface-hierarchy.public-homework-read-parity", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const { createReader, response, rest, mcp } =
+      await createCommunityReaders(isolatedWorker);
+    const fixture = await createCatalogContractFixture(db);
+    const readers = [
+      await createReader(`${fixture.marker}-owner`),
+      await createReader(`${fixture.marker}-other`),
+    ];
+    const [section, otherSection] = fixture.sections;
+    const ids = Array.from(
+      { length: 10 },
+      (_, i) => `${fixture.marker}-homework-${String(i).padStart(2, "0")}`,
+    );
     await db.userSectionSubscription.createMany({
       data: readers.map((reader) => ({
         userId: reader.id,
@@ -365,17 +278,18 @@ it("interface-hierarchy.public-homework-read-parity", async () => {
         (await response(homeworkPath, { sectionJwId: section.jwId, ...bounds }))
           .status,
       ).toBe(400);
-  } finally {
-    await cleanupCatalogContractFixture(db, fixture);
-    await cleanupReaders(readers);
-    resetPublicRuntimeCacheForTest();
-  }
-});
+  }));
 
-it("interface-hierarchy.description-read-parity", async () => {
-  const fixture = await createCatalogContractFixture(db);
-  const reader = await createReader(fixture.marker);
-  try {
+test("interface-hierarchy.description-read-parity", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const { createReader, response, rest, mcp } =
+      await createCommunityReaders(isolatedWorker);
+    const fixture = await createCatalogContractFixture(db);
+    const reader = await createReader(fixture.marker);
     const homework = await db.homework.create({
       data: { title: "Description target", sectionId: fixture.sections[0].id },
     });
@@ -494,38 +408,39 @@ it("interface-hierarchy.description-read-parity", async () => {
         }),
       ).toBe(25);
     }
-  } finally {
-    await cleanupCatalogContractFixture(db, fixture);
-    await cleanupReaders([reader]);
-    resetPublicRuntimeCacheForTest();
-  }
-});
+  }));
 
-it("interface-hierarchy.comment-read-parity", async () => {
-  const fixture = await createCatalogContractFixture(db);
-  const readers = [
-    await createReader(`${fixture.marker}-comment-owner`),
-    await createReader(`${fixture.marker}-comment-other`),
-  ];
-  const section = fixture.sections[0];
-  const path = "/api/community/comments";
-  const rootIds = Array.from(
-    { length: 6 },
-    (_, i) => `${fixture.marker}-root-${i}`,
-  );
-  const replyIds = Array.from(
-    { length: 36 },
-    (_, i) => `${fixture.marker}-reply-${String(i).padStart(2, "0")}`,
-  );
-  const createdAt = new Date("2035-01-01T00:00:00.437Z");
-  const target = { targetType: "section", sectionJwId: section.jwId };
-  function project({ success, found, ...payload }: Record<string, unknown>) {
-    expect(success).toBe(true);
-    expect(found).toBe(true);
-    return payload;
-  }
-  const ids = (nodes: CommentNode[]) => nodes.map((node) => node.id);
-  try {
+test("interface-hierarchy.comment-read-parity", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const { createReader, response, rest, mcp } =
+      await createCommunityReaders(isolatedWorker);
+    const fixture = await createCatalogContractFixture(db);
+    const readers = [
+      await createReader(`${fixture.marker}-comment-owner`),
+      await createReader(`${fixture.marker}-comment-other`),
+    ];
+    const section = fixture.sections[0];
+    const path = "/api/community/comments";
+    const rootIds = Array.from(
+      { length: 6 },
+      (_, i) => `${fixture.marker}-root-${i}`,
+    );
+    const replyIds = Array.from(
+      { length: 36 },
+      (_, i) => `${fixture.marker}-reply-${String(i).padStart(2, "0")}`,
+    );
+    const createdAt = new Date("2035-01-01T00:00:00.437Z");
+    const target = { targetType: "section", sectionJwId: section.jwId };
+    function project({ success, found, ...payload }: Record<string, unknown>) {
+      expect(success).toBe(true);
+      expect(found).toBe(true);
+      return payload;
+    }
+    const ids = (nodes: CommentNode[]) => nodes.map((node) => node.id);
     for (const id of [...rootIds].reverse()) {
       await db.comment.create({
         data: {
@@ -758,10 +673,4 @@ it("interface-hierarchy.comment-read-parity", async () => {
     expect(ids(anonymous.data)).toEqual(rootIds.slice(0, 5));
     expect(anonymous.meta.viewer.isAuthenticated).toBe(false);
     expect(anonymous.data[0].canEdit).toBe(false);
-  } finally {
-    await db.comment.deleteMany({ where: { sectionId: section.id } });
-    await cleanupCatalogContractFixture(db, fixture);
-    await cleanupReaders(readers);
-    resetPublicRuntimeCacheForTest();
-  }
-});
+  }));

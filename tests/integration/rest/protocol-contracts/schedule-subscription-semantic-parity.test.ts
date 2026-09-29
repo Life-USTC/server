@@ -1,10 +1,7 @@
 import { expect } from "@playwright/test";
-import { symmetricDecrypt } from "better-auth/crypto";
-import { importJWK, SignJWT } from "jose";
-import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
-import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import { createParityTokenSigner } from "./_parity-auth";
 import { nativeEnvelope } from "./_transport";
 
 type Filter = Record<string, number | string>;
@@ -74,45 +71,6 @@ function createReaders(origin: string) {
   return { rest, mcp, compareSchedules };
 }
 const ids = (rows: { id: number }[]) => rows.map((row) => row.id);
-
-/** Fixture credentials use the private Worker's actual key and resource audience. */
-async function createSubscriptionSigner(worker: IsolatedWorker) {
-  const response = await fetch(`${worker.origin}/api/auth/jwks`);
-  const { keys } = (await response.json()) as { keys: { kid: string }[] };
-  expect(response.status).toBe(200);
-  const key = await worker.database.owner.jwks.findFirstOrThrow({
-    where: { id: { in: keys.map((key) => key.kid) } },
-    orderBy: { createdAt: "desc" },
-  });
-  expect(key.alg).toBe("EdDSA");
-  const privateJwk = await symmetricDecrypt({
-    key: "e2e-dev-secret-not-for-production",
-    data: JSON.parse(key.privateKey),
-  });
-  const signingKey = await importJWK(JSON.parse(privateJwk), "EdDSA");
-  return (input: {
-    clientId: string;
-    grantId: string;
-    userId: string;
-    scopes: string[];
-    resource: string;
-    issuedAt: number;
-    expiresAt: number;
-  }) =>
-    new SignJWT({
-      azp: input.clientId,
-      scope: input.scopes.join(" "),
-      [OAUTH_GRANT_ID_CLAIM]: input.grantId,
-    })
-      .setProtectedHeader({ alg: "EdDSA", kid: key.id, typ: "JWT" })
-      .setSubject(input.userId)
-      .setAudience(input.resource)
-      .setIssuer(`${worker.origin}/api/auth`)
-      .setIssuedAt(input.issuedAt)
-      .setExpirationTime(input.expiresAt)
-      .sign(signingKey);
-}
-
 test("interface-hierarchy.public-schedule-read-parity", async ({
   isolatedWorker,
   run,
@@ -252,7 +210,6 @@ test("interface-hierarchy.public-schedule-read-parity", async ({
       expect(tool.section.jwId).toBe(section.jwId);
     }
   }));
-
 test("interface-hierarchy.subscription-read-parity", async ({
   isolatedWorker,
   run,
@@ -261,7 +218,7 @@ test("interface-hierarchy.subscription-read-parity", async ({
     const db = isolatedWorker.database.owner;
     const origin = isolatedWorker.origin;
     const { rest, mcp } = createReaders(origin);
-    const signToken = await createSubscriptionSigner(isolatedWorker);
+    const signToken = await createParityTokenSigner(isolatedWorker);
     const fixture = await createCatalogContractFixture(db);
     const userIds = [0, 1, 2].map(
       (index) => `${fixture.marker}-subscriber-${index}`,

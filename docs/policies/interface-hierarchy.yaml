@@ -205,7 +205,7 @@ requirements:
     - Paginated bindings report exact totals and an empty page after the end; prefix bindings return the requested prefix.
     - Shared homework completion remains owner-specific and the empty owner receives no records.
     test:
-      file: tests/integration/workspace-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/workspace-semantic-parity.test.ts
       name: interface-hierarchy.workspace-explicit-read-parity
 - id: interface-hierarchy.public-schedule-read-parity
   category: consistency
@@ -264,7 +264,7 @@ requirements:
     - Nested focus and reply-as-anchor retain required ancestors and root identity; complete DTOs and action authority match for each viewer.
     - Anonymous REST hides logged-in-only roots; malformed cursors and missing targets retain declared HTTP and MCP error meanings.
     test:
-      file: tests/integration/community-read-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/community-read-semantic-parity.test.ts
       name: interface-hierarchy.comment-read-parity
 - id: interface-hierarchy.public-homework-read-parity
   category: consistency
@@ -282,7 +282,7 @@ requirements:
     - Every REST page equals the corresponding slice of the independently ordered MCP full list, with complete totals and empty exhaustion.
     - Owner completion differs correctly, anonymous REST completion is null, selector unions deduplicate, and invalid or missing targets preserve declared errors.
     test:
-      file: tests/integration/community-read-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/community-read-semantic-parity.test.ts
       name: interface-hierarchy.public-homework-read-parity
 - id: interface-hierarchy.description-read-parity
   category: consistency
@@ -300,7 +300,7 @@ requirements:
     - Full description and viewer payloads match after removing declared protocol envelopes, including the exact latest 20 history IDs.
     - Wrong identifier forms are not silently reinterpreted, empty descriptions remain valid and reads do not mutate history.
     test:
-      file: tests/integration/community-read-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/community-read-semantic-parity.test.ts
       name: interface-hierarchy.description-read-parity
 - id: interface-hierarchy.public-profile-read-parity
   category: consistency

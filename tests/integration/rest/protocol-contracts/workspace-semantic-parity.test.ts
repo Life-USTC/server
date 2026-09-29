@@ -1,289 +1,206 @@
-import { createServer, type Server } from "node:http";
-import type { RequestEvent } from "@sveltejs/kit";
-import { getRequest, setResponse } from "@sveltejs/kit/node";
-import { afterAll, expect, it, vi } from "vitest";
-import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { getSubscribedHomeworksRoute } from "@/lib/api/routes/homework-subscribed-read-route";
-import { mcpPostRoute } from "@/lib/api/routes/mcp";
-import { getSubscribedExamsRoute } from "@/lib/api/routes/subscribed-exam-routes";
-import { getMySubscribedSchedulesRoute } from "@/lib/api/routes/subscribed-schedule-routes";
-import { getTodosRoute } from "@/lib/api/routes/todos";
-import { createGraphqlRequestHandler } from "@/lib/graphql/server";
-import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
-import {
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../shared/catalog-contract-fixture";
-import { createFixturePrisma } from "../shared/prisma";
+import { expect } from "@playwright/test";
+import { test } from "../../../e2e/utils/owned-worker";
+import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import { createParityTokenSigner } from "./_parity-auth";
+import { nativeEnvelope } from "./_transport";
 
-const db = createFixturePrisma();
-const graphql = createGraphqlRequestHandler(false);
 const kinds = ["todo", "homework", "schedule", "exam"] as const;
 type Kind = (typeof kinds)[number];
 type Filter = Record<string, string | number | boolean>;
 type Id = string | number;
 type Row = { id: Id; completed?: boolean; completion?: unknown };
 type Tokens = { rest: string; graphql: string; mcp: string };
-let server: Server | undefined;
-let origin = "";
 const paths = {
   todo: "todos",
   homework: "homeworks",
   schedule: "schedules",
   exam: "exams",
 };
-const handlers = {
-  todo: getTodosRoute,
-  homework: getSubscribedHomeworksRoute,
-  schedule: getMySubscribedSchedulesRoute,
-  exam: getSubscribedExamsRoute,
-};
-function runtime<T>(work: () => T) {
-  if (!process.env.DATABASE_URL || !process.env.AUTH_DATABASE_URL)
-    throw new Error("Missing restricted runtime database URLs");
-  return runWithCloudflareRuntimeEnv(
-    {
-      HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
-      HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
-    },
-    work,
-  );
-}
-async function startHttpServer() {
-  server = createServer(async (incoming, outgoing) => {
-    try {
-      const request = await getRequest({ request: incoming, base: origin });
-      const response = await runtime(async () => {
-        const path = new URL(request.url).pathname;
-        if (path === "/api/auth/jwks") {
-          const { getBetterAuthInstance } = await import("@/lib/auth/core");
-          return getBetterAuthInstance().handler(request);
-        }
-        if (path === "/api/mcp") return mcpPostRoute(request);
-        if (path === "/api/graphql")
-          return graphql({
-            request,
-            locals: {
-              authUser: null,
-              locale: "zh-cn",
-              requestId: "workspace-parity",
+const ids = (rows: Row[]) => rows.map((row) => row.id);
+function createWorkspaceReaders(origin: string) {
+  async function json(response: Response) {
+    const body = await response.json();
+    expect(response.status, JSON.stringify(body)).toBe(200);
+    return body;
+  }
+  async function rest(kind: Kind, token: string, filter: Filter) {
+    const params = new URLSearchParams(
+      Object.entries(filter).map(([key, value]) => [key, String(value)]),
+    );
+    return json(
+      await fetch(`${origin}/api/workspace/${paths[kind]}?${params}`, {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+  }
+  async function graph(
+    kind: Kind,
+    token: string,
+    filter: Filter,
+    page: number,
+    pageSize: number,
+  ) {
+    const type = `${kind[0].toUpperCase()}${kind.slice(1)}Filter`;
+    const body = await json(
+      await fetch(`${origin}/api/graphql`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `query Parity($filter: ${type}, $page: PageInput) { workspace { ${paths[kind]}(filter: $filter, page: $page) { items { id ${kind === "homework" ? "completed" : ""} } pageInfo { page pageSize total totalPages } } } }`,
+          variables: {
+            filter: {
+              ...filter,
+              ...(filter.priority
+                ? { priority: String(filter.priority).toUpperCase() }
+                : {}),
             },
-          } as unknown as RequestEvent);
-        const kind = kinds.find(
-          (candidate) => path === `/api/workspace/${paths[candidate]}`,
-        );
-        return kind
-          ? handlers[kind](request)
-          : new Response(null, { status: 404 });
-      });
-      await setResponse(outgoing, response);
-    } catch (error) {
-      outgoing.statusCode = 500;
-      outgoing.end(String(error));
-    }
-  });
-  await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  if (!address || typeof address === "string")
-    throw new Error("Missing HTTP server address");
-  origin = `http://127.0.0.1:${address.port}`;
-  vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
-}
-async function json(response: Response) {
-  const body = await response.json();
-  expect(response.status, JSON.stringify(body)).toBe(200);
-  return body;
-}
-async function rest(kind: Kind, token: string, filter: Filter) {
-  const params = new URLSearchParams(
-    Object.entries(filter).map(([key, value]) => [key, String(value)]),
-  );
-  return json(
-    await fetch(`${origin}/api/workspace/${paths[kind]}?${params}`, {
-      headers: { authorization: `Bearer ${token}` },
-    }),
-  );
-}
-async function graph(
-  kind: Kind,
-  token: string,
-  filter: Filter,
-  page: number,
-  pageSize: number,
-) {
-  const type = `${kind[0].toUpperCase()}${kind.slice(1)}Filter`;
-  const body = await json(
-    await fetch(`${origin}/api/graphql`, {
+            page: { page, pageSize },
+          },
+        }),
+      }),
+    );
+    expect(body.errors).toBeUndefined();
+    return body.data.workspace[paths[kind]];
+  }
+  async function mcp(kind: Kind, token: string, args: Filter) {
+    const response = await fetch(`${origin}/api/mcp`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
         "content-type": "application/json",
+        accept: "application/json, text/event-stream",
       },
       body: JSON.stringify({
-        query: `query Parity($filter: ${type}, $page: PageInput) { workspace { ${paths[kind]}(filter: $filter, page: $page) { items { id ${kind === "homework" ? "completed" : ""} } pageInfo { page pageSize total totalPages } } } }`,
-        variables: {
-          filter: {
-            ...filter,
-            ...(filter.priority
-              ? { priority: String(filter.priority).toUpperCase() }
-              : {}),
-          },
-          page: { page, pageSize },
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: `workspace_${kind}_list`,
+          arguments: { ...args, mode: "full" },
         },
       }),
-    }),
-  );
-  expect(body.errors).toBeUndefined();
-  return body.data.workspace[paths[kind]];
-}
-async function mcp(kind: Kind, token: string, args: Filter) {
-  const response = await fetch(`${origin}/api/mcp`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: {
-        name: `workspace_${kind}_list`,
-        arguments: { ...args, mode: "full" },
-      },
-    }),
-  });
-  const text = await response.text();
-  expect(response.status, text).toBe(200);
-  const payload = response.headers
-    .get("content-type")
-    ?.includes("text/event-stream")
-    ? text
-        .split("\n")
-        .filter((line) => line.startsWith("data: "))
-        .at(-1)
-        ?.slice(6)
-    : text;
-  if (!payload) throw new Error("Missing MCP JSON-RPC response");
-  const body = JSON.parse(payload);
-  expect(body.error).toBeUndefined();
-  expect(body.result.isError, payload).not.toBe(true);
-  return JSON.parse(
-    body.result.content.find((part: { type: string }) => part.type === "text")
-      .text,
-  );
-}
-const ids = (rows: Row[]) => rows.map((row) => row.id);
-// Native REST todo/schedule and all four MCP lists have a prefix limit, not pages.
-// Assert their actual prefix and complete fixture result; never invent page/total fields.
-async function compare(
-  kind: Kind,
-  tokens: Tokens,
-  filter: Filter,
-  expected: Id[],
-  options: { rest?: boolean; mcp?: boolean; completedIds?: string[] } = {},
-) {
-  const pageSize = 2;
-  const pagedRest = kind === "homework" || kind === "exam";
-  const useRest = options.rest !== false;
-  const useMcp = options.mcp !== false;
-  const pages = Math.max(1, Math.ceil(expected.length / pageSize));
-  const graphRows: Row[] = [];
-  for (let page = 1; page <= pages + 1; page++) {
-    const result = await graph(kind, tokens.graphql, filter, page, pageSize);
-    const expectedPage = expected.slice((page - 1) * pageSize, page * pageSize);
-    expect(
-      ids(result.items),
-      `${kind} GraphQL page ${page} ${JSON.stringify(filter)}`,
-    ).toEqual(expectedPage);
-    expect(result.pageInfo).toEqual({
-      page,
-      pageSize,
-      total: expected.length,
-      totalPages: pages,
     });
-    graphRows.push(...result.items);
-    if (useRest && pagedRest) {
-      const resultRest = await rest(kind, tokens.rest, {
-        ...filter,
+    const body = await nativeEnvelope(response);
+    expect(response.status, JSON.stringify(body)).toBe(200);
+    expect(body.error).toBeUndefined();
+    expect(body.result.isError, JSON.stringify(body)).not.toBe(true);
+    return JSON.parse(
+      body.result.content.find((part: { type: string }) => part.type === "text")
+        .text,
+    );
+  }
+  async function compare(
+    kind: Kind,
+    tokens: Tokens,
+    filter: Filter,
+    expected: Id[],
+    options: { rest?: boolean; mcp?: boolean; completedIds?: string[] } = {},
+  ) {
+    const pageSize = 2;
+    const pagedRest = kind === "homework" || kind === "exam";
+    const useRest = options.rest !== false;
+    const useMcp = options.mcp !== false;
+    const pages = Math.max(1, Math.ceil(expected.length / pageSize));
+    const graphRows: Row[] = [];
+    for (let page = 1; page <= pages + 1; page++) {
+      const result = await graph(kind, tokens.graphql, filter, page, pageSize);
+      const expectedPage = expected.slice(
+        (page - 1) * pageSize,
+        page * pageSize,
+      );
+      expect(
+        ids(result.items),
+        `${kind} GraphQL page ${page} ${JSON.stringify(filter)}`,
+      ).toEqual(expectedPage);
+      expect(result.pageInfo).toEqual({
         page,
         pageSize,
+        total: expected.length,
+        totalPages: pages,
       });
-      expect(ids(resultRest.data)).toEqual(expectedPage);
-      expect(resultRest.pagination).toEqual(result.pageInfo);
-      if (options.completedIds)
-        expect(
-          resultRest.data
-            .filter((row: Row) => Boolean(row.completion))
-            .map((row: Row) => row.id),
-        ).toEqual(
-          expectedPage.filter((id) =>
-            options.completedIds?.includes(String(id)),
-          ),
-        );
+      graphRows.push(...result.items);
+      if (useRest && pagedRest) {
+        const resultRest = await rest(kind, tokens.rest, {
+          ...filter,
+          page,
+          pageSize,
+        });
+        expect(ids(resultRest.data)).toEqual(expectedPage);
+        expect(resultRest.pagination).toEqual(result.pageInfo);
+        if (options.completedIds)
+          expect(
+            resultRest.data
+              .filter((row: Row) => Boolean(row.completion))
+              .map((row: Row) => row.id),
+          ).toEqual(
+            expectedPage.filter((id) =>
+              options.completedIds?.includes(String(id)),
+            ),
+          );
+      }
     }
-  }
-  expect(ids(graphRows)).toEqual(expected);
-  if (options.completedIds)
-    expect(
-      graphRows.filter((row) => row.completed).map((row) => row.id),
-    ).toEqual(
-      expected.filter((id) => options.completedIds?.includes(String(id))),
-    );
-  for (const limit of [2, 100]) {
-    const expectedPrefix = expected.slice(0, limit);
-    const resultRest =
-      useRest && !pagedRest
-        ? await rest(kind, tokens.rest, { ...filter, limit })
-        : undefined;
-    if (resultRest)
-      expect(ids(resultRest[paths[kind]])).toEqual(expectedPrefix);
-    if (useMcp) {
-      const mcpFilter =
-        kind === "todo"
-          ? { includeCompleted: filter.completed !== false }
-          : filter;
-      const resultMcp = await mcp(kind, tokens.mcp, { ...mcpFilter, limit });
+    expect(ids(graphRows)).toEqual(expected);
+    if (options.completedIds)
       expect(
-        ids(resultMcp[paths[kind]]),
-        `${kind} MCP ${JSON.stringify(filter)}`,
-      ).toEqual(expectedPrefix);
-      expect(resultMcp.pagination).toBeUndefined();
-      if (resultRest && kind === "todo")
-        expect(resultMcp.counts).toEqual(resultRest.counts);
-      if (options.completedIds)
+        graphRows.filter((row) => row.completed).map((row) => row.id),
+      ).toEqual(
+        expected.filter((id) => options.completedIds?.includes(String(id))),
+      );
+    for (const limit of [2, 100]) {
+      const expectedPrefix = expected.slice(0, limit);
+      const resultRest =
+        useRest && !pagedRest
+          ? await rest(kind, tokens.rest, { ...filter, limit })
+          : undefined;
+      if (resultRest)
+        expect(ids(resultRest[paths[kind]])).toEqual(expectedPrefix);
+      if (useMcp) {
+        const mcpFilter =
+          kind === "todo"
+            ? { includeCompleted: filter.completed !== false }
+            : filter;
+        const resultMcp = await mcp(kind, tokens.mcp, { ...mcpFilter, limit });
         expect(
-          resultMcp[paths[kind]]
-            .filter((row: Row) => Boolean(row.completion))
-            .map((row: Row) => row.id),
-        ).toEqual(
-          expectedPrefix.filter((id) =>
-            options.completedIds?.includes(String(id)),
-          ),
-        );
+          ids(resultMcp[paths[kind]]),
+          `${kind} MCP ${JSON.stringify(filter)}`,
+        ).toEqual(expectedPrefix);
+        expect(resultMcp.pagination).toBeUndefined();
+        if (resultRest && kind === "todo")
+          expect(resultMcp.counts).toEqual(resultRest.counts);
+        if (options.completedIds)
+          expect(
+            resultMcp[paths[kind]]
+              .filter((row: Row) => Boolean(row.completion))
+              .map((row: Row) => row.id),
+          ).toEqual(
+            expectedPrefix.filter((id) =>
+              options.completedIds?.includes(String(id)),
+            ),
+          );
+      }
     }
   }
+  return { compare };
 }
-afterAll(async () => {
-  if (server)
-    await new Promise<void>((resolve, reject) => {
-      server?.close((error) => (error ? reject(error) : resolve()));
-      server?.closeAllConnections();
-    });
-  await db.$disconnect();
-  vi.unstubAllEnvs();
-});
 
-it("interface-hierarchy.workspace-explicit-read-parity", async () => {
-  await startHttpServer();
-  const fixture = await createCatalogContractFixture(db);
-  const userIds = [0, 1, 2].map(
-    (index) => `workspace-parity-${fixture.marker}-${index}`,
-  );
-  const clientId = `workspace-parity-client-${fixture.marker}`;
-  try {
+// Prepared-state read consumers; mutation side effects require separate observations.
+test("interface-hierarchy.workspace-explicit-read-parity", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const origin = isolatedWorker.origin;
+    const { compare } = createWorkspaceReaders(origin);
+    const signToken = await createParityTokenSigner(isolatedWorker);
+    const fixture = await createCatalogContractFixture(db);
+    const userIds = [0, 1, 2].map(
+      (index) => `workspace-parity-${fixture.marker}-${index}`,
+    );
+    const clientId = `workspace-parity-client-${fixture.marker}`;
     await db.user.createMany({
       data: userIds.map((id) => ({ id, email: `${id}@example.test` })),
     });
@@ -305,22 +222,20 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
       if (!grantId) throw new Error("Missing fixture consent grant");
       const tokens = {} as Tokens;
       for (const [transport, resource] of Object.entries({
-        rest: getOAuthRestAudienceUrls()[0],
+        rest: `${origin}/api/auth`,
         graphql: `${origin}/api/graphql`,
         mcp: `${origin}/api/mcp`,
       })) {
         const issuedAt = Math.floor(Date.now() / 1000);
-        const token = await runtime(() =>
-          signResourceBoundOAuthAccessToken({
-            clientId,
-            grantId,
-            userId,
-            scopes,
-            resources: [resource],
-            issuedAt,
-            expiresAt: issuedAt + 600,
-          }),
-        );
+        const token = await signToken({
+          clientId,
+          grantId,
+          userId,
+          scopes,
+          resource,
+          issuedAt,
+          expiresAt: issuedAt + 600,
+        });
         if (!token) throw new Error("Missing signed access token");
         tokens[transport as keyof Tokens] = token;
       }
@@ -333,7 +248,6 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
         nameCn: "2030春",
       },
     });
-    fixture.cleanupIds.semesters.push(newer.id);
     await db.section.update({
       where: { id: fixture.sections[1].id },
       data: { semesterId: newer.id },
@@ -346,7 +260,6 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
         semesterId: newer.id,
       },
     });
-    fixture.cleanupIds.sections.push(otherSection.id);
     const sections = [...fixture.sections, otherSection];
     await db.userSectionSubscription.createMany({
       data: [
@@ -566,8 +479,6 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
       );
     }
     for (const kind of kinds) await compare(kind, credentials[2], {}, []);
-    // Give the previously empty owner six equal-key records, physically inserted
-    // in descending identifier order, and traverse every two-item page.
     await db.userSectionSubscription.create({
       data: { userId: userIds[2], sectionId: sections[0].id },
     });
@@ -624,9 +535,4 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
     }
     for (const kind of kinds)
       await compare(kind, credentials[2], {}, tied[kind]);
-  } finally {
-    await db.oAuthClient.deleteMany({ where: { clientId } });
-    await db.user.deleteMany({ where: { id: { in: userIds } } });
-    await cleanupCatalogContractFixture(db, fixture);
-  }
-});
+  }));
