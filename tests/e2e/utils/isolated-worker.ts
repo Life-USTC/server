@@ -189,6 +189,9 @@ export const test = base.extend<
             resolve("tests/ci/fixtures/isolated-worker-process.mjs"),
             [],
             {
+              // Wrangler's project-local bundles must also belong to this case,
+              // including when a killed child cannot remove them itself.
+              cwd: directory,
               env: environment,
               detached: true,
               execArgv: [],
