@@ -2,12 +2,11 @@ import { type ChildProcess, fork } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { createWriteStream, mkdirSync, mkdtempSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
-import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { type APIRequestContext, test as base } from "@playwright/test";
 import { getCookies } from "better-auth/cookies";
-import type { Unstable_DevOptions } from "wrangler";
+import type { unstable_startWorker } from "wrangler";
 import {
   type DatabaseTemplate,
   databaseConnectionsFromEnvironment,
@@ -28,20 +27,6 @@ export type IsolatedWorker = {
   createSession: (userId: string) => Promise<Actor>;
 };
 
-async function availablePort() {
-  const server = createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  await new Promise<void>((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve())),
-  );
-  if (!address || typeof address === "string")
-    throw new Error("Missing TCP port");
-  return address.port;
-}
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string) {
   let timer: ReturnType<typeof setTimeout>;
   return Promise.race([
@@ -185,9 +170,7 @@ export const test = base.extend<
           await database.initialize(abort.signal);
           abort.signal.throwIfAborted();
           directory = mkdtempSync(join(tmpdir(), "life-ustc-worker-"));
-          const port = await availablePort();
-          abort.signal.throwIfAborted();
-          const origin = `http://localhost:${port}`;
+          let port: number | undefined;
           const environment = getWorkerProcessEnvironment({
             ...process.env,
             FUNCTION_OWNER_DATABASE_URL: database.connections.owner,
@@ -235,11 +218,19 @@ export const test = base.extend<
                 if (message.type === "error")
                   reject(new Error(message.message));
                 if (message.type === "ready") {
-                  if (message.port !== port)
+                  if (
+                    !Number.isInteger(message.port) ||
+                    !message.port ||
+                    message.port < 1 ||
+                    message.port > 65535
+                  )
                     reject(
-                      new Error("Private Worker bound an unexpected port"),
+                      new Error("Private Worker reported an invalid port"),
                     );
-                  else resolve();
+                  else {
+                    port = message.port;
+                    resolve();
+                  }
                 }
               },
             );
@@ -260,30 +251,43 @@ export const test = base.extend<
               template: databaseTemplate.name,
               directory,
               processGroup: child.pid,
-              origin,
             }),
           );
           abort.signal.throwIfAborted();
-          const options: Unstable_DevOptions = {
+          const options: Parameters<typeof unstable_startWorker>[0] = {
             config: resolve("wrangler.e2e.jsonc"),
+            entrypoint: resolve("tests/ci/fixtures/e2e-storage-worker.ts"),
             envFiles: [],
-            local: true,
-            port,
-            inspectorPort: 0,
-            vars: { APP_PUBLIC_ORIGIN: origin },
-            persistTo: directory,
-            logLevel: "error",
-            experimental: { disableDevRegistry: true, watch: false },
+            dev: {
+              remote: false,
+              server: { hostname: "127.0.0.1", port: 0 },
+              inspector: { port: 0 },
+              persist: directory,
+              logLevel: "error",
+              watch: false,
+              generateTypes: false,
+            },
           };
           child.send({
             type: "start",
-            script: resolve("tests/ci/fixtures/e2e-storage-worker.ts"),
             options,
           });
           await withTimeout(
             Promise.race([ready, cancelled]),
             60_000,
             "Private Worker startup timed out; see isolated-worker.log",
+          );
+          abort.signal.throwIfAborted();
+          const origin = `http://localhost:${port}`;
+          await writeFile(
+            testInfo.outputPath("isolated-worker-state.json"),
+            JSON.stringify({
+              database: database.name,
+              template: databaseTemplate.name,
+              directory,
+              processGroup: child.pid,
+              origin,
+            }),
           );
           abort.signal.throwIfAborted();
           const health = await fetch(`${origin}/api/health`, {
