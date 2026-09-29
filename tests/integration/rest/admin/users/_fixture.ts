@@ -1,7 +1,5 @@
-import {
-  type IsolatedWorker,
-  test as isolatedTest,
-} from "../../../../e2e/utils/isolated-worker";
+import type { IsolatedWorker } from "../../../../e2e/utils/isolated-worker";
+import { test as ownedTest } from "../../../../e2e/utils/owned-worker";
 
 async function prepareUsers(worker: IsolatedWorker) {
   const db = worker.database.owner;
@@ -27,11 +25,11 @@ async function prepareUsers(worker: IsolatedWorker) {
   ]);
   return { db, admin, owner, adminUser, ownerUser };
 }
-export const test = isolatedTest.extend<{
+export const test = ownedTest.extend<{
   userState: Awaited<ReturnType<typeof prepareUsers>>;
 }>({
-  userState: async ({ isolatedWorker }, use) => {
-    await use(await prepareUsers(isolatedWorker));
+  userState: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => prepareUsers(isolatedWorker)));
   },
 });
 export const base = "/api/admin/users";
