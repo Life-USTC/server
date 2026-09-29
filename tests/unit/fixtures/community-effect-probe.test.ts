@@ -268,7 +268,8 @@ describe("community effect observation owns asynchronous request completion", ()
             ),
           ),
       );
-      const reader = response.body!.getReader();
+      if (!response.body) throw new Error("Expected a response stream");
+      const reader = response.body.getReader();
       probe.cleanup(() => reader.cancel());
       const read = probe.track(reader.read());
       await reading.promise;

@@ -1,4 +1,9 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import {
+  expect,
+  type Page,
+  type Request,
+  type TestInfo,
+} from "@playwright/test";
 import type { IsolatedWorker } from "./isolated-worker";
 
 type CalendarMessage =
@@ -36,6 +41,16 @@ type ProducerObservation = {
   messages: { outcome: string; value: CalendarMessage }[];
   purges: { outcome: string }[];
   backgroundErrors: string[];
+  requests: {
+    outcome: string;
+    value: {
+      method: string;
+      path: string;
+      requestId?: string;
+      entrypoint?: "PublicSsr";
+    };
+    result: number;
+  }[];
 };
 
 /** Explicit scenario expectations; observers never derive them from the producer. */
@@ -49,12 +64,15 @@ export async function withHomeworkEffects(
     calendarMessages,
     calendarTokenCreated = false,
     auditActions = {},
+    observeReads = false,
   }: HomeworkEffects & {
     page: Page;
     isolatedWorker: IsolatedWorker;
     account: { id: string };
     sectionId?: number;
     testInfo: TestInfo;
+    // Consumer scenarios must drain GET waitUntil work before asserting no effects.
+    observeReads?: boolean;
   },
   work: (effects: { headers: Record<string, string> }) => Promise<void>,
 ) {
@@ -68,8 +86,78 @@ export async function withHomeworkEffects(
   const pending = new Set<Promise<void>>();
   const errors: unknown[] = [];
   const writes: { method: string; path: string; status: number }[] = [];
+  const reads: {
+    requestId: string;
+    method: string;
+    path: string;
+    status: number;
+    order: number;
+  }[] = [];
+  const supersededCalendarReads: {
+    requestId: string;
+    path: string;
+    order: number;
+  }[] = [];
+  const ownedReads = new Map<Request, string>();
   let accepting = true;
   let registered = false;
+
+  function observeRead(incoming: Request) {
+    const predecessor = incoming.redirectedFrom();
+    if (
+      !observeReads ||
+      new URL(incoming.url()).origin !== isolatedWorker.origin ||
+      !["GET", "HEAD"].includes(incoming.method()) ||
+      (!accepting && !(predecessor && ownedReads.has(predecessor)))
+    )
+      return;
+    const requestId =
+      (predecessor && ownedReads.get(predecessor)) || crypto.randomUUID();
+    ownedReads.set(incoming, requestId);
+    const order = ownedReads.size;
+    const path = new URL(incoming.url()).pathname;
+    const operation = (async () => {
+      try {
+        const response = await incoming.response();
+        if (!response) {
+          // Range changes deliberately abort the obsolete calendar fetch. The
+          // server handler remains owned by the producer drain below.
+          if (
+            path === "/api/workspace/calendar/events" &&
+            incoming.failure()?.errorText === "net::ERR_ABORTED"
+          ) {
+            supersededCalendarReads.push({ requestId, path, order });
+            return;
+          }
+          throw new Error(
+            `Calendar read failed: ${incoming.failure()?.errorText}`,
+          );
+        }
+        reads.push({
+          requestId,
+          method: incoming.method(),
+          path,
+          status: response.status(),
+          order,
+        });
+        const location = response.headers().location;
+        if (
+          [301, 302, 303, 307, 308].includes(response.status()) &&
+          location &&
+          new URL(location, incoming.url()).origin === isolatedWorker.origin &&
+          !incoming.redirectedTo()
+        )
+          await page.waitForEvent("request", {
+            predicate: (next) => next.redirectedFrom() === incoming,
+            timeout: 15_000,
+          });
+      } catch (error) {
+        errors.push(error);
+      }
+    })();
+    pending.add(operation);
+    void operation.finally(() => pending.delete(operation));
+  }
 
   async function observe() {
     let snapshot:
@@ -103,6 +191,44 @@ export async function withHomeworkEffects(
       .toBe(true);
     if (!snapshot) throw new Error("Missing homework effect observations");
     const { producer, consumer } = snapshot;
+    if (observeReads) {
+      expect(producer.requests.length).toBeGreaterThan(0);
+      for (const request of producer.requests) {
+        expect(request.outcome).toBe("fulfilled");
+        expect(request.result).toEqual(expect.any(Number));
+      }
+      // The server independently records tagged requests, including redirect
+      // successors and handlers that outlive a cancelled browser request.
+      const unmatched = [...producer.requests];
+      // Wrangler serves compiled immutable assets before invoking the Worker.
+      // They remain browser-owned reads, but have no application handler to drain.
+      for (const read of reads.filter(
+        (read) => !read.path.startsWith("/_app/immutable/"),
+      )) {
+        const index = unmatched.findIndex(
+          (request) =>
+            !request.value.entrypoint &&
+            request.value.requestId === read.requestId &&
+            request.value.method === read.method &&
+            request.value.path === read.path &&
+            request.result === read.status,
+        );
+        expect(
+          index,
+          `Worker completed ${read.method} ${read.path} (${read.status})`,
+        ).toBeGreaterThanOrEqual(0);
+        unmatched.splice(index, 1);
+      }
+      for (const cancelled of supersededCalendarReads)
+        expect(
+          reads.some(
+            (read) =>
+              read.path === cancelled.path &&
+              read.order > cancelled.order &&
+              read.status === 200,
+          ),
+        ).toBe(true);
+    }
     expect(producer.backgroundErrors).toEqual([]);
     expect(
       producer.purges.every((purge) => purge.outcome === "fulfilled"),
@@ -213,6 +339,8 @@ export async function withHomeworkEffects(
       consumer,
       audits,
       writes,
+      reads,
+      supersededCalendarReads,
     };
   }
 
@@ -226,13 +354,26 @@ export async function withHomeworkEffects(
       (await request.post(consumerPath, { headers: secret })).status(),
     ).toBe(201);
     registered = true;
+    if (observeReads) page.on("request", observeRead);
     await page.route(
       (url) => url.origin === isolatedWorker.origin,
       async (route) => {
         if (
           !["POST", "PUT", "PATCH", "DELETE"].includes(route.request().method())
-        )
-          return route.continue();
+        ) {
+          if (!observeReads) return route.continue();
+          const requestId = ownedReads.get(route.request());
+          if (!requestId) return route.abort("aborted");
+          // Native continuation preserves the browser's redirects and carries
+          // the probe headers to every request in that chain.
+          return route.continue({
+            headers: {
+              ...route.request().headers(),
+              ...headers,
+              "x-test-community-request": requestId,
+            },
+          });
+        }
         let fulfilled = false;
         const operation = (async () => {
           try {
@@ -301,6 +442,7 @@ export async function withHomeworkEffects(
     } catch (error) {
       errors.push(error);
     }
+    page.off("request", observeRead);
   }
   if (errors.length)
     throw new AggregateError(errors, "Owned homework workflow failed");
