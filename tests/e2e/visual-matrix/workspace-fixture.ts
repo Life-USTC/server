@@ -1,26 +1,68 @@
+import type { Prisma } from "../../../src/generated/prisma-node/client";
 import scenario from "../fixtures/scenario.json" with { type: "json" };
-import { test as accountTest } from "../utils/account-fixture";
 import { DEV_SEED } from "../utils/dev-seed";
+import { test as workerTest } from "../utils/isolated-worker";
 import {
   createVisualCourseCatalog,
   createVisualWorkspaceCatalog,
   type VisualCatalog,
 } from "./catalog-fixture";
 
+type VisualResources = {
+  transaction: <T>(
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ) => Promise<T>;
+};
+
 /** Reproduce the baseline's visible personal state without borrowing its user. */
-export const test = accountTest.extend<{
+export const test = workerTest.extend<{
+  _visualResources: VisualResources;
   catalog: VisualCatalog;
   workspace: undefined;
 }>({
-  catalog: async ({ isolatedWorker }, use) => {
-    await use(
-      await isolatedWorker.database.owner.$transaction(
-        createVisualCourseCatalog,
-      ),
-    );
+  _visualResources: [
+    async ({ isolatedWorker }, use) => {
+      const abort = new AbortController();
+      const pending = new Set<Promise<unknown>>();
+      const transaction: VisualResources["transaction"] = (operation) => {
+        const result = Promise.resolve().then(() => {
+          abort.signal.throwIfAborted();
+          return isolatedWorker.database.owner.$transaction(async (tx) => {
+            abort.signal.throwIfAborted();
+            const value = await operation(tx);
+            abort.signal.throwIfAborted();
+            return value;
+          });
+        });
+        pending.add(result);
+        void result.then(
+          () => pending.delete(result),
+          () => pending.delete(result),
+        );
+        return result;
+      };
+      try {
+        // Native teardown exists before dependent fixtures start any SQL work.
+        await use({ transaction });
+      } finally {
+        abort.abort(new Error("Visual fixture resources disposed"));
+        // A timed-out setup may still be awaiting SQL. Keep the database alive
+        // until its transaction observes cancellation and finishes rollback.
+        await Promise.allSettled([...pending]);
+      }
+    },
+    { timeout: 90_000 },
+  ],
+  catalog: async ({ _visualResources }, use) => {
+    await use(await _visualResources.transaction(createVisualCourseCatalog));
   },
-  workspace: async ({ account, catalog, isolatedWorker }, use) => {
-    await isolatedWorker.database.owner.$transaction(async (tx) => {
+  workspace: async (
+    { catalog, _visualResources, isolatedWorker, page },
+    use,
+  ) => {
+    const account = await isolatedWorker.createActor();
+    await page.context().addCookies([account.cookie]);
+    await _visualResources.transaction(async (tx) => {
       await createVisualWorkspaceCatalog(tx, catalog);
       const image = `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.debugAvatarSeed}`;
       await tx.user.update({
