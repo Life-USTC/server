@@ -12,6 +12,8 @@ type ExternalRead = {
 type YoungObservation = {
   own: <T>(work: () => Promise<T>) => Promise<T>;
   drain: () => Promise<void>;
+  ownBrowser: <T>(work: () => Promise<T>) => Promise<T>;
+  drainBrowser: () => Promise<void>;
   readHeaders: (request: import("@playwright/test").Request) => Record<string, string>;
   headers: (method: string, path: string, status: number) => Record<string, string>;
   sdkFetch: typeof fetch;
@@ -48,7 +50,10 @@ export const test = calendarTest.extend<{
         if (closing || operation)
           return Promise.reject(new Error("Young interaction workflow is already owned or closing"));
         operation = run(async () => {
+          // SDK fetches and route operations retain their existing request owner.
+          // Browser callbacks may need page.close() before they can settle.
           const pending = new Set<Promise<unknown>>();
+          const browserCallbacks = new Set<Promise<unknown>>();
           const errors: unknown[] = [];
           const externalReads: ExternalRead[] = [];
           const abort = new AbortController();
@@ -57,19 +62,24 @@ export const test = calendarTest.extend<{
           const remember = (error: unknown) => {
             if (!errors.includes(error)) errors.push(error);
           };
-          const own = <T>(work: () => Promise<T>): Promise<T> => {
+          const track = <T>(tasks: Set<Promise<unknown>>, work: () => Promise<T>): Promise<T> => {
             const task = accepting
               ? Promise.resolve().then(work)
               : Promise.reject(new Error("Young observations are closing"));
-            pending.add(task);
+            tasks.add(task);
             void task.then(
-              () => pending.delete(task),
-              (error) => { remember(error); pending.delete(task); },
+              () => tasks.delete(task),
+              (error) => { remember(error); tasks.delete(task); },
             );
             return task;
           };
+          const own = <T>(work: () => Promise<T>) => track(pending, work);
+          const ownBrowser = <T>(work: () => Promise<T>) => track(browserCallbacks, work);
           const drain = async () => {
             while (pending.size) await Promise.allSettled(pending);
+          };
+          const drainBrowser = async () => {
+            while (browserCallbacks.size) await Promise.allSettled(browserCallbacks);
           };
           const storedState = () => calendarDb((db) => db.$transaction([
             db.youngEvent.findMany({ orderBy: { id: "asc" } }),
@@ -118,7 +128,7 @@ export const test = calendarTest.extend<{
               });
               try {
                 await work({
-                  own, drain, readHeaders, headers: externalHeaders, sdkFetch,
+                  own, drain, ownBrowser, drainBrowser, readHeaders, headers: externalHeaders, sdkFetch,
                   async settleSdk() {
                     await expect.poll(() => externalReads.filter((read) => read.path === "/api/mcp").length).toBe(4);
                     await drain();
@@ -131,6 +141,8 @@ export const test = calendarTest.extend<{
               } finally {
                 abort.abort(new Error("Young interaction SDK observations closing"));
                 await drain();
+                // Browser response bodies can require page.close() to reject.
+                // calendarRun owns that close; join those callbacks afterward.
               }
             }, { accountIndex: 0, calendarTokenCreated: false });
           } catch (error) {
@@ -139,6 +151,7 @@ export const test = calendarTest.extend<{
             accepting = false;
             abort.abort(new Error("Young interaction observations closed"));
             await drain();
+            await drainBrowser();
             // calendarRun has joined native browser reads and effects before this
             // independent persisted-state comparison; shutdown is not the oracle.
             try {
