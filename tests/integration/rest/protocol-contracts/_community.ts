@@ -1,6 +1,5 @@
 import { expect } from "@playwright/test";
 import { createUploadBucket } from "../../../e2e/utils/upload-bucket";
-import { createSignedSessionCookie } from "../../../e2e/utils/workspace-task-filters";
 import { expectSuccessfulOperation } from "./_assertions";
 import {
   type Actor,
@@ -140,14 +139,42 @@ type Community = {
 export const test = protocolTest.extend<{
   community: Community;
 }>({
-  community: async ({ h, request }, use) => {
+  community: async ({ h, request, isolatedWorker }, use) => {
     // Observe the same Worker as the protocol operations. Upload fixtures own a
     // separate runtime and must not provide this protocol's storage binding.
     const uploadBucket = createUploadBucket(request, h.origin);
-    const probeIds: string[] = [];
-    const probeRequest = async (id: string, method: string) =>
+    const probes: { id: string; created: boolean }[] = [];
+    const pending = new Set<Promise<unknown>>();
+    const operationErrors: unknown[] = [];
+    const abort = new AbortController();
+    let closing = false;
+    const assertOpen = () => {
+      if (closing) throw new Error("Community fixture resources disposed");
+    };
+    function own<T>(operation: () => Promise<T>): Promise<T> {
+      assertOpen();
+      const task = Promise.resolve().then(() => {
+        assertOpen();
+        return operation();
+      });
+      pending.add(task);
+      void task.then(
+        () => pending.delete(task),
+        (error) => {
+          pending.delete(task);
+          operationErrors.push(error);
+        },
+      );
+      return task;
+    }
+    const probeRequest = async (
+      id: string,
+      method: string,
+      signal?: AbortSignal,
+    ) =>
       fetch(`${h.origin}/__test/community-effects?id=${id}`, {
         method,
+        signal,
         headers: { "x-test-storage-secret": "local-test-storage-observer" },
       });
     const call = async (
@@ -156,14 +183,25 @@ export const test = protocolTest.extend<{
       token?: string,
       cookie?: string,
     ) => {
+      assertOpen();
       const id = crypto.randomUUID();
-      probeIds.push(id);
-      expect((await probeRequest(id, "POST")).status).toBe(201);
-      return invokeOperation(h.origin, transport, operation, token, {
-        "x-test-storage-secret": "local-test-storage-observer",
-        "x-test-community-probe": id,
-        ...(cookie ? { cookie } : {}),
-      });
+      const probe = { id, created: false };
+      probes.push(probe);
+      expect((await probeRequest(id, "POST", abort.signal)).status).toBe(201);
+      probe.created = true;
+      assertOpen();
+      return invokeOperation(
+        h.origin,
+        transport,
+        operation,
+        token,
+        {
+          "x-test-storage-secret": "local-test-storage-observer",
+          "x-test-community-probe": id,
+          ...(cookie ? { cookie } : {}),
+        },
+        abort.signal,
+      );
     };
     const effects = async () => {
       const observed: Effects = {
@@ -171,8 +209,8 @@ export const test = protocolTest.extend<{
         messages: [],
         backgroundErrors: [],
       };
-      for (const id of probeIds) {
-        const response = await probeRequest(id, "GET");
+      for (const { id } of probes) {
+        const response = await probeRequest(id, "GET", abort.signal);
         expect(response.status).toBe(200);
         const current: Effects = await response.json();
         observed.purges.push(...current.purges);
@@ -184,10 +222,11 @@ export const test = protocolTest.extend<{
     const objects: { key: string; contents: string }[] = [];
     const cleanup = async () => {
       const results = await Promise.allSettled(
-        probeIds.map(async (id) => {
+        probes.map(async ({ id, created }) => {
           const errors: unknown[] = [];
           try {
             const response = await probeRequest(id, "GET");
+            if (created) expect(response.status).toBe(200);
             if (response.status !== 404) {
               expect(response.status).toBe(200);
               const state: Effects = await response.json();
@@ -205,7 +244,7 @@ export const test = protocolTest.extend<{
             errors.push(error);
           }
           try {
-            expect([204, 404]).toContain(
+            expect(created ? [204] : [204, 404]).toContain(
               (await probeRequest(id, "DELETE")).status,
             );
           } catch (error) {
@@ -220,60 +259,74 @@ export const test = protocolTest.extend<{
           objects.map((object) => uploadBucket.delete(object.key)),
         )),
       );
-      const errors = results.flatMap((result) =>
-        result.status === "rejected" ? [result.reason] : [],
-      );
+      const errors = [
+        ...operationErrors,
+        ...results.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        ),
+      ];
       if (errors.length)
         throw new AggregateError(errors, "Community fixture cleanup failed");
     };
     try {
       await use({
-        call,
-        effects,
-        cookie: async (transport, operation, actor) => {
-          const cookie = await createSignedSessionCookie(actor.id);
-          return call(
-            transport,
-            operation,
-            undefined,
-            `${cookie.name}=${cookie.value}`,
-          );
-        },
-        upload: async (actor) => {
-          const object = {
-            key: `uploads/${actor.id}/${crypto.randomUUID()}`,
-            contents: `Attachment owned by ${actor.id}`,
-          };
-          objects.push(object);
-          await uploadBucket.put(object.key, object.contents, {
-            httpMetadata: { contentType: "text/plain" },
-          });
-          const row = await h.db.upload.create({
-            data: {
-              userId: actor.id,
-              key: object.key,
-              filename: "attachment.txt",
-              size: Buffer.byteLength(object.contents),
-              contentType: "text/plain",
-            },
-          });
-          return { ...object, id: row.id };
-        },
-        objectsUnchanged: async () => {
-          for (const object of objects) {
-            const stored = await uploadBucket.get(object.key);
-            expect(stored).not.toBeNull();
-            expect(Buffer.from(stored?.body ?? []).toString()).toBe(
-              object.contents,
+        call: (...args) => own(() => call(...args)),
+        effects: () => own(effects),
+        cookie: (transport, operation, actor) =>
+          own(async () => {
+            const { cookie } = await isolatedWorker.createSession(actor.id);
+            assertOpen();
+            return call(
+              transport,
+              operation,
+              undefined,
+              `${cookie.name}=${cookie.value}`,
             );
-            expect(await uploadBucket.head(object.key)).toMatchObject({
-              size: Buffer.byteLength(object.contents),
+          }),
+        upload: (actor) =>
+          own(async () => {
+            const object = {
+              key: `uploads/${actor.id}/${crypto.randomUUID()}`,
+              contents: `Attachment owned by ${actor.id}`,
+            };
+            objects.push(object);
+            await uploadBucket.put(object.key, object.contents, {
               httpMetadata: { contentType: "text/plain" },
             });
-          }
-        },
+            assertOpen();
+            const row = await h.db.upload.create({
+              data: {
+                userId: actor.id,
+                key: object.key,
+                filename: "attachment.txt",
+                size: Buffer.byteLength(object.contents),
+                contentType: "text/plain",
+              },
+            });
+            return { ...object, id: row.id };
+          }),
+        objectsUnchanged: () =>
+          own(async () => {
+            for (const object of objects) {
+              const stored = await uploadBucket.get(object.key);
+              expect(stored).not.toBeNull();
+              expect(Buffer.from(stored?.body ?? []).toString()).toBe(
+                object.contents,
+              );
+              expect(await uploadBucket.head(object.key)).toMatchObject({
+                size: Buffer.byteLength(object.contents),
+                httpMetadata: { contentType: "text/plain" },
+              });
+            }
+          }),
       });
     } finally {
+      closing = true;
+      abort.abort(new Error("Community fixture resources disposed"));
+      // Settle full requests (including their bodies), session acquisition and
+      // R2 writes before observing producers/deleting objects or releasing h.
+      // Probe drain covers producer waitUntil/send/purge, not queue consumption.
+      await Promise.allSettled([...pending]);
       await cleanup();
     }
   },

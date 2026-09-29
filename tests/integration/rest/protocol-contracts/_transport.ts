@@ -19,11 +19,13 @@ export function sendOperation(
   operation: Operation,
   token?: string,
   headers: Record<string, string> = {},
+  signal?: AbortSignal,
 ) {
   return fetch(
     `${origin}${transport === "rest" ? operation.rest.path : `/api/${transport}`}`,
     {
       method: transport === "rest" ? operation.rest.method : "POST",
+      signal,
       headers: {
         "content-type":
           transport === "rest" && operation.rest.form
@@ -85,6 +87,7 @@ export async function invokeOperation(
   operation: Operation,
   token?: string,
   headers: Record<string, string> = {},
+  signal?: AbortSignal,
 ) {
   const response = await sendOperation(
     origin,
@@ -92,6 +95,7 @@ export async function invokeOperation(
     operation,
     token,
     headers,
+    signal,
   );
   const payload = await nativeEnvelope(response);
   const content =
