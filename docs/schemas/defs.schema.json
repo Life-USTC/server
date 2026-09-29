@@ -609,7 +609,7 @@
     "acceptance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["given", "when", "then", "test"],
+      "required": ["given", "when", "then"],
       "properties": {
         "given": {
           "$ref": "#/$defs/nonEmptyString"
@@ -626,7 +626,8 @@
           }
         },
         "test": {
-          "$ref": "#/$defs/testReference"
+          "$ref": "#/$defs/testReference",
+          "description": "Optional human-maintained pointer to a representative scenario. Not a coverage or execution binding."
         }
       }
     },

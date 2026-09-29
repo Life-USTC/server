@@ -1,0 +1,36 @@
+kind: decision
+id: state-based-acceptance
+title: Separate mutation, consumption and connection acceptance
+date: '2026-09-28'
+status: accepted
+refs:
+- feature: subscription
+context:
+- Combining every writer, consumer and boundary in a single acceptance test repeats setup and lets an
+  early failure prevent unrelated entrypoints from being checked.
+- Successful responses, matching interfaces and consumed specification fields do not independently
+  establish committed state or correct product requirements.
+decisions:
+- Maintain requirements and test references manually. Schema validation checks document structure
+  and business references; ordinary test execution does not certify semantic requirement coverage.
+- Exercise each supported mutation through its real browser or network entrypoint. Check native
+  protocol outcomes and independently observe committed state and unchanged unrelated state.
+- Prepare consumer fixtures independently of the mutation under test. Verify each supported reader's
+  permitted projection, filtering and presentation against explicit expected business facts.
+- Keep operation adapters separate from fixture preparation and state observation. Do not call the
+  product use-case as the adapter or reuse its projection logic to compute expected results.
+- Use representative cross-entrypoint journeys for navigation, explicit refresh, cache behavior and
+  asynchronous effects. Do not assume a full writer-reader Cartesian product is necessary.
+- Select meaningful state transitions and invariants, including rejected transitions with no effects.
+  Keep transport-specific scope, audience, error and public-field assertions visible.
+- Generated browser tests are reviewable ordinary code. Review requirements and generated assertions;
+  do not automatically weaken expectations or skip product failures to heal a test.
+consequences:
+- Subscription acceptance is the first implemented domain. Other domains retain their existing
+  regressions until an equivalent independently verified replacement is delivered.
+- Database observation establishes stored effects, not user-visible freshness, object storage or
+  queue completion. Observe each relevant effect at its own boundary.
+- Rendered visibility and geometry checks cover explicit presentation rules, not all occlusion or
+  subjective design quality. Screenshots and design review remain complementary evidence.
+- Test names and document references aid human navigation. They are not a machine-generated proof of
+  coverage, and one meaningful scenario may support several requirements.

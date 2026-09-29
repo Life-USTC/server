@@ -650,9 +650,28 @@ test("ui.layout-principles-3", async ({ page }, testInfo) => {
           ).toHaveAttribute("href", `/catalog/teachers/${fixture.teacher.id}`);
         }
         await page.setViewportSize({ width: 1280, height: 900 });
-        const desktopReading = await box(reading);
-        const desktopIdentity = await box(identity);
-        const desktopSecondary = await box(secondary);
+        // Resizing animates the sidebar width. Compare regions from one layout
+        // observation so a transition cannot move the grid between measurements.
+        const [desktopReading, desktopIdentity, desktopSecondary] =
+          await page.evaluate(() =>
+            [
+              "[data-detail-reading-stream]",
+              "[data-detail-identity]",
+              "[data-detail-scroll-container] aside",
+            ].map((selector) => {
+              const element = document.querySelector(selector);
+              if (!element)
+                throw new Error(`Missing catalog region: ${selector}`);
+              const { x, y, width, height } = element.getBoundingClientRect();
+              if (
+                width <= 0 ||
+                height <= 0 ||
+                getComputedStyle(element).visibility !== "visible"
+              )
+                throw new Error(`Catalog region is not visible: ${selector}`);
+              return { x, y, width, height };
+            }),
+          );
         expect(desktopIdentity.x).toBeGreaterThan(
           desktopReading.x + desktopReading.width,
         );

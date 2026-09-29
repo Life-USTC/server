@@ -85,7 +85,6 @@ it("graphql.schema-change-review", { timeout: 30_000 }, async () => {
             GIT_DIR: join(fixture, ".git"),
             GRAPHQL_SCHEMA_BASE_REF: "HEAD",
             GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: String(acknowledged),
-            SPEC_EVIDENCE_DIR: "",
           },
           encoding: "utf8",
           timeout: 20_000,

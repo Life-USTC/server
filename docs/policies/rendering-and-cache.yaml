@@ -1499,7 +1499,7 @@ rationale:
   graphql.scoped-query-auth, graphql.session-query-authority, mcp.public-catalog-access and
   mcp.privacy-safe-default. Their real transport/database tests retain credential and ownership checks;
   cache-origin-recovery only proves that the cache does not replace the loader or swallow its rejection.
-- The former rendering-and-cache.personal-overlays-6 repeats user.shell-viewer. Its canonical acceptance now
+- The former rendering-and-cache.personal-overlays-6 repeats user.shell-viewer. Its representative acceptance scenario
   exercises all current feature-specific viewer consumers and retained-root navigation; sidebar badge counts
   retain their additional browser regression without a duplicate requirement.
 - The former personal-overlays-1 is an index of four concrete public/private boundaries. Section subscription
@@ -1515,4 +1515,4 @@ rationale:
   homework.completion-owner enforcing writes. Campus links, bus preferences and Young follow/subscription
   controls each retain their explicit loading gates and independent real transport owner-state tests.
   Private workspace pages begin with an authenticated SSR projection under personal-overlays-5;
-  topic references do not stand in for the canonical tests or their runtime evidence.
+  topic references do not establish test coverage; reviewers assess the actual assertions.

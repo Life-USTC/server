@@ -35,7 +35,6 @@ describe("versioned YAML product specifications", () => {
     const result = await validateSpecificationReferences(files);
     expect(result.errors).toEqual([]);
     expect(result.requirements).toBe(1);
-    expect(result.boundRequirements).toBe(0);
     data.topics[0].requirement_refs = ["missing.requirement"];
     expect(
       (await validateSpecificationReferences(files)).errors.join("\n"),
@@ -68,14 +67,13 @@ describe("versioned YAML product specifications", () => {
     expect((await validateSpecificationReferences(files)).errors).toEqual([]);
   });
 
-  // This compiles all canonical declarations, rather than one small fixture.
+  // Validate all authored specifications, not only a small schema fixture.
   it("validates every source against its schema and checks references", {
     timeout: 15_000,
   }, async () => {
     const result = await checkSpecifications();
     expect(result.files).toBeGreaterThan(0);
     expect(result.requirements).toBeGreaterThan(0);
-    expect(result.boundRequirements).toBeGreaterThan(0);
     expect(result.errors).toEqual([]);
   });
 

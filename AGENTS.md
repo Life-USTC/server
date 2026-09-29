@@ -88,8 +88,9 @@ specifically testing object storage.
 Before opening a PR, run local checks and the complete CI workflow on the
 pushed branch with `gh workflow run ci.yml --ref <branch>`. Verify the run's
 head SHA and every mandatory job: static checks, unit coverage, build/client
-budget, static-loader image, RLS, all integration/REST/E2E shards, and
-specification execution evidence. `bun run check` alone is insufficient.
+budget, static-loader image, RLS, all integration/REST/E2E shards, and the aggregate required-jobs gate.
+The protected check named Specification execution evidence now validates native
+job outcomes and document structure; it does not infer requirement coverage. `bun run check` alone is insufficient.
 Visual changes also require the visual suite and matched before/after evidence.
 
 After review changes, revalidate the current head. Merge only when main's

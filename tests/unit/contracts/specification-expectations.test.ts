@@ -167,7 +167,7 @@ describe("typed specification expectations", () => {
       ).not.toEqual([]);
     }
   });
-  it("rejects the obsolete many-to-many acceptance shape", async () => {
+  it("rejects undeclared acceptance container shapes", async () => {
     const validators = await loadSpecificationValidators();
     const file = specification(numeric());
     const requirement = (
@@ -183,7 +183,7 @@ describe("typed specification expectations", () => {
       validateSpecificationShapes([file], validators).join("\n"),
     ).toContain("additional properties");
   });
-  it("requires bound acceptance tests for typed expectations and disallows duplicate prose rules", async () => {
+  it("requires acceptance outcomes for typed expectations but leaves test pointers optional", async () => {
     const validators = await loadSpecificationValidators();
     const file = specification(numeric());
     expect(validateSpecificationShapes([file], validators)).toEqual([]);
@@ -195,9 +195,7 @@ describe("typed specification expectations", () => {
     delete requirement.rule;
     const acceptance = requirement.acceptance as Record<string, unknown>;
     delete acceptance.test;
-    expect(
-      validateSpecificationShapes([file], validators).join("\n"),
-    ).toContain("test");
+    expect(validateSpecificationShapes([file], validators)).toEqual([]);
     delete requirement.acceptance;
     expect(
       validateSpecificationShapes([file], validators).join("\n"),
