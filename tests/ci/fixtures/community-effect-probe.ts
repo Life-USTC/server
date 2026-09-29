@@ -40,6 +40,7 @@ type CalendarAttempt = {
   id: string;
   attempts: number;
   userId: string;
+  sectionId?: number;
   ackCalls: number;
   retryCalls: number;
   complete: boolean;
@@ -64,7 +65,19 @@ export async function handleCalendarConsumerProbe(
   if (request.method === "POST") {
     if (await env.CALENDAR_EXPORTS.get(`${prefix}enabled`))
       return new Response("Probe already exists", { status: 409 });
+    const sectionValue = url.searchParams.get("sectionId");
+    const sectionId = sectionValue === null ? undefined : Number(sectionValue);
+    if (
+      sectionId !== undefined &&
+      (!Number.isSafeInteger(sectionId) || sectionId <= 0)
+    )
+      return new Response("Expected private section ID", { status: 400 });
     await env.CALENDAR_EXPORTS.put(`${prefix}enabled`, "true");
+    if (sectionId !== undefined)
+      await env.CALENDAR_EXPORTS.put(
+        `__test:calendar-section:${sectionId}:${userId}`,
+        "true",
+      );
     return new Response(null, { status: 201 });
   }
   if (request.method !== "GET") return new Response(null, { status: 405 });
@@ -105,30 +118,58 @@ export async function observeCalendarConsumer(
     batch.queue !== "life-ustc-calendar-export-rebuild"
   )
     return consume(batch, context);
-  const attempts = new Map<string, CalendarAttempt>();
+  const attempts = new Map<string, CalendarAttempt[]>();
   for (const message of batch.messages) {
     const body = message.body;
+    if (!body || typeof body !== "object" || !("type" in body)) continue;
+    const userIds: string[] = [];
+    let sectionId: number | undefined;
     if (
-      !body ||
-      typeof body !== "object" ||
-      !("type" in body) ||
-      body.type !== "user" ||
-      !("userId" in body) ||
-      typeof body.userId !== "string" ||
-      !validId.test(body.userId) ||
-      !(await env.CALENDAR_EXPORTS.get(`${calendarPrefix(body.userId)}enabled`))
-    )
-      continue;
-    attempts.set(message.id, {
-      id: message.id,
-      attempts: message.attempts,
-      userId: body.userId,
-      ackCalls: 0,
-      retryCalls: 0,
-      complete: false,
-      errors: [],
-      calendar: null,
-    });
+      body.type === "user" &&
+      "userId" in body &&
+      typeof body.userId === "string" &&
+      validId.test(body.userId)
+    ) {
+      if (
+        await env.CALENDAR_EXPORTS.get(`${calendarPrefix(body.userId)}enabled`)
+      )
+        userIds.push(body.userId);
+    } else if (
+      body.type === "section" &&
+      "sectionId" in body &&
+      typeof body.sectionId === "number" &&
+      Number.isSafeInteger(body.sectionId) &&
+      body.sectionId > 0
+    ) {
+      sectionId = body.sectionId;
+      // Tests register exact independent subscriber expectations. Do not call
+      // production target expansion or alter the message delivered to it.
+      const prefix = `__test:calendar-section:${sectionId}:`;
+      let cursor: string | undefined;
+      do {
+        const listed = await env.CALENDAR_EXPORTS.list({ prefix, cursor });
+        for (const { name } of listed.keys) {
+          const userId = name.slice(prefix.length);
+          if (validId.test(userId)) userIds.push(userId);
+        }
+        cursor = listed.list_complete ? undefined : listed.cursor;
+      } while (cursor);
+    }
+    if (userIds.length)
+      attempts.set(
+        message.id,
+        userIds.map((userId) => ({
+          id: message.id,
+          attempts: message.attempts,
+          userId,
+          ...(sectionId === undefined ? {} : { sectionId }),
+          ackCalls: 0,
+          retryCalls: 0,
+          complete: false,
+          errors: [],
+          calendar: null,
+        })),
+      );
   }
   if (!attempts.size) return consume(batch, context);
   const persist = (attempt: CalendarAttempt) =>
@@ -136,21 +177,21 @@ export async function observeCalendarConsumer(
       `${calendarPrefix(attempt.userId)}attempt:${attempt.id}:${attempt.attempts}`,
       JSON.stringify(attempt),
     );
-  await Promise.all([...attempts.values()].map(persist));
+  await Promise.all([...attempts.values()].flat().map(persist));
   const messages = batch.messages.map((message) => {
-    const attempt = attempts.get(message.id);
-    if (!attempt) return message;
+    const observed = attempts.get(message.id);
+    if (!observed) return message;
     return new Proxy(message, {
       get(target, property) {
         if (property === "ack")
           return () => {
             target.ack();
-            attempt.ackCalls++;
+            for (const attempt of observed) attempt.ackCalls++;
           };
         if (property === "retry")
           return (options?: Parameters<typeof target.retry>[0]) => {
             target.retry(options);
-            attempt.retryCalls++;
+            for (const attempt of observed) attempt.retryCalls++;
           };
         const value = Reflect.get(target, property);
         return typeof value === "function" ? value.bind(target) : value;
@@ -196,7 +237,7 @@ export async function observeCalendarConsumer(
     seen += next.length;
     await Promise.allSettled(next);
   }
-  for (const attempt of attempts.values()) {
+  for (const attempt of [...attempts.values()].flat()) {
     attempt.complete = true;
     attempt.errors = errors.map(errorMessage);
     attempt.calendar = await env.CALENDAR_EXPORTS.get(
