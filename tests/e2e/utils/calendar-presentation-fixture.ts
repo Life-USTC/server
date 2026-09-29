@@ -1,4 +1,5 @@
 import type { TestPrismaClient } from "../../shared/prisma";
+import { withBrowserWorkflow } from "./browser-workflow";
 import { createCalendarContractFixture } from "./calendar-contract";
 import { DEV_SEED } from "./dev-seed";
 import { withHomeworkEffects } from "./homework-effects";
@@ -60,36 +61,26 @@ export const test = workerTest.extend<{
     use,
     testInfo,
   ) => {
-    let operation: Promise<void> | undefined;
-    let closing = false;
-    try {
+    await withBrowserWorkflow(page, async (workflow) => {
       await use((work, { accountIndex, calendarTokenCreated }) => {
-        if (closing || operation)
-          return Promise.reject(
-            new Error(
-              "Calendar presentation workflow is already owned or closing",
+        return workflow.run(() =>
+          run(() =>
+            withHomeworkEffects(
+              {
+                page,
+                isolatedWorker,
+                account: calendar.users[accountIndex],
+                sectionId: calendar.section.id,
+                testInfo,
+                calendarTokenCreated,
+                calendarMessages: [],
+                observeReads: true,
+              },
+              (effects) => workflow.body(() => work(effects)),
             ),
-          );
-        operation = run(() =>
-          withHomeworkEffects(
-            {
-              page,
-              isolatedWorker,
-              account: calendar.users[accountIndex],
-              sectionId: calendar.section.id,
-              testInfo,
-              calendarTokenCreated,
-              calendarMessages: [],
-              observeReads: true,
-            },
-            work,
           ),
         );
-        return operation;
       });
-    } finally {
-      closing = true;
-      await operation;
-    }
+    });
   },
 });

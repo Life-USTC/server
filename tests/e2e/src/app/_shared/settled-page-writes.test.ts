@@ -1,5 +1,7 @@
 import { createServer } from "node:http";
 import { test as base, expect, type Page } from "@playwright/test";
+import { createDeferred } from "../../../../shared/deferred";
+import { withBrowserWorkflow } from "../../../utils/browser-workflow";
 import { withSettledPageWrites } from "../../../utils/settled-page-writes";
 
 function gate() {
@@ -290,4 +292,264 @@ test("observer failure aborts the browser write without replay and reports the e
     { method: "POST", path: "/write", body: "owned write" },
   ]);
   expect(page.isClosed()).toBe(true);
+});
+
+function workflowErrors(error: unknown): unknown[] {
+  return error instanceof AggregateError
+    ? error.errors.flatMap(workflowErrors)
+    : [error];
+}
+
+test("normal browser workflow keeps its original body and write order", async ({
+  page,
+  endpoint,
+}) => {
+  const events: string[] = [];
+  const browserReads: Promise<unknown>[] = [];
+  endpoint.release();
+  page.on("close", () => events.push("page closed"));
+  try {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await workflow.run(() =>
+        withSettledPageWrites(
+          page,
+          /\/write$/,
+          () =>
+            workflow.body(async () => {
+              await openWriter(page, endpoint);
+              const response = page.waitForResponse(
+                (response) => new URL(response.url()).pathname === "/write",
+              );
+              browserReads.push(response);
+              void response.catch(() => undefined);
+              await page
+                .getByRole("button", { name: "Write", exact: true })
+                .click();
+              expect((await response).status()).toBe(200);
+              events.push("body finished");
+            }),
+          async (response) => {
+            expect(await response.json()).toEqual({});
+            events.push("write observed");
+          },
+        ),
+      );
+    });
+  } finally {
+    await Promise.allSettled(browserReads);
+  }
+  expect(events).toEqual(["write observed", "body finished", "page closed"]);
+  expect(endpoint.writes).toEqual([
+    { method: "POST", path: "/write", body: "owned write" },
+  ]);
+});
+
+for (const observerFails of [false, true]) {
+  test(`interrupted body joins a submitted write, observer and actual callback (${observerFails ? "observer fails" : "observer succeeds"})`, async ({
+    page,
+    endpoint,
+  }) => {
+    const bodyWaiting = createDeferred();
+    const finalizing = createDeferred();
+    const observerEntered = createDeferred();
+    const releaseObserver = createDeferred();
+    const bodyRejected = createDeferred();
+    const releaseBody = createDeferred();
+    const useError = new Error("Fixture use ended during a write");
+    const observerError = new Error("Original write observer failure");
+    const events: string[] = [];
+    const browserSignals: Promise<unknown>[] = [];
+    let nativeBodyError: unknown;
+    let publicRunError: unknown;
+    let publicRunSettled = false;
+    let settled = false;
+    page.on("close", () => events.push("page closed"));
+    const fixture = withBrowserWorkflow(page, async (workflow) => {
+      const operation = workflow.run(() =>
+        withSettledPageWrites(
+          page,
+          /\/(write|late)$/,
+          async () => {
+            try {
+              await workflow.body(async () => {
+                await openWriter(page, endpoint);
+                await page
+                  .getByRole("button", { name: "Write", exact: true })
+                  .click();
+                await endpoint.received;
+                // This is the real Playwright wait. Fixture interruption must
+                // enter write finalization before page closure rejects it.
+                const response = page.waitForResponse(
+                  (response) => new URL(response.url()).pathname === "/never",
+                );
+                bodyWaiting.resolve();
+                try {
+                  await response;
+                } catch (error) {
+                  nativeBodyError = error;
+                  events.push("real callback rejected");
+                  bodyRejected.resolve();
+                  await releaseBody.promise;
+                  events.push("real callback finished");
+                  throw error;
+                }
+              });
+            } finally {
+              finalizing.resolve();
+            }
+          },
+          async (response, request) => {
+            expect(response.status()).toBe(200);
+            expect(await response.json()).toEqual({});
+            expect(request.postData()).toBe("owned write");
+            events.push("observer entered");
+            observerEntered.resolve();
+            await releaseObserver.promise;
+            events.push("observer finished");
+            if (observerFails) throw observerError;
+          },
+        ),
+      );
+      void operation.then(
+        () => {
+          publicRunSettled = true;
+        },
+        (error: unknown) => {
+          publicRunSettled = true;
+          publicRunError = error;
+        },
+      );
+      await Promise.race([
+        bodyWaiting.promise,
+        operation.then(() => {
+          throw new Error("Workflow completed before the native body wait");
+        }),
+      ]);
+      throw useError;
+    }).then(
+      () => {
+        settled = true;
+        return { error: undefined };
+      },
+      (error: unknown) => {
+        settled = true;
+        return { error };
+      },
+    );
+    try {
+      await finalizing.promise;
+      // The endpoint already owns the submitted write, but has not responded.
+      // A rejected late native request proves admission has actually closed.
+      expect(endpoint.writes).toEqual([
+        { method: "POST", path: "/write", body: "owned write" },
+      ]);
+      const lateFailed = page.waitForEvent("requestfailed", {
+        predicate: (request) => new URL(request.url()).pathname === "/late",
+      });
+      browserSignals.push(lateFailed);
+      void lateFailed.catch(() => undefined);
+      await page.getByRole("button", { name: "Write during teardown" }).click();
+      expect((await lateFailed).failure()?.errorText).toBe("net::ERR_ABORTED");
+      expect(page.isClosed()).toBe(false);
+      expect(settled).toBe(false);
+      expect(events).toEqual([]);
+      endpoint.release();
+      await Promise.race([
+        observerEntered.promise,
+        bodyRejected.promise.then(() => {
+          throw new Error("Page closed before the write observer entered");
+        }),
+      ]);
+      // Even after the genuine response is available, observation still owns it.
+      expect(await page.evaluate(async () => (await fetch("/")).ok)).toBe(true);
+      expect(events).toEqual(["observer entered"]);
+      expect(page.isClosed()).toBe(false);
+      releaseObserver.resolve();
+      await bodyRejected.promise;
+      expect(page.isClosed()).toBe(true);
+      expect(nativeBodyError).toBeInstanceOf(Error);
+      expect(String(nativeBodyError)).toContain("closed");
+      // A real HTTP round trip gives a dropped callback a chance to be exposed.
+      // The context request client remains live after only the page closes.
+      expect((await page.request.get(endpoint.origin)).status()).toBe(200);
+      expect(settled).toBe(false);
+      expect(publicRunSettled).toBe(false);
+      releaseBody.resolve();
+      const outcome = await fixture;
+      expect(publicRunSettled).toBe(true);
+      expect(workflowErrors(publicRunError)).toContain(nativeBodyError);
+      const errors = workflowErrors(outcome.error);
+      expect(errors).toContain(useError);
+      expect(errors).toContain(nativeBodyError);
+      expect(errors).toContainEqual(
+        expect.objectContaining({
+          message: "Browser workflow interrupted after fixture use ended",
+        }),
+      );
+      if (observerFails) expect(errors).toContain(observerError);
+      else expect(errors).not.toContain(observerError);
+      expect(events).toEqual([
+        "observer entered",
+        "observer finished",
+        "page closed",
+        "real callback rejected",
+        "real callback finished",
+      ]);
+      expect(endpoint.writes).toEqual([
+        { method: "POST", path: "/write", body: "owned write" },
+      ]);
+    } finally {
+      endpoint.release();
+      releaseObserver.resolve();
+      releaseBody.resolve();
+      await fixture;
+      await Promise.allSettled(browserSignals);
+    }
+  });
+}
+
+test("interruption during preparation does not start a late business callback", async ({
+  page,
+  endpoint,
+}) => {
+  const preparing = createDeferred();
+  const releasePreparation = createDeferred();
+  const useError = new Error("Fixture use ended during preparation");
+  let bodyStarted = false;
+  const fixture = withBrowserWorkflow(page, async (workflow) => {
+    void workflow.run(async () => {
+      preparing.resolve();
+      await releasePreparation.promise;
+      await withSettledPageWrites(page, /\/write$/, () =>
+        workflow.body(async () => {
+          bodyStarted = true;
+          await openWriter(page, endpoint);
+          await page
+            .getByRole("button", { name: "Write", exact: true })
+            .click();
+        }),
+      );
+    });
+    await preparing.promise;
+    throw useError;
+  }).catch((error: unknown) => error);
+  try {
+    await preparing.promise;
+    expect((await page.goto(endpoint.origin))?.status()).toBe(200);
+    releasePreparation.resolve();
+    const errors = workflowErrors(await fixture);
+    expect(errors).toContain(useError);
+    expect(errors).toContainEqual(
+      expect.objectContaining({
+        message: "Browser workflow interrupted after fixture use ended",
+      }),
+    );
+    expect(bodyStarted).toBe(false);
+    expect(endpoint.writes).toEqual([]);
+    expect(page.isClosed()).toBe(true);
+  } finally {
+    releasePreparation.resolve();
+    endpoint.release();
+    await fixture;
+  }
 });
