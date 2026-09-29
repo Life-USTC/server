@@ -95,6 +95,34 @@ export async function calendarLifecycleBarrier(database: IsolatedDatabase) {
           USING (calendar_lifecycle.block_read(id, "userId"));
       `);
     },
+    async blockCommentRead(commentId: string, failAfterRelease: boolean) {
+      const appRole = identifier(
+        decodeURIComponent(new URL(database.connections.app).username),
+      );
+      await client.query(`
+        CREATE SEQUENCE calendar_lifecycle.first_read;
+        CREATE FUNCTION calendar_lifecycle.block_comment_read(row_id text)
+        RETURNS boolean LANGUAGE plpgsql VOLATILE
+        SET search_path = pg_catalog AS $body$
+        BEGIN
+          IF row_id = ${literal(commentId)} THEN
+            IF nextval('calendar_lifecycle.first_read') = 1 THEN
+              PERFORM set_config('application_name', ${literal(marker)}, true);
+              PERFORM pg_advisory_xact_lock(${namespace}, ${key});
+              ${failAfterRelease ? "RAISE EXCEPTION 'Native comment read failed after lifecycle release';" : ""}
+            END IF;
+          END IF;
+          RETURN true;
+        END $body$;
+        REVOKE ALL ON FUNCTION calendar_lifecycle.block_comment_read(text) FROM PUBLIC;
+        GRANT USAGE ON SCHEMA calendar_lifecycle TO ${appRole};
+        GRANT USAGE ON SEQUENCE calendar_lifecycle.first_read TO ${appRole};
+        GRANT EXECUTE ON FUNCTION calendar_lifecycle.block_comment_read(text) TO ${appRole};
+        CREATE POLICY calendar_lifecycle_comment_read ON public."Comment"
+          AS RESTRICTIVE FOR SELECT TO ${appRole}
+          USING (calendar_lifecycle.block_comment_read(id));
+      `);
+    },
     async blockUsage(userId: string, clientId: string, grantId: string) {
       await client.query(`
         CREATE FUNCTION calendar_lifecycle.block_usage()
