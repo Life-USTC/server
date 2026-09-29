@@ -549,7 +549,7 @@ requirements:
     - Completion replay retains completed state; deletion replay changes the owned target result to not_found.
     - The foreign row remains exactly unchanged throughout every request.
     test:
-      file: tests/integration/rest-state-setting-contract.test.ts
+      file: tests/integration/rest-todo-batch-replay.test.ts
       name: todo.batch-result-replay
 capabilities:
   todo-list:
