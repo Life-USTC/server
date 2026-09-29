@@ -1,20 +1,13 @@
 import { describe } from "vitest";
-import * as fixtures from "../_harness";
-import { mcpTest } from "../_harness/context";
+import { isolatedMcpTest } from "../_harness/isolated-context";
 
-const toolTest = mcpTest
-  .extend("context", fixtures.readerFixture())
-  .extend("state", async ({ context: _context }, { onCleanup }) => {
+const toolTest = isolatedMcpTest.extend(
+  "state",
+  async ({ isolatedDatabase }) => {
     const ACTIVE_ID = `young-active-${crypto.randomUUID()}`;
     const ENDED_ID = `young-ended-${crypto.randomUUID()}`;
 
-    onCleanup(async () => {
-      await fixtures.prisma.youngEvent.deleteMany({
-        where: { youngId: { in: [ACTIVE_ID, ENDED_ID] } },
-      });
-    });
-
-    await fixtures.prisma.youngEvent.createMany({
+    await isolatedDatabase.owner.youngEvent.createMany({
       data: [
         {
           youngId: ACTIVE_ID,
@@ -68,12 +61,13 @@ const toolTest = mcpTest
     });
 
     return { ACTIVE_ID, ENDED_ID };
-  });
+  },
+);
 
 describe("第二课堂活动", () => {
   toolTest(
     "catalog_young_event_list 返回分页结构并可按报名状态筛选",
-    async ({ state, context, expect }) => {
+    async ({ state, mcpActor: context, expect }) => {
       const { ACTIVE_ID, ENDED_ID } = state;
 
       const result = await context.client.call<{
@@ -99,7 +93,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_list 默认模式省略详情字段，full 模式保留",
-    async ({ state, context, expect }) => {
+    async ({ state, mcpActor: context, expect }) => {
       const { ACTIVE_ID } = state;
 
       const compact = await context.client.call<{
@@ -142,7 +136,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_list 可按模块与活动级别精确筛选",
-    async ({ state, context, expect }) => {
+    async ({ state, mcpActor: context, expect }) => {
       const { ACTIVE_ID } = state;
 
       const matched = await context.client.call<{
@@ -178,7 +172,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_get 返回消毒后的正文与结构化场地",
-    async ({ state, context, expect }) => {
+    async ({ state, mcpActor: context, expect }) => {
       const { ACTIVE_ID } = state;
 
       const result = await context.client.call<{
@@ -207,7 +201,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_get 返回详情，full 模式包含 rawJson",
-    async ({ state, context, expect }) => {
+    async ({ state, mcpActor: context, expect }) => {
       const { ACTIVE_ID } = state;
 
       const result = await context.client.call<{
@@ -223,7 +217,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_get 对未知 id 返回 found: false",
-    async ({ context, expect }) => {
+    async ({ mcpActor: context, expect }) => {
       const result = await context.client.call<{
         found?: boolean;
         youngId?: string;

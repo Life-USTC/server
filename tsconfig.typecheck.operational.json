@@ -4,6 +4,7 @@
     "types": ["node", "vitest/globals"]
   },
   "include": [
+    "src/app.d.ts",
     "playwright.config.ts",
     "prisma.config.ts",
     "vitest.base.ts",
@@ -14,6 +15,9 @@
     "tests/ci/fixtures/isolated-worker-timeout.scenario.ts",
     "tests/ci/fixtures/isolated-database-timeout.config.ts",
     "tests/ci/fixtures/isolated-database-timeout.scenario.ts",
+    "tests/ci/fixtures/mcp-fixture-failure.config.ts",
+    "tests/ci/fixtures/mcp-fixture-failure.scenario.ts",
+    "tests/ci/fixtures/mcp-fixture-failure-reporter.ts",
     "tests/e2e/**/*.ts",
     "scripts/specifications/**/*.ts"
   ],

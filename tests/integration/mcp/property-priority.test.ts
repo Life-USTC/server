@@ -1,19 +1,12 @@
-import { afterAll, expect, vi } from "vitest";
-import { prisma as runtimeDb } from "@/lib/db/prisma";
-import { DEV_SEED } from "../../fixtures/dev-seed";
-import {
-  type CatalogContractFixture,
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../../shared/catalog-contract-fixture";
-import { createFixturePrisma } from "../../shared/prisma";
-import { cleanupMcpResources } from "./_harness/cleanup";
-import { createMcpHarness, type McpHarness } from "./_harness/client";
-import { mcpTest } from "./_harness/context";
+import { expect, vi } from "vitest";
+import { createCatalogContractFixture } from "../../shared/catalog-contract-fixture";
+import { isolatedMcpTest } from "./_harness/isolated-context";
 
-const contractTest = mcpTest.extend(
+const contractTest = isolatedMcpTest.extend(
   "state",
-  async ({ mcpConnections: _connections }, { onCleanup }) => {
+  async ({ isolatedDatabase, mcpSessions, mcpBus }) => {
+    const db = isolatedDatabase.owner;
+    const deletedKeys = new Set<string>();
     const userId = crypto.randomUUID();
     const userName = `Projection ${userId.slice(0, 8)}`;
     const username = `projection${userId.slice(0, 8)}`;
@@ -23,18 +16,17 @@ const contractTest = mcpTest.extend(
     const atTime = `${date}T07:00:00+08:00`;
     const dueAt = `${date}T18:00:00+08:00`;
     const youngId = `projection-${crypto.randomUUID()}`;
-    let catalog: CatalogContractFixture;
-    let client: McpHarness;
-    let organizerId: string;
-    let campusId: number;
-    let batchId: number;
+    const session = mcpSessions.own(userId);
+    const client = session.client;
     async function invoke(
       name: string,
       args: Row,
       expected: Row,
       mode: "default" | "full" = "default",
     ) {
-      const result = await client.call(name, { ...args, mode });
+      const result = await external.storage.run(deletedKeys, () =>
+        client.call(name, { ...args, mode }),
+      );
       expect(result.success, `${name}: ${JSON.stringify(result)}`).not.toBe(
         false,
       );
@@ -84,269 +76,243 @@ const contractTest = mcpTest.extend(
       }
       return { compact, full };
     }
-    onCleanup(async () => {
-      await cleanupMcpResources([
-        async () => {
-          await client?.close();
-        },
-        async () => {
-          await db.auditLog.deleteMany({
-            where: { OR: [{ userId }, { subjectUserId: userId }] },
-          });
-        },
-        async () => {
-          await db.comment.deleteMany({ where: { userId } });
-        },
-        async () => {
-          await db.featureOperationEvent.deleteMany({
-            where: { userId: userId },
-          });
-          await db.user.deleteMany({ where: { id: userId } });
-        },
-        async () => {
-          await db.youngEvent.deleteMany({ where: { youngId } });
-        },
-        async () => {
-          if (organizerId)
-            await db.youngOrganizer.delete({ where: { id: organizerId } });
-        },
-        async () => {
-          if (catalog) await cleanupCatalogContractFixture(db, catalog);
-        },
-        async () => {
-          if (batchId) await db.examBatch.delete({ where: { id: batchId } });
-        },
-        async () => {
-          if (campusId) await db.campus.delete({ where: { id: campusId } });
-        },
-      ]);
-    });
-
-    catalog = await createCatalogContractFixture(db);
-    const currentSemesterId = (
-      await db.semester.findUniqueOrThrow({
-        where: { jwId: DEV_SEED.semesterJwId },
-      })
-    ).id;
-    const campus = await db.campus.create({
-      data: {
-        jwId: catalog.base,
-        code: catalog.marker,
-        nameCn: `校区${catalog.marker}`,
-        nameEn: `Campus ${catalog.marker}`,
-      },
-    });
-    campusId = campus.id;
-    await db.section.updateMany({
-      where: { id: { in: catalog.sections.map((s) => s.id) } },
-      data: { campusId, semesterId: currentSemesterId },
-    });
-    await db.user.create({
-      data: {
-        id: userId,
-        name: userName,
-        username,
-        email: `${userId}@example.test`,
-        image: "https://example.test/projection.png",
-        calendarFeedToken: `secret-${userId}`,
-      },
-    });
-    await db.userSectionSubscription.create({
-      data: { userId, sectionId: catalog.sections[0].id },
-    });
-    const group = await db.scheduleGroup.create({
-      data: {
-        jwId: catalog.base,
-        sectionId: catalog.sections[0].id,
-        no: 1,
-        limitCount: 20,
-        stdCount: 10,
-        actualPeriods: 2,
-        isDefault: true,
-      },
-    });
-    const scheduleId = (
-      await db.schedule.create({
-        data: {
-          sectionId: catalog.sections[0].id,
-          scheduleGroupId: group.id,
-          date: new Date(date),
-          weekday: new Date(date).getUTCDay() || 7,
-          startTime: 800,
-          endTime: 935,
-          periods: 2,
-          weekIndex: 1,
-          startUnit: 1,
-          endUnit: 2,
-          customPlace: "Projection classroom",
-          teacherParticipations: {
-            create: {
-              teacherId: catalog.teachers[0].id,
-              periods: 2,
-              exerciseClass: false,
-            },
+    const catalog = await createCatalogContractFixture(db);
+    const records = await db.$transaction(async (db) => {
+      const year = Number(date.slice(0, 4));
+      const currentSemesterId = (
+        await db.semester.update({
+          where: { id: catalog.semester.id },
+          data: {
+            startDate: new Date(`${year}-01-01T00:00:00.000Z`),
+            endDate: new Date(`${year}-12-31T00:00:00.000Z`),
           },
-        },
-      })
-    ).id;
-    batchId = (
-      await db.examBatch.create({
+        })
+      ).id;
+      const campus = await db.campus.create({
         data: {
           jwId: catalog.base,
-          nameCn: "契约考试批次",
-          nameEn: "Projection exam batch",
+          code: catalog.marker,
+          nameCn: `校区${catalog.marker}`,
+          nameEn: `Campus ${catalog.marker}`,
         },
-      })
-    ).id;
-    await db.exam.create({
-      data: {
-        jwId: catalog.base,
-        sectionId: catalog.sections[0].id,
-        examBatchId: batchId,
-        examDate: new Date(date),
-        startTime: 1400,
-        endTime: 1600,
-        examMode: "闭卷",
-        examRooms: { create: { room: "Projection exam room", count: 12 } },
-      },
-    });
-    const homeworkId = (
-      await db.homework.create({
+      });
+      const campusId = campus.id;
+      await db.section.updateMany({
+        where: { id: { in: catalog.sections.map((s) => s.id) } },
+        data: { campusId, semesterId: currentSemesterId },
+      });
+      await db.user.create({
         data: {
-          title: "Projection homework",
+          id: userId,
+          name: userName,
+          username,
+          email: `${userId}@example.test`,
+          image: "https://example.test/projection.png",
+          calendarFeedToken: `secret-${userId}`,
+        },
+      });
+      await db.userSectionSubscription.create({
+        data: { userId, sectionId: catalog.sections[0].id },
+      });
+      const group = await db.scheduleGroup.create({
+        data: {
+          jwId: catalog.base,
           sectionId: catalog.sections[0].id,
-          createdById: userId,
-          publishedAt: new Date(atTime),
-          submissionDueAt: new Date(dueAt),
-          isMajor: true,
-          requiresTeam: true,
-          description: {
-            create: {
-              content: "Projection homework **Markdown**",
-              lastEditedById: userId,
-              lastEditedAt: new Date(atTime),
+          no: 1,
+          limitCount: 20,
+          stdCount: 10,
+          actualPeriods: 2,
+          isDefault: true,
+        },
+      });
+      const scheduleId = (
+        await db.schedule.create({
+          data: {
+            sectionId: catalog.sections[0].id,
+            scheduleGroupId: group.id,
+            date: new Date(date),
+            weekday: new Date(date).getUTCDay() || 7,
+            startTime: 800,
+            endTime: 935,
+            periods: 2,
+            weekIndex: 1,
+            startUnit: 1,
+            endUnit: 2,
+            customPlace: "Projection classroom",
+            teacherParticipations: {
+              create: {
+                teacherId: catalog.teachers[0].id,
+                periods: 2,
+                exerciseClass: false,
+              },
             },
           },
+        })
+      ).id;
+      const batchId = (
+        await db.examBatch.create({
+          data: {
+            jwId: catalog.base,
+            nameCn: "契约考试批次",
+            nameEn: "Projection exam batch",
+          },
+        })
+      ).id;
+      await db.exam.create({
+        data: {
+          jwId: catalog.base,
+          sectionId: catalog.sections[0].id,
+          examBatchId: batchId,
+          examDate: new Date(date),
+          startTime: 1400,
+          endTime: 1600,
+          examMode: "闭卷",
+          examRooms: { create: { room: "Projection exam room", count: 12 } },
         },
-      })
-    ).id;
-    const todoId = (
-      await db.todo.create({
+      });
+      const homeworkId = (
+        await db.homework.create({
+          data: {
+            title: "Projection homework",
+            sectionId: catalog.sections[0].id,
+            createdById: userId,
+            publishedAt: new Date(atTime),
+            submissionDueAt: new Date(dueAt),
+            isMajor: true,
+            requiresTeam: true,
+            description: {
+              create: {
+                content: "Projection homework **Markdown**",
+                lastEditedById: userId,
+                lastEditedAt: new Date(atTime),
+              },
+            },
+          },
+        })
+      ).id;
+      const todoId = (
+        await db.todo.create({
+          data: {
+            userId,
+            title: "Projection todo",
+            content: "Projection todo details",
+            priority: "high",
+            dueAt: new Date(dueAt),
+          },
+        })
+      ).id;
+      const uploadId = (
+        await db.upload.create({
+          data: {
+            userId,
+            key: `uploads/${userId}/projection.txt`,
+            filename: "projection.txt",
+            contentType: "text/plain",
+            size: 321,
+          },
+        })
+      ).id;
+      const organizerId = (
+        await db.youngOrganizer.create({
+          data: {
+            name: `Projection organizer ${catalog.marker}`,
+            normalizedName: catalog.marker,
+          },
+        })
+      ).id;
+      await db.youngEvent.create({
+        data: {
+          youngId,
+          name: `Projection event ${catalog.marker}`,
+          organizerId,
+          startAt: new Date(dueAt),
+          endAt: new Date(`${date}T20:00:00+08:00`),
+          location: "Projection event room",
+          category: "学术",
+          module: "智",
+          form: "讲座",
+          activityLevel: "校级",
+          status: "报名中",
+          isActive: true,
+          rawJson: { rawMarker: "raw-young-projection" },
+          description: "Projection event description",
+          applyStartAt: new Date(atTime),
+          applyEndAt: new Date(dueAt),
+        },
+      });
+      const comment = await db.comment.create({
         data: {
           userId,
-          title: "Projection todo",
-          content: "Projection todo details",
-          priority: "high",
-          dueAt: new Date(dueAt),
+          sectionId: catalog.sections[0].id,
+          body: "Projection comment **Markdown**",
         },
-      })
-    ).id;
-    const uploadId = (
-      await db.upload.create({
+      });
+      const commentId = comment.id;
+      await db.comment.create({
         data: {
           userId,
-          key: `uploads/${userId}/projection.txt`,
-          filename: "projection.txt",
-          contentType: "text/plain",
-          size: 321,
+          sectionId: catalog.sections[0].id,
+          parentId: commentId,
+          rootId: commentId,
+          body: "Projection reply",
         },
-      })
-    ).id;
-    organizerId = (
-      await db.youngOrganizer.create({
+      });
+      await db.description.create({
         data: {
-          name: `Projection organizer ${catalog.marker}`,
-          normalizedName: catalog.marker,
+          courseId: catalog.courses[0].id,
+          content: "Projection course **Markdown**",
+          lastEditedById: userId,
+          lastEditedAt: new Date(atTime),
         },
-      })
-    ).id;
-    await db.youngEvent.create({
-      data: {
-        youngId,
-        name: `Projection event ${catalog.marker}`,
-        organizerId,
-        startAt: new Date(dueAt),
-        endAt: new Date(`${date}T20:00:00+08:00`),
-        location: "Projection event room",
-        category: "学术",
-        module: "智",
-        form: "讲座",
-        activityLevel: "校级",
-        status: "报名中",
-        isActive: true,
-        rawJson: { rawMarker: "raw-young-projection" },
-        description: "Projection event description",
-        applyStartAt: new Date(atTime),
-        applyEndAt: new Date(dueAt),
-      },
-    });
-    client = await createMcpHarness(userId);
-    const comment = await db.comment.create({
-      data: {
-        userId,
-        sectionId: catalog.sections[0].id,
-        body: "Projection comment **Markdown**",
-      },
-    });
-    const commentId = comment.id;
-    await db.comment.create({
-      data: {
-        userId,
-        sectionId: catalog.sections[0].id,
-        parentId: commentId,
-        rootId: commentId,
-        body: "Projection reply",
-      },
-    });
-    await db.description.create({
-      data: {
-        courseId: catalog.courses[0].id,
-        content: "Projection course **Markdown**",
-        lastEditedById: userId,
-        lastEditedAt: new Date(atTime),
-      },
-    });
-    await db.busUserPreference.create({
-      data: {
-        userId,
-        preferredOriginCampusId: DEV_SEED.bus.originCampusId,
-        preferredDestinationCampusId: DEV_SEED.bus.destinationCampusId,
-        showDepartedTrips: true,
-      },
-    });
+      });
+      await db.busUserPreference.create({
+        data: {
+          userId,
+          preferredOriginCampusId: mcpBus.originCampusId,
+          preferredDestinationCampusId: mcpBus.destinationCampusId,
+          showDepartedTrips: true,
+        },
+      });
 
-    return {
-      userId,
-      userName,
-      username,
-      date,
-      atTime,
-      dueAt,
-      youngId,
-      catalog,
-      client,
-      homeworkId,
-      todoId,
-      commentId,
-      uploadId,
-      organizerId,
-      campusId,
-      batchId,
-      scheduleId,
-      currentSemesterId,
-      invoke,
-      pair,
-    };
+      return {
+        userId,
+        userName,
+        username,
+        date,
+        atTime,
+        dueAt,
+        youngId,
+        catalog,
+        client,
+        homeworkId,
+        todoId,
+        commentId,
+        uploadId,
+        organizerId,
+        campusId,
+        batchId,
+        scheduleId,
+        currentSemesterId,
+      };
+    });
+    await session.initialize();
+    return { ...records, db, mcpBus, deletedKeys, invoke, pair };
   },
 );
 
-const external = vi.hoisted(() => ({
-  deletedKeys: new Set<string>(),
-}));
+// The mocked SDK storage observer belongs to the current invocation, never a
+// process-wide history. Real R2 effects are covered by Worker tests.
+const external = await vi.hoisted(async () => {
+  const { AsyncLocalStorage } = await import("node:async_hooks");
+  return { storage: new AsyncLocalStorage<Set<string>>() };
+});
 vi.mock("@/lib/storage/r2-object", async (original) => ({
   ...(await original<object>()),
   deleteStorageObject: async (key: string) => {
-    external.deletedKeys.add(key);
+    const deletedKeys = external.storage.getStore();
+    if (!deletedKeys)
+      throw new Error("Storage invocation has no private observer");
+    deletedKeys.add(key);
   },
 }));
 vi.mock("@/features/weather/server/weather-cache", () => ({
@@ -361,12 +327,6 @@ vi.mock("@/features/weather/server/weather-cache", () => ({
     extensions: { amap: { privateMarker: "raw-weather-projection" } },
   }),
 }));
-
-const db = createFixturePrisma();
-
-afterAll(async () => {
-  await Promise.all([db.$disconnect(), runtimeDb.$disconnect()]);
-});
 
 type Row = Record<string, unknown>;
 function values(value: unknown, path: string[]): unknown[] {
@@ -850,35 +810,35 @@ contractTest(
     await pair(
       "catalog_bus_timetable_get",
       {},
-      { "routes.id": DEV_SEED.bus.recommendedRouteId },
+      { "routes.id": state.mcpBus.routeId },
     );
     await pair(
       "catalog_bus_route_list",
       {},
-      { "routes.id": DEV_SEED.bus.recommendedRouteId },
+      { "routes.id": state.mcpBus.routeId },
     );
     await pair(
       "catalog_bus_route_get",
-      { routeId: DEV_SEED.bus.recommendedRouteId },
-      { "route.id": DEV_SEED.bus.recommendedRouteId },
+      { routeId: state.mcpBus.routeId },
+      { "route.id": state.mcpBus.routeId },
     );
     const busArgs = {
-      originCampusId: DEV_SEED.bus.originCampusId,
-      destinationCampusId: DEV_SEED.bus.destinationCampusId,
+      originCampusId: state.mcpBus.originCampusId,
+      destinationCampusId: state.mcpBus.destinationCampusId,
     };
     await pair("catalog_bus_route_search", busArgs, {
-      "routes.id": DEV_SEED.bus.recommendedRouteId,
+      "routes.id": state.mcpBus.routeId,
     });
     await pair(
       "catalog_bus_departure_next",
       { ...busArgs, atTime, dayType: "weekday" },
-      { "originCampus.id": DEV_SEED.bus.originCampusId },
+      { "originCampus.id": state.mcpBus.originCampusId },
     );
     await pair(
       "workspace_bus_preferences_get",
       {},
       {
-        "preference.preferredOriginCampusId": DEV_SEED.bus.originCampusId,
+        "preference.preferredOriginCampusId": state.mcpBus.originCampusId,
         "preference.showDepartedTrips": true,
       },
     );
@@ -1025,7 +985,7 @@ contractTest(
 contractTest.for(["default", "full"] as const)(
   "MCP todo mutation projection in %s mode",
   async (mode, { state, expect }) => {
-    const { dueAt, invoke } = state;
+    const { dueAt, invoke, db } = state;
 
     const createdTodo = await invoke(
       "workspace_todo_create",
@@ -1079,7 +1039,7 @@ contractTest.for(["default", "full"] as const)(
 contractTest.for(["default", "full"] as const)(
   "MCP homework mutation projection in %s mode",
   async (mode, { state, expect }) => {
-    const { dueAt, catalog, invoke } = state;
+    const { dueAt, catalog, invoke, db } = state;
 
     const sectionArgs = { sectionJwId: catalog.sections[0].jwId };
     const createdHomework = await invoke(
@@ -1163,12 +1123,12 @@ contractTest.for(["default", "full"] as const)(
     await invoke(
       "workspace_bus_preferences_set",
       {
-        preferredOriginCampusId: DEV_SEED.bus.destinationCampusId,
-        preferredDestinationCampusId: DEV_SEED.bus.originCampusId,
+        preferredOriginCampusId: state.mcpBus.destinationCampusId,
+        preferredDestinationCampusId: state.mcpBus.originCampusId,
         showDepartedTrips: false,
       },
       {
-        "preference.preferredOriginCampusId": DEV_SEED.bus.destinationCampusId,
+        "preference.preferredOriginCampusId": state.mcpBus.destinationCampusId,
         "preference.showDepartedTrips": false,
       },
       mode,
@@ -1246,7 +1206,7 @@ contractTest.for(["default", "full"] as const)(
 contractTest.for(["default", "full"] as const)(
   "MCP upload mutation projection in %s mode",
   async (mode, { state, expect }) => {
-    const { userId, invoke } = state;
+    const { userId, invoke, db, deletedKeys } = state;
 
     const upload = await db.upload.create({
       data: {
@@ -1268,14 +1228,14 @@ contractTest.for(["default", "full"] as const)(
       { success: true },
       mode,
     );
-    expect(external.deletedKeys.has(upload.key)).toBe(true);
+    expect(deletedKeys.has(upload.key)).toBe(true);
     expect(await db.upload.count({ where: { id: upload.id } })).toBe(0);
   },
 );
 contractTest(
   "MCP completed todo consumers retain mode-specific fields",
   async ({ state, expect }) => {
-    const { dueAt, client, todoId } = state;
+    const { dueAt, client, todoId, db } = state;
 
     await db.todo.update({ where: { id: todoId }, data: { completed: true } });
     for (const mode of ["default", "full"] as const) {

@@ -1,20 +1,50 @@
 import { describe } from "vitest";
-import * as fixtures from "./_harness";
-import { mcpTest } from "./_harness/context";
+import { isolatedMcpTest as toolTest } from "./_harness/isolated-context";
 
-const toolTest = mcpTest.extend(
-  "owner",
-  fixtures.academicActorFixture({
-    emailPrefix: "mcp-actionable-errors",
-    name: "[integration-test] actionable errors",
-  }),
-);
+const anchorDate = "2026-04-29";
+const elevenDaysLater = "2026-05-10";
 
 describe("MCP domain failure contracts", () => {
   toolTest(
     "mcp.actionable-errors",
     { timeout: 30_000 },
-    async ({ owner, expect }) => {
+    async ({ mcpActor: owner, mcpSection, isolatedDatabase, expect }) => {
+      await isolatedDatabase.owner.$transaction(async (db) => {
+        await db.userSectionSubscription.create({
+          data: { userId: owner.userId, sectionId: mcpSection.id },
+        });
+        await db.todo.create({
+          data: {
+            userId: owner.userId,
+            title: "Existing todo must survive rejected writes",
+          },
+        });
+        await db.homework.create({
+          data: {
+            sectionId: mcpSection.id,
+            createdById: owner.userId,
+            title: "Existing homework must survive rejected writes",
+          },
+        });
+      });
+      const persistedState = () =>
+        isolatedDatabase.owner.$transaction(async (db) => ({
+          users: await db.user.findMany({ orderBy: { id: "asc" } }),
+          subscriptions: await db.userSectionSubscription.findMany({
+            orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+          }),
+          todos: await db.todo.findMany({ orderBy: { id: "asc" } }),
+          homeworks: await db.homework.findMany({ orderBy: { id: "asc" } }),
+          completions: await db.homeworkCompletion.findMany({
+            orderBy: [{ userId: "asc" }, { homeworkId: "asc" }],
+          }),
+          comments: await db.comment.findMany({ orderBy: { id: "asc" } }),
+          descriptions: await db.description.findMany({
+            orderBy: { id: "asc" },
+          }),
+          audits: await db.auditLog.findMany({ orderBy: { id: "asc" } }),
+        }));
+      const unchanged = await persistedState();
       const missingId = "missing-private-resource";
       const invalidSecret = "credential-that-must-not-be-echoed";
       const names = new Set(
@@ -34,16 +64,16 @@ describe("MCP domain failure contracts", () => {
         ["workspace_exam_list", { dateTo: invalidSecret }, "invalid_date"],
         [
           "workspace_calendar_event_list",
-          { dateFrom: fixtures.SEED_DATE },
+          { dateFrom: anchorDate },
           "invalid_range",
         ],
         [
           "community_section_homework_create",
           {
-            sectionJwId: fixtures.DEV_SEED.section.jwId,
+            sectionJwId: mcpSection.jwId,
             title: "dates reversed",
-            submissionStartAt: fixtures.SEED_PLUS_ELEVEN_DAYS,
-            submissionDueAt: fixtures.SEED_DATE,
+            submissionStartAt: elevenDaysLater,
+            submissionDueAt: anchorDate,
           },
           "invalid_dates",
         ],
@@ -52,8 +82,8 @@ describe("MCP domain failure contracts", () => {
           {
             homeworkId: missingId,
             title: "dates reversed",
-            submissionStartAt: fixtures.SEED_PLUS_ELEVEN_DAYS,
-            submissionDueAt: fixtures.SEED_DATE,
+            submissionStartAt: elevenDaysLater,
+            submissionDueAt: anchorDate,
           },
           "date",
         ],
@@ -119,6 +149,10 @@ describe("MCP domain failure contracts", () => {
           expect(typeof result.message, name).toBe("string");
           expect(String(result.message).length, name).toBeGreaterThan(3);
           expect(JSON.stringify(result), name).not.toContain(invalidSecret);
+          expect(
+            await persistedState(),
+            `${name} ${mode}: rejection has no domain or audit changes`,
+          ).toEqual(unchanged);
           if (result.hint !== undefined) {
             expect(typeof result.hint).toBe("string");
             const referenced =
