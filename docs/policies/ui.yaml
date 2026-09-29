@@ -1384,7 +1384,7 @@ requirements:
     - The first focusable shell control is a localized skip link that moves keyboard focus to main content.
     test:
       file: tests/e2e/src/app/test.ts
-      name: ui.navigation-landmarks-4
+      name: anonymous landing and keyboard access
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
