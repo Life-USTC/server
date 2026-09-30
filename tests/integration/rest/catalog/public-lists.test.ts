@@ -1,4 +1,8 @@
-import { type APIRequestContext, expect, type TestInfo } from "@playwright/test";
+import {
+  type APIRequestContext,
+  expect,
+  type TestInfo,
+} from "@playwright/test";
 import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
