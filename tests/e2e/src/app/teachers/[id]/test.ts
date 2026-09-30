@@ -43,6 +43,7 @@ import {
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { observeSectionDetailNavigation } from "../../../../utils/section-detail-navigation";
 import { assertPageContract } from "../../_shared/page-contract";
 
 async function navigateToSeedTeacher(
@@ -242,8 +243,14 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         .locator("tbody a[href^='/catalog/sections/']:visible")
         .first();
       await expect(sectionLink).toBeVisible();
+      const expectSectionDetailReady = observeSectionDetailNavigation(
+        page,
+        preferenceFlow,
+        DEV_SEED.section.jwId,
+      );
       await sectionLink.click();
       await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
+      await expectSectionDetailReady();
       await captureStepScreenshot(page, testInfo, "teacher/section-link");
     });
   });
