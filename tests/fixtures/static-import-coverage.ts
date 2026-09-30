@@ -9,11 +9,20 @@ import { createTestPrisma } from "../shared/prisma";
 import type { StaticImportSnapshot } from "../shared/static-import-process-fixture";
 
 const [mode, firstPath, secondPath, ...extra] = process.argv.slice(2);
-if (!firstPath || !secondPath || extra.length || !["prepare", "apply"].includes(mode))
-  throw new Error("Expected prepare <input> <snapshot> or apply <snapshot> <report>");
+if (
+  !firstPath ||
+  !secondPath ||
+  extra.length ||
+  !["prepare", "apply"].includes(mode)
+)
+  throw new Error(
+    "Expected prepare <input> <snapshot> or apply <snapshot> <report>",
+  );
 if (mode === "prepare") {
   const [inputPath, snapshotPath] = [firstPath, secondPath];
-  const input = JSON.parse(readFileSync(inputPath, "utf8")) as StaticImportSnapshot;
+  const input = JSON.parse(
+    readFileSync(inputPath, "utf8"),
+  ) as StaticImportSnapshot;
   // Reuse the complete synthetic schema, then replace its rows with this case's
   // explicit input. The production Snapshot implementation reads the real file.
   execFileSync("bun", [
@@ -23,12 +32,18 @@ if (mode === "prepare") {
   const snapshot = new Database(snapshotPath);
   try {
     snapshot.run("BEGIN");
-    const tables = snapshot.query("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[];
+    const tables = snapshot
+      .query("SELECT name FROM sqlite_master WHERE type='table'")
+      .all() as { name: string }[];
     const identifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
-    for (const { name } of tables) snapshot.run(`DELETE FROM ${identifier(name)}`);
+    for (const { name } of tables)
+      snapshot.run(`DELETE FROM ${identifier(name)}`);
     const values: StaticImportSnapshot["tables"] = {
       ...input.tables,
-      metadata: Object.entries(input.metadata).map(([key, value]) => ({ key, value })),
+      metadata: Object.entries(input.metadata).map(([key, value]) => ({
+        key,
+        value,
+      })),
     };
     for (const [table, rows] of Object.entries(values)) {
       if (rows.length === 0) continue;
@@ -37,10 +52,12 @@ if (mode === "prepare") {
         `INSERT INTO ${identifier(table)} (${columns.map(identifier).join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
       );
       for (const row of rows)
-        insert.run(...columns.map((column) => {
-          const value = row[column];
-          return typeof value === "boolean" ? Number(value) : value ?? null;
-        }));
+        insert.run(
+          ...columns.map((column) => {
+            const value = row[column];
+            return typeof value === "boolean" ? Number(value) : (value ?? null);
+          }),
+        );
     }
     snapshot.run("COMMIT");
   } finally {
@@ -55,7 +72,9 @@ if (mode === "prepare") {
   try {
     const report = await runImport(importer, {
       snapshotPath,
-      snapshotSha256: createHash("sha256").update(readFileSync(snapshotPath)).digest("hex"),
+      snapshotSha256: createHash("sha256")
+        .update(readFileSync(snapshotPath))
+        .digest("hex"),
       dryRun: false,
     });
     writeFileSync(reportPath, JSON.stringify(report));

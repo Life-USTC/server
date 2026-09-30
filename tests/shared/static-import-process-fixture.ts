@@ -25,7 +25,8 @@ export const staticImportProcessTest = nodeProtocolTest.extend<{
     use,
   ) => {
     const directory = mkdtempSync(join(tmpdir(), "static-import-contract-"));
-    const running: { child: ChildProcess; closed: Promise<number | null> }[] = [];
+    const running: { child: ChildProcess; closed: Promise<number | null> }[] =
+      [];
     const { connections } = isolatedDatabase;
     let closing = false;
     function run(script: string, args: string[]) {
@@ -85,17 +86,29 @@ export const staticImportProcessTest = nodeProtocolTest.extend<{
           "../fixtures/static-import-coverage.ts",
           ["prepare", inputPath, snapshotPath],
         );
-        if (code !== 0) throw new Error(`Static snapshot preparation exited with code ${code}, signal ${signal}\n${stdout}\n${stderr}`);
+        if (code !== 0)
+          throw new Error(
+            `Static snapshot preparation exited with code ${code}, signal ${signal}\n${stdout}\n${stderr}`,
+          );
         return {
-          apply: () => protocolRuntime.request(async () => {
-            const reportPath = join(directory, `${crypto.randomUUID()}.report.json`);
-            const { code, signal, stdout, stderr } = await run(
-              "../fixtures/static-import-coverage.ts",
-              ["apply", snapshotPath, reportPath],
-            );
-            if (code !== 0) throw new Error(`Static import process exited with code ${code}, signal ${signal}\n${stdout}\n${stderr}`);
-            return JSON.parse(await readFile(reportPath, "utf8")) as ImportReport;
-          }),
+          apply: () =>
+            protocolRuntime.request(async () => {
+              const reportPath = join(
+                directory,
+                `${crypto.randomUUID()}.report.json`,
+              );
+              const { code, signal, stdout, stderr } = await run(
+                "../fixtures/static-import-coverage.ts",
+                ["apply", snapshotPath, reportPath],
+              );
+              if (code !== 0)
+                throw new Error(
+                  `Static import process exited with code ${code}, signal ${signal}\n${stdout}\n${stderr}`,
+                );
+              return JSON.parse(
+                await readFile(reportPath, "utf8"),
+              ) as ImportReport;
+            }),
         };
       });
     try {
@@ -118,13 +131,22 @@ export const staticImportProcessTest = nodeProtocolTest.extend<{
       await Promise.all(running.map(({ closed }) => closed));
       // The runtime owner reports its original cached cleanup failure once.
       await Promise.allSettled([protocolRuntime.close()]);
-      results.push(...(await Promise.allSettled([rm(directory, { recursive: true, force: true })])));
+      results.push(
+        ...(await Promise.allSettled([
+          rm(directory, { recursive: true, force: true }),
+        ])),
+      );
       const failures = results.flatMap((result) =>
         result.status === "rejected" ? [result.reason] : [],
       );
       if (failures.length) {
-        const error = new AggregateError(failures, "Static import process cleanup failed");
-        onTestFinished(() => { throw error; });
+        const error = new AggregateError(
+          failures,
+          "Static import process cleanup failed",
+        );
+        onTestFinished(() => {
+          throw error;
+        });
       }
     }
   },

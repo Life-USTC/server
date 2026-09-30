@@ -99,108 +99,114 @@ describe("unavailable static sources", () => {
         count: 999,
       }));
 
-      const { sections, include, before, preservedExam } = await prisma.$transaction(async (tx) => {
-        const course = await tx.course.create({
-          data: {
-            jwId: marker + 10,
-            code: String(marker + 10),
-            nameCn: "[integration-test] original course",
-          },
-        });
-        const sections = [];
-        for (const [index, jwId] of [
-          unavailableSemester,
-          availableSemester,
-        ].entries()) {
-          const semester = await tx.semester.create({
+      const { sections, include, before, preservedExam } =
+        await prisma.$transaction(async (tx) => {
+          const course = await tx.course.create({
             data: {
-              jwId,
-              code: String(jwId),
-              nameCn: "[integration-test] source unavailable",
+              jwId: marker + 10,
+              code: String(marker + 10),
+              nameCn: "[integration-test] original course",
             },
           });
-          sections.push(
-            await tx.section.create({
+          const sections = [];
+          for (const [index, jwId] of [
+            unavailableSemester,
+            availableSemester,
+          ].entries()) {
+            const semester = await tx.semester.create({
               data: {
-                jwId: marker + 20 + index,
-                code: "original-section",
-                period: 16,
-                semesterId: semester.id,
-                courseId: course.id,
-                exams: {
-                  create: {
-                    jwId: marker + 30 + index,
-                    examTakeCount: 20,
-                    examRooms: { create: { room: "original-room", count: 20 } },
+                jwId,
+                code: String(jwId),
+                nameCn: "[integration-test] source unavailable",
+              },
+            });
+            sections.push(
+              await tx.section.create({
+                data: {
+                  jwId: marker + 20 + index,
+                  code: "original-section",
+                  period: 16,
+                  semesterId: semester.id,
+                  courseId: course.id,
+                  exams: {
+                    create: {
+                      jwId: marker + 30 + index,
+                      examTakeCount: 20,
+                      examRooms: {
+                        create: { room: "original-room", count: 20 },
+                      },
+                    },
                   },
                 },
-              },
-            }),
-          );
-        }
-        const teacher = await tx.teacher.create({
-          data: {
-            jwId: marker + 40,
-            personId: marker + 40,
-            nameCn: "[integration-test] original teacher",
-          },
-        });
-        await tx.section.update({
-          where: { id: sections[0].id },
-          data: {
-            teachers: { connect: { id: teacher.id } },
-            sectionTeachers: { create: { teacherId: teacher.id } },
-            teacherAssignments: {
-              create: { teacherId: teacher.id, period: 1.5 },
+              }),
+            );
+          }
+          const teacher = await tx.teacher.create({
+            data: {
+              jwId: marker + 40,
+              personId: marker + 40,
+              nameCn: "[integration-test] original teacher",
             },
-          },
+          });
+          await tx.section.update({
+            where: { id: sections[0].id },
+            data: {
+              teachers: { connect: { id: teacher.id } },
+              sectionTeachers: { create: { teacherId: teacher.id } },
+              teacherAssignments: {
+                create: { teacherId: teacher.id, period: 1.5 },
+              },
+            },
+          });
+          const group = await tx.scheduleGroup.create({
+            data: {
+              jwId: marker + 50,
+              sectionId: sections[0].id,
+              no: 1,
+              limitCount: 30,
+              stdCount: 20,
+              actualPeriods: 16,
+              isDefault: true,
+            },
+          });
+          await tx.schedule.create({
+            data: {
+              sectionId: sections[0].id,
+              scheduleGroupId: group.id,
+              periods: 2,
+              weekday: 1,
+              startTime: 750,
+              endTime: 925,
+              weekIndex: 1,
+              startUnit: 1,
+              endUnit: 2,
+              teacherParticipations: { create: { teacherId: teacher.id } },
+            },
+          });
+          const include = {
+            teachers: true,
+            sectionTeachers: true,
+            teacherAssignments: true,
+            scheduleGroups: true,
+            schedules: {
+              include: {
+                teacherParticipations: { include: { teacher: true } },
+              },
+            },
+            exams: { include: { examRooms: true } },
+          } satisfies Prisma.SectionInclude;
+          const before = await tx.section.findUniqueOrThrow({
+            where: { id: sections[0].id },
+            include,
+          });
+          const preservedExam = await tx.exam.findUniqueOrThrow({
+            where: { jwId: marker + 31 },
+            include: { examRooms: true },
+          });
+          return { sections, include, before, preservedExam };
         });
-        const group = await tx.scheduleGroup.create({
-          data: {
-            jwId: marker + 50,
-            sectionId: sections[0].id,
-            no: 1,
-            limitCount: 30,
-            stdCount: 20,
-            actualPeriods: 16,
-            isDefault: true,
-          },
-        });
-        await tx.schedule.create({
-          data: {
-            sectionId: sections[0].id,
-            scheduleGroupId: group.id,
-            periods: 2,
-            weekday: 1,
-            startTime: 750,
-            endTime: 925,
-            weekIndex: 1,
-            startUnit: 1,
-            endUnit: 2,
-            teacherParticipations: { create: { teacherId: teacher.id } },
-          },
-        });
-        const include = {
-          teachers: true,
-          sectionTeachers: true,
-          teacherAssignments: true,
-          scheduleGroups: true,
-          schedules: {
-            include: { teacherParticipations: { include: { teacher: true } } },
-          },
-          exams: { include: { examRooms: true } },
-        } satisfies Prisma.SectionInclude;
-        const before = await tx.section.findUniqueOrThrow({
-          where: { id: sections[0].id },
-          include,
-        });
-        const preservedExam = await tx.exam.findUniqueOrThrow({
-          where: { jwId: marker + 31 },
-          include: { examRooms: true },
-        });
-        return { sections, include, before, preservedExam };
-      });
-      const currentSnapshot = await staticImportProcess.prepareSnapshot(snapshot);
+      const currentSnapshot =
+        await staticImportProcess.prepareSnapshot(snapshot);
 
       const report = await currentSnapshot.apply();
       expect(report).toMatchObject({
@@ -225,7 +231,9 @@ describe("unavailable static sources", () => {
         }),
       ).toEqual(before);
       expect(
-        await prisma.section.findUniqueOrThrow({ where: { id: sections[1].id } }),
+        await prisma.section.findUniqueOrThrow({
+          where: { id: sections[1].id },
+        }),
       ).toMatchObject({
         code: "refreshed-section",
         period: 48,
