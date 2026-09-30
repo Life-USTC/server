@@ -2,16 +2,16 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { expect } from "vitest";
 import { getCommunityUserRoute } from "@/lib/api/routes/public-user-profile";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
-import { isolatedMcpTest as it } from "./mcp/_harness/isolated-context";
+import { mcpProtocolTest as it } from "../shared/mcp-protocol-fixture";
 
 // A single native case owns this isolated file's GraphQL/auth module state.
 // This does not claim arbitrary case concurrency in a shared module environment.
 it("interface-hierarchy.public-profile-read-parity", async ({
   isolatedDatabase: { owner: db },
-  mcpRuntime,
+  protocolRuntime,
   mcpSessions,
 }) => {
-  await mcpRuntime.run(async () => {
+  await protocolRuntime.run(async () => {
     const handler = createGraphqlRequestHandler(false);
     const marker = crypto.randomUUID();
     const username = `u${marker.replaceAll("-", "").slice(0, 14)}`;
@@ -26,9 +26,7 @@ it("interface-hierarchy.public-profile-read-parity", async ({
         isAdmin: true,
       },
     });
-    const owned = mcpSessions.ownAnonymous();
-    await owned.initialize();
-    const native = owned.client;
+    const native = await mcpSessions.createAnonymousMcpHarness();
     for (const identifier of [
       username,
       username.toUpperCase(),
@@ -37,7 +35,7 @@ it("interface-hierarchy.public-profile-read-parity", async ({
       ` ${owner.id} `,
       `missing-${marker}`,
     ]) {
-      const restResponse = await mcpRuntime.run(() =>
+      const restResponse = await protocolRuntime.request(() =>
         getCommunityUserRoute(identifier),
       );
       const rest = await restResponse.json();
@@ -45,9 +43,9 @@ it("interface-hierarchy.public-profile-read-parity", async ({
         found: boolean;
         user?: Record<string, unknown>;
       }>("community_user_get", { identifier, mode: "full" });
-      const response = await mcpRuntime.run(() =>
+      const response = await protocolRuntime.request(() =>
         handler({
-          request: new Request("https://life.example/api/graphql", {
+          request: new Request("http://localhost:3000/api/graphql", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
