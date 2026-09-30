@@ -1,4 +1,7 @@
-import { isJSONRPCRequest, type RequestId } from "@modelcontextprotocol/sdk/types.js";
+import {
+  isJSONRPCRequest,
+  type RequestId,
+} from "@modelcontextprotocol/sdk/types.js";
 
 export const MCP_REQUEST_BODY_LIMIT_BYTES = 64 * 1024;
 export const MCP_JSON_RPC_BATCH_LIMIT = 50;
