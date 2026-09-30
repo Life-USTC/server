@@ -51,7 +51,9 @@ for (const observeReads of [false, true]) {
       const releaseBody = createDeferred();
       const onClose = () => closed.resolve();
       page.once("close", onClose);
-      const bodyError = new Error("Original callback failure after native close");
+      const bodyError = new Error(
+        "Original callback failure after native close",
+      );
       const originalGet = page.request.get;
       const finalObservationStates: boolean[] = [];
       let producerPath: string | undefined;
@@ -139,7 +141,9 @@ for (const observeReads of [false, true]) {
         await Promise.race([
           afterClose.promise,
           workflowOutcome.then(({ error }) => {
-            throw error ?? new Error("Workflow ended before native page closure");
+            throw (
+              error ?? new Error("Workflow ended before native page closure")
+            );
           }),
         ]);
         const health = await originalGet.call(page.request, "/api/health");
@@ -181,7 +185,8 @@ for (const observeReads of [false, true]) {
       );
       expect(attachments).toHaveLength(1);
       const attachmentBody = attachments[0].body;
-      if (!attachmentBody) throw new Error("Missing native homework-effects body");
+      if (!attachmentBody)
+        throw new Error("Missing native homework-effects body");
       const observation = JSON.parse(attachmentBody.toString());
       expect(observation.audits).toEqual([
         expect.objectContaining({

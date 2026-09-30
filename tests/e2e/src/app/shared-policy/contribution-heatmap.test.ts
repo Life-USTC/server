@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
-import { test } from "../../../utils/personal-preferences-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test } from "../../../utils/personal-preferences-fixture";
 
 async function createProfile(db: TestPrismaClient, count = 3) {
   const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
@@ -19,12 +19,14 @@ async function createProfile(db: TestPrismaClient, count = 3) {
       data: {
         jwId: 1_700_000_000 + count,
         code: `HEATMAP.${count}`,
-        course: { create: {
-          jwId: 1_700_000_000 + count,
-          code: `HEATMAP-${count}`,
-          nameCn: "贡献记录测试课程",
-          nameEn: "Contribution history course",
-        } },
+        course: {
+          create: {
+            jwId: 1_700_000_000 + count,
+            code: `HEATMAP-${count}`,
+            nameCn: "贡献记录测试课程",
+            nameEn: "Contribution history course",
+          },
+        },
       },
     });
     const now = new Date();
@@ -51,7 +53,11 @@ async function createProfile(db: TestPrismaClient, count = 3) {
   });
 }
 
-test("ui.contribution-heatmap-1", async ({ page, isolatedWorker, preferenceFlow }) => {
+test("ui.contribution-heatmap-1", async ({
+  page,
+  isolatedWorker,
+  preferenceFlow,
+}) => {
   await preferenceFlow.run(async () => {
     const user = await createProfile(isolatedWorker.database.owner);
     for (const width of [320, 390, 1280]) {
@@ -97,7 +103,11 @@ test("ui.contribution-heatmap-1", async ({ page, isolatedWorker, preferenceFlow 
   });
 });
 
-test("ui.contribution-heatmap-2", async ({ baseURL, isolatedWorker, preferenceFlow }) => {
+test("ui.contribution-heatmap-2", async ({
+  baseURL,
+  isolatedWorker,
+  preferenceFlow,
+}) => {
   await preferenceFlow.run(async () => {
     const user = await createProfile(isolatedWorker.database.owner);
     for (const locale of ["zh-cn", "en-us"]) {
@@ -181,11 +191,16 @@ test("ui.contribution-heatmap-2", async ({ baseURL, isolatedWorker, preferenceFl
   });
 });
 
-test("ui.profile-count-copy", async ({ page, baseURL, isolatedWorker, preferenceFlow }, testInfo) => {
+test("ui.profile-count-copy", async ({
+  page,
+  baseURL,
+  isolatedWorker,
+  preferenceFlow,
+}, testInfo) => {
   await preferenceFlow.run(async () => {
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  for (const count of [1, 2]) {
-    const user = await createProfile(isolatedWorker.database.owner, count);
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
+    for (const count of [1, 2]) {
+      const user = await createProfile(isolatedWorker.database.owner, count);
       for (const locale of ["en-us", "zh-cn"]) {
         await page
           .context()
@@ -226,6 +241,6 @@ test("ui.profile-count-copy", async ({ page, baseURL, isolatedWorker, preference
           await expect.soft(detail).toHaveText(label);
         }
       }
-  }
+    }
   });
 });
