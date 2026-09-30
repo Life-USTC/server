@@ -134,6 +134,9 @@ function ownPublicationHttp(database: IsolatedDatabase) {
 
   function close() {
     closing ??= (async () => {
+      // Pending listen setup cannot finish until its AbortSignal is released.
+      // An established listener stays available to admitted body workflows.
+      if (!origin) listenAbort.abort();
       const outcomes = await Promise.allSettled([workflows.close()]);
       accepting = false;
       listenAbort.abort();
@@ -292,20 +295,25 @@ export const publicationHttpTest = isolatedDatabaseTest.extend<{
       );
       await use(owned);
     } finally {
-      // Borrow the workflow drain; the HTTP owner reports its cached failure.
-      await Promise.allSettled([http.drain()]);
+      // Closing SDKs releases blocked initialization and server requests before
+      // joining outer workflows. The HTTP owner reports cached drain failures.
       try {
         await closeClients();
       } catch (error) {
         onTestFinished(() => {
           throw error;
         });
+      } finally {
+        await Promise.allSettled([http.drain()]);
       }
     }
   },
   publicationMcp: async ({ _publicationMcpResources, http, signal }, use) => {
     await http.run(async () => {
-      for (const owned of _publicationMcpResources) await owned.initialize();
+      for (const owned of _publicationMcpResources) {
+        await owned.initialize();
+        signal.throwIfAborted();
+      }
     });
     signal.throwIfAborted();
     await use(_publicationMcpResources.map(({ client }) => client));
