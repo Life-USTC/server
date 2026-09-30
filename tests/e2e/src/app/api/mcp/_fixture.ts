@@ -1,6 +1,10 @@
+import { isDeepStrictEqual } from "node:util";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { expect, type Page } from "@playwright/test";
-import type { User } from "../../../../../../src/generated/prisma-node/client";
+import type {
+  AuditLog,
+  User,
+} from "../../../../../../src/generated/prisma-node/client";
 import { withBrowserWorkflow } from "../../../../utils/browser-workflow";
 import {
   type CalendarBrowserWriteVerifier,
@@ -129,14 +133,27 @@ type McpScenario = {
     options?: Parameters<CalendarProtocol["observeCalendar"]>[2],
   ) => Promise<void>;
 };
+type McpAuditAttribution = {
+  outcome: "success";
+  channel: "mcp";
+  userId: string;
+  subjectUserId: string;
+  oauthClientId: string;
+  oauthGrantId: string;
+  sessionId: string;
+};
 type McpChecks = {
   verifyState: () => Promise<void>;
-  audits?: {
-    action: string;
-    targetId: string;
-    targetType: string;
-    metadata: unknown;
-  }[];
+  audits?: (
+    attribution: McpAuditAttribution,
+  ) => Pick<
+    AuditLog,
+    | keyof McpAuditAttribution
+    | "action"
+    | "targetId"
+    | "targetType"
+    | "metadata"
+  >[];
 };
 
 /** Fixed scenario plans check real SDK calls; they never select tests or derive
@@ -334,19 +351,28 @@ async function runMcpScenario(
                 scopeCount: MCP_CLIENT_SCOPES.length,
               },
             },
-            ...(checks.audits ?? []).map((audit) => ({
-              ...audit,
+            ...(checks.audits?.({
               outcome: "success",
               channel: "mcp",
               userId: user.id,
               subjectUserId: user.id,
               oauthClientId: clientId,
               oauthGrantId: grantId,
-              sessionId: null,
-            })),
+              sessionId: sessions[0].id,
+            }) ?? []),
           ];
           expect(auditRows).toHaveLength(expectedAudits.length);
-          expect(auditRows).toEqual(expect.arrayContaining(expectedAudits));
+          // Consume each expected row once: repeated description audits are
+          // distinct required writes, not reusable arrayContaining matches.
+          const remainingAudits = [...auditRows];
+          for (const expected of expectedAudits) {
+            const index = remainingAudits.findIndex((row) =>
+              isDeepStrictEqual(row, expected),
+            );
+            expect(index, JSON.stringify(expected)).toBeGreaterThanOrEqual(0);
+            remainingAudits.splice(index, 1);
+          }
+          expect(remainingAudits).toEqual([]);
           expect(await db.oAuthRefreshToken.count()).toBe(0);
           expect(await db.oAuthAccessToken.count()).toBe(0);
           expect(await db.deviceCode.count()).toBe(0);
