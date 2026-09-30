@@ -28,6 +28,7 @@ export type PrivateMcpActor = {
 
 /** Explicit private state; each SDK server request owns its runtime lifetime. */
 export const isolatedMcpTest = isolatedDatabaseTest.extend<{
+  mcpWorkflow: Runtime;
   _mcpCatalogRevision: undefined;
   mcpRuntime: Runtime;
   mcpSessions: Sessions;
@@ -37,21 +38,42 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
   mcpBus: Awaited<ReturnType<typeof createPrivateMcpBus>>;
   mcpSchedules: Awaited<ReturnType<typeof createPrivateMcpSchedules>>;
 }>({
-  _mcpCatalogRevision: async ({ isolatedDatabase }, use) => {
+  mcpWorkflow: async ({ isolatedDatabase, onTestFinished }, use) => {
+    void isolatedDatabase;
+    const workflow = createNodeRuntime({});
+    try {
+      await use(workflow);
+    } finally {
+      try {
+        await workflow.close();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
+    }
+  },
+  _mcpCatalogRevision: async (
+    { isolatedDatabase, mcpWorkflow, signal },
+    use,
+  ) => {
     // Database-local IDs repeat across tests, while production L1 cache lives
     // for the process. Publish a private import revision before any SDK request.
-    await isolatedDatabase.owner.staticImportState.create({
-      data: {
-        id: "global",
-        snapshotSha256: crypto.randomUUID().replaceAll("-", "").repeat(2),
-        snapshotGeneratedAt: new Date(),
-        transformRevision: 6,
-      },
-    });
+    await mcpWorkflow.run(() =>
+      isolatedDatabase.owner.staticImportState.create({
+        data: {
+          id: "global",
+          snapshotSha256: crypto.randomUUID().replaceAll("-", "").repeat(2),
+          snapshotGeneratedAt: new Date(),
+          transformRevision: 6,
+        },
+      }),
+    );
+    signal.throwIfAborted();
     await use(undefined);
   },
   mcpRuntime: async (
-    { isolatedDatabase, _mcpCatalogRevision, onTestFinished },
+    { isolatedDatabase, _mcpCatalogRevision, mcpWorkflow, onTestFinished },
     use,
   ) => {
     const runtime = createNodeRuntime({
@@ -81,6 +103,10 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
     try {
       await use(requestRuntime);
     } finally {
+      // Sessions close before this fixture unwinds. Their cancellation can
+      // release an admitted workflow which still needs this request runtime.
+      // The workflow owner alone reports its cached cleanup error.
+      await Promise.allSettled([mcpWorkflow.close()]);
       try {
         await requestRuntime.close();
       } catch (error) {
@@ -91,7 +117,7 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
       }
     }
   },
-  mcpSessions: async ({ mcpRuntime, onTestFinished }, use) => {
+  mcpSessions: async ({ mcpRuntime, mcpWorkflow, onTestFinished }, use) => {
     const clients: McpHarness[] = [];
     let closed = false;
     function requireOpen() {
@@ -139,74 +165,103 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
           throw error;
         });
       }
+      // Close SDKs first: blocked server work may only resume on transport
+      // cancellation. Manual sessions.close() deliberately does not self-join.
+      await Promise.allSettled([mcpWorkflow.close()]);
     }
   },
-  mcpActor: async ({ isolatedDatabase, mcpSessions }, use) => {
-    const name = "MCP owner";
-    const username = "mcp-owner";
-    const user = await isolatedDatabase.owner.user.create({
-      data: {
-        id: "mcp-owner",
-        email: "mcp-owner@example.test",
-        name,
-        username,
-      },
-    });
-    const session = mcpSessions.own(user.id);
-    await session.initialize();
-    await use({
-      userId: user.id,
-      client: session.client,
-      name,
-      username,
-    });
-  },
-  mcpOtherActor: async ({ isolatedDatabase, mcpSessions }, use) => {
-    const name = "MCP other";
-    const username = "mcp-other";
-    const user = await isolatedDatabase.owner.user.create({
-      data: {
-        id: "mcp-other",
-        email: "mcp-other@example.test",
-        name,
-        username,
-      },
-    });
-    const session = mcpSessions.own(user.id);
-    await session.initialize();
-    await use({
-      userId: user.id,
-      client: session.client,
-      name,
-      username,
-    });
-  },
-  mcpSection: async ({ isolatedDatabase }, use) => {
-    const section = await isolatedDatabase.owner.$transaction(async (db) => {
-      const semester = await db.semester.create({
-        data: { jwId: 1, code: "mcp-semester", nameCn: "MCP 测试学期" },
-      });
-      const course = await db.course.create({
-        data: { jwId: 1, code: "MCP", nameCn: "MCP 测试课程" },
-      });
-      return db.section.create({
+  mcpActor: async (
+    { isolatedDatabase, mcpSessions, mcpWorkflow, signal },
+    use,
+  ) => {
+    const actor = await mcpWorkflow.run(async () => {
+      const name = "MCP owner";
+      const username = "mcp-owner";
+      const user = await isolatedDatabase.owner.user.create({
         data: {
-          jwId: 1,
-          code: "MCP.01",
-          courseId: course.id,
-          semesterId: semester.id,
+          id: "mcp-owner",
+          email: "mcp-owner@example.test",
+          name,
+          username,
         },
-        select: { id: true, jwId: true, code: true },
       });
+      const session = mcpSessions.own(user.id);
+      await session.initialize();
+      return {
+        userId: user.id,
+        client: session.client,
+        name,
+        username,
+      };
     });
+    signal.throwIfAborted();
+    await use(actor);
+  },
+  mcpOtherActor: async (
+    { isolatedDatabase, mcpSessions, mcpWorkflow, signal },
+    use,
+  ) => {
+    const actor = await mcpWorkflow.run(async () => {
+      const name = "MCP other";
+      const username = "mcp-other";
+      const user = await isolatedDatabase.owner.user.create({
+        data: {
+          id: "mcp-other",
+          email: "mcp-other@example.test",
+          name,
+          username,
+        },
+      });
+      const session = mcpSessions.own(user.id);
+      await session.initialize();
+      return {
+        userId: user.id,
+        client: session.client,
+        name,
+        username,
+      };
+    });
+    signal.throwIfAborted();
+    await use(actor);
+  },
+  mcpSection: async ({ isolatedDatabase, mcpWorkflow, signal }, use) => {
+    const section = await mcpWorkflow.run(() =>
+      isolatedDatabase.owner.$transaction(async (db) => {
+        const semester = await db.semester.create({
+          data: { jwId: 1, code: "mcp-semester", nameCn: "MCP 测试学期" },
+        });
+        const course = await db.course.create({
+          data: { jwId: 1, code: "MCP", nameCn: "MCP 测试课程" },
+        });
+        return db.section.create({
+          data: {
+            jwId: 1,
+            code: "MCP.01",
+            courseId: course.id,
+            semesterId: semester.id,
+          },
+          select: { id: true, jwId: true, code: true },
+        });
+      }),
+    );
+    signal.throwIfAborted();
     await use(section);
   },
-  mcpBus: async ({ isolatedDatabase }, use) => {
-    await use(await createPrivateMcpBus(isolatedDatabase.owner));
-  },
-  mcpSchedules: async ({ isolatedDatabase, mcpSection }, use) => {
-    await use(
-      await createPrivateMcpSchedules(isolatedDatabase.owner, mcpSection.id),
+  mcpBus: async ({ isolatedDatabase, mcpWorkflow, signal }, use) => {
+    const bus = await mcpWorkflow.run(() =>
+      createPrivateMcpBus(isolatedDatabase.owner),
     );
+    signal.throwIfAborted();
+    await use(bus);
+  },
+  mcpSchedules: async (
+    { isolatedDatabase, mcpSection, mcpWorkflow, signal },
+    use,
+  ) => {
+    const schedules = await mcpWorkflow.run(() =>
+      createPrivateMcpSchedules(isolatedDatabase.owner, mcpSection.id),
+    );
+    signal.throwIfAborted();
+    await use(schedules);
   },
 });
