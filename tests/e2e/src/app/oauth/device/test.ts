@@ -32,16 +32,15 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
-import {
-  type IsolatedWorker,
-  test as isolatedTest,
-} from "../../../../utils/isolated-worker";
+import type { IsolatedWorker } from "../../../../utils/isolated-worker";
+import { expectOAuthUsage } from "../../../../utils/oauth-usage";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import {
   capturePageScreenshot,
   captureStepScreenshot,
 } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
+import { test as isolatedTest } from "../../api/mcp/_fixture";
 
 test.describe.configure({ mode: "parallel" });
 type DeviceAuthorizationResult = {
@@ -181,6 +180,7 @@ async function approveDeviceCode(
       where: { deviceCode: result.deviceCode },
     }),
   ).toMatchObject({ status: "approved", userId: actor.id });
+  return actor;
 }
 async function exchangeDeviceToken(
   request: APIRequestContext,
@@ -303,378 +303,999 @@ test("/oauth/device 无效用户代码显示公开错误", async ({ page }, test
 });
 isolatedTest(
   "/oauth/device 设备授权端点返回必要字段",
-  async ({ isolatedWorker, request }) => {
-    const clientName = `device-e2e-${Date.now()}`;
-    const result = await requestDeviceCode(isolatedWorker, request, clientName);
-    const verificationUrl = new URL(result.verificationUriComplete);
-    expect(result.verificationUri).toBe(
-      `${isolatedWorker.origin}/oauth/device`,
-    );
-    expect(verificationUrl.origin).toBe(isolatedWorker.origin);
-    expect(verificationUrl.pathname).toBe("/oauth/device");
-    expect(verificationUrl.searchParams.get("code")).toBe(result.userCode);
-    expect(verificationUrl.searchParams.get("step")).toBe("approve");
-    expect(result.expiresIn).toBeGreaterThan(0);
-    expect(result.interval).toBeGreaterThan(0);
+  async ({ isolatedWorker, calendarProtocolRun }) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const clientName = `device-e2e-${Date.now()}`;
+      const result = await requestDeviceCode(
+        isolatedWorker,
+        request,
+        clientName,
+      );
+      const verificationUrl = new URL(result.verificationUriComplete);
+      expect(result.verificationUri).toBe(
+        `${isolatedWorker.origin}/oauth/device`,
+      );
+      expect(verificationUrl.origin).toBe(isolatedWorker.origin);
+      expect(verificationUrl.pathname).toBe("/oauth/device");
+      expect(verificationUrl.searchParams.get("code")).toBe(result.userCode);
+      expect(verificationUrl.searchParams.get("step")).toBe("approve");
+      expect(result.expiresIn).toBeGreaterThan(0);
+      expect(result.interval).toBeGreaterThan(0);
+      return {
+        async verifyTransport({ effects }) {
+          expect(
+            effects.requests
+              .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+              .map(({ value, result }) => [value.method, value.path, result]),
+          ).toEqual([["POST", "/api/auth/oauth2/device-authorization", 200]]);
+        },
+        async verifyState() {
+          const db = isolatedWorker.database.owner;
+          expect(await db.user.count()).toBe(0);
+          expect(
+            await db.oAuthClient.findMany({
+              select: { clientId: true, disabled: true },
+            }),
+          ).toEqual([{ clientId: result.clientId, disabled: false }]);
+          expect(await db.deviceCode.findMany()).toEqual([
+            expect.objectContaining({
+              deviceCode: result.deviceCode,
+              userCode: result.userCode,
+              clientId: result.clientId,
+              status: "pending",
+              userId: null,
+              lastPolledAt: null,
+              scopes: ["openid", "profile"],
+            }),
+          ]);
+          expect(
+            await db.oAuthConsent.findMany({
+              select: {
+                clientId: true,
+                userId: true,
+                grantId: true,
+                scopes: true,
+                resources: true,
+                requestedUserInfoClaims: true,
+              },
+            }),
+          ).toEqual([]);
+          expect(await db.oAuthAccessToken.count()).toBe(0);
+          expect(await db.oAuthRefreshToken.count()).toBe(0);
+          expect(await db.auditLog.findMany()).toEqual([]);
+          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+        },
+      };
+    });
   },
 );
 isolatedTest(
   "/oauth/device 拒绝超出客户端允许范围的 scope",
-  async ({ isolatedWorker, request }) => {
-    const clientName = `device-e2e-invalid-scope-${Date.now()}`;
-    const clientId = await registerDeviceClient(isolatedWorker, clientName);
-    const response = await request.post(
-      "/api/auth/oauth2/device-authorization",
-      {
-        headers: {
-          origin: isolatedWorker.origin,
+  async ({ isolatedWorker, calendarProtocolRun }) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const clientName = `device-e2e-invalid-scope-${Date.now()}`;
+      const clientId = await registerDeviceClient(isolatedWorker, clientName);
+      const response = await request.post(
+        "/api/auth/oauth2/device-authorization",
+        {
+          headers: {
+            origin: isolatedWorker.origin,
+          },
+          form: {
+            client_id: clientId,
+            scope: "openid profile unsupported:e2e-scope",
+          },
         },
-        form: {
-          client_id: clientId,
-          scope: "openid profile unsupported:e2e-scope",
+      );
+      const responseText = await response.text();
+      expect(response.status(), responseText).toBe(400);
+      expect(JSON.parse(responseText)).toMatchObject({
+        error: "invalid_scope",
+        error_description: "Requested scope is not allowed for this client",
+      });
+      return {
+        async verifyTransport({ effects }) {
+          expect(
+            effects.requests
+              .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+              .map(({ value, result }) => [value.method, value.path, result]),
+          ).toEqual([["POST", "/api/auth/oauth2/device-authorization", 400]]);
         },
-      },
-    );
-    const responseText = await response.text();
-    expect(response.status(), responseText).toBe(400);
-    expect(JSON.parse(responseText)).toMatchObject({
-      error: "invalid_scope",
-      error_description: "Requested scope is not allowed for this client",
+        async verifyState() {
+          const db = isolatedWorker.database.owner;
+          expect(await db.user.count()).toBe(0);
+          expect(
+            await db.oAuthClient.findMany({
+              select: { clientId: true, disabled: true },
+            }),
+          ).toEqual([{ clientId: clientId, disabled: false }]);
+          expect(await db.deviceCode.findMany()).toEqual([]);
+          expect(
+            await db.oAuthConsent.findMany({
+              select: {
+                clientId: true,
+                userId: true,
+                grantId: true,
+                scopes: true,
+                resources: true,
+                requestedUserInfoClaims: true,
+              },
+            }),
+          ).toEqual([]);
+          expect(await db.oAuthAccessToken.count()).toBe(0);
+          expect(await db.oAuthRefreshToken.count()).toBe(0);
+          expect(await db.auditLog.findMany()).toEqual([]);
+          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+        },
+      };
     });
   },
 );
 isolatedTest(
   "/oauth/device 拒绝未注册设备授权类型的客户端",
-  async ({ isolatedWorker, request }) => {
-    const clientName = `device-e2e-unsupported-grant-${Date.now()}`;
-    const clientId = await registerDeviceClient(isolatedWorker, clientName, {
-      grantTypes: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
-    });
-    const response = await request.post(
-      "/api/auth/oauth2/device-authorization",
-      {
-        headers: {
-          origin: isolatedWorker.origin,
+  async ({ isolatedWorker, calendarProtocolRun }) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const clientName = `device-e2e-unsupported-grant-${Date.now()}`;
+      const clientId = await registerDeviceClient(isolatedWorker, clientName, {
+        grantTypes: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
+      });
+      const response = await request.post(
+        "/api/auth/oauth2/device-authorization",
+        {
+          headers: {
+            origin: isolatedWorker.origin,
+          },
+          form: {
+            client_id: clientId,
+            scope: "openid profile",
+          },
         },
-        form: {
-          client_id: clientId,
-          scope: "openid profile",
+      );
+      const responseText = await response.text();
+      expect(response.status(), responseText).toBe(400);
+      expect(JSON.parse(responseText)).toMatchObject({
+        error: "unauthorized_client",
+        error_description: "Client is not registered for device authorization",
+      });
+      return {
+        async verifyTransport({ effects }) {
+          expect(
+            effects.requests
+              .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+              .map(({ value, result }) => [value.method, value.path, result]),
+          ).toEqual([["POST", "/api/auth/oauth2/device-authorization", 400]]);
         },
-      },
-    );
-    const responseText = await response.text();
-    expect(response.status(), responseText).toBe(400);
-    expect(JSON.parse(responseText)).toMatchObject({
-      error: "unauthorized_client",
-      error_description: "Client is not registered for device authorization",
+        async verifyState() {
+          const db = isolatedWorker.database.owner;
+          expect(await db.user.count()).toBe(0);
+          expect(
+            await db.oAuthClient.findMany({
+              select: { clientId: true, disabled: true },
+            }),
+          ).toEqual([{ clientId: clientId, disabled: false }]);
+          expect(await db.deviceCode.findMany()).toEqual([]);
+          expect(
+            await db.oAuthConsent.findMany({
+              select: {
+                clientId: true,
+                userId: true,
+                grantId: true,
+                scopes: true,
+                resources: true,
+                requestedUserInfoClaims: true,
+              },
+            }),
+          ).toEqual([]);
+          expect(await db.oAuthAccessToken.count()).toBe(0);
+          expect(await db.oAuthRefreshToken.count()).toBe(0);
+          expect(await db.auditLog.findMany()).toEqual([]);
+          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+        },
+      };
     });
   },
 );
 isolatedTest(
   "/oauth/device 未登录的待批准请求重定向到登录页",
-  async ({ isolatedWorker, page, request }, testInfo) => {
-    const clientName = `device-e2e-redirect-${Date.now()}`;
-    const result = await requestDeviceCode(isolatedWorker, request, clientName);
-    const verificationPath = getVerificationPath(
-      result.verificationUriComplete,
-    );
-    await gotoAndWaitForReady(page, verificationPath, {
-      expectMainContent: false,
+  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const clientName = `device-e2e-redirect-${Date.now()}`;
+      const result = await requestDeviceCode(
+        isolatedWorker,
+        request,
+        clientName,
+      );
+      const verificationPath = getVerificationPath(
+        result.verificationUriComplete,
+      );
+      await gotoAndWaitForReady(page, verificationPath, {
+        expectMainContent: false,
+      });
+      await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/, {
+        timeout: 10000,
+      });
+      expect(new URL(page.url()).searchParams.get("callbackUrl")).toBe(
+        verificationPath,
+      );
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "oauth/device/redirect-to-signin",
+      );
+      return {
+        async verifyTransport({ effects }) {
+          expect(
+            effects.requests
+              .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+              .map(({ value, result }) => [value.method, value.path, result]),
+          ).toEqual([["POST", "/api/auth/oauth2/device-authorization", 200]]);
+        },
+        async verifyState() {
+          const db = isolatedWorker.database.owner;
+          expect(await db.user.count()).toBe(0);
+          expect(
+            await db.oAuthClient.findMany({
+              select: { clientId: true, disabled: true },
+            }),
+          ).toEqual([{ clientId: result.clientId, disabled: false }]);
+          expect(await db.deviceCode.findMany()).toEqual([
+            expect.objectContaining({
+              deviceCode: result.deviceCode,
+              userCode: result.userCode,
+              clientId: result.clientId,
+              status: "pending",
+              userId: null,
+              lastPolledAt: null,
+              scopes: ["openid", "profile"],
+            }),
+          ]);
+          expect(
+            await db.oAuthConsent.findMany({
+              select: {
+                clientId: true,
+                userId: true,
+                grantId: true,
+                scopes: true,
+                resources: true,
+                requestedUserInfoClaims: true,
+              },
+            }),
+          ).toEqual([]);
+          expect(await db.oAuthAccessToken.count()).toBe(0);
+          expect(await db.oAuthRefreshToken.count()).toBe(0);
+          expect(await db.auditLog.findMany()).toEqual([]);
+          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+        },
+      };
     });
-    await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/, {
-      timeout: 10000,
-    });
-    expect(new URL(page.url()).searchParams.get("callbackUrl")).toBe(
-      verificationPath,
-    );
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "oauth/device/redirect-to-signin",
-    );
   },
 );
 isolatedTest(
   "/oauth/device 已登录用户看到批准界面",
-  async ({ isolatedWorker, page, request }, testInfo) => {
-    const clientName = `device-e2e-approval-${Date.now()}`;
-    const result = await requestDeviceCode(isolatedWorker, request, clientName);
-    const actor = await isolatedWorker.createActor();
-    await page.context().addCookies([actor.cookie]);
-    await gotoAndWaitForReady(page, "/oauth/device");
-    await page
-      .locator('input[name="code"]')
-      .fill(result.userCode.replace("-", ""));
-    await page.getByRole("button", { name: /^(验证|Verify)$/i }).click();
-    await expect(page).toHaveURL(
-      (url) =>
-        url.pathname === "/oauth/device" &&
-        url.searchParams.get("step") === "approve" &&
-        url.searchParams.get("code") === result.userCode.replace("-", ""),
-    );
-    await expect(
-      page.getByRole("button", { name: /拒绝|Deny/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /允许|Allow|批准|Approve/i }),
-    ).toBeVisible({ timeout: 15000 });
-    await captureStepScreenshot(page, testInfo, "oauth/device/approval-screen");
+  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const clientName = `device-e2e-approval-${Date.now()}`;
+      const result = await requestDeviceCode(
+        isolatedWorker,
+        request,
+        clientName,
+      );
+      const actor = await isolatedWorker.createActor();
+      await page.context().addCookies([actor.cookie]);
+      await gotoAndWaitForReady(page, "/oauth/device");
+      await page
+        .locator('input[name="code"]')
+        .fill(result.userCode.replace("-", ""));
+      await page.getByRole("button", { name: /^(验证|Verify)$/i }).click();
+      await expect(page).toHaveURL(
+        (url) =>
+          url.pathname === "/oauth/device" &&
+          url.searchParams.get("step") === "approve" &&
+          url.searchParams.get("code") === result.userCode.replace("-", ""),
+      );
+      await expect(
+        page.getByRole("button", { name: /拒绝|Deny/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /允许|Allow|批准|Approve/i }),
+      ).toBeVisible({ timeout: 15000 });
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "oauth/device/approval-screen",
+      );
+      return {
+        async verifyTransport({ effects }) {
+          expect(
+            effects.requests
+              .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+              .map(({ value, result }) => [value.method, value.path, result]),
+          ).toEqual([["POST", "/api/auth/oauth2/device-authorization", 200]]);
+        },
+        async verifyState() {
+          const db = isolatedWorker.database.owner;
+          expect(await db.user.count()).toBe(1);
+          expect(
+            await db.oAuthClient.findMany({
+              select: { clientId: true, disabled: true },
+            }),
+          ).toEqual([{ clientId: result.clientId, disabled: false }]);
+          expect(await db.deviceCode.findMany()).toEqual([
+            expect.objectContaining({
+              deviceCode: result.deviceCode,
+              userCode: result.userCode,
+              clientId: result.clientId,
+              status: "pending",
+              userId: null,
+              lastPolledAt: null,
+              scopes: ["openid", "profile"],
+            }),
+          ]);
+          expect(
+            await db.oAuthConsent.findMany({
+              select: {
+                clientId: true,
+                userId: true,
+                grantId: true,
+                scopes: true,
+                resources: true,
+                requestedUserInfoClaims: true,
+              },
+            }),
+          ).toEqual([]);
+          expect(await db.oAuthAccessToken.count()).toBe(0);
+          expect(await db.oAuthRefreshToken.count()).toBe(0);
+          expect(await db.auditLog.findMany()).toEqual([]);
+          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+        },
+      };
+    });
   },
 );
 isolatedTest(
   "/oauth/device 资源绑定令牌可访问 REST 与 MCP",
-  async ({ isolatedWorker, page, request }, testInfo) => {
-    const clientName = `device-e2e-resource-token-${Date.now()}`;
-    const restResource = `${isolatedWorker.origin}/api/auth`;
-    const mcpResource = `${isolatedWorker.origin}/api/mcp`;
-    const resources = [restResource, mcpResource];
-    const result = await requestDeviceCode(
-      isolatedWorker,
-      request,
-      clientName,
-      {
-        clientScopes: DEVICE_MCP_CLIENT_SCOPES,
-        resources,
-        scope: DEVICE_MCP_CLIENT_SCOPES.join(" "),
-      },
-    );
-    await approveDeviceCode(isolatedWorker, page, result, {
-      screenshot: { label: "resource-approval", testInfo },
-      visibleResources: resources,
-    });
-    const { accessToken, refreshToken } = await exchangeDeviceToken(
-      request,
-      result,
-      resources,
-    );
-    expect(accessToken.split(".")).toHaveLength(3);
-    expect(refreshToken).toEqual(expect.any(String));
-    const todosResponse = await request.get("/api/workspace/todos", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    expect(todosResponse.status()).toBe(200);
-    const mcpResponse = await request.post("/api/mcp", {
-      data: {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-03-26",
-          capabilities: {},
-          clientInfo: {
-            name: "device-flow-e2e-client",
-            version: "1.0.0",
+  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+    await calendarProtocolRun(
+      async ({ request }) => {
+        const clientName = `device-e2e-resource-token-${Date.now()}`;
+        const restResource = `${isolatedWorker.origin}/api/auth`;
+        const mcpResource = `${isolatedWorker.origin}/api/mcp`;
+        const resources = [restResource, mcpResource];
+        const result = await requestDeviceCode(
+          isolatedWorker,
+          request,
+          clientName,
+          {
+            clientScopes: DEVICE_MCP_CLIENT_SCOPES,
+            resources,
+            scope: DEVICE_MCP_CLIENT_SCOPES.join(" "),
           },
-        },
+        );
+        const actor = await approveDeviceCode(isolatedWorker, page, result, {
+          screenshot: { label: "resource-approval", testInfo },
+          visibleResources: resources,
+        });
+        const { accessToken, refreshToken } = await exchangeDeviceToken(
+          request,
+          result,
+          resources,
+        );
+        expect(accessToken.split(".")).toHaveLength(3);
+        expect(refreshToken).toEqual(expect.any(String));
+        const readStartedAt = Date.now();
+        const todosResponse = await request.get("/api/workspace/todos", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        expect(todosResponse.status()).toBe(200);
+        await todosResponse.body();
+        const readEndedAt = Date.now();
+        const mcpResponse = await request.post("/api/mcp", {
+          data: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "initialize",
+            params: {
+              protocolVersion: "2025-03-26",
+              capabilities: {},
+              clientInfo: {
+                name: "device-flow-e2e-client",
+                version: "1.0.0",
+              },
+            },
+          },
+          headers: {
+            Accept: "application/json, text/event-stream",
+            Authorization: `Bearer ${accessToken}`,
+            "MCP-Protocol-Version": "2025-03-26",
+          },
+        });
+        expect(mcpResponse.status()).toBe(200);
+        await mcpResponse.body();
+        return {
+          async verifyTransport({ effects }) {
+            expect(
+              effects.requests
+                .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+                .map(({ value, result }) => [value.method, value.path, result]),
+            ).toEqual([
+              ["POST", "/api/auth/oauth2/device-authorization", 200],
+              ["POST", "/oauth/device", 200],
+              ["POST", "/api/auth/oauth2/token", 200],
+              ["POST", "/api/mcp", 200],
+            ]);
+          },
+          async verifyState() {
+            const db = isolatedWorker.database.owner;
+            expect(await db.user.count()).toBe(1);
+            expect(
+              await db.oAuthClient.findMany({
+                select: { clientId: true, disabled: true },
+              }),
+            ).toEqual([{ clientId: result.clientId, disabled: false }]);
+            expect(await db.deviceCode.findMany()).toEqual([]);
+            expect(
+              await db.oAuthConsent.findMany({
+                select: {
+                  clientId: true,
+                  userId: true,
+                  grantId: true,
+                  scopes: true,
+                  resources: true,
+                  requestedUserInfoClaims: true,
+                },
+              }),
+            ).toEqual([
+              {
+                clientId: result.clientId,
+                userId: actor.id,
+                grantId: expect.any(String),
+                scopes: DEVICE_MCP_CLIENT_SCOPES,
+                resources: resources,
+                requestedUserInfoClaims: [],
+              },
+            ]);
+            expect(await db.oAuthAccessToken.count()).toBe(0);
+            expect(await db.oAuthRefreshToken.count()).toBe(1);
+            expect(await db.auditLog.findMany()).toEqual([]);
+            const consent = await db.oAuthConsent.findFirstOrThrow();
+            expectOAuthUsage(
+              await db.oAuthGrantUsageDaily.findMany({
+                orderBy: { day: "asc" },
+              }),
+              {
+                dimensions: {
+                  userId: actor.id,
+                  clientId: result.clientId,
+                  grantId: consent.grantId,
+                  feature: "workspace.todo",
+                  channel: "rest",
+                },
+                counts: [1, 0, 0],
+                windows: [
+                  { start: readStartedAt, end: readEndedAt, operation: "read" },
+                ],
+              },
+            );
+            expect(
+              await db.oAuthRefreshToken.findMany({
+                select: {
+                  clientId: true,
+                  userId: true,
+                  grantId: true,
+                  scopes: true,
+                  resources: true,
+                },
+              }),
+            ).toEqual([
+              {
+                clientId: result.clientId,
+                userId: actor.id,
+                grantId: consent.grantId,
+                scopes: DEVICE_MCP_CLIENT_SCOPES,
+                resources,
+              },
+            ]);
+          },
+        };
       },
-      headers: {
-        Accept: "application/json, text/event-stream",
-        Authorization: `Bearer ${accessToken}`,
-        "MCP-Protocol-Version": "2025-03-26",
+      async (response, incoming) => {
+        expect(incoming.method()).toBe("POST");
+        expect(
+          new URL(incoming.url()).pathname + new URL(incoming.url()).search,
+        ).toBe("/oauth/device?/approve");
+        expect(response.status()).toBe(200);
+        expect(await response.json()).toEqual({
+          type: "redirect",
+          status: 303,
+          location: "/oauth/device?result=approved",
+        });
       },
-    });
-    expect(mcpResponse.status()).toBe(200);
+    );
   },
 );
 isolatedTest(
   "/oauth/device 仅 profile 的 REST 令牌被受保护 REST 拒绝",
-  async ({ isolatedWorker, page, request }) => {
-    const clientName = `device-e2e-profile-rest-token-${Date.now()}`;
-    const restResource = `${isolatedWorker.origin}/api/auth`;
-    const scopes = ["openid", "profile"];
-    const result = await requestDeviceCode(
-      isolatedWorker,
-      request,
-      clientName,
-      {
-        clientScopes: scopes,
-        resources: [restResource],
-        scope: scopes.join(" "),
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
+    await calendarProtocolRun(
+      async ({ request }) => {
+        const clientName = `device-e2e-profile-rest-token-${Date.now()}`;
+        const restResource = `${isolatedWorker.origin}/api/auth`;
+        const scopes = ["openid", "profile"];
+        const result = await requestDeviceCode(
+          isolatedWorker,
+          request,
+          clientName,
+          {
+            clientScopes: scopes,
+            resources: [restResource],
+            scope: scopes.join(" "),
+          },
+        );
+        const actor = await approveDeviceCode(isolatedWorker, page, result, {
+          visibleResources: [restResource],
+        });
+        const { accessToken } = await exchangeDeviceToken(request, result, [
+          restResource,
+        ]);
+        expect(accessToken.split(".")).toHaveLength(3);
+        const todosResponse = await request.get("/api/workspace/todos", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        expect(todosResponse.status()).toBe(401);
+        await expect(todosResponse.json()).resolves.toEqual({
+          error: "Unauthorized",
+        });
+        return {
+          async verifyTransport({ effects }) {
+            expect(
+              effects.requests
+                .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+                .map(({ value, result }) => [value.method, value.path, result]),
+            ).toEqual([
+              ["POST", "/api/auth/oauth2/device-authorization", 200],
+              ["POST", "/oauth/device", 200],
+              ["POST", "/api/auth/oauth2/token", 200],
+            ]);
+          },
+          async verifyState() {
+            const db = isolatedWorker.database.owner;
+            expect(await db.user.count()).toBe(1);
+            expect(
+              await db.oAuthClient.findMany({
+                select: { clientId: true, disabled: true },
+              }),
+            ).toEqual([{ clientId: result.clientId, disabled: false }]);
+            expect(await db.deviceCode.findMany()).toEqual([]);
+            expect(
+              await db.oAuthConsent.findMany({
+                select: {
+                  clientId: true,
+                  userId: true,
+                  grantId: true,
+                  scopes: true,
+                  resources: true,
+                  requestedUserInfoClaims: true,
+                },
+              }),
+            ).toEqual([
+              {
+                clientId: result.clientId,
+                userId: actor.id,
+                grantId: expect.any(String),
+                scopes: scopes,
+                resources: [restResource],
+                requestedUserInfoClaims: [],
+              },
+            ]);
+            expect(await db.oAuthAccessToken.count()).toBe(0);
+            expect(await db.oAuthRefreshToken.count()).toBe(0);
+            expect(await db.auditLog.findMany()).toEqual([]);
+            expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          },
+        };
+      },
+      async (response, incoming) => {
+        expect(incoming.method()).toBe("POST");
+        expect(
+          new URL(incoming.url()).pathname + new URL(incoming.url()).search,
+        ).toBe("/oauth/device?/approve");
+        expect(response.status()).toBe(200);
+        expect(await response.json()).toEqual({
+          type: "redirect",
+          status: 303,
+          location: "/oauth/device?result=approved",
+        });
       },
     );
-    await approveDeviceCode(isolatedWorker, page, result, {
-      visibleResources: [restResource],
-    });
-    const { accessToken } = await exchangeDeviceToken(request, result, [
-      restResource,
-    ]);
-    expect(accessToken.split(".")).toHaveLength(3);
-    const todosResponse = await request.get("/api/workspace/todos", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    expect(todosResponse.status()).toBe(401);
-    await expect(todosResponse.json()).resolves.toEqual({
-      error: "Unauthorized",
-    });
   },
 );
 isolatedTest(
   "/oauth/device 含其他 feature scope 但无 todo scope 的令牌被 todo REST 拒绝",
-  async ({ isolatedWorker, page, request }) => {
-    const clientName = `device-e2e-feature-rest-token-${Date.now()}`;
-    const restResource = `${isolatedWorker.origin}/api/auth`;
-    const scopes = ["openid", "profile", restReadScope("workspace.schedule")];
-    const resources = [restResource];
-    const result = await requestDeviceCode(
-      isolatedWorker,
-      request,
-      clientName,
-      {
-        clientScopes: scopes,
-        resources,
-        scope: scopes.join(" "),
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
+    await calendarProtocolRun(
+      async ({ request }) => {
+        const clientName = `device-e2e-feature-rest-token-${Date.now()}`;
+        const restResource = `${isolatedWorker.origin}/api/auth`;
+        const scopes = [
+          "openid",
+          "profile",
+          restReadScope("workspace.schedule"),
+        ];
+        const resources = [restResource];
+        const result = await requestDeviceCode(
+          isolatedWorker,
+          request,
+          clientName,
+          {
+            clientScopes: scopes,
+            resources,
+            scope: scopes.join(" "),
+          },
+        );
+        const actor = await approveDeviceCode(isolatedWorker, page, result, {
+          visibleResources: resources,
+        });
+        const { accessToken } = await exchangeDeviceToken(
+          request,
+          result,
+          resources,
+        );
+        expect(accessToken.split(".")).toHaveLength(3);
+        const todosResponse = await request.get("/api/workspace/todos", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        expect(todosResponse.status()).toBe(401);
+        await expect(todosResponse.json()).resolves.toEqual({
+          error: "Unauthorized",
+        });
+        return {
+          async verifyTransport({ effects }) {
+            expect(
+              effects.requests
+                .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+                .map(({ value, result }) => [value.method, value.path, result]),
+            ).toEqual([
+              ["POST", "/api/auth/oauth2/device-authorization", 200],
+              ["POST", "/oauth/device", 200],
+              ["POST", "/api/auth/oauth2/token", 200],
+            ]);
+          },
+          async verifyState() {
+            const db = isolatedWorker.database.owner;
+            expect(await db.user.count()).toBe(1);
+            expect(
+              await db.oAuthClient.findMany({
+                select: { clientId: true, disabled: true },
+              }),
+            ).toEqual([{ clientId: result.clientId, disabled: false }]);
+            expect(await db.deviceCode.findMany()).toEqual([]);
+            expect(
+              await db.oAuthConsent.findMany({
+                select: {
+                  clientId: true,
+                  userId: true,
+                  grantId: true,
+                  scopes: true,
+                  resources: true,
+                  requestedUserInfoClaims: true,
+                },
+              }),
+            ).toEqual([
+              {
+                clientId: result.clientId,
+                userId: actor.id,
+                grantId: expect.any(String),
+                scopes: scopes,
+                resources: resources,
+                requestedUserInfoClaims: [],
+              },
+            ]);
+            expect(await db.oAuthAccessToken.count()).toBe(0);
+            expect(await db.oAuthRefreshToken.count()).toBe(0);
+            expect(await db.auditLog.findMany()).toEqual([]);
+            expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          },
+        };
+      },
+      async (response, incoming) => {
+        expect(incoming.method()).toBe("POST");
+        expect(
+          new URL(incoming.url()).pathname + new URL(incoming.url()).search,
+        ).toBe("/oauth/device?/approve");
+        expect(response.status()).toBe(200);
+        expect(await response.json()).toEqual({
+          type: "redirect",
+          status: 303,
+          location: "/oauth/device?result=approved",
+        });
       },
     );
-    await approveDeviceCode(isolatedWorker, page, result, {
-      visibleResources: resources,
-    });
-    const { accessToken } = await exchangeDeviceToken(
-      request,
-      result,
-      resources,
-    );
-    expect(accessToken.split(".")).toHaveLength(3);
-    const todosResponse = await request.get("/api/workspace/todos", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    expect(todosResponse.status()).toBe(401);
-    await expect(todosResponse.json()).resolves.toEqual({
-      error: "Unauthorized",
-    });
   },
 );
 isolatedTest(
   "/oauth/device 已禁用客户端代码显示错误而非批准界面",
-  async ({ isolatedWorker, page, request }, testInfo) => {
-    const clientName = `device-e2e-disabled-${Date.now()}`;
-    const result = await requestDeviceCode(isolatedWorker, request, clientName);
-    const verificationPath = getVerificationPath(
-      result.verificationUriComplete,
-    );
-    await isolatedWorker.database.owner.oAuthClient.update({
-      where: { clientId: result.clientId },
-      data: { disabled: true },
+  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const clientName = `device-e2e-disabled-${Date.now()}`;
+      const result = await requestDeviceCode(
+        isolatedWorker,
+        request,
+        clientName,
+      );
+      const verificationPath = getVerificationPath(
+        result.verificationUriComplete,
+      );
+      await isolatedWorker.database.owner.oAuthClient.update({
+        where: { clientId: result.clientId },
+        data: { disabled: true },
+      });
+      await gotoAndWaitForReady(page, verificationPath, {
+        expectMainContent: false,
+      });
+      await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
+      await expect(
+        page.getByText(/invalid or has expired|无效|已过期/i).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /允许|Allow|批准|Approve/i }),
+      ).toHaveCount(0);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "oauth/device/disabled-client",
+      );
+      return {
+        async verifyTransport({ effects }) {
+          expect(
+            effects.requests
+              .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+              .map(({ value, result }) => [value.method, value.path, result]),
+          ).toEqual([["POST", "/api/auth/oauth2/device-authorization", 200]]);
+        },
+        async verifyState() {
+          const db = isolatedWorker.database.owner;
+          expect(await db.user.count()).toBe(0);
+          expect(
+            await db.oAuthClient.findMany({
+              select: { clientId: true, disabled: true },
+            }),
+          ).toEqual([{ clientId: result.clientId, disabled: true }]);
+          expect(await db.deviceCode.findMany()).toEqual([
+            expect.objectContaining({
+              deviceCode: result.deviceCode,
+              userCode: result.userCode,
+              clientId: result.clientId,
+              status: "pending",
+              userId: null,
+              lastPolledAt: null,
+              scopes: ["openid", "profile"],
+            }),
+          ]);
+          expect(
+            await db.oAuthConsent.findMany({
+              select: {
+                clientId: true,
+                userId: true,
+                grantId: true,
+                scopes: true,
+                resources: true,
+                requestedUserInfoClaims: true,
+              },
+            }),
+          ).toEqual([]);
+          expect(await db.oAuthAccessToken.count()).toBe(0);
+          expect(await db.oAuthRefreshToken.count()).toBe(0);
+          expect(await db.auditLog.findMany()).toEqual([]);
+          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+        },
+      };
     });
-    await gotoAndWaitForReady(page, verificationPath, {
-      expectMainContent: false,
-    });
-    await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
-    await expect(
-      page.getByText(/invalid or has expired|无效|已过期/i).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /允许|Allow|批准|Approve/i }),
-    ).toHaveCount(0);
-    await captureStepScreenshot(page, testInfo, "oauth/device/disabled-client");
   },
 );
 isolatedTest(
   "/oauth/device 拒绝请求后不能兑换令牌",
-  async ({ isolatedWorker, page, request }) => {
-    const resource = `${isolatedWorker.origin}/api/auth`;
-    const result = await requestDeviceCode(
-      isolatedWorker,
-      request,
-      "Denied device",
-      {
-        resources: [resource],
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
+    await calendarProtocolRun(
+      async ({ request }) => {
+        const resource = `${isolatedWorker.origin}/api/auth`;
+        const result = await requestDeviceCode(
+          isolatedWorker,
+          request,
+          "Denied device",
+          {
+            resources: [resource],
+          },
+        );
+        const actor = await isolatedWorker.createActor();
+        await page.context().addCookies([actor.cookie]);
+        await gotoAndWaitForReady(
+          page,
+          getVerificationPath(result.verificationUriComplete),
+        );
+        await page.getByRole("button", { name: /拒绝|Deny/i }).click();
+        await expect(page).toHaveURL(/\/oauth\/device\?result=denied/);
+        await expect(
+          page.getByRole("heading", { name: /已拒绝|denied/i }),
+        ).toBeVisible();
+        const db = isolatedWorker.database.owner;
+        const denied = await db.deviceCode.findUniqueOrThrow({
+          where: { deviceCode: result.deviceCode },
+        });
+        expect(denied).toMatchObject({ status: "denied", userId: null });
+        const pollStartedAt = Date.now();
+        const response = await request.post("/api/auth/oauth2/token", {
+          form: {
+            grant_type: OAUTH_DEVICE_CODE_GRANT_TYPE,
+            client_id: result.clientId,
+            device_code: result.deviceCode,
+            resource,
+          },
+        });
+        expect(response.status()).toBe(400);
+        expect(await response.json()).toEqual({ error: "access_denied" });
+        const polled = await db.deviceCode.findUniqueOrThrow({
+          where: { deviceCode: result.deviceCode },
+        });
+        // Rejected polling still advances its throttle timestamp; authorization
+        // state and credentials must not change.
+        expect(polled).toEqual({ ...denied, lastPolledAt: expect.any(Date) });
+        expect(polled.lastPolledAt?.getTime()).toBeGreaterThanOrEqual(
+          pollStartedAt,
+        );
+        expect(polled.lastPolledAt?.getTime()).toBeLessThanOrEqual(Date.now());
+        expect(await db.oAuthAccessToken.count()).toBe(0);
+        expect(await db.oAuthRefreshToken.count()).toBe(0);
+        expect(await db.oAuthConsent.count()).toBe(0);
+        return {
+          async verifyTransport({ effects }) {
+            expect(
+              effects.requests
+                .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+                .map(({ value, result }) => [value.method, value.path, result]),
+            ).toEqual([
+              ["POST", "/api/auth/oauth2/device-authorization", 200],
+              ["POST", "/oauth/device", 200],
+              ["POST", "/api/auth/oauth2/token", 400],
+            ]);
+          },
+          async verifyState() {
+            const db = isolatedWorker.database.owner;
+            expect(await db.user.count()).toBe(1);
+            expect(
+              await db.oAuthClient.findMany({
+                select: { clientId: true, disabled: true },
+              }),
+            ).toEqual([{ clientId: result.clientId, disabled: false }]);
+            expect(await db.deviceCode.findMany()).toEqual([polled]);
+            expect(
+              await db.oAuthConsent.findMany({
+                select: {
+                  clientId: true,
+                  userId: true,
+                  grantId: true,
+                  scopes: true,
+                  resources: true,
+                  requestedUserInfoClaims: true,
+                },
+              }),
+            ).toEqual([]);
+            expect(await db.oAuthAccessToken.count()).toBe(0);
+            expect(await db.oAuthRefreshToken.count()).toBe(0);
+            expect(await db.auditLog.findMany()).toEqual([]);
+            expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          },
+        };
+      },
+      async (response, incoming) => {
+        expect(incoming.method()).toBe("POST");
+        expect(
+          new URL(incoming.url()).pathname + new URL(incoming.url()).search,
+        ).toBe("/oauth/device?/deny");
+        expect(response.status()).toBe(200);
+        expect(await response.json()).toEqual({
+          type: "redirect",
+          status: 303,
+          location: "/oauth/device?result=denied",
+        });
       },
     );
-    const actor = await isolatedWorker.createActor();
-    await page.context().addCookies([actor.cookie]);
-    await gotoAndWaitForReady(
-      page,
-      getVerificationPath(result.verificationUriComplete),
-    );
-    await page.getByRole("button", { name: /拒绝|Deny/i }).click();
-    await expect(page).toHaveURL(/\/oauth\/device\?result=denied/);
-    await expect(
-      page.getByRole("heading", { name: /已拒绝|denied/i }),
-    ).toBeVisible();
-    const db = isolatedWorker.database.owner;
-    const denied = await db.deviceCode.findUniqueOrThrow({
-      where: { deviceCode: result.deviceCode },
-    });
-    expect(denied).toMatchObject({ status: "denied", userId: null });
-    const pollStartedAt = Date.now();
-    const response = await request.post("/api/auth/oauth2/token", {
-      form: {
-        grant_type: OAUTH_DEVICE_CODE_GRANT_TYPE,
-        client_id: result.clientId,
-        device_code: result.deviceCode,
-        resource,
-      },
-    });
-    expect(response.status()).toBe(400);
-    expect(await response.json()).toEqual({ error: "access_denied" });
-    const polled = await db.deviceCode.findUniqueOrThrow({
-      where: { deviceCode: result.deviceCode },
-    });
-    // Rejected polling still advances its throttle timestamp; authorization
-    // state and credentials must not change.
-    expect(polled).toEqual({ ...denied, lastPolledAt: expect.any(Date) });
-    expect(polled.lastPolledAt?.getTime()).toBeGreaterThanOrEqual(
-      pollStartedAt,
-    );
-    expect(polled.lastPolledAt?.getTime()).toBeLessThanOrEqual(Date.now());
-    expect(await db.oAuthAccessToken.count()).toBe(0);
-    expect(await db.oAuthRefreshToken.count()).toBe(0);
-    expect(await db.oAuthConsent.count()).toBe(0);
   },
 );
 
 isolatedTest(
   "/oauth/device 过期代码公开报错且不能兑换令牌",
-  async ({ isolatedWorker, page, request }) => {
-    const resource = `${isolatedWorker.origin}/api/auth`;
-    const result = await requestDeviceCode(
-      isolatedWorker,
-      request,
-      "Expired device",
-      {
-        resources: [resource],
-      },
-    );
-    const db = isolatedWorker.database.owner;
-    const expired = await db.deviceCode.update({
-      where: { deviceCode: result.deviceCode },
-      data: { expiresAt: new Date(0) },
-    });
-    await gotoAndWaitForReady(
-      page,
-      getVerificationPath(result.verificationUriComplete),
-    );
-    await expect(
-      page.getByRole("heading", { name: /过期|expired/i }),
-    ).toBeVisible();
-    await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
-    await expect(
-      page.getByRole("button", { name: /允许|Allow|批准|Approve|拒绝|Deny/i }),
-    ).toHaveCount(0);
-    const response = await request.post("/api/auth/oauth2/token", {
-      form: {
-        grant_type: OAUTH_DEVICE_CODE_GRANT_TYPE,
-        client_id: result.clientId,
-        device_code: result.deviceCode,
-        resource,
-      },
-    });
-    expect(response.status()).toBe(400);
-    expect(await response.json()).toEqual({ error: "expired_token" });
-    expect(
-      await db.deviceCode.findUniqueOrThrow({
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const resource = `${isolatedWorker.origin}/api/auth`;
+      const result = await requestDeviceCode(
+        isolatedWorker,
+        request,
+        "Expired device",
+        {
+          resources: [resource],
+        },
+      );
+      const db = isolatedWorker.database.owner;
+      const expired = await db.deviceCode.update({
         where: { deviceCode: result.deviceCode },
-      }),
-    ).toEqual(expired);
-    expect(await db.oAuthAccessToken.count()).toBe(0);
-    expect(await db.oAuthRefreshToken.count()).toBe(0);
-    expect(await db.oAuthConsent.count()).toBe(0);
+        data: { expiresAt: new Date(0) },
+      });
+      await gotoAndWaitForReady(
+        page,
+        getVerificationPath(result.verificationUriComplete),
+      );
+      await expect(
+        page.getByRole("heading", { name: /过期|expired/i }),
+      ).toBeVisible();
+      await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
+      await expect(
+        page.getByRole("button", {
+          name: /允许|Allow|批准|Approve|拒绝|Deny/i,
+        }),
+      ).toHaveCount(0);
+      const response = await request.post("/api/auth/oauth2/token", {
+        form: {
+          grant_type: OAUTH_DEVICE_CODE_GRANT_TYPE,
+          client_id: result.clientId,
+          device_code: result.deviceCode,
+          resource,
+        },
+      });
+      expect(response.status()).toBe(400);
+      expect(await response.json()).toEqual({ error: "expired_token" });
+      expect(
+        await db.deviceCode.findUniqueOrThrow({
+          where: { deviceCode: result.deviceCode },
+        }),
+      ).toEqual(expired);
+      expect(await db.oAuthAccessToken.count()).toBe(0);
+      expect(await db.oAuthRefreshToken.count()).toBe(0);
+      expect(await db.oAuthConsent.count()).toBe(0);
+      return {
+        async verifyTransport({ effects }) {
+          expect(
+            effects.requests
+              .filter(({ value }) => !["GET", "HEAD"].includes(value.method))
+              .map(({ value, result }) => [value.method, value.path, result]),
+          ).toEqual([
+            ["POST", "/api/auth/oauth2/device-authorization", 200],
+            ["POST", "/api/auth/oauth2/token", 400],
+          ]);
+        },
+        async verifyState() {
+          const db = isolatedWorker.database.owner;
+          expect(await db.user.count()).toBe(0);
+          expect(
+            await db.oAuthClient.findMany({
+              select: { clientId: true, disabled: true },
+            }),
+          ).toEqual([{ clientId: result.clientId, disabled: false }]);
+          expect(await db.deviceCode.findMany()).toEqual([expired]);
+          expect(
+            await db.oAuthConsent.findMany({
+              select: {
+                clientId: true,
+                userId: true,
+                grantId: true,
+                scopes: true,
+                resources: true,
+                requestedUserInfoClaims: true,
+              },
+            }),
+          ).toEqual([]);
+          expect(await db.oAuthAccessToken.count()).toBe(0);
+          expect(await db.oAuthRefreshToken.count()).toBe(0);
+          expect(await db.auditLog.findMany()).toEqual([]);
+          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+        },
+      };
+    });
   },
 );
 
