@@ -40,11 +40,13 @@ export function createCalendarEffectObserver({
   producerPath,
   account,
   sectionId,
+  calendar: expectedCalendar = "present",
 }: {
   request: APIRequestContext;
   producerPath: string;
   account: { id: string };
   sectionId?: number;
+  calendar?: "present" | "absent";
 }) {
   const secret = { "x-test-storage-secret": "local-test-storage-observer" };
   const consumerPath = `/__test/calendar-consumer?userId=${account.id}${sectionId === undefined ? "" : `&sectionId=${sectionId}`}`;
@@ -163,8 +165,9 @@ export function createCalendarEffectObserver({
           retryCalls: 0,
           complete: true,
           errors: [],
-          calendar: expect.any(String),
+          calendar: expectedCalendar === "absent" ? null : expect.any(String),
         });
+        if (expectedCalendar === "absent") continue;
         const calendar = JSON.parse(attempt.calendar as string);
         expect(calendar).toMatchObject({
           version: 2,
@@ -173,6 +176,7 @@ export function createCalendarEffectObserver({
         expect(calendar.text).toContain("BEGIN:VCALENDAR");
         expect(calendar.text).toContain("END:VCALENDAR");
       }
+      if (expectedCalendar === "absent") expect(consumer.calendar).toBeNull();
       if (consumedMessages.length)
         expect(
           consumer.attempts.some(
