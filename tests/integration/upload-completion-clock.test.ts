@@ -3,14 +3,29 @@ import {
   claimUploadCompletionLease,
   releaseUploadCompletionLease,
 } from "@/features/uploads/server/upload-completion-lease";
-import { uploadFinalizationTest as it } from "../shared/upload-finalization-fixture";
+import { uploadFinalizationTest } from "../shared/upload-finalization-fixture";
 
-// The exact production Date boundary owns a single test file's global clock.
-it("upload.completion-lease-duration", async ({ uploads }) => {
-  const { db: fixturePrisma, userId, run, upload, complete } = uploads;
-  const key = await upload();
-  const now = Date.now();
-  try {
+// One native case owns this worker's Date. No same-realm concurrent use.
+const it = uploadFinalizationTest.extend<{ clock: undefined }>({
+  clock: [
+    async ({ protocolRuntime }, use) => {
+      try {
+        await use(undefined);
+      } finally {
+        // Keep Date until the complete workflow and all request cleanup finish.
+        // The protocol runtime owner reports its cached original cleanup error.
+        await Promise.allSettled([protocolRuntime.close()]);
+        vi.useRealTimers();
+      }
+    },
+    { auto: true },
+  ],
+});
+it("upload.completion-lease-duration", async ({ uploads, protocolRuntime }) => {
+  await protocolRuntime.run(async () => {
+    const { db: fixturePrisma, userId, run, upload, complete } = uploads;
+    const key = await upload();
+    const now = Date.now();
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(now);
     const first = await run(() => claimUploadCompletionLease(userId, key));
@@ -40,7 +55,5 @@ it("upload.completion-lease-duration", async ({ uploads }) => {
     expect(await fixturePrisma.upload.count({ where: { key } })).toBe(0);
     await run(() => releaseUploadCompletionLease(userId, key, second));
     expect((await complete(key)).upload.size).toBe(10);
-  } finally {
-    vi.useRealTimers();
-  }
+  });
 });
