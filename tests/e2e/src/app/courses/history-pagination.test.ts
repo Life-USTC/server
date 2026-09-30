@@ -16,7 +16,7 @@ async function verifyHistory(
   const sectionBase = kind === "course" ? 1900200000 : 1900200100;
   test.setTimeout(120_000);
   const db = worker.database.owner;
-  let verifyState = async () => {
+  let verifyState: () => Promise<void> = async () => {
     throw new Error("History fixture was not prepared");
   };
   await flow.run(
