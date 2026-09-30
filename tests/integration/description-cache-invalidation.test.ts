@@ -1,3 +1,4 @@
+import { expect } from "vitest";
 import { moderateDescription } from "@/features/admin/server/admin-api-service";
 import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
@@ -13,7 +14,6 @@ for (const targetType of ["course", "section", "teacher"] as const) {
       descriptionEditor: { user, teacher },
       isolatedDatabase: { owner: db },
       protocolRuntime,
-      expect,
     }) =>
       protocolRuntime.run(async () => {
         let targetId = teacher.id;
