@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
 # Source this script against an explicitly disposable test database. Only
-# migrations and fixtures use its owner; application tests use production roles.
+# migrations and role setup use its owner; application tests use production roles.
 set -euo pipefail
 
 : "${FUNCTION_OWNER_DATABASE_URL:?Set FUNCTION_OWNER_DATABASE_URL to the disposable test database owner URL}"
-if [[ "${ALLOW_DATABASE_SEED:-}" != "true" ]]; then
-  echo "Set ALLOW_DATABASE_SEED=true to prepare the test database." >&2
+if [[ "${ALLOW_TEST_DATABASE_SETUP:-}" != "true" ]]; then
+  echo "Set ALLOW_TEST_DATABASE_SETUP=true to prepare the test database." >&2
   return 1 2>/dev/null || exit 1
 fi
 
 runtime_setup_bunx="${E2E_BUNX_BIN:-bunx}"
-if [[ "${1:-deploy}" == "reset" ]]; then
-  DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" "$runtime_setup_bunx" prisma migrate reset --force
-else
-  DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" "$runtime_setup_bunx" prisma migrate deploy
-fi
-DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" "$runtime_setup_bunx" prisma db seed
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" "$runtime_setup_bunx" prisma migrate deploy
 runtime_setup_database="$(bun -e 'console.log(decodeURIComponent(new URL(process.env.FUNCTION_OWNER_DATABASE_URL).pathname.slice(1)))')"
 psql "$FUNCTION_OWNER_DATABASE_URL" -X --single-transaction \
   --set=database_name="$runtime_setup_database" \

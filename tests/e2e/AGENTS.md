@@ -5,25 +5,27 @@ Playwright browser tests against the Cloudflare Worker. Full recipes: root
 
 ```bash
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
-export ALLOW_DATABASE_SEED=true
+export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
-bun run e2e:test   # resets this disposable database before each of eight shards
-bunx playwright test path/to/test          # focused (free localhost:3000 first)
+bun run e2e:test   # prepares schema/roles once and runs all eight native shards
+bunx playwright test path/to/test          # uses the already-prepared schema/roles
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
-Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`).
-R2 uses local `R2_UPLOADS`.
+Each test's native fixture starts a private Worker using `wrangler.e2e.jsonc`,
+a private database clone and separate local R2/KV state. Global setup validates
+the four database connections and production role constraints. The Playwright
+configuration does not start a shared server or provide a default origin.
 
 CI uses eight browser shards. The local parallel runner executes the same eight
 partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
-available memory. Every partition retains its own database and Worker state.
+available memory. Every partition retains its own PostgreSQL service and reports.
+Individual cases own ephemeral Worker ports and persistence directories.
 
-CI and shard scripts run `tests/ci/e2e-run-shard.sh`, which allows one bounded
-retry only after `tests/ci/e2e-worker-server.sh` records a startup failure,
-health failure, or child-process exit. Individual Playwright assertions are
-not retried. Wrangler output, child status, and health probes are retained
-under `playwright-report/worker/` for CI artifact inspection.
+CI and shard scripts run `tests/ci/e2e-run-shard.sh`, which executes the requested
+native partition once and preserves its exit status. Assertions and runtime
+failures are not retried. Per-test Worker logs, resource identities and native
+traces remain in `playwright-report/` for cleanup and failure inspection.
 
 The side-effect-free description reads in `description.public-web-personal-overlay`
 use Playwright's per-request `maxRetries: 1`. This recovers one `ECONNRESET` transport
@@ -34,17 +36,17 @@ resolution records visits and must not be replayed. Native transport behavior
 is covered by `tests/integration/playwright-request-retry.test.ts`.
 
 Fixtures use FUNCTION_OWNER_DATABASE_URL; the Worker uses separate restricted
-app/auth/maintenance URLs. The setup script applies the same permission script
-as production. Every full-suite shard and confirmed infrastructure retry starts
-with a reset of the explicitly disposable test database, followed by seed and
-runtime-role setup. Never point these commands at a development or production
-database containing data you need to retain.
+app/auth/maintenance URLs. `setup-runtime-database.sh` requires the explicit
+`ALLOW_TEST_DATABASE_SETUP=true` opt-in and applies migrations plus the production
+permission script to a disposable schema source. It does not seed or reset shared
+application data. Invoke Playwright directly against an already-prepared source
+to keep setup separate from test execution.
 
-## Seed
+## Scenario data
 
-`tests/e2e/fixtures/scenario.json` and `tests/fixtures/dev-seed.ts` share fixture
-data; `prisma/seed.sql` is what the DB load uses. Keep them aligned when you
-change scenarios.
+`tests/e2e/fixtures/scenario.json` and `tests/fixtures/dev-seed.ts` supply explicit
+values to private fixtures. Development seeding remains available through
+`ALLOW_DATABASE_SEED=true bunx prisma db seed`; it is not test setup.
 
 ## Layout
 
@@ -73,7 +75,7 @@ test output for failure cleanup checks. This fixture requires the same matching
 PostgreSQL client and database-create privilege as `isolatedDatabaseTest`;
 stateful tests should own their Worker even when they use a private account.
 A private account on a shared Worker does not isolate deferred work or queues.
-Stateless anonymous checks can keep using Playwright's base fixture.
+Anonymous checks also use private fixtures; no case falls back to a shared server.
 
 Use `utils/owned-worker.ts` to own complete asynchronous preparation, request and
 observation callbacks with `run()`. Browser workflow fixtures must also depend on
@@ -90,9 +92,9 @@ scenarios arrange a private actor or exercise the real sign-in flow explicitly.
 ## Conventions
 
 - Prefer role/label selectors; never `waitForTimeout` or `networkidle`.
-- The complete suite still defaults to one worker per shard while remaining
-  shared-state cases are migrated. Validate each migrated group standalone,
-  reordered and with multiple workers sharing a database. Do not introduce
+- The complete suite defaults to one worker per shard to bound resource use.
+  Validate fixture changes standalone, reordered and with multiple workers
+  sharing a schema source. Do not introduce
   serial blocks or shared-user restore logic as a new isolation mechanism.
 
 

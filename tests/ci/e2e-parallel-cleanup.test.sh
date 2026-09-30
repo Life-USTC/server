@@ -12,8 +12,6 @@ process_groups_source="${E2E_PROCESS_GROUPS_SOURCE:-${repo_root}/tests/ci/e2e-pr
 expected_shard_total="${E2E_EXPECTED_SHARD_TOTAL:-8}"
 source "$process_groups_source"
 test_dir="$(mktemp -d)"
-test_base_port=$((50000 + ($$ % 1000) * 8))
-test_inspector_base_port=$((test_base_port + 100))
 runner_pid=""
 sentinel_pid=""
 sentinel_group=""
@@ -174,8 +172,6 @@ start_runner() {
   PARALLEL_FIXTURE_DIR="$run_dir" \
   PARALLEL_REAL_BUN="$(command -v bun)" \
   PATH="$fixture_root/bin:$PATH" \
-  E2E_BASE_PORT="$test_base_port" \
-  E2E_INSPECTOR_BASE_PORT="$test_inspector_base_port" \
   E2E_CONCURRENCY=2 \
     bash "$fixture_root/tests/ci/e2e-parallel-local.sh" >"$output_file" 2>&1 &
   runner_pid="$!"

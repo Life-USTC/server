@@ -68,7 +68,7 @@ jobs:
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_copilot"
             echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_copilot"
-            echo "ALLOW_DATABASE_SEED=true"
+            echo "ALLOW_TEST_DATABASE_SETUP=true"
             echo "WEBHOOK_LOGIN_ENABLED=true"
             echo "WEBHOOK_SECRET=copilot-local-secret"
             echo "AUTH_SECRET=e2e-dev-secret-not-for-production"

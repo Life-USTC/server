@@ -262,8 +262,7 @@ jobs:
       job-phase: ci:e2e:test
       e2e-shard: ${{ matrix.shard }}
       upload-artifact-name: playwright-report-${{ matrix.artifact }}
-      # Includes Playwright output and attempt-specific Wrangler logs/status
-      # written under playwright-report/worker/ by the E2E server wrapper.
+      # Includes native traces, per-test Worker logs and owned resource identities.
       upload-artifact-path: playwright-report/
       upload-artifact-no-files-found: ignore
       upload-artifact-always: true

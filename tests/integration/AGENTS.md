@@ -5,16 +5,21 @@ MCP in-process harness + REST Playwright contracts. Full recipes: root
 
 ```bash
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
-export ALLOW_DATABASE_SEED=true
+export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run rest:test
 ```
 
+Test setup applies migrations and production-equivalent roles, with no demo seed
+or shared RLS rows. RLS fixtures arrange their actors and records in private clones.
+Native Vitest and Playwright commands can use the four already-prepared database
+URLs without rerunning setup.
+
 ## REST (`tests/integration/rest/`)
 
 Playwright request tests (`playwright.api.config.ts`) use the real Worker.
-Stateful domain fixtures extend `tests/e2e/utils/owned-worker.ts`. Prepare their
+All REST cases use private fixtures extending `tests/e2e/utils/owned-worker.ts`. Prepare their
 catalog through `isolatedWorker.database.owner` and create private users, sessions
 and request contexts with `isolatedWorker.createActor()`. Wrap complete setup and
 test workflows in `run()`, including response consumption and independent state
@@ -55,8 +60,8 @@ tests/integration/mcp/
 
 The MCP in-memory client verifies tool behavior and serialization; real Worker
 HTTP authentication is a separate layer. `fileParallelism` remains off for the
-overall integration suite while remaining shared actors and global operations are
-migrated. Maintenance and Prometheus scenarios now use per-test databases;
+overall integration suite to bound resource use. Maintenance and Prometheus
+scenarios use per-test databases;
 per-test identities alone do not isolate database-wide operations.
 
 Run isolated local shards with `bun run integration:test:parallel`. It creates

@@ -55,7 +55,8 @@ Playwright run: `bunx playwright install --with-deps chromium`.
 bun install --frozen-lockfile && bun run hooks:install
 cp .env.example .env   # once
 docker compose -f docker-compose.dev.yml up -d
-bun run app:prepare && bun run db:migrate:deploy && bunx prisma db seed
+bun run app:prepare && bun run db:migrate:deploy
+ALLOW_DATABASE_SEED=true bunx prisma db seed
 bun run dev            # http://127.0.0.1:3000
 
 # Local static, unit, type, specification, and schema checks
@@ -63,7 +64,7 @@ bun run check
 
 # Integration (same shape as CI ci:integration), in Bash
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
-export ALLOW_DATABASE_SEED=true
+export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run rest:test
@@ -71,8 +72,8 @@ bun run build && bun run rest:test
 # Parallel integration: provisions and cleans up four isolated databases
 bun run integration:test:parallel
 
-# E2E — resets the disposable database before each shard
-ALLOW_DATABASE_SEED=true bun run e2e:test
+# E2E — prepares schema and roles once; each case owns its database and Worker
+ALLOW_TEST_DATABASE_SETUP=true bun run e2e:test
 # FUNCTION_OWNER_DATABASE_URL must still identify the disposable test database.
 
 docker compose -f docker-compose.dev.yml down

@@ -106,7 +106,7 @@ jobs:
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
-            echo "ALLOW_DATABASE_SEED=true"
+            echo "ALLOW_TEST_DATABASE_SETUP=true"
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
               echo "WEBHOOK_LOGIN_ENABLED=true"
@@ -162,8 +162,7 @@ jobs:
                 exit 1
               fi
 
-              # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
-              # the integration suite exercises the same auth configuration.
+              # Match the auth configuration used by the private Worker fixtures.
               export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
               source tests/ci/setup-runtime-database.sh
@@ -174,8 +173,7 @@ jobs:
                 --shard="$VITEST_SHARD"
               ;;
             ci:rest)
-              # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
-              # the Playwright API suite starts `bun run e2e:server`.
+              # Match the auth configuration used by the private Worker fixtures.
               export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
               source tests/ci/setup-runtime-database.sh

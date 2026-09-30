@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Run the complete E2E suite with the same per-shard database lifecycle as CI.
-#
-# CI runs eight independent jobs. Each job migrates, seeds, and executes one
-# Playwright shard against a fresh database. A single unsharded `playwright test`
-# invocation reuses one seed across all files and projects, so shared-state
-# mutations from earlier shards leak into later ones.
+# Run the complete browser suite with the same eight native partitions as CI.
+# Prepare schema and roles once; every case arranges its own empty database clone.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -17,24 +13,20 @@ if [[ -z "${FUNCTION_OWNER_DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
-if [[ "${ALLOW_DATABASE_SEED:-}" != "true" ]]; then
-  echo "Set ALLOW_DATABASE_SEED=true before reseeding for each shard." >&2
+if [[ "${ALLOW_TEST_DATABASE_SETUP:-}" != "true" ]]; then
+  echo "Set ALLOW_TEST_DATABASE_SETUP=true before preparing the disposable test schema." >&2
   exit 1
 fi
 
 DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run app:prepare
 DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run build
 
+source tests/ci/setup-runtime-database.sh
+
 failed_shards=()
 
 for shard in $(seq 1 "$E2E_SHARD_TOTAL"); do
   echo "=== E2E shard ${shard}/${E2E_SHARD_TOTAL} ==="
-  # Keep prepare on the wasm Prisma client alias (see svelte.config.js). A
-  # non-production sync previously retargeted Kit aliases to prisma-node and
-  # wrangler then rebundled a broken worker for Playwright.
-  bun run app:prepare
-  # Each shard starts from a fresh schema, just like its separate CI service.
-  source tests/ci/setup-runtime-database.sh reset
   if ! bash tests/ci/e2e-run-shard.sh "${shard}/${E2E_SHARD_TOTAL}"; then
     failed_shards+=("${shard}/${E2E_SHARD_TOTAL}")
   fi
