@@ -61,7 +61,7 @@ requirements:
     - The session and persisted new account retain an empty nickname, with no generated ID.
     - Exactly one account links the user to the expected provider subject, without a password credential.
     test:
-      file: tests/integration/social-login-contract.test.ts
+      file: tests/integration/social-login-providers.test.ts
       name: user.sign-in-providers
 - id: user.explicit-provider-linking
   category: authorization
@@ -75,7 +75,7 @@ requirements:
     - Explicit owner linking succeeds.
     - The second user's attempt fails and the identity remains attached only to its original owner.
     test:
-      file: tests/integration/social-login-contract.test.ts
+      file: tests/integration/social-login-provider-linking.test.ts
       name: user.explicit-provider-linking
 - id: user.passkey-server-boundary
   category: authorization
@@ -276,7 +276,7 @@ requirements:
     - Missing image fields are filled from the provider without filling or changing name or username.
     - The account remains singly linked and no delegated API consent is created.
     test:
-      file: tests/integration/social-login-contract.test.ts
+      file: tests/integration/social-login-welcome-refresh.test.ts
       name: user.welcome-oauth-refresh
 - id: user.welcome-completion-resume
   category: consistency
