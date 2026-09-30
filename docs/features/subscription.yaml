@@ -132,7 +132,8 @@ requirements:
   rule: Subscription query and mutation requests accept at most 500 section ID entries and at most 500
     lookup-code entries per request.
   acceptance:
-    given: Five isolated owners and 500 newly created active Sections have distinct IDs and codes.
+    given: Each of five independent scenarios prepares an isolated owner and 500 newly created active
+      Sections with distinct IDs and codes.
     when: Real REST query, append/remove, batch add/remove and import, GraphQL import, and OAuth HTTP
       MCP import receive 500 and 501 entries.
     then:
@@ -141,7 +142,7 @@ requirements:
       an earlier one.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/bounds-contract.test.ts
-      name: subscription.bounded-batch-input
+      name: subscription.bounded-batch-input REST query append remove
 - id: subscription.per-user-rate-limit
   category: validation
   rule: Subscription batch writes enforce the configured per-user request budget. Exhausting one owner’s
