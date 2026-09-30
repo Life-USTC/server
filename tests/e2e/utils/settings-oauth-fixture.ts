@@ -32,26 +32,33 @@ function ownAuthorizationServer() {
         responses.delete(finished);
       },
     );
-    const url = new URL(request.url ?? "/", origin);
-    if (
-      closing ||
-      request.method !== "GET" ||
-      url.pathname !== authorizationPath
-    ) {
-      errors.push(new Error("Unexpected local OAuth authorization request"));
-      response.writeHead(404, { connection: "close" });
-      response.end();
-      return;
+    try {
+      const url = new URL(request.url ?? "/", origin);
+      if (
+        closing ||
+        request.method !== "GET" ||
+        url.pathname !== authorizationPath
+      ) {
+        errors.push(new Error("Unexpected local OAuth authorization request"));
+        response.writeHead(404, { connection: "close" });
+        response.end();
+        return;
+      }
+      requests.push(url);
+      response.writeHead(200, {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+        connection: "close",
+      });
+      response.end(
+        '<!doctype html><html lang="en"><head><title>Local OAuth provider</title><link rel="icon" href="data:,"></head><body><h1>Authorize account connection</h1></body></html>',
+      );
+    } catch {
+      // Request targets may contain OAuth state; never retain a parsing error
+      // whose message embeds the incoming URL. The response owner settles too.
+      errors.push(new Error("Local OAuth authorization handler failed"));
+      response.destroy();
     }
-    requests.push(url);
-    response.writeHead(200, {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
-      connection: "close",
-    });
-    response.end(
-      '<!doctype html><html lang="en"><head><title>Local OAuth provider</title><link rel="icon" href="data:,"></head><body><h1>Authorize account connection</h1></body></html>',
-    );
   });
   server.on("error", (error) => errors.push(error));
   server.on("connection", (socket) => {
