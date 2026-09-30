@@ -9,8 +9,8 @@ import { test as calendarTest } from "../shared/calendar-commit-fixture";
 
 const originalCompletedAt = new Date("2026-01-01T00:00:00Z");
 const test = calendarTest.extend<{ homeworkId: string }>({
-  homeworkId: async ({ calendar: { db, userId, sectionId } }, use) => {
-    const homework = await db.$transaction(async (tx) => {
+  homeworkId: async ({ calendar: { db, userId, sectionId, workflow }, task }, use) => {
+    const homework = await workflow(() => db.$transaction(async (tx) => {
       await tx.userSectionSubscription.create({ data: { userId, sectionId } });
       return tx.homework.create({
         data: {
@@ -19,7 +19,8 @@ const test = calendarTest.extend<{ homeworkId: string }>({
           submissionDueAt: new Date("2027-01-01T00:00:00Z"),
         },
       });
-    });
+    }));
+    task.context.signal.throwIfAborted();
     await use(homework.id);
   },
 });
@@ -32,7 +33,7 @@ for (const [label, before, content] of [
   test(`homework description ${label} rebuild observes committed content`, async ({
     calendar,
     homeworkId,
-  }) => {
+  }) => calendar.workflow(async () => {
     const { db, userId, sectionId } = calendar;
     if (before !== null)
       await db.description.create({
@@ -65,14 +66,14 @@ for (const [label, before, content] of [
     expect(visibleContent).toEqual([content]);
     expect(await db.descriptionEdit.count()).toBe(before === content ? 0 : 1);
     expect(await db.auditLog.count()).toBe(before === content ? 0 : 1);
-  });
+  }));
 }
 
 for (const mode of ["single", "batch"] as const) {
   test(`${mode} homework completion preserves timestamps across idempotent writes`, async ({
     calendar,
     homeworkId,
-  }) => {
+  }) => calendar.workflow(async () => {
     const { db, userId } = calendar;
     await db.homeworkCompletion.create({
       data: { userId, homeworkId, completedAt: originalCompletedAt },
@@ -112,5 +113,5 @@ for (const mode of ["single", "batch"] as const) {
         select: { completedAt: true },
       }),
     ).toEqual({ completedAt: recompleted.completedAt });
-  });
+  }));
 }

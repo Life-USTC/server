@@ -24,15 +24,17 @@ type ProxyFixture = {
     codeVerifier?: string;
   }>;
   instance(origin: string, proxySecret?: string): Promise<ProxyInstance>;
+  run: ReturnType<typeof createNodeRuntime>["run"];
 };
 
 const test = isolatedDatabaseTest.extend<{ proxy: ProxyFixture }>({
-  proxy: async ({ isolatedDatabase }, use) => {
+  proxy: async ({ isolatedDatabase, onTestFinished }, use) => {
     const marker = crypto.randomUUID();
     const email = `proxy-${marker}@example.test`;
     const sharedSecret = `shared-proxy-${marker}-encryption-key`;
     const exchanges: ProxyFixture["exchanges"] = [];
     const runtimes: ReturnType<typeof createNodeRuntime>[] = [];
+    const workflows = createNodeRuntime({});
     let closed = false;
     async function instance(origin: string, proxySecret = sharedSecret) {
       if (closed) throw new Error("Proxy fixture is closed");
@@ -105,22 +107,30 @@ const test = isolatedDatabaseTest.extend<{ proxy: ProxyFixture }>({
     }
     const failures: unknown[] = [];
     try {
-      await use({ marker, email, sharedSecret, exchanges, instance });
+      await use({ marker, email, sharedSecret, exchanges, instance, run: workflows.run });
     } catch (error) {
       failures.push(error);
     } finally {
+      // An admitted journey can initialize another instance or send a later
+      // request after native timeout. Keep their admission open until it joins.
+      const joined = await Promise.allSettled([workflows.close()]);
+      failures.push(
+        ...joined.flatMap((r) => (r.status === "rejected" ? [r.reason] : [])),
+      );
       closed = true;
       const results = await Promise.allSettled(runtimes.map((r) => r.close()));
       failures.push(
         ...results.flatMap((r) => (r.status === "rejected" ? [r.reason] : [])),
       );
     }
-    if (failures.length)
-      throw new AggregateError(failures, "Proxy runtime cleanup failed");
+    if (failures.length) {
+      const error = new AggregateError(failures, "Proxy runtime cleanup failed");
+      onTestFinished(() => { throw error; });
+    }
   },
 });
 
-test("oauth.oauth-proxy-for-dev", async ({ isolatedDatabase, proxy }) => {
+test("oauth.oauth-proxy-for-dev", async ({ isolatedDatabase, proxy }) => proxy.run(async () => {
   const db = isolatedDatabase.owner;
   const { marker, email, sharedSecret, exchanges, instance } = proxy;
   const current = await instance(preview);
@@ -213,4 +223,4 @@ test("oauth.oauth-proxy-for-dev", async ({ isolatedDatabase, proxy }) => {
   expect(await db.user.count()).toBe(1);
   expect(await db.account.count()).toBe(1);
   expect(await db.session.count()).toBe(1);
-});
+}));

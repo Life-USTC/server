@@ -1,5 +1,6 @@
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { isolatedDatabaseTest } from "./isolated-database";
+import { nodeProtocolTest } from "./node-protocol-fixture";
+import type { NodeProtocolRuntime } from "./node-protocol-runtime";
 import type { TestPrismaClient } from "./prisma";
 
 export type CalendarCommitState = {
@@ -8,16 +9,17 @@ export type CalendarCommitState = {
   sectionId: number;
   youngId: string;
   messages: unknown[];
+  workflow: NodeProtocolRuntime["run"];
   run<T>(work: () => Promise<T>, onMessage?: () => Promise<void>): Promise<T>;
 };
 
-export const test = isolatedDatabaseTest.extend<{
+export const test = nodeProtocolTest.extend<{
   calendar: CalendarCommitState;
 }>({
-  calendar: async ({ isolatedDatabase: { owner: db, connections } }, use) => {
+  calendar: async ({ isolatedDatabase: { owner: db, connections }, protocolRuntime, task }, use) => {
     const userId = crypto.randomUUID();
     const youngId = crypto.randomUUID();
-    const sectionId = await db.$transaction(async (tx) => {
+    const sectionId = await protocolRuntime.run(() => db.$transaction(async (tx) => {
       await tx.user.create({
         data: {
           id: userId,
@@ -35,7 +37,8 @@ export const test = isolatedDatabaseTest.extend<{
         data: { youngId, name: "Calendar event", isActive: true, rawJson: {} },
       });
       return section.id;
-    });
+    }));
+    task.context.signal.throwIfAborted();
     const messages: unknown[] = [];
     await use({
       db,
@@ -43,7 +46,10 @@ export const test = isolatedDatabaseTest.extend<{
       sectionId,
       youngId,
       messages,
-      run: async (work, onMessage) => {
+      // The complete test owns its observations and any later requests. Each
+      // request retains its own queue callback and original background errors.
+      workflow: protocolRuntime.run,
+      run: (work, onMessage) => protocolRuntime.request(async () => {
         const tasks: Promise<PromiseSettledResult<unknown>>[] = [];
         return runWithCloudflareRuntimeEnv(
           {
@@ -98,7 +104,7 @@ export const test = isolatedDatabaseTest.extend<{
               ),
           },
         );
-      },
+      }),
     });
   },
 });

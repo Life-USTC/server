@@ -74,7 +74,7 @@ for (const table of [
 ] as const) {
   test(`${table} rebuild observes the committed source row`, async ({
     calendar,
-  }) => {
+  }) => calendar.workflow(async () => {
     const source = sourceWrites(calendar)[table];
     const visibleRows: number[] = [];
     await calendar.run(
@@ -87,11 +87,11 @@ for (const table of [
     expect(calendar.messages).toEqual([source.message]);
     expect(visibleRows).toEqual([1]);
     expect(await source.count()).toBe(1);
-  });
+  }));
 
   test(`${table} rejected commit leaves no row or rebuild`, async ({
     calendar,
-  }) => {
+  }) => calendar.workflow(async () => {
     const source = sourceWrites(calendar)[table];
     await rejectCommit(calendar.db, table);
     await expect(calendar.run(async () => source.write())).rejects.toThrow(
@@ -100,12 +100,12 @@ for (const table of [
     expect(await source.count()).toBe(0);
     expect(calendar.messages).toEqual([]);
     expect(await calendar.db.auditLog.count()).toBe(0);
-  });
+  }));
 }
 
 test("todo deletion rebuild observes the committed absence", async ({
   calendar,
-}) => {
+}) => calendar.workflow(async () => {
   const { db, userId, messages } = calendar;
   const todo = await db.todo.create({
     data: { userId, title: "Delete after commit" },
@@ -121,11 +121,11 @@ test("todo deletion rebuild observes the committed absence", async ({
   expect(messages).toEqual([{ type: "user", userId }]);
   expect(visibleRows).toEqual([0]);
   expect(await db.todo.findUnique({ where: { id: todo.id } })).toBeNull();
-});
+}));
 
 test("todo rejected deletion preserves the row without a rebuild", async ({
   calendar,
-}) => {
+}) => calendar.workflow(async () => {
   const { db, userId } = calendar;
   const todo = await db.todo.create({
     data: { userId, title: "Retain after rollback" },
@@ -137,4 +137,4 @@ test("todo rejected deletion preserves the row without a rebuild", async ({
   expect(await db.todo.findUnique({ where: { id: todo.id } })).toEqual(todo);
   expect(calendar.messages).toEqual([]);
   expect(await db.auditLog.count()).toBe(0);
-});
+}));
