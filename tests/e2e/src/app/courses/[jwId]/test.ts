@@ -549,9 +549,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("SSR 保留 sanitized Markdown 简介", async ({ page, preferenceFlow, detailCatalog: _detailCatalog, isolatedWorker }) => {
+  test("SSR 保留 sanitized Markdown 简介", async ({ preferenceFlow, detailCatalog: _detailCatalog, isolatedWorker }) => {
     await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction(arrangeCourseIntroduction));
     await preferenceFlow.run(async () => {
+      const context = await preferenceFlow.newContext({ javaScriptEnabled: false });
+      const page = await preferenceFlow.newPage(context);
       await page.goto(COURSE_WITH_DESCRIPTION_URL);
 
       await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
