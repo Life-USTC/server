@@ -143,7 +143,9 @@ vi.mock("@/routes/metrics/+server", async (importOriginal) => {
 // and its real committed graph is observed before the fixture's abort checkpoint.
 vi.mock("../../shared/catalog-contract-fixture", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("../../shared/catalog-contract-fixture")>();
+    await importOriginal<
+      typeof import("../../shared/catalog-contract-fixture")
+    >();
   return {
     ...actual,
     createCatalogContractFixture: async (
@@ -492,26 +494,29 @@ if (phase === "catalog") {
 
 if (phase === "catalog-setup-timeout") {
   const setupTest = catalogReadTest
-    .extend("probe", async ({
-      isolatedDatabase,
-      _templateResources,
-      _databaseResources,
-      signal,
-    }) => {
-      const setup = runtimeJournal.catalogSetup;
-      setup.signal = signal;
-      const release = () => {
-        record("native-test-aborted");
-        setup.gate.resolve();
-      };
-      signal.addEventListener("abort", release, { once: true });
-      if (signal.aborted) release();
-      return prepareProbe({
+    .extend(
+      "probe",
+      async ({
         isolatedDatabase,
         _templateResources,
         _databaseResources,
-      });
-    })
+        signal,
+      }) => {
+        const setup = runtimeJournal.catalogSetup;
+        setup.signal = signal;
+        const release = () => {
+          record("native-test-aborted");
+          setup.gate.resolve();
+        };
+        signal.addEventListener("abort", release, { once: true });
+        if (signal.aborted) release();
+        return prepareProbe({
+          isolatedDatabase,
+          _templateResources,
+          _databaseResources,
+        });
+      },
+    )
     .extend({
       // Resolve the signal listener and disposal observer before catalog setup.
       protocolBindings: async ({ probe: _probe }, use) => {
@@ -550,9 +555,7 @@ if (phase === "catalog-timeout") {
           where: { id: "global" },
           select: { snapshotSha256: true },
         });
-        const before = await request(() =>
-          findCourseDetailByJwId(course.jwId),
-        );
+        const before = await request(() => findCourseDetailByJwId(course.jwId));
         try {
           await db.course.update({
             where: { id: course.id },
@@ -571,9 +574,7 @@ if (phase === "catalog-timeout") {
           record("catalog-late-write-finished");
           await commitRevision();
           record("catalog-revision-finished");
-          const updatedPage = await request(() =>
-            getCoursePage(course.jwId),
-          );
+          const updatedPage = await request(() => getCoursePage(course.jwId));
           const createdDetail = await request(() =>
             findCourseDetailByJwId(created.jwId),
           );

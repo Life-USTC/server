@@ -10,13 +10,16 @@ it("course.public-detail-cache", async ({
   await run(async () => {
     const [a, b] = fixture.courses;
     expect(
-      (await request(() => findCourseDetailByJwId(a.jwId, "zh-cn")))?.namePrimary,
+      (await request(() => findCourseDetailByJwId(a.jwId, "zh-cn")))
+        ?.namePrimary,
     ).toBe(a.nameCn);
     expect(
-      (await request(() => findCourseDetailByJwId(b.jwId, "en-us")))?.namePrimary,
+      (await request(() => findCourseDetailByJwId(b.jwId, "en-us")))
+        ?.namePrimary,
     ).toBe(b.nameEn);
     expect(
-      (await request(() => findCourseDetailByJwId(a.jwId, "en-us")))?.namePrimary,
+      (await request(() => findCourseDetailByJwId(a.jwId, "en-us")))
+        ?.namePrimary,
     ).toBe(a.nameEn);
     const page = await request(() => getCoursePage(a.jwId, "zh-cn"));
     expect(page?.id).toBe(a.id);
