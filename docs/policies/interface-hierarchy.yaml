@@ -332,7 +332,7 @@ requirements:
     - All readers preserve the exact independent order and empty state, ignore a foreign userId query and report the four-pin bound.
     - The Web overview starts with that owner's ordered pins and overflow removes the deterministically oldest pin.
     test:
-      file: tests/integration/profile-link-read-parity.test.ts
+      file: tests/integration/profile-link-pins-read-parity.test.ts
       name: interface-hierarchy.link-pin-read-parity
 - id: interface-hierarchy.overview-read-parity
   category: consistency
