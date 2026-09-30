@@ -32,7 +32,8 @@ export const commentReadTest = nodeProtocolTest
             // Register ownership before dependent state setup can open a transport.
             await use({
               own(userId) {
-                if (closed) throw new Error("Comment reader SDK owner is closed");
+                if (closed)
+                  throw new Error("Comment reader SDK owner is closed");
                 const runtime = { run: protocolRuntime.request };
                 const owned =
                   userId === null

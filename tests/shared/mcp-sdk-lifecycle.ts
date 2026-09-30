@@ -4,7 +4,10 @@ import type { NodeProtocolRuntime } from "./node-protocol-runtime";
 
 /** Close SDKs before joining their borrowed protocol workflow owner. */
 export async function withMcpSdkLifecycle(
-  { protocolRuntime, onTestFinished }: {
+  {
+    protocolRuntime,
+    onTestFinished,
+  }: {
     protocolRuntime: Pick<NodeProtocolRuntime, "drain">;
     onTestFinished: TestContext["onTestFinished"];
   },
