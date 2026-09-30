@@ -55,12 +55,14 @@ export const test = accountTest.extend<{
   githubAccount: Awaited<ReturnType<typeof arrangeLinkedAccount>>;
   authorization: Authorization;
 }>({
-  profile: async ({ account, baseURL, isolatedWorker }, use) => {
+  profile: async ({ account, baseURL, isolatedWorker, run }, use) => {
     const image = absoluteTestUrl("/images/icon.png", baseURL);
-    const profile = await isolatedWorker.database.owner.user.update({
-      where: { id: account.id },
-      data: { image, profilePictures: [image] },
-    });
+    const profile = await run(() =>
+      isolatedWorker.database.owner.user.update({
+        where: { id: account.id },
+        data: { image, profilePictures: [image] },
+      }),
+    );
     await use(profile);
   },
   // Hashing has no database dependency or continuation that can write after a
@@ -73,47 +75,49 @@ export const test = accountTest.extend<{
     await use(await hashPassword(credentialPassword));
   },
   credential: async (
-    { account, credentialPassword, credentialHash, isolatedWorker },
+    { account, credentialPassword, credentialHash, isolatedWorker, run },
     use,
   ) => {
-    await isolatedWorker.database.owner.account.create({
-      data: {
-        userId: account.id,
-        provider: "credential",
-        issuer: createLocalAccountIssuer("credential"),
-        providerAccountId: account.id,
-        password: credentialHash,
-      },
-    });
+    await run(() =>
+      isolatedWorker.database.owner.account.create({
+        data: {
+          userId: account.id,
+          provider: "credential",
+          issuer: createLocalAccountIssuer("credential"),
+          providerAccountId: account.id,
+          password: credentialHash,
+        },
+      }),
+    );
     await use({ email: account.email, password: credentialPassword });
   },
-  ustcAccount: async ({ account, isolatedWorker }, use) => {
+  ustcAccount: async ({ account, isolatedWorker, run }, use) => {
     await use(
-      await arrangeLinkedAccount(
-        isolatedWorker.database.owner,
-        account.id,
-        "oidc",
+      await run(() =>
+        arrangeLinkedAccount(isolatedWorker.database.owner, account.id, "oidc"),
       ),
     );
   },
-  githubAccount: async ({ account, isolatedWorker }, use) => {
+  githubAccount: async ({ account, isolatedWorker, run }, use) => {
     await use(
-      await arrangeLinkedAccount(
-        isolatedWorker.database.owner,
-        account.id,
-        "github",
+      await run(() =>
+        arrangeLinkedAccount(
+          isolatedWorker.database.owner,
+          account.id,
+          "github",
+        ),
       ),
     );
   },
-  authorization: async ({ account, baseURL, isolatedWorker }, use) => {
+  authorization: async ({ account, baseURL, isolatedWorker, run }, use) => {
     const clientId = crypto.randomUUID();
     const clientSecret = `hidden-secret-${crypto.randomUUID()}`;
     const clientUri = "https://calendar.example";
     const redirectUri = absoluteTestUrl("/hidden-oauth-callback", baseURL);
     const name = `Private Calendar ${clientId.slice(0, 8)}`;
     const scopes = ["calendar:read", "profile"];
-    const consent = await isolatedWorker.database.owner.$transaction(
-      async (tx) => {
+    const consent = await run(() =>
+      isolatedWorker.database.owner.$transaction(async (tx) => {
         await tx.oAuthClient.create({
           data: {
             clientId,
@@ -127,7 +131,7 @@ export const test = accountTest.extend<{
         return tx.oAuthConsent.create({
           data: { clientId, scopes, userId: account.id },
         });
-      },
+      }),
     );
     await use({
       clientId,
