@@ -60,7 +60,10 @@ it("graphql.subscription-kind", async ({ graphqlRuntime, workspace }) => {
   });
 });
 
-it("graphql.homework-completion-requirement", async ({ graphqlRuntime, workspace }) => {
+it("graphql.homework-completion-requirement", async ({
+  graphqlRuntime,
+  workspace,
+}) => {
   await graphqlRuntime.run(async () => {
     const {
       db,
@@ -87,8 +90,9 @@ it("graphql.homework-completion-requirement", async ({ graphqlRuntime, workspace
         filter: completed === undefined ? {} : { completed },
       });
       expect(result.success).toBe(true);
-      return (result.data.workspace as { homeworks: { items: HomeworkState[] } })
-        .homeworks.items;
+      return (
+        result.data.workspace as { homeworks: { items: HomeworkState[] } }
+      ).homeworks.items;
     };
     const all = await read(owner);
     expect(all).toHaveLength(4);
@@ -166,7 +170,10 @@ it("graphql.homework-completion-requirement", async ({ graphqlRuntime, workspace
   });
 });
 
-it("graphql.young-event-subscriptions", async ({ graphqlRuntime, workspace }) => {
+it("graphql.young-event-subscriptions", async ({
+  graphqlRuntime,
+  workspace,
+}) => {
   await graphqlRuntime.run(async () => {
     const { db, userId, youngId, owner, other, run } = workspace;
     const set = `mutation SetEvent($youngId: String!, $subscribed: Boolean!) { youngEventSubscriptionSet(youngId: $youngId, input: { subscribed: $subscribed, remindStart: false }) { youngId subscribed remindStart } }`;
@@ -213,7 +220,10 @@ it("graphql.young-event-subscriptions", async ({ graphqlRuntime, workspace }) =>
   });
 });
 
-it("graphql.young-organizer-subscriptions", async ({ graphqlRuntime, workspace }) => {
+it("graphql.young-organizer-subscriptions", async ({
+  graphqlRuntime,
+  workspace,
+}) => {
   await graphqlRuntime.run(async () => {
     const { db, userId, organizerId, owner, other, run } = workspace;
     const set = `mutation SetOrganizer($organizerId: ID!, $subscribed: Boolean!) { youngOrganizerSubscriptionSet(organizerId: $organizerId, subscribed: $subscribed) { organizerId subscribed } }`;
@@ -221,7 +231,9 @@ it("graphql.young-organizer-subscriptions", async ({ graphqlRuntime, workspace }
       await run(owner, set, { organizerId, subscribed: true }),
     ).toMatchObject({
       success: true,
-      data: { youngOrganizerSubscriptionSet: { organizerId, subscribed: true } },
+      data: {
+        youngOrganizerSubscriptionSet: { organizerId, subscribed: true },
+      },
     });
     const query = `query OrganizerState($organizerId: ID!) { workspace { youngOrganizerSubscription(organizerId: $organizerId) { subscribed } youngOrganizerSubscriptions { items { organizerId organizer { id } } pageInfo { total } } } }`;
     expect(await run(owner, query, { organizerId })).toMatchObject({
@@ -251,9 +263,9 @@ it("graphql.young-organizer-subscriptions", async ({ graphqlRuntime, workspace }
         where: { userId, organizerId },
       }),
     ).toBe(1);
-    expect(await db.userYoungEventSubscription.count({ where: { userId } })).toBe(
-      0,
-    );
+    expect(
+      await db.userYoungEventSubscription.count({ where: { userId } }),
+    ).toBe(0);
     await run(owner, set, { organizerId, subscribed: false });
     expect(
       await db.userYoungOrganizerSubscription.count({
@@ -290,7 +302,9 @@ it("graphql.young-reminders", async ({ graphqlRuntime, workspace }) => {
     expect(await run(other, query)).toMatchObject({
       success: true,
       data: {
-        workspace: { youngNotifications: { items: [], pageInfo: { total: 0 } } },
+        workspace: {
+          youngNotifications: { items: [], pageInfo: { total: 0 } },
+        },
       },
     });
     const mark = `mutation Read($id: ID!) { youngNotificationRead(id: $id) { id success } }`;
@@ -350,9 +364,9 @@ it("graphql.young-daily-digests", async ({ graphqlRuntime, workspace }) => {
       success: true,
       data: { workspace: { youngNotifications: { items: [] } } },
     });
-    expect(await db.userYoungEventSubscription.count({ where: { userId } })).toBe(
-      0,
-    );
+    expect(
+      await db.userYoungEventSubscription.count({ where: { userId } }),
+    ).toBe(0);
   });
 });
 

@@ -28,7 +28,11 @@ const it = isolatedGraphqlTest.extend(
         },
       });
       const course = await fixturePrisma.course.create({
-        data: { jwId: 1, nameCn: "GraphQL batch course", code: "GRAPHQL-BATCH" },
+        data: {
+          jwId: 1,
+          nameCn: "GraphQL batch course",
+          code: "GRAPHQL-BATCH",
+        },
       });
       const section = await fixturePrisma.section.create({
         data: {
@@ -173,7 +177,9 @@ describe("GraphQL batch mutations", () => {
         ownedDeleteTodoId,
         otherTodoId,
       } = batch;
-      const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
       const completion = await execute(
         {
           query: /* GraphQL */ `
@@ -292,7 +298,9 @@ describe("GraphQL batch mutations", () => {
         userAId,
         ownedCompletionTodoId,
       } = batch;
-      const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
       const query = /* GraphQL */ `
       mutation StrictTodoBatch($items: [TodoCompletionBatchItemInput!]!) {
         todoCompletionsSet(items: $items) {
@@ -407,7 +415,10 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("graphql.subscription-batch-results", async ({ graphqlRuntime, batch }) => {
+  it("graphql.subscription-batch-results", async ({
+    graphqlRuntime,
+    batch,
+  }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,

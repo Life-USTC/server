@@ -1,5 +1,8 @@
+import {
+  type McpHarness,
+  ownMcpHarness,
+} from "../integration/mcp/_harness/client";
 import { isolatedGraphqlTest } from "./isolated-graphql-fixture";
-import { type McpHarness, ownMcpHarness } from "../integration/mcp/_harness/client";
 
 type Result = {
   success: boolean;
@@ -8,40 +11,43 @@ type Result = {
 };
 
 export const graphqlWorkspaceTest = isolatedGraphqlTest
-  .extend("mcpOwners", async ({ graphqlRuntime, onTestFinished }, { onCleanup }) => {
-    const userId = "graphql-domain-owner";
-    const otherId = "graphql-domain-other";
-    const resources: ReturnType<typeof ownMcpHarness>[] = [];
-    onCleanup(async () => {
-      // Keep the SDK open until every admitted setup/body workflow finishes.
-      // The enclosing protocol fixture reports its cached drain failure once.
-      await Promise.allSettled([graphqlRuntime.drain()]);
-      const results = await Promise.allSettled(
-        resources.map((resource) => resource.client.close()),
-      );
-      const failures = results.flatMap((result) =>
-        result.status === "rejected" ? [result.reason] : [],
-      );
-      if (failures.length) {
-        const error = new AggregateError(
-          failures,
-          "GraphQL MCP fixture cleanup failed",
+  .extend(
+    "mcpOwners",
+    async ({ graphqlRuntime, onTestFinished }, { onCleanup }) => {
+      const userId = "graphql-domain-owner";
+      const otherId = "graphql-domain-other";
+      const resources: ReturnType<typeof ownMcpHarness>[] = [];
+      onCleanup(async () => {
+        // Keep the SDK open until every admitted setup/body workflow finishes.
+        // The enclosing protocol fixture reports its cached drain failure once.
+        await Promise.allSettled([graphqlRuntime.drain()]);
+        const results = await Promise.allSettled(
+          resources.map((resource) => resource.client.close()),
         );
-        onTestFinished(() => {
-          throw error;
-        });
-      }
-    });
-    const owner = ownMcpHarness(userId, undefined, {
-      run: graphqlRuntime.request,
-    });
-    resources.push(owner);
-    const other = ownMcpHarness(otherId, undefined, {
-      run: graphqlRuntime.request,
-    });
-    resources.push(other);
-    return { userId, otherId, owner, other };
-  })
+        const failures = results.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        );
+        if (failures.length) {
+          const error = new AggregateError(
+            failures,
+            "GraphQL MCP fixture cleanup failed",
+          );
+          onTestFinished(() => {
+            throw error;
+          });
+        }
+      });
+      const owner = ownMcpHarness(userId, undefined, {
+        run: graphqlRuntime.request,
+      });
+      resources.push(owner);
+      const other = ownMcpHarness(otherId, undefined, {
+        run: graphqlRuntime.request,
+      });
+      resources.push(other);
+      return { userId, otherId, owner, other };
+    },
+  )
   .extend(
     "workspace",
     async ({ isolatedDatabase, graphqlRuntime, mcpOwners, task }) => {
@@ -51,7 +57,9 @@ export const graphqlWorkspaceTest = isolatedGraphqlTest
         const marker = crypto.randomUUID();
         const youngId = `graphql-event-${marker}`;
         const organizerId = `graphql-organizer-${marker}`;
-        const homeworkIds = Array.from({ length: 4 }, () => crypto.randomUUID());
+        const homeworkIds = Array.from({ length: 4 }, () =>
+          crypto.randomUUID(),
+        );
         const now = new Date(Math.floor(Date.now() / 1000) * 1000);
         const future = new Date(now.getTime() + 30 * 60_000);
         const past = new Date(now.getTime() - 24 * 60 * 60_000);

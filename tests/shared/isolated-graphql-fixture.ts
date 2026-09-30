@@ -65,7 +65,10 @@ export const isolatedGraphqlTest = nodeProtocolTest
               requestId: "graphql-isolated-integration",
             },
           } as unknown as RequestEvent);
-          return { response, payload: (await response.json()) as GraphqlPayload };
+          return {
+            response,
+            payload: (await response.json()) as GraphqlPayload,
+          };
         });
       }
 
