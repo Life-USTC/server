@@ -1,5 +1,7 @@
 import type { User } from "../../../src/generated/prisma-node/client";
-import { type IsolatedWorker, test as workerTest } from "./isolated-worker";
+import { type CommunityFlow, withCommunityFlow } from "./community-flow";
+import type { IsolatedWorker } from "./isolated-worker";
+import { test as workerTest } from "./owned-worker";
 
 type Database = IsolatedWorker["database"]["owner"];
 type CommunityCatalog = {
@@ -11,56 +13,110 @@ type CommunityCatalog = {
 export const supplement = "Independent community supplement";
 
 export const test = workerTest.extend<{
+  catalogActor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
   account: User;
   community: CommunityCatalog;
+  catalogFlow: CommunityFlow;
+  communityFlow: CommunityFlow;
 }>({
-  account: async ({ isolatedWorker, page }, use) => {
-    const actor = await isolatedWorker.createActor();
-    await page.context().addCookies([actor.cookie]);
+  catalogActor: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => isolatedWorker.createActor()));
+  },
+  account: async ({ isolatedWorker, catalogActor, run }, use) => {
     await use(
-      await isolatedWorker.database.owner.user.findUniqueOrThrow({
-        where: { id: actor.id },
-      }),
+      await run(() =>
+        isolatedWorker.database.owner.user.findUniqueOrThrow({
+          where: { id: catalogActor.id },
+        }),
+      ),
     );
   },
-  community: async ({ isolatedWorker }, use) => {
+  catalogFlow: async (
+    { page, browser, request: observer, isolatedWorker, run },
+    use,
+    testInfo,
+  ) => {
+    await run(() =>
+      withCommunityFlow(
+        { page, browser, observer, isolatedWorker, account: null, testInfo },
+        use,
+      ),
+    );
+  },
+  communityFlow: async (
+    {
+      page,
+      browser,
+      request: observer,
+      isolatedWorker,
+      catalogActor,
+      account,
+      run,
+    },
+    use,
+    testInfo,
+  ) => {
+    await run(() =>
+      withCommunityFlow(
+        { page, browser, observer, isolatedWorker, account, testInfo },
+        async (flow) => {
+          await use({
+            ...flow,
+            run: (work, expected) =>
+              flow.run(
+                async () => {
+                  // Cookie attachment is part of the owned browser callback,
+                  // including interruption before the first navigation.
+                  await page.context().addCookies([catalogActor.cookie]);
+                  await work();
+                },
+                expected,
+              ),
+          });
+        },
+      ),
+    );
+  },
+  community: async ({ isolatedWorker, run }, use) => {
     const db = isolatedWorker.database.owner;
-    const catalog = await db.$transaction(async (tx) => {
-      const semester = await tx.semester.create({
-        data: { jwId: 1, code: "2026-spring", nameCn: "2026年春季学期" },
-      });
-      const course = await tx.course.create({
-        data: {
-          jwId: 1_800_000_000,
-          code: "COMMUNITY",
-          nameCn: "独立社区课程",
-          nameEn: "Independent community course",
-        },
-      });
-      const teacher = await tx.teacher.create({
-        data: {
-          jwId: 1_800_000_000,
-          nameCn: "独立社区教师",
-          nameEn: "Independent community teacher",
-        },
-      });
-      await tx.section.create({
-        data: {
-          jwId: 1_800_000_000,
-          code: "COMMUNITY.01",
-          courseId: course.id,
-          semesterId: semester.id,
-          teachers: { connect: { id: teacher.id } },
-        },
-      });
-      return { course, teacher };
-    });
+    const catalog = await run(() =>
+      db.$transaction(async (tx) => {
+        const semester = await tx.semester.create({
+          data: { jwId: 1, code: "2026-spring", nameCn: "2026年春季学期" },
+        });
+        const course = await tx.course.create({
+          data: {
+            jwId: 1_800_000_000,
+            code: "COMMUNITY",
+            nameCn: "独立社区课程",
+            nameEn: "Independent community course",
+          },
+        });
+        const teacher = await tx.teacher.create({
+          data: {
+            jwId: 1_800_000_000,
+            nameCn: "独立社区教师",
+            nameEn: "Independent community teacher",
+          },
+        });
+        await tx.section.create({
+          data: {
+            jwId: 1_800_000_000,
+            code: "COMMUNITY.01",
+            courseId: course.id,
+            semesterId: semester.id,
+            teachers: { connect: { id: teacher.id } },
+          },
+        });
+        return { course, teacher };
+      }),
+    );
     await use({ db, ...catalog });
   },
 });
 
 export function arrangeCourses(
-  db: Database,
+  db: Pick<Database, "course">,
   options: {
     firstJwId: number;
     count: number;

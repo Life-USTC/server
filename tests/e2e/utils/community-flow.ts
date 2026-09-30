@@ -18,6 +18,7 @@ type Expected = {
   calendarTokenCreated?: boolean;
   auditActions?: Record<string, number>;
   catalogPurges?: number;
+  anonymousCourseCount?: number;
 };
 type RouteMatch = Parameters<Page["route"]>[0];
 export type CommunityFlow = {
@@ -207,6 +208,32 @@ export async function withCommunityFlow(
         body: input.body,
         status: "active",
       });
+    } else if (/^\/api\/community\/comments\/[^/]+$/.test(path)) {
+      const id = decodeURIComponent(
+        path.slice("/api/community/comments/".length),
+      );
+      expect(response.status()).toBe(200);
+      expect(body.success).toBe(true);
+      const comment = await db.comment.findUnique({ where: { id } });
+      if (incoming.method() === "DELETE") {
+        expect(comment).toMatchObject({
+          id,
+          userId: account.id,
+          status: "deleted",
+          deletedAt: expect.any(Date),
+        });
+      } else {
+        expect(incoming.method()).toBe("PATCH");
+        const input = incoming.postDataJSON();
+        expect(typeof input.body).toBe("string");
+        expect(body.comment).toMatchObject({ id, body: input.body });
+        expect(comment).toMatchObject({
+          id,
+          userId: account.id,
+          body: input.body,
+          status: "active",
+        });
+      }
     } else if (path === "/api/community/descriptions") {
       expect(incoming.method()).toBe("POST");
       expect(response.status()).toBe(200);
@@ -256,8 +283,18 @@ export async function withCommunityFlow(
       homeworks: 0,
       todos: 0,
       subscriptions: 0,
-      courses: 0,
+      // Private catalog consumers declare the exact known course fixture size.
+      // All other anonymous state remains empty; never infer an expectation
+      // from the database being observed.
+      courses: expected.anonymousCourseCount ?? 0,
     });
+  }
+  function assertAnonymousExpectations() {
+    expect(expected).toEqual(
+      expected.anonymousCourseCount === undefined
+        ? {}
+        : { anonymousCourseCount: expected.anonymousCourseCount },
+    );
   }
   async function assertAnonymousNoEffects() {
     try {
@@ -292,7 +329,7 @@ export async function withCommunityFlow(
         }),
       });
       assertProducer(producer);
-      expect(expected).toEqual({});
+      assertAnonymousExpectations();
       expect(producer.purges).toEqual([]);
       expect(writes).toEqual([]);
       expect(audits).toEqual([]);
@@ -372,6 +409,7 @@ export async function withCommunityFlow(
             }
             expect(actual).toEqual(wanted);
             if (account) {
+              expect(expected.anonymousCourseCount).toBeUndefined();
               const user = await db.user.findUniqueOrThrow({
                 where: { id: account.id },
               });
@@ -379,9 +417,9 @@ export async function withCommunityFlow(
                 expected.calendarTokenCreated ? expect.any(String) : null,
               );
             } else {
-              // Anonymous checks own an empty database; no synthetic actor or
-              // seeded account is needed to observe their public projections.
-              expect(expected).toEqual({});
+              // Anonymous checks own an empty graph except an explicitly
+              // declared course fixture; no synthetic account is needed.
+              assertAnonymousExpectations();
               anonymousState = await readAnonymousState();
               assertAnonymousState(anonymousState);
             }
