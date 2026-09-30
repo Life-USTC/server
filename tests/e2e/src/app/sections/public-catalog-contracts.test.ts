@@ -3,6 +3,7 @@ import { unflatten } from "devalue";
 import type { CatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import type { PreferenceFlow } from "../../../utils/preference-flow";
+import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
 import { test } from "./public-catalog-fixture";
 
 async function chinese(page: Page, flow: PreferenceFlow) {
@@ -96,10 +97,15 @@ async function opaqueIdentity(
     expect(await page.locator("#main-content").innerText()).not.toContain(
       String(entity.jwId),
     );
+    const expectSectionDetailReady =
+      kind === "sections"
+        ? observeSectionDetailNavigation(page, flow, entity.jwId)
+        : undefined;
     await link.click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       fixture.courses[0].nameCn,
     );
+    if (expectSectionDetailReady) await expectSectionDetailReady();
     expect(await page.locator("#main-content").innerText()).not.toContain(
       String(entity.jwId),
     );

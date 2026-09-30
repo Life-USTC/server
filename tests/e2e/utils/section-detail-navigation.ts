@@ -2,9 +2,9 @@ import { expect, type Page, type Request } from "@playwright/test";
 import { waitForUiSettled } from "./page-ready";
 import type { PreferenceFlow } from "./preference-flow";
 
-/** Observe the viewer replacement in course-row and section-search SPA navigation.
- * Register before clicking; wait after the caller's URL/content assertions. Both
- * scenarios arrange a section without comments, so its empty panel is required. */
+/** Observe section viewer replacement in the explicit catalog navigation scenarios.
+ * Register before clicking; wait after the caller's URL/content assertions. Each
+ * caller arranges a section without comments, so its empty panel is required. */
 export function observeSectionDetailNavigation(
   page: Page,
   preferenceFlow: PreferenceFlow,
@@ -28,20 +28,24 @@ export function observeSectionDetailNavigation(
   preferenceFlow.onClosing(() => page.off("request", observeViewer));
 
   return async function expectSectionDetailReady() {
-    await expect.poll(() => viewerRequests.length).toBe(2);
-    const successor = await viewerRequests[1].response();
-    expect(successor?.status()).toBe(200);
-    await successor?.body();
-    // URL and SSR shell precede lazy detail panels. Keep admission open until
-    // the final panel and its independently arranged empty state are visible.
-    await expect(page.locator("[data-detail-scroll-container]")).toHaveAttribute(
-      "aria-busy",
-      "false",
-    );
-    await expect(
-      page.locator('#comments [data-slot="empty-description"]'),
-    ).toBeVisible();
-    await waitForUiSettled(page);
-    expect(viewerRequests).toHaveLength(2);
+    try {
+      await expect.poll(() => viewerRequests.length).toBe(2);
+      const successor = await viewerRequests[1].response();
+      expect(successor?.status()).toBe(200);
+      await successor?.body();
+      // URL and SSR shell precede lazy detail panels. Keep admission open until
+      // the final panel and its independently arranged empty state are visible.
+      await expect(page.locator("[data-detail-scroll-container]")).toHaveAttribute(
+        "aria-busy",
+        "false",
+      );
+      await expect(
+        page.locator('#comments [data-slot="empty-description"]'),
+      ).toBeVisible();
+      await waitForUiSettled(page);
+      expect(viewerRequests).toHaveLength(2);
+    } finally {
+      page.off("request", observeViewer);
+    }
   };
 }
