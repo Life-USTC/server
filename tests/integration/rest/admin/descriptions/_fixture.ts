@@ -1,7 +1,5 @@
-import {
-  type IsolatedWorker,
-  test as isolatedTest,
-} from "../../../../e2e/utils/isolated-worker";
+import type { IsolatedWorker } from "../../../../e2e/utils/isolated-worker";
+import { test as workerTest } from "../../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 
 async function prepareDescriptions(worker: IsolatedWorker) {
@@ -40,10 +38,10 @@ async function prepareDescriptions(worker: IsolatedWorker) {
   return { db, owner, admin, section, course, teacher, assignment, empty };
 }
 
-export const test = isolatedTest.extend<{
+export const test = workerTest.extend<{
   descriptionState: Awaited<ReturnType<typeof prepareDescriptions>>;
 }>({
-  descriptionState: async ({ isolatedWorker }, use) => {
-    await use(await prepareDescriptions(isolatedWorker));
+  descriptionState: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => prepareDescriptions(isolatedWorker)));
   },
 });
