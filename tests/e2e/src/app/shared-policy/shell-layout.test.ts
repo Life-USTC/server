@@ -223,7 +223,10 @@ test("ui.shell-layout-4", async ({
   isolatedWorker,
 }) => {
   await accountRun(
-    { writes: [["/api/account/preferences", 200]], audits: [] },
+    {
+      writes: [["/api/account/preferences", 200]],
+      audits: ["account_calendar_token_create"],
+    },
     async () => {
       await signIn(page, isolatedWorker, shellUser.id);
       const cdp = await page.context().newCDPSession(page);
@@ -297,6 +300,15 @@ test("ui.shell-layout-4", async ({
         await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: {} });
         await cdp.detach();
       }
+      return async () => {
+        expect(await isolatedWorker.database.owner.user.findMany()).toEqual([
+          {
+            ...shellUser,
+            calendarFeedToken: expect.any(String),
+            updatedAt: expect.any(Date),
+          },
+        ]);
+      };
     },
   );
 });
