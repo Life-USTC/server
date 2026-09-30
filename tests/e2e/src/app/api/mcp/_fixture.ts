@@ -27,13 +27,15 @@ export const test = workerTest.extend<{
       errors.push(error);
     }
     try {
-      await run(() => testInfo.attach("oauth-owned-state", {
-        body: JSON.stringify({
-          database: isolatedWorker.database.name,
-          clientNames: owner.clientNames,
+      await run(() =>
+        testInfo.attach("oauth-owned-state", {
+          body: JSON.stringify({
+            database: isolatedWorker.database.name,
+            clientNames: owner.clientNames,
+          }),
+          contentType: "application/json",
         }),
-        contentType: "application/json",
-      }));
+      );
     } catch (error) {
       errors.push(error);
     }
@@ -45,9 +47,10 @@ export const test = workerTest.extend<{
     const oauth = await run(async () => {
       const actor = await oauthOwner.worker.createActor();
       await page.context().addCookies([actor.cookie]);
-      const user = await oauthOwner.worker.database.owner.user.findUniqueOrThrow({
-        where: { id: actor.id },
-      });
+      const user =
+        await oauthOwner.worker.database.owner.user.findUniqueOrThrow({
+          where: { id: actor.id },
+        });
       return { ...oauthOwner, user };
     });
     await use(oauth);

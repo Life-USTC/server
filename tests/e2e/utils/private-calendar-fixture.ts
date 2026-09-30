@@ -30,17 +30,21 @@ export const test = oauthTest.extend<{
       await use((work) =>
         workflow.run(() =>
           run(() =>
-            withCalendarProtocolRead({
-              page,
-              observer: request,
-              isolatedWorker,
-              createRequest: (headers) => playwright.request.newContext({
-                baseURL: isolatedWorker.origin,
-                extraHTTPHeaders: headers,
-              }),
-              runBody: workflow.body,
-              testInfo,
-            }, work),
+            withCalendarProtocolRead(
+              {
+                page,
+                observer: request,
+                isolatedWorker,
+                createRequest: (headers) =>
+                  playwright.request.newContext({
+                    baseURL: isolatedWorker.origin,
+                    extraHTTPHeaders: headers,
+                  }),
+                runBody: workflow.body,
+                testInfo,
+              },
+              work,
+            ),
           ),
         ),
       );
@@ -63,12 +67,13 @@ export const test = oauthTest.extend<{
   createCalendar: async ({ isolatedWorker, calendarSemester, run }, use) => {
     // The domain fixture reads this exact prerequisite; never borrow a section
     // from another test to infer which semester the private calendar belongs to.
-    if (!calendarSemester) throw new Error("Calendar semester was not arranged");
+    if (!calendarSemester)
+      throw new Error("Calendar semester was not arranged");
     await use(() =>
       run(async () => {
         const { cleanup: _cleanup, ...calendar } =
-          await createCalendarContractFixture(
-            (work) => work(isolatedWorker.database.owner),
+          await createCalendarContractFixture((work) =>
+            work(isolatedWorker.database.owner),
           );
         return calendar;
       }),

@@ -40,7 +40,9 @@ export async function withCalendarProtocolRead(
     page: Page;
     observer: APIRequestContext;
     isolatedWorker: IsolatedWorker;
-    createRequest: (headers: Record<string, string>) => Promise<APIRequestContext>;
+    createRequest: (
+      headers: Record<string, string>,
+    ) => Promise<APIRequestContext>;
     runBody: (body: () => Promise<void>) => Promise<void>;
     testInfo: TestInfo;
   },
@@ -80,12 +82,13 @@ export async function withCalendarProtocolRead(
       const url = new URL(incoming.url);
       expect(url.origin).toBe(origin);
       expect(url.pathname).toBe("/api/mcp");
-      const payload = incoming.method === "POST"
-        ? (await incoming.clone().json()) as {
-            method: string;
-            params?: { name?: string };
-          }
-        : undefined;
+      const payload =
+        incoming.method === "POST"
+          ? ((await incoming.clone().json()) as {
+              method: string;
+              params?: { name?: string };
+            })
+          : undefined;
       expect(
         incoming.method === "GET" ||
           (incoming.method === "POST" &&
@@ -95,9 +98,12 @@ export async function withCalendarProtocolRead(
       ).toBe(true);
       if (payload?.method === "tools/call")
         expect(payload.params?.name).toBe("workspace_calendar_event_list");
-      const expectedStatus = incoming.method === "GET"
-        ? 405
-        : payload?.method === "notifications/initialized" ? 202 : 200;
+      const expectedStatus =
+        incoming.method === "GET"
+          ? 405
+          : payload?.method === "notifications/initialized"
+            ? 202
+            : 200;
       const requestId = crypto.randomUUID();
       sdkReads.push({
         requestId,
@@ -107,7 +113,8 @@ export async function withCalendarProtocolRead(
         status: expectedStatus,
       });
       const tagged = new Headers(incoming.headers);
-      for (const [name, value] of Object.entries(headers)) tagged.set(name, value);
+      for (const [name, value] of Object.entries(headers))
+        tagged.set(name, value);
       tagged.set("x-test-community-request", requestId);
       const response = await fetch(
         new Request(incoming, {
@@ -151,7 +158,8 @@ export async function withCalendarProtocolRead(
               verify = await work({
                 request: anonymous,
                 async mcp(identity, accessToken) {
-                  if (!accepting) throw new Error("Calendar workflow is closing");
+                  if (!accepting)
+                    throw new Error("Calendar workflow is closing");
                   const client = new Client(identity);
                   const transport = new StreamableHTTPClientTransport(
                     new URL("/api/mcp", origin),
@@ -176,14 +184,19 @@ export async function withCalendarProtocolRead(
         } finally {
           accepting = false;
           try {
-            await expect.poll(
-              () => [...reads.ownedReads.values()].filter(
-                (read) => !read.settled && !read.retiredBy,
-              ).length,
-              { timeout: 15_000 },
-            ).toBe(0);
+            await expect
+              .poll(
+                () =>
+                  [...reads.ownedReads.values()].filter(
+                    (read) => !read.settled && !read.retiredBy,
+                  ).length,
+                { timeout: 15_000 },
+              )
+              .toBe(0);
             reads.prepareRetiredClose();
-          } catch (error) { remember(error); }
+          } catch (error) {
+            remember(error);
+          }
         }
       },
       async (response, incoming) => {
@@ -191,7 +204,10 @@ export async function withCalendarProtocolRead(
         expect(new URL(incoming.url()).pathname).toBe("/oauth/authorize");
         expect(incoming.method()).toBe("POST");
         expect(response.status()).toBe(200);
-        expect(JSON.parse(body)).toMatchObject({ type: "redirect", status: 303 });
+        expect(JSON.parse(body)).toMatchObject({
+          type: "redirect",
+          status: 303,
+        });
       },
     );
   } catch (error) {
@@ -203,28 +219,49 @@ export async function withCalendarProtocolRead(
     if (completed) {
       try {
         await expect.poll(() => pendingSdk.size, { timeout: 15_000 }).toBe(0);
-      } catch (error) { remember(error); }
+      } catch (error) {
+        remember(error);
+      }
     }
     for (const close of clients) {
-      try { await close(); } catch (error) { remember(error); }
+      try {
+        await close();
+      } catch (error) {
+        remember(error);
+      }
     }
     sdkClosed = true;
     abort.abort(new Error("Calendar protocol transport disposed"));
     await settleSdk();
     if (!page.isClosed()) {
-      try { await page.close(); } catch (error) { remember(error); }
+      try {
+        await page.close();
+      } catch (error) {
+        remember(error);
+      }
     }
     // Retain API response storage and the private DB while a callback interrupted
     // by page/SDK closure completes its remaining reads or finally work.
     if (actualBody) {
-      try { await actualBody; } catch (error) { remember(error); }
+      try {
+        await actualBody;
+      } catch (error) {
+        remember(error);
+      }
     }
     await settleSdk();
     while (reads.pendingReads.size || reads.pendingNavigations.size)
-      await Promise.allSettled([...reads.pendingReads, ...reads.pendingNavigations]);
+      await Promise.allSettled([
+        ...reads.pendingReads,
+        ...reads.pendingNavigations,
+      ]);
     reads.stop();
     for (const error of reads.errors) remember(error);
-    try { await request?.dispose(); } catch (error) { remember(error); }
+    try {
+      await request?.dispose();
+    } catch (error) {
+      remember(error);
+    }
     if (registered) {
       try {
         const response = await observer.get(probePath, { headers: secret });
@@ -233,7 +270,11 @@ export async function withCalendarProtocolRead(
         const effects = await response.json();
         await testInfo.attach("calendar-protocol-effects", {
           contentType: "application/json",
-          body: JSON.stringify({ effects, sdkReads, browserReads: reads.reads }),
+          body: JSON.stringify({
+            effects,
+            sdkReads,
+            browserReads: reads.reads,
+          }),
         });
         expect(effects.backgroundErrors).toEqual([]);
         expect(effects.messages).toEqual([]);
@@ -243,18 +284,21 @@ export async function withCalendarProtocolRead(
           expect(native.result).toEqual(expect.any(Number));
         }
         for (const read of sdkReads) {
-          const producers = effects.requests.filter((native: {
-            value: { requestId?: string };
-          }) => native.value.requestId === read.requestId);
-          expect(producers).toEqual([{
-            outcome: "fulfilled",
-            value: {
-              requestId: read.requestId,
-              method: read.method,
-              path: read.path,
+          const producers = effects.requests.filter(
+            (native: { value: { requestId?: string } }) =>
+              native.value.requestId === read.requestId,
+          );
+          expect(producers).toEqual([
+            {
+              outcome: "fulfilled",
+              value: {
+                requestId: read.requestId,
+                method: read.method,
+                path: read.path,
+              },
+              result: read.status,
             },
-            result: read.status,
-          }]);
+          ]);
         }
         if (completed) {
           for (const [method, path, count, status] of [
@@ -265,18 +309,29 @@ export async function withCalendarProtocolRead(
             ["POST", "/oauth/authorize", 1, 200],
             ["POST", "/api/auth/oauth2/token", 1, 200],
           ] as const) {
-            const producers = effects.requests.filter((native: {
-              value: { method: string; path: string };
-            }) => native.value.method === method && native.value.path === path);
+            const producers = effects.requests.filter(
+              (native: { value: { method: string; path: string } }) =>
+                native.value.method === method && native.value.path === path,
+            );
             expect(producers).toHaveLength(count);
-            for (const producer of producers) expect(producer.result).toBe(status);
+            for (const producer of producers)
+              expect(producer.result).toBe(status);
           }
-          expect(sdkReads.map((read) => `${read.method} ${read.rpc ?? "stream"}`).sort()).toEqual([
-            "GET stream", "POST initialize", "POST notifications/initialized",
-            "POST tools/call", "POST tools/call",
+          expect(
+            sdkReads
+              .map((read) => `${read.method} ${read.rpc ?? "stream"}`)
+              .sort(),
+          ).toEqual([
+            "GET stream",
+            "POST initialize",
+            "POST notifications/initialized",
+            "POST tools/call",
+            "POST tools/call",
           ]);
         }
-      } catch (error) { remember(error); }
+      } catch (error) {
+        remember(error);
+      }
     }
     if (registrationAttempted) {
       // DELETE drains again if registration's response or GET/observation failed.
@@ -286,12 +341,19 @@ export async function withCalendarProtocolRead(
         await response.body();
         if (registered) expect(response.status()).toBe(204);
         else expect([204, 404]).toContain(response.status());
-      } catch (error) { remember(error); }
+      } catch (error) {
+        remember(error);
+      }
     }
     if (completed && verify) {
-      try { await verify(); } catch (error) { remember(error); }
+      try {
+        await verify();
+      } catch (error) {
+        remember(error);
+      }
     }
   }
   if (errors.length === 1) throw errors[0];
-  if (errors.length) throw new AggregateError(errors, "Calendar protocol workflow failed");
+  if (errors.length)
+    throw new AggregateError(errors, "Calendar protocol workflow failed");
 }
