@@ -301,7 +301,7 @@ requirements:
     - All authenticated bodies and cache headers equal the anonymous representation, no response sets a session
       cookie, and none includes either viewer's private identity or todo content.
     test:
-      file: tests/e2e/src/app/cache-policy/test.ts
+      file: tests/integration/rest/cache-policy/public-viewers.test.ts
       name: rendering-and-cache.personal-overlays-9
 - id: rendering-and-cache.personal-overlays-10
   category: privacy
