@@ -198,6 +198,7 @@ export function oauthProtocolChecks(
   account: Awaited<ReturnType<typeof prepareProtocolAccount>>,
   expected: {
     clientId: string;
+    storedGrantBinding: boolean;
     consentScopes: readonly (readonly string[])[];
     resources: string[];
     tokenRequests: number;
@@ -382,7 +383,7 @@ export function oauthProtocolChecks(
           clientId: expected.clientId,
           userId: oauth.user.id,
           sessionId: sessions[0].id,
-          grantId: null,
+          grantId: expected.storedGrantBinding ? consent.grantId : null,
           referenceId: consent.grantId,
           scopes: token.scopes,
           resources: expected.resources,
@@ -443,7 +444,7 @@ export function oauthProtocolChecks(
           clientId: expected.clientId,
           userId: oauth.user.id,
           sessionId: sessions[0].id,
-          grantId: null,
+          grantId: consent.grantId,
           referenceId: consent.grantId,
           scopes: token.scopes,
           resources: expected.resources,
