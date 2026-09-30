@@ -1,5 +1,5 @@
 import { makeSignature } from "better-auth/crypto";
-import { describe } from "vitest";
+import { describe, expect } from "vitest";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import type { Prisma } from "../../src/generated/prisma-node/client";
 import { nodeProtocolTest } from "../shared/node-protocol-fixture";
@@ -21,7 +21,7 @@ const it = nodeProtocolTest
       APP_CANONICAL_ORIGIN: authOrigin,
     },
   })
-  .extend("passkey", async ({ protocolRuntime, expect }) =>
+  .extend("passkey", async ({ protocolRuntime }) =>
     protocolRuntime.run(async () => {
       // These bindings must precede the first construction of the module's auth
       // singleton. This fixture does not isolate heterogeneous singleton configs.
