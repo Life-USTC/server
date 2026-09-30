@@ -13,7 +13,10 @@ test.describe("/error 错误页", () => {
     });
   });
 
-  test("授权被拒绝时显示授权错误信息", async ({ page, publicFlow }, testInfo) => {
+  test("授权被拒绝时显示授权错误信息", async ({
+    page,
+    publicFlow,
+  }, testInfo) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(page, "/error?error=consent_failed", {
         testInfo,

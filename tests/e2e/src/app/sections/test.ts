@@ -65,7 +65,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
         "/catalog/sections?search=e2e-no-matching-section-7f3c9a",
       );
 
-      await expect(page.getByText(/未找到班级|No sections found/i)).toBeVisible();
+      await expect(
+        page.getByText(/未找到班级|No sections found/i),
+      ).toBeVisible();
       await expect(
         page.locator("#main-content a[href^='/catalog/sections/']"),
       ).toHaveCount(0);
@@ -119,7 +121,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
       await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
       await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
-      await expect(page.getByRole("heading", { name: "所有班级" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "所有班级" }),
+      ).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
       await expect(page).toHaveTitle(/班级/);
 
@@ -148,7 +152,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
         const containerBox = container.getBoundingClientRect();
         const searchboxBox = inputGroup.getBoundingClientRect();
         const actionBottom = Math.max(
-          ...actionButtons.map((button) => button.getBoundingClientRect().bottom),
+          ...actionButtons.map(
+            (button) => button.getBoundingClientRect().bottom,
+          ),
         );
         const activeFiltersBox = activeFilters.getBoundingClientRect();
         const style = getComputedStyle(container);
@@ -204,9 +210,12 @@ test.describe("/catalog/sections 班级搜索页", () => {
       });
       page.on("pageerror", (error) => runtimeErrors.push(error.message));
       await page.setViewportSize({ width: 390, height: 844 });
-      const localeResponse = await page.request.post("/api/account/preferences", {
-        data: { locale: "en-us" },
-      });
+      const localeResponse = await page.request.post(
+        "/api/account/preferences",
+        {
+          data: { locale: "en-us" },
+        },
+      );
       expect(localeResponse.status()).toBe(200);
 
       await gotoAndWaitForReady(
@@ -381,7 +390,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
         await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
         await expect(page).toHaveTitle(/班级/);
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-        await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
+        await expect(
+          page.locator('[data-slot="filter-toolbar"]'),
+        ).toBeVisible();
         await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
 
         const documentGeometry = await page.evaluate(() => ({
@@ -505,7 +516,8 @@ test.describe("/catalog/sections 班级搜索页", () => {
             overflowingCells,
             resultsBackgroundIsTransparent:
               resultsStyle.backgroundColor.replaceAll(" ", "") ===
-                "rgba(0,0,0,0)" || resultsStyle.backgroundColor === "transparent",
+                "rgba(0,0,0,0)" ||
+              resultsStyle.backgroundColor === "transparent",
             resultsBorderRadius: Math.max(
               ...[
                 resultsStyle.borderTopLeftRadius,
@@ -525,8 +537,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
             resultsOverflowX: resultsStyle.overflowX,
             resultsOverflowY: resultsStyle.overflowY,
             summaryIsDirectChild:
-              results.querySelector(":scope > [data-slot='results-summary']") !==
-              null,
+              results.querySelector(
+                ":scope > [data-slot='results-summary']",
+              ) !== null,
             scrollWidth: container.scrollWidth,
             tableWidth: table.getBoundingClientRect().width,
           };
@@ -535,7 +548,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
         expect(geometry.scrollWidth).toBeLessThanOrEqual(
           geometry.clientWidth + 1,
         );
-        expect(geometry.tableWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+        expect(geometry.tableWidth).toBeLessThanOrEqual(
+          geometry.clientWidth + 1,
+        );
         expect(geometry.cellsWithinContainer).toBe(true);
         expect(
           geometry.columnAlignment.map((column) => column.alignment),
@@ -592,7 +607,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await filterSheet.getByLabel("教师").fill(DEV_SEED.teacher.nameCn);
       await filterSheet.getByLabel("课程代码").fill(DEV_SEED.course.code);
       await filterSheet.getByLabel("班级代码").fill(DEV_SEED.section.code);
-      await filterSheet.getByLabel("学分").fill(String(DEV_SEED.section.credits));
+      await filterSheet
+        .getByLabel("学分")
+        .fill(String(DEV_SEED.section.credits));
       await filterSheet.getByLabel("排序字段").selectOption("code");
       await filterSheet.getByLabel("排序方向").selectOption("desc");
       await filterSheet.getByRole("button", { name: "应用筛选" }).click();
@@ -611,7 +628,11 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await expect(page.locator('[data-slot="active-filters"]')).toContainText(
         DEV_SEED.teacher.nameCn,
       );
-      await captureStepScreenshot(page, testInfo, "sections-structured-results");
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "sections-structured-results",
+      );
 
       await page.getByRole("link", { name: /^清除$/ }).click();
       await expect(page).toHaveURL(/\/catalog\/sections$/);
@@ -630,7 +651,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
         semesterName: _searchSection.semester.nameCn,
       };
       if (!filter.semesterName) {
-        throw new Error("Expected the seeded section to have a semester fixture");
+        throw new Error(
+          "Expected the seeded section to have a semester fixture",
+        );
       }
 
       await gotoAndWaitForReady(
@@ -638,7 +661,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
         `/catalog/sections?semesterId=${filter.semesterId}`,
         { testInfo, screenshotLabel: "sections-semester" },
       );
-      await expect(page).toHaveURL(new RegExp(`semesterId=${filter.semesterId}`));
+      await expect(page).toHaveURL(
+        new RegExp(`semesterId=${filter.semesterId}`),
+      );
       await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await captureStepScreenshot(page, testInfo, "sections-filter-semester");
