@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../utils/community-fixture";
+import { observeAction } from "../../../utils/observed-action";
 import { absoluteTestUrl } from "../../../utils/request-url";
 
 test("comment.public-permission-recovery", async ({
@@ -102,14 +103,16 @@ test("comment.public-permission-recovery", async ({
           const before = await db.comment.findMany({
             where: { userId: user.id },
           });
-          const rejected = page.waitForResponse(
-            (r) =>
-              new URL(r.url()).pathname === "/api/community/comments" &&
-              r.request().method() === "POST" &&
-              r.status() === 401,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  new URL(r.url()).pathname === "/api/community/comments" &&
+                  r.request().method() === "POST" &&
+                  r.status() === 401,
+              ),
+            () => post.click(),
           );
-          await post.click();
-          await rejected;
           await expect(post).toBeEnabled();
           await expect(
             page.getByRole("textbox", { name: "Comment body", exact: true }),
@@ -119,14 +122,16 @@ test("comment.public-permission-recovery", async ({
           ).toEqual(before);
           expect(writes).toBe(1);
           denyWrite = false;
-          const saved = page.waitForResponse(
-            (r) =>
-              new URL(r.url()).pathname === "/api/community/comments" &&
-              r.request().method() === "POST" &&
-              r.status() === 201,
+          const response = await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  new URL(r.url()).pathname === "/api/community/comments" &&
+                  r.request().method() === "POST" &&
+                  r.status() === 201,
+              ),
+            () => post.click(),
           );
-          await post.click();
-          const response = await saved;
           const result = await response.json();
           await expect(page.locator(`#comment-${result.id}`)).toContainText(
             body,

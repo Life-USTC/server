@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { createCommentAudiences, test } from "../../../utils/community-fixture";
+import { observeAction } from "../../../utils/observed-action";
 
 test("ui.detail-two-column-stream-6", async ({
   communityFlow,
@@ -68,20 +69,27 @@ test("ui.detail-two-column-stream-6", async ({
             await route.continue();
           },
         );
-        const loaded = page.waitForResponse(
-          (r) =>
-            new URL(r.url()).pathname === "/api/community/comments" &&
-            r.request().method() === "GET",
-        );
         try {
-          await page.goto(target.path);
-          await intercepted;
-          for (const row of rows)
-            await expect(page.getByText(row.body, { exact: true })).toHaveCount(
-              0,
-            );
-          release();
-          const client = await loaded;
+          const client = await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  new URL(r.url()).pathname === "/api/community/comments" &&
+                  r.request().method() === "GET",
+              ),
+            async () => {
+              try {
+                await page.goto(target.path);
+                await intercepted;
+                for (const row of rows)
+                  await expect(
+                    page.getByText(row.body, { exact: true }),
+                  ).toHaveCount(0);
+              } finally {
+                release();
+              }
+            },
+          );
           expect(client.status()).toBe(200);
           expect(client.headers()["cache-control"]).toContain("no-store");
           const payload = await client.json();

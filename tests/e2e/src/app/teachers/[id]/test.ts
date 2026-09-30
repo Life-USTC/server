@@ -23,6 +23,7 @@
  * - Description edit requires login
  * - Comment CRUD: post → edit → delete
  */
+
 import { expect, test } from "@playwright/test";
 import {
   arrangeDescription,
@@ -35,6 +36,7 @@ import {
 import { openCommentComposer } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -273,16 +275,17 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expect(editor).toBeVisible();
           await editor.fill(content);
 
-          const saveResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/descriptions") &&
-              r.request().method() === "POST" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/descriptions") &&
+                  r.request().method() === "POST" &&
+                  r.status() === 200,
+              ),
+            () =>
+              introduction.getByRole("button", { name: /保存|Save/i }).click(),
           );
-          await introduction
-            .getByRole("button", { name: /保存|Save/i })
-            .click();
-          await saveResponse;
           await waitForUiSettled(page);
 
           // description.content rendered in the description tabpanel
@@ -362,17 +365,20 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
           const body = `e2e-teacher-comment-${Date.now()}`;
           await composer.fill(body);
-          const createResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments") &&
-              r.request().method() === "POST" &&
-              r.status() === 201,
+          const createdCommentResponse = await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments") &&
+                  r.request().method() === "POST" &&
+                  r.status() === 201,
+              ),
+            () =>
+              page
+                .locator("#comments")
+                .getByRole("button", { name: /发布评论|Post comment/i })
+                .click(),
           );
-          await page
-            .locator("#comments")
-            .getByRole("button", { name: /发布评论|Post comment/i })
-            .click();
-          const createdCommentResponse = await createResponse;
           const createResponseBody = (await createdCommentResponse.json()) as {
             id: string;
           };
@@ -420,14 +426,16 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
             .first();
           await expect(editTextarea).toBeVisible();
           await editTextarea.fill(editedBody);
-          const editResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments/") &&
-              r.request().method() === "PATCH" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments/") &&
+                  r.request().method() === "PATCH" &&
+                  r.status() === 200,
+              ),
+            () => editCard.getByRole("button", { name: /保存|Save/i }).click(),
           );
-          await editCard.getByRole("button", { name: /保存|Save/i }).click();
-          await editResponse;
           expect(await storedComment(community.db, commentId)).toMatchObject({
             body: editedBody,
             userId: account.id,
@@ -461,19 +469,27 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expect(
             page.getByRole("menuitem", { name: /举报|Report/i }),
           ).toHaveCount(0);
-          const deleteResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments/") &&
-              r.request().method() === "DELETE" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments/") &&
+                  r.request().method() === "DELETE" &&
+                  r.status() === 200,
+              ),
+            async () => {
+              await page
+                .getByRole("menuitem", { name: /删除|Delete/i })
+                .click();
+              const dialog = page.getByRole("alertdialog", {
+                name: /删除评论|Delete Comment/i,
+              });
+              await expect(dialog).toBeVisible();
+              await dialog
+                .getByRole("button", { name: /删除|Delete/i })
+                .click();
+            },
           );
-          await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-          const dialog = page.getByRole("alertdialog", {
-            name: /删除评论|Delete Comment/i,
-          });
-          await expect(dialog).toBeVisible();
-          await dialog.getByRole("button", { name: /删除|Delete/i }).click();
-          await deleteResponse;
           expect(await storedComment(community.db, commentId)).toMatchObject({
             status: "deleted",
             deletedAt: expect.any(Date),

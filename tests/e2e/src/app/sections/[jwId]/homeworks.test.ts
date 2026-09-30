@@ -1,6 +1,7 @@
 /**
  * E2E: /catalog/sections/[jwId] — Section homework CRUD and homework comment permalinks
  */
+
 import { expect } from "@playwright/test";
 import {
   closeDetailDialog,
@@ -15,6 +16,7 @@ import {
   readHomeworkCompletion,
   readHomeworks,
 } from "../../../../utils/homework-state";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -367,16 +369,19 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
         const title = `e2e-section-hw-${Date.now()}`;
         await createDialog.getByTestId("section-homework-title").fill(title);
-        const createResponse = page.waitForResponse(
-          (r) =>
-            r.url().includes("/api/community/section-homeworks") &&
-            r.request().method() === "POST" &&
-            r.status() === 201,
+        const createdHomeworkResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/api/community/section-homeworks") &&
+                r.request().method() === "POST" &&
+                r.status() === 201,
+            ),
+          () =>
+            createDialog
+              .getByRole("button", { name: /创建作业|Create homework/i })
+              .click(),
         );
-        await createDialog
-          .getByRole("button", { name: /创建作业|Create homework/i })
-          .click();
-        const createdHomeworkResponse = await createResponse;
         const createResponseBody = (await createdHomeworkResponse.json()) as {
           id: string;
         };
@@ -430,15 +435,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         await expect(completionButton).toHaveAccessibleName(
           /标记为完成|Mark as complete/i,
         );
-        const toggleResponse = page.waitForResponse(
-          (r) =>
-            r.url().includes("/api/workspace/homeworks/") &&
-            r.url().includes("/completion") &&
-            r.request().method() === "PUT" &&
-            r.status() === 200,
+        await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/api/workspace/homeworks/") &&
+                r.url().includes("/completion") &&
+                r.request().method() === "PUT" &&
+                r.status() === 200,
+            ),
+          () => completionButton.click(),
         );
-        await completionButton.click();
-        await toggleResponse;
         await expect
           .poll(() => readHomeworkCompletion(db, account.id, homeworkId))
           .toMatchObject({ userId: account.id, homeworkId });
@@ -463,16 +470,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           .locator('[data-slot="alert-dialog-content"]')
           .last();
         await expect(deleteDialog).toBeVisible();
-        const deleteResponse = page.waitForResponse(
-          (r) =>
-            r.url().includes("/api/community/section-homeworks/") &&
-            r.request().method() === "DELETE" &&
-            r.status() === 200,
+        await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/api/community/section-homeworks/") &&
+                r.request().method() === "DELETE" &&
+                r.status() === 200,
+            ),
+          () =>
+            deleteDialog.getByRole("button", { name: /删除|Delete/i }).click(),
         );
-        await deleteDialog
-          .getByRole("button", { name: /删除|Delete/i })
-          .click();
-        await deleteResponse;
         await expect(hwCard).toHaveCount(0);
         await expect
           .poll(() => readHomeworks(db, section.id))
@@ -568,17 +576,21 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           .getByRole("checkbox", { name: /Team required|需要组队/i })
           .click();
 
-        const editResponse = page.waitForResponse(
-          (response) =>
-            response
-              .url()
-              .endsWith(`/api/community/section-homeworks/${homeworkId}`) &&
-            response.request().method() === "PATCH",
+        const editResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response
+                  .url()
+                  .endsWith(`/api/community/section-homeworks/${homeworkId}`) &&
+                response.request().method() === "PATCH",
+            ),
+          () =>
+            editForm
+              .getByRole("button", { name: /Save changes|保存修改/i })
+              .click(),
         );
-        await editForm
-          .getByRole("button", { name: /Save changes|保存修改/i })
-          .click();
-        expect((await editResponse).status()).toBe(200);
+        expect(editResponse.status()).toBe(200);
         await expect
           .poll(() => readHomeworks(db, section.id))
           .toMatchObject([

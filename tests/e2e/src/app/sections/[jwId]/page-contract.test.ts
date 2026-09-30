@@ -1,6 +1,7 @@
 /**
  * E2E: /catalog/sections/[jwId] — Page contract, display fields, layout, and description
  */
+
 import { expect, test } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { openCommentComposer } from "../../../../utils/comments";
@@ -12,6 +13,7 @@ import {
   supplement,
 } from "../../../../utils/community-fixture";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -476,16 +478,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
               .getByText(content),
           ).toBeVisible();
 
-          const saveResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/descriptions") &&
-              r.request().method() === "POST" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/descriptions") &&
+                  r.request().method() === "POST" &&
+                  r.status() === 200,
+              ),
+            () =>
+              introduction.getByRole("button", { name: /保存|Save/i }).click(),
           );
-          await introduction
-            .getByRole("button", { name: /保存|Save/i })
-            .click();
-          await saveResponse;
           await expect(
             introduction
               .getByRole("tabpanel", { name: /简介|Description/i })
