@@ -1,6 +1,6 @@
-import type { IsolatedWorker } from "../../../../utils/isolated-worker";
+import type { Prisma } from "../../../../../../src/generated/prisma-node/client";
 
-type Database = IsolatedWorker["database"]["owner"];
+type Database = Prisma.TransactionClient;
 export const facts = {
   semesterJwId: 1,
   course: { jwId: 1, code: "MCP1001", nameCn: "MCP验证课程" },

@@ -1,12 +1,5 @@
 import { test as oauthTest } from "../src/app/api/mcp/_fixture";
-import { withBrowserWorkflow } from "./browser-workflow";
 import { createCalendarContractFixture } from "./calendar-contract";
-import {
-  type CalendarBrowserWriteVerifier,
-  type CalendarProtocol,
-  type CalendarProtocolChecks,
-  withCalendarProtocol,
-} from "./calendar-protocol-lifecycle";
 import { DEV_SEED } from "./dev-seed";
 
 export type PrivateCalendar = Omit<
@@ -16,44 +9,10 @@ export type PrivateCalendar = Omit<
 /** Mutable calendars belong to a private real Worker. Each factory invocation
  * creates explicit user/section/semester memberships in that same database. */
 export const test = oauthTest.extend<{
-  calendarProtocolRun: (
-    work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
-    verifyBrowserWrite?: CalendarBrowserWriteVerifier,
-  ) => Promise<void>;
   calendarSemester: number;
   createCalendar: () => Promise<PrivateCalendar>;
   calendar: PrivateCalendar;
 }>({
-  calendarProtocolRun: async (
-    { page, request, playwright, isolatedWorker, run },
-    use,
-    testInfo,
-  ) => {
-    await withBrowserWorkflow(page, async (workflow) => {
-      await use((work, verifyBrowserWrite) =>
-        workflow.run(() =>
-          run(() =>
-            withCalendarProtocol(
-              {
-                page,
-                observer: request,
-                isolatedWorker,
-                createRequest: (headers) =>
-                  playwright.request.newContext({
-                    baseURL: isolatedWorker.origin,
-                    extraHTTPHeaders: headers,
-                  }),
-                runBody: workflow.body,
-                testInfo,
-                verifyBrowserWrite,
-              },
-              work,
-            ),
-          ),
-        ),
-      );
-    });
-  },
   calendarSemester: async ({ isolatedWorker, run }, use) => {
     const semester = await run(() =>
       isolatedWorker.database.owner.semester.create({

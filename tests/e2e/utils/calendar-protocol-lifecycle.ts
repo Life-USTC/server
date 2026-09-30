@@ -36,6 +36,7 @@ export type CalendarProtocol = {
   observeCalendar: (
     account: { id: string },
     messages: CalendarMessage[],
+    options?: { sectionId?: number; calendar?: "present" | "absent" },
   ) => Promise<void>;
   mcp: (
     identity: { name: string; version: string },
@@ -115,7 +116,7 @@ export async function withCalendarProtocol(
             actualBody = Promise.resolve().then(async () => {
               checks = await work({
                 request: anonymous,
-                async observeCalendar(account, messages) {
+                async observeCalendar(account, messages, options) {
                   if (!accepting || calendar)
                     throw new Error(
                       "Calendar consumer is already owned or closing",
@@ -127,6 +128,7 @@ export async function withCalendarProtocol(
                       request: observer,
                       producerPath: probePath,
                       account,
+                      ...options,
                     }),
                     messages: structuredClone(messages),
                   };
