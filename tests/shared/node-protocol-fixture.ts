@@ -11,7 +11,10 @@ export const nodeProtocolTest = isolatedDatabaseTest.extend<{
   protocolRuntime: NodeProtocolRuntime;
 }>({
   protocolBindings: {},
-  protocolRuntime: async ({ isolatedDatabase, protocolBindings }, use) => {
+  protocolRuntime: async (
+    { isolatedDatabase, protocolBindings, onTestFinished },
+    use,
+  ) => {
     const { connections } = isolatedDatabase;
     const runtime = createNodeProtocolRuntime({
       APP_PUBLIC_ORIGIN: "http://localhost:3000",
@@ -26,7 +29,14 @@ export const nodeProtocolTest = isolatedDatabaseTest.extend<{
     try {
       await use(runtime);
     } finally {
-      await runtime.close();
+      try {
+        await runtime.close();
+      } catch (error) {
+        // Release outer database owners before reporting this original error.
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
 });

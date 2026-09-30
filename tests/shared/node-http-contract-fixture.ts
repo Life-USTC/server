@@ -86,7 +86,10 @@ function ownHttpServer(runtime: NodeProtocolRuntime, handler: Handler) {
   function close() {
     closing ??= (async () => {
       // Keep IO available to admitted workflow callbacks after their test timeout.
-      const results = await Promise.allSettled([runtime.drain()]);
+      // The enclosing protocolRuntime fixture owns and reports the cached
+      // runtime rejection. This borrowed wait preserves shutdown ordering.
+      await Promise.allSettled([runtime.drain()]);
+      const results: PromiseSettledResult<void>[] = [];
       accepting = false;
       await initialization?.catch(() => undefined);
       for (let i = 0; i < requests.length; i++) await requests[i];
@@ -102,7 +105,9 @@ function ownHttpServer(runtime: NodeProtocolRuntime, handler: Handler) {
       responses.clear();
       for (let i = 0; i < handlers.length; i++)
         results.push(...(await Promise.allSettled([handlers[i]])));
-      results.push(...(await Promise.allSettled([runtime.close()])));
+      // Preserve the full request/body drain before closing the listener.
+      // Its original error is reported once by the enclosing runtime owner.
+      await Promise.allSettled([runtime.close()]);
       results.push(
         ...(await Promise.allSettled([
           new Promise<void>((resolve, reject) => {
@@ -141,12 +146,21 @@ export const nodeHttpTest = nodeProtocolTest.extend<{
       throw new Error("An HTTP contract handler is required");
     });
   },
-  _httpResources: async ({ protocolRuntime, httpHandler }, use) => {
+  _httpResources: async (
+    { protocolRuntime, httpHandler, onTestFinished },
+    use,
+  ) => {
     const server = ownHttpServer(protocolRuntime, httpHandler);
     try {
       await use(server);
     } finally {
-      await server.close();
+      try {
+        await server.close();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
   http: async ({ _httpResources }, use) => {

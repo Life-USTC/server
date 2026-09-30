@@ -42,23 +42,34 @@ export const restSubscriptionTest = nodeHttpTest
   .extend(
     "subscription",
     async (
-      { http, isolatedDatabase: { owner: db }, protocolRuntime },
+      {
+        http,
+        isolatedDatabase: { owner: db },
+        protocolRuntime,
+        onTestFinished,
+      },
       { onCleanup },
     ) => {
       const users: string[] = [];
       const clients: ReturnType<typeof ownMcpHarness>[] = [];
       onCleanup(async () => {
-        const results = await Promise.allSettled([protocolRuntime.drain()]);
-        results.push(
-          ...(await Promise.allSettled(
-            clients.map((client) => client.client.close()),
-          )),
+        // Preserve the workflow barrier; the enclosing runtime owns its error.
+        await Promise.allSettled([protocolRuntime.drain()]);
+        const results = await Promise.allSettled(
+          clients.map((client) => client.client.close()),
         );
         const failures = results.flatMap((result) =>
           result.status === "rejected" ? [result.reason] : [],
         );
-        if (failures.length)
-          throw new AggregateError(failures, "Subscription MCP cleanup failed");
+        if (failures.length) {
+          const error = new AggregateError(
+            failures,
+            "Subscription MCP cleanup failed",
+          );
+          onTestFinished(() => {
+            throw error;
+          });
+        }
       });
       await protocolRuntime.run(() => createCatalogContractFixture(db));
       async function createMcpHarness(userId: string) {

@@ -18,6 +18,9 @@
     "tests/ci/fixtures/mcp-fixture-failure.config.ts",
     "tests/ci/fixtures/mcp-fixture-failure.scenario.ts",
     "tests/ci/fixtures/mcp-fixture-failure-reporter.ts",
+    "tests/ci/fixtures/shared-cleanup-failure.config.ts",
+    "tests/ci/fixtures/shared-cleanup-failure.scenario.ts",
+    "tests/ci/fixtures/shared-cleanup-failure-reporter.ts",
     "tests/e2e/**/*.ts",
     "scripts/specifications/**/*.ts"
   ],

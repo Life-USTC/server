@@ -24,7 +24,7 @@ export const publicCatalogProtocolTest = nodeProtocolTest.extend<{
     await use(undefined);
   },
   publicCatalogMcp: async (
-    { protocolRuntime, _publicCatalogRevision },
+    { protocolRuntime, _publicCatalogRevision, onTestFinished },
     use,
   ) => {
     const owned = ownAnonymousMcpHarness({ run: protocolRuntime.request });
@@ -36,15 +36,23 @@ export const publicCatalogProtocolTest = nodeProtocolTest.extend<{
       failures.push(error);
     } finally {
       const results = await Promise.allSettled([owned.client.close()]);
-      results.push(...(await Promise.allSettled([protocolRuntime.drain()])));
+      // The runtime owner reports its original cached rejection once.
+      // Keep waiting here so no admitted workflow outlives this boundary.
+      await Promise.allSettled([protocolRuntime.drain()]);
       failures.push(
         ...results.flatMap((result) =>
           result.status === "rejected" ? [result.reason] : [],
         ),
       );
     }
-    if (failures.length === 1) throw failures[0];
-    if (failures.length)
-      throw new AggregateError(failures, "Public catalog MCP lifecycle failed");
+    if (failures.length) {
+      const error =
+        failures.length === 1
+          ? failures[0]
+          : new AggregateError(failures, "Public catalog MCP lifecycle failed");
+      onTestFinished(() => {
+        throw error;
+      });
+    }
   },
 });

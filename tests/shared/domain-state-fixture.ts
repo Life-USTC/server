@@ -33,7 +33,10 @@ export const domainStateTest = isolatedDatabaseTest.extend<{
       },
     });
   },
-  domainRuntime: async ({ isolatedDatabase, domainQueue }, use) => {
+  domainRuntime: async (
+    { isolatedDatabase, domainQueue, onTestFinished },
+    use,
+  ) => {
     const runtimes: ReturnType<typeof createNodeRuntime>[] = [];
     let closed = false;
     const run: DomainState["runtime"] = (work, connectionLabel) => {
@@ -75,8 +78,15 @@ export const domainStateTest = isolatedDatabaseTest.extend<{
     failures.push(
       ...results.flatMap((r) => (r.status === "rejected" ? [r.reason] : [])),
     );
-    if (failures.length)
-      throw new AggregateError(failures, "Domain runtime cleanup failed");
+    if (failures.length) {
+      const error = new AggregateError(
+        failures,
+        "Domain runtime cleanup failed",
+      );
+      onTestFinished(() => {
+        throw error;
+      });
+    }
   },
   state: async (
     { suspendedIsAdmin, isolatedDatabase, domainRuntime, domainQueue },

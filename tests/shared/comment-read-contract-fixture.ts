@@ -19,7 +19,7 @@ export const commentReadTest = nodeProtocolTest
   .extend<{
     readSdk: { own(userId: string | null): OwnedMcp };
   }>({
-    readSdk: async ({ protocolRuntime }, use) => {
+    readSdk: async ({ protocolRuntime, onTestFinished }, use) => {
       const sessions: OwnedMcp[] = [];
       let closed = false;
       const failures: unknown[] = [];
@@ -44,19 +44,27 @@ export const commentReadTest = nodeProtocolTest
         const results = await Promise.allSettled(
           sessions.map(({ client }) => client.close()),
         );
-        results.push(...(await Promise.allSettled([protocolRuntime.drain()])));
+        // The runtime owner reports its original cached rejection once.
+        // Keep waiting here so no admitted workflow outlives this boundary.
+        await Promise.allSettled([protocolRuntime.drain()]);
         failures.push(
           ...results.flatMap((result) =>
             result.status === "rejected" ? [result.reason] : [],
           ),
         );
       }
-      if (failures.length === 1) throw failures[0];
-      if (failures.length)
-        throw new AggregateError(
-          failures,
-          "Comment reader SDK lifecycle failed",
-        );
+      if (failures.length) {
+        const error =
+          failures.length === 1
+            ? failures[0]
+            : new AggregateError(
+                failures,
+                "Comment reader SDK lifecycle failed",
+              );
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     },
   })
   .extend(
