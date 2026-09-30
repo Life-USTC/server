@@ -6,27 +6,18 @@ import { publicYoungProtocolTest } from "../../../shared/public-young-protocol-f
 // admitted workflow/request work and SDK handlers have finished, even on failure.
 const contractTest = publicYoungProtocolTest.extend(
   "network",
-  async ({ protocolRuntime, publicCatalogMcp }, { onCleanup }) => {
+  async ({
+    protocolRuntime: _protocolRuntime,
+    publicCatalogMcp: _publicCatalogMcp,
+    onTestFinished,
+  }) => {
     const network = vi
       .spyOn(globalThis, "fetch")
       .mockRejectedValue(new Error("Upstream network unavailable"));
-    onCleanup(async () => {
-      try {
-        const results = await Promise.allSettled([
-          publicCatalogMcp.client.close(),
-        ]);
-        results.push(...(await Promise.allSettled([protocolRuntime.close()])));
-        const failures = results.flatMap((result) =>
-          result.status === "rejected" ? [result.reason] : [],
-        );
-        if (failures.length)
-          throw new AggregateError(
-            failures,
-            "Public catalog network cleanup failed",
-          );
-      } finally {
-        network.mockRestore();
-      }
+    // Test-scoped owners finish before onTestFinished. Each owner reports its
+    // own failure; this fixture restores only the process-global spy it owns.
+    onTestFinished(() => {
+      network.mockRestore();
     });
     return network;
   },
