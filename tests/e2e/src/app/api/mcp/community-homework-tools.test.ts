@@ -237,9 +237,14 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         const deletedAt = Date.now();
         const id = createHomeworkPayload.id;
         if (!id) throw new Error("Missing created homework ID");
+        const description = await db.description.findUniqueOrThrow({
+          where: { homeworkId: id },
+          select: { id: true },
+        });
         return {
-          audits: [
+          audits: (attribution) => [
             {
+              ...attribution,
               action: "homework_create",
               targetId: id,
               targetType: "homework",
@@ -257,6 +262,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
               },
             },
             {
+              ...attribution,
               action: "homework_update",
               targetId: id,
               targetType: "homework",
@@ -271,6 +277,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
               },
             },
             {
+              ...attribution,
               action: "homework_update",
               targetId: id,
               targetType: "homework",
@@ -280,10 +287,37 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
               },
             },
             {
+              ...attribution,
               action: "homework_delete",
               targetId: id,
               targetType: "homework",
               metadata: { sectionId: section.id },
+            },
+            {
+              outcome: "success",
+              channel: "web",
+              userId: oauth.user.id,
+              subjectUserId: oauth.user.id,
+              oauthClientId: null,
+              oauthGrantId: null,
+              sessionId: null,
+              action: "description_edit",
+              targetId: description.id,
+              targetType: "description",
+              metadata: { targetType: "homework", changedFields: ["content"] },
+            },
+            {
+              outcome: "success",
+              channel: "web",
+              userId: oauth.user.id,
+              subjectUserId: oauth.user.id,
+              oauthClientId: null,
+              oauthGrantId: null,
+              sessionId: null,
+              action: "description_edit",
+              targetId: description.id,
+              targetType: "description",
+              metadata: { targetType: "homework", changedFields: ["content"] },
             },
           ],
           async verifyState() {
@@ -307,6 +341,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
               submissionStartAt: new Date("2026-04-29T09:00:00+08:00"),
               submissionDueAt: new Date("2026-05-15T23:00:00+08:00"),
               description: {
+                id: description.id,
                 content: "homework description-only update by mcp e2e",
               },
               deletedAt: expect.any(Date),
