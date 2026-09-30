@@ -30,186 +30,222 @@ test.describe("/account/settings 设置中心", () => {
     await captureStepScreenshot(page, testInfo, "settings-unauthorized");
   });
 
-  test("ui.settings-navigation-2", async ({ page, account }, testInfo) => {
-    await gotoAndWaitForReady(page, "/account/settings");
+  test("ui.settings-navigation-2", async ({
+    accountRun,
+    page,
+    account,
+  }, testInfo) => {
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await gotoAndWaitForReady(page, "/account/settings");
 
-    await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
-    await expect(page.locator("input#name")).toBeVisible();
-    await expect(page.locator("input#username")).toHaveValue(
-      account.username ?? "",
-    );
-    await expect(page.locator("footer")).toHaveCount(0);
-    await captureStepScreenshot(page, testInfo, "settings-default-profile");
+      await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
+      await expect(page.locator("input#name")).toBeVisible();
+      await expect(page.locator("input#username")).toHaveValue(
+        account.username ?? "",
+      );
+      await expect(page.locator("footer")).toHaveCount(0);
+      await captureStepScreenshot(page, testInfo, "settings-default-profile");
+    });
   });
 
   test("ui.settings-navigation-1", async ({
+    accountRun,
     page,
     account: _account,
   }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, "/account/settings");
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(page, "/account/settings");
 
-    const navigation = page.getByTestId("detail-section-nav");
-    const scrollViewport = navigation.locator('[data-sidebar="content"]');
-    const activePanel = page.locator("[data-settings-active-panel]");
-    const profileLink = navigation.getByRole("link", {
-      name: /个人资料|Profile/i,
-    });
+      const navigation = page.getByTestId("detail-section-nav");
+      const scrollViewport = navigation.locator('[data-sidebar="content"]');
+      const activePanel = page.locator("[data-settings-active-panel]");
+      const profileLink = navigation.getByRole("link", {
+        name: /个人资料|Profile/i,
+      });
 
-    await expect(profileLink).toHaveAttribute("aria-current", "page");
-    await expect
-      .poll(() =>
-        Promise.all([
-          navigation.getAttribute("data-overflow-left"),
-          navigation.getAttribute("data-overflow-right"),
-        ]),
-      )
-      .toEqual(["false", "true"]);
-    const mobileNavigationBox = await scrollViewport.boundingBox();
-    const mobilePanelBox = await activePanel.boundingBox();
-    expect(mobileNavigationBox?.height).toBeLessThan(80);
-    expect(mobilePanelBox?.y).toBeLessThan(844);
-    await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
-
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await gotoAndWaitForReady(page, "/account/settings");
-    const desktopNavigationBox = await navigation.boundingBox();
-    const desktopPanelBox = await activePanel.boundingBox();
-    expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
-    expect(desktopNavigationBox?.width).toBe(224);
-    await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
-  });
-
-  test("ui.settings-navigation-6", async ({ page, account: _account }) => {
-    const localeResponse = await page.request.post("/api/account/preferences", {
-      data: { locale: "zh-cn" },
-    });
-    expect(localeResponse.status()).toBe(200);
-    await page.setViewportSize({ width: 375, height: 900 });
-    await gotoAndWaitForReady(page, "/account/settings/danger");
-
-    const navigation = page.getByTestId("detail-section-nav");
-    const scrollViewport = navigation.locator('[data-sidebar="content"]');
-    const activeLink = navigation.locator('a[aria-current="page"]');
-
-    for (const width of [280, 320, 375]) {
-      await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/account/settings/danger");
-      await expect(activeLink).toHaveCount(1);
-      await expect(activeLink).toBeVisible();
+      await expect(profileLink).toHaveAttribute("aria-current", "page");
       await expect
         .poll(() =>
-          scrollViewport.evaluate((nav) => {
-            const link = nav.querySelector<HTMLElement>(
-              'a[aria-current="page"]',
-            );
-            const wrapper = nav.parentElement;
-            if (!link || !wrapper) return null;
-            const linkBox = link.getBoundingClientRect();
-            const navBox = nav.getBoundingClientRect();
-            const wrapperBox = wrapper.getBoundingClientRect();
-            const leftFade = getComputedStyle(wrapper, "::before");
-            const rightFade = getComputedStyle(wrapper, "::after");
-            const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
-            return {
-              activeClearOfLeftFade:
-                linkBox.left >= wrapperBox.left + leftFadeWidth - 1,
-              activeWithinNavigation:
-                linkBox.left >= navBox.left - 1 &&
-                linkBox.right <= navBox.right + 1,
-              documentFitsViewport:
-                document.documentElement.scrollWidth <=
-                document.documentElement.clientWidth,
-              navigationScrollable: nav.scrollWidth > nav.clientWidth,
-              navigationScrolled: nav.scrollLeft > 0,
-              leftFadeVisible:
-                wrapper.dataset.overflowLeft === "true" &&
-                leftFade.backgroundImage !== "none",
-              rightFadeHidden:
-                wrapper.dataset.overflowRight === "false" &&
-                rightFade.backgroundImage === "none",
-              windowScrollX: window.scrollX,
-            };
-          }),
+          Promise.all([
+            navigation.getAttribute("data-overflow-left"),
+            navigation.getAttribute("data-overflow-right"),
+          ]),
         )
-        .toEqual({
-          activeClearOfLeftFade: true,
-          activeWithinNavigation: true,
-          documentFitsViewport: true,
-          navigationScrollable: true,
-          navigationScrolled: true,
-          leftFadeVisible: true,
-          rightFadeHidden: true,
-          windowScrollX: 0,
-        });
-    }
+        .toEqual(["false", "true"]);
+      const mobileNavigationBox = await scrollViewport.boundingBox();
+      const mobilePanelBox = await activePanel.boundingBox();
+      expect(mobileNavigationBox?.height).toBeLessThan(80);
+      expect(mobilePanelBox?.y).toBeLessThan(844);
+      await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await gotoAndWaitForReady(page, "/account/settings");
+      const desktopNavigationBox = await navigation.boundingBox();
+      const desktopPanelBox = await activePanel.boundingBox();
+      expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
+      expect(desktopNavigationBox?.width).toBe(224);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "settings-responsive-desktop",
+      );
+    });
   });
 
-  test("标签导航切换分区", async ({ page, account: _account }, testInfo) => {
-    await gotoAndWaitForReady(page, "/account/settings");
+  test("ui.settings-navigation-6", async ({
+    accountRun,
+    page,
+    account: _account,
+  }) => {
+    await accountRun(
+      { writes: [["/api/account/preferences", 200]], audits: [] },
+      async () => {
+        const localeResponse = await page.request.post(
+          "/api/account/preferences",
+          {
+            data: { locale: "zh-cn" },
+          },
+        );
+        expect(localeResponse.status()).toBe(200);
+        await page.setViewportSize({ width: 375, height: 900 });
+        await gotoAndWaitForReady(page, "/account/settings/danger");
 
-    // Navigate to accounts tab
-    const accountsTab = page.getByRole("link", {
-      name: /关联账户|Linked accounts/i,
-    });
-    await expect(accountsTab).toBeVisible();
-    await accountsTab.click();
-    await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
-    await expect(page.getByText("GitHub").first()).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
+        const navigation = page.getByTestId("detail-section-nav");
+        const scrollViewport = navigation.locator('[data-sidebar="content"]');
+        const activeLink = navigation.locator('a[aria-current="page"]');
 
-    // Navigate to danger tab
-    const dangerTab = page.getByRole("link", {
-      name: /危险操作|Danger zone/i,
-    });
-    await expect(dangerTab).toBeVisible();
-    await dangerTab.click();
-    await expect(page).toHaveURL(/\/account\/settings\/danger(?:\?.*)?$/);
-    await expect(
-      page.getByRole("button", { name: /删除|Delete/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /删除账户|Delete Account/i }),
-    ).toBeVisible();
-    await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "settings-danger-tab");
+        for (const width of [280, 320, 375]) {
+          await page.setViewportSize({ width, height: 900 });
+          await gotoAndWaitForReady(page, "/account/settings/danger");
+          await expect(activeLink).toHaveCount(1);
+          await expect(activeLink).toBeVisible();
+          await expect
+            .poll(() =>
+              scrollViewport.evaluate((nav) => {
+                const link = nav.querySelector<HTMLElement>(
+                  'a[aria-current="page"]',
+                );
+                const wrapper = nav.parentElement;
+                if (!link || !wrapper) return null;
+                const linkBox = link.getBoundingClientRect();
+                const navBox = nav.getBoundingClientRect();
+                const wrapperBox = wrapper.getBoundingClientRect();
+                const leftFade = getComputedStyle(wrapper, "::before");
+                const rightFade = getComputedStyle(wrapper, "::after");
+                const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
+                return {
+                  activeClearOfLeftFade:
+                    linkBox.left >= wrapperBox.left + leftFadeWidth - 1,
+                  activeWithinNavigation:
+                    linkBox.left >= navBox.left - 1 &&
+                    linkBox.right <= navBox.right + 1,
+                  documentFitsViewport:
+                    document.documentElement.scrollWidth <=
+                    document.documentElement.clientWidth,
+                  navigationScrollable: nav.scrollWidth > nav.clientWidth,
+                  navigationScrolled: nav.scrollLeft > 0,
+                  leftFadeVisible:
+                    wrapper.dataset.overflowLeft === "true" &&
+                    leftFade.backgroundImage !== "none",
+                  rightFadeHidden:
+                    wrapper.dataset.overflowRight === "false" &&
+                    rightFade.backgroundImage === "none",
+                  windowScrollX: window.scrollX,
+                };
+              }),
+            )
+            .toEqual({
+              activeClearOfLeftFade: true,
+              activeWithinNavigation: true,
+              documentFitsViewport: true,
+              navigationScrollable: true,
+              navigationScrolled: true,
+              leftFadeVisible: true,
+              rightFadeHidden: true,
+              windowScrollX: 0,
+            });
+        }
+      },
+    );
+  });
 
-    // Navigate back to profile tab
-    const profileTab = page.getByRole("link", {
-      name: /个人资料|Profile/i,
+  test("标签导航切换分区", async ({
+    accountRun,
+    page,
+    account: _account,
+  }, testInfo) => {
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await gotoAndWaitForReady(page, "/account/settings");
+
+      // Navigate to accounts tab
+      const accountsTab = page.getByRole("link", {
+        name: /关联账户|Linked accounts/i,
+      });
+      await expect(accountsTab).toBeVisible();
+      await accountsTab.click();
+      await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
+      await expect(page.getByText("GitHub").first()).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
+
+      // Navigate to danger tab
+      const dangerTab = page.getByRole("link", {
+        name: /危险操作|Danger zone/i,
+      });
+      await expect(dangerTab).toBeVisible();
+      await dangerTab.click();
+      await expect(page).toHaveURL(/\/account\/settings\/danger(?:\?.*)?$/);
+      await expect(
+        page.getByRole("button", { name: /删除|Delete/i }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /删除账户|Delete Account/i }),
+      ).toBeVisible();
+      await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "settings-danger-tab");
+
+      // Navigate back to profile tab
+      const profileTab = page.getByRole("link", {
+        name: /个人资料|Profile/i,
+      });
+      await expect(profileTab).toBeVisible();
+      await profileTab.click();
+      await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
+      await expect(page.locator("input#name")).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "settings-profile-tab");
     });
-    await expect(profileTab).toBeVisible();
-    await profileTab.click();
-    await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
-    await expect(page.locator("input#name")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "settings-profile-tab");
   });
 
   test("设置语义路径渲染对应分区", async ({
+    accountRun,
     page,
     account: _account,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/account/settings/accounts");
-    await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
-    await expect(page.getByText("GitHub").first()).toBeVisible();
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await gotoAndWaitForReady(page, "/account/settings/accounts");
+      await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
+      await expect(page.getByText("GitHub").first()).toBeVisible();
 
-    await gotoAndWaitForReady(page, "/account/settings/danger");
-    await expect(
-      page.getByRole("button", { name: /删除|Delete/i }).first(),
-    ).toBeVisible();
+      await gotoAndWaitForReady(page, "/account/settings/danger");
+      await expect(
+        page.getByRole("button", { name: /删除|Delete/i }).first(),
+      ).toBeVisible();
 
-    await gotoAndWaitForReady(page, "/account/settings/profile");
-    await expect(page.locator("input#name")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "settings-path-profile");
+      await gotoAndWaitForReady(page, "/account/settings/profile");
+      await expect(page.locator("input#name")).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "settings-path-profile");
+    });
   });
 });
 
-test("页面契约", async ({ page, account: _account }, testInfo) => {
-  await expectSettingsPage(page, "/account/settings", testInfo);
-  for (const name of [
-    /个人资料|Profile/i,
-    /账号关联|Accounts/i,
-    /危险区|Danger/i,
-  ])
-    await expect(page.getByRole("link", { name })).toBeVisible();
+test("页面契约", async ({ accountRun, page, account: _account }, testInfo) => {
+  await accountRun({ writes: [], audits: [] }, async () => {
+    await expectSettingsPage(page, "/account/settings", testInfo);
+    for (const name of [
+      /个人资料|Profile/i,
+      /账号关联|Accounts/i,
+      /危险区|Danger/i,
+    ])
+      await expect(page.getByRole("link", { name })).toBeVisible();
+  });
 });
