@@ -43,10 +43,16 @@ const it = isolatedGraphqlTest
       });
       const [userA, userB] = await Promise.all([
         fixturePrisma.user.create({
-          data: { email: `${marker}-a@example.test`, name: "GraphQL Mutation A" },
+          data: {
+            email: `${marker}-a@example.test`,
+            name: "GraphQL Mutation A",
+          },
         }),
         fixturePrisma.user.create({
-          data: { email: `${marker}-b@example.test`, name: "GraphQL Mutation B" },
+          data: {
+            email: `${marker}-b@example.test`,
+            name: "GraphQL Mutation B",
+          },
         }),
       ]);
       const userAId = userA.id;
@@ -137,7 +143,8 @@ describe("GraphQL authenticated mutations", () => {
       ]);
       const missingScope = await execute(
         {
-          query: 'mutation { todoCreate(input: { title: "read only" }) { id } }',
+          query:
+            'mutation { todoCreate(input: { title: "read only" }) { id } }',
         },
         readToken,
       );
@@ -294,8 +301,14 @@ describe("GraphQL authenticated mutations", () => {
     mutations,
   }) => {
     await graphqlRuntime.run(async () => {
-      const { fixturePrisma, execute, signToken, marker, userAId, sectionJwId } =
-        mutations;
+      const {
+        fixturePrisma,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        sectionJwId,
+      } = mutations;
       const [todoToken, commentToken, section] = await Promise.all([
         signToken(userAId, [restWriteScope("workspace.todo")]),
         signToken(userAId, [restWriteScope("community.comment")]),
@@ -440,8 +453,14 @@ describe("GraphQL authenticated mutations", () => {
     mutations,
   }) => {
     await graphqlRuntime.run(async () => {
-      const { fixturePrisma, execute, signToken, marker, userAId, sectionJwId } =
-        mutations;
+      const {
+        fixturePrisma,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        sectionJwId,
+      } = mutations;
       const [token, section] = await Promise.all([
         signToken(userAId, [restWriteScope("community.comment")]),
         fixturePrisma.section.findUniqueOrThrow({

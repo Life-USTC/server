@@ -295,12 +295,18 @@ test.for<SharedCleanupFailurePhase>([
         }
       }
       const errors = runtime.filter((event) => event.event === "runtime-error");
-      if (phase === "graphql-workspace-setup-timeout" || phase === "graphql-workspace-timeout") {
+      if (
+        phase === "graphql-workspace-setup-timeout" ||
+        phase === "graphql-workspace-timeout"
+      ) {
         expect(errors).toEqual([]);
-        expect(names.filter((name) => name === "native-test-aborted")).toHaveLength(1);
-        const observation = phase === "graphql-workspace-setup-timeout"
-          ? "graphql-workspace-setup-observed"
-          : "graphql-workspace-body-finally";
+        expect(
+          names.filter((name) => name === "native-test-aborted"),
+        ).toHaveLength(1);
+        const observation =
+          phase === "graphql-workspace-setup-timeout"
+            ? "graphql-workspace-setup-observed"
+            : "graphql-workspace-body-finally";
         if (phase === "graphql-workspace-setup-timeout") {
           expect(names).not.toContain("body-entered");
           const order = [
@@ -313,7 +319,9 @@ test.for<SharedCleanupFailurePhase>([
             observation,
           ];
           for (let index = 1; index < order.length; index++)
-            expect(names.indexOf(order[index])).toBeGreaterThan(names.indexOf(order[index - 1]));
+            expect(names.indexOf(order[index])).toBeGreaterThan(
+              names.indexOf(order[index - 1]),
+            );
           const setup = await load("late-graphql-workspace-setup.json");
           expect(setup).toMatchObject({
             nativeAborted: true,
@@ -323,7 +331,11 @@ test.for<SharedCleanupFailurePhase>([
             users: 2,
             result: {
               success: true,
-              data: { workspace: { subscribedSections: { items: [], pageInfo: { total: 0 } } } },
+              data: {
+                workspace: {
+                  subscribedSections: { items: [], pageInfo: { total: 0 } },
+                },
+              },
             },
           });
         } else {
@@ -337,12 +349,21 @@ test.for<SharedCleanupFailurePhase>([
             observation,
           ];
           for (let index = 1; index < order.length; index++)
-            expect(names.indexOf(order[index])).toBeGreaterThan(names.indexOf(order[index - 1]));
+            expect(names.indexOf(order[index])).toBeGreaterThan(
+              names.indexOf(order[index - 1]),
+            );
           const work = await load("late-graphql-workspace-work.json");
           expect(work.nativeAborted).toBe(true);
           expect(work.before).toMatchObject({
             success: true,
-            data: { workspace: { subscribedSections: { items: [{ kind: "regular" }], pageInfo: { total: 1 } } } },
+            data: {
+              workspace: {
+                subscribedSections: {
+                  items: [{ kind: "regular" }],
+                  pageInfo: { total: 1 },
+                },
+              },
+            },
           });
           expect(work.changed).toMatchObject({
             success: true,
@@ -350,16 +371,35 @@ test.for<SharedCleanupFailurePhase>([
           });
           expect(work.after).toMatchObject({
             success: true,
-            data: { workspace: { subscribedSections: { items: [{ kind: "auditor" }], pageInfo: { total: 1 } } } },
+            data: {
+              workspace: {
+                subscribedSections: {
+                  items: [{ kind: "auditor" }],
+                  pageInfo: { total: 1 },
+                },
+              },
+            },
           });
-          expect(work.persisted).toEqual([{ userId: "graphql-domain-owner", kind: "auditor" }]);
+          expect(work.persisted).toEqual([
+            { userId: "graphql-domain-owner", kind: "auditor" },
+          ]);
         }
         for (const client of ["workspace-owner", "workspace-other"]) {
-          expect(names.filter((name) => name === `${client}-close-start`)).toHaveLength(1);
-          expect(names.filter((name) => name === `${client}-close-finished`)).toHaveLength(1);
-          expect(names.indexOf(`${client}-close-start`)).toBeGreaterThan(names.indexOf(observation));
-          expect(names.indexOf(`${client}-close-finished`)).toBeGreaterThan(names.indexOf(`${client}-close-start`));
-          expect(names.indexOf(`${client}-close-finished`)).toBeLessThan(names.indexOf("database-dispose-start"));
+          expect(
+            names.filter((name) => name === `${client}-close-start`),
+          ).toHaveLength(1);
+          expect(
+            names.filter((name) => name === `${client}-close-finished`),
+          ).toHaveLength(1);
+          expect(names.indexOf(`${client}-close-start`)).toBeGreaterThan(
+            names.indexOf(observation),
+          );
+          expect(names.indexOf(`${client}-close-finished`)).toBeGreaterThan(
+            names.indexOf(`${client}-close-start`),
+          );
+          expect(names.indexOf(`${client}-close-finished`)).toBeLessThan(
+            names.indexOf("database-dispose-start"),
+          );
         }
       } else if (phase === "metrics-timeout") {
         expect(errors).toEqual([]);
@@ -602,10 +642,10 @@ test.for<SharedCleanupFailurePhase>([
           phase === "graphql-workspace"
             ? ["workspace-owner", "workspace-other"]
             : phase === "mcp"
-            ? ["first", "second"]
-            : phase === "http"
-              ? []
-              : [phase];
+              ? ["first", "second"]
+              : phase === "http"
+                ? []
+                : [phase];
         for (const client of clients) {
           expect(
             names.filter((name) => name === `${client}-close-start`),
