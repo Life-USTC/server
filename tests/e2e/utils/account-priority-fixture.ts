@@ -48,6 +48,7 @@ async function createAccountPriorityFixture(
         redirectUris: [authorization.redirectUri],
         scopes: authorization.scopes,
         uri: authorization.clientUri,
+        disabled: true,
       },
     });
     const authorizationConsent = await db.oAuthConsent.create({
@@ -55,12 +56,14 @@ async function createAccountPriorityFixture(
         clientId: authorization.clientId,
         scopes: authorization.scopes,
         userId: user.id,
+        updatedAt: now,
       },
-      select: { id: true },
+      select: { id: true, grantId: true },
     });
     const client = await db.oAuthClient.create({
       data: {
         name: "Priority Device",
+        uri: "https://priority-app.example.test",
         clientId: `https://priority-app.example.test/${marker}/client.json`,
         scopes: ["openid", "profile"],
         tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -103,24 +106,12 @@ async function createAccountPriorityFixture(
         email: account.email,
       },
     });
-    await db.oAuthClient.update({
-      where: { clientId: authorization.clientId },
-      data: { disabled: true },
-    });
-    await db.oAuthClient.update({
-      where: { clientId: client.clientId },
-      data: { uri: "https://priority-app.example.test" },
-    });
-    const consent = await db.oAuthConsent.update({
-      where: { id: authorizationConsent.id },
-      data: { updatedAt: now },
-    });
     await db.oAuthGrantUsageDaily.create({
       data: {
         userId: user.id,
         clientId: authorization.clientId,
-        grantId: consent.grantId,
-        grantKey: `grant:${consent.grantId}`,
+        grantId: authorizationConsent.grantId,
+        grantKey: `grant:${authorizationConsent.grantId}`,
         day: new Date(
           `${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(now)}T00:00:00Z`,
         ),
