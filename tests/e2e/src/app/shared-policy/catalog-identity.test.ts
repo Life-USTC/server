@@ -3,6 +3,7 @@ import type { TestPrismaClient } from "../../../../shared/prisma";
 import { test as subscriptionTest } from "../../../utils/catalog-subscription-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
+import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
 
 async function createFixture(db: TestPrismaClient) {
   const suffix = crypto.randomUUID().slice(0, 8);
@@ -102,10 +103,15 @@ test("mobile catalog cards retain list and link semantics", async ({
       );
       await link.focus();
       await expect(link).toBeFocused();
+      const expectSectionDetailReady =
+        route === "sections"
+          ? observeSectionDetailNavigation(page, preferenceFlow, destination)
+          : undefined;
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(
         new RegExp(`/catalog/${route}/${destination}$`),
       );
+      if (expectSectionDetailReady) await expectSectionDetailReady();
     }
   });
 });
@@ -295,10 +301,16 @@ test("ui.global-search-results-2", async ({
             (await result.innerText()).replace(/\s+/g, " ").trim(),
           )
           .toBe(`${title} ${description}`);
+        const expectSectionDetailReady = observeSectionDetailNavigation(
+          page,
+          preferenceFlow,
+          section.jwId,
+        );
         await result.click();
         await expect(page).toHaveURL(
           new RegExp(`/catalog/sections/${section.jwId}$`),
         );
+        await expectSectionDetailReady();
       }
     }
   });
@@ -523,6 +535,11 @@ test("ui.data-table-cells-2", async ({
         ),
       ).toBe(true);
     }
+    const expectSectionDetailReady = observeSectionDetailNavigation(
+      touchPage,
+      preferenceFlow,
+      fixture.section.jwId,
+    );
     await touchPage
       .getByRole("link")
       .filter({ has: touchPage.getByText(courseName, { exact: true }) })
@@ -530,6 +547,7 @@ test("ui.data-table-cells-2", async ({
     await expect(touchPage).toHaveURL(
       new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
     );
+    await expectSectionDetailReady();
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await gotoAndWaitForReady(page, path, {
