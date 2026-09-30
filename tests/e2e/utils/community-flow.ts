@@ -25,6 +25,10 @@ type Expected = {
 };
 type RouteMatch = Parameters<Page["route"]>[0];
 export type CommunityChecks = {
+  verifyBrowserWrite?: (
+    response: APIResponse,
+    request: Request,
+  ) => Promise<void>;
   verifyTransport: (observation: {
     producer: ProducerObservation;
     sdkRequests: HttpMcpRequest[];
@@ -216,6 +220,14 @@ export async function withCommunityFlow(
   }
   async function observeWrite(response: APIResponse, incoming: Request) {
     if (!account) throw new Error("Anonymous browser flow submitted a write");
+    if (checks?.verifyBrowserWrite) {
+      writes.push({
+        path: new URL(incoming.url()).pathname,
+        status: response.status(),
+      });
+      await checks.verifyBrowserWrite(response, incoming);
+      return;
+    }
     const path = new URL(incoming.url()).pathname;
     const body = await response.json();
     writes.push({ path, status: response.status() });

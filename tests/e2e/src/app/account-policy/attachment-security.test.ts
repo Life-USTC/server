@@ -1,62 +1,22 @@
-import { type APIRequestContext, expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../utils/dev-seed";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
+import { type APIRequestContext, expect } from "@playwright/test";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
+import { test } from "./attachment-security-fixture";
 
 test("cases.content-security.upload-attachment-download-1", async ({
   page,
-  browser,
-  request,
+  attachmentSecurityRun,
 }) => {
-  const marker = `attachment-policy-${crypto.randomUUID()}`;
-  const users = await withE2ePrisma(async (db) => {
-    const created = [];
-    for (const role of ["owner", "viewer", "admin"] as const) {
-      created.push(
-        await db.user.create({
-          data: {
-            name: `Attachment ${role}`,
-            username: `${role}${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`,
-            email: `${marker}-${role}@example.test`,
-            isAdmin: role === "admin",
-          },
-        }),
-      );
-    }
-    return created;
-  });
-  const [owner, viewer, admin] = users;
-  if (!owner || !viewer || !admin) throw new Error("Missing attachment actors");
-  const viewerContext = await browser.newContext({
-    baseURL: PLAYWRIGHT_BASE_URL,
-  });
-  const adminContext = await browser.newContext({
-    baseURL: PLAYWRIGHT_BASE_URL,
-  });
-  let uploadId: string | undefined;
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(owner.id)]);
-    await viewerContext.addCookies([
-      await createSignedSessionCookie(viewer.id),
-    ]);
-    await adminContext.addCookies([await createSignedSessionCookie(admin.id)]);
-    const contents = `${marker}: exact private object bytes`;
+  await attachmentSecurityRun(async (f) => {
+    const { marker, contents } = f;
     const upload = await createUploadedFileViaApi(page.request, {
       filename: `${marker}.txt`,
       contents,
     });
-    uploadId = upload.uploadId;
+    const uploadId = upload.uploadId;
+    f.ids.upload = uploadId;
+    f.ids.key = upload.key;
     const url = `/api/workspace/uploads/${uploadId}/download`;
-    const actors: Record<string, APIRequestContext> = {
-      owner: page.request,
-      viewer: viewerContext.request,
-      admin: adminContext.request,
-      anonymous: request,
-    };
+    const actors: Record<string, APIRequestContext> = f.actors;
     const observedUrls = new Set<string>();
     const statuses: Record<string, Record<string, number>> = {
       unattached: { owner: 200, viewer: 404, admin: 404, anonymous: 401 },
@@ -98,22 +58,24 @@ test("cases.content-security.upload-attachment-download-1", async ({
     const created = await page.request.post("/api/community/comments", {
       data: {
         targetType: "section",
-        sectionJwId: DEV_SEED.section.jwId,
+        sectionJwId: f.section.jwId,
         body: marker,
         attachmentIds: [uploadId],
       },
     });
     expect(created.status(), await created.text()).toBe(201);
     const { id: commentId } = await created.json();
+    f.ids.comment = commentId;
     await expectState("public");
     const visibility = await page.request.patch(
       `/api/community/comments/${commentId}`,
       { data: { body: marker, visibility: "logged_in_only" } },
     );
+    await visibility.body();
     expect(visibility.status()).toBe(200);
     await expectState("logged_in_only");
     const moderate = async (status: "active" | "softbanned") => {
-      const response = await adminContext.request.patch(
+      const response = await f.actors.admin.patch(
         `/api/admin/comments/${commentId}`,
         { data: { status, moderationNote: marker } },
       );
@@ -126,6 +88,7 @@ test("cases.content-security.upload-attachment-download-1", async ({
     const deletedComment = await page.request.delete(
       `/api/community/comments/${commentId}`,
     );
+    await deletedComment.body();
     expect(deletedComment.status()).toBe(200);
     await expectState("parent_deleted");
     const deletedUpload = await page.request.delete(
@@ -135,29 +98,7 @@ test("cases.content-security.upload-attachment-download-1", async ({
     await expectState("upload_deleted");
     expect([...observedUrls]).toEqual([url]);
     expect(
-      await withE2ePrisma((db) =>
-        db.upload.findUnique({ where: { id: uploadId } }),
-      ),
+      await f.db.upload.findUnique({ where: { id: uploadId } }),
     ).toBeNull();
-    uploadId = undefined;
-  } finally {
-    if (uploadId)
-      await page.request.delete(`/api/workspace/uploads/${uploadId}`);
-    await viewerContext.close();
-    await adminContext.close();
-    await withE2ePrisma(async (db) => {
-      await db.comment.deleteMany({ where: { userId: owner.id } });
-      await db.auditLog.deleteMany({
-        where: {
-          OR: [
-            { userId: { in: users.map((user) => user.id) } },
-            { subjectUserId: { in: users.map((user) => user.id) } },
-          ],
-        },
-      });
-      await db.user.deleteMany({
-        where: { id: { in: users.map((user) => user.id) } },
-      });
-    });
-  }
+  });
 });
