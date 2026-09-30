@@ -248,53 +248,82 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
           requestedUserInfoClaims: true,
         },
       });
-      expect(consents).toEqual([{
-        clientId: token.clientId,
-        userId: fixture.users[0].id,
-        grantId: expect.any(String),
-        scopes: [scope],
-        resources: [resource],
-        requestedUserInfoClaims: [],
-      }]);
+      expect(consents).toEqual([
+        {
+          clientId: token.clientId,
+          userId: fixture.users[0].id,
+          grantId: expect.any(String),
+          scopes: [scope],
+          resources: [resource],
+          requestedUserInfoClaims: [],
+        },
+      ]);
       const { grantId } = consents[0];
       expect(grantId).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
-      expect(await db.auditLog.findMany({
-        select: {
-          action: true, outcome: true, channel: true,
-          userId: true, subjectUserId: true, targetId: true, targetType: true,
-          oauthClientId: true, oauthGrantId: true, sessionId: true, metadata: true,
+      expect(
+        await db.auditLog.findMany({
+          select: {
+            action: true,
+            outcome: true,
+            channel: true,
+            userId: true,
+            subjectUserId: true,
+            targetId: true,
+            targetType: true,
+            oauthClientId: true,
+            oauthGrantId: true,
+            sessionId: true,
+            metadata: true,
+          },
+        }),
+      ).toEqual([
+        {
+          action: "oauth_authorization_grant",
+          outcome: "success",
+          channel: "web",
+          userId: fixture.users[0].id,
+          subjectUserId: fixture.users[0].id,
+          targetId: token.clientId,
+          targetType: "oauth_client",
+          oauthClientId: token.clientId,
+          oauthGrantId: grantId,
+          sessionId: ownerSessionId,
+          metadata: {
+            changedFields: ["resources", "scopes", "userinfoClaims"],
+            resourceCount: 1,
+            scopeCount: 1,
+          },
         },
-      })).toEqual([{
-        action: "oauth_authorization_grant",
-        outcome: "success",
-        channel: "web",
-        userId: fixture.users[0].id,
-        subjectUserId: fixture.users[0].id,
-        targetId: token.clientId,
-        targetType: "oauth_client",
-        oauthClientId: token.clientId,
-        oauthGrantId: grantId,
-        sessionId: ownerSessionId,
-        metadata: {
-          changedFields: ["resources", "scopes", "userinfoClaims"],
-          resourceCount: 1,
-          scopeCount: 1,
-        },
-      }]);
-      expect(await db.user.findMany({
-        orderBy: { id: "asc" },
-        select: { id: true, calendarFeedToken: true },
-      })).toEqual(fixture.users.map(({ id }) => ({
-        id, calendarFeedToken: null,
-      })).sort((left, right) => left.id.localeCompare(right.id)));
+      ]);
+      expect(
+        await db.user.findMany({
+          orderBy: { id: "asc" },
+          select: { id: true, calendarFeedToken: true },
+        }),
+      ).toEqual(
+        fixture.users
+          .map(({ id }) => ({
+            id,
+            calendarFeedToken: null,
+          }))
+          .sort((left, right) => left.id.localeCompare(right.id)),
+      );
       const usage = await db.oAuthGrantUsageDaily.findMany({
         orderBy: { day: "asc" },
         select: {
-          userId: true, clientId: true, grantId: true, grantKey: true,
-          day: true, feature: true, channel: true,
-          readCount: true, writeCount: true, errorCount: true, lastUsedAt: true,
+          userId: true,
+          clientId: true,
+          grantId: true,
+          grantKey: true,
+          day: true,
+          feature: true,
+          channel: true,
+          readCount: true,
+          writeCount: true,
+          errorCount: true,
+          lastUsedAt: true,
         },
       });
       expect(usage.length).toBeGreaterThanOrEqual(1);
@@ -316,24 +345,37 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
       }
       // Independently enumerate only the day assignments allowed by these two
       // call intervals, including a call that crosses Shanghai midnight.
-      const day = (time: number) => new Date(time + 8 * 60 * 60 * 1000)
-        .toISOString().slice(0, 10);
+      const day = (time: number) =>
+        new Date(time + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
       expect(callWindows).toHaveLength(2);
-      const days = callWindows.map(({ start, end }) => [...new Set([day(start), day(end)])]);
-      const assignments = days[0].flatMap((first) => days[1].map((second) => [first, second]));
-      expect(assignments.some((assignment) => {
-        const expectedDays = [...new Set(assignment)].sort();
-        return expectedDays.length === usage.length && expectedDays.every((expectedDay, index) => {
-          const contributors = callWindows.filter((_, call) => assignment[call] === expectedDay);
-          const row = usage[index];
-          const last = row.lastUsedAt.getTime();
-          return row.day.toISOString() === `${expectedDay}T00:00:00.000Z`
-            && row.readCount === contributors.length
-            && day(last) === expectedDay
-            && last >= Math.max(...contributors.map(({ start }) => start))
-            && last <= Math.max(...contributors.map(({ end }) => end));
-        });
-      })).toBe(true);
+      const days = callWindows.map(({ start, end }) => [
+        ...new Set([day(start), day(end)]),
+      ]);
+      const assignments = days[0].flatMap((first) =>
+        days[1].map((second) => [first, second]),
+      );
+      expect(
+        assignments.some((assignment) => {
+          const expectedDays = [...new Set(assignment)].sort();
+          return (
+            expectedDays.length === usage.length &&
+            expectedDays.every((expectedDay, index) => {
+              const contributors = callWindows.filter(
+                (_, call) => assignment[call] === expectedDay,
+              );
+              const row = usage[index];
+              const last = row.lastUsedAt.getTime();
+              return (
+                row.day.toISOString() === `${expectedDay}T00:00:00.000Z` &&
+                row.readCount === contributors.length &&
+                day(last) === expectedDay &&
+                last >= Math.max(...contributors.map(({ start }) => start)) &&
+                last <= Math.max(...contributors.map(({ end }) => end))
+              );
+            })
+          );
+        }),
+      ).toBe(true);
     };
   });
 });

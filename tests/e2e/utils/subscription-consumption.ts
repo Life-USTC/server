@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
-import type { PrivateCalendar } from "./private-calendar-fixture";
 import type { IsolatedWorker } from "./isolated-worker";
 import { gotoAndWaitForReady } from "./page-ready";
+import type { PrivateCalendar } from "./private-calendar-fixture";
 
 export type SubscriptionFixture = PrivateCalendar;
 export const subscriptionSnapshotAt = "2026-04-29T09:30:00+08:00";
