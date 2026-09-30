@@ -175,9 +175,22 @@ async function readScopedRows(
   scopedFixture: ScopedFixture,
   userId?: string,
 ): Promise<ScopedRows> {
-  const read = async (
-    client: Pick<Prisma.TransactionClient, "auditLog" | "oAuthGrantUsageDaily">,
-  ): Promise<ScopedRows> => {
+  const read = async (client: {
+    auditLog: {
+      findMany(input: {
+        where: { id: { in: string[] } };
+        select: { id: true; subjectUserId: true };
+        orderBy: { id: "asc" };
+      }): Promise<ScopedRows["audit"]>;
+    };
+    oAuthGrantUsageDaily: {
+      findMany(input: {
+        where: { id: { in: string[] } };
+        select: { id: true; userId: true };
+        orderBy: { id: "asc" };
+      }): Promise<ScopedRows["usage"]>;
+    };
+  }): Promise<ScopedRows> => {
     const [audit, usage] = await Promise.all([
       client.auditLog.findMany({
         where: {
@@ -247,23 +260,24 @@ async function assertScopedReadContract(
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "PostgreSQL row security contract",
   () => {
-    it(
-      "uses an unprivileged runtime role that owns none of the protected tables",
-      async ({ isolatedDatabase: { app: prisma }, nodeRuntime }) => {
-        await nodeRuntime.run(async () => {
-          const [role] = await prisma.$queryRaw<
-            {
-              currentUser: string;
-              sessionUser: string;
-              canLogin: boolean;
-              canCreateDatabase: boolean;
-              canCreateRole: boolean;
-              superuser: boolean;
-              bypassRls: boolean;
-              inheritsRoles: boolean;
-              replication: boolean;
-            }[]
-          >(Prisma.sql`
+    it("uses an unprivileged runtime role that owns none of the protected tables", async ({
+      isolatedDatabase: { app: prisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const [role] = await prisma.$queryRaw<
+          {
+            currentUser: string;
+            sessionUser: string;
+            canLogin: boolean;
+            canCreateDatabase: boolean;
+            canCreateRole: boolean;
+            superuser: boolean;
+            bypassRls: boolean;
+            inheritsRoles: boolean;
+            replication: boolean;
+          }[]
+        >(Prisma.sql`
             SELECT
               current_user AS "currentUser",
               session_user AS "sessionUser",
@@ -277,26 +291,26 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             FROM pg_roles
             WHERE rolname = current_user
           `);
-          expect(role).toEqual({
-            currentUser: "life_ustc_runtime",
-            sessionUser: "life_ustc_runtime",
-            canLogin: true,
-            canCreateDatabase: false,
-            canCreateRole: false,
-            superuser: false,
-            bypassRls: false,
-            inheritsRoles: false,
-            replication: false,
-          });
+        expect(role).toEqual({
+          currentUser: "life_ustc_runtime",
+          sessionUser: "life_ustc_runtime",
+          canLogin: true,
+          canCreateDatabase: false,
+          canCreateRole: false,
+          superuser: false,
+          bypassRls: false,
+          inheritsRoles: false,
+          replication: false,
+        });
 
-          const tables = await prisma.$queryRaw<
-            {
-              tableName: string;
-              owner: string;
-              rlsEnabled: boolean;
-              rlsForced: boolean;
-            }[]
-          >(Prisma.sql`
+        const tables = await prisma.$queryRaw<
+          {
+            tableName: string;
+            owner: string;
+            rlsEnabled: boolean;
+            rlsForced: boolean;
+          }[]
+        >(Prisma.sql`
             SELECT
               relname AS "tableName",
               pg_get_userbyid(relowner) AS owner,
@@ -308,62 +322,56 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
               AND relname IN (${Prisma.join(protectedTables)})
             ORDER BY relname
           `);
-          expect(tables).toHaveLength(protectedTables.length);
-          expect(tables.map(({ tableName }) => tableName)).toEqual([
-            ...protectedTables,
-          ]);
-          for (const table of tables) {
-            expect(table).toMatchObject({ rlsEnabled: true, rlsForced: true });
-            expect(table.owner).not.toBe(role.currentUser);
-          }
-        });
-      },
-    );
+        expect(tables).toHaveLength(protectedTables.length);
+        expect(tables.map(({ tableName }) => tableName)).toEqual([
+          ...protectedTables,
+        ]);
+        for (const table of tables) {
+          expect(table).toMatchObject({ rlsEnabled: true, rlsForced: true });
+          expect(table.owner).not.toBe(role.currentUser);
+        }
+      });
+    });
 
-    it(
-      "allows the app runtime to append trusted profile picture URLs",
-      async ({
-        isolatedDatabase: { app: prisma, owner: adminPrisma },
-        nodeRuntime,
-      }) => {
-        await nodeRuntime.run(async () => {
-          const marker = `runtime-avatar-${crypto.randomUUID()}`;
-          const user = await adminPrisma.user.create({
+    it("allows the app runtime to append trusted profile picture URLs", async ({
+      isolatedDatabase: { app: prisma, owner: adminPrisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const marker = `runtime-avatar-${crypto.randomUUID()}`;
+        const user = await adminPrisma.user.create({
+          data: {
+            email: `${marker}@example.test`,
+            name: marker,
+          },
+          select: { id: true },
+        });
+
+        await expect(
+          prisma.user.update({
+            where: { id: user.id },
             data: {
-              email: `${marker}@example.test`,
-              name: marker,
-            },
-            select: { id: true },
-          });
-
-          await expect(
-            prisma.user.update({
-              where: { id: user.id },
-              data: {
-                profilePictures: {
-                  push: `https://example.test/${marker}.webp`,
-                },
+              profilePictures: {
+                push: `https://example.test/${marker}.webp`,
               },
-              select: { profilePictures: true },
-            }),
-          ).resolves.toEqual({
-            profilePictures: [`https://example.test/${marker}.webp`],
-          });
+            },
+            select: { profilePictures: true },
+          }),
+        ).resolves.toEqual({
+          profilePictures: [`https://example.test/${marker}.webp`],
         });
-      },
-    );
+      });
+    });
 
-    it(
-      "enforces scoped reads for audit and OAuth usage tables",
-      async ({
-        isolatedDatabase: { app: prisma, owner: adminPrisma },
-        nodeRuntime,
-      }) => {
-        await nodeRuntime.run(async () => {
-          const scopedFixture = await createScopedFixture(adminPrisma);
-          const tables = await adminPrisma.$queryRaw<
-            Array<{ rlsEnabled: boolean; tableName: string }>
-          >(Prisma.sql`
+    it("enforces scoped reads for audit and OAuth usage tables", async ({
+      isolatedDatabase: { app: prisma, owner: adminPrisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const scopedFixture = await createScopedFixture(adminPrisma);
+        const tables = await adminPrisma.$queryRaw<
+          Array<{ rlsEnabled: boolean; tableName: string }>
+        >(Prisma.sql`
             SELECT relname AS "tableName", relrowsecurity AS "rlsEnabled"
             FROM pg_class
             JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
@@ -371,55 +379,55 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
               AND relname IN ('AuditLog', 'OAuthGrantUsageDaily')
             ORDER BY relname
           `);
-          expect(tables).toEqual([
-            { rlsEnabled: true, tableName: "AuditLog" },
-            { rlsEnabled: true, tableName: "OAuthGrantUsageDaily" },
-          ]);
+        expect(tables).toEqual([
+          { rlsEnabled: true, tableName: "AuditLog" },
+          { rlsEnabled: true, tableName: "OAuthGrantUsageDaily" },
+        ]);
 
-          await assertScopedReadContract(prisma, scopedFixture);
-          await expect(
-            readScopedRows(prisma, scopedFixture, scopedFixture.adminUserId),
-          ).resolves.toEqual({
-            audit: [
-              {
-                id: scopedFixture.auditIds.first,
-                subjectUserId: scopedFixture.firstUserId,
-              },
-              {
-                id: scopedFixture.auditIds.second,
-                subjectUserId: scopedFixture.secondUserId,
-              },
-            ],
-            usage: [
-              {
-                id: scopedFixture.usageIds.first,
-                userId: scopedFixture.firstUserId,
-              },
-              {
-                id: scopedFixture.usageIds.second,
-                userId: scopedFixture.secondUserId,
-              },
-            ],
-          });
-        });
-      },
-    );
-
-    it(
-      "keeps exactly one runtime-applicable owner policy per table",
-      async ({ isolatedDatabase: { app: prisma }, nodeRuntime }) => {
-        await nodeRuntime.run(async () => {
-          const policies = await prisma.$queryRaw<
+        await assertScopedReadContract(prisma, scopedFixture);
+        await expect(
+          readScopedRows(prisma, scopedFixture, scopedFixture.adminUserId),
+        ).resolves.toEqual({
+          audit: [
             {
-              tableName: string;
-              policyName: string;
-              permissive: string;
-              roles: string[];
-              command: string;
-              usingExpression: string;
-              checkExpression: string;
-            }[]
-          >(Prisma.sql`
+              id: scopedFixture.auditIds.first,
+              subjectUserId: scopedFixture.firstUserId,
+            },
+            {
+              id: scopedFixture.auditIds.second,
+              subjectUserId: scopedFixture.secondUserId,
+            },
+          ],
+          usage: [
+            {
+              id: scopedFixture.usageIds.first,
+              userId: scopedFixture.firstUserId,
+            },
+            {
+              id: scopedFixture.usageIds.second,
+              userId: scopedFixture.secondUserId,
+            },
+          ],
+        });
+      });
+    });
+
+    it("keeps exactly one runtime-applicable owner policy per table", async ({
+      isolatedDatabase: { app: prisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const policies = await prisma.$queryRaw<
+          {
+            tableName: string;
+            policyName: string;
+            permissive: string;
+            roles: string[];
+            command: string;
+            usingExpression: string;
+            checkExpression: string;
+          }[]
+        >(Prisma.sql`
             SELECT
               tablename AS "tableName",
               policyname AS "policyName",
@@ -435,82 +443,79 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             ORDER BY tablename, policyname
           `);
 
-          expect(policies).toHaveLength(protectedTables.length);
-          for (const policy of policies) {
-            expect(policy).toMatchObject({
-              policyName: `${policy.tableName}_owner_isolation`,
-              permissive: "PERMISSIVE",
-              roles: ["public"],
-              command: "ALL",
-            });
-            expect(policy.usingExpression.replaceAll("::text", "")).toBe(
-              `("userId" = NULLIF(current_setting('app.user_id', true), ''))`,
-            );
-            expect(policy.checkExpression.replaceAll("::text", "")).toBe(
-              policy.usingExpression.replaceAll("::text", ""),
-            );
-          }
-        });
-      },
-    );
-
-    it(
-      "treats an empty transaction-local user context as missing",
-      async ({
-        isolatedDatabase: { app: prisma, owner: adminPrisma },
-        nodeRuntime,
-      }) => {
-        await nodeRuntime.run(async () => {
-          const emptyOwnerTodoId = "rls-empty-owner-todo";
-          // The empty primary key is the security probe, confined to this private DB.
-          await adminPrisma.$transaction(async (tx) => {
-            await tx.user.create({
-              data: {
-                id: "",
-                email: "rls-empty-owner@example.invalid",
-                name: "RLS empty owner probe",
-              },
-            });
-            await tx.todo.create({
-              data: {
-                id: emptyOwnerTodoId,
-                title: "RLS empty owner probe",
-                userId: "",
-              },
-            });
+        expect(policies).toHaveLength(protectedTables.length);
+        for (const policy of policies) {
+          expect(policy).toMatchObject({
+            policyName: `${policy.tableName}_owner_isolation`,
+            permissive: "PERMISSIVE",
+            roles: ["public"],
+            command: "ALL",
           });
+          expect(policy.usingExpression.replaceAll("::text", "")).toBe(
+            `("userId" = NULLIF(current_setting('app.user_id', true), ''))`,
+          );
+          expect(policy.checkExpression.replaceAll("::text", "")).toBe(
+            policy.usingExpression.replaceAll("::text", ""),
+          );
+        }
+      });
+    });
 
-          const result = await prisma.$transaction(async (tx) => {
-            await tx.$queryRaw`
+    it("treats an empty transaction-local user context as missing", async ({
+      isolatedDatabase: { app: prisma, owner: adminPrisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const emptyOwnerTodoId = "rls-empty-owner-todo";
+        // The empty primary key is the security probe, confined to this private DB.
+        await adminPrisma.$transaction(async (tx) => {
+          await tx.user.create({
+            data: {
+              id: "",
+              email: "rls-empty-owner@example.invalid",
+              name: "RLS empty owner probe",
+            },
+          });
+          await tx.todo.create({
+            data: {
+              id: emptyOwnerTodoId,
+              title: "RLS empty owner probe",
+              userId: "",
+            },
+          });
+        });
+
+        const result = await prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`
               SELECT set_config('app.user_id', '', true)
             `;
-            return {
-              row: await tx.todo.findUnique({
-                where: { id: emptyOwnerTodoId },
-                select: { id: true },
-              }),
-              update: await tx.todo.updateMany({
-                where: { id: emptyOwnerTodoId },
-                data: { completed: true },
-              }),
-            };
-          });
-
-          expect(result).toEqual({ row: null, update: { count: 0 } });
+          return {
+            row: await tx.todo.findUnique({
+              where: { id: emptyOwnerTodoId },
+              select: { id: true },
+            }),
+            update: await tx.todo.updateMany({
+              where: { id: emptyOwnerTodoId },
+              data: { completed: true },
+            }),
+          };
         });
-      },
-    );
 
-    it(
-      "keeps runtime grants on the checked-in privilege contract",
-      async ({ isolatedDatabase: { app: prisma }, nodeRuntime }) => {
-        await nodeRuntime.run(async () => {
-          const expectedRuntimePrivileges =
-            await loadRuntimePrivilegeAllowlist(prisma);
+        expect(result).toEqual({ row: null, update: { count: 0 } });
+      });
+    });
 
-          const grants = await prisma.$queryRaw<
-            { tableName: string; privilege: string }[]
-          >(Prisma.sql`
+    it("keeps runtime grants on the checked-in privilege contract", async ({
+      isolatedDatabase: { app: prisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const expectedRuntimePrivileges =
+          await loadRuntimePrivilegeAllowlist(prisma);
+
+        const grants = await prisma.$queryRaw<
+          { tableName: string; privilege: string }[]
+        >(Prisma.sql`
             SELECT
               table_name AS "tableName",
               privilege_type AS privilege
@@ -520,15 +525,15 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             ORDER BY table_name, privilege_type
           `);
 
-          expect(
-            grants.map(
-              ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
-            ),
-          ).toEqual(expectedRuntimePrivileges.table);
+        expect(
+          grants.map(
+            ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
+          ),
+        ).toEqual(expectedRuntimePrivileges.table);
 
-          const effectiveGrants = await prisma.$queryRaw<
-            { tableName: string; privilege: string }[]
-          >(Prisma.sql`
+        const effectiveGrants = await prisma.$queryRaw<
+          { tableName: string; privilege: string }[]
+        >(Prisma.sql`
             SELECT
               pg_class.relname AS "tableName",
               candidate.privilege
@@ -547,15 +552,15 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
               )
             ORDER BY pg_class.relname, candidate.privilege
           `);
-          expect(
-            effectiveGrants.map(
-              ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
-            ),
-          ).toEqual(expectedRuntimePrivileges.table);
+        expect(
+          effectiveGrants.map(
+            ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
+          ),
+        ).toEqual(expectedRuntimePrivileges.table);
 
-          const columnGrants = await prisma.$queryRaw<
-            { tableName: string; columnName: string; privilege: string }[]
-          >(Prisma.sql`
+        const columnGrants = await prisma.$queryRaw<
+          { tableName: string; columnName: string; privilege: string }[]
+        >(Prisma.sql`
             SELECT
               relation.relname AS "tableName",
               attribute.attname AS "columnName",
@@ -575,16 +580,16 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             ORDER BY namespace.nspname, relation.relname, attribute.attname,
               acl.privilege_type
           `);
-          expect(
-            columnGrants.map(
-              ({ tableName, columnName, privilege }) =>
-                `public.${tableName}.${columnName}:${privilege}`,
-            ),
-          ).toEqual(expectedRuntimePrivileges.column);
+        expect(
+          columnGrants.map(
+            ({ tableName, columnName, privilege }) =>
+              `public.${tableName}.${columnName}:${privilege}`,
+          ),
+        ).toEqual(expectedRuntimePrivileges.column);
 
-          const sequenceGrants = await prisma.$queryRaw<
-            { sequenceName: string; privilege: string }[]
-          >(Prisma.sql`
+        const sequenceGrants = await prisma.$queryRaw<
+          { sequenceName: string; privilege: string }[]
+        >(Prisma.sql`
             SELECT
               relation.relname AS "sequenceName",
               acl.privilege_type AS privilege
@@ -602,16 +607,16 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
               )
             ORDER BY namespace.nspname, relation.relname, acl.privilege_type
           `);
-          expect(
-            sequenceGrants.map(
-              ({ sequenceName, privilege }) =>
-                `public.${sequenceName}:${privilege}`,
-            ),
-          ).toEqual(expectedRuntimePrivileges.sequence);
+        expect(
+          sequenceGrants.map(
+            ({ sequenceName, privilege }) =>
+              `public.${sequenceName}:${privilege}`,
+          ),
+        ).toEqual(expectedRuntimePrivileges.sequence);
 
-          const functionGrants = await prisma.$queryRaw<
-            { signature: string }[]
-          >(Prisma.sql`
+        const functionGrants = await prisma.$queryRaw<
+          { signature: string }[]
+        >(Prisma.sql`
             SELECT format(
               '%s.%s(%s):%s',
               namespace.nspname,
@@ -629,26 +634,26 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             WHERE namespace.nspname = 'public'
             ORDER BY signature
           `);
-          expect(functionGrants.map(({ signature }) => signature)).toEqual(
-            expectedRuntimeFunctionPrivileges,
-          );
+        expect(functionGrants.map(({ signature }) => signature)).toEqual(
+          expectedRuntimeFunctionPrivileges,
+        );
 
-          const [schemaPrivileges] = await prisma.$queryRaw<
-            { canCreate: boolean; canUse: boolean }[]
-          >(Prisma.sql`
+        const [schemaPrivileges] = await prisma.$queryRaw<
+          { canCreate: boolean; canUse: boolean }[]
+        >(Prisma.sql`
             SELECT
               has_schema_privilege(current_user, 'public', 'CREATE') AS "canCreate",
               has_schema_privilege(current_user, 'public', 'USAGE') AS "canUse"
           `);
-          expect(schemaPrivileges).toEqual({ canCreate: false, canUse: true });
+        expect(schemaPrivileges).toEqual({ canCreate: false, canUse: true });
 
-          const [databasePrivileges] = await prisma.$queryRaw<
-            {
-              canConnect: boolean;
-              canCreate: boolean;
-              canCreateTemporaryTables: boolean;
-            }[]
-          >(Prisma.sql`
+        const [databasePrivileges] = await prisma.$queryRaw<
+          {
+            canConnect: boolean;
+            canCreate: boolean;
+            canCreateTemporaryTables: boolean;
+          }[]
+        >(Prisma.sql`
             SELECT
               has_database_privilege(
                 current_user,
@@ -666,15 +671,15 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
                 'TEMPORARY'
               ) AS "canCreateTemporaryTables"
           `);
-          expect(databasePrivileges).toEqual({
-            canConnect: true,
-            canCreate: false,
-            canCreateTemporaryTables: false,
-          });
+        expect(databasePrivileges).toEqual({
+          canConnect: true,
+          canCreate: false,
+          canCreateTemporaryTables: false,
+        });
 
-          const publicDatabasePrivileges = await prisma.$queryRaw<
-            { privilege: string }[]
-          >(Prisma.sql`
+        const publicDatabasePrivileges = await prisma.$queryRaw<
+          { privilege: string }[]
+        >(Prisma.sql`
             SELECT acl.privilege_type AS privilege
             FROM pg_database
             CROSS JOIN LATERAL aclexplode(
@@ -684,11 +689,11 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
               AND acl.grantee = 0
             ORDER BY acl.privilege_type
           `);
-          expect(publicDatabasePrivileges).toEqual([]);
+        expect(publicDatabasePrivileges).toEqual([]);
 
-          const publicSchemaPrivileges = await prisma.$queryRaw<
-            { privilege: string }[]
-          >(Prisma.sql`
+        const publicSchemaPrivileges = await prisma.$queryRaw<
+          { privilege: string }[]
+        >(Prisma.sql`
             SELECT acl.privilege_type AS privilege
             FROM pg_namespace
             CROSS JOIN LATERAL aclexplode(
@@ -698,18 +703,18 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
               AND acl.grantee = 0
             ORDER BY acl.privilege_type
           `);
-          expect(publicSchemaPrivileges).toEqual([]);
-        });
-      },
-    );
+        expect(publicSchemaPrivileges).toEqual([]);
+      });
+    });
 
-    it(
-      "has no role memberships in either direction",
-      async ({ isolatedDatabase: { app: prisma }, nodeRuntime }) => {
-        await nodeRuntime.run(async () => {
-          const memberships = await prisma.$queryRaw<
-            { grantedRole: string }[]
-          >(Prisma.sql`
+    it("has no role memberships in either direction", async ({
+      isolatedDatabase: { app: prisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const memberships = await prisma.$queryRaw<
+          { grantedRole: string }[]
+        >(Prisma.sql`
             SELECT parent.rolname AS "grantedRole"
             FROM pg_auth_members
             JOIN pg_roles member ON member.oid = pg_auth_members.member
@@ -717,35 +722,35 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             WHERE member.rolname = current_user OR parent.rolname = current_user
             ORDER BY parent.rolname
           `);
-          expect(memberships).toEqual([]);
-        });
-      },
-    );
+        expect(memberships).toEqual([]);
+      });
+    });
 
-    it(
-      "cannot access authentication-owned tables",
-      async ({ isolatedDatabase: { app: prisma }, nodeRuntime }) => {
-        await nodeRuntime.run(async () => {
-          const authTables = [
-            "Account",
-            "DeviceCode",
-            "Jwks",
-            "OAuthAccessToken",
-            "OAuthClient",
-            "OAuthConsent",
-            "OAuthRefreshToken",
-            "Passkey",
-            "Session",
-            "VerificationToken",
-          ];
-          const privileges = await prisma.$queryRaw<
-            Array<{
-              canDelete: boolean;
-              canInsert: boolean;
-              canSelect: boolean;
-              canUpdate: boolean;
-            }>
-          >(Prisma.sql`
+    it("cannot access authentication-owned tables", async ({
+      isolatedDatabase: { app: prisma },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const authTables = [
+          "Account",
+          "DeviceCode",
+          "Jwks",
+          "OAuthAccessToken",
+          "OAuthClient",
+          "OAuthConsent",
+          "OAuthRefreshToken",
+          "Passkey",
+          "Session",
+          "VerificationToken",
+        ];
+        const privileges = await prisma.$queryRaw<
+          Array<{
+            canDelete: boolean;
+            canInsert: boolean;
+            canSelect: boolean;
+            canUpdate: boolean;
+          }>
+        >(Prisma.sql`
             SELECT
               pg_catalog.has_table_privilege(
                 current_user,
@@ -770,17 +775,16 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             FROM unnest(ARRAY[${Prisma.join(authTables)}]::text[]) AS table_name
           `);
 
-          expect(privileges).toHaveLength(authTables.length);
-          for (const privilege of privileges) {
-            expect(privilege).toEqual({
-              canDelete: false,
-              canInsert: false,
-              canSelect: false,
-              canUpdate: false,
-            });
-          }
-        });
-      },
-    );
+        expect(privileges).toHaveLength(authTables.length);
+        for (const privilege of privileges) {
+          expect(privilege).toEqual({
+            canDelete: false,
+            canInsert: false,
+            canSelect: false,
+            canUpdate: false,
+          });
+        }
+      });
+    });
   },
 );

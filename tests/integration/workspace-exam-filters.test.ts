@@ -3,7 +3,11 @@ import { getSubscribedExamsRoute } from "@/lib/api/routes/subscribed-exam-routes
 import { workspaceExamTest as it } from "../shared/workspace-exam-fixture";
 
 describe("complete subscribed exam pages", () => {
-  it("exam.rest-date-semester-filters", async ({ exams, protocolRuntime, expect }) => {
+  it("exam.rest-date-semester-filters", async ({
+    exams,
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
       const { users, semesterIds, examIds, signedRequest, read } = exams;
       const filtered = await read(users[0], {
