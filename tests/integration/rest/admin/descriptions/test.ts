@@ -185,7 +185,10 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("管理员可按 search 搜索课程简介内容", async ({ run, descriptionState }) => {
+  test("管理员可按 search 搜索课程简介内容", async ({
+    run,
+    descriptionState,
+  }) => {
     await run(async () => {
       const {
         admin: { request },
@@ -202,9 +205,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
       expect(body.data?.[0]).toMatchObject({
         sectionId: descriptionState.section.sectionId,
       });
-      expect(body.data?.some((item) => item.content?.includes("课程建议"))).toBe(
-        true,
-      );
+      expect(
+        body.data?.some((item) => item.content?.includes("课程建议")),
+      ).toBe(true);
     });
   });
 

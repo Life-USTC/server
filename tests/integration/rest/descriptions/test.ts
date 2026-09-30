@@ -25,7 +25,10 @@ test("/api/community/descriptions 接口契约", async ({
       content: originalContent,
     });
     expect(body.history).toEqual([]);
-    expect(body.viewer).toMatchObject({ isAuthenticated: false, isAdmin: false });
+    expect(body.viewer).toMatchObject({
+      isAuthenticated: false,
+      isAdmin: false,
+    });
   });
 });
 
@@ -45,7 +48,10 @@ test("/api/community/descriptions GET 返回已准备的描述内容", async ({
       content: originalContent,
     });
     expect(body.description.content).toContain("课程建议");
-    expect(body.viewer).toMatchObject({ isAuthenticated: false, isAdmin: false });
+    expect(body.viewer).toMatchObject({
+      isAuthenticated: false,
+      isAdmin: false,
+    });
   });
 });
 
@@ -64,7 +70,10 @@ test("/api/community/descriptions GET 接受公开 section JW id", async ({
       id: state.description.id,
       content: originalContent,
     });
-    expect(body.viewer).toMatchObject({ isAuthenticated: false, isAdmin: false });
+    expect(body.viewer).toMatchObject({
+      isAuthenticated: false,
+      isAdmin: false,
+    });
   });
 });
 
@@ -84,7 +93,9 @@ test("/api/community/descriptions GET 缺少 targetId 返回 400", async ({
   request,
 }) => {
   await run(async () => {
-    expect((await request.get(`${base}?targetType=section`)).status()).toBe(400);
+    expect((await request.get(`${base}?targetType=section`)).status()).toBe(
+      400,
+    );
   });
 });
 

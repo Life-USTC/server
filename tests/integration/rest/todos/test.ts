@@ -137,7 +137,11 @@ test("openapi.todo-created-status", async ({ createActor, db, run }) => {
     const other = await createActor();
     const content = "x".repeat(4_000);
     const response = await owner.request.post(base, {
-      data: { title: "created todo", content: ` ${content} `, priority: "high" },
+      data: {
+        title: "created todo",
+        content: ` ${content} `,
+        priority: "high",
+      },
     });
     expect(response.status()).toBe(201);
     const { id } = await response.json();

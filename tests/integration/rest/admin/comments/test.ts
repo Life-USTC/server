@@ -37,7 +37,10 @@ test.describe("GET /api/admin/comments 评论列表", () => {
     });
   });
 
-  test("管理员可按 status=softbanned 筛选评论", async ({ run, commentState }) => {
+  test("管理员可按 status=softbanned 筛选评论", async ({
+    run,
+    commentState,
+  }) => {
     await run(async () => {
       const { admin, softbanned } = commentState;
       const response = await admin.request.get(`${BASE}?status=softbanned`);
@@ -71,7 +74,10 @@ test.describe("GET /api/admin/comments 评论列表", () => {
       ).toBe(true);
       expect(body.pagination).toMatchObject({ page: 1, pageSize: 5, total: 2 });
       // The anonymous author's identity is returned only after its read audit commits.
-      expect(body.data[0]).toMatchObject({ userId: owner.id, isAnonymous: true });
+      expect(body.data[0]).toMatchObject({
+        userId: owner.id,
+        isAnonymous: true,
+      });
       expect(await db.auditLog.findMany()).toEqual([
         expect.objectContaining({
           action: "admin_comment_identity_reveal",
@@ -84,16 +90,27 @@ test.describe("GET /api/admin/comments 评论列表", () => {
     });
   });
 
-  test("管理员可翻到第二页且不会重复第一条评论", async ({ run, commentState }) => {
+  test("管理员可翻到第二页且不会重复第一条评论", async ({
+    run,
+    commentState,
+  }) => {
     await run(async () => {
       const { admin, recent, older } = commentState;
-      const firstResponse = await admin.request.get(`${BASE}?page=1&pageSize=1`);
-      const secondResponse = await admin.request.get(`${BASE}?page=2&pageSize=1`);
+      const firstResponse = await admin.request.get(
+        `${BASE}?page=1&pageSize=1`,
+      );
+      const secondResponse = await admin.request.get(
+        `${BASE}?page=2&pageSize=1`,
+      );
       expect(firstResponse.status()).toBe(200);
       expect(secondResponse.status()).toBe(200);
       const first = await firstResponse.json();
       const second = await secondResponse.json();
-      expect(first.pagination).toMatchObject({ page: 1, pageSize: 1, total: 2 });
+      expect(first.pagination).toMatchObject({
+        page: 1,
+        pageSize: 1,
+        total: 2,
+      });
       expect(second.pagination).toMatchObject({
         page: 2,
         pageSize: 1,

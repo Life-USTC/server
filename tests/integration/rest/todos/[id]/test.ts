@@ -12,60 +12,69 @@ for (const method of ["PATCH", "DELETE"] as const) {
       { name: "admin owner", isAdmin: true, owns: true, status: 200 },
       { name: "other admin", isAdmin: true, owns: false, status: 404 },
     ]) {
-      test(scenario.name, async ({ createActor, request: anonymous, db, run }) => {
-        await run(async () => {
-          const actor = await createActor({ isAdmin: scenario.isAdmin });
-          const owner = scenario.owns ? actor : await createActor();
-          const caller =
-            scenario.name === "anonymous" ? anonymous : actor.request;
-          const sessionResponse = await caller.get("/api/auth/get-session");
-          expect(sessionResponse.status()).toBe(200);
-          const session = await sessionResponse.json();
-          if (scenario.name === "anonymous")
-            expect(session?.user).toBeUndefined();
-          else
-            expect(session.user).toMatchObject({
-              id: actor.id,
-              isAdmin: scenario.isAdmin,
+      test(
+        scenario.name,
+        async ({ createActor, request: anonymous, db, run }) => {
+          await run(async () => {
+            const actor = await createActor({ isAdmin: scenario.isAdmin });
+            const owner = scenario.owns ? actor : await createActor();
+            const caller =
+              scenario.name === "anonymous" ? anonymous : actor.request;
+            const sessionResponse = await caller.get("/api/auth/get-session");
+            expect(sessionResponse.status()).toBe(200);
+            const session = await sessionResponse.json();
+            if (scenario.name === "anonymous")
+              expect(session?.user).toBeUndefined();
+            else
+              expect(session.user).toMatchObject({
+                id: actor.id,
+                isAdmin: scenario.isAdmin,
+              });
+            expect(
+              await db.userSuspension.count({ where: { userId: actor.id } }),
+            ).toBe(0);
+            const before = await db.todo.create({
+              data: {
+                userId: owner.id,
+                title: "Owned todo",
+                priority: "medium",
+              },
             });
-          expect(
-            await db.userSuspension.count({ where: { userId: actor.id } }),
-          ).toBe(0);
-          const before = await db.todo.create({
-            data: { userId: owner.id, title: "Owned todo", priority: "medium" },
+            const response = await caller.fetch(
+              `/api/workspace/todos/${before.id}`,
+              {
+                method,
+                ...(method === "PATCH" ? { data: { completed: true } } : {}),
+              },
+            );
+            expect(response.status()).toBe(scenario.status);
+            expect(response.headers()["content-type"]).toContain(
+              "application/json",
+            );
+            const body = await response.json();
+            const after = await db.todo.findUnique({
+              where: { id: before.id },
+            });
+            if (scenario.status !== 200) {
+              expect(typeof body.error).toBe("string");
+              expect(after).toEqual(before);
+            } else if (method === "PATCH") {
+              expect(body).toMatchObject({
+                success: true,
+                todo: { id: before.id, completed: true },
+              });
+              expect(after).toMatchObject({
+                ...before,
+                completed: true,
+                updatedAt: expect.any(Date),
+              });
+            } else {
+              expect(body).toEqual({ success: true });
+              expect(after).toBeNull();
+            }
           });
-          const response = await caller.fetch(
-            `/api/workspace/todos/${before.id}`,
-            {
-              method,
-              ...(method === "PATCH" ? { data: { completed: true } } : {}),
-            },
-          );
-          expect(response.status()).toBe(scenario.status);
-          expect(response.headers()["content-type"]).toContain(
-            "application/json",
-          );
-          const body = await response.json();
-          const after = await db.todo.findUnique({ where: { id: before.id } });
-          if (scenario.status !== 200) {
-            expect(typeof body.error).toBe("string");
-            expect(after).toEqual(before);
-          } else if (method === "PATCH") {
-            expect(body).toMatchObject({
-              success: true,
-              todo: { id: before.id, completed: true },
-            });
-            expect(after).toMatchObject({
-              ...before,
-              completed: true,
-              updatedAt: expect.any(Date),
-            });
-          } else {
-            expect(body).toEqual({ success: true });
-            expect(after).toBeNull();
-          }
-        });
-      });
+        },
+      );
     }
 
     test("missing target returns 404", async ({ createActor, run }) => {
@@ -88,12 +97,17 @@ for (const method of ["PATCH", "DELETE"] as const) {
       run,
     }) => {
       await run(async () => {
-        const response = await request.fetch("/api/workspace/todos/invalid-e2e", {
-          method,
-          ...(method === "PATCH" ? { data: {} } : {}),
-        });
+        const response = await request.fetch(
+          "/api/workspace/todos/invalid-e2e",
+          {
+            method,
+            ...(method === "PATCH" ? { data: {} } : {}),
+          },
+        );
         expect(response.status()).toBe(401);
-        expect(response.headers()["content-type"]).toContain("application/json");
+        expect(response.headers()["content-type"]).toContain(
+          "application/json",
+        );
         expect(typeof (await response.json()).error).toBe("string");
       });
     });
@@ -131,7 +145,9 @@ test("todo PATCH returns its public fields and persists the edited values", asyn
       expect(typeof body.todo[field]).toBe("string");
       expect(Number.isNaN(Date.parse(body.todo[field]))).toBe(false);
     }
-    expect(await db.todo.findUnique({ where: { id: before.id } })).toMatchObject({
+    expect(
+      await db.todo.findUnique({ where: { id: before.id } }),
+    ).toMatchObject({
       ...before,
       title: "Updated todo title",
       completed: true,
