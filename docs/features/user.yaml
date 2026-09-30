@@ -399,13 +399,14 @@ requirements:
   rule: The database account-deletion boundary accepts only a live session owned by the subject with a creation age of at least zero and strictly less than 15 minutes. Stale, future-dated, expired, revoked and other-user sessions cannot delete the subject.
   acceptance:
     given: Isolated users have stale, future-dated, expired, revoked, other-user and fresh sessions.
-    when: The actual account deletion service invokes the production database function for each authority.
+    when: Independent cases call the actual account deletion service for each authority; separate boundary cases update and validate session age in one database statement at timestamp(3) precision.
     then:
     - Every invalid authority is denied with the subject preserved.
     - A fresh owned session deletes only its owner.
+    - At the database clock boundary, ages of -1 and 900000 milliseconds are denied; ages of 0 and 899999 milliseconds permit deletion.
     test:
       file: tests/integration/account-deletion-contract.test.ts
-      name: user.account-deletion-session-authority
+      name: user.account-deletion-session-authority deletes only the fresh session owner
 - id: user.account-deletion-last-admin
   category: authorization
   rule: Self-service administrator deletion is allowed only while another administrator remains.
