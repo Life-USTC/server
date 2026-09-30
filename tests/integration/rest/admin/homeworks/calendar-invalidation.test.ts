@@ -15,6 +15,12 @@ type CalendarState = {
   }[];
   calendar: string | null;
 };
+type ProducerState = {
+  messages: {
+    outcome: string;
+    value?: { type?: string; sectionId?: number };
+  }[];
+};
 
 test("administrator homework deletion rebuilds a subscriber calendar once across replay", async ({
   isolatedWorker,
@@ -34,7 +40,7 @@ test("administrator homework deletion rebuilds a subscriber calendar once across
     const producerPath = `/__test/community-effects?id=${probeId}`;
     const consumerPath = `/__test/calendar-consumer?userId=${subscriber.id}&sectionId=${section.id}`;
     const headers = { ...secret, "x-test-community-probe": probeId };
-    const readEffects = async () => {
+    const readEffects = async (): Promise<ProducerState> => {
       // Drains tagged handler streams and waitUntil, including replay enqueue.
       const response = await admin.request.get(producerPath, {
         headers: secret,
@@ -71,7 +77,7 @@ test("administrator homework deletion rebuilds a subscriber calendar once across
       subscriptions: await db.userSectionSubscription.findMany(),
     });
     let producerRegistered = false;
-    let completed = false;
+    const failures: unknown[] = [];
     try {
       for (const path of [producerPath, consumerPath]) {
         const response = await admin.request.post(path, { headers: secret });
@@ -222,15 +228,62 @@ test("administrator homework deletion rebuilds a subscriber calendar once across
           contentType: "application/json",
         });
       }
-      completed = true;
+    } catch (error) {
+      failures.push(error);
     } finally {
-      // Keep actual failure evidence without letting a failed observer prevent
-      // other observations or replace the original assertion failure.
-      const effects = await Promise.allSettled([readEffects()]);
-      const observations = [
-        ...effects,
-        ...(await Promise.allSettled([readRows(), readCalendar()])),
-      ];
+      const [effects] = await Promise.allSettled([readEffects()]);
+      // This actual count is only a teardown obligation. It never replaces the
+      // fixed one-message/one-ack/ICS assertions in the successful workflow.
+      const consumerDrain = await Promise.allSettled(
+        effects.status === "fulfilled"
+          ? [
+              (async () => {
+                expect(Array.isArray(effects.value.messages)).toBe(true);
+                const submitted = effects.value.messages.filter(
+                  (message) =>
+                    message.outcome === "fulfilled" &&
+                    message.value?.type === "section" &&
+                    message.value.sectionId === section.id,
+                ).length;
+                if (submitted === 0) return;
+                // Keep joining real consumer work after a body failure/timeout;
+                // do not race or cancel an in-flight observation at the deadline.
+                const deadline = Date.now() + 15_000;
+                while (true) {
+                  const calendar = await readCalendar();
+                  const attempts = calendar.attempts.filter(
+                    (attempt) =>
+                      attempt.userId === subscriber.id &&
+                      attempt.sectionId === section.id,
+                  );
+                  const acknowledged = new Set(
+                    attempts
+                      .filter(
+                        (attempt) =>
+                          attempt.complete &&
+                          attempt.ackCalls > 0 &&
+                          attempt.retryCalls === 0,
+                      )
+                      .map((attempt) => attempt.id),
+                  );
+                  if (
+                    acknowledged.size >= submitted &&
+                    attempts.every((attempt) => attempt.complete)
+                  )
+                    return { submitted, calendar };
+                  if (Date.now() >= deadline)
+                    throw new Error(
+                      `Calendar teardown did not settle ${submitted} submitted section messages`,
+                    );
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+                }
+              })(),
+            ]
+          : [],
+      );
+      // A failed producer read remains a cleanup error; it is never treated as
+      // zero messages. Attempt all remaining observations and release anyway.
+      const observations = await Promise.allSettled([readRows(), readCalendar()]);
       // Consumer registrations belong to this private Worker/KV and have no
       // DELETE endpoint. Release the producer UUID only after draining it.
       const cleanup = await Promise.allSettled(
@@ -246,22 +299,29 @@ test("administrator homework deletion rebuilds a subscriber calendar once across
             ]
           : [],
       );
-      await testInfo.attach("admin-homework-calendar-final", {
-        body: JSON.stringify(
-          [...observations, ...cleanup].map((result) =>
-            result.status === "fulfilled"
-              ? result
-              : { status: result.status, reason: String(result.reason) },
-          ),
-        ),
-        contentType: "application/json",
-      });
-      if (completed)
-        expect(
-          [...observations, ...cleanup].every(
-            (result) => result.status === "fulfilled",
-          ),
-        ).toBe(true);
+      const results = [effects, ...consumerDrain, ...observations, ...cleanup];
+      for (const result of results)
+        if (result.status === "rejected") failures.push(result.reason);
+      const attachment = await Promise.allSettled([
+        (async () => {
+          await testInfo.attach("admin-homework-calendar-final", {
+            body: JSON.stringify({
+              failures: failures.map(String),
+              observations: results.map((result) =>
+                result.status === "fulfilled"
+                  ? result
+                  : { status: result.status, reason: String(result.reason) },
+              ),
+            }),
+            contentType: "application/json",
+          });
+        })(),
+      ]);
+      for (const result of attachment)
+        if (result.status === "rejected") failures.push(result.reason);
     }
+    if (failures.length === 1) throw failures[0];
+    if (failures.length > 1)
+      throw new AggregateError(failures, "Administrator calendar workflow failed");
   });
 });
