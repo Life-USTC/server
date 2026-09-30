@@ -1,21 +1,31 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
-
-const prisma = createFixturePrisma();
-
-afterAll(() => disconnectTestPrisma(prisma));
+import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
 describe("static Section source lifecycle persistence", () => {
-  it("section.retirement-preserves-data", async () => {
-    const rollback = new Error("ROLLBACK_STATIC_SECTION_LIFECYCLE_TEST");
-    const marker = `[integration-test] section-lifecycle-${Date.now()}`;
-    const numericMarker = 2_140_000_000 + (Date.now() % 1_000_000);
-    const firstObservedAt = new Date("2026-07-18T03:00:00.000Z");
-    const secondObservedAt = new Date("2026-07-19T03:00:00.000Z");
-
-    try {
-      await prisma.$transaction(async (tx) => {
+  it("section.retirement-preserves-data", async ({
+    isolatedDatabase: { owner: db },
+    importer,
+    protocolRuntime,
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      const marker = "[integration-test] section-lifecycle";
+      const numericMarker = 1;
+      const firstObservedAt = new Date("2026-07-18T03:00:00.000Z");
+      const secondObservedAt = new Date("2026-07-19T03:00:00.000Z");
+      const {
+        semester,
+        reappearingSection,
+        missingSection,
+        schedule,
+        exam,
+        user,
+        comment,
+        description,
+        homework,
+        homeworkAudit,
+      } = await db.$transaction(async (tx) => {
         const semester = await tx.semester.create({
           data: {
             jwId: numericMarker,
@@ -110,8 +120,22 @@ describe("static Section source lifecycle persistence", () => {
             metadata: { sectionId: missingSection.id },
           },
         });
+        return {
+          semester,
+          reappearingSection,
+          missingSection,
+          schedule,
+          exam,
+          user,
+          comment,
+          description,
+          homework,
+          homeworkAudit,
+        };
+      });
 
-        await expect(
+      await expect(
+        importer.$transaction((tx) =>
           reconcileSectionPresence(tx, {
             observedAt: firstObservedAt,
             scopedSemesterIds: [semester.id],
@@ -124,144 +148,142 @@ describe("static Section source lifecycle persistence", () => {
             ],
             snapshotSha256: "first-snapshot",
           }),
-        ).resolves.toEqual({
-          status: "applied",
-          scopeSemesterCount: 1,
-          seenSectionCount: 70_001,
-          missingSectionCount: 1,
-          deactivatedCount: 1,
-          reactivatedCount: 1,
-          before: { active: 1, retired: 1, total: 2 },
-          after: { active: 1, retired: 1, total: 2 },
-        });
+        ),
+      ).resolves.toEqual({
+        status: "applied",
+        scopeSemesterCount: 1,
+        seenSectionCount: 70_001,
+        missingSectionCount: 1,
+        deactivatedCount: 1,
+        reactivatedCount: 1,
+        before: { active: 1, retired: 1, total: 2 },
+        after: { active: 1, retired: 1, total: 2 },
+      });
 
-        await expect(
-          tx.section.findMany({
-            where: { id: { in: [reappearingSection.id, missingSection.id] } },
-            orderBy: { id: "asc" },
-            select: {
-              id: true,
-              retiredAt: true,
+      await expect(
+        db.section.findMany({
+          where: { id: { in: [reappearingSection.id, missingSection.id] } },
+          orderBy: { id: "asc" },
+          select: {
+            id: true,
+            retiredAt: true,
+          },
+        }),
+      ).resolves.toEqual([
+        {
+          id: reappearingSection.id,
+          retiredAt: null,
+        },
+        {
+          id: missingSection.id,
+          retiredAt: firstObservedAt,
+        },
+      ]);
+      await expect(
+        db.user.findUnique({
+          where: { id: user.id },
+          select: {
+            sectionSubscriptions: {
+              where: { sectionId: missingSection.id },
+              select: { sectionId: true },
             },
+          },
+        }),
+      ).resolves.toEqual({
+        sectionSubscriptions: [{ sectionId: missingSection.id }],
+      });
+      expect(
+        await db.schedule.findUnique({ where: { id: schedule.id } }),
+      ).toEqual(schedule);
+      expect(await db.exam.findUnique({ where: { id: exam.id } })).toEqual(
+        exam,
+      );
+      const preservedUserData = [
+        await db.comment.findUnique({ where: { id: comment.id } }),
+        await db.description.findUnique({ where: { id: description.id } }),
+        await db.homework.findUnique({ where: { id: homework.id } }),
+        await db.auditLog.findUnique({
+          where: { id: homeworkAudit.id },
+        }),
+      ];
+      expect(preservedUserData).toEqual([
+        expect.objectContaining({ sectionId: missingSection.id }),
+        expect.objectContaining({ sectionId: missingSection.id }),
+        expect.objectContaining({ sectionId: missingSection.id }),
+        expect.objectContaining({
+          targetId: homework.id,
+          metadata: expect.objectContaining({
+            sectionId: missingSection.id,
           }),
-        ).resolves.toEqual([
-          {
-            id: reappearingSection.id,
-            retiredAt: null,
-          },
-          {
-            id: missingSection.id,
-            retiredAt: firstObservedAt,
-          },
-        ]);
-        await expect(
-          tx.user.findUnique({
-            where: { id: user.id },
-            select: {
-              sectionSubscriptions: {
-                where: { sectionId: missingSection.id },
-                select: { sectionId: true },
-              },
+        }),
+      ]);
+      await expect(
+        db.auditLog.findMany({
+          where: {
+            targetId: {
+              in: [String(reappearingSection.id), String(missingSection.id)],
             },
-          }),
-        ).resolves.toEqual({
-          sectionSubscriptions: [{ sectionId: missingSection.id }],
-        });
-        expect(
-          await tx.schedule.findUnique({ where: { id: schedule.id } }),
-        ).toEqual(schedule);
-        expect(await tx.exam.findUnique({ where: { id: exam.id } })).toEqual(
-          exam,
-        );
-        const preservedUserData = [
-          await tx.comment.findUnique({ where: { id: comment.id } }),
-          await tx.description.findUnique({ where: { id: description.id } }),
-          await tx.homework.findUnique({ where: { id: homework.id } }),
-          await tx.auditLog.findUnique({
-            where: { id: homeworkAudit.id },
-          }),
-        ];
-        expect(preservedUserData).toEqual([
-          expect.objectContaining({ sectionId: missingSection.id }),
-          expect.objectContaining({ sectionId: missingSection.id }),
-          expect.objectContaining({ sectionId: missingSection.id }),
-          expect.objectContaining({
-            targetId: homework.id,
-            metadata: expect.objectContaining({
-              sectionId: missingSection.id,
-            }),
-          }),
-        ]);
-        await expect(
-          tx.auditLog.findMany({
-            where: {
-              targetId: {
-                in: [String(reappearingSection.id), String(missingSection.id)],
-              },
-              targetType: "section",
-            },
-            orderBy: { action: "asc" },
-            select: { action: true, metadata: true, targetId: true },
-          }),
-        ).resolves.toEqual([
-          {
-            action: "section_retire",
-            metadata: expect.objectContaining({
-              snapshotSha256: "first-snapshot",
-            }),
-            targetId: String(missingSection.id),
+            targetType: "section",
           },
-          {
-            action: "section_reactivate",
-            metadata: expect.objectContaining({
-              snapshotSha256: "first-snapshot",
-            }),
-            targetId: String(reappearingSection.id),
-          },
-        ]);
+          orderBy: { action: "asc" },
+          select: { action: true, metadata: true, targetId: true },
+        }),
+      ).resolves.toEqual([
+        {
+          action: "section_retire",
+          metadata: expect.objectContaining({
+            snapshotSha256: "first-snapshot",
+          }),
+          targetId: String(missingSection.id),
+        },
+        {
+          action: "section_reactivate",
+          metadata: expect.objectContaining({
+            snapshotSha256: "first-snapshot",
+          }),
+          targetId: String(reappearingSection.id),
+        },
+      ]);
 
-        await expect(
+      await expect(
+        importer.$transaction((tx) =>
           reconcileSectionPresence(tx, {
             observedAt: secondObservedAt,
             scopedSemesterIds: [semester.id],
             seenSectionJwIds: [reappearingSection.jwId, missingSection.jwId],
             snapshotSha256: "second-snapshot",
           }),
-        ).resolves.toMatchObject({
-          missingSectionCount: 0,
-          deactivatedCount: 0,
-          reactivatedCount: 1,
-          after: { active: 2, retired: 0, total: 2 },
-        });
-        await expect(
-          tx.section.findUnique({
-            where: { id: missingSection.id },
-            select: {
-              retiredAt: true,
-              _count: {
-                select: {
-                  comments: true,
-                  homeworks: true,
-                  sectionSubscriptions: true,
-                },
-              },
-              description: { select: { id: true } },
-            },
-          }),
-        ).resolves.toEqual({
-          retiredAt: null,
-          _count: {
-            comments: 1,
-            homeworks: 1,
-            sectionSubscriptions: 1,
-          },
-          description: { id: description.id },
-        });
-
-        throw rollback;
+        ),
+      ).resolves.toMatchObject({
+        missingSectionCount: 0,
+        deactivatedCount: 0,
+        reactivatedCount: 1,
+        after: { active: 2, retired: 0, total: 2 },
       });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+      await expect(
+        db.section.findUnique({
+          where: { id: missingSection.id },
+          select: {
+            retiredAt: true,
+            _count: {
+              select: {
+                comments: true,
+                homeworks: true,
+                sectionSubscriptions: true,
+              },
+            },
+            description: { select: { id: true } },
+          },
+        }),
+      ).resolves.toEqual({
+        retiredAt: null,
+        _count: {
+          comments: 1,
+          homeworks: 1,
+          sectionSubscriptions: 1,
+        },
+        description: { id: description.id },
+      });
+    });
   });
 });
