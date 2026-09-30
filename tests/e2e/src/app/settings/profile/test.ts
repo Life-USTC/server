@@ -22,6 +22,7 @@
  */
 import { expect } from "@playwright/test";
 import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
+import { observeAction } from "../../../../utils/observed-action";
 
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
@@ -110,13 +111,16 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         const newName = "Updated private profile";
 
         await nameInput.fill(newName);
-        const saveResponsePromise = page.waitForResponse(
-          (r) =>
-            r.url().includes("/account/settings") &&
-            r.request().method() === "POST",
+        const saveResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/account/settings") &&
+                r.request().method() === "POST",
+            ),
+          () => saveButton.click(),
         );
-        await saveButton.click();
-        await (await saveResponsePromise).body();
+        await saveResponse.body();
         await expect(successToast).toBeVisible();
         expect(
           await storedProfile(isolatedWorker.database.owner, account.id),
@@ -129,13 +133,16 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         await captureStepScreenshot(page, testInfo, "settings/profile-saved");
 
         await page.locator("input#name").fill(originalName);
-        const rollbackResponsePromise = page.waitForResponse(
-          (r) =>
-            r.url().includes("/account/settings") &&
-            r.request().method() === "POST",
+        const rollbackResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/account/settings") &&
+                r.request().method() === "POST",
+            ),
+          () => saveButton.click(),
         );
-        await saveButton.click();
-        await (await rollbackResponsePromise).body();
+        await rollbackResponse.body();
         await expect(successToast).toBeVisible();
         expect(
           await storedProfile(isolatedWorker.database.owner, account.id),
