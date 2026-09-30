@@ -39,12 +39,14 @@ describe("Catalog lookup request-context independence", () => {
     async ({ name, read }, { http, protocolRuntime, signal }) => {
       await protocolRuntime.run(async () => {
         const contexts: APIRequestContext[] = [];
+        const failures: unknown[] = [];
         try {
           for (const id of [0, 101, 202]) {
             const context = await request.newContext({
               baseURL: http.origin,
               extraHTTPHeaders: { "x-fixture-record-id": String(id) },
             });
+            // Register the acquired context before checking cancellation.
             contexts.push(context);
             signal.throwIfAborted();
           }
@@ -59,16 +61,22 @@ describe("Catalog lookup request-context independence", () => {
               ? { id: 202, jwId: DEV_SEED.section.jwId, code: DEV_SEED.section.code }
               : 202,
           );
-        } finally {
-          const results = await Promise.allSettled(
-            contexts.map((context) => context.dispose()),
-          );
-          const failures = results.flatMap((result) =>
-            result.status === "rejected" ? [result.reason] : [],
-          );
-          if (failures.length)
-            throw new AggregateError(failures, "Lookup request cleanup failed");
+        } catch (error) {
+          failures.push(error);
         }
+        const results = await Promise.allSettled(
+          contexts.map((context) =>
+            Promise.resolve().then(() => context.dispose()),
+          ),
+        );
+        failures.push(
+          ...results.flatMap((result) =>
+            result.status === "rejected" ? [result.reason] : [],
+          ),
+        );
+        if (failures.length === 1) throw failures[0];
+        if (failures.length)
+          throw new AggregateError(failures, "Lookup workflow and cleanup failed");
       });
     },
   );

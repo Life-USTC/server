@@ -1,6 +1,6 @@
 import { test as workerTest } from "../../../e2e/utils/owned-worker";
 
-export const test = workerTest.extend<{ _metricsCounters: void }>({
+export const test = workerTest.extend<{ _metricsCounters: undefined }>({
   _metricsCounters: [
     async ({ isolatedWorker, run }, use) => {
       await run(() =>
@@ -11,7 +11,7 @@ export const test = workerTest.extend<{ _metricsCounters: void }>({
           await db.$executeRaw`INSERT INTO public."PrometheusCounter" VALUES ('registrations', '{}', 0), ('deletions', '{}', 0)`;
         }),
       );
-      await use();
+      await use(undefined);
     },
     { auto: true },
   ],
