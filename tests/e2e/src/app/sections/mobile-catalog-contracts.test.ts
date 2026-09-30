@@ -77,7 +77,9 @@ test("course.mobile-detail-hierarchy", async ({
           await expect(code).toHaveText("MATH-MOBILE-101");
           await expect(code).toBeInViewport();
           expect(
-            await code.evaluate((element) => getComputedStyle(element).fontFamily),
+            await code.evaluate(
+              (element) => getComputedStyle(element).fontFamily,
+            ),
           ).toMatch(/mono/i);
           const offering = page.locator(
             `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
@@ -183,7 +185,9 @@ test("section.mobile-detail-actions", async ({
           });
           await reachable(code);
           expect(
-            await code.evaluate((element) => getComputedStyle(element).fontFamily),
+            await code.evaluate(
+              (element) => getComputedStyle(element).fontFamily,
+            ),
           ).toMatch(/mono/i);
           for (const value of ["3.5", "12 / 40", "32 / 32"])
             await reachable(overview.getByText(value, { exact: true }));
@@ -278,11 +282,15 @@ test("section.mobile-sticky-actions", async ({
         await page.screenshot({
           path: testInfo.outputPath(`sticky-actions-${width}.png`),
         });
-        await bar.getByRole("button", { name: "添加到日历", exact: true }).click();
+        await bar
+          .getByRole("button", { name: "添加到日历", exact: true })
+          .click();
         await expect(page.getByRole("dialog")).toBeVisible();
         await page.keyboard.press("Escape");
         await expect(page.getByRole("dialog")).toHaveCount(0);
-        await bar.getByRole("button", { name: "订阅教学班", exact: true }).click();
+        await bar
+          .getByRole("button", { name: "订阅教学班", exact: true })
+          .click();
         const dialog = page.getByRole("dialog");
         await expect(dialog).toBeVisible();
         await dialog
@@ -300,7 +308,9 @@ test("section.mobile-sticky-actions", async ({
             ),
           )
           .toBe(1);
-        await bar.getByRole("button", { name: "取消订阅", exact: true }).click();
+        await bar
+          .getByRole("button", { name: "取消订阅", exact: true })
+          .click();
         await expect(
           bar.getByRole("button", { name: "订阅教学班", exact: true }),
         ).toBeVisible();
