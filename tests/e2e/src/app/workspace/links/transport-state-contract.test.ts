@@ -71,8 +71,8 @@ async function arrangeLinkState(isolatedWorker: IsolatedWorker) {
 }
 
 const test = preferenceTest.extend<{ linkState: Awaited<ReturnType<typeof arrangeLinkState>> }>({
-  linkState: async ({ isolatedWorker, page, run, preferenceFlow: _flow }, use) => {
-    const fixture = await run(async () => {
+  linkState: async ({ isolatedWorker, page, preferenceFlow }, use) => {
+    const fixture = await preferenceFlow.prepare(async () => {
       const fixture = await arrangeLinkState(isolatedWorker);
       await page.context().addCookies([await fixture.session(fixture.users[0])]);
       return fixture;
@@ -177,7 +177,7 @@ test("catalog-link.public-web-personal-overlay", async ({ preferenceFlow, linkSt
       });
       try {
         await context.addCookies([session]);
-        const ssr = await context.newPage();
+        const ssr = await preferenceFlow.newPage(context);
         const response = await ssr.goto("/catalog/links");
         expect(response?.status()).toBe(200);
         if (!response) throw new Error("Missing HTML response");
@@ -237,13 +237,20 @@ test("catalog-link.pin-write-gate", async ({ preferenceFlow, linkState, page }) 
     let writes = 0;
     let release!: () => void;
     let received!: () => void;
+    let cancelRequested!: (error: Error) => void;
     const held = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const requested = new Promise<void>((resolve) => {
+    const requested = new Promise<void>((resolve, reject) => {
       received = resolve;
+      cancelRequested = reject;
     });
-    preferenceFlow.onClosing(release);
+    // Setup/navigation can fail before the callback reaches await requested.
+    void requested.catch(() => undefined);
+    preferenceFlow.onClosing(() => {
+      release();
+      cancelRequested(new Error("Overlay request was not observed before workflow interruption"));
+    });
     page.on("request", (request) => {
       if (
         new URL(request.url()).pathname === pinPath &&
@@ -279,7 +286,7 @@ test("catalog-link.pin-write-gate", async ({ preferenceFlow, linkState, page }) 
     await expect(form(page, "jw").getByRole("button")).toBeEnabled();
     expect(reads).toBe(2);
     expect(writes).toBe(0);
-    const savedResponse = page.waitForResponse((response) =>
+    const savedResponse = preferenceFlow.waitForResponse(page, (response) =>
       new URL(response.url()).pathname === pinPath && response.request().method() === "POST",
     );
     await form(page, "jw").getByRole("button").click();
@@ -310,7 +317,7 @@ test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolate
       ]) {
         const target = form(page, slug);
         await expect(target.locator('input[name="action"]')).toHaveValue(action);
-        const response = page.waitForResponse(
+        const response = preferenceFlow.waitForResponse(page,
           (response) =>
             new URL(response.url()).pathname === pinPath &&
             response.request().method() === "POST",
@@ -343,7 +350,7 @@ test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolate
           }).toString(),
         });
       });
-      const response = page.waitForResponse(
+      const response = preferenceFlow.waitForResponse(page,
         (response) =>
           new URL(response.url()).pathname === pinPath &&
           response.request().method() === "POST",
@@ -368,7 +375,7 @@ test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolate
       await preferenceFlow.clearRoutes(page);
     }
     await linkState.removeFailureTrigger();
-    const recoveredResponse = page.waitForResponse((response) =>
+    const recoveredResponse = preferenceFlow.waitForResponse(page, (response) =>
       new URL(response.url()).pathname === pinPath && response.request().method() === "POST",
     );
     await form(page, "vlab").getByRole("button").click();
@@ -392,7 +399,7 @@ test("catalog-link.visit-tracking-link", async ({ preferenceFlow, linkState, iso
       try {
         if (signedIn)
           await context.addCookies([await linkState.session(users[0])]);
-        const target = await context.newPage();
+        const target = await preferenceFlow.newPage(context);
         await gotoAndWaitForReady(target, "/catalog/links");
         const links = target.locator(
           'a[href^="/api/catalog/links/resolve?slug="]',
@@ -414,11 +421,10 @@ test("catalog-link.visit-tracking-link", async ({ preferenceFlow, linkState, iso
           expect(link.role).not.toBe("button");
           expect(link.target).toBe("_blank");
         }
-        const clicked = context.waitForEvent("request", {
-          predicate: (request) =>
-            new URL(request.url()).pathname === "/api/catalog/links/resolve",
-        });
-        const popup = target.waitForEvent("popup");
+        const clicked = preferenceFlow.waitForRequest(context, (request) =>
+          new URL(request.url()).pathname === "/api/catalog/links/resolve",
+        );
+        const popup = preferenceFlow.waitForPopup(target);
         await preferenceFlow.route(context,
           "**/api/catalog/links/resolve?slug=jw",
           async (route) => {
