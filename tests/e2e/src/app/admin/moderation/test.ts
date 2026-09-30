@@ -4,6 +4,7 @@ import { expectRequiresSignIn } from "../../../../utils/auth";
 import { openCommentComposer } from "../../../../utils/comments";
 import { visibleText } from "../../../../utils/locators";
 import { test } from "../../../../utils/moderation-fixture";
+import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -128,13 +129,16 @@ test("/admin/moderation 刷新队列并保留当前视图", async ({
         await expect(refreshButton).toBeVisible();
         await expect(refreshButton).toBeEnabled();
 
-        const refreshResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "GET" &&
-            response.url().includes("/admin/moderation") &&
-            response.url().includes("__data.json"),
+        const refreshResponse = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "GET" &&
+                response.url().includes("/admin/moderation") &&
+                response.url().includes("__data.json"),
+            ),
+          () => refreshButton.click(),
         );
-        await refreshButton.click();
         await expect((await refreshResponse).status()).toBe(200);
 
         await expect(page).toHaveURL(/\/admin\/moderation\?tab=descriptions$/);
@@ -335,13 +339,16 @@ test("/admin/moderation 可更新评论状态与备注", async ({
           .first()
           .fill(note);
 
-        const patchResponse = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/admin/comments/") &&
-            response.request().method() === "PATCH" &&
-            response.status() === 200,
+        const patchResponse = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/admin/comments/") &&
+                response.request().method() === "PATCH" &&
+                response.status() === 200,
+            ),
+          () => dialog.getByRole("button", { name: /确认|Confirm/i }).click(),
         );
-        await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
         await patchResponse;
         expect(
           await moderation.db.comment.findUnique({
@@ -387,16 +394,20 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
         const body = `Target link ${moderation.marker}`;
         const composer = await openCommentComposer(page);
         await composer.fill(body);
-        const createResponse = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/community/comments") &&
-            response.request().method() === "POST" &&
-            response.status() === 201,
+        const createResponse = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/community/comments") &&
+                response.request().method() === "POST" &&
+                response.status() === 201,
+            ),
+          () =>
+            page
+              .locator("#comments")
+              .getByRole("button", { name: /发布评论|Post comment/i })
+              .click(),
         );
-        await page
-          .locator("#comments")
-          .getByRole("button", { name: /发布评论|Post comment/i })
-          .click();
         const created = await createResponse;
         const createdBody = (await created.json()) as { id?: string };
         const id = createdBody.id;
@@ -532,17 +543,21 @@ test("/admin/moderation 封禁列表可解除封禁", async ({
         await expect(confirmDialog).toBeHidden();
 
         await liftButton.click();
-        const liftResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "POST" &&
-            response.url().includes("/admin/moderation") &&
-            response.url().includes("liftSuspension"),
+        const liftResponse = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "POST" &&
+                response.url().includes("/admin/moderation") &&
+                response.url().includes("liftSuspension"),
+            ),
+          () =>
+            confirmDialog
+              .getByRole("button", {
+                name: /确认解除封禁|Lift suspension/i,
+              })
+              .click(),
         );
-        await confirmDialog
-          .getByRole("button", {
-            name: /确认解除封禁|Lift suspension/i,
-          })
-          .click();
         expect((await liftResponse).status()).toBe(200);
         expect(
           await moderation.db.userSuspension.findMany({
@@ -613,12 +628,15 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
         await expect(reasonInput).toBeVisible();
         await reasonInput.fill(reason);
 
-        const suspendResponse = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/admin/suspensions") &&
-            response.request().method() === "POST",
+        const suspendResponse = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/admin/suspensions") &&
+                response.request().method() === "POST",
+            ),
+          () => dialog.getByRole("button", { name: /封禁|Suspend/i }).click(),
         );
-        await dialog.getByRole("button", { name: /封禁|Suspend/i }).click();
         const created = await suspendResponse;
         expect(created.status()).toBe(201);
         const createdBody = (await created.json()) as {
@@ -842,19 +860,24 @@ test("/admin/moderation 可更新课程简介内容", async ({
         await expect(editor).toBeVisible();
         await editor.fill(nextContent);
 
-        const saveResponse = page.waitForResponse((response) => {
-          if (response.request().method() !== "POST" || !response.ok()) {
-            return false;
-          }
-          const url = response.url();
-          return (
-            url.includes("/admin/moderation") &&
-            (url.includes("moderateDescription") ||
-              response.request().postData()?.includes("moderateDescription") ===
-                true)
-          );
-        });
-        await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
+        const saveResponse = observeAction(
+          () =>
+            page.waitForResponse((response) => {
+              if (response.request().method() !== "POST" || !response.ok()) {
+                return false;
+              }
+              const url = response.url();
+              return (
+                url.includes("/admin/moderation") &&
+                (url.includes("moderateDescription") ||
+                  response
+                    .request()
+                    .postData()
+                    ?.includes("moderateDescription") === true)
+              );
+            }),
+          () => dialog.getByRole("button", { name: /确认|Confirm/i }).click(),
+        );
         await saveResponse;
         await expect(dialog).not.toBeVisible({ timeout: 15_000 });
 

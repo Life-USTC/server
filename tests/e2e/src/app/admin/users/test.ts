@@ -6,6 +6,7 @@ import {
 } from "../../../../utils/admin-fixture";
 import { expectRequiresSignIn } from "../../../../utils/auth";
 import { visibleText } from "../../../../utils/locators";
+import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -465,13 +466,16 @@ test("/admin/users 用户名非法保存返回 400", async ({
         await expect(usernameInput).toBeVisible();
         await usernameInput.fill("INVALID");
 
-        const saveResponse = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/admin/users/") &&
-            response.request().method() === "PATCH" &&
-            response.status() === 400,
+        const saveResponse = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/admin/users/") &&
+                response.request().method() === "PATCH" &&
+                response.status() === 400,
+            ),
+          () => dialog.getByRole("button", { name: /保存更改|Save/i }).click(),
         );
-        await dialog.getByRole("button", { name: /保存更改|Save/i }).click();
         await saveResponse;
         expect(
           await isolatedWorker.database.owner.user.findUniqueOrThrow({
@@ -514,12 +518,15 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({
         const newName = `e2e-${Date.now()}`;
         await nameInput.fill(newName);
 
-        const saveResponse = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/admin/users/") &&
-            response.request().method() === "PATCH",
+        const saveResponse = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/admin/users/") &&
+                response.request().method() === "PATCH",
+            ),
+          () => dialog.getByRole("button", { name: /保存更改|Save/i }).click(),
         );
-        await dialog.getByRole("button", { name: /保存更改|Save/i }).click();
         const save = await saveResponse;
         expect(save.status()).toBe(200);
         expect(
@@ -638,13 +645,16 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
           .first();
         await expect(suspendButton).toBeVisible();
 
-        const responsePromise = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/admin/suspensions") &&
-            response.request().method() === "POST" &&
-            response.status() === 201,
+        const responsePromise = observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/admin/suspensions") &&
+                response.request().method() === "POST" &&
+                response.status() === 201,
+            ),
+          () => suspendButton.click(),
         );
-        await suspendButton.click();
         const response = await responsePromise;
         const body = (await response.json()) as {
           suspension?: { id?: string; reason?: string | null };

@@ -2,6 +2,7 @@
 import { expect } from "@playwright/test";
 import { adminWriteChecks } from "../../../../utils/admin-fixture";
 import { expectRequiresSignIn } from "../../../../utils/auth";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -212,14 +213,20 @@ for (const initiallyActive of [0, 1])
               }),
             ).toEqual([{ id: current.id }]);
             await activate.click();
-            const response = page.waitForResponse(
-              (response) =>
-                response.request().method() === "POST" &&
-                response.url().includes("activateVersion"),
+            const response = observeAction(
+              () =>
+                page.waitForResponse(
+                  (response) =>
+                    response.request().method() === "POST" &&
+                    response.url().includes("activateVersion"),
+                ),
+              () =>
+                dialog
+                  .getByRole("button", {
+                    name: /确认激活版本|Activate version/i,
+                  })
+                  .click(),
             );
-            await dialog
-              .getByRole("button", { name: /确认激活版本|Activate version/i })
-              .click();
             expect((await response).status()).toBe(200);
             await expect(dialog).toBeHidden();
             await expect(row.getByRole("cell").nth(5)).toHaveText(
