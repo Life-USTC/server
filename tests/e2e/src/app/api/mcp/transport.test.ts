@@ -209,7 +209,6 @@ test.describe("/api/mcp - 传输与授权", () => {
       });
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: MCP_CLIENT_SCOPES,
         consentScopes: [MCP_CLIENT_SCOPES],
         resources: [resource],
         tokenRequests: 1,
@@ -264,7 +263,6 @@ test.describe("/api/mcp - 传输与授权", () => {
       });
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: MCP_CLIENT_SCOPES,
         consentScopes: [MCP_CLIENT_SCOPES],
         resources: [resource],
         tokenRequests: 1,
@@ -371,7 +369,6 @@ test.describe("/api/mcp - 传输与授权", () => {
       expectMcpCorsHeaders(authenticatedResponse.headers(), origin);
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: MCP_CLIENT_SCOPES,
         consentScopes: [MCP_CLIENT_SCOPES],
         resources: [resource],
         tokenRequests: 1,
@@ -452,7 +449,6 @@ test.describe("/api/mcp - 传输与授权", () => {
       });
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: MCP_CLIENT_SCOPES,
         consentScopes: [MCP_CLIENT_SCOPES],
         resources: [resource],
         tokenRequests: 1,
@@ -509,7 +505,6 @@ test.describe("/api/mcp - 传输与授权", () => {
       });
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
         consentScopes: [[...DEFAULT_OAUTH_CLIENT_SCOPES]],
         resources: [resource],
         tokenRequests: 1,
