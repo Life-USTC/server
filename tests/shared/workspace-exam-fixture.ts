@@ -1,3 +1,4 @@
+import { expect } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { getSubscribedExamsRoute } from "@/lib/api/routes/subscribed-exam-routes";
 import { subscribedExamsResponseSchema } from "@/lib/api/schemas/subscribed-exams-schemas";
@@ -9,7 +10,7 @@ import { nodeProtocolTest } from "./node-protocol-fixture";
 // these cases do not claim concurrency safety in a shared module environment.
 export const workspaceExamTest = nodeProtocolTest.extend(
   "exams",
-  async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) =>
+  async ({ isolatedDatabase: { owner: db }, protocolRuntime }) =>
     protocolRuntime.run(async () => {
       const { users, sectionIds, semesterIds, examIds, clientId, grantIds } =
         await db.$transaction(async (tx) => {
