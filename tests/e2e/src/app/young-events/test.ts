@@ -1,4 +1,3 @@
-import { test } from "../../../utils/young-public-fixture";
 /**
  * E2E tests for /catalog/young-events — 第二课堂活动列表
  *
@@ -31,10 +30,15 @@ import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test as privateTest } from "../../../utils/personal-preferences-fixture";
+import { test } from "../../../utils/young-public-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/young-events 第二课堂活动", () => {
-  test("页面契约", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }, testInfo) => {
+  test("页面契约", async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/young-events",
@@ -43,11 +47,17 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("SSR 输出包含搜索查询", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  test("SSR 输出包含搜索查询", async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }) => {
     await preferenceFlow.run(async () => {
-      const response = await preferenceFlow.http(() => page.request.get(
-        `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
-      ));
+      const response = await preferenceFlow.http(() =>
+        page.request.get(
+          `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
+        ),
+      );
       expect(response.status()).toBe(200);
       const html = await response.text();
       expect(html).toContain('id="main-content"');
@@ -55,7 +65,11 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("搜索、报名状态筛选与清除按钮", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  test("搜索、报名状态筛选与清除按钮", async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/young-events");
       await expect(
@@ -97,7 +111,11 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("筛选面板保值并在日历与详情之间保留上下文", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  test("筛选面板保值并在日历与详情之间保留上下文", async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }) => {
     await preferenceFlow.run(async () => {
       const search = encodeURIComponent(DEV_SEED.youngEvent.name);
       await gotoAndWaitForReady(
@@ -147,7 +165,10 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("手机日历从所选日期开始并可展开此前日期", async ({ page, preferenceFlow }) => {
+  test("手机日历从所选日期开始并可展开此前日期", async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(
@@ -189,7 +210,11 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("日历和主办方页面保留公开深链接", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  test("日历和主办方页面保留公开深链接", async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -220,7 +245,11 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
 });
 
 for (const width of [1280, 390]) {
-  test(`advanced filter sheet isolates canceled drafts and submits the current search at ${width}px`, async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  test(`advanced filter sheet isolates canceled drafts and submits the current search at ${width}px`, async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width, height: 844 });
       await gotoAndWaitForReady(
@@ -229,7 +258,9 @@ for (const width of [1280, 390]) {
       );
       const search = `unsubmitted-search-${width}`;
       await page.getByRole("searchbox").fill(search);
-      const trigger = page.getByRole("button", { name: /更多筛选|More filters/ });
+      const trigger = page.getByRole("button", {
+        name: /更多筛选|More filters/,
+      });
       const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
       await trigger.click();
       await expect(sheet).toBeVisible();
@@ -266,7 +297,10 @@ for (const width of [1280, 390]) {
   });
 }
 
-test("calendar sheet preserves selected dates and unsubmitted primary filters", async ({ page, preferenceFlow }) => {
+test("calendar sheet preserves selected dates and unsubmitted primary filters", async ({
+  page,
+  preferenceFlow,
+}) => {
   await preferenceFlow.run(async () => {
     await gotoAndWaitForReady(
       page,
@@ -274,7 +308,9 @@ test("calendar sheet preserves selected dates and unsubmitted primary filters", 
     );
     await page.getByRole("searchbox").fill("calendar draft");
     await page.locator("#young-calendar-active").selectOption("false");
-    await page.locator("#young-calendar-time-basis").selectOption("registration");
+    await page
+      .locator("#young-calendar-time-basis")
+      .selectOption("registration");
     await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
     const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
     await sheet.locator("#young-calendar-module").selectOption("智");

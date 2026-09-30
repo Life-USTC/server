@@ -19,9 +19,11 @@ type DetailCatalog = Awaited<ReturnType<typeof arrangeDetailCatalog>>;
 
 export const test = preferenceTest.extend<{ detailCatalog: DetailCatalog }>({
   detailCatalog: async ({ isolatedWorker, preferenceFlow }, use) => {
-    await use(await preferenceFlow.prepare(() =>
-      isolatedWorker.database.owner.$transaction(arrangeDetailCatalog),
-    ));
+    await use(
+      await preferenceFlow.prepare(() =>
+        isolatedWorker.database.owner.$transaction(arrangeDetailCatalog),
+      ),
+    );
   },
 });
 
@@ -42,10 +44,18 @@ export async function arrangeSectionDetails(
   db: Prisma.TransactionClient,
   catalog: DetailCatalog,
 ) {
-  const roomType = await db.roomType.create({ data: scenario.catalog.roomType });
-  const examMode = await db.examMode.create({ data: scenario.catalog.examMode });
-  const teachLanguage = await db.teachLanguage.create({ data: scenario.catalog.teachLanguage });
-  const adminClass = await db.adminClass.create({ data: scenario.catalog.adminClass });
+  const roomType = await db.roomType.create({
+    data: scenario.catalog.roomType,
+  });
+  const examMode = await db.examMode.create({
+    data: scenario.catalog.examMode,
+  });
+  const teachLanguage = await db.teachLanguage.create({
+    data: scenario.catalog.teachLanguage,
+  });
+  const adminClass = await db.adminClass.create({
+    data: scenario.catalog.adminClass,
+  });
   const building = await db.building.create({
     data: { ...scenario.catalog.building, campusId: catalog.campus.id },
   });
@@ -93,7 +103,9 @@ export async function arrangeSectionDetails(
       endUnit: 3,
       periods: 2,
       weekIndex: 2,
-      teacherParticipations: { create: { teacherId: catalog.teacher.id, periods: 2 } },
+      teacherParticipations: {
+        create: { teacherId: catalog.teacher.id, periods: 2 },
+      },
     },
   });
   const examBatch = await db.examBatch.create({

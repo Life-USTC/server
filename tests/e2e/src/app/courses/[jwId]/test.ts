@@ -1,4 +1,7 @@
-import { test, arrangeCourseIntroduction } from "../../../../utils/catalog-detail-fixture";
+import {
+  arrangeCourseIntroduction,
+  test,
+} from "../../../../utils/catalog-detail-fixture";
 /**
  * E2E tests for `/catalog/courses/[jwId]` — Individual Course Detail page.
  *
@@ -71,7 +74,11 @@ async function jumpToCourseSection(
 }
 
 test.describe("/catalog/courses/[jwId] 课程详情", () => {
-  test("页面契约", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("页面契约", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/courses/[jwId]",
@@ -95,7 +102,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("显示课程名称、代码和基本信息", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("显示课程名称、代码和基本信息", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
 
@@ -113,7 +124,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("显示培养层次、课程类别和教学班类型", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("显示培养层次、课程类别和教学班类型", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
 
@@ -146,7 +161,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("班级表格显示学期、班级代码、教师、校区和容量", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("班级表格显示学期、班级代码、教师、校区和容量", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
       await jumpToCourseSection(page, /班级|Sections/i, "#sections");
@@ -196,7 +215,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("详情流式布局包含主要锚点区块", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
 
@@ -215,7 +238,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("ui.detail-hero-5", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("ui.detail-hero-5", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, COURSE_URL);
@@ -228,7 +255,8 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       const titleBox = await heading.boundingBox();
       expect(codeBox).not.toBeNull();
       expect(titleBox).not.toBeNull();
-      if (!codeBox || !titleBox) throw new Error("Missing course title geometry");
+      if (!codeBox || !titleBox)
+        throw new Error("Missing course title geometry");
       expect(codeBox.y + codeBox.height).toBeLessThanOrEqual(titleBox.y);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
@@ -241,7 +269,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("班级行链接到班级详情", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("班级行链接到班级详情", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
       await jumpToCourseSection(page, /班级|Sections/i, "#sections");
@@ -258,8 +290,15 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Description ─────────────────────────────────────────────────────────────
 
-  test("同路由导航重置目标范围内的简介状态", async ({ page, preferenceFlow, detailCatalog: _detailCatalog, isolatedWorker }, testInfo) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction(arrangeCourseIntroduction));
+  test("同路由导航重置目标范围内的简介状态", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+    isolatedWorker,
+  }, testInfo) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction(arrangeCourseIntroduction),
+    );
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_WITH_DESCRIPTION_URL);
       await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
@@ -549,20 +588,34 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("SSR 保留 sanitized Markdown 简介", async ({ preferenceFlow, detailCatalog: _detailCatalog, isolatedWorker }) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction(arrangeCourseIntroduction));
+  test("SSR 保留 sanitized Markdown 简介", async ({
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+    isolatedWorker,
+  }) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction(arrangeCourseIntroduction),
+    );
     await preferenceFlow.run(async () => {
-      const context = await preferenceFlow.newContext({ javaScriptEnabled: false });
+      const context = await preferenceFlow.newContext({
+        javaScriptEnabled: false,
+      });
       const page = await preferenceFlow.newPage(context);
       await page.goto(COURSE_WITH_DESCRIPTION_URL);
 
       await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
-      await expect(page.locator("#introduction .markdown-preview")).toBeVisible();
+      await expect(
+        page.locator("#introduction .markdown-preview"),
+      ).toBeVisible();
     });
   });
 });
 
-test("页面契约", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+test("页面契约", async ({
+  page,
+  preferenceFlow,
+  detailCatalog: _detailCatalog,
+}, testInfo) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
       routePath: "/catalog/courses/[jwId]/[section]",

@@ -195,7 +195,8 @@ test.describe("/catalog/sections 班级搜索页", () => {
         if (
           request.method() !== "GET" ||
           new URL(request.url()).pathname !== viewerPath
-        ) return;
+        )
+          return;
         viewerRequests.push(request);
         // Shell refresh replaces the first detail controller during SPA navigation.
         // The reader still requires this exact request's native abort terminal.
@@ -214,10 +215,12 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await successor?.body();
       // The URL and SSR shell precede the lazy detail panels. Require the final
       // panel and its known empty state before closing request admission.
-      await expect(page.locator("[data-detail-scroll-container]")).toHaveAttribute(
-        "aria-busy", "false",
-      );
-      await expect(page.locator('#comments [data-slot="empty-description"]')).toBeVisible();
+      await expect(
+        page.locator("[data-detail-scroll-container]"),
+      ).toHaveAttribute("aria-busy", "false");
+      await expect(
+        page.locator('#comments [data-slot="empty-description"]'),
+      ).toBeVisible();
       await waitForUiSettled(page);
       expect(viewerRequests).toHaveLength(2);
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
