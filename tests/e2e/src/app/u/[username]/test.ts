@@ -24,7 +24,10 @@
 import { expect, test } from "@playwright/test";
 import type { User } from "../../../../../../src/generated/prisma-node/client";
 import { createFixturePrisma } from "../../../../../shared/prisma";
-import { signInAsDevAdmin } from "../../../../utils/auth";
+import {
+  expectPrivateViewerState,
+  preparePrivateViewer,
+} from "../../../../utils/authenticated-read-fixture";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test as privateTest } from "../../../../utils/personal-preferences-fixture";
@@ -249,26 +252,46 @@ test.describe("/community/users/[identifier] by ID", () => {
     });
   });
 
-  test("内部用户 ID 地址直接解析同一资料页", async ({ page }, testInfo) => {
-    await signInAsDevAdmin(page, "/");
-    const sessionResponse = await page.request.get("/api/auth/get-session");
-    expect(sessionResponse.status()).toBe(200);
-    const session = (await sessionResponse.json()) as {
-      user?: { id?: string };
-    };
-    expect(session.user?.id).toBeTruthy();
+  privateTest(
+    "内部用户 ID 地址直接解析同一资料页",
+    async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
+      await run(async () => {
+        const viewer = await preferenceFlow.prepare(() =>
+          preparePrivateViewer(page, isolatedWorker, true),
+        );
+        await preferenceFlow.run(async () => {
+          await gotoAndWaitForReady(page, "/workspace/overview");
+          const sessionResponse = await preferenceFlow.http(() =>
+            page.request.get("/api/auth/get-session"),
+          );
+          expect(sessionResponse.status()).toBe(200);
+          const session = (await sessionResponse.json()) as {
+            user?: { id?: string };
+          };
+          expect(session.user?.id).toBeTruthy();
 
-    await gotoAndWaitForReady(page, `/community/users/${session.user?.id}`);
-    await expect(page).toHaveURL(
-      new RegExp(`/community/users/${session.user?.id}$`),
-    );
-    await expect(
-      page.getByText(`@${DEV_SEED.adminUsername}`).first(),
-    ).toBeVisible();
-    await expect(page.getByText(DEV_SEED.adminName).first()).toBeVisible();
+          await gotoAndWaitForReady(
+            page,
+            `/community/users/${session.user?.id}`,
+          );
+          await expect(page).toHaveURL(
+            new RegExp(`/community/users/${session.user?.id}$`),
+          );
+          await expect(
+            page.getByText(`@${viewer.user.username}`).first(),
+          ).toBeVisible();
+          await expect(page.getByText(viewer.user.name).first()).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "u-id/profile");
-  });
+          await captureStepScreenshot(page, testInfo, "u-id/profile");
+        });
+        await expectPrivateViewerState(
+          isolatedWorker.database.owner,
+          viewer,
+          [],
+        );
+      });
+    },
+  );
 
   test("不存在的 uid 返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(

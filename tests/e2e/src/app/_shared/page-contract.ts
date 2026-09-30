@@ -1,9 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
-import {
-  expectRequiresSignIn,
-  signInAsDebugUser,
-  signInAsDevAdmin,
-} from "../../../utils/auth";
+import { expectRequiresSignIn } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   expandWorkspaceSidebarGroup,
@@ -135,7 +131,6 @@ export async function assertPageContract(
     if (routePath === "/account/settings") {
       // handled explicitly below for explicitness
     } else {
-      await signInAsDebugUser(page, routePath);
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       const expectedTab = routePath.split("/").pop();
@@ -166,7 +161,6 @@ export async function assertPageContract(
   }
 
   if (routePath === "/workspace/subscriptions/sections") {
-    await signInAsDebugUser(page, "/workspace/subscriptions");
     await gotoContractPage(page, routePath, testInfo);
     await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
     await expectMainContent(page);
@@ -178,7 +172,6 @@ export async function assertPageContract(
     routePath.startsWith("/workspace/") ||
     routePath === "/workspace"
   ) {
-    await signInAsDebugUser(page, routePath === "/workspace" ? "/" : routePath);
     await gotoContractPage(page, routePath, testInfo);
     await expectMainContent(page);
     await expandWorkspaceSidebarGroup(page);
@@ -190,7 +183,6 @@ export async function assertPageContract(
 
   switch (routePath) {
     case "/admin": {
-      await signInAsDevAdmin(page, "/admin");
       await gotoContractPage(page, routePath, testInfo);
       await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
       await expectMainContent(page);
@@ -211,7 +203,6 @@ export async function assertPageContract(
     }
 
     case "/admin/bus": {
-      await signInAsDevAdmin(page, "/admin/bus");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -225,7 +216,6 @@ export async function assertPageContract(
     }
 
     case "/admin/moderation": {
-      await signInAsDevAdmin(page, "/admin/moderation");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -239,7 +229,6 @@ export async function assertPageContract(
     }
 
     case "/admin/oauth": {
-      await signInAsDevAdmin(page, "/admin/oauth");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -254,7 +243,6 @@ export async function assertPageContract(
     }
 
     case "/admin/users": {
-      await signInAsDevAdmin(page, "/admin/users");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -821,7 +809,6 @@ export async function assertPageContract(
     }
 
     case "/account/settings": {
-      await signInAsDebugUser(page, "/account/settings/profile");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(

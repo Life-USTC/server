@@ -7,7 +7,7 @@ import { test as workerTest } from "./isolated-worker";
 import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 /** Only credential records are arranged; sessions must come from the real UI. */
-async function arrangeSignInCredential(
+export async function arrangeSignInCredential(
   db: TestPrismaClient,
   admin: boolean,
   signal: AbortSignal,
