@@ -1,10 +1,7 @@
-import { expect, type Locator, test } from "@playwright/test";
-import {
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../../../../shared/catalog-contract-fixture";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect, type Locator } from "@playwright/test";
+import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
+import type { TestPrismaClient } from "../../../../shared/prisma";
+import { test } from "../../../utils/catalog-browser-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   assertPriorityView,
@@ -41,9 +38,9 @@ function secondaryName(
         value.nameCn,
       );
 }
-async function fixture() {
-  return withE2ePrisma(async (db) => {
-    const catalog = await createCatalogContractFixture(db);
+async function fixture(owner: TestPrismaClient) {
+  const catalog = await createCatalogContractFixture(owner);
+  return owner.$transaction(async (db) => {
     const named = (suffix: string) => ({
       nameCn: `${suffix}${catalog.marker}`,
       nameEn: `${suffix} ${catalog.marker}`,
@@ -132,31 +129,33 @@ for (const locale of ["zh-cn", "en-us"] as const)
   for (const width of [1280, 390]) {
     test(`ui.model-property-priority-catalog-views ${locale}/${width}`, async ({
       page,
+      isolatedWorker,
+      catalogFlow,
     }) => {
       test.setTimeout(120_000);
       page.setDefaultTimeout(5_000);
-      const data = await fixture();
-      const {
-        catalog,
-        education,
-        category,
-        classType,
-        courseType,
-        campus,
-        examMode,
-        language,
-        roomType,
-        adminClass,
-      } = data;
-      const course = catalog.courses[0],
-        teacher = catalog.teachers[0],
-        section = catalog.sections[0];
-      try {
+      await catalogFlow.run(async () => {
+        const data = await fixture(isolatedWorker.database.owner);
+        const {
+          catalog,
+          education,
+          category,
+          classType,
+          courseType,
+          campus,
+          examMode,
+          language,
+          roomType,
+          adminClass,
+        } = data;
+        const course = catalog.courses[0],
+          teacher = catalog.teachers[0],
+          section = catalog.sections[0];
         await page.context().clearCookies();
         await page
           .context()
           .addCookies([
-            { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
           ]);
         const semester = locale === "en-us" ? "Fall 2026" : "2026年秋季学期";
 
@@ -541,19 +540,6 @@ for (const locale of ["zh-cn", "en-us"] as const)
             await page.evaluate(() => document.documentElement.scrollWidth),
           ).toBeLessThanOrEqual(width);
         }
-      } finally {
-        await withE2ePrisma(async (db) => {
-          await cleanupCatalogContractFixture(db, catalog);
-          await db.adminClass.delete({ where: { id: adminClass.id } });
-          await db.roomType.delete({ where: { id: roomType.id } });
-          await db.teachLanguage.delete({ where: { id: language.id } });
-          await db.examMode.delete({ where: { id: examMode.id } });
-          await db.campus.delete({ where: { id: campus.id } });
-          await db.courseType.delete({ where: { id: courseType.id } });
-          await db.classType.delete({ where: { id: classType.id } });
-          await db.courseCategory.delete({ where: { id: category.id } });
-          await db.educationLevel.delete({ where: { id: education.id } });
-        });
-      }
+      }, { anonymousCourseCount: 2 });
     });
   }
