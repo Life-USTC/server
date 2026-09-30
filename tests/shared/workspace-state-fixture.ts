@@ -18,7 +18,10 @@ export const workspaceRuntimeTest = isolatedDatabaseTest.extend<{
   workspaceQueue: async ({}, use) => {
     await use({ send: async () => {} });
   },
-  workspaceRuntime: async ({ isolatedDatabase, workspaceQueue }, use) => {
+  workspaceRuntime: async (
+    { isolatedDatabase, workspaceQueue, onTestFinished },
+    use,
+  ) => {
     const { connections } = isolatedDatabase;
     const runtime = createNodeRuntime({
       APP_PUBLIC_ORIGIN: "http://localhost:3000",
@@ -33,7 +36,13 @@ export const workspaceRuntimeTest = isolatedDatabaseTest.extend<{
       // Native teardown is registered before any actor or dependent setup starts.
       await use(runtime);
     } finally {
-      await runtime.close();
+      try {
+        await runtime.close();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
 });
@@ -44,9 +53,11 @@ export const workspaceStateTest = workspaceRuntimeTest.extend<{
   workspace: async ({ isolatedDatabase, workspaceRuntime }, use) => {
     const db = isolatedDatabase.owner;
     const userId = "workspace-owner";
-    await db.user.create({
-      data: { id: userId, email: `${userId}@test.invalid` },
-    });
+    await workspaceRuntime.run(() =>
+      db.user.create({
+        data: { id: userId, email: `${userId}@test.invalid` },
+      }),
+    );
     await use({ db, userId, runtime: workspaceRuntime.run });
   },
 });
