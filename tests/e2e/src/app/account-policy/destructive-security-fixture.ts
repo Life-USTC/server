@@ -40,6 +40,15 @@ async function prepareDestructiveSecurity(
           },
         })
       : actor;
+  // These cases exercise destructive actions; session refresh has its own oracle.
+  const sessionTime = new Date();
+  await db.session.updateMany({
+    where: { userId: actor.id },
+    data: {
+      expires: new Date(sessionTime.getTime() + 30 * 86_400_000),
+      updatedAt: sessionTime,
+    },
+  });
   const stable = () =>
     db.$transaction(async (tx) => ({
       users: (await tx.user.findMany({ orderBy: { id: "asc" } })).map(
