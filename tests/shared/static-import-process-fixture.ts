@@ -4,7 +4,6 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect } from "vitest";
 import type { ImportReport } from "@/static-loader/import-types";
 import { nodeProtocolTest } from "./node-protocol-fixture";
 
@@ -22,9 +21,10 @@ export const staticImportProcessTest = nodeProtocolTest.extend<{
   };
 }>({
   staticImportProcess: async (
-    { isolatedDatabase, protocolRuntime, onTestFinished },
+    { isolatedDatabase, protocolRuntime, onTestFinished, task },
     use,
   ) => {
+    const { expect } = task.context;
     const directory = mkdtempSync(join(tmpdir(), "static-import-contract-"));
     const running: { child: ChildProcess; closed: Promise<number | null> }[] =
       [];
