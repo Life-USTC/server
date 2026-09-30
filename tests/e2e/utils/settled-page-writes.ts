@@ -6,6 +6,7 @@ export async function withSettledPageWrites(
   match: Parameters<Page["route"]>[0],
   run: () => Promise<void>,
   afterResponse?: (response: APIResponse, request: Request) => Promise<void>,
+  beforeRequest?: (request: Request) => Promise<void>,
 ) {
   const pending = new Set<Promise<void>>();
   const errors: unknown[] = [];
@@ -29,10 +30,13 @@ export async function withSettledPageWrites(
         !["POST", "PUT", "PATCH", "DELETE"].includes(route.request().method())
       )
         return route.continue();
-      const completion = (async () => {
+      const admitted = !closing;
+      const completion = Promise.resolve().then(async () => {
         try {
-          if (closing)
+          if (!admitted)
             throw new Error("Page write started during fixture teardown");
+          // The completion is already owned before a scenario delays its PUT.
+          await beforeRequest?.(route.request());
           const response = await route.fetch({ maxRedirects: 0 });
           await afterResponse?.(response, route.request());
           if (page.isClosed())
@@ -50,7 +54,7 @@ export async function withSettledPageWrites(
             }
           }
         }
-      })();
+      });
       pending.add(completion);
       try {
         await completion;
