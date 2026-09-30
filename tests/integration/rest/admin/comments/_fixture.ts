@@ -1,7 +1,5 @@
-import {
-  type IsolatedWorker,
-  test as isolatedTest,
-} from "../../../../e2e/utils/isolated-worker";
+import type { IsolatedWorker } from "../../../../e2e/utils/isolated-worker";
+import { test as workerTest } from "../../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 
 async function prepareComments(worker: IsolatedWorker) {
@@ -31,13 +29,13 @@ async function prepareComments(worker: IsolatedWorker) {
   return { db, owner, admin, section, older, recent, softbanned, deleted };
 }
 
-// List pagination and identity-reveal audits observe global state. The native
-// Worker fixture owns partial setup, failed bodies and all deferred work.
-export const test = isolatedTest.extend<{
+// List pagination and identity-reveal audits use a private database. The run
+// fixture joins complete preparation and test callbacks before disposal.
+export const test = workerTest.extend<{
   commentState: Awaited<ReturnType<typeof prepareComments>>;
 }>({
-  commentState: async ({ isolatedWorker }, use) => {
-    await use(await prepareComments(isolatedWorker));
+  commentState: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => prepareComments(isolatedWorker)));
   },
 });
 export const base = "/api/admin/comments";
