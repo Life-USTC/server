@@ -47,9 +47,12 @@ export function ownHttpMcp({
       expect(
         incoming.method === "GET" ||
           (incoming.method === "POST" &&
-            ["initialize", "notifications/initialized", "tools/call"].includes(
-              payload?.method ?? "",
-            )),
+            [
+              "initialize",
+              "notifications/initialized",
+              "tools/call",
+              "tools/list",
+            ].includes(payload?.method ?? "")),
       ).toBe(true);
       const expectedStatus =
         incoming.method === "GET"
