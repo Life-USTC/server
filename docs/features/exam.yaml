@@ -111,7 +111,7 @@ requirements:
     - The second user sees only their own exam, and an exhausted page is empty.
     - Every response is private, no-store.
     test:
-      file: tests/integration/workspace-exam-list.test.ts
+      file: tests/integration/workspace-exam-pagination.test.ts
       name: exam.owned-page-completeness
 - id: exam.rest-read-scope
   category: authorization
@@ -122,7 +122,7 @@ requirements:
     then:
     - The request is rejected without returning exam data.
     test:
-      file: tests/integration/workspace-exam-list.test.ts
+      file: tests/integration/workspace-exam-scope.test.ts
       name: exam.rest-read-scope
 - id: exam.retired-exam-exclusion
   category: consistency
@@ -173,7 +173,7 @@ requirements:
     - Filtering precedes total and stable page slicing.
     - Invalid date/range/boolean/page-size input returns 400.
     test:
-      file: tests/integration/workspace-exam-list.test.ts
+      file: tests/integration/workspace-exam-filters.test.ts
       name: exam.rest-date-semester-filters
 - id: exam.graphql-page-completeness
   category: consistency
