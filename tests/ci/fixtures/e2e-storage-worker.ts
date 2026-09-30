@@ -43,6 +43,7 @@ export class PublicSsr extends PublicSsrBase {
 
 const storagePath = "/__test/storage/uploads";
 const publicationStoragePath = "/__test/storage/publications";
+const weatherStoragePath = "/__test/storage/weather";
 const ownedPrefix = /^uploads\/[0-9a-f-]{36}\/$/;
 const ownedKey = /^uploads\/[0-9a-f-]{36}\/(?:\d+-)?[0-9a-f-]{36}$/;
 type DeleteProbe = {
@@ -91,7 +92,7 @@ function observeDeletes(bucket: R2Bucket): R2Bucket {
 }
 
 // Only wrangler.e2e.jsonc loads this entrypoint. Fixture writes and independent
-// observations use the same R2 binding/runtime as the production request.
+// observations use the same R2/KV bindings/runtime as the production request.
 export default {
   ...productionWorker,
   async queue(
@@ -114,6 +115,7 @@ export default {
       E2E_STORAGE_SECRET: string;
       R2_UPLOADS: R2Bucket;
       R2_PUBLICATIONS: R2Bucket;
+      WEATHER: KVNamespace;
       CALENDAR_EXPORTS: KVNamespace;
     },
     context: ExecutionContext,
@@ -124,7 +126,11 @@ export default {
     if (consumerResponse) return consumerResponse;
     const observed = observeCommunityEffects(request, env, context);
     const url = new URL(request.url);
-    if (url.pathname !== storagePath && url.pathname !== publicationStoragePath)
+    if (
+      url.pathname !== storagePath &&
+      url.pathname !== publicationStoragePath &&
+      url.pathname !== weatherStoragePath
+    )
       return observed.fetch(() =>
         productionWorker.fetch(
           request,
@@ -140,6 +146,52 @@ export default {
       request.headers.get("x-test-storage-secret") !== env.E2E_STORAGE_SECRET
     )
       return new Response(null, { status: 404 });
+
+    if (url.pathname === weatherStoragePath) {
+      const locationKey = url.searchParams.get("locationKey");
+      if (locationKey !== "ustc-main" && locationKey !== "ustc-gaoxin")
+        return new Response("Expected a supported weather fixture location", {
+          status: 400,
+        });
+      const key = `weather:${locationKey}:v2`;
+      if (request.method === "GET") {
+        const stored = await env.WEATHER.get(key);
+        return stored === null
+          ? new Response(null, { status: 404 })
+          : new Response(stored, {
+              headers: {
+                "content-type": "application/json",
+                "cache-control": "no-store",
+              },
+            });
+      }
+      if (request.method === "PUT") {
+        let snapshot: unknown;
+        try {
+          snapshot = await request.json();
+        } catch {
+          return new Response("Expected a JSON weather fixture", {
+            status: 400,
+          });
+        }
+        if (
+          !snapshot ||
+          typeof snapshot !== "object" ||
+          !("location" in snapshot) ||
+          !snapshot.location ||
+          typeof snapshot.location !== "object" ||
+          !("key" in snapshot.location) ||
+          snapshot.location.key !== locationKey
+        )
+          return new Response(
+            "Weather fixture location does not match its key",
+            { status: 400 },
+          );
+        await env.WEATHER.put(key, JSON.stringify(snapshot));
+        return new Response(null, { status: 204 });
+      }
+      return new Response(null, { status: 405 });
+    }
 
     if (url.pathname === publicationStoragePath) {
       const key = url.searchParams.get("key");
