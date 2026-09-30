@@ -1,41 +1,34 @@
-import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
 import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
-import { createFixturePrisma, createTestPrisma } from "../shared/prisma";
+import type { TestPrismaClient } from "../shared/prisma";
+import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
-const fixture = createFixturePrisma();
-// static-sync.yml runs the importer with MIGRATOR_DATABASE_URL, not the app role.
-const importer = createTestPrisma(process.env.FUNCTION_OWNER_DATABASE_URL);
 const observedAt = new Date("2026-09-20T12:00:00Z");
 const previousRetiredAt = new Date("2026-09-19T12:00:00Z");
-let semesterId: number;
-let courseId: number;
-let missing: { id: number; jwId: number };
-let present: { id: number; jwId: number };
-let outside: { id: number; jwId: number };
-let outsideSemesterId: number;
-beforeEach(async () => {
+
+async function createLifecycle(fixture: TestPrismaClient, importer: TestPrismaClient) {
+  const rows = await fixture.$transaction(async (tx) => {
   const marker = crypto.randomUUID();
   const jwId = 1800000000 + Math.floor(Math.random() * 100000000);
-  semesterId = (
-    await fixture.semester.create({
+  const semesterId = (
+    await tx.semester.create({
       data: { jwId, code: marker, nameCn: marker },
     })
   ).id;
-  outsideSemesterId = (
-    await fixture.semester.create({
+  const outsideSemesterId = (
+    await tx.semester.create({
       data: { jwId: jwId + 1, code: `outside-${marker}`, nameCn: marker },
     })
   ).id;
-  courseId = (
-    await fixture.course.create({
+  const courseId = (
+    await tx.course.create({
       data: { jwId, code: marker, nameCn: marker },
     })
   ).id;
-  missing = await fixture.section.create({
+  const missing = await tx.section.create({
     data: { jwId, code: marker, courseId, semesterId },
     select: { id: true, jwId: true },
   });
-  present = await fixture.section.create({
+  const present = await tx.section.create({
     data: {
       jwId: jwId + 1,
       code: marker,
@@ -45,7 +38,7 @@ beforeEach(async () => {
     },
     select: { id: true, jwId: true },
   });
-  outside = await fixture.section.create({
+  const outside = await tx.section.create({
     data: {
       jwId: jwId + 2,
       code: marker,
@@ -54,37 +47,25 @@ beforeEach(async () => {
     },
     select: { id: true, jwId: true },
   });
-});
-afterEach(async () => {
-  await fixture.auditLog.deleteMany({
-    where: {
-      targetType: "section",
-      targetId: {
-        in: [String(missing.id), String(present.id), String(outside.id)],
-      },
+    return { semesterId, courseId, missing, present, outside };
+  });
+  return {
+    ...rows,
+    reconcile(snapshotSha256 = "private-snapshot-sha256") {
+      return importer.$transaction((tx) =>
+        reconcileSectionPresence(tx, {
+          observedAt,
+          scopedSemesterIds: [rows.semesterId],
+          seenSectionJwIds: [rows.present.jwId],
+          snapshotSha256,
+        }),
+      );
     },
-  });
-  await fixture.section.deleteMany({ where: { courseId } });
-  await fixture.course.delete({ where: { id: courseId } });
-  await fixture.semester.deleteMany({
-    where: { id: { in: [semesterId, outsideSemesterId] } },
-  });
-});
-afterAll(async () => {
-  await importer.$disconnect();
-  await fixture.$disconnect();
-});
-function reconcile(snapshotSha256 = "private-snapshot-sha256") {
-  return importer.$transaction((tx) =>
-    reconcileSectionPresence(tx, {
-      observedAt,
-      scopedSemesterIds: [semesterId],
-      seenSectionJwIds: [present.jwId],
-      snapshotSha256,
-    }),
-  );
+  };
 }
-it("audit.writer-3", async () => {
+it("audit.writer-3", async ({ isolatedDatabase: { owner: fixture }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
+    const { courseId, missing, present, reconcile } = await createLifecycle(fixture, importer);
   const before = await fixture.section.findMany({
     where: { courseId },
     orderBy: { id: "asc" },
@@ -121,8 +102,11 @@ it("audit.writer-3", async () => {
       },
     }),
   ).toBe(2);
+  });
 });
-it("audit.action-section-retire", async () => {
+it("audit.action-section-retire", async ({ isolatedDatabase: { owner: fixture }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
+    const { missing, outside, reconcile } = await createLifecycle(fixture, importer);
   await reconcile();
   expect(
     (await fixture.section.findUniqueOrThrow({ where: { id: missing.id } }))
@@ -157,8 +141,11 @@ it("audit.action-section-retire", async () => {
       where: { targetType: "section", targetId: String(missing.id) },
     }),
   ).toEqual(rows);
+  });
 });
-it("audit.action-section-reactivate", async () => {
+it("audit.action-section-reactivate", async ({ isolatedDatabase: { owner: fixture }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
+    const { present, reconcile } = await createLifecycle(fixture, importer);
   await reconcile();
   expect(
     (await fixture.section.findUniqueOrThrow({ where: { id: present.id } }))
@@ -191,4 +178,5 @@ it("audit.action-section-reactivate", async () => {
       where: { targetType: "section", targetId: String(present.id) },
     }),
   ).toEqual(rows);
+  });
 });
