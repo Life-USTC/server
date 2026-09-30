@@ -1,7 +1,7 @@
 /**
  * E2E tests for workspace route variants (`/workspace/<tab>`).
  */
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import type { Session } from "../../../../../../src/generated/prisma-node/client";
 import { expectRequiresSignIn } from "../../../../utils/auth";
 import {
@@ -13,6 +13,7 @@ import {
 import { sidebarNavigationLink } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import type { PreferenceFlow } from "../../../../utils/preference-flow";
+import { test } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -46,9 +47,11 @@ async function expectWorkspacePageIdentity(
   ).toHaveCount(1);
 }
 
-test("/workspace 别名需要登录", async ({ page }, testInfo) => {
-  await expectRequiresSignIn(page, "/workspace/homeworks");
-  await captureStepScreenshot(page, testInfo, "workspace-homeworks-unauth");
+test("/workspace 别名需要登录", async ({ publicFlow, page }, testInfo) => {
+  await publicFlow.run(async () => {
+    await expectRequiresSignIn(page, "/workspace/homeworks");
+    await captureStepScreenshot(page, testInfo, "workspace-homeworks-unauth");
+  });
 });
 
 privateTest(
