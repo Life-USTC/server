@@ -1,3 +1,4 @@
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   type APIRequestContext,
   type APIResponse,
@@ -11,6 +12,8 @@ import {
 } from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
+import type { ProducerObservation } from "./calendar-effects";
+import { type HttpMcpRequest, ownHttpMcp } from "./http-mcp-lifecycle";
 import type { IsolatedWorker } from "./isolated-worker";
 import { withSettledPageWrites } from "./settled-page-writes";
 
@@ -21,8 +24,23 @@ type Expected = {
   anonymousCourseCount?: number;
 };
 type RouteMatch = Parameters<Page["route"]>[0];
+export type CommunityChecks = {
+  verifyTransport: (observation: {
+    producer: ProducerObservation;
+    sdkRequests: HttpMcpRequest[];
+  }) => Promise<void>;
+  verifyState: () => Promise<void>;
+};
 export type CommunityFlow = {
-  run: (work: () => Promise<void>, expected?: Expected) => Promise<void>;
+  run: (
+    work: () => Promise<void>,
+    expected?: Expected,
+    checks?: CommunityChecks,
+  ) => Promise<void>;
+  mcp: (
+    identity: { name: string; version: string },
+    accessToken: string,
+  ) => Promise<Client>;
   assertAnonymousNoEffects: () => Promise<void>;
   newContext: (
     options?: Parameters<Browser["newContext"]>[0],
@@ -80,16 +98,20 @@ export async function withCommunityFlow(
   const controls: { path: string; method: string; complete: boolean }[] = [];
   const writes: { path: string; status: number }[] = [];
   let closing = false;
+  let registrationAttempted = false;
   let registered = false;
   let operation: Promise<void> | undefined;
   let actualBody: Promise<void> | undefined;
   let completed = false;
   let expected: Expected = {};
+  let checks: CommunityChecks | undefined;
+  let observation: ProducerObservation | undefined;
   let finalization: Promise<void> | undefined;
   let anonymousState: Record<string, number> | undefined;
   const remember = (error: unknown) => {
     if (!errors.includes(error)) errors.push(error);
   };
+  const sdk = ownHttpMcp({ origin, headers, remember });
   const open = () => {
     if (closing) throw new Error("Community workflow is closing");
   };
@@ -353,6 +375,8 @@ export async function withCommunityFlow(
           remember(error);
         }
       }
+      // Release an interrupted SDK call before joining the actual callback.
+      await sdk.close(completed);
       // Keep the database alive for the callback's remaining observations.
       if (actualBody) {
         try {
@@ -361,6 +385,7 @@ export async function withCommunityFlow(
           remember(error);
         }
       }
+      await sdk.settle();
       while (pending.size) await Promise.allSettled([...pending]);
       for (const reader of reads.values()) {
         while (reader.pendingReads.size || reader.pendingNavigations.size)
@@ -374,7 +399,26 @@ export async function withCommunityFlow(
       if (registered) {
         try {
           const producer = await readProducer();
+          observation = producer;
           assertProducer(producer);
+          for (const request of sdk.requests) {
+            expect(
+              producer.requests.filter(
+                (native: ProducerObservation["requests"][number]) =>
+                  native.value.requestId === request.requestId,
+              ),
+            ).toEqual([
+              {
+                outcome: "fulfilled",
+                value: {
+                  requestId: request.requestId,
+                  method: request.method,
+                  path: request.path,
+                },
+                result: request.status,
+              },
+            ]);
+          }
           const readAudits = () =>
             db.auditLog.findMany({
               where: account ? { userId: account.id } : undefined,
@@ -437,6 +481,7 @@ export async function withCommunityFlow(
               audits,
               writes,
               controlledRoutes: controls,
+              sdkRequests: sdk.requests,
               browsers: [...reads.values()].map((reader) => ({
                 reads: reader.reads,
                 javaScriptEnabled: reader.javaScriptEnabled,
@@ -451,10 +496,33 @@ export async function withCommunityFlow(
         } catch (error) {
           remember(error);
         }
+      }
+      if (registrationAttempted) {
         try {
-          expect(
-            (await observer.delete(probePath, { headers: secret })).status(),
-          ).toBe(204);
+          const response = await observer.delete(probePath, {
+            headers: secret,
+          });
+          await response.body();
+          if (registered) expect(response.status()).toBe(204);
+          else expect([204, 404]).toContain(response.status());
+        } catch (error) {
+          remember(error);
+        }
+      }
+      if (completed && checks) {
+        if (observation) {
+          try {
+            await checks.verifyTransport({
+              producer: observation,
+              sdkRequests: sdk.requests,
+            });
+          } catch (error) {
+            remember(error);
+          }
+        }
+        // Independent state checks run even when transport/evidence failed.
+        try {
+          await checks.verifyState();
         } catch (error) {
           remember(error);
         }
@@ -484,6 +552,14 @@ export async function withCommunityFlow(
       try {
         await use({
           assertAnonymousNoEffects,
+          async mcp(identity, accessToken) {
+            open();
+            if (!actualBody || completed)
+              throw new Error(
+                "Community MCP requires an active workflow callback",
+              );
+            return sdk.connect(identity, accessToken);
+          },
           onClosing(release) {
             open();
             releases.push(release);
@@ -572,16 +648,18 @@ export async function withCommunityFlow(
             void settled.finally(() => pending.delete(settled));
             return creation;
           },
-          run(work, wanted = {}) {
+          run(work, wanted = {}, verification) {
             if (operation || closing)
               return Promise.reject(
                 new Error("Community workflow already owned or closing"),
               );
             expected = wanted;
+            checks = verification;
             operation = workflow.run(async () => {
               try {
                 // This operation is already owned before registration can begin.
                 open();
+                registrationAttempted = true;
                 const registration = await observer.post(probePath, {
                   headers: secret,
                 });

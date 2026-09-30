@@ -97,12 +97,16 @@ export const test = accountTest.extend<{
         async (flow) => {
           await use({
             ...flow,
-            run: (work, expected) =>
-              flow.run(async () => {
-                // Authentication belongs to the same actual callback as the UI.
-                await page.context().addCookies([communityActor.cookie]);
-                await work();
-              }, expected),
+            run: (work, expected, checks) =>
+              flow.run(
+                async () => {
+                  // Authentication belongs to the same actual callback as the UI.
+                  await page.context().addCookies([communityActor.cookie]);
+                  await work();
+                },
+                expected,
+                checks,
+              ),
           });
         },
       ),
