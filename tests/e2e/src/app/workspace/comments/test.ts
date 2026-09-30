@@ -15,45 +15,50 @@
  *   public resource, while authenticated requests redirect to
  *   `/workspace/overview`.
  */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { test as privateTest } from "../../../../utils/account-fixture";
 import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
 } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { test } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘无效标签（comments）", () => {
-  test("/workspace/comments 不是仪表盘路由页面", async ({ page }, testInfo) => {
-    const response = await gotoAndWaitForReady(page, "/workspace/comments", {
-      testInfo,
-      screenshotLabel: "workspace-invalid-comments-route",
-    });
+  test("/workspace/comments 不是仪表盘路由页面", async ({ publicFlow, page }, testInfo) => {
+    await publicFlow.run(async () => {
+      const response = await gotoAndWaitForReady(page, "/workspace/comments", {
+        testInfo,
+        screenshotLabel: "workspace-invalid-comments-route",
+      });
 
-    expect(response?.status()).toBe(404);
-    await expect(page.getByText(/not found|找不到/i)).toBeVisible();
+      expect(response?.status()).toBe(404);
+      await expect(page.getByText(/not found|找不到/i)).toBeVisible();
+    });
   });
 
-  test("未登录 ?tab=comments 保持轻量公共首页", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=comments", {
-      testInfo,
-      screenshotLabel: "workspace-invalid-tab",
+  test("未登录 ?tab=comments 保持轻量公共首页", async ({ publicFlow, page }, testInfo) => {
+    await publicFlow.run(async () => {
+      await gotoAndWaitForReady(page, "/?tab=comments", {
+        testInfo,
+        screenshotLabel: "workspace-invalid-tab",
+      });
+
+      // URL retains the invalid tab param
+      await expect(page).toHaveURL(/\/\?tab=comments$/);
+      await expect(page.locator("#app-logo")).toBeVisible();
+
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
+        }),
+      ).toBeVisible();
+      await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
+
+      await captureStepScreenshot(page, testInfo, "home-comments-public");
     });
-
-    // URL retains the invalid tab param
-    await expect(page).toHaveURL(/\/\?tab=comments$/);
-    await expect(page.locator("#app-logo")).toBeVisible();
-
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
-      }),
-    ).toBeVisible();
-    await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "home-comments-public");
   });
 
   privateTest(

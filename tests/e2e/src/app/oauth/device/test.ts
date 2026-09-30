@@ -22,7 +22,6 @@ import {
   expect,
   type Page,
   type TestInfo,
-  test,
 } from "@playwright/test";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
@@ -34,7 +33,9 @@ import {
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
 import { expectOAuthUsage } from "../../../../utils/oauth-usage";
+import { test as requestTest } from "../../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { test } from "../../../../utils/public-worker";
 import {
   capturePageScreenshot,
   captureStepScreenshot,
@@ -211,95 +212,97 @@ async function exchangeDeviceToken(
     refreshToken: tokenBody.refresh_token,
   };
 }
-test("/oauth/device 移动端只呈现一个标题和一个代码输入", async ({
-  page,
-}, testInfo) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await gotoAndWaitForReady(page, "/oauth/device");
-  await expect(
-    page.getByRole("heading", {
-      name: /设备登录|Device Login/i,
-      exact: true,
-    }),
-  ).toHaveCount(1);
-  await expect(
-    page.getByText(/^(设备登录|Device Login)$/, { exact: true }),
-  ).toHaveCount(1);
-  await expect(
-    page.getByText(
-      /输入设备上显示的验证码。|Enter the code displayed on your device\./i,
-      { exact: true },
-    ),
-  ).toHaveCount(1);
-  const codeInputs = page.locator('input[name="code"]');
-  await expect(codeInputs).toHaveCount(1);
-  await expect(codeInputs).toBeVisible();
-  await expect(page.locator('label[for="code"]')).toHaveCount(1);
-  await expect(
-    page.getByText(/^(设备验证码|Device Code)$/, { exact: true }),
-  ).toHaveCount(1);
-  await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
-  const otpMetrics = await page
-    .locator('[data-slot="input-otp"]')
-    .evaluate((element) => ({
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-    }));
-  expect(otpMetrics.scrollWidth).toBeLessThanOrEqual(
-    otpMetrics.clientWidth + 1,
-  );
-  const verifyButton = page.getByRole("button", {
-    name: /^(验证|Verify)$/i,
-    exact: true,
-  });
-  await expect(verifyButton).toHaveCount(1);
-  await expect(verifyButton).toBeVisible();
-  await expect(verifyButton).toBeInViewport();
-  expect(
-    await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth <=
-        document.documentElement.clientWidth,
-    ),
-  ).toBe(true);
-  await captureStepScreenshot(page, testInfo, "oauth/device/form-mobile");
-});
-test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
-  page,
-}, testInfo) => {
-  for (const width of [320, 375]) {
-    await page.setViewportSize({ width, height: 800 });
-    await gotoAndWaitForReady(page, "/oauth/device", { testInfo });
-    const otp = page.locator('[data-slot="input-otp"]');
-    await expect(otp).toBeVisible();
+test("/oauth/device 移动端只呈现一个标题和一个代码输入", async ({ publicFlow, page }, testInfo) => {
+  await publicFlow.run(async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, "/oauth/device");
+    await expect(
+      page.getByRole("heading", {
+        name: /设备登录|Device Login/i,
+        exact: true,
+      }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByText(/^(设备登录|Device Login)$/, { exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByText(
+        /输入设备上显示的验证码。|Enter the code displayed on your device\./i,
+        { exact: true },
+      ),
+    ).toHaveCount(1);
+    const codeInputs = page.locator('input[name="code"]');
+    await expect(codeInputs).toHaveCount(1);
+    await expect(codeInputs).toBeVisible();
+    await expect(page.locator('label[for="code"]')).toHaveCount(1);
+    await expect(
+      page.getByText(/^(设备验证码|Device Code)$/, { exact: true }),
+    ).toHaveCount(1);
     await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
-    const metrics = await otp.evaluate((element) => ({
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-    }));
-    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
-    const card = page.locator('[data-slot="card"]');
-    const cardBox = await card.boundingBox();
-    if (!cardBox) throw new Error("Device code Card is not visible");
-    for (const slot of await page
-      .locator('[data-slot="input-otp-slot"]')
-      .all()) {
-      const slotBox = await slot.boundingBox();
-      if (!slotBox) throw new Error("Device code slot is not visible");
-      expect(slotBox.x).toBeGreaterThanOrEqual(cardBox.x - 1);
-      expect(slotBox.x + slotBox.width).toBeLessThanOrEqual(
-        cardBox.x + cardBox.width + 1,
-      );
-    }
-  }
+    const otpMetrics = await page
+      .locator('[data-slot="input-otp"]')
+      .evaluate((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+      }));
+    expect(otpMetrics.scrollWidth).toBeLessThanOrEqual(
+      otpMetrics.clientWidth + 1,
+    );
+    const verifyButton = page.getByRole("button", {
+      name: /^(验证|Verify)$/i,
+      exact: true,
+    });
+    await expect(verifyButton).toHaveCount(1);
+    await expect(verifyButton).toBeVisible();
+    await expect(verifyButton).toBeInViewport();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await captureStepScreenshot(page, testInfo, "oauth/device/form-mobile");
+  });
 });
-test("/oauth/device 无效用户代码显示公开错误", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/oauth/device?code=NOPE-NOPE&step=approve");
-  await expect(
-    page.getByText(/未找到|not found|No device login request/i).first(),
-  ).toBeVisible();
-  await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
-  await captureStepScreenshot(page, testInfo, "oauth/device/invalid-code");
+test("/oauth/device 320px 和 375px 输入槽完整显示", async ({ publicFlow, page }, testInfo) => {
+  await publicFlow.run(async () => {
+    for (const width of [320, 375]) {
+      await page.setViewportSize({ width, height: 800 });
+      await gotoAndWaitForReady(page, "/oauth/device", { testInfo });
+      const otp = page.locator('[data-slot="input-otp"]');
+      await expect(otp).toBeVisible();
+      await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+      const metrics = await otp.evaluate((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+      }));
+      expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+      const card = page.locator('[data-slot="card"]');
+      const cardBox = await card.boundingBox();
+      if (!cardBox) throw new Error("Device code Card is not visible");
+      for (const slot of await page
+        .locator('[data-slot="input-otp-slot"]')
+        .all()) {
+        const slotBox = await slot.boundingBox();
+        if (!slotBox) throw new Error("Device code slot is not visible");
+        expect(slotBox.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+        expect(slotBox.x + slotBox.width).toBeLessThanOrEqual(
+          cardBox.x + cardBox.width + 1,
+        );
+      }
+    }
+  });
+});
+test("/oauth/device 无效用户代码显示公开错误", async ({ publicFlow, page }, testInfo) => {
+  await publicFlow.run(async () => {
+    await gotoAndWaitForReady(page, "/oauth/device?code=NOPE-NOPE&step=approve");
+    await expect(
+      page.getByText(/未找到|not found|No device login request/i).first(),
+    ).toBeVisible();
+    await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
+    await captureStepScreenshot(page, testInfo, "oauth/device/invalid-code");
+  });
 });
 isolatedTest(
   "/oauth/device 设备授权端点返回必要字段",
@@ -1299,25 +1302,29 @@ isolatedTest(
   },
 );
 
-test("/oauth/device 发现文档包含设备授权端点", async ({ request }) => {
-  const discoveryResponse = await request.get(
-    "/api/auth/.well-known/openid-configuration",
-  );
-  expect(discoveryResponse.status()).toBe(200);
-  const discovery = (await discoveryResponse.json()) as {
-    device_authorization_endpoint?: string;
-    grant_types_supported?: string[];
-  };
-  expect(typeof discovery.device_authorization_endpoint).toBe("string");
-  expect(discovery.device_authorization_endpoint).toContain(
-    "/oauth2/device-authorization",
-  );
-  expect(
-    discovery.grant_types_supported?.includes(
-      "urn:ietf:params:oauth:grant-type:device_code",
-    ),
-  ).toBe(true);
+requestTest("/oauth/device 发现文档包含设备授权端点", async ({ run, request }) => {
+  await run(async () => {
+    const discoveryResponse = await request.get(
+      "/api/auth/.well-known/openid-configuration",
+    );
+    expect(discoveryResponse.status()).toBe(200);
+    const discovery = (await discoveryResponse.json()) as {
+      device_authorization_endpoint?: string;
+      grant_types_supported?: string[];
+    };
+    expect(typeof discovery.device_authorization_endpoint).toBe("string");
+    expect(discovery.device_authorization_endpoint).toContain(
+      "/oauth2/device-authorization",
+    );
+    expect(
+      discovery.grant_types_supported?.includes(
+        "urn:ietf:params:oauth:grant-type:device_code",
+      ),
+    ).toBe(true);
+  });
 });
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/oauth/device", testInfo });
+test("页面契约", async ({ publicFlow, page }, testInfo) => {
+  await publicFlow.run(async () => {
+    await assertPageContract(page, { routePath: "/oauth/device", testInfo });
+  });
 });

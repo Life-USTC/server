@@ -17,7 +17,7 @@
  *   4. POST /api/auth/oauth2/token → exchange code for access token
  *   5. GET /api/auth/oauth2/userinfo → retrieve user claims
  */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
@@ -30,6 +30,7 @@ import {
   restWriteScope,
 } from "@/lib/oauth/constants";
 import { sha256Base64Url } from "../../../../../../shared/crypto";
+import { test } from "../../../../../utils/owned-worker";
 import { test as isolatedTest } from "../../mcp/_fixture";
 
 async function generateCodeChallenge(codeVerifier: string) {
@@ -51,36 +52,36 @@ const DCR_CLIENT_SCOPE = [
 
 test.describe("OAuth 提供者", () => {
   test.describe.configure({ mode: "parallel" });
-  test("标准 issuer/resource 发现地址可读且额外别名不存在", async ({
-    request,
-  }) => {
-    for (const path of [
-      "/.well-known/oauth-authorization-server/api/auth",
-      "/api/auth/.well-known/openid-configuration",
-      "/.well-known/openid-configuration/api/auth",
-      "/.well-known/oauth-protected-resource/api/mcp",
-      "/.well-known/oauth-protected-resource/api/graphql",
-    ]) {
-      const response = await request.get(path);
-      expect(response.status()).toBe(200);
-      expect(response.headers()["access-control-allow-origin"]).toBe("*");
-    }
-    const head = await request.head(
-      "/.well-known/oauth-protected-resource/api/mcp",
-    );
-    expect(head.status()).toBe(200);
-    expect(await head.body()).toHaveLength(0);
-    for (const path of [
-      "/.well-known/oauth-authorization-server",
-      "/.well-known/openid-configuration",
-      "/.well-known/oauth-protected-resource",
-      "/.well-known/oauth-authorization-server/api/mcp",
-      "/.well-known/openid-configuration/api/mcp",
-      "/api/mcp/.well-known/oauth-authorization-server",
-      "/api/mcp/.well-known/openid-configuration",
-    ]) {
-      expect((await request.get(path, { maxRedirects: 0 })).status()).toBe(404);
-    }
+  test("标准 issuer/resource 发现地址可读且额外别名不存在", async ({ run, request }) => {
+    await run(async () => {
+      for (const path of [
+        "/.well-known/oauth-authorization-server/api/auth",
+        "/api/auth/.well-known/openid-configuration",
+        "/.well-known/openid-configuration/api/auth",
+        "/.well-known/oauth-protected-resource/api/mcp",
+        "/.well-known/oauth-protected-resource/api/graphql",
+      ]) {
+        const response = await request.get(path);
+        expect(response.status()).toBe(200);
+        expect(response.headers()["access-control-allow-origin"]).toBe("*");
+      }
+      const head = await request.head(
+        "/.well-known/oauth-protected-resource/api/mcp",
+      );
+      expect(head.status()).toBe(200);
+      expect(await head.body()).toHaveLength(0);
+      for (const path of [
+        "/.well-known/oauth-authorization-server",
+        "/.well-known/openid-configuration",
+        "/.well-known/oauth-protected-resource",
+        "/.well-known/oauth-authorization-server/api/mcp",
+        "/.well-known/openid-configuration/api/mcp",
+        "/api/mcp/.well-known/oauth-authorization-server",
+        "/api/mcp/.well-known/openid-configuration",
+      ]) {
+        expect((await request.get(path, { maxRedirects: 0 })).status()).toBe(404);
+      }
+    });
   });
 
   isolatedTest(
