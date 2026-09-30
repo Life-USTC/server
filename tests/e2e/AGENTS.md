@@ -84,7 +84,8 @@ bundles and storage belong to the private temporary directory, which the parent
 removes even when the Worker cannot shut down gracefully.
 
 
-Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
+Helpers: `gotoAndWaitForReady` and `DEV_SEED` under `utils/`. Authenticated
+scenarios arrange a private actor or exercise the real sign-in flow explicitly.
 
 ## Conventions
 
