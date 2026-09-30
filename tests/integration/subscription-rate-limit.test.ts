@@ -82,35 +82,38 @@ function ownLimiterPlatform() {
   };
 }
 
-const it = nodeProtocolTest.extend<{
-  limiterPlatform: ReturnType<typeof ownLimiterPlatform>;
-}>({
-  limiterPlatform: async ({ isolatedDatabase, onTestFinished }, use) => {
-    // Depend on the private database owner so it outlives proxy/request cleanup.
-    void isolatedDatabase;
-    const owned = ownLimiterPlatform();
-    try {
-      // Register teardown before a dependent starts any asynchronous allocation.
-      await use(owned);
-    } finally {
+const it = nodeProtocolTest
+  .extend<{
+    limiterPlatform: ReturnType<typeof ownLimiterPlatform>;
+  }>({
+    limiterPlatform: async ({ isolatedDatabase, onTestFinished }, use) => {
+      // Depend on the private database owner so it outlives proxy/request cleanup.
+      void isolatedDatabase;
+      const owned = ownLimiterPlatform();
       try {
-        await owned.close();
-      } catch (error) {
-        onTestFinished(() => {
-          throw error;
-        });
+        // Register teardown before a dependent starts any asynchronous allocation.
+        await use(owned);
+      } finally {
+        try {
+          await owned.close();
+        } catch (error) {
+          onTestFinished(() => {
+            throw error;
+          });
+        }
       }
-    }
-  },
-}).extend({
-  protocolBindings: async ({ limiterPlatform }, use) => {
-    const { platform } = await limiterPlatform.initialize();
-    await use({
-      NODE_ENV: "test",
-      USER_BATCH_WRITE_RATE_LIMITER: platform.env.USER_BATCH_WRITE_RATE_LIMITER,
-    });
-  },
-});
+    },
+  })
+  .extend({
+    protocolBindings: async ({ limiterPlatform }, use) => {
+      const { platform } = await limiterPlatform.initialize();
+      await use({
+        NODE_ENV: "test",
+        USER_BATCH_WRITE_RATE_LIMITER:
+          platform.env.USER_BATCH_WRITE_RATE_LIMITER,
+      });
+    },
+  });
 
 it("subscription.per-user-rate-limit", { timeout: 60_000 }, async ({
   isolatedDatabase,
@@ -148,10 +151,18 @@ it("subscription.per-user-rate-limit", { timeout: 60_000 }, async ({
           data: { jwId: base, code: `RATE-${marker}`, nameCn: "限流课程" },
         });
         const section = await tx.section.create({
-          data: { jwId: base + 1, code: `RATE-${marker}.01`, courseId: course.id },
+          data: {
+            jwId: base + 1,
+            code: `RATE-${marker}.01`,
+            courseId: course.id,
+          },
         });
         const second = await tx.section.create({
-          data: { jwId: base + 2, code: `RATE-${marker}.02`, courseId: course.id },
+          data: {
+            jwId: base + 2,
+            code: `RATE-${marker}.02`,
+            courseId: course.id,
+          },
         });
         return { users, tokens, section, second };
       },
