@@ -146,6 +146,11 @@ export async function createPrivateMcpCatalog(db: TestPrismaClient) {
 
 export const catalogMcpTest = isolatedMcpTest.extend(
   "mcpCatalog",
-  async ({ isolatedDatabase }) =>
-    createPrivateMcpCatalog(isolatedDatabase.owner),
+  async ({ isolatedDatabase, mcpWorkflow, signal }) => {
+    const catalog = await mcpWorkflow.run(() =>
+      createPrivateMcpCatalog(isolatedDatabase.owner),
+    );
+    signal.throwIfAborted();
+    return catalog;
+  },
 );

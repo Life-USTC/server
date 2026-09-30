@@ -4,129 +4,141 @@ import { catalogMcpTest as toolTest } from "../_harness/catalog-fixture";
 describe("课程与班级查找", () => {
   toolTest(
     "catalog_course_search 返回 REST 等价分页课程层级",
-    async ({ mcpActor: context, mcpCatalog, isolatedDatabase, expect }) => {
-      const seedCourseFilters = await isolatedDatabase.owner.course.findUnique({
-        where: { jwId: mcpCatalog.course.jwId },
-        select: {
-          categoryId: true,
-          classTypeId: true,
-          educationLevelId: true,
-        },
-      });
-      expect(seedCourseFilters).toBeTruthy();
+    async ({
+      mcpWorkflow,
+      mcpActor: context,
+      mcpCatalog,
+      isolatedDatabase,
+      expect,
+    }) =>
+      mcpWorkflow.run(async () => {
+        const seedCourseFilters =
+          await isolatedDatabase.owner.course.findUnique({
+            where: { jwId: mcpCatalog.course.jwId },
+            select: {
+              categoryId: true,
+              classTypeId: true,
+              educationLevelId: true,
+            },
+          });
+        expect(seedCourseFilters).toBeTruthy();
 
-      const args: Record<string, unknown> = {
-        limit: 10,
-        locale: "zh-cn",
-        mode: "full",
-        page: 1,
-      };
-      for (const [key, value] of Object.entries(seedCourseFilters ?? {})) {
-        if (value != null) args[key] = value;
-      }
-
-      const result = await context.client.call<{
-        data?: Array<{
-          jwId?: number;
-          code?: string | null;
-          nameCn?: string | null;
-          educationLevel?: { nameCn?: string | null } | null;
-          category?: { nameCn?: string | null } | null;
-          classType?: { nameCn?: string | null } | null;
-        }>;
-        pagination?: {
-          page?: number;
-          pageSize?: number;
-          total?: number;
-          totalPages?: number;
+        const args: Record<string, unknown> = {
+          limit: 10,
+          locale: "zh-cn",
+          mode: "full",
+          page: 1,
         };
-      }>("catalog_course_search", args);
+        for (const [key, value] of Object.entries(seedCourseFilters ?? {})) {
+          if (value != null) args[key] = value;
+        }
 
-      expect(result.pagination?.page).toBe(1);
-      expect(result.pagination?.pageSize).toBe(10);
-      expect(result.pagination?.total).toBeGreaterThan(0);
-      expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+        const result = await context.client.call<{
+          data?: Array<{
+            jwId?: number;
+            code?: string | null;
+            nameCn?: string | null;
+            educationLevel?: { nameCn?: string | null } | null;
+            category?: { nameCn?: string | null } | null;
+            classType?: { nameCn?: string | null } | null;
+          }>;
+          pagination?: {
+            page?: number;
+            pageSize?: number;
+            total?: number;
+            totalPages?: number;
+          };
+        }>("catalog_course_search", args);
 
-      const course = result.data?.find(
-        (item) => item.jwId === mcpCatalog.course.jwId,
-      );
-      expect(course?.code).toBe(mcpCatalog.course.code);
-      expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
-      expect(course?.educationLevel?.nameCn).toBe(
-        mcpCatalog.educationLevel.nameCn,
-      );
-      expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
-      expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
-    },
+        expect(result.pagination?.page).toBe(1);
+        expect(result.pagination?.pageSize).toBe(10);
+        expect(result.pagination?.total).toBeGreaterThan(0);
+        expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+
+        const course = result.data?.find(
+          (item) => item.jwId === mcpCatalog.course.jwId,
+        );
+        expect(course?.code).toBe(mcpCatalog.course.code);
+        expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
+        expect(course?.educationLevel?.nameCn).toBe(
+          mcpCatalog.educationLevel.nameCn,
+        );
+        expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
+        expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
+      }),
   );
 
   toolTest(
     "catalog_section_get 返回与 REST 班级详情相同的层级",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<{
-        found?: boolean;
-        section?: {
-          code?: string;
-          schedules?: Array<{
-            endTime?: unknown;
-            startTime?: unknown;
-          }>;
-          teacherAssignments?: Array<Record<string, unknown>>;
-          scheduleGroups?: unknown[];
-          exams?: unknown[];
-          roomType?: unknown;
-        };
-      }>("catalog_section_get", {
-        jwId: mcpCatalog.section.jwId,
-        locale: "zh-cn",
-        mode: "full",
-      });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          found?: boolean;
+          section?: {
+            code?: string;
+            schedules?: Array<{
+              endTime?: unknown;
+              startTime?: unknown;
+            }>;
+            teacherAssignments?: Array<Record<string, unknown>>;
+            scheduleGroups?: unknown[];
+            exams?: unknown[];
+            roomType?: unknown;
+          };
+        }>("catalog_section_get", {
+          jwId: mcpCatalog.section.jwId,
+          locale: "zh-cn",
+          mode: "full",
+        });
 
-      expect(result.found).toBe(true);
-      expect(result.section?.code).toBe(mcpCatalog.section.code);
-      expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
-      expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
-      expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(true);
-      for (const assignment of result.section?.teacherAssignments ?? []) {
-        expect(assignment).not.toHaveProperty("teacher");
-      }
-      expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
-      expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
-      expect(result.section?.exams).toContainEqual(
-        expect.objectContaining({
-          id: mcpCatalog.exam.id,
-          monitors: [
-            {
-              jwId: 1001,
-              nameCn: "测试监考教师",
-              nameEn: "Test exam monitor",
-            },
-          ],
-          examRooms: [
-            expect.objectContaining({ room: "Catalog exam room", count: 30 }),
-          ],
-        }),
-      );
-      expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
-    },
+        expect(result.found).toBe(true);
+        expect(result.section?.code).toBe(mcpCatalog.section.code);
+        expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
+        expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
+        expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(
+          true,
+        );
+        for (const assignment of result.section?.teacherAssignments ?? []) {
+          expect(assignment).not.toHaveProperty("teacher");
+        }
+        expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
+        expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
+        expect(result.section?.exams).toContainEqual(
+          expect.objectContaining({
+            id: mcpCatalog.exam.id,
+            monitors: [
+              {
+                jwId: 1001,
+                nameCn: "测试监考教师",
+                nameEn: "Test exam monitor",
+              },
+            ],
+            examRooms: [
+              expect.objectContaining({ room: "Catalog exam room", count: 30 }),
+            ],
+          }),
+        );
+        expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
+      }),
   );
 
   toolTest(
     "catalog_section_get 在 jwId 缺失时返回恢复提示",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      const result = await context.client.call<{
-        found?: boolean;
-        message?: string;
-        hint?: string;
-      }>("catalog_section_get", {
-        jwId: 999999999,
-        locale: "zh-cn",
-      });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          found?: boolean;
+          message?: string;
+          hint?: string;
+        }>("catalog_section_get", {
+          jwId: 999999999,
+          locale: "zh-cn",
+        });
 
-      expect(result.found).toBe(false);
-      expect(result.message).toContain("999999999");
-      expect(result.hint).toContain("catalog_section_search");
-    },
+        expect(result.found).toBe(false);
+        expect(result.message).toContain("999999999");
+        expect(result.hint).toContain("catalog_section_search");
+      }),
   );
 });
 
@@ -139,176 +151,186 @@ describe("课程与班级查找", () => {
 describe("学期查询工具", () => {
   toolTest(
     "catalog_semester_list 返回与 REST 等价的分页学期列表",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<{
-        data?: Array<{
-          id?: number;
-          jwId?: number;
-          code?: string;
-          nameCn?: string;
-          startDate?: string;
-          endDate?: string;
-        }>;
-        pagination?: {
-          page?: number;
-          pageSize?: number;
-          total?: number;
-          totalPages?: number;
-        };
-      }>("catalog_semester_list", {
-        page: 1,
-        limit: 20,
-        mode: "default",
-      });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          data?: Array<{
+            id?: number;
+            jwId?: number;
+            code?: string;
+            nameCn?: string;
+            startDate?: string;
+            endDate?: string;
+          }>;
+          pagination?: {
+            page?: number;
+            pageSize?: number;
+            total?: number;
+            totalPages?: number;
+          };
+        }>("catalog_semester_list", {
+          page: 1,
+          limit: 20,
+          mode: "default",
+        });
 
-      expect(result.pagination?.page).toBe(1);
-      expect(result.pagination?.pageSize).toBe(20);
-      expect((result.pagination?.total ?? 0) > 0).toBe(true);
-      expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
+        expect(result.pagination?.page).toBe(1);
+        expect(result.pagination?.pageSize).toBe(20);
+        expect((result.pagination?.total ?? 0) > 0).toBe(true);
+        expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
 
-      const semester = result.data?.find(
-        (item) => item.jwId === mcpCatalog.semester.jwId,
-      );
-      expect(semester).toBeDefined();
-      expect(semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
-      expect(typeof semester?.id).toBe("number");
-      expect(typeof semester?.code).toBe("string");
-      expect(typeof semester?.startDate).toBe("string");
-      expect(typeof semester?.endDate).toBe("string");
-    },
+        const semester = result.data?.find(
+          (item) => item.jwId === mcpCatalog.semester.jwId,
+        );
+        expect(semester).toBeDefined();
+        expect(semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
+        expect(typeof semester?.id).toBe("number");
+        expect(typeof semester?.code).toBe("string");
+        expect(typeof semester?.startDate).toBe("string");
+        expect(typeof semester?.endDate).toBe("string");
+      }),
   );
 
   toolTest(
     "catalog_semester_list summary 兼容输入保留标准分页数组",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<{
-        data?: Array<{
-          jwId?: number;
-          nameCn?: string;
-        }>;
-        pagination?: {
-          total?: number;
-          page?: number;
-          pageSize?: number;
-        };
-      }>("catalog_semester_list", {
-        page: 1,
-        limit: 10,
-        mode: "default",
-      });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          data?: Array<{
+            jwId?: number;
+            nameCn?: string;
+          }>;
+          pagination?: {
+            total?: number;
+            page?: number;
+            pageSize?: number;
+          };
+        }>("catalog_semester_list", {
+          page: 1,
+          limit: 10,
+          mode: "default",
+        });
 
-      expect(Array.isArray(result.data)).toBe(true);
-      expect(typeof result.pagination?.total).toBe("number");
-      expect(result.pagination?.page).toBe(1);
-      expect(result.pagination?.pageSize).toBe(10);
+        expect(Array.isArray(result.data)).toBe(true);
+        expect(typeof result.pagination?.total).toBe("number");
+        expect(result.pagination?.page).toBe(1);
+        expect(result.pagination?.pageSize).toBe(10);
 
-      const semester = result.data?.find(
-        (item) => item.jwId === mcpCatalog.semester.jwId,
-      );
-      expect(semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
-    },
+        const semester = result.data?.find(
+          (item) => item.jwId === mcpCatalog.semester.jwId,
+        );
+        expect(semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
+      }),
   );
 
   toolTest(
     "catalog_semester_list 合法高页码返回空数据与正确分页元数据",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      const result = await context.client.call<{
-        data?: unknown[];
-        pagination?: {
-          page?: number;
-          pageSize?: number;
-          total?: number;
-          totalPages?: number;
-        };
-      }>("catalog_semester_list", {
-        page: 100,
-        limit: 10,
-        mode: "default",
-      });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          data?: unknown[];
+          pagination?: {
+            page?: number;
+            pageSize?: number;
+            total?: number;
+            totalPages?: number;
+          };
+        }>("catalog_semester_list", {
+          page: 100,
+          limit: 10,
+          mode: "default",
+        });
 
-      expect(result.data).toHaveLength(0);
-      expect(result.pagination?.page).toBe(100);
-      expect(result.pagination?.pageSize).toBe(10);
-      expect((result.pagination?.total ?? 0) > 0).toBe(true);
-      expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
-    },
+        expect(result.data).toHaveLength(0);
+        expect(result.pagination?.page).toBe(100);
+        expect(result.pagination?.pageSize).toBe(10);
+        expect((result.pagination?.total ?? 0) > 0).toBe(true);
+        expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+      }),
   );
 
   toolTest(
     "catalog_semester_list 拒绝越界或无效分页参数",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      await expect(
-        context.client.call("catalog_semester_list", { page: 0, limit: 10 }),
-      ).rejects.toThrow();
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        await expect(
+          context.client.call("catalog_semester_list", { page: 0, limit: 10 }),
+        ).rejects.toThrow();
 
-      await expect(
-        context.client.call("catalog_semester_list", { page: 101, limit: 10 }),
-      ).rejects.toThrow();
+        await expect(
+          context.client.call("catalog_semester_list", {
+            page: 101,
+            limit: 10,
+          }),
+        ).rejects.toThrow();
 
-      await expect(
-        context.client.call("catalog_semester_list", { page: 1, limit: 101 }),
-      ).rejects.toThrow();
+        await expect(
+          context.client.call("catalog_semester_list", { page: 1, limit: 101 }),
+        ).rejects.toThrow();
 
-      await expect(
-        context.client.call("catalog_semester_list", {
-          page: "not-a-number",
-          limit: 10,
-        }),
-      ).rejects.toThrow();
-    },
+        await expect(
+          context.client.call("catalog_semester_list", {
+            page: "not-a-number",
+            limit: 10,
+          }),
+        ).rejects.toThrow();
+      }),
   );
 
   toolTest(
     "catalog_semester_current 返回覆盖当前的 seed 学期",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<{
-        found?: boolean;
-        semester?: {
-          id?: number;
-          jwId?: number;
-          code?: string;
-          nameCn?: string;
-          startDate?: string;
-          endDate?: string;
-        };
-      }>("catalog_semester_current", { mode: "default" });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          found?: boolean;
+          semester?: {
+            id?: number;
+            jwId?: number;
+            code?: string;
+            nameCn?: string;
+            startDate?: string;
+            endDate?: string;
+          };
+        }>("catalog_semester_current", { mode: "default" });
 
-      expect(result.found).toBe(true);
-      expect(result.semester?.jwId).toBe(mcpCatalog.semester.jwId);
-      expect(result.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
-      expect(typeof result.semester?.id).toBe("number");
-      expect(typeof result.semester?.code).toBe("string");
-      expect(typeof result.semester?.startDate).toBe("string");
-      expect(typeof result.semester?.endDate).toBe("string");
-    },
+        expect(result.found).toBe(true);
+        expect(result.semester?.jwId).toBe(mcpCatalog.semester.jwId);
+        expect(result.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
+        expect(typeof result.semester?.id).toBe("number");
+        expect(typeof result.semester?.code).toBe("string");
+        expect(typeof result.semester?.startDate).toBe("string");
+        expect(typeof result.semester?.endDate).toBe("string");
+      }),
   );
 
   toolTest(
     "catalog_semester_current full 模式返回完整学期记录",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<{
-        found?: boolean;
-        semester?: Record<string, unknown>;
-      }>("catalog_semester_current", { mode: "full" });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          found?: boolean;
+          semester?: Record<string, unknown>;
+        }>("catalog_semester_current", { mode: "full" });
 
-      expect(result.found).toBe(true);
-      expect(result.semester?.jwId).toBe(mcpCatalog.semester.jwId);
-      expect(result.semester).toHaveProperty("id");
-      expect(result.semester).toHaveProperty("nameCn");
-      expect(result.semester).toHaveProperty("startDate");
-      expect(result.semester).toHaveProperty("endDate");
-    },
+        expect(result.found).toBe(true);
+        expect(result.semester?.jwId).toBe(mcpCatalog.semester.jwId);
+        expect(result.semester).toHaveProperty("id");
+        expect(result.semester).toHaveProperty("nameCn");
+        expect(result.semester).toHaveProperty("startDate");
+        expect(result.semester).toHaveProperty("endDate");
+      }),
   );
 
   toolTest(
     "catalog_semester_current 拒绝无效 mode 参数",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      await expect(
-        context.client.call("catalog_semester_current", {
-          mode: "invalid-mode",
-        }),
-      ).rejects.toThrow();
-    },
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        await expect(
+          context.client.call("catalog_semester_current", {
+            mode: "invalid-mode",
+          }),
+        ).rejects.toThrow();
+      }),
   );
 });
 
@@ -384,187 +406,198 @@ type GetCourseResult = {
 describe("班级搜索工具 catalog_section_search", () => {
   toolTest(
     "按课程 jwId 返回分页的班级摘要",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<SearchSectionsResult>(
-        "catalog_section_search",
-        {
-          courseJwId: mcpCatalog.course.jwId,
-          page: 1,
-          limit: 10,
-          locale: "zh-cn",
-          mode: "full",
-        },
-      );
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<SearchSectionsResult>(
+          "catalog_section_search",
+          {
+            courseJwId: mcpCatalog.course.jwId,
+            page: 1,
+            limit: 10,
+            locale: "zh-cn",
+            mode: "full",
+          },
+        );
 
-      expect(result.pagination?.page).toBe(1);
-      expect(result.pagination?.pageSize).toBe(10);
-      expect((result.pagination?.total ?? 0) > 0).toBe(true);
-      expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
+        expect(result.pagination?.page).toBe(1);
+        expect(result.pagination?.pageSize).toBe(10);
+        expect((result.pagination?.total ?? 0) > 0).toBe(true);
+        expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
 
-      const section = result.data?.find(
-        (item) => item.jwId === mcpCatalog.section.jwId,
-      );
-      expect(section).toBeDefined();
-      expect(section?.code).toBe(mcpCatalog.section.code);
-      expect(section?.course?.jwId).toBe(mcpCatalog.course.jwId);
-      expect(section?.course?.nameCn).toBe(mcpCatalog.course.nameCn);
-      expect(section?.course?.nameEn).toBe(mcpCatalog.course.nameEn);
-      expect(section?.semester?.jwId).toBe(mcpCatalog.semester.jwId);
-      expect(
-        section?.teachers?.some(
-          (teacher) => teacher.code === mcpCatalog.teacher.code,
-        ),
-      ).toBe(true);
-    },
+        const section = result.data?.find(
+          (item) => item.jwId === mcpCatalog.section.jwId,
+        );
+        expect(section).toBeDefined();
+        expect(section?.code).toBe(mcpCatalog.section.code);
+        expect(section?.course?.jwId).toBe(mcpCatalog.course.jwId);
+        expect(section?.course?.nameCn).toBe(mcpCatalog.course.nameCn);
+        expect(section?.course?.nameEn).toBe(mcpCatalog.course.nameEn);
+        expect(section?.semester?.jwId).toBe(mcpCatalog.semester.jwId);
+        expect(
+          section?.teachers?.some(
+            (teacher) => teacher.code === mcpCatalog.teacher.code,
+          ),
+        ).toBe(true);
+      }),
   );
 
   toolTest(
     "按教师工号过滤班级",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<SearchSectionsResult>(
-        "catalog_section_search",
-        {
-          teacherCode: mcpCatalog.teacher.code,
-          page: 1,
-          limit: 10,
-          locale: "zh-cn",
-          mode: "full",
-        },
-      );
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<SearchSectionsResult>(
+          "catalog_section_search",
+          {
+            teacherCode: mcpCatalog.teacher.code,
+            page: 1,
+            limit: 10,
+            locale: "zh-cn",
+            mode: "full",
+          },
+        );
 
-      expect((result.data?.length ?? 0) > 0).toBe(true);
-      expect(
-        result.data?.some(
-          (section) => section.jwId === mcpCatalog.section.jwId,
-        ),
-      ).toBe(true);
-    },
+        expect((result.data?.length ?? 0) > 0).toBe(true);
+        expect(
+          result.data?.some(
+            (section) => section.jwId === mcpCatalog.section.jwId,
+          ),
+        ).toBe(true);
+      }),
   );
 
   toolTest(
     "按 jwIds 精确查询班级",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<SearchSectionsResult>(
-        "catalog_section_search",
-        {
-          jwIds: [mcpCatalog.section.jwId],
-          page: 1,
-          limit: 10,
-          locale: "zh-cn",
-          mode: "full",
-        },
-      );
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<SearchSectionsResult>(
+          "catalog_section_search",
+          {
+            jwIds: [mcpCatalog.section.jwId],
+            page: 1,
+            limit: 10,
+            locale: "zh-cn",
+            mode: "full",
+          },
+        );
 
-      expect(result.data).toHaveLength(1);
-      expect(result.data?.[0]?.jwId).toBe(mcpCatalog.section.jwId);
-      expect(result.pagination?.total).toBe(1);
-      expect(result.pagination?.totalPages).toBe(1);
-    },
+        expect(result.data).toHaveLength(1);
+        expect(result.data?.[0]?.jwId).toBe(mcpCatalog.section.jwId);
+        expect(result.pagination?.total).toBe(1);
+        expect(result.pagination?.totalPages).toBe(1);
+      }),
   );
 
   toolTest(
     "无匹配过滤返回空分页",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      const result = await context.client.call<SearchSectionsResult>(
-        "catalog_section_search",
-        {
-          courseJwId: 999_999_999,
-          page: 1,
-          limit: 10,
-          locale: "zh-cn",
-          mode: "full",
-        },
-      );
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<SearchSectionsResult>(
+          "catalog_section_search",
+          {
+            courseJwId: 999_999_999,
+            page: 1,
+            limit: 10,
+            locale: "zh-cn",
+            mode: "full",
+          },
+        );
 
-      expect(result.data).toEqual([]);
-      expect(result.pagination?.total).toBe(0);
-      expect(result.pagination?.totalPages).toBe(1);
-    },
+        expect(result.data).toEqual([]);
+        expect(result.pagination?.total).toBe(0);
+        expect(result.pagination?.totalPages).toBe(1);
+      }),
   );
 
   toolTest(
     "拒绝越界分页参数",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      await expect(
-        context.client.call("catalog_section_search", { page: 1, limit: 101 }),
-      ).rejects.toThrow();
-      await expect(
-        context.client.call("catalog_section_search", { page: 0, limit: 10 }),
-      ).rejects.toThrow();
-    },
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        await expect(
+          context.client.call("catalog_section_search", {
+            page: 1,
+            limit: 101,
+          }),
+        ).rejects.toThrow();
+        await expect(
+          context.client.call("catalog_section_search", { page: 0, limit: 10 }),
+        ).rejects.toThrow();
+      }),
   );
 });
 
 describe("课程详情工具 catalog_course_get", () => {
   toolTest(
     "按 jwId 返回课程详情及班级列表",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<GetCourseResult>(
-        "catalog_course_get",
-        {
-          jwId: mcpCatalog.course.jwId,
-          locale: "zh-cn",
-          mode: "full",
-        },
-      );
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<GetCourseResult>(
+          "catalog_course_get",
+          {
+            jwId: mcpCatalog.course.jwId,
+            locale: "zh-cn",
+            mode: "full",
+          },
+        );
 
-      expect(result.found).toBe(true);
-      const course = result.course;
-      expect(course).not.toBeNull();
-      expect(course?.jwId).toBe(mcpCatalog.course.jwId);
-      expect(course?.code).toBe(mcpCatalog.course.code);
-      expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
-      expect(course?.nameEn).toBe(mcpCatalog.course.nameEn);
-      expect(course?.educationLevel?.nameCn).toBe(
-        mcpCatalog.educationLevel.nameCn,
-      );
-      expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
-      expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
-      expect(course?.sections?.length ?? 0).toBeLessThanOrEqual(20);
-      expect(course?._count?.sections ?? 0).toBeGreaterThanOrEqual(
-        course?.sections?.length ?? 0,
-      );
+        expect(result.found).toBe(true);
+        const course = result.course;
+        expect(course).not.toBeNull();
+        expect(course?.jwId).toBe(mcpCatalog.course.jwId);
+        expect(course?.code).toBe(mcpCatalog.course.code);
+        expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
+        expect(course?.nameEn).toBe(mcpCatalog.course.nameEn);
+        expect(course?.educationLevel?.nameCn).toBe(
+          mcpCatalog.educationLevel.nameCn,
+        );
+        expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
+        expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
+        expect(course?.sections?.length ?? 0).toBeLessThanOrEqual(20);
+        expect(course?._count?.sections ?? 0).toBeGreaterThanOrEqual(
+          course?.sections?.length ?? 0,
+        );
 
-      const seedSection = course?.sections?.find(
-        (section) => section.jwId === mcpCatalog.section.jwId,
-      );
-      expect(seedSection).toBeDefined();
-      expect(seedSection?.code).toBe(mcpCatalog.section.code);
-      expect(seedSection?.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
-    },
+        const seedSection = course?.sections?.find(
+          (section) => section.jwId === mcpCatalog.section.jwId,
+        );
+        expect(seedSection).toBeDefined();
+        expect(seedSection?.code).toBe(mcpCatalog.section.code);
+        expect(seedSection?.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
+      }),
   );
 
   toolTest(
     "缺失课程返回 found false",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      const result = await context.client.call<GetCourseResult>(
-        "catalog_course_get",
-        {
-          jwId: 999_999_999,
-          locale: "zh-cn",
-        },
-      );
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<GetCourseResult>(
+          "catalog_course_get",
+          {
+            jwId: 999_999_999,
+            locale: "zh-cn",
+          },
+        );
 
-      expect(result.found).toBe(false);
-      expect(result.course).toBeNull();
-    },
+        expect(result.found).toBe(false);
+        expect(result.course).toBeNull();
+      }),
   );
 
   toolTest(
     "拒绝无效 jwId 参数",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      await expect(
-        context.client.call("catalog_course_get", { jwId: 0 }),
-      ).rejects.toThrow();
-      await expect(
-        context.client.call("catalog_course_get", { jwId: -1 }),
-      ).rejects.toThrow();
-      await expect(
-        context.client.call("catalog_course_get", {
-          jwId: "not-a-number",
-        }),
-      ).rejects.toThrow();
-    },
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        await expect(
+          context.client.call("catalog_course_get", { jwId: 0 }),
+        ).rejects.toThrow();
+        await expect(
+          context.client.call("catalog_course_get", { jwId: -1 }),
+        ).rejects.toThrow();
+        await expect(
+          context.client.call("catalog_course_get", {
+            jwId: "not-a-number",
+          }),
+        ).rejects.toThrow();
+      }),
   );
 });
 
@@ -573,134 +606,147 @@ describe("课程详情工具 catalog_course_get", () => {
 describe("catalog_section_match_preview — 班级代码匹配", () => {
   toolTest(
     "在当前学期匹配单个班级代码",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<{
-        success?: boolean;
-        semester?: { id?: number; nameCn?: string; code?: string };
-        matchedCodes?: string[];
-        unmatchedCodes?: string[];
-        suggestions?: Record<string, unknown>;
-        sections?: Array<{ code?: string; jwId?: number }>;
-        total?: number;
-        note?: string;
-      }>("catalog_section_match_preview", {
-        codes: [mcpCatalog.section.code],
-        locale: "zh-cn",
-      });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          success?: boolean;
+          semester?: { id?: number; nameCn?: string; code?: string };
+          matchedCodes?: string[];
+          unmatchedCodes?: string[];
+          suggestions?: Record<string, unknown>;
+          sections?: Array<{ code?: string; jwId?: number }>;
+          total?: number;
+          note?: string;
+        }>("catalog_section_match_preview", {
+          codes: [mcpCatalog.section.code],
+          locale: "zh-cn",
+        });
 
-      expect(result.success).toBe(true);
-      expect(result.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
-      expect(result.matchedCodes).toContain(mcpCatalog.section.code);
-      expect(result.unmatchedCodes).toEqual([]);
-      expect(result.total).toBe(1);
-      expect(result.sections?.[0]?.code).toBe(mcpCatalog.section.code);
-      expect(result.note).toContain("Life@USTC");
-    },
+        expect(result.success).toBe(true);
+        expect(result.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
+        expect(result.matchedCodes).toContain(mcpCatalog.section.code);
+        expect(result.unmatchedCodes).toEqual([]);
+        expect(result.total).toBe(1);
+        expect(result.sections?.[0]?.code).toBe(mcpCatalog.section.code);
+        expect(result.note).toContain("Life@USTC");
+      }),
   );
 
   toolTest(
     "支持多个代码并区分匹配与未匹配，且为未匹配代码提供建议",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const unmatchedCode = mcpCatalog.section.code.replace(/\.\d+$/, ".02");
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const unmatchedCode = mcpCatalog.section.code.replace(/\.\d+$/, ".02");
 
-      const result = await context.client.call<{
-        success?: boolean;
-        matchedCodes?: string[];
-        unmatchedCodes?: string[];
-        suggestions?: Record<string, string[]>;
-        total?: number;
-      }>("catalog_section_match_preview", {
-        codes: [mcpCatalog.section.code, unmatchedCode],
-        locale: "zh-cn",
-      });
+        const result = await context.client.call<{
+          success?: boolean;
+          matchedCodes?: string[];
+          unmatchedCodes?: string[];
+          suggestions?: Record<string, string[]>;
+          total?: number;
+        }>("catalog_section_match_preview", {
+          codes: [mcpCatalog.section.code, unmatchedCode],
+          locale: "zh-cn",
+        });
 
-      expect(result.success).toBe(true);
-      expect(result.matchedCodes).toContain(mcpCatalog.section.code);
-      expect(result.matchedCodes).not.toContain(unmatchedCode);
-      expect(result.unmatchedCodes).toContain(unmatchedCode);
-      expect(result.total).toBe(1);
-      expect(result.suggestions?.[unmatchedCode]).toContain(
-        mcpCatalog.section.code,
-      );
-    },
+        expect(result.success).toBe(true);
+        expect(result.matchedCodes).toContain(mcpCatalog.section.code);
+        expect(result.matchedCodes).not.toContain(unmatchedCode);
+        expect(result.unmatchedCodes).toContain(unmatchedCode);
+        expect(result.total).toBe(1);
+        expect(result.suggestions?.[unmatchedCode]).toContain(
+          mcpCatalog.section.code,
+        );
+      }),
   );
 
   toolTest(
     "可按 semesterId 查询历史学期班级代码",
-    async ({ mcpActor: context, mcpCatalog, isolatedDatabase, expect }) => {
-      const previousSemester = await isolatedDatabase.owner.semester.findUnique(
-        {
-          where: { jwId: mcpCatalog.previousSemester.jwId },
-          select: { id: true, nameCn: true },
-        },
-      );
-      expect(previousSemester).toBeTruthy();
+    async ({
+      mcpWorkflow,
+      mcpActor: context,
+      mcpCatalog,
+      isolatedDatabase,
+      expect,
+    }) =>
+      mcpWorkflow.run(async () => {
+        const previousSemester =
+          await isolatedDatabase.owner.semester.findUnique({
+            where: { jwId: mcpCatalog.previousSemester.jwId },
+            select: { id: true, nameCn: true },
+          });
+        expect(previousSemester).toBeTruthy();
 
-      const previousSection = mcpCatalog.previousSection;
-      expect(previousSection).toBeTruthy();
-      if (!previousSemester || !previousSection) {
-        throw new Error("Previous semester or section seed data missing");
-      }
+        const previousSection = mcpCatalog.previousSection;
+        expect(previousSection).toBeTruthy();
+        if (!previousSemester || !previousSection) {
+          throw new Error("Previous semester or section seed data missing");
+        }
 
-      const result = await context.client.call<{
-        success?: boolean;
-        semester?: { id?: number; nameCn?: string };
-        matchedCodes?: string[];
-        unmatchedCodes?: string[];
-        total?: number;
-      }>("catalog_section_match_preview", {
-        codes: [previousSection.code],
-        semesterId: previousSemester.id,
-        locale: "zh-cn",
-      });
+        const result = await context.client.call<{
+          success?: boolean;
+          semester?: { id?: number; nameCn?: string };
+          matchedCodes?: string[];
+          unmatchedCodes?: string[];
+          total?: number;
+        }>("catalog_section_match_preview", {
+          codes: [previousSection.code],
+          semesterId: previousSemester.id,
+          locale: "zh-cn",
+        });
 
-      expect(result.success).toBe(true);
-      expect(result.semester?.id).toBe(previousSemester.id);
-      expect(result.semester?.nameCn).toBe(mcpCatalog.previousSemester.nameCn);
-      expect(result.matchedCodes).toContain(previousSection.code);
-      expect(result.unmatchedCodes).toEqual([]);
-      expect(result.total).toBe(1);
-    },
+        expect(result.success).toBe(true);
+        expect(result.semester?.id).toBe(previousSemester.id);
+        expect(result.semester?.nameCn).toBe(
+          mcpCatalog.previousSemester.nameCn,
+        );
+        expect(result.matchedCodes).toContain(previousSection.code);
+        expect(result.unmatchedCodes).toEqual([]);
+        expect(result.total).toBe(1);
+      }),
   );
 
   toolTest(
     "在 semesterId 不存在时返回失败提示",
-    async ({ mcpActor: context, mcpCatalog, expect }) => {
-      const result = await context.client.call<{
-        success?: boolean;
-        message?: string;
-      }>("catalog_section_match_preview", {
-        codes: [mcpCatalog.section.code],
-        semesterId: 2_147_483_647,
-        locale: "zh-cn",
-      });
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          success?: boolean;
+          message?: string;
+        }>("catalog_section_match_preview", {
+          codes: [mcpCatalog.section.code],
+          semesterId: 2_147_483_647,
+          locale: "zh-cn",
+        });
 
-      expect(result.success).toBe(false);
-      expect(result.message).toContain("No semester found");
-    },
+        expect(result.success).toBe(false);
+        expect(result.message).toContain("No semester found");
+      }),
   );
 
   toolTest(
     "拒绝空代码数组",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      await expect(
-        context.client.call("catalog_section_match_preview", {
-          codes: [],
-          locale: "zh-cn",
-        }),
-      ).rejects.toThrow();
-    },
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        await expect(
+          context.client.call("catalog_section_match_preview", {
+            codes: [],
+            locale: "zh-cn",
+          }),
+        ).rejects.toThrow();
+      }),
   );
 
   toolTest(
     "拒绝非法格式班级代码",
-    async ({ mcpActor: context, mcpCatalog: _catalog, expect }) => {
-      await expect(
-        context.client.call("catalog_section_match_preview", {
-          codes: ["bad code!"],
-          locale: "zh-cn",
-        }),
-      ).rejects.toThrow();
-    },
+    async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
+      mcpWorkflow.run(async () => {
+        await expect(
+          context.client.call("catalog_section_match_preview", {
+            codes: ["bad code!"],
+            locale: "zh-cn",
+          }),
+        ).rejects.toThrow();
+      }),
   );
 });
