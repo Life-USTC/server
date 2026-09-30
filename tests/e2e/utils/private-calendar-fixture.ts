@@ -2,8 +2,9 @@ import { test as oauthTest } from "../src/app/api/mcp/_fixture";
 import { withBrowserWorkflow } from "./browser-workflow";
 import { createCalendarContractFixture } from "./calendar-contract";
 import {
-  type CalendarProtocolRead,
-  withCalendarProtocolRead,
+  type CalendarProtocol,
+  type CalendarProtocolChecks,
+  withCalendarProtocol,
 } from "./calendar-protocol-lifecycle";
 import { DEV_SEED } from "./dev-seed";
 
@@ -15,7 +16,7 @@ export type PrivateCalendar = Omit<
  * creates explicit user/section/semester memberships in that same database. */
 export const test = oauthTest.extend<{
   calendarProtocolRun: (
-    work: (io: CalendarProtocolRead) => Promise<() => Promise<void>>,
+    work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
   ) => Promise<void>;
   calendarSemester: number;
   createCalendar: () => Promise<PrivateCalendar>;
@@ -30,7 +31,7 @@ export const test = oauthTest.extend<{
       await use((work) =>
         workflow.run(() =>
           run(() =>
-            withCalendarProtocolRead(
+            withCalendarProtocol(
               {
                 page,
                 observer: request,
