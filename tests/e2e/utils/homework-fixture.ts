@@ -128,12 +128,13 @@ export const test = workerTest.extend<{
                 account: actor,
                 sectionId: academic.section.id,
                 testInfo,
+                runBody: workflow.body,
                 ...effects,
                 observeReads: true,
               },
               async (effects) => {
                 await page.context().addCookies([actor.cookie]);
-                await workflow.body(() => work(effects));
+                await work(effects);
               },
             ),
           ),

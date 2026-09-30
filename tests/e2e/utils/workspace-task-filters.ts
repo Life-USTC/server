@@ -220,12 +220,13 @@ export const test = workerTest.extend<{
                 isolatedWorker,
                 account: taskFilterActor,
                 testInfo,
+                runBody: workflow.body,
                 ...effects,
                 observeReads: true,
               },
               async (context) => {
                 await page.context().addCookies([taskFilterActor.cookie]);
-                await workflow.body(() => work(context));
+                await work(context);
               },
             ),
           ),
