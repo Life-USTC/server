@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { gzipSync } from "node:zlib";
 import { test as base, expect, type Page } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
@@ -54,7 +55,13 @@ const test = base.extend<{ endpoint: Endpoint }>({
         void responseAllowed.promise.then(() => {
           response.once("finish", responded.resolve);
           response.setHeader("content-type", "application/json");
-          response.end("{}");
+          if (request.url === "/write-gzip") {
+            response.setHeader("content-encoding", "gzip");
+            // A separate write leaves actual HTTP/1.1 chunked framing on the
+            // upstream response, matching the local Worker's compressed JSON.
+            response.write(gzipSync("{}"));
+            response.end();
+          } else response.end("{}");
         });
       });
     });
@@ -313,22 +320,29 @@ test("normal browser workflow keeps its original body and write order", async ({
       await workflow.run(() =>
         withSettledPageWrites(
           page,
-          /\/write$/,
+          /\/write-gzip$/,
           () =>
             workflow.body(async () => {
-              await openWriter(page, endpoint);
+              await openWriter(page, endpoint, "POST", "/write-gzip");
               const response = page.waitForResponse(
-                (response) => new URL(response.url()).pathname === "/write",
+                (response) => new URL(response.url()).pathname === "/write-gzip",
               );
               browserReads.push(response);
               void response.catch(() => undefined);
               await page
                 .getByRole("button", { name: "Write", exact: true })
                 .click();
-              expect((await response).status()).toBe(200);
+              const browserResponse = await response;
+              expect(browserResponse.status()).toBe(200);
+              // Status alone misses a replay with an unfinished browser body.
+              const body = browserResponse.json();
+              browserReads.push(body);
+              expect(await body).toEqual({});
               events.push("body finished");
             }),
           async (response) => {
+            expect(response.headers()["content-encoding"]).toBe("gzip");
+            expect(response.headers()["transfer-encoding"]).toBe("chunked");
             expect(await response.json()).toEqual({});
             events.push("write observed");
           },
@@ -340,7 +354,7 @@ test("normal browser workflow keeps its original body and write order", async ({
   }
   expect(events).toEqual(["write observed", "body finished", "page closed"]);
   expect(endpoint.writes).toEqual([
-    { method: "POST", path: "/write", body: "owned write" },
+    { method: "POST", path: "/write-gzip", body: "owned write" },
   ]);
 });
 
