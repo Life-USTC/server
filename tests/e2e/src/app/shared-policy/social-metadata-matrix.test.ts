@@ -1,13 +1,11 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "../../../utils/personal-preferences-fixture";
+import { DEV_SEED } from "../../../utils/dev-seed";
 import {
-  cleanupCatalogContractFixture,
   createCatalogContractFixture,
 } from "../../../../shared/catalog-contract-fixture";
 import { createCalendarContractFixture } from "../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { waitForUiSettled } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 import {
   INVENTORY_SETTINGS_TABS,
   INVENTORY_WORKSPACE_TABS,
@@ -59,15 +57,27 @@ async function metadata(page: Page, html: string | null) {
   );
 }
 
-test("ui.social-sharing-metadata-1", async ({ page }) => {
+test("ui.social-sharing-metadata-1", async ({ page, preferenceFlow, isolatedWorker }) => {
   test.setTimeout(180_000);
+  await preferenceFlow.run(async () => {
+  const db = isolatedWorker.database.owner;
+  const origin = isolatedWorker.origin;
   const browserErrors: string[] = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") browserErrors.push(message.text());
   });
-  const catalog = await withE2ePrisma(createCatalogContractFixture);
-  const calendar = await createCalendarContractFixture();
+  const catalog = await createCatalogContractFixture(db);
+  await db.semester.create({
+    data: {
+      jwId: DEV_SEED.semesterJwId,
+      code: "421",
+      nameCn: DEV_SEED.semesterNameCn,
+      startDate: new Date("2026-04-08"),
+      endDate: new Date(Date.now() + 180 * 86_400_000),
+    },
+  });
+  const calendar = await createCalendarContractFixture((work) => work(db));
   const marker = crypto.randomUUID();
   const secrets = [
     `private-title-${marker}`,
@@ -77,7 +87,7 @@ test("ui.social-sharing-metadata-1", async ({ page }) => {
     `authorization-code-${marker}`,
     `oauth-state-${marker}`,
   ];
-  const extra = await withE2ePrisma(async (db) => {
+  const extra = await db.$transaction(async (db) => {
     await db.user.update({
       where: { id: calendar.users[0].id },
       data: { isAdmin: true, calendarFeedToken: secrets[2] },
@@ -125,13 +135,12 @@ test("ui.social-sharing-metadata-1", async ({ page }) => {
         clientSecret: secrets[3],
         userId: calendar.users[0].id,
         name: `Private client ${marker}`,
-        redirectUris: [`${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`],
+        redirectUris: [`${origin}/e2e/oauth/callback`],
         scopes: ["openid", "profile"],
       },
     });
     return { welcome, organizer, source, publication, client };
   });
-  try {
     const dynamic: Record<string, string> = {
       "/catalog/courses/[jwId]": `/catalog/courses/${catalog.courses[0].jwId}`,
       "/catalog/sections/[jwId]": `/catalog/sections/${catalog.sections[0].jwId}`,
@@ -173,10 +182,10 @@ test("ui.social-sharing-metadata-1", async ({ page }) => {
           await page
             .context()
             .addCookies([
-              { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-              ...(privatePage ? [await createSignedSessionCookie(userId)] : []),
+              { name: "NEXT_LOCALE", value: locale, url: origin },
+              ...(privatePage ? [(await isolatedWorker.createSession(userId)).cookie] : []),
             ]);
-          const url = new URL(entry.path, PLAYWRIGHT_BASE_URL);
+          const url = new URL(entry.path, origin);
           url.searchParams.set("code", secrets[4]);
           url.searchParams.set("state", secrets[5]);
           url.searchParams.set(
@@ -188,7 +197,7 @@ test("ui.social-sharing-metadata-1", async ({ page }) => {
             url.searchParams.set("scope", "openid profile");
             url.searchParams.set(
               "redirect_uri",
-              `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`,
+              `${origin}/e2e/oauth/callback`,
             );
           }
           const response = await page.goto(`${url.pathname}${url.search}`);
@@ -196,7 +205,7 @@ test("ui.social-sharing-metadata-1", async ({ page }) => {
             throw new Error(`No document response for ${entry.path}`);
           expect(response.status(), entry.path).toBe(200);
           expect(new URL(page.url()).pathname).toBe(
-            new URL(entry.path, PLAYWRIGHT_BASE_URL).pathname,
+            new URL(entry.path, origin).pathname,
           );
           const raw = await metadata(page, await response.text());
           await waitForUiSettled(page);
@@ -221,14 +230,14 @@ test("ui.social-sharing-metadata-1", async ({ page }) => {
             locale === "zh-cn" ? "en_US" : "zh_CN",
           );
           expect(values.canonical).toBe(
-            `${new URL(PLAYWRIGHT_BASE_URL).origin}${url.pathname}`,
+            `${new URL(origin).origin}${url.pathname}`,
           );
           expect(values.ogUrl).toBe(values.canonical);
           expect(values.ogType).toBe("website");
           expect(values.ogSiteName).toBe("Life@USTC");
           expect(values.twitterCard).toBe("summary_large_image");
           expect(values.ogImage).toBe(
-            `${new URL(PLAYWRIGHT_BASE_URL).origin}/open-graph.png`,
+            `${new URL(origin).origin}/open-graph.png`,
           );
           expect([
             values.ogImageWidth,
@@ -261,14 +270,5 @@ test("ui.social-sharing-metadata-1", async ({ page }) => {
       expect(descriptions, path).toHaveLength(2);
       expect(descriptions[0], path).not.toBe(descriptions[1]);
     }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await db.oAuthClient.delete({ where: { id: extra.client.id } });
-      await db.user.delete({ where: { id: extra.welcome.id } });
-      await db.youngOrganizer.delete({ where: { id: extra.organizer.id } });
-      await db.publicationSource.delete({ where: { id: extra.source.id } });
-      await cleanupCatalogContractFixture(db, catalog);
-    });
-    await calendar.cleanup();
-  }
+  });
 });
