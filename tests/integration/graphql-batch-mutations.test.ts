@@ -14,8 +14,8 @@ const batchScopes = [
 
 const it = isolatedGraphqlTest.extend(
   "batch",
-  async ({ isolatedDatabase, graphqlRuntime }) => {
-    return graphqlRuntime.run(async () => {
+  async ({ isolatedDatabase, graphqlRuntime, task }) => {
+    const batch = await graphqlRuntime.run(async () => {
       const fixturePrisma = isolatedDatabase.owner;
       const marker = `[integration-test] graphql-batches-${crypto.randomUUID().slice(0, 12)}`;
       const oauthClientId = `graphql-batches-${crypto.randomUUID().slice(0, 12)}`;
@@ -103,6 +103,8 @@ const it = isolatedGraphqlTest.extend(
           graphqlRuntime.signToken(userId, oauthClientId, scopes),
       };
     });
+    task.context.signal.throwIfAborted();
+    return batch;
   },
 );
 
