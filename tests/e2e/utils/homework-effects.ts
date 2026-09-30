@@ -17,6 +17,7 @@ import type { IsolatedWorker } from "./isolated-worker";
 
 export type HomeworkEffects = {
   calendarTokenCreated?: boolean;
+  presetCalendarToken?: string;
   calendarMessages: CalendarMessage[];
   auditActions?: Partial<
     Record<
@@ -74,6 +75,7 @@ export async function withHomeworkEffects(
     testInfo,
     calendarMessages,
     calendarTokenCreated = false,
+    presetCalendarToken,
     auditActions = {},
     observeReads = false,
     runBody = (body) => body(),
@@ -213,6 +215,7 @@ export async function withHomeworkEffects(
     expected: HomeworkEffects = {
       calendarMessages,
       calendarTokenCreated,
+      presetCalendarToken,
       auditActions,
     },
     completed = true,
@@ -220,8 +223,11 @@ export async function withHomeworkEffects(
     const {
       calendarMessages,
       calendarTokenCreated = false,
+      presetCalendarToken,
       auditActions = {},
     } = expected;
+    if (calendarTokenCreated && presetCalendarToken !== undefined)
+      throw new Error("A preset calendar token cannot also be newly created");
     const observation = await collect(
       completed ? calendarMessages.length : "submitted",
     );
@@ -233,7 +239,7 @@ export async function withHomeworkEffects(
     });
     const expectedActions: Record<string, number> = { ...auditActions };
     expect(actor.calendarFeedToken).toEqual(
-      calendarTokenCreated ? expect.any(String) : null,
+      calendarTokenCreated ? expect.any(String) : (presetCalendarToken ?? null),
     );
     if (calendarTokenCreated) expectedActions.account_calendar_token_create = 1;
     const readAudits = () =>
@@ -283,6 +289,7 @@ export async function withHomeworkEffects(
     return {
       calendarMessages,
       calendarTokenCreated,
+      presetCalendarToken,
       auditActions,
       producer,
       consumer,
@@ -371,6 +378,8 @@ export async function withHomeworkEffects(
   }
 
   try {
+    if (calendarTokenCreated && presetCalendarToken !== undefined)
+      throw new Error("A preset calendar token cannot also be newly created");
     expect((await request.get(producerPath)).status()).toBe(404);
     expect((await request.get(consumerPath)).status()).toBe(404);
     expect(

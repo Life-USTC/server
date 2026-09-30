@@ -1,5 +1,4 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 import { gotoAndWaitForReady } from "./page-ready";
 import {
   assertPriorityView,
@@ -24,6 +23,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   data: WorkspacePriorityFixture,
   locale: Locale,
   width: number,
+  headers: Record<string, string>,
 ) {
   const { catalog, section, schedule, room } = data;
   const main = page.locator("#main-content");
@@ -86,7 +86,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const calendar = page.getByRole("dialog");
   const calendarTitle = calendar.getByRole("heading").first();
   const calendarUrl = calendar.locator("#calendar-url");
-  const publicUrl = `${PLAYWRIGHT_BASE_URL}/api/catalog/sections/${section.jwId}/calendar.ics`;
+  const publicUrl = `${data.origin}/api/catalog/sections/${section.jwId}/calendar.ics`;
   const calendarPrimary = {
     "calendar.url": { locator: calendarUrl, expected: publicUrl, input: true },
   };
@@ -158,13 +158,15 @@ export async function checkWorkspaceCalendarPriorityViews(
     tertiary: {},
   });
   await page.keyboard.press("Escape");
-  expect(
-    (
-      await page.request.patch(`/api/workspace/subscriptions/${section.jwId}`, {
-        data: { kind: "teaching_assistant" },
-      })
-    ).status(),
-  ).toBe(200);
+  const updated = await page.request.patch(
+    `/api/workspace/subscriptions/${section.jwId}`,
+    { headers, data: { kind: "teaching_assistant" } },
+  );
+  expect(updated.status()).toBe(200);
+  expect(await updated.json()).toEqual({
+    sectionJwId: section.jwId,
+    kind: "teaching_assistant",
+  });
   await gotoAndWaitForReady(page, "/workspace/subscriptions");
   await assertPriorityView({
     scope: semesterScope,
@@ -189,7 +191,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     .click();
   const personal = page.getByRole("dialog");
   const personalUrl = personal.locator("#personal-subscription-url");
-  const value = `${PLAYWRIGHT_BASE_URL}/api/calendar-feeds/${data.user.id}:${data.user.calendarFeedToken}.ics`;
+  const value = `${data.origin}/api/calendar-feeds/${data.user.id}:${data.user.calendarFeedToken}.ics`;
   await expect(personalUrl).toHaveValue(value);
   await assertPriorityView({
     scope: personal,
@@ -265,11 +267,13 @@ export async function checkWorkspaceCalendarPriorityViews(
     tertiary: {},
   });
   await page.keyboard.press("Escape");
-  expect(
-    (
-      await page.request.patch(`/api/workspace/subscriptions/${section.jwId}`, {
-        data: { kind: "regular" },
-      })
-    ).status(),
-  ).toBe(200);
+  const restored = await page.request.patch(
+    `/api/workspace/subscriptions/${section.jwId}`,
+    { headers, data: { kind: "regular" } },
+  );
+  expect(restored.status()).toBe(200);
+  expect(await restored.json()).toEqual({
+    sectionJwId: section.jwId,
+    kind: "regular",
+  });
 }
