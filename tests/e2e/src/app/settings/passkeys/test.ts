@@ -1,5 +1,8 @@
 import { expect } from "@playwright/test";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { test } from "../../../../utils/settings-fixture";
 
@@ -118,6 +121,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
           await page.locator("#app-user-menu").getByRole("button").click();
           await page.getByRole("menuitem", { name: /登出|Sign Out/i }).click();
           await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+          await waitForUiSettled(page);
 
           await gotoAndWaitForReady(
             page,
