@@ -1,11 +1,17 @@
-import { withE2ePrisma } from "./e2e-db/prisma";
+import type { IsolatedWorker } from "./isolated-worker";
 
-export async function createRemainingCountFixture(count: number) {
+type CountDatabase = IsolatedWorker["database"]["owner"];
+
+export async function createRemainingCountFixture(
+  owner: CountDatabase,
+  count: number,
+) {
   const marker = `count-${crypto.randomUUID()}`;
   const base = 1_200_000_000 + Math.floor(Math.random() * 100_000_000);
-  return withE2ePrisma(async (db) => {
+  return owner.$transaction(async (db) => {
     const owner = await db.user.create({
       data: {
+        id: crypto.randomUUID(),
         name: "Count grammar administrator",
         username: "countgrammar",
         email: `${marker}@example.test`,
@@ -182,10 +188,11 @@ export type RemainingCountFixture = Awaited<
 >;
 
 export async function setCountPublications(
+  owner: CountDatabase,
   f: RemainingCountFixture,
   siblings: number | null,
 ) {
-  await withE2ePrisma(async (db) => {
+  await owner.$transaction(async (db) => {
     await db.publication.deleteMany({
       where: { sourceId: { in: f.sources.map((source) => source.id) } },
     });
@@ -224,40 +231,13 @@ export async function setCountPublications(
   });
 }
 
-export async function resetCountSubscriptions(f: RemainingCountFixture) {
-  await withE2ePrisma(async (db) => {
+export async function resetCountSubscriptions(
+  owner: CountDatabase,
+  f: RemainingCountFixture,
+) {
+  await owner.$transaction(async (db) => {
     await db.userSectionSubscription.deleteMany({
       where: { userId: f.owner.id },
-    });
-  });
-}
-
-export async function cleanupRemainingCountFixture(f: RemainingCountFixture) {
-  await withE2ePrisma(async (db) => {
-    await db.auditLog.deleteMany({ where: { subjectUserId: f.owner.id } });
-    await db.user.deleteMany({
-      where: { id: { in: [f.owner.id, ...f.members.map((user) => user.id)] } },
-    });
-    await db.section.deleteMany({
-      where: { id: { in: f.sections.map((section) => section.id) } },
-    });
-    await db.course.delete({ where: { id: f.course.id } });
-    await db.semester.delete({ where: { id: f.semester.id } });
-    await db.youngEvent.deleteMany({
-      where: { youngId: { in: f.events.map((event) => event.youngId) } },
-    });
-    await db.youngOrganizer.deleteMany({
-      where: {
-        id: {
-          in: [
-            f.contextOrganizer.id,
-            ...f.organizers.map((organizer) => organizer.id),
-          ],
-        },
-      },
-    });
-    await db.publicationSource.deleteMany({
-      where: { id: { in: f.sources.map((source) => source.id) } },
     });
   });
 }
