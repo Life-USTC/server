@@ -224,8 +224,19 @@ export async function runSubscriptionScenario(
       expect(sessions).toEqual([{ id: expect.any(String), userId }]);
       sessionId = sessions[0].id;
     }
+    const clientScopes = [
+      "workspace.subscription:read",
+      "workspace.subscription:write",
+    ];
     if (bearer) {
       clientId = await registerPublicClient(request, scope, owner);
+      // DCR registers the public capability set; its policy has separate tests.
+      // Arrange this client's capabilities before genuine consent. Even a
+      // read-only grant belongs to a client capable of requesting writes.
+      await db.oAuthClient.update({
+        where: { clientId },
+        data: { scopes: clientScopes },
+      });
       const { response, tokenBody } = await issueAccessTokenForClient(
         page,
         request,
@@ -335,7 +346,7 @@ export async function runSubscriptionScenario(
                   clientId,
                   name: owner.clientNames[0],
                   userId: null,
-                  scopes: scope.split(" "),
+                  scopes: clientScopes,
                   redirectUris: [`${origin}/e2e/oauth/callback`],
                   grantTypes: ["authorization_code"],
                   responseTypes: ["code"],
