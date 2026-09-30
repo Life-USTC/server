@@ -138,7 +138,6 @@ async function checkAuthorizations(
       "consent.id": { value: fixture.authorization.consentId },
     },
   });
-
 }
 
 for (const locale of ["en-us", "zh-cn"] as const)
