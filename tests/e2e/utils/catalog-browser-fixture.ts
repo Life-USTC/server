@@ -16,7 +16,7 @@ export const test = workerTest.extend<{
   catalogActor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
   account: User;
   community: CommunityCatalog;
-  catalogFlow: Pick<CommunityFlow, "run">;
+  catalogFlow: CommunityFlow;
   communityFlow: Pick<CommunityFlow, "run">;
 }>({
   catalogActor: async ({ isolatedWorker, run }, use) => {
