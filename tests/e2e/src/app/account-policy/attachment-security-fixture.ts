@@ -93,7 +93,7 @@ async function prepareAttachmentSecurity(
   expect(await db.uploadPending.findMany()).toEqual([]);
   expect(await db.commentAttachment.findMany()).toEqual([]);
   for (const userId of ownedUserIds)
-    expect(await bucket.list({ prefix: `${userId}/` })).toMatchObject({
+    expect(await bucket.list({ prefix: `uploads/${userId}/` })).toMatchObject({
       objects: [],
       truncated: false,
     });
@@ -170,7 +170,7 @@ async function prepareAttachmentSecurity(
       expect(await db.commentAttachment.findMany()).toEqual([]);
       expect(await bucket.get(ids.key)).toBeNull();
       for (const userId of ownedUserIds)
-        expect(await bucket.list({ prefix: `${userId}/` })).toMatchObject({
+        expect(await bucket.list({ prefix: `uploads/${userId}/` })).toMatchObject({
           objects: [],
           truncated: false,
         });
