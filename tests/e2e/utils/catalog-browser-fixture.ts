@@ -1,4 +1,5 @@
 import type { User } from "../../../src/generated/prisma-node/client";
+import { withBrowserWorkflow } from "./browser-workflow";
 import { type CommunityFlow, withCommunityFlow } from "./community-flow";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
@@ -16,8 +17,8 @@ export const test = workerTest.extend<{
   catalogActor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
   account: User;
   community: CommunityCatalog;
-  catalogFlow: CommunityFlow;
-  communityFlow: CommunityFlow;
+  catalogFlow: Pick<CommunityFlow, "run">;
+  communityFlow: Pick<CommunityFlow, "run">;
 }>({
   catalogActor: async ({ isolatedWorker, run }, use) => {
     await use(await run(() => isolatedWorker.createActor()));
@@ -36,12 +37,29 @@ export const test = workerTest.extend<{
     use,
     testInfo,
   ) => {
-    await run(() =>
-      withCommunityFlow(
-        { page, browser, observer, isolatedWorker, account: null, testInfo },
-        use,
-      ),
-    );
+    // Yield the native fixture before probe setup starts. The outer workflow
+    // retains the page through setup interruption and joins the actual callback
+    // after the community effect finalizer closes the page.
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use({
+        run: (work, expected) =>
+          workflow.run(() =>
+            run(() =>
+              withCommunityFlow(
+                {
+                  page,
+                  browser,
+                  observer,
+                  isolatedWorker,
+                  account: null,
+                  testInfo,
+                },
+                (flow) => flow.run(() => workflow.body(work), expected),
+              ),
+            ),
+          ),
+      });
+    });
   },
   communityFlow: async (
     {
@@ -56,26 +74,28 @@ export const test = workerTest.extend<{
     use,
     testInfo,
   ) => {
-    await run(() =>
-      withCommunityFlow(
-        { page, browser, observer, isolatedWorker, account, testInfo },
-        async (flow) => {
-          await use({
-            ...flow,
-            run: (work, expected) =>
-              flow.run(
-                async () => {
-                  // Cookie attachment is part of the owned browser callback,
-                  // including interruption before the first navigation.
-                  await page.context().addCookies([catalogActor.cookie]);
-                  await work();
-                },
-                expected,
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use({
+        run: (work, expected) =>
+          workflow.run(() =>
+            run(() =>
+              withCommunityFlow(
+                { page, browser, observer, isolatedWorker, account, testInfo },
+                (flow) =>
+                  flow.run(
+                    () =>
+                      workflow.body(async () => {
+                        // Attach the cookie only after both page owners exist.
+                        await page.context().addCookies([catalogActor.cookie]);
+                        await work();
+                      }),
+                    expected,
+                  ),
               ),
-          });
-        },
-      ),
-    );
+            ),
+          ),
+      });
+    });
   },
   community: async ({ isolatedWorker, run }, use) => {
     const db = isolatedWorker.database.owner;
