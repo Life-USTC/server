@@ -147,18 +147,3 @@ export async function cleanupAuditLogsUntilStable(
     `Failed to clean audit logs after ${attempts} attempts; ${remaining} rows still match cleanup predicates`,
   );
 }
-
-export async function deleteAuditLogsForUsersAndTargetsUntilStable(
-  prisma: AuditLogCleanupPrisma,
-  input: GroupedAuditLogCleanupInput,
-  options: AuditLogCleanupRetryOptions = {},
-) {
-  await cleanupAuditLogsUntilStable(
-    prisma,
-    {
-      targets: flattenTargets(input.targets),
-      userIds: input.userIds,
-    },
-    options,
-  );
-}

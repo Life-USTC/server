@@ -11,7 +11,6 @@ const operations = {
     oauthFixtures.createOAuthAuthorizationFixture,
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
-  ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
   getSeedSectionSemesterFixture: seedFixtures.getSeedSectionSemesterFixture,
   getSeedTeacherDepartmentFixture: seedFixtures.getSeedTeacherDepartmentFixture,
@@ -47,13 +46,6 @@ type OAuthClientFixtureOptions = {
   tokenEndpointAuthMethod?: SupportedOAuthClientAuthMethod;
 };
 
-type LinkedAccountFixtureOptions = {
-  userId: string;
-  provider: "github" | "google" | "oidc";
-  providerAccountId?: string;
-  email?: string;
-};
-
 export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
   runDbFixture<{
     id: string;
@@ -82,15 +74,6 @@ export const createOAuthAuthorizationFixture = (options: {
 
 export const deleteOAuthClientsByName = (name: string) =>
   runDbFixture<null>("deleteOAuthClientsByName", [name]);
-
-export const ensureLinkedAccountFixture = (
-  options: LinkedAccountFixtureOptions,
-) =>
-  runDbFixture<{
-    provider: string;
-    providerAccountId: string;
-    email: string;
-  }>("ensureLinkedAccountFixture", [options]);
 
 export const getSeedCourseFilterFixture = (jwId: number) =>
   runDbFixture<{
