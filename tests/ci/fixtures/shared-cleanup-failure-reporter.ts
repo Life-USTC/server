@@ -14,6 +14,8 @@ export type SharedCleanupFailurePhase =
   | "http-timeout"
   | "metrics"
   | "metrics-timeout"
+  | "catalog"
+  | "catalog-timeout"
   | "discovery"
   | "oauth"
   | "cimd";

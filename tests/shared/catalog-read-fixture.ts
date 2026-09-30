@@ -2,34 +2,22 @@ import {
   type CatalogContractFixture,
   createCatalogContractFixture,
 } from "./catalog-contract-fixture";
-import { isolatedDatabaseTest } from "./isolated-database";
-import { createNodeRuntime } from "./node-runtime";
+import { nodeProtocolTest } from "./node-protocol-fixture";
+import type { NodeProtocolRuntime } from "./node-protocol-runtime";
 import type { TestPrismaClient } from "./prisma";
 
 type CatalogRead = {
   db: TestPrismaClient;
   fixture: CatalogContractFixture;
-  request: ReturnType<typeof createNodeRuntime>["run"];
+  run: NodeProtocolRuntime["run"];
+  request: NodeProtocolRuntime["request"];
   commitRevision(): Promise<void>;
 };
 
-export const catalogReadTest = isolatedDatabaseTest.extend<{
-  _catalogRuntime: ReturnType<typeof createNodeRuntime>;
+export const catalogReadTest = nodeProtocolTest.extend<{
   catalogRead: CatalogRead;
 }>({
-  _catalogRuntime: async ({ isolatedDatabase }, use) => {
-    const runtime = createNodeRuntime({
-      HYPERDRIVE: { connectionString: isolatedDatabase.connections.app },
-      HYPERDRIVE_AUTH: { connectionString: isolatedDatabase.connections.auth },
-    });
-    try {
-      // Register ownership before dependent setup can issue any requests.
-      await use(runtime);
-    } finally {
-      await runtime.close();
-    }
-  },
-  catalogRead: async ({ isolatedDatabase, _catalogRuntime }, use) => {
+  catalogRead: async ({ isolatedDatabase, protocolRuntime }, use) => {
     const db = isolatedDatabase.owner;
     async function commitRevision() {
       const data = {
@@ -45,8 +33,16 @@ export const catalogReadTest = isolatedDatabaseTest.extend<{
     }
     // Local database IDs can repeat. An owned initial revision also separates
     // their production cache keys without clearing another case's memory cache.
-    await commitRevision();
-    const fixture = await createCatalogContractFixture(db);
-    await use({ db, fixture, request: _catalogRuntime.run, commitRevision });
+    const fixture = await protocolRuntime.run(async () => {
+      await commitRevision();
+      return createCatalogContractFixture(db);
+    });
+    await use({
+      db,
+      fixture,
+      run: protocolRuntime.run,
+      request: protocolRuntime.request,
+      commitRevision,
+    });
   },
 });
