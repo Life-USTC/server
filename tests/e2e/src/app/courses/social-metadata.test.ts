@@ -1,4 +1,5 @@
 import { test } from "../../../utils/catalog-detail-fixture";
+import { test as assetTest } from "../../../utils/owned-worker";
 import { readFile } from "node:fs/promises";
 import { expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
@@ -473,8 +474,8 @@ test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字�
   });
 });
 
-test("ui.social-sharing-metadata-6", async ({ request, preferenceFlow }) => {
-  await preferenceFlow.run(async () => {
+assetTest("ui.social-sharing-metadata-6", async ({ request, run }) => {
+  await run(async () => {
     const response = await request.get("/open-graph.png");
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("image/png");
