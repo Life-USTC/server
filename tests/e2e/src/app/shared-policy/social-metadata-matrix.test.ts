@@ -6,6 +6,7 @@ import {
 } from "../../../../shared/catalog-contract-fixture";
 import { createCalendarContractFixture } from "../../../utils/calendar-contract";
 import { waitForUiSettled } from "../../../utils/page-ready";
+import { arrangeWeatherCache, readWeatherCache } from "../../../utils/weather-cache-fixture";
 import {
   INVENTORY_SETTINGS_TABS,
   INVENTORY_WORKSPACE_TABS,
@@ -57,11 +58,12 @@ async function metadata(page: Page, html: string | null) {
   );
 }
 
-test("ui.social-sharing-metadata-1", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("ui.social-sharing-metadata-1", async ({ page, request, preferenceFlow, isolatedWorker }) => {
   test.setTimeout(180_000);
   await preferenceFlow.run(async () => {
   const db = isolatedWorker.database.owner;
   const origin = isolatedWorker.origin;
+  const weather = await preferenceFlow.prepare(() => arrangeWeatherCache(request));
   const browserErrors: string[] = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => {
@@ -270,5 +272,12 @@ test("ui.social-sharing-metadata-1", async ({ page, preferenceFlow, isolatedWork
       expect(descriptions, path).toHaveLength(2);
       expect(descriptions[0], path).not.toBe(descriptions[1]);
     }
+    // Metadata consumers use fresh, known weather state in the real KV binding.
+    // A page read must preserve those inputs instead of refreshing providers.
+    for (const snapshot of weather) {
+      expect(await preferenceFlow.prepare(() => readWeatherCache(request, snapshot.location.key)))
+        .toEqual(snapshot);
+    }
+    expect(await db.weatherObservation.count()).toBe(0);
   });
 });
