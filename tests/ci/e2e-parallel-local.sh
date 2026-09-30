@@ -8,8 +8,6 @@ cd "$repo_root"
 
 readonly shard_total=8
 readonly e2e_concurrency="${E2E_CONCURRENCY:-2}"
-readonly base_port="${E2E_BASE_PORT:-3100}"
-readonly inspector_base_port="${E2E_INSPECTOR_BASE_PORT:-3200}"
 readonly run_id="$$-$(date +%s%N)"
 readonly process_owner_prefix="life-ustc-e2e-${run_id}"
 readonly container_prefix="${process_owner_prefix}"
@@ -23,50 +21,11 @@ if ! [[ "$e2e_concurrency" =~ ^[1-8]$ ]]; then
   exit 1
 fi
 
-readonly max_shard_port=$((65535 - shard_total + 1))
-
-if ! [[ "$base_port" =~ ^[0-9]+$ ]] ||
-  ((base_port < 1024 || base_port > max_shard_port)); then
-  echo "E2E_BASE_PORT must be an integer from 1024 through ${max_shard_port}." >&2
-  exit 1
-fi
-if ! [[ "$inspector_base_port" =~ ^[0-9]+$ ]] ||
-  ((inspector_base_port < 1024 || inspector_base_port > max_shard_port)); then
-  echo "E2E_INSPECTOR_BASE_PORT must be an integer from 1024 through ${max_shard_port}." >&2
-  exit 1
-fi
-if ((base_port <= inspector_base_port + shard_total - 1)) &&
-  ((inspector_base_port <= base_port + shard_total - 1)); then
-  echo "E2E worker and inspector port ranges must not overlap." >&2
-  exit 1
-fi
-
 for command in docker bun psql setsid ps; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "$command is required for parallel E2E tests." >&2
     exit 1
   fi
-done
-
-assert_port_available() {
-  local port="$1"
-  if ! bun -e '
-    const port = Number(process.argv.at(-1));
-    const listener = Bun.listen({
-      hostname: "127.0.0.1",
-      port,
-      socket: { data() {} },
-    });
-    listener.stop(true);
-  ' "$port" >/dev/null 2>&1; then
-    echo "TCP port ${port} is already in use; override the E2E port range." >&2
-    exit 1
-  fi
-}
-
-for shard in $(seq 1 "$shard_total"); do
-  assert_port_available "$((base_port + shard - 1))"
-  assert_port_available "$((inspector_base_port + shard - 1))"
 done
 
 cleanup_shard_processes() {
@@ -149,7 +108,6 @@ while ((next_shard <= shard_total || ${#active_pids[@]} > 0)); do
   while ((next_shard <= shard_total && ${#active_pids[@]} < e2e_concurrency)); do
     shard="$next_shard"
     database_url="${database_urls[$((shard - 1))]}"
-    worker_port="$((base_port + shard - 1))"
     log_file="${temp_dir}/shard-${shard}.log"
     process_owner="${process_owner_prefix}-shard-${shard}"
     shard_process_owners+=("$process_owner")
@@ -158,9 +116,6 @@ while ((next_shard <= shard_total || ${#active_pids[@]} > 0)); do
       "$shard" \
       "$shard_total" \
       "$database_url" \
-      "$worker_port" \
-      "$((inspector_base_port + shard - 1))" \
-      "$temp_dir" \
       "$@" >"$log_file" 2>&1 &
     pid="$!"
     active_pids+=("$pid")
