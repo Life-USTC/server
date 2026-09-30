@@ -12,6 +12,7 @@ import type {
 } from "./calendar-protocol-lifecycle";
 import { expectOAuthUsage, type OAuthUsageWindow } from "./oauth-usage";
 import type { PrivateCalendar } from "./private-calendar-fixture";
+import { expectSubscriptionProtocol } from "./subscription-consumption";
 
 type Database = OAuthOwner["worker"]["database"]["owner"];
 
@@ -132,36 +133,13 @@ export async function prepareCalendarRead(
       expectedState: Awaited<ReturnType<typeof readCalendarState>>,
     ): CalendarProtocolChecks {
       return {
-        async verifyTransport({ effects, sdkRequests }) {
-          for (const [method, path, status] of [
-            ["POST", "/api/auth/oauth2/register", 201],
-            ["GET", "/api/auth/oauth2/authorize", 302],
-            ["POST", "/oauth/authorize", 200],
-            ["POST", "/api/auth/oauth2/token", 200],
-          ] as const) {
-            expect(
-              effects.requests
-                .filter(
-                  ({ value }) => value.method === method && value.path === path,
-                )
-                .map(({ result }) => result),
-            ).toEqual([status]);
-          }
-          expect(
-            sdkRequests
-              .map(({ method, rpc }) => `${method} ${rpc ?? "stream"}`)
-              .sort(),
-          ).toEqual([
-            "GET stream",
-            "POST initialize",
-            "POST notifications/initialized",
-            ...tools.map(() => "POST tools/call"),
-          ]);
-          expect(
-            sdkRequests
-              .filter(({ rpc }) => rpc === "tools/call")
-              .map(({ tool }) => tool),
-          ).toEqual(tools.map(([name]) => name));
+        async verifyTransport(observation) {
+          expectSubscriptionProtocol(
+            observation,
+            1,
+            tools.map(([name]) => name),
+            1,
+          );
         },
         async verifyState() {
           const actual = await readCalendarState(db);

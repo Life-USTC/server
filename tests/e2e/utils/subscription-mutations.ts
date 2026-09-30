@@ -12,6 +12,7 @@ import type {
 } from "./calendar-protocol-lifecycle";
 import { expectOAuthUsage, type OAuthUsageWindow } from "./oauth-usage";
 import type { PrivateCalendar } from "./private-calendar-fixture";
+import { expectSubscriptionProtocol } from "./subscription-consumption";
 
 export const subscriptionTransports = [
   "REST session",
@@ -278,38 +279,15 @@ export async function runSubscriptionScenario(
       fixture,
     );
     return {
-      async verifyTransport({ effects, sdkRequests }) {
-        for (const [method, path, status] of [
-          ["POST", "/api/auth/oauth2/register", 201],
-          ["GET", "/api/auth/oauth2/authorize", 302],
-          ["POST", "/oauth/authorize", 200],
-          ["POST", "/api/auth/oauth2/token", 200],
-        ] as const) {
-          const observed = effects.requests.filter(
-            ({ value }) => value.method === method && value.path === path,
-          );
-          expect(observed).toHaveLength(bearer ? 1 : 0);
-          for (const request of observed) expect(request.result).toBe(status);
-        }
-        expect(
-          sdkRequests
-            .map((request) => `${request.method} ${request.rpc ?? "stream"}`)
-            .sort(),
-        ).toEqual(
-          transport === "MCP bearer"
-            ? [
-                "GET stream",
-                "POST initialize",
-                "POST notifications/initialized",
-                ...sdkTools.map(() => "POST tools/call"),
-              ]
-            : [],
+      async verifyTransport(observation) {
+        if (transport !== "MCP bearer")
+          expect(observation.sdkRequests).toEqual([]);
+        expectSubscriptionProtocol(
+          observation,
+          bearer ? 1 : 0,
+          sdkTools,
+          transport === "MCP bearer" ? 1 : 0,
         );
-        expect(
-          sdkRequests
-            .filter((request) => request.rpc === "tools/call")
-            .map((request) => request.tool),
-        ).toEqual(sdkTools);
       },
       async verifyState() {
         await expectSubscriptionRelations(fixture, fixture.initial);
