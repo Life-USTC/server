@@ -62,35 +62,36 @@ describe("协作数据不变量", () => {
   }) => {
     await protocolRuntime.run(async () => {
       const prefix = marker("suspension-replace");
-      const { admin, user, previousSuspension } = await fixturePrisma.$transaction(async (tx) => {
-        const [admin, user] = await Promise.all([
-          tx.user.create({
+      const { admin, user, previousSuspension } =
+        await fixturePrisma.$transaction(async (tx) => {
+          const [admin, user] = await Promise.all([
+            tx.user.create({
+              data: {
+                email: `${prefix}-admin@example.test`,
+                name: "Suspension Admin",
+                isAdmin: true,
+              },
+              select: { id: true },
+            }),
+            tx.user.create({
+              data: {
+                email: `${prefix}-user@example.test`,
+                name: "Suspension Replacement User",
+              },
+              select: { id: true },
+            }),
+          ]);
+          const previousSuspension = await tx.userSuspension.create({
             data: {
-              email: `${prefix}-admin@example.test`,
-              name: "Suspension Admin",
-              isAdmin: true,
+              userId: user.id,
+              createdById: admin.id,
+              reason: `${prefix} previous`,
             },
             select: { id: true },
-          }),
-          tx.user.create({
-            data: {
-              email: `${prefix}-user@example.test`,
-              name: "Suspension Replacement User",
-            },
-            select: { id: true },
-          }),
-        ]);
-        const previousSuspension = await tx.userSuspension.create({
-          data: {
-            userId: user.id,
-            createdById: admin.id,
-            reason: `${prefix} previous`,
-          },
-          select: { id: true },
-        });
+          });
 
-        return { admin, user, previousSuspension };
-      });
+          return { admin, user, previousSuspension };
+        });
       const result = await protocolRuntime.request(() =>
         createAdminSuspension(admin.id, {
           userId: user.id,
@@ -268,29 +269,31 @@ describe("协作数据不变量", () => {
   }) => {
     await protocolRuntime.run(async () => {
       const prefix = marker("description-race");
-      const { user, teacher, contents } = await fixturePrisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            email: `${prefix}-writer@example.test`,
-            name: "Description Writer",
-          },
-          select: { id: true },
-        });
-        const teacher = await tx.teacher.create({
-          data: {
-            code: prefix,
-            jwId: 1,
-            nameCn: prefix,
-          },
-          select: { id: true },
-        });
-        const contents = Array.from(
-          { length: 6 },
-          (_, index) => `${prefix} content ${index}`,
-        );
+      const { user, teacher, contents } = await fixturePrisma.$transaction(
+        async (tx) => {
+          const user = await tx.user.create({
+            data: {
+              email: `${prefix}-writer@example.test`,
+              name: "Description Writer",
+            },
+            select: { id: true },
+          });
+          const teacher = await tx.teacher.create({
+            data: {
+              code: prefix,
+              jwId: 1,
+              nameCn: prefix,
+            },
+            select: { id: true },
+          });
+          const contents = Array.from(
+            { length: 6 },
+            (_, index) => `${prefix} content ${index}`,
+          );
 
-        return { user, teacher, contents };
-      });
+          return { user, teacher, contents };
+        },
+      );
       const results = await Promise.all(
         contents.map((content) =>
           protocolRuntime.request(() =>

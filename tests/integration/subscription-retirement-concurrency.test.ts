@@ -47,7 +47,10 @@ async function waitForBackendLock(
   }
 }
 
-async function createFixture(fixturePrisma: TestPrismaClient, options: { subscribedToFirst: boolean }) {
+async function createFixture(
+  fixturePrisma: TestPrismaClient,
+  options: { subscribedToFirst: boolean },
+) {
   const numericMarker = 2_120_000_010;
   const marker = `[integration-test] subscription-lock-${numericMarker}`;
   return fixturePrisma.$transaction(async (tx) => {
@@ -91,189 +94,203 @@ async function createFixture(fixturePrisma: TestPrismaClient, options: { subscri
 }
 
 describe("Section subscription retirement linearization", () => {
-  it("rejects newly retired candidates while preserving existing relations", async ({ isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma }, importer: importerPrisma, protocolRuntime, expect }) => {
+  it("rejects newly retired candidates while preserving existing relations", async ({
+    isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma },
+    importer: importerPrisma,
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
-    const fixture = await createFixture(fixturePrisma, { subscribedToFirst: true });
-    const importerLocked = createDeferred();
-    const releaseImporter = createDeferred();
-    const subscriberPidReady = createDeferred();
-    const retiredAt = new Date("2026-07-18T04:00:00.000Z");
-    let subscriberPid = 0;
-    let importer: Promise<void> | undefined;
-    let subscriber:
-      | Promise<
-          Awaited<
-            ReturnType<typeof mutateUserSectionSubscriptionsInTransaction>
-          >
-        >
-      | undefined;
-
-    try {
-      importer = importerPrisma.$transaction(async (tx) => {
-        await reconcileSectionPresence(tx, {
-          observedAt: retiredAt,
-          scopedSemesterIds: [fixture.semester.id],
-          seenSectionJwIds: [fixture.sections[2].jwId],
-          snapshotSha256: "importer-first",
-        });
-        importerLocked.resolve();
-        await releaseImporter.promise;
+      const fixture = await createFixture(fixturePrisma, {
+        subscribedToFirst: true,
       });
-      await waitForSignal(
-        importerLocked.promise,
-        importer,
-        "Lifecycle transaction completed before acquiring its advisory locks",
-      );
+      const importerLocked = createDeferred();
+      const releaseImporter = createDeferred();
+      const subscriberPidReady = createDeferred();
+      const retiredAt = new Date("2026-07-18T04:00:00.000Z");
+      let subscriberPid = 0;
+      let importer: Promise<void> | undefined;
+      let subscriber:
+        | Promise<
+            Awaited<
+              ReturnType<typeof mutateUserSectionSubscriptionsInTransaction>
+            >
+          >
+        | undefined;
 
-      subscriber = subscriberPrisma.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT set_config('app.user_id', ${fixture.user.id}, true)`;
-        const [backend] = await tx.$queryRaw<Array<{ pid: number }>>`
+      try {
+        importer = importerPrisma.$transaction(async (tx) => {
+          await reconcileSectionPresence(tx, {
+            observedAt: retiredAt,
+            scopedSemesterIds: [fixture.semester.id],
+            seenSectionJwIds: [fixture.sections[2].jwId],
+            snapshotSha256: "importer-first",
+          });
+          importerLocked.resolve();
+          await releaseImporter.promise;
+        });
+        await waitForSignal(
+          importerLocked.promise,
+          importer,
+          "Lifecycle transaction completed before acquiring its advisory locks",
+        );
+
+        subscriber = subscriberPrisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.user_id', ${fixture.user.id}, true)`;
+          const [backend] = await tx.$queryRaw<Array<{ pid: number }>>`
           SELECT pg_backend_pid()::integer AS pid
         `;
-        subscriberPid = backend.pid;
-        subscriberPidReady.resolve();
-        return mutateUserSectionSubscriptionsInTransaction(tx as never, {
-          candidateSectionIds: [
-            fixture.sections[0].id,
-            fixture.sections[0].id,
-            fixture.sections[1].id,
-            fixture.sections[1].id,
-          ],
-          userId: fixture.user.id,
+          subscriberPid = backend.pid;
+          subscriberPidReady.resolve();
+          return mutateUserSectionSubscriptionsInTransaction(tx as never, {
+            candidateSectionIds: [
+              fixture.sections[0].id,
+              fixture.sections[0].id,
+              fixture.sections[1].id,
+              fixture.sections[1].id,
+            ],
+            userId: fixture.user.id,
+          });
         });
-      });
-      await waitForSignal(
-        subscriberPidReady.promise,
-        subscriber,
-        "Subscription transaction completed before exposing its backend PID",
-      );
-      await waitForBackendLock(
-        fixturePrisma,
-        subscriberPid,
-        "Subscription mutation did not wait for the lifecycle advisory lock",
-      );
+        await waitForSignal(
+          subscriberPidReady.promise,
+          subscriber,
+          "Subscription transaction completed before exposing its backend PID",
+        );
+        await waitForBackendLock(
+          fixturePrisma,
+          subscriberPid,
+          "Subscription mutation did not wait for the lifecycle advisory lock",
+        );
 
-      releaseImporter.resolve();
-      await importer;
-      const result = await subscriber;
+        releaseImporter.resolve();
+        await importer;
+        const result = await subscriber;
 
-      expect(result).toEqual({
-        activeCandidateSectionIds: [],
-        addedSectionIds: [],
-        unchangedSectionIds: [],
-      });
-      await expect(
-        fixturePrisma.userSectionSubscription.findMany({
-          where: { userId: fixture.user.id },
-          orderBy: { sectionId: "asc" },
-          select: {
-            sectionId: true,
-            section: { select: { retiredAt: true } },
+        expect(result).toEqual({
+          activeCandidateSectionIds: [],
+          addedSectionIds: [],
+          unchangedSectionIds: [],
+        });
+        await expect(
+          fixturePrisma.userSectionSubscription.findMany({
+            where: { userId: fixture.user.id },
+            orderBy: { sectionId: "asc" },
+            select: {
+              sectionId: true,
+              section: { select: { retiredAt: true } },
+            },
+          }),
+        ).resolves.toEqual([
+          {
+            sectionId: fixture.sections[0].id,
+            section: { retiredAt },
           },
-        }),
-      ).resolves.toEqual([
-        {
-          sectionId: fixture.sections[0].id,
-          section: { retiredAt },
-        },
-      ]);
-    } finally {
-      releaseImporter.resolve();
-      await settleOperations(importer, subscriber);
-    }
+        ]);
+      } finally {
+        releaseImporter.resolve();
+        await settleOperations(importer, subscriber);
+      }
     });
   });
 
-  it("lets a subscriber that owns the advisory lock commit before retirement", async ({ isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma }, importer: importerPrisma, protocolRuntime, expect }) => {
+  it("lets a subscriber that owns the advisory lock commit before retirement", async ({
+    isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma },
+    importer: importerPrisma,
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
-    const fixture = await createFixture(fixturePrisma, { subscribedToFirst: false });
-    const subscriberMutated = createDeferred();
-    const releaseSubscriber = createDeferred();
-    const importerPidReady = createDeferred();
-    const retiredAt = new Date("2026-07-18T05:00:00.000Z");
-    let importerPid = 0;
-    let subscriber: Promise<void> | undefined;
-    let importer: Promise<void> | undefined;
-
-    try {
-      let mutationResult:
-        | Awaited<
-            ReturnType<typeof mutateUserSectionSubscriptionsInTransaction>
-          >
-        | undefined;
-      subscriber = subscriberPrisma.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT set_config('app.user_id', ${fixture.user.id}, true)`;
-        mutationResult = await mutateUserSectionSubscriptionsInTransaction(
-          tx as never,
-          {
-            candidateSectionIds: [fixture.sections[0].id],
-            userId: fixture.user.id,
-          },
-        );
-        subscriberMutated.resolve();
-        await releaseSubscriber.promise;
+      const fixture = await createFixture(fixturePrisma, {
+        subscribedToFirst: false,
       });
-      await waitForSignal(
-        subscriberMutated.promise,
-        subscriber,
-        "Subscription transaction completed before acquiring its advisory lock",
-      );
+      const subscriberMutated = createDeferred();
+      const releaseSubscriber = createDeferred();
+      const importerPidReady = createDeferred();
+      const retiredAt = new Date("2026-07-18T05:00:00.000Z");
+      let importerPid = 0;
+      let subscriber: Promise<void> | undefined;
+      let importer: Promise<void> | undefined;
 
-      importer = importerPrisma.$transaction(async (tx) => {
-        const [backend] = await tx.$queryRaw<Array<{ pid: number }>>`
+      try {
+        let mutationResult:
+          | Awaited<
+              ReturnType<typeof mutateUserSectionSubscriptionsInTransaction>
+            >
+          | undefined;
+        subscriber = subscriberPrisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.user_id', ${fixture.user.id}, true)`;
+          mutationResult = await mutateUserSectionSubscriptionsInTransaction(
+            tx as never,
+            {
+              candidateSectionIds: [fixture.sections[0].id],
+              userId: fixture.user.id,
+            },
+          );
+          subscriberMutated.resolve();
+          await releaseSubscriber.promise;
+        });
+        await waitForSignal(
+          subscriberMutated.promise,
+          subscriber,
+          "Subscription transaction completed before acquiring its advisory lock",
+        );
+
+        importer = importerPrisma.$transaction(async (tx) => {
+          const [backend] = await tx.$queryRaw<Array<{ pid: number }>>`
           SELECT pg_backend_pid()::integer AS pid
         `;
-        importerPid = backend.pid;
-        importerPidReady.resolve();
-        await reconcileSectionPresence(tx, {
-          observedAt: retiredAt,
-          scopedSemesterIds: [fixture.semester.id],
-          seenSectionJwIds: [
-            fixture.sections[1].jwId,
-            fixture.sections[2].jwId,
-          ],
-          snapshotSha256: "subscriber-first",
+          importerPid = backend.pid;
+          importerPidReady.resolve();
+          await reconcileSectionPresence(tx, {
+            observedAt: retiredAt,
+            scopedSemesterIds: [fixture.semester.id],
+            seenSectionJwIds: [
+              fixture.sections[1].jwId,
+              fixture.sections[2].jwId,
+            ],
+            snapshotSha256: "subscriber-first",
+          });
         });
-      });
-      await waitForSignal(
-        importerPidReady.promise,
-        importer,
-        "Lifecycle transaction completed before exposing its backend PID",
-      );
-      await waitForBackendLock(
-        fixturePrisma,
-        importerPid,
-        "Retirement did not wait for the subscription advisory lock",
-      );
+        await waitForSignal(
+          importerPidReady.promise,
+          importer,
+          "Lifecycle transaction completed before exposing its backend PID",
+        );
+        await waitForBackendLock(
+          fixturePrisma,
+          importerPid,
+          "Retirement did not wait for the subscription advisory lock",
+        );
 
-      releaseSubscriber.resolve();
-      await subscriber;
-      await importer;
+        releaseSubscriber.resolve();
+        await subscriber;
+        await importer;
 
-      expect(mutationResult).toEqual({
-        activeCandidateSectionIds: [fixture.sections[0].id],
-        addedSectionIds: [fixture.sections[0].id],
-        unchangedSectionIds: [],
-      });
-      await expect(
-        fixturePrisma.userSectionSubscription.findMany({
-          where: { userId: fixture.user.id },
-          orderBy: { sectionId: "asc" },
-          select: {
-            sectionId: true,
-            section: { select: { retiredAt: true } },
+        expect(mutationResult).toEqual({
+          activeCandidateSectionIds: [fixture.sections[0].id],
+          addedSectionIds: [fixture.sections[0].id],
+          unchangedSectionIds: [],
+        });
+        await expect(
+          fixturePrisma.userSectionSubscription.findMany({
+            where: { userId: fixture.user.id },
+            orderBy: { sectionId: "asc" },
+            select: {
+              sectionId: true,
+              section: { select: { retiredAt: true } },
+            },
+          }),
+        ).resolves.toEqual([
+          {
+            sectionId: fixture.sections[0].id,
+            section: { retiredAt },
           },
-        }),
-      ).resolves.toEqual([
-        {
-          sectionId: fixture.sections[0].id,
-          section: { retiredAt },
-        },
-      ]);
-    } finally {
-      releaseSubscriber.resolve();
-      await settleOperations(subscriber, importer);
-    }
+        ]);
+      } finally {
+        releaseSubscriber.resolve();
+        await settleOperations(subscriber, importer);
+      }
     });
   });
 });

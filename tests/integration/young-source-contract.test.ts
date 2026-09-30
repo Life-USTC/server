@@ -11,7 +11,12 @@ import { loadYoungEvents } from "@/static-loader/young-plan";
 import type { TestPrismaClient } from "../shared/prisma";
 import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
-it("young-event.organizer-identity", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+it("young-event.organizer-identity", async ({
+  isolatedDatabase: { owner: db },
+  importer,
+  protocolRuntime,
+  expect,
+}) => {
   await protocolRuntime.run(async () => {
     const marker = crypto.randomUUID();
     const builds = [
@@ -40,9 +45,11 @@ it("young-event.organizer-identity", async ({ isolatedDatabase: { owner: db }, i
         select: { normalizedName: true },
       }),
     ).toEqual({ normalizedName: `club ${marker}` });
-    await importer.$transaction((tx) => syncYoungEvents(tx, [
-      { ...builds[0], organizer: `CLUB ${marker.toUpperCase()}` },
-    ]));
+    await importer.$transaction((tx) =>
+      syncYoungEvents(tx, [
+        { ...builds[0], organizer: `CLUB ${marker.toUpperCase()}` },
+      ]),
+    );
     expect(
       (
         await db.youngEvent.findUniqueOrThrow({
@@ -53,7 +60,12 @@ it("young-event.organizer-identity", async ({ isolatedDatabase: { owner: db }, i
   });
 });
 
-it("young-event.snapshot-authoritative", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+it("young-event.snapshot-authoritative", async ({
+  isolatedDatabase: { owner: db },
+  importer,
+  protocolRuntime,
+  expect,
+}) => {
   await protocolRuntime.run(async () => {
     const marker = crypto.randomUUID();
     const seen = new Date("2026-09-20T01:00:00Z");
@@ -66,18 +78,22 @@ it("young-event.snapshot-authoritative", async ({ isolatedDatabase: { owner: db 
       isActive: true,
       rawJson: "{}",
     }));
-    await importer.$transaction((tx) => syncYoungEvents(tx, builds, { observedAt: seen }));
+    await importer.$transaction((tx) =>
+      syncYoungEvents(tx, builds, { observedAt: seen }),
+    );
     const before = await db.youngEvent.findMany({
       where: { youngId: { in: builds.map((row) => row.youngId) } },
       orderBy: { youngId: "asc" },
     });
     // An incomplete source has no successful Young timestamp and must not touch existing rows.
     expect(
-      await importer.$transaction((tx) => syncYoungSnapshot(
-        tx,
-        [{ ...builds[0], name: "partial update" }],
-        undefined,
-      )),
+      await importer.$transaction((tx) =>
+        syncYoungSnapshot(
+          tx,
+          [{ ...builds[0], name: "partial update" }],
+          undefined,
+        ),
+      ),
     ).toBeUndefined();
     expect(
       await db.youngEvent.findMany({
@@ -85,10 +101,12 @@ it("young-event.snapshot-authoritative", async ({ isolatedDatabase: { owner: db 
         orderBy: { youngId: "asc" },
       }),
     ).toEqual(before);
-    await importer.$transaction((tx) => syncYoungEvents(tx, [builds[0]], {
-      observedAt: later,
-      complete: true,
-    }));
+    await importer.$transaction((tx) =>
+      syncYoungEvents(tx, [builds[0]], {
+        observedAt: later,
+        complete: true,
+      }),
+    );
     expect(
       await db.youngEvent.findUnique({ where: { youngId: builds[1].youngId } }),
     ).toMatchObject({
@@ -101,7 +119,9 @@ it("young-event.snapshot-authoritative", async ({ isolatedDatabase: { owner: db 
     expect(
       await db.youngEvent.findUnique({ where: { youngId: builds[0].youngId } }),
     ).toMatchObject({ sourceMissing: false, lastSeenAt: later });
-    await importer.$transaction((tx) => syncYoungEvents(tx, [], { observedAt: later, complete: true }));
+    await importer.$transaction((tx) =>
+      syncYoungEvents(tx, [], { observedAt: later, complete: true }),
+    );
     expect(
       await db.youngEvent.count({
         where: {
@@ -110,10 +130,12 @@ it("young-event.snapshot-authoritative", async ({ isolatedDatabase: { owner: db 
         },
       }),
     ).toBe(2);
-    await importer.$transaction((tx) => syncYoungEvents(tx, [builds[1]], {
-      observedAt: later,
-      complete: true,
-    }));
+    await importer.$transaction((tx) =>
+      syncYoungEvents(tx, [builds[1]], {
+        observedAt: later,
+        complete: true,
+      }),
+    );
     expect(
       await db.youngEvent.findUnique({ where: { youngId: builds[1].youngId } }),
     ).toMatchObject({
@@ -149,7 +171,12 @@ async function importSource(
   );
 }
 
-it("young-event.structured-participation", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+it("young-event.structured-participation", async ({
+  isolatedDatabase: { owner: db },
+  importer,
+  protocolRuntime,
+  expect,
+}) => {
   await protocolRuntime.run(async () => {
     const event = await importSource(importer, db, {
       itemCategory: "0",
@@ -190,7 +217,12 @@ it("young-event.structured-participation", async ({ isolatedDatabase: { owner: d
   });
 });
 
-it("young-event.participation-flag-normalization", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+it("young-event.participation-flag-normalization", async ({
+  isolatedDatabase: { owner: db },
+  importer,
+  protocolRuntime,
+  expect,
+}) => {
   await protocolRuntime.run(async () => {
     for (const [value, expected] of [
       [1, true],
@@ -216,7 +248,12 @@ it("young-event.participation-flag-normalization", async ({ isolatedDatabase: { 
   });
 });
 
-it("young-event.participation-sponsor-normalization", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+it("young-event.participation-sponsor-normalization", async ({
+  isolatedDatabase: { owner: db },
+  importer,
+  protocolRuntime,
+  expect,
+}) => {
   await protocolRuntime.run(async () => {
     for (const ewSponsor of [null, "", "暂无", " 无 "]) {
       const event = await importSource(importer, db, {

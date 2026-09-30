@@ -36,7 +36,9 @@ it("user.avatar-current-reference", async ({
     );
     const read = (owner: string, id: string = avatarId) =>
       protocolRuntime.request(() =>
-        GET({ params: { userId: owner, avatarId: id } } as unknown as RequestEvent<
+        GET({
+          params: { userId: owner, avatarId: id },
+        } as unknown as RequestEvent<
           { userId: string; avatarId: string },
           "/media/avatars/[userId]/[avatarId].webp"
         >),

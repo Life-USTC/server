@@ -57,7 +57,11 @@ describe("schedule teacher participation", () => {
             data: { jwId: marker, nameCn: "同名教师", code: "PARTICIPANT-A" },
           });
           const second = await tx.teacher.create({
-            data: { jwId: marker + 1, nameCn: "同名教师", code: "PARTICIPANT-B" },
+            data: {
+              jwId: marker + 1,
+              nameCn: "同名教师",
+              code: "PARTICIPANT-B",
+            },
           });
           // Existing physical links have no per-teacher facts to infer from the meeting.
           await tx.$executeRaw`INSERT INTO "_ScheduleTeachers" ("A", "B") VALUES (${schedule.id}, ${first.id})`;
@@ -88,7 +92,10 @@ describe("schedule teacher participation", () => {
           });
           return { section, schedule, first, second, physicalLink };
         });
-      expect(physicalLink).toMatchObject({ periods: null, exerciseClass: null });
+      expect(physicalLink).toMatchObject({
+        periods: null,
+        exerciseClass: null,
+      });
       await protocolRuntime.request(async () => {
         const record = await prisma.schedule.findUniqueOrThrow({
           where: { id: schedule.id },
