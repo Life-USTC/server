@@ -67,7 +67,8 @@ export function expectOAuthUsage(
             row.readCount ===
               calls.filter((call) => call.operation === "read").length &&
             row.writeCount ===
-              calls.filter((call) => call.operation.startsWith("write")).length &&
+              calls.filter((call) => call.operation.startsWith("write"))
+                .length &&
             row.errorCount ===
               calls.filter((call) => call.operation === "write error").length &&
             day(last) === date &&
