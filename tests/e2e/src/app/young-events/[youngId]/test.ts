@@ -1,3 +1,4 @@
+import { test } from "../../../../utils/young-public-fixture";
 /**
  * E2E tests for /catalog/young-events/[youngId] — 第二课堂活动详情
  *
@@ -14,7 +15,7 @@
  * ## Edge Cases
  * - Unknown youngId renders the 404 error page
  */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import type { YoungEvent } from "../../../../../../src/generated/prisma-node/client";
 import {
   expectPrivateViewerState,
@@ -29,52 +30,58 @@ import { assertPageContract } from "../../_shared/page-contract";
 const DETAIL_PATH = `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`;
 
 test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => {
-  test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, {
-      routePath: "/catalog/young-events/[youngId]",
-      testInfo,
+  test("页面契约", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await assertPageContract(page, {
+        routePath: "/catalog/young-events/[youngId]",
+        testInfo,
+      });
     });
   });
 
-  test("young-event.public-no-signin", async ({ page }) => {
-    await gotoAndWaitForReady(page, DETAIL_PATH);
+  test("young-event.public-no-signin", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(page, DETAIL_PATH);
 
-    await expect(
-      page.getByRole("heading", { level: 1, name: DEV_SEED.youngEvent.name }),
-    ).toBeVisible();
-    await expect(visibleText(page, DEV_SEED.youngEvent.location)).toBeVisible();
-    await expect(
-      visibleText(page, DEV_SEED.youngEvent.organizer),
-    ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 1, name: DEV_SEED.youngEvent.name }),
+      ).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.youngEvent.location)).toBeVisible();
+      await expect(
+        visibleText(page, DEV_SEED.youngEvent.organizer),
+      ).toBeVisible();
 
-    const signupLink = page.getByRole("link", {
-      name: /前往官方平台|official site/i,
+      const signupLink = page.getByRole("link", {
+        name: /前往官方平台|official site/i,
+      });
+      await expect(signupLink).toBeVisible();
+      await expect(signupLink).toHaveAttribute(
+        "href",
+        "https://young.ustc.edu.cn",
+      );
+
+      const backLink = page.getByRole("link", {
+        name: /返回活动列表|Back to all events/i,
+      });
+      await expect(backLink).toBeVisible();
+      await backLink.click();
+      await page.waitForURL(/\/catalog\/young-events$/);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /第二课堂|Second Classroom/i,
+        }),
+      ).toBeVisible();
     });
-    await expect(signupLink).toBeVisible();
-    await expect(signupLink).toHaveAttribute(
-      "href",
-      "https://young.ustc.edu.cn",
-    );
-
-    const backLink = page.getByRole("link", {
-      name: /返回活动列表|Back to all events/i,
-    });
-    await expect(backLink).toBeVisible();
-    await backLink.click();
-    await page.waitForURL(/\/catalog\/young-events$/);
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: /第二课堂|Second Classroom/i,
-      }),
-    ).toBeVisible();
   });
 
-  test("未知 youngId 显示 404", async ({ page }) => {
-    const response = await page.goto(
-      "/catalog/young-events/e2e-unknown-young-id",
-    );
-    expect(response?.status()).toBe(404);
+  test("未知 youngId 显示 404", async ({ page, preferenceFlow }) => {
+    await preferenceFlow.run(async () => {
+      const response = await page.goto(
+        "/catalog/young-events/e2e-unknown-young-id",
+      );
+      expect(response?.status()).toBe(404);
+    });
   });
 });
 
@@ -277,21 +284,21 @@ for (const status of [200, 401]) {
   );
 }
 
-test("anonymous subscription state does not request private data", async ({
-  page,
-}) => {
-  let privateRequests = 0;
-  page.on("request", (request) => {
-    if (
-      new URL(request.url()).pathname.startsWith(
-        "/api/workspace/young-event-subscriptions/",
+test("anonymous subscription state does not request private data", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  await preferenceFlow.run(async () => {
+    let privateRequests = 0;
+    page.on("request", (request) => {
+      if (
+        new URL(request.url()).pathname.startsWith(
+          "/api/workspace/young-event-subscriptions/",
+        )
       )
-    )
-      privateRequests++;
+        privateRequests++;
+    });
+    await gotoAndWaitForReady(page, DETAIL_PATH, { browserHealth: {} });
+    await expect(
+      page.getByRole("button", { name: /^(登录后订阅|Sign in to subscribe)$/ }),
+    ).toBeEnabled();
+    expect(privateRequests).toBe(0);
   });
-  await gotoAndWaitForReady(page, DETAIL_PATH, { browserHealth: {} });
-  await expect(
-    page.getByRole("button", { name: /^(登录后订阅|Sign in to subscribe)$/ }),
-  ).toBeEnabled();
-  expect(privateRequests).toBe(0);
 });
