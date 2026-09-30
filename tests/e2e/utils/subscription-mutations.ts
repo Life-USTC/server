@@ -10,6 +10,7 @@ import type {
   CalendarProtocol,
   CalendarProtocolChecks,
 } from "./calendar-protocol-lifecycle";
+import { expectOAuthUsage, type OAuthUsageWindow } from "./oauth-usage";
 import type { PrivateCalendar } from "./private-calendar-fixture";
 
 export const subscriptionTransports = [
@@ -123,15 +124,16 @@ export async function subscriptionGraphql(
   return { response, body: await response.json() };
 }
 
-type UsageOperation = "read" | "write" | "write error";
-type UsageWindow = { start: number; end: number; operation: UsageOperation };
 type SubscriptionConnection = {
   origin: string;
   transport: SubscriptionTransport | "anonymous";
   request: APIRequestContext;
   headers: Record<string, string>;
   client?: Client;
-  operation: <T>(kind: UsageOperation, work: () => Promise<T>) => Promise<T>;
+  operation: <T>(
+    kind: OAuthUsageWindow["operation"],
+    work: () => Promise<T>,
+  ) => Promise<T>;
 };
 
 // Preserve whole relevant rows, including unrelated calendar owners and sources.
@@ -258,7 +260,7 @@ export async function runSubscriptionScenario(
           tokenBody.access_token as string,
         );
     }
-    const windows: UsageWindow[] = [];
+    const windows: OAuthUsageWindow[] = [];
     await work(
       {
         origin,
@@ -445,65 +447,21 @@ export async function runSubscriptionScenario(
             lastUsedAt: true,
           },
         });
-        expect([
-          rows.reduce((sum, row) => sum + row.readCount, 0),
-          rows.reduce((sum, row) => sum + row.writeCount, 0),
-          rows.reduce((sum, row) => sum + row.errorCount, 0),
-        ]).toEqual(usage);
-        expect(windows).toHaveLength(usage[0] + usage[1]);
-        const day = (time: number) =>
-          new Date(time + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        // Independently enumerate each call's allowed Shanghai-day assignments.
-        let assignments: string[][] = [[]];
-        for (const { start, end } of windows)
-          assignments = assignments.flatMap((assignment) =>
-            [...new Set([day(start), day(end)])].map((date) => [
-              ...assignment,
-              date,
-            ]),
-          );
-        expect(
-          assignments.some((assignment) => {
-            const dates = [...new Set(assignment)].sort();
-            return (
-              dates.length === rows.length &&
-              dates.every((date, index) => {
-                const calls = windows.filter(
-                  (_, call) => assignment[call] === date,
-                );
-                const row = rows[index];
-                const last = row.lastUsedAt.getTime();
-                return (
-                  row.day.toISOString() === `${date}T00:00:00.000Z` &&
-                  row.readCount ===
-                    calls.filter((call) => call.operation === "read").length &&
-                  row.writeCount ===
-                    calls.filter((call) => call.operation.startsWith("write"))
-                      .length &&
-                  row.errorCount ===
-                    calls.filter((call) => call.operation === "write error")
-                      .length &&
-                  day(last) === date &&
-                  last >= Math.max(...calls.map(({ start }) => start)) &&
-                  last <= Math.max(...calls.map(({ end }) => end))
-                );
-              })
-            );
-          }),
-        ).toBe(true);
-        for (const row of rows)
-          expect(row).toMatchObject({
+        expectOAuthUsage(rows, {
+          counts: usage,
+          windows,
+          dimensions: {
             userId,
             clientId,
             grantId,
-            grantKey: `grant:${grantId}`,
             feature: "workspace.subscription",
             channel: transport.startsWith("REST")
               ? "rest"
               : transport.startsWith("GraphQL")
                 ? "graphql"
                 : "mcp",
-          });
+          },
+        });
       },
     };
   });
