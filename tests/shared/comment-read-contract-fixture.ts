@@ -11,6 +11,7 @@ import {
   ownAnonymousMcpHarness,
   ownMcpHarness,
 } from "../integration/mcp/_harness/client";
+import { withMcpSdkLifecycle } from "./mcp-sdk-lifecycle";
 import { nodeProtocolTest } from "./node-protocol-fixture";
 
 type OwnedMcp = ReturnType<typeof ownMcpHarness>;
@@ -22,49 +23,30 @@ export const commentReadTest = nodeProtocolTest
     readSdk: async ({ protocolRuntime, onTestFinished }, use) => {
       const sessions: OwnedMcp[] = [];
       let closed = false;
-      const failures: unknown[] = [];
-      try {
-        // Register ownership before dependent state setup can open a transport.
-        await use({
-          own(userId) {
-            if (closed) throw new Error("Comment reader SDK owner is closed");
-            const runtime = { run: protocolRuntime.request };
-            const owned =
-              userId === null
-                ? ownAnonymousMcpHarness(runtime)
-                : ownMcpHarness(userId, undefined, runtime);
-            sessions.push(owned);
-            return owned;
-          },
-        });
-      } catch (error) {
-        failures.push(error);
-      } finally {
-        closed = true;
-        const results = await Promise.allSettled(
-          sessions.map(({ client }) => client.close()),
-        );
-        // The runtime owner reports its original cached rejection once.
-        // Keep waiting here so no admitted workflow outlives this boundary.
-        await Promise.allSettled([protocolRuntime.drain()]);
-        failures.push(
-          ...results.flatMap((result) =>
-            result.status === "rejected" ? [result.reason] : [],
-          ),
-        );
-      }
-      if (failures.length) {
-        const error =
-          failures.length === 1
-            ? failures[0]
-            : new AggregateError(
-                failures,
-                "Comment reader SDK lifecycle failed",
-              );
-        onTestFinished(() => {
-          throw error;
-        });
-      }
+      await withMcpSdkLifecycle(
+        { protocolRuntime, onTestFinished },
+        sessions,
+        "Comment reader SDK lifecycle failed",
+        async () => {
+          try {
+            // Register ownership before dependent state setup can open a transport.
+            await use({
+              own(userId) {
+                if (closed) throw new Error("Comment reader SDK owner is closed");
+                const runtime = { run: protocolRuntime.request };
+                const owned =
+                  userId === null
+                    ? ownAnonymousMcpHarness(runtime)
+                    : ownMcpHarness(userId, undefined, runtime);
+                sessions.push(owned);
+                return owned;
+              },
+            });
+          } finally {
+            closed = true;
+          }
+        },
+      );
     },
   })
   .extend(

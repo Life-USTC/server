@@ -8,6 +8,7 @@ import {
   type McpHarness,
   ownMcpHarness,
 } from "../integration/mcp/_harness/client";
+import { withMcpSdkLifecycle } from "./mcp-sdk-lifecycle";
 import { nodeProtocolTest } from "./node-protocol-fixture";
 import type { TestPrismaClient } from "./prisma";
 
@@ -128,34 +129,13 @@ export const graphqlMutationTest = nodeProtocolTest.extend<{
     const owned = ownMcpHarness(userId, undefined, {
       run: protocolRuntime.request,
     });
-    const failures: unknown[] = [];
-    try {
-      // Register transport ownership before dependent setup initializes it.
-      await use({ userId, owned });
-    } catch (error) {
-      failures.push(error);
-    } finally {
-      // Closing the SDK transport rejects pending initialization/client calls;
-      // its owner also waits for real server handlers and their background work.
-      const results = await Promise.allSettled([owned.client.close()]);
-      // The runtime owner reports its original cached rejection once.
-      // Keep waiting here so no admitted workflow outlives this boundary.
-      await Promise.allSettled([protocolRuntime.drain()]);
-      failures.push(
-        ...results.flatMap((result) =>
-          result.status === "rejected" ? [result.reason] : [],
-        ),
-      );
-    }
-    if (failures.length) {
-      const error =
-        failures.length === 1
-          ? failures[0]
-          : new AggregateError(failures, "GraphQL MCP lifecycle failed");
-      onTestFinished(() => {
-        throw error;
-      });
-    }
+    // Register transport ownership before dependent setup initializes it.
+    await withMcpSdkLifecycle(
+      { protocolRuntime, onTestFinished },
+      [owned],
+      "GraphQL MCP lifecycle failed",
+      () => use({ userId, owned }),
+    );
   },
   graphql: async (
     {
