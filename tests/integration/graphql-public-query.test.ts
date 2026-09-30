@@ -315,7 +315,9 @@ describe("GraphQL public Query integration", () => {
         execute("x".repeat(GRAPHQL_LIMITS.bodyBytes + 1)),
       );
       expect(oversized.response.status).toBe(413);
-      expect(oversized.payload.errors?.[0]?.message).toContain("must not exceed");
+      expect(oversized.payload.errors?.[0]?.message).toContain(
+        "must not exceed",
+      );
     });
   });
 });

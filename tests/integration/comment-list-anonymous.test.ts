@@ -8,7 +8,10 @@ const it = nodeProtocolTest.extend(
     protocolRuntime.run(() =>
       db.$transaction(async (tx) => {
         const user = await tx.user.create({
-          data: { email: "comment-author@test.invalid", name: "Comment author" },
+          data: {
+            email: "comment-author@test.invalid",
+            name: "Comment author",
+          },
         });
         const course = await tx.course.create({
           data: { jwId: 1, code: "anonymous", nameCn: "Anonymous comments" },
