@@ -1,36 +1,18 @@
-import { afterAll, expect, it } from "vitest";
 import {
   toYoungEventSummary,
   YOUNG_EVENT_SELECT,
 } from "@/features/young/server/young-event-service";
-import type { Prisma } from "@/generated/prisma-node/client";
 import {
   syncYoungEvents,
   syncYoungSnapshot,
 } from "@/static-loader/import-young";
 import type { Snapshot } from "@/static-loader/snapshot";
 import { loadYoungEvents } from "@/static-loader/young-plan";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
+import type { TestPrismaClient } from "../shared/prisma";
+import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
-const db = createFixturePrisma();
-afterAll(() => disconnectTestPrisma(db));
-
-async function rollbackFixture(
-  run: (tx: Prisma.TransactionClient) => Promise<void>,
-) {
-  const rollback = new Error("rollback Young source contract");
-  try {
-    await db.$transaction(async (tx) => {
-      await run(tx);
-      throw rollback;
-    });
-  } catch (error) {
-    if (error !== rollback) throw error;
-  }
-}
-
-it("young-event.organizer-identity", async () => {
-  await rollbackFixture(async (tx) => {
+it("young-event.organizer-identity", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
     const marker = crypto.randomUUID();
     const builds = [
       {
@@ -42,8 +24,8 @@ it("young-event.organizer-identity", async () => {
       { youngId: `${marker}-3`, name: "Three", organizer: `clubs ${marker}` },
       { youngId: `${marker}-4`, name: "Blank", organizer: " \n " },
     ].map((row) => ({ ...row, isActive: true, rawJson: "{}" }));
-    await syncYoungEvents(tx, builds);
-    const rows = await tx.youngEvent.findMany({
+    await importer.$transaction((tx) => syncYoungEvents(tx, builds));
+    const rows = await db.youngEvent.findMany({
       where: { youngId: { in: builds.map((row) => row.youngId) } },
       orderBy: { youngId: "asc" },
       select: { organizerId: true },
@@ -53,17 +35,17 @@ it("young-event.organizer-identity", async () => {
     expect(rows[2].organizerId).not.toBe(rows[0].organizerId);
     expect(rows[3].organizerId).toBeNull();
     expect(
-      await tx.youngOrganizer.findUnique({
+      await db.youngOrganizer.findUnique({
         where: { id: rows[0].organizerId as string },
         select: { normalizedName: true },
       }),
     ).toEqual({ normalizedName: `club ${marker}` });
-    await syncYoungEvents(tx, [
+    await importer.$transaction((tx) => syncYoungEvents(tx, [
       { ...builds[0], organizer: `CLUB ${marker.toUpperCase()}` },
-    ]);
+    ]));
     expect(
       (
-        await tx.youngEvent.findUniqueOrThrow({
+        await db.youngEvent.findUniqueOrThrow({
           where: { youngId: builds[0].youngId },
         })
       ).organizerId,
@@ -71,8 +53,8 @@ it("young-event.organizer-identity", async () => {
   });
 });
 
-it("young-event.snapshot-authoritative", async () => {
-  await rollbackFixture(async (tx) => {
+it("young-event.snapshot-authoritative", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
     const marker = crypto.randomUUID();
     const seen = new Date("2026-09-20T01:00:00Z");
     const later = new Date("2026-09-21T01:00:00Z");
@@ -84,31 +66,31 @@ it("young-event.snapshot-authoritative", async () => {
       isActive: true,
       rawJson: "{}",
     }));
-    await syncYoungEvents(tx, builds, { observedAt: seen });
-    const before = await tx.youngEvent.findMany({
+    await importer.$transaction((tx) => syncYoungEvents(tx, builds, { observedAt: seen }));
+    const before = await db.youngEvent.findMany({
       where: { youngId: { in: builds.map((row) => row.youngId) } },
       orderBy: { youngId: "asc" },
     });
     // An incomplete source has no successful Young timestamp and must not touch existing rows.
     expect(
-      await syncYoungSnapshot(
+      await importer.$transaction((tx) => syncYoungSnapshot(
         tx,
         [{ ...builds[0], name: "partial update" }],
         undefined,
-      ),
+      )),
     ).toBeUndefined();
     expect(
-      await tx.youngEvent.findMany({
+      await db.youngEvent.findMany({
         where: { youngId: { in: builds.map((row) => row.youngId) } },
         orderBy: { youngId: "asc" },
       }),
     ).toEqual(before);
-    await syncYoungEvents(tx, [builds[0]], {
+    await importer.$transaction((tx) => syncYoungEvents(tx, [builds[0]], {
       observedAt: later,
       complete: true,
-    });
+    }));
     expect(
-      await tx.youngEvent.findUnique({ where: { youngId: builds[1].youngId } }),
+      await db.youngEvent.findUnique({ where: { youngId: builds[1].youngId } }),
     ).toMatchObject({
       sourceMissing: true,
       lastSeenAt: seen,
@@ -117,23 +99,23 @@ it("young-event.snapshot-authoritative", async () => {
       isActive: true,
     });
     expect(
-      await tx.youngEvent.findUnique({ where: { youngId: builds[0].youngId } }),
+      await db.youngEvent.findUnique({ where: { youngId: builds[0].youngId } }),
     ).toMatchObject({ sourceMissing: false, lastSeenAt: later });
-    await syncYoungEvents(tx, [], { observedAt: later, complete: true });
+    await importer.$transaction((tx) => syncYoungEvents(tx, [], { observedAt: later, complete: true }));
     expect(
-      await tx.youngEvent.count({
+      await db.youngEvent.count({
         where: {
           youngId: { in: builds.map((row) => row.youngId) },
           sourceMissing: true,
         },
       }),
     ).toBe(2);
-    await syncYoungEvents(tx, [builds[1]], {
+    await importer.$transaction((tx) => syncYoungEvents(tx, [builds[1]], {
       observedAt: later,
       complete: true,
-    });
+    }));
     expect(
-      await tx.youngEvent.findUnique({ where: { youngId: builds[1].youngId } }),
+      await db.youngEvent.findUnique({ where: { youngId: builds[1].youngId } }),
     ).toMatchObject({
       sourceMissing: false,
       lastSeenAt: later,
@@ -143,7 +125,8 @@ it("young-event.snapshot-authoritative", async () => {
 });
 
 async function importSource(
-  tx: Prisma.TransactionClient,
+  importer: TestPrismaClient,
+  db: TestPrismaClient,
   input: Record<string, unknown>,
 ) {
   const youngId = crypto.randomUUID();
@@ -157,18 +140,18 @@ async function importSource(
   } as unknown as Snapshot;
   const builds = loadYoungEvents(snapshot);
   if (!builds) throw new Error("Expected source builds");
-  await syncYoungEvents(tx, builds);
+  await importer.$transaction((tx) => syncYoungEvents(tx, builds));
   return toYoungEventSummary(
-    await tx.youngEvent.findUniqueOrThrow({
+    await db.youngEvent.findUniqueOrThrow({
       where: { youngId },
       select: YOUNG_EVENT_SELECT,
     }),
   );
 }
 
-it("young-event.structured-participation", async () => {
-  await rollbackFixture(async (tx) => {
-    const event = await importSource(tx, {
+it("young-event.structured-participation", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
+    const event = await importSource(importer, db, {
       itemCategory: "0",
       itemCategory_dictText: "Category label",
       module: "I",
@@ -207,8 +190,8 @@ it("young-event.structured-participation", async () => {
   });
 });
 
-it("young-event.participation-flag-normalization", async () => {
-  await rollbackFixture(async (tx) => {
+it("young-event.participation-flag-normalization", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
     for (const [value, expected] of [
       [1, true],
       ["1", true],
@@ -218,7 +201,7 @@ it("young-event.participation-flag-normalization", async () => {
       ["true", null],
       [null, null],
     ] as const) {
-      const event = await importSource(tx, {
+      const event = await importSource(importer, db, {
         needSignInfo: value,
         onlineStatus: value,
       });
@@ -233,10 +216,10 @@ it("young-event.participation-flag-normalization", async () => {
   });
 });
 
-it("young-event.participation-sponsor-normalization", async () => {
-  await rollbackFixture(async (tx) => {
+it("young-event.participation-sponsor-normalization", async ({ isolatedDatabase: { owner: db }, importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
     for (const ewSponsor of [null, "", "暂无", " 无 "]) {
-      const event = await importSource(tx, {
+      const event = await importSource(importer, db, {
         ewSponsor,
         attaType: "PDF,.docx,pdf, bad/type,,ZIP",
       });
@@ -244,7 +227,7 @@ it("young-event.participation-sponsor-normalization", async () => {
       expect(event.allowedAttachmentTypes).toEqual(["pdf", "docx", "zip"]);
     }
     expect(
-      (await importSource(tx, { ewSponsor: " External sponsor " }))
+      (await importSource(importer, db, { ewSponsor: " External sponsor " }))
         .externalSponsor,
     ).toBe("External sponsor");
   });

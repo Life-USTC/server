@@ -1,24 +1,9 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import { mutateUserSectionSubscriptionsInTransaction } from "@/features/subscriptions/server/subscription-write-model";
 import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
 import { createDeferred } from "../shared/deferred";
-import {
-  createFixturePrisma,
-  createTestPrisma,
-  disconnectTestPrisma,
-  type TestPrismaClient,
-} from "../shared/prisma";
-
-const fixturePrisma = createFixturePrisma();
-const runtimeDatabaseUrl = process.env.DATABASE_URL;
-if (!runtimeDatabaseUrl) {
-  throw new Error(
-    "DATABASE_URL is required for subscription integration tests",
-  );
-}
-let fixtureSequence = 0;
-
-afterAll(() => disconnectTestPrisma(fixturePrisma));
+import type { TestPrismaClient } from "../shared/prisma";
+import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
 async function waitForSignal(
   signal: Promise<void>,
@@ -62,10 +47,8 @@ async function waitForBackendLock(
   }
 }
 
-async function createFixture(options: { subscribedToFirst: boolean }) {
-  fixtureSequence += 1;
-  const numericMarker =
-    2_120_000_000 + (Date.now() % 10_000_000) + fixtureSequence * 10;
+async function createFixture(fixturePrisma: TestPrismaClient, options: { subscribedToFirst: boolean }) {
+  const numericMarker = 2_120_000_010;
   const marker = `[integration-test] subscription-lock-${numericMarker}`;
   return fixturePrisma.$transaction(async (tx) => {
     const semester = await tx.semester.create({
@@ -107,24 +90,10 @@ async function createFixture(options: { subscribedToFirst: boolean }) {
   });
 }
 
-async function deleteFixture(
-  fixture: Awaited<ReturnType<typeof createFixture>>,
-) {
-  await fixturePrisma.$transaction(async (tx) => {
-    await tx.user.delete({ where: { id: fixture.user.id } });
-    await tx.section.deleteMany({
-      where: { id: { in: fixture.sections.map((section) => section.id) } },
-    });
-    await tx.course.delete({ where: { id: fixture.course.id } });
-    await tx.semester.delete({ where: { id: fixture.semester.id } });
-  });
-}
-
 describe("Section subscription retirement linearization", () => {
-  it("rejects newly retired candidates while preserving existing relations", async () => {
-    const fixture = await createFixture({ subscribedToFirst: true });
-    const importerPrisma = createFixturePrisma();
-    const subscriberPrisma = createTestPrisma(runtimeDatabaseUrl);
+  it("rejects newly retired candidates while preserving existing relations", async ({ isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma }, importer: importerPrisma, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
+    const fixture = await createFixture(fixturePrisma, { subscribedToFirst: true });
     const importerLocked = createDeferred();
     const releaseImporter = createDeferred();
     const subscriberPidReady = createDeferred();
@@ -211,18 +180,13 @@ describe("Section subscription retirement linearization", () => {
     } finally {
       releaseImporter.resolve();
       await settleOperations(importer, subscriber);
-      await Promise.all([
-        disconnectTestPrisma(importerPrisma),
-        disconnectTestPrisma(subscriberPrisma),
-      ]);
-      await deleteFixture(fixture);
     }
+    });
   });
 
-  it("lets a subscriber that owns the advisory lock commit before retirement", async () => {
-    const fixture = await createFixture({ subscribedToFirst: false });
-    const importerPrisma = createFixturePrisma();
-    const subscriberPrisma = createTestPrisma(runtimeDatabaseUrl);
+  it("lets a subscriber that owns the advisory lock commit before retirement", async ({ isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma }, importer: importerPrisma, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
+    const fixture = await createFixture(fixturePrisma, { subscribedToFirst: false });
     const subscriberMutated = createDeferred();
     const releaseSubscriber = createDeferred();
     const importerPidReady = createDeferred();
@@ -309,11 +273,7 @@ describe("Section subscription retirement linearization", () => {
     } finally {
       releaseSubscriber.resolve();
       await settleOperations(subscriber, importer);
-      await Promise.all([
-        disconnectTestPrisma(importerPrisma),
-        disconnectTestPrisma(subscriberPrisma),
-      ]);
-      await deleteFixture(fixture);
     }
+    });
   });
 });

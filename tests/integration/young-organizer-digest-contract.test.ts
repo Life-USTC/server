@@ -1,32 +1,23 @@
-import { afterAll, expect, it } from "vitest";
 import { refreshYoungNotifications } from "@/features/young/server/young-notification-service";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
+import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
-const fixture = createFixturePrisma();
-afterAll(async () => {
-  await Promise.all([
-    disconnectTestPrisma(fixture),
-    runtimePrisma.$disconnect(),
-  ]);
-});
-
-it("young-workspace.digest", async () => {
+it("young-workspace.digest", async ({ isolatedDatabase: { owner: fixture }, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
   const marker = crypto.randomUUID();
   const now = new Date("2035-09-15T10:00:00+08:00");
   const followAt = new Date("2035-09-14T12:00:00+08:00");
-  const user = await fixture.user.create({
+  const user = await fixture.$transaction(async (tx) => {
+  const user = await tx.user.create({
     data: { email: `${marker}@digest.test`, name: "Digest owner" },
   });
   const organizers = await Promise.all(
     ["club", "other", "new"].map((name) =>
-      fixture.youngOrganizer.create({
+      tx.youngOrganizer.create({
         data: { name, normalizedName: `${name}-${marker}` },
       }),
     ),
   );
-  try {
-    await fixture.userYoungOrganizerSubscription.createMany({
+    await tx.userYoungOrganizerSubscription.createMany({
       data: organizers.map((organizer, index) => ({
         userId: user.id,
         organizerId: organizer.id,
@@ -38,7 +29,7 @@ it("young-workspace.digest", async () => {
               : followAt,
       })),
     });
-    await fixture.youngEvent.createMany({
+    await tx.youngEvent.createMany({
       data: [
         {
           label: "eligible-A",
@@ -117,6 +108,8 @@ it("young-workspace.digest", async () => {
         rawJson: {},
       })),
     });
+    return user;
+  });
     await refreshYoungNotifications(user.id, now);
     await refreshYoungNotifications(user.id, now);
     const notices = await fixture.youngNotification.findMany({
@@ -141,13 +134,5 @@ it("young-workspace.digest", async () => {
         where: { userId: user.id },
       }),
     ).toBe(0);
-  } finally {
-    await fixture.user.delete({ where: { id: user.id } });
-    await fixture.youngEvent.deleteMany({
-      where: { organizerId: { in: organizers.map((item) => item.id) } },
-    });
-    await fixture.youngOrganizer.deleteMany({
-      where: { id: { in: organizers.map((item) => item.id) } },
-    });
-  }
+  });
 });
