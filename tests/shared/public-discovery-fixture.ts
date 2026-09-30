@@ -31,7 +31,7 @@ export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
   _discoveryLifetime: DiscoveryLifetime;
   discovery: PublicDiscovery;
 }>({
-  _discoveryLifetime: async ({ isolatedDatabase }, use) => {
+  _discoveryLifetime: async ({ isolatedDatabase, onTestFinished }, use) => {
     const { connections } = isolatedDatabase;
     const start = new Date("2031-01-12T00:00:00.000Z").getTime();
     const kv = new Map<string, string>();
@@ -100,8 +100,16 @@ export const publicDiscoveryTest = isolatedDatabaseTest.extend<{
         result.status === "rejected" ? [result.reason] : [],
       ),
     );
-    if (failures.length)
-      throw new AggregateError(failures, "Public discovery cleanup failed");
+    if (failures.length) {
+      const error = new AggregateError(
+        failures,
+        "Public discovery cleanup failed",
+      );
+      // Report only after dependent resources and the database have been released.
+      onTestFinished(() => {
+        throw error;
+      });
+    }
   },
   discovery: async (
     { isolatedDatabase, _discoveryLifetime: lifetime },

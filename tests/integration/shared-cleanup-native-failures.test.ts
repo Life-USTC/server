@@ -50,6 +50,9 @@ const expectedMessages: Record<SharedCleanupFailurePhase, string[]> = {
     "SHARED-SUBSCRIPTION-CLOSE",
   ],
   "http-timeout": [timeoutMessage],
+  discovery: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
+  oauth: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
+  cimd: ["SHARED-BODY", "SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
 };
 type ErrorTree = { name: string; message: string; errors?: ErrorTree[] };
 const errorLeaf = (message: string): ErrorTree => ({ name: "Error", message });
@@ -82,6 +85,9 @@ const expectedNativeErrors: Record<SharedCleanupFailurePhase, ErrorTree[]> = {
     errorLeaf("SHARED-SUBSCRIPTION-CLOSE"),
   ],
   "http-timeout": [errorLeaf(timeoutMessage)],
+  discovery: [...protocolRuntimeErrors],
+  oauth: [...protocolRuntimeErrors],
+  cimd: [errorLeaf("SHARED-BODY"), ...protocolRuntimeErrors],
 };
 function errorLeaves(error: ErrorTree): ErrorTree[] {
   return error.errors ? error.errors.flatMap(errorLeaves) : [error];
@@ -127,6 +133,9 @@ test.for<SharedCleanupFailurePhase>([
   "public",
   "subscription",
   "http-timeout",
+  "discovery",
+  "oauth",
+  "cimd",
 ])(
   "native %s cleanup reports each original error once and releases owned resources",
   async (phase, { expect, annotate }) => {
@@ -298,6 +307,50 @@ test.for<SharedCleanupFailurePhase>([
         expect(names.indexOf("sibling-cancel-finished")).toBeLessThan(
           names.indexOf("database-dispose-start"),
         );
+        const work = await load("sibling-work.json");
+        expect(work.written).toEqual({
+          id: expect.any(String),
+          userId: "shared-cleanup-owner",
+          title: "Sibling cancellation completed",
+        });
+        expect(work.persisted).toEqual(work.written);
+      } else if (["discovery", "oauth", "cimd"].includes(phase)) {
+        expect(errors.map((event) => event.error)).toEqual(
+          protocolRuntimeErrors,
+        );
+        expect(new Set(errors.map((event) => event.errorId)).size).toBe(2);
+        expect(new Set(errors.map((event) => event.runtime)).size).toBe(2);
+        // Each physical owner closes once; the CIMD borrower awaits the same
+        // cached provider close before its enclosing owner reports that failure.
+        expect(runtime.map((event) => event.event)).toEqual([
+          "runtime-close-start",
+          "runtime-error",
+          "runtime-close-finished",
+          "runtime-close-start",
+          "runtime-error",
+          "runtime-close-finished",
+        ]);
+        expect(names).toEqual([
+          "state-committed",
+          phase === "cimd" ? "body-rejected" : "body-finished",
+          "workflow-cancel",
+          "request-cancel",
+          "sibling-cancel-finished",
+          "globals-observed-before-dispose",
+          "database-dispose-start",
+          "database-dispose-finished",
+        ]);
+        for (const stage of ["workflow", "request", "sibling"])
+          expect(await load(`globals-${stage}.json`)).toEqual({
+            date: phase !== "discovery",
+            fetch: phase !== "cimd",
+            caches: phase !== "discovery",
+          });
+        expect(await load("globals-before-dispose.json")).toEqual({
+          date: true,
+          fetch: true,
+          caches: true,
+        });
         const work = await load("sibling-work.json");
         expect(work.written).toEqual({
           id: expect.any(String),
