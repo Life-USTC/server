@@ -2,6 +2,7 @@ import { test as oauthTest } from "../src/app/api/mcp/_fixture";
 import { withBrowserWorkflow } from "./browser-workflow";
 import { createCalendarContractFixture } from "./calendar-contract";
 import {
+  type CalendarBrowserWriteVerifier,
   type CalendarProtocol,
   type CalendarProtocolChecks,
   withCalendarProtocol,
@@ -17,6 +18,7 @@ export type PrivateCalendar = Omit<
 export const test = oauthTest.extend<{
   calendarProtocolRun: (
     work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
+    verifyBrowserWrite?: CalendarBrowserWriteVerifier,
   ) => Promise<void>;
   calendarSemester: number;
   createCalendar: () => Promise<PrivateCalendar>;
@@ -28,7 +30,7 @@ export const test = oauthTest.extend<{
     testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
-      await use((work) =>
+      await use((work, verifyBrowserWrite) =>
         workflow.run(() =>
           run(() =>
             withCalendarProtocol(
@@ -43,6 +45,7 @@ export const test = oauthTest.extend<{
                   }),
                 runBody: workflow.body,
                 testInfo,
+                verifyBrowserWrite,
               },
               work,
             ),
