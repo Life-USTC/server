@@ -16,7 +16,10 @@ test("非管理员认证用户返回 401", async ({ run, isolatedWorker }) => {
   });
 });
 
-test("管理员可列出作业并包含关键字段", async ({ run, homeworkState: state }) => {
+test("管理员可列出作业并包含关键字段", async ({
+  run,
+  homeworkState: state,
+}) => {
   await run(async () => {
     const response = await state.admin.request.get(base);
     expect(response.status()).toBe(200);
@@ -53,7 +56,9 @@ for (const [status, indices] of [
     homeworkState: state,
   }) => {
     await run(async () => {
-      const response = await state.admin.request.get(`${base}?status=${status}`);
+      const response = await state.admin.request.get(
+        `${base}?status=${status}`,
+      );
       expect(response.status()).toBe(200);
       const body = await response.json();
       expect(body.data.map((item: { id: string }) => item.id)).toEqual(

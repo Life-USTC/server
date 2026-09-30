@@ -88,7 +88,10 @@ test("管理员不能通过普通删除入口越过作者权限", async ({
   });
 });
 
-test("管理员可删除作业且重放不重复写审计", async ({ run, homeworkState: state }) => {
+test("管理员可删除作业且重放不重复写审计", async ({
+  run,
+  homeworkState: state,
+}) => {
   await run(async () => {
     const homework = state.homeworks[0];
     const response = await state.admin.request.delete(`${base}/${homework.id}`);

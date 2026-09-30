@@ -65,7 +65,9 @@ for (const transport of transports)
             action === "create" ? 201 : 200,
           );
           const id = original?.id ?? result.id;
-          expect(await h.db.comment.findUnique({ where: { id } })).toMatchObject({
+          expect(
+            await h.db.comment.findUnique({ where: { id } }),
+          ).toMatchObject({
             userId: actor.id,
             body: original
               ? "Updated attached comment"
@@ -78,7 +80,9 @@ for (const transport of transports)
             }),
           ).toEqual(attachmentIds.map((uploadId) => ({ uploadId })));
           expect(
-            await h.db.comment.findUnique({ where: { id: occupiedComment.id } }),
+            await h.db.comment.findUnique({
+              where: { id: occupiedComment.id },
+            }),
           ).toEqual(occupiedComment);
           expect(
             await h.db.commentAttachment.findMany({
