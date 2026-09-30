@@ -1,4 +1,5 @@
 import type { RequestEvent } from "@sveltejs/kit";
+import { makeSignature } from "better-auth/crypto";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
@@ -23,24 +24,6 @@ const allViewerScopes = [
   restReadScope("workspace.schedule"),
   restReadScope("workspace.exam"),
 ];
-
-async function signSessionCookieValue(value: string, secret: string) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(value),
-  );
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
-  return encodeURIComponent(`${value}.${base64}`);
-}
 
 // Each consumer has one native case per file: Better Auth owns module caches,
 // while this fixture owns the database, handler and all admitted request work.
@@ -94,7 +77,9 @@ export const graphqlViewerTest = nodeProtocolTest
             },
           });
           const context = await getBetterAuthInstance().$context;
-          const value = await signSessionCookieValue(token, context.secret);
+          const value = encodeURIComponent(
+            `${token}.${await makeSignature(token, context.secret)}`,
+          );
           return `${context.authCookies.sessionToken.name}=${value}`;
         });
       }
