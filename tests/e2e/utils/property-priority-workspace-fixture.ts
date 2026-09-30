@@ -29,6 +29,7 @@ async function createWorkspacePriorityFixture(owner: TestPrismaClient) {
     const presetCalendarToken = crypto.randomUUID().replaceAll("-", "");
     const user = await db.user.create({
       data: {
+        id: crypto.randomUUID(),
         name: catalog.marker,
         calendarFeedToken: presetCalendarToken,
         username: catalog.marker,
