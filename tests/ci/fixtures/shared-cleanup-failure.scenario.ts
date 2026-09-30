@@ -36,6 +36,11 @@ const runtimeJournal = await vi.hoisted(async () => {
   const journalOutput = output;
   const { createDeferred } = await import("../../shared/deferred");
   const metricsGate = createDeferred();
+  const catalogSetup = {
+    gate: createDeferred(),
+    signal: undefined as AbortSignal | undefined,
+    calls: 0,
+  };
   const ids = new WeakMap<object, number>();
   let nextError = 0;
   let nextRuntime = 0;
@@ -50,6 +55,7 @@ const runtimeJournal = await vi.hoisted(async () => {
   }
   return {
     metricsGate,
+    catalogSetup,
     now,
     next: () => ++nextRuntime,
     tick: () => ++sequence,
@@ -133,6 +139,60 @@ vi.mock("@/routes/metrics/+server", async (importOriginal) => {
   };
 });
 
+// Only this phase delays catalog initialization. The actual generator runs once
+// and its real committed graph is observed before the fixture's abort checkpoint.
+vi.mock("../../shared/catalog-contract-fixture", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../shared/catalog-contract-fixture")>();
+  return {
+    ...actual,
+    createCatalogContractFixture: async (
+      ...args: Parameters<typeof actual.createCatalogContractFixture>
+    ) => {
+      if (process.env.SHARED_CLEANUP_PROBE_PHASE !== "catalog-setup-timeout")
+        return actual.createCatalogContractFixture(...args);
+      const setup = runtimeJournal.catalogSetup;
+      if (!setup.signal) throw new Error("Missing catalog setup abort signal");
+      record("catalog-setup-entered");
+      await setup.gate.promise;
+      record("catalog-setup-resumed");
+      setup.calls++;
+      const fixture = await actual.createCatalogContractFixture(...args);
+      const observed = await args[0].$transaction(async (db) => ({
+        revision: await db.staticImportState.findUniqueOrThrow({
+          where: { id: "global" },
+          select: { snapshotSha256: true },
+        }),
+        counts: {
+          semesters: await db.semester.count(),
+          departments: await db.department.count(),
+          titles: await db.teacherTitle.count(),
+          teachers: await db.teacher.count(),
+          courses: await db.course.count(),
+          sections: await db.section.count(),
+        },
+        sections: await db.section.findMany({
+          orderBy: { jwId: "asc" },
+          select: { id: true, jwId: true, courseId: true, semesterId: true },
+        }),
+      }));
+      save("late-catalog-setup.json", {
+        actualInvocations: setup.calls,
+        nativeAborted: setup.signal.aborted,
+        ...observed,
+        expectedSections: fixture.sections.map((section) => ({
+          id: section.id,
+          jwId: section.jwId,
+          courseId: section.courseId,
+          semesterId: section.semesterId,
+        })),
+      });
+      record("catalog-setup-observed");
+      return fixture;
+    },
+  };
+});
+
 const inputPhase = process.env.SHARED_CLEANUP_PROBE_PHASE;
 const output = process.env.SHARED_CLEANUP_PROBE_OUTPUT;
 if (
@@ -151,6 +211,7 @@ if (
     "metrics-timeout",
     "catalog",
     "catalog-timeout",
+    "catalog-setup-timeout",
     "discovery",
     "oauth",
     "cimd",
@@ -428,6 +489,45 @@ if (phase === "catalog") {
     },
   );
 }
+
+if (phase === "catalog-setup-timeout") {
+  const setupTest = catalogReadTest
+    .extend("probe", async ({
+      isolatedDatabase,
+      _templateResources,
+      _databaseResources,
+      signal,
+    }) => {
+      const setup = runtimeJournal.catalogSetup;
+      setup.signal = signal;
+      const release = () => {
+        record("native-test-aborted");
+        setup.gate.resolve();
+      };
+      signal.addEventListener("abort", release, { once: true });
+      if (signal.aborted) release();
+      return prepareProbe({
+        isolatedDatabase,
+        _templateResources,
+        _databaseResources,
+      });
+    })
+    .extend({
+      // Resolve the signal listener and disposal observer before catalog setup.
+      protocolBindings: async ({ probe: _probe }, use) => {
+        await use({});
+      },
+    });
+  setupTest(
+    title,
+    { timeout: 5_000 },
+    async ({ catalogRead: _catalogRead }) => {
+      record("body-entered");
+      throw new Error("Timed-out catalog setup published its fixture");
+    },
+  );
+}
+
 if (phase === "catalog-timeout") {
   catalogReadTest.extend("probe", prepareProbe)(
     title,
