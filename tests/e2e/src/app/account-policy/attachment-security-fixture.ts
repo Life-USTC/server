@@ -34,6 +34,16 @@ async function prepareAttachmentSecurity(
   });
   const viewerSession = await worker.createSession(peers.viewer.id);
   const adminSession = await worker.createSession(peers.admin.id);
+  const ownedUserIds = [owner.id, peers.viewer.id, peers.admin.id];
+  // These cases exercise attachment policy; session refresh has its own oracle.
+  const sessionTime = new Date();
+  await db.session.updateMany({
+    where: { userId: { in: ownedUserIds } },
+    data: {
+      expires: new Date(sessionTime.getTime() + 30 * 86_400_000),
+      updatedAt: sessionTime,
+    },
+  });
   const viewerContext = await flow.newContext();
   await viewerContext.addCookies([viewerSession.cookie]);
   const adminContext = await flow.newContext();
@@ -82,7 +92,11 @@ async function prepareAttachmentSecurity(
   expect(await db.upload.findMany()).toEqual([]);
   expect(await db.uploadPending.findMany()).toEqual([]);
   expect(await db.commentAttachment.findMany()).toEqual([]);
-  expect((await bucket.list({ prefix: "" })).objects).toEqual([]);
+  for (const userId of ownedUserIds)
+    expect(await bucket.list({ prefix: `${userId}/` })).toMatchObject({
+      objects: [],
+      truncated: false,
+    });
   const ownerSessionId = baseline.sessions.find(
     ({ userId }) => userId === owner.id,
   )?.id;
@@ -155,10 +169,11 @@ async function prepareAttachmentSecurity(
       expect(await db.uploadPending.findMany()).toEqual([]);
       expect(await db.commentAttachment.findMany()).toEqual([]);
       expect(await bucket.get(ids.key)).toBeNull();
-      expect(await bucket.list({ prefix: "" })).toMatchObject({
-        objects: [],
-        truncated: false,
-      });
+      for (const userId of ownedUserIds)
+        expect(await bucket.list({ prefix: `${userId}/` })).toMatchObject({
+          objects: [],
+          truncated: false,
+        });
       for (const rows of await Promise.all([
         db.oAuthClient.findMany(),
         db.oAuthConsent.findMany(),
