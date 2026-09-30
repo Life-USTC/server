@@ -1,11 +1,16 @@
-import { withE2ePrisma } from "./e2e-db/prisma";
+import { expect, type Request } from "@playwright/test";
+import type { TestPrismaClient } from "../../shared/prisma";
+import { withCommunityFlow } from "./community-flow";
+import type { IsolatedWorker } from "./isolated-worker";
+import { test as workerTest } from "./owned-worker";
 
-export async function createAdminPriorityFixture() {
-  return withE2ePrisma(async (db) => {
+async function createAdminPriorityFixture(owner: TestPrismaClient) {
+  return owner.$transaction(async (db) => {
     const marker = crypto.randomUUID();
     const base = 1_300_000_000 + Math.floor(Math.random() * 100_000_000);
     const admin = await db.user.create({
       data: {
+        id: crypto.randomUUID(),
         name: "Priority administrator",
         username: `pa${marker.replaceAll("-", "").slice(0, 20)}`,
         email: `priority-admin-${marker}@example.test`,
@@ -14,6 +19,7 @@ export async function createAdminPriorityFixture() {
     });
     const author = await db.user.create({
       data: {
+        id: crypto.randomUUID(),
         name: "Priority review author",
         username: `pr${marker.replaceAll("-", "").slice(0, 20)}`,
         email: `priority-author-${marker}@example.test`,
@@ -31,7 +37,7 @@ export async function createAdminPriorityFixture() {
     const section = await db.section.create({
       data: { jwId: base + 1, courseId: course.id, code: "PRIORITY.01" },
     });
-    await db.userSuspension.create({
+    const suspension = await db.userSuspension.create({
       data: {
         userId: author.id,
         createdById: admin.id,
@@ -107,6 +113,7 @@ export async function createAdminPriorityFixture() {
     return {
       admin,
       author,
+      suspension,
       course,
       section,
       comment,
@@ -123,13 +130,145 @@ export type AdminPriorityFixture = Awaited<
   ReturnType<typeof createAdminPriorityFixture>
 >;
 
-export async function cleanupAdminPriorityFixture(f: AdminPriorityFixture) {
-  await withE2ePrisma(async (db) => {
-    await db.busScheduleVersion.delete({ where: { id: f.bus.id } });
-    await db.section.delete({ where: { id: f.section.id } });
-    await db.course.delete({ where: { id: f.course.id } });
-    await db.user.deleteMany({
-      where: { id: { in: [f.admin.id, f.author.id] } },
-    });
-  });
+async function assertUnchangedState(
+  db: TestPrismaClient,
+  data: AdminPriorityFixture,
+) {
+  expect(await db.user.findMany({ orderBy: { username: "asc" } })).toEqual([
+    data.admin,
+    data.author,
+  ]);
+  expect(await db.userSuspension.findMany()).toEqual([data.suspension]);
+  expect(await db.course.findMany()).toEqual([data.course]);
+  expect(await db.section.findMany()).toEqual([data.section]);
+  expect(await db.comment.findMany()).toEqual([data.comment]);
+  expect(
+    await db.description.findMany({ orderBy: { content: "asc" } }),
+  ).toEqual([data.description, data.fallbackDescription]);
+  expect(await db.descriptionEdit.findMany()).toEqual([]);
+  expect(await db.homework.findMany()).toEqual([data.homework]);
+  expect(await db.homeworkCompletion.findMany()).toEqual([]);
+  expect(await db.oAuthClient.findMany()).toEqual([data.client]);
+  expect(await db.oAuthConsent.findMany()).toEqual([]);
+  expect(await db.busScheduleVersion.findMany()).toEqual([data.bus]);
+  expect(await db.busTrip.findMany()).toEqual([]);
 }
+
+/** The four presentation consumers each own their complete admin catalog.
+ * Fixed client/version keys are private to that case's database. */
+export const test = workerTest.extend<{
+  adminPriority: AdminPriorityFixture;
+  adminPrioritySession: Awaited<ReturnType<IsolatedWorker["createSession"]>>;
+  adminPriorityRun: (
+    work: (data: AdminPriorityFixture) => Promise<void>,
+  ) => Promise<void>;
+}>({
+  adminPriority: async ({ isolatedWorker, run }, use) => {
+    await use(
+      await run(() =>
+        createAdminPriorityFixture(isolatedWorker.database.owner),
+      ),
+    );
+  },
+  adminPrioritySession: async ({ isolatedWorker, adminPriority, run }, use) => {
+    await use(
+      await run(() => isolatedWorker.createSession(adminPriority.admin.id)),
+    );
+  },
+  adminPriorityRun: async (
+    {
+      page,
+      browser,
+      request: observer,
+      isolatedWorker,
+      adminPriority: data,
+      adminPrioritySession,
+      run,
+    },
+    use,
+    testInfo,
+  ) => {
+    await run(async () => {
+      const requests: {
+        method: string;
+        path: string;
+        document: boolean;
+      }[] = [];
+      const onRequest = (incoming: Request) => {
+        const url = new URL(incoming.url());
+        if (url.origin !== isolatedWorker.origin) return;
+        requests.push({
+          method: incoming.method(),
+          path: `${url.pathname}${url.search}`,
+          document:
+            incoming.isNavigationRequest() &&
+            incoming.frame() === page.mainFrame(),
+        });
+      };
+      page.on("request", onRequest);
+      const results = await Promise.allSettled([
+        withCommunityFlow(
+          {
+            page,
+            browser,
+            observer,
+            isolatedWorker,
+            account: data.admin,
+            testInfo,
+          },
+          async (flow) => {
+            await use((work) =>
+              flow.run(
+                async () => {
+                  await page
+                    .context()
+                    .addCookies([adminPrioritySession.cookie]);
+                  await work(data);
+                },
+                {
+                  calendarTokenCreated: false,
+                  auditActions: {},
+                  catalogPurges: 0,
+                },
+              ),
+            );
+          },
+        ),
+      ]);
+      page.off("request", onRequest);
+      // The shared flow has closed the page, joined the actual UI callback and
+      // drained native requests/deferred work. Check every read-only invariant
+      // even when that flow or the presentation assertions failed.
+      const db = isolatedWorker.database.owner;
+      results.push(
+        ...(await Promise.allSettled([
+          (async () => {
+            expect(requests.filter(({ method }) => method !== "GET")).toEqual(
+              [],
+            );
+            expect(
+              requests
+                .filter(({ document }) => document)
+                .map(({ path }) => path),
+            ).toEqual([
+              `/admin/users?search=${data.author.username}`,
+              "/admin/oauth",
+              "/admin/bus",
+              "/admin/moderation?tab=comments&status=softbanned&search=Priority%20review%20comment",
+              "/admin/moderation?tab=descriptions&search=Priority%20review",
+              "/admin/moderation?tab=homeworks&search=Priority%20review",
+            ]);
+          })(),
+          assertUnchangedState(db, data),
+          expect(db.auditLog.findMany()).resolves.toEqual([]),
+          expect(db.oAuthGrantUsageDaily.findMany()).resolves.toEqual([]),
+        ])),
+      );
+      const errors = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (errors.length)
+        throw new AggregateError(errors, "Admin priority workflow failed");
+    });
+  },
+});
