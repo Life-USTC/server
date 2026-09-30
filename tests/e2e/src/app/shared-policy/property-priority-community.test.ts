@@ -223,7 +223,8 @@ for (const locale of ["en-us", "zh-cn"] as const)
         expect(historyStyles[0].base).toEqual(historyStyles[1].base);
         for (const body of historyStyles) {
           expect(body.segments.length).toBeGreaterThan(0);
-          for (const segment of body.segments) expect(segment).toEqual(body.base);
+          for (const segment of body.segments)
+            expect(segment).toEqual(body.base);
         }
 
         await page
