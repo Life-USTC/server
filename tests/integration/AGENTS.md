@@ -35,9 +35,16 @@ tests/integration/mcp/
 
 - `createMcpHarness` / `createAnonymousMcpHarness` — `client.ts`
 - `isolatedMcpTest` — a native per-test database, restricted-role runtime and owned SDK sessions
+- `mcpWorkflow.run()` — explicitly wrap each complete async fixture setup and raw test
+  callback, including SDK calls, response consumption, and owner-state observations.
+  After async setup, check `signal.throwIfAborted()` before publishing its fixture.
+  This keeps native timeout cleanup from disposing a database under a still-running
+  callback; a request-only runtime or `aroundEach` does not own that callback.
 - `mcpActor` / `mcpOtherActor` — independent actors inside that test's private database
 - `mcpSessions.own()` / `ownAnonymous()` — register session ownership before initialization;
-  cleanup closes every session and drains in-flight handlers before disposing the runtime/database
+  fixture cleanup closes every session before joining complete workflows and then
+  in-flight requests, before disposing the runtime/database. Manual `mcpSessions.close()`
+  closes sessions only so an admitted workflow cannot wait for itself.
 - `mcpSection`, `mcpSchedules`, `mcpBus` and domain fixtures arrange only their explicit rows;
   consumers never read a shared seeded graph
 - `isolatedDatabase.owner` — authoritative setup and state observations only.
