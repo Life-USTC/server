@@ -117,8 +117,8 @@ async function expectDiscoverableTimetableScroll(page: Page) {
 }
 
 test.describe("校车面板标签页", () => {
-  test.beforeEach(async ({ page, run, preferenceFlow: _flow }) => {
-    await run(() => page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z")));
+  test.beforeEach(async ({ page, preferenceFlow }) => {
+    await preferenceFlow.prepare(() => page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z")));
   });
 
   test("bus.public-no-signin", async ({ preferenceFlow, page }, testInfo) => {
@@ -542,7 +542,7 @@ test.describe("校车面板标签页", () => {
       });
       await expect(departedToggle).not.toBeChecked();
       const [toggleSaveResponse] = await Promise.all([
-        page.waitForResponse(
+        preferenceFlow.waitForResponse(page,
           (response) =>
             response.url().includes("/api/workspace/bus-preferences") &&
             response.request().method() === "POST",
@@ -556,7 +556,7 @@ test.describe("校车面板标签页", () => {
         .getByRole("radio", { name: /南区/ });
       await expect(endSouthButton).toHaveAttribute("aria-checked", "false");
       const [stopSaveResponse] = await Promise.all([
-        page.waitForResponse(
+        preferenceFlow.waitForResponse(page,
           (response) =>
             response.url().includes("/api/workspace/bus-preferences") &&
             response.request().method() === "POST",
