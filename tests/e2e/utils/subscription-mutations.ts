@@ -1,5 +1,4 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import {
   issueAccessTokenForClient,
@@ -7,6 +6,10 @@ import {
   parseTextContent,
   registerPublicClient,
 } from "../src/app/api/mcp/helpers";
+import type {
+  CalendarProtocol,
+  CalendarProtocolChecks,
+} from "./calendar-protocol-lifecycle";
 import type { PrivateCalendar } from "./private-calendar-fixture";
 
 export const subscriptionTransports = [
@@ -23,7 +26,7 @@ export type SubscriptionRelation = {
   kind: "regular" | "auditor" | "teaching_assistant";
 };
 
-export async function createSubscriptionMutationFixture(
+async function createSubscriptionMutationFixture(
   owner: OAuthOwner,
   createCalendar: () => Promise<PrivateCalendar>,
   role: "regular" | "suspended admin" = "regular",
@@ -32,15 +35,17 @@ export async function createSubscriptionMutationFixture(
   const own = await createCalendar();
   const foreign = await createCalendar();
   if (role === "suspended admin") {
-    await db.user.update({
-      where: { id: own.users[0].id },
-      data: { isAdmin: true },
-    });
-    await db.userSuspension.create({
-      data: {
-        userId: own.users[0].id,
-        reason: "Personal subscriptions remain available during suspension",
-      },
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: own.users[0].id },
+        data: { isAdmin: true },
+      });
+      await tx.userSuspension.create({
+        data: {
+          userId: own.users[0].id,
+          reason: "Personal subscriptions remain available during suspension",
+        },
+      });
     });
   }
   const userIds = [...own.users, ...foreign.users].map(({ id }) => id);
@@ -64,7 +69,7 @@ export async function createSubscriptionMutationFixture(
     ] satisfies SubscriptionRelation[],
   };
 }
-export type SubscriptionMutationFixture = Awaited<
+type SubscriptionMutationFixture = Awaited<
   ReturnType<typeof createSubscriptionMutationFixture>
 >;
 
@@ -118,36 +123,112 @@ export async function subscriptionGraphql(
   return { response, body: await response.json() };
 }
 
-export async function openSubscriptionTransport(
-  owner: OAuthOwner,
-  page: Page,
-  anonymousRequest: APIRequestContext,
-  userId: string,
-  transport: SubscriptionTransport,
-  scope = "workspace.subscription:read workspace.subscription:write",
+type UsageOperation = "read" | "write" | "write error";
+type UsageWindow = { start: number; end: number; operation: UsageOperation };
+type SubscriptionConnection = {
+  origin: string;
+  transport: SubscriptionTransport | "anonymous";
+  request: APIRequestContext;
+  headers: Record<string, string>;
+  client?: Client;
+  operation: <T>(kind: UsageOperation, work: () => Promise<T>) => Promise<T>;
+};
+
+// Preserve whole relevant rows, including unrelated calendar owners and sources.
+async function observeStableState(owner: OAuthOwner) {
+  return owner.worker.database.owner.$transaction(async (tx) => ({
+    users: await tx.user.findMany({ orderBy: { id: "asc" } }),
+    suspensions: await tx.userSuspension.findMany({ orderBy: { id: "asc" } }),
+    todos: await tx.todo.findMany({ orderBy: { id: "asc" } }),
+    youngSubscriptions: await tx.userYoungEventSubscription.findMany({
+      orderBy: [{ userId: "asc" }, { youngId: "asc" }],
+    }),
+    youngEvents: await tx.youngEvent.findMany({ orderBy: { youngId: "asc" } }),
+    homework: await tx.homework.findMany({ orderBy: { id: "asc" } }),
+    homeworkCompletions: await tx.homeworkCompletion.findMany({
+      orderBy: [{ userId: "asc" }, { homeworkId: "asc" }],
+    }),
+    semesters: await tx.semester.findMany({ orderBy: { id: "asc" } }),
+    courses: await tx.course.findMany({ orderBy: { id: "asc" } }),
+    sections: await tx.section.findMany({ orderBy: { id: "asc" } }),
+    groups: await tx.scheduleGroup.findMany({ orderBy: { id: "asc" } }),
+    schedules: await tx.schedule.findMany({ orderBy: { id: "asc" } }),
+    exams: await tx.exam.findMany({ orderBy: { id: "asc" } }),
+  }));
+}
+
+export async function runSubscriptionScenario(
+  {
+    page,
+    oauthOwner: owner,
+    createCalendar,
+    calendarProtocolRun,
+  }: {
+    page: Page;
+    oauthOwner: OAuthOwner;
+    createCalendar: () => Promise<PrivateCalendar>;
+    calendarProtocolRun: (
+      work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
+    ) => Promise<void>;
+  },
+  {
+    transport = "anonymous",
+    role = "regular",
+    messages,
+    usage,
+    scope = "workspace.subscription:read workspace.subscription:write",
+    sdkTools = [],
+  }: {
+    transport?: SubscriptionConnection["transport"];
+    role?: "regular" | "suspended admin";
+    messages: 0 | 4;
+    usage: readonly [read: number, write: number, error: number];
+    scope?: string;
+    sdkTools?: string[];
+  },
+  work: (
+    connection: SubscriptionConnection,
+    fixture: SubscriptionMutationFixture,
+  ) => Promise<void>,
 ) {
-  await page
-    .context()
-    .addCookies([
-      (await owner.worker.createSession(userId)).cookie,
-      { name: "NEXT_LOCALE", value: "en-us", url: owner.worker.origin },
-    ]);
-  const resource = `${owner.worker.origin}/api/${transport.startsWith("REST") ? "auth" : transport.startsWith("GraphQL") ? "graphql" : "mcp"}`;
-  let client: Client | undefined;
-  const headers: Record<string, string> = {};
-  const close = async () => {
-    await client?.close();
-  };
-  try {
-    if (transport.endsWith("bearer")) {
-      const clientId = await registerPublicClient(
-        anonymousRequest,
-        scope,
-        owner,
-      );
+  await calendarProtocolRun(async ({ request, mcp, observeCalendar }) => {
+    const fixture = await createSubscriptionMutationFixture(
+      owner,
+      createCalendar,
+      role,
+    );
+    const db = owner.worker.database.owner;
+    const userId = fixture.own.users[0].id;
+    await observeCalendar(
+      fixture.own.users[0],
+      Array.from({ length: messages }, () => ({ type: "user", userId })),
+    );
+    const stableState = await observeStableState(owner);
+    const headers: Record<string, string> = {};
+    const origin = owner.worker.origin;
+    const bearer = transport.endsWith("bearer");
+    const resource = `${origin}/api/${transport.startsWith("REST") ? "auth" : transport.startsWith("GraphQL") ? "graphql" : "mcp"}`;
+    let sessionId: string | undefined;
+    let clientId: string | undefined;
+    let client: Client | undefined;
+    if (transport !== "anonymous") {
+      await page
+        .context()
+        .addCookies([
+          (await owner.worker.createSession(userId)).cookie,
+          { name: "NEXT_LOCALE", value: "en-us", url: origin },
+        ]);
+      const sessions = await db.session.findMany({
+        select: { id: true, userId: true },
+      });
+      expect(sessions).toEqual([{ id: expect.any(String), userId }]);
+      sessionId = sessions[0].id;
+    }
+    if (bearer) {
+      clientId = await registerPublicClient(request, scope, owner);
       const { response, tokenBody } = await issueAccessTokenForClient(
         page,
-        anonymousRequest,
+        request,
         {
           clientId,
           owner,
@@ -157,42 +238,265 @@ export async function openSubscriptionTransport(
       );
       expect(response.status()).toBe(200);
       expect(typeof tokenBody.access_token).toBe("string");
+      expect(tokenBody.refresh_token).toBeUndefined();
+      expect(tokenBody).not.toHaveProperty("id_token");
       headers.Authorization = `Bearer ${tokenBody.access_token}`;
+      if (transport === "MCP bearer")
+        client = await mcp(
+          { name: "subscription-state-test", version: "1" },
+          tokenBody.access_token as string,
+        );
     }
-    const request = transport.endsWith("session")
-      ? page.request
-      : anonymousRequest;
-    if (transport === "MCP bearer") {
-      client = new Client({ name: "subscription-state-test", version: "1" });
-      await client.connect(
-        new StreamableHTTPClientTransport(new URL(resource), {
-          requestInit: { headers },
-        }),
-      );
-    }
+    const windows: UsageWindow[] = [];
+    await work(
+      {
+        origin,
+        transport,
+        headers,
+        client,
+        request: transport.endsWith("session") ? page.request : request,
+        async operation(operation, action) {
+          const start = Date.now();
+          const result = await action();
+          if (bearer) windows.push({ start, end: Date.now(), operation });
+          return result;
+        },
+      },
+      fixture,
+    );
     return {
-      origin: owner.worker.origin,
-      transport,
-      request,
-      headers,
-      client,
-      close,
+      async verifyTransport({ effects, sdkRequests }) {
+        for (const [method, path, status] of [
+          ["POST", "/api/auth/oauth2/register", 201],
+          ["GET", "/api/auth/oauth2/authorize", 302],
+          ["POST", "/oauth/authorize", 200],
+          ["POST", "/api/auth/oauth2/token", 200],
+        ] as const) {
+          const observed = effects.requests.filter(
+            ({ value }) => value.method === method && value.path === path,
+          );
+          expect(observed).toHaveLength(bearer ? 1 : 0);
+          for (const request of observed) expect(request.result).toBe(status);
+        }
+        expect(
+          sdkRequests
+            .map((request) => `${request.method} ${request.rpc ?? "stream"}`)
+            .sort(),
+        ).toEqual(
+          transport === "MCP bearer"
+            ? [
+                "GET stream",
+                "POST initialize",
+                "POST notifications/initialized",
+                ...sdkTools.map(() => "POST tools/call"),
+              ]
+            : [],
+        );
+        expect(
+          sdkRequests
+            .filter((request) => request.rpc === "tools/call")
+            .map((request) => request.tool),
+        ).toEqual(sdkTools);
+      },
+      async verifyState() {
+        await expectSubscriptionRelations(fixture, fixture.initial);
+        expect(await observeStableState(owner)).toEqual(stableState);
+        expect(
+          await db.user.findMany({
+            orderBy: { id: "asc" },
+            select: { id: true, calendarFeedToken: true },
+          }),
+        ).toEqual(
+          fixture.userIds
+            .map((id) => ({ id, calendarFeedToken: null }))
+            .sort((a, b) => a.id.localeCompare(b.id)),
+        );
+        expect(
+          await db.session.findMany({ select: { id: true, userId: true } }),
+        ).toEqual(sessionId ? [{ id: sessionId, userId }] : []);
+        expect(
+          await db.oAuthClient.findMany({
+            select: {
+              clientId: true,
+              name: true,
+              userId: true,
+              scopes: true,
+              redirectUris: true,
+              grantTypes: true,
+              responseTypes: true,
+              tokenEndpointAuthMethod: true,
+              applicationType: true,
+            },
+          }),
+        ).toEqual(
+          clientId
+            ? [
+                {
+                  clientId,
+                  name: owner.clientNames[0],
+                  userId: null,
+                  scopes: scope.split(" "),
+                  redirectUris: [`${origin}/e2e/oauth/callback`],
+                  grantTypes: ["authorization_code"],
+                  responseTypes: ["code"],
+                  tokenEndpointAuthMethod: "none",
+                  applicationType: "native",
+                },
+              ]
+            : [],
+        );
+        expect(owner.clientNames).toHaveLength(bearer ? 1 : 0);
+        const consents = await db.oAuthConsent.findMany({
+          select: {
+            clientId: true,
+            userId: true,
+            grantId: true,
+            scopes: true,
+            resources: true,
+            requestedUserInfoClaims: true,
+          },
+        });
+        expect(consents).toEqual(
+          clientId
+            ? [
+                {
+                  clientId,
+                  userId,
+                  grantId: expect.any(String),
+                  scopes: scope.split(" "),
+                  resources: [resource],
+                  requestedUserInfoClaims: [],
+                },
+              ]
+            : [],
+        );
+        const grantId = consents[0]?.grantId;
+        if (clientId)
+          expect(grantId).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+          );
+        expect(
+          await db.auditLog.findMany({
+            select: {
+              action: true,
+              outcome: true,
+              channel: true,
+              userId: true,
+              subjectUserId: true,
+              targetId: true,
+              targetType: true,
+              oauthClientId: true,
+              oauthGrantId: true,
+              sessionId: true,
+              metadata: true,
+            },
+          }),
+        ).toEqual(
+          clientId
+            ? [
+                {
+                  action: "oauth_authorization_grant",
+                  outcome: "success",
+                  channel: "web",
+                  userId,
+                  subjectUserId: userId,
+                  targetId: clientId,
+                  targetType: "oauth_client",
+                  oauthClientId: clientId,
+                  oauthGrantId: grantId,
+                  sessionId,
+                  metadata: {
+                    changedFields: ["resources", "scopes", "userinfoClaims"],
+                    resourceCount: 1,
+                    scopeCount: scope.split(" ").length,
+                  },
+                },
+              ]
+            : [],
+        );
+        expect(await db.oAuthRefreshToken.count()).toBe(0);
+        expect(await db.oAuthAccessToken.count()).toBe(0);
+        // Resource access tokens are JWTs; issuance is asserted at the real
+        // exchange above, not inferred from opaque-token persistence.
+        const rows = await db.oAuthGrantUsageDaily.findMany({
+          orderBy: { day: "asc" },
+          select: {
+            userId: true,
+            clientId: true,
+            grantId: true,
+            grantKey: true,
+            day: true,
+            feature: true,
+            channel: true,
+            readCount: true,
+            writeCount: true,
+            errorCount: true,
+            lastUsedAt: true,
+          },
+        });
+        expect([
+          rows.reduce((sum, row) => sum + row.readCount, 0),
+          rows.reduce((sum, row) => sum + row.writeCount, 0),
+          rows.reduce((sum, row) => sum + row.errorCount, 0),
+        ]).toEqual(usage);
+        expect(windows).toHaveLength(usage[0] + usage[1]);
+        const day = (time: number) =>
+          new Date(time + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        // Independently enumerate each call's allowed Shanghai-day assignments.
+        let assignments: string[][] = [[]];
+        for (const { start, end } of windows)
+          assignments = assignments.flatMap((assignment) =>
+            [...new Set([day(start), day(end)])].map((date) => [
+              ...assignment,
+              date,
+            ]),
+          );
+        expect(
+          assignments.some((assignment) => {
+            const dates = [...new Set(assignment)].sort();
+            return (
+              dates.length === rows.length &&
+              dates.every((date, index) => {
+                const calls = windows.filter(
+                  (_, call) => assignment[call] === date,
+                );
+                const row = rows[index];
+                const last = row.lastUsedAt.getTime();
+                return (
+                  row.day.toISOString() === `${date}T00:00:00.000Z` &&
+                  row.readCount ===
+                    calls.filter((call) => call.operation === "read").length &&
+                  row.writeCount ===
+                    calls.filter((call) => call.operation.startsWith("write"))
+                      .length &&
+                  row.errorCount ===
+                    calls.filter((call) => call.operation === "write error")
+                      .length &&
+                  day(last) === date &&
+                  last >= Math.max(...calls.map(({ start }) => start)) &&
+                  last <= Math.max(...calls.map(({ end }) => end))
+                );
+              })
+            );
+          }),
+        ).toBe(true);
+        for (const row of rows)
+          expect(row).toMatchObject({
+            userId,
+            clientId,
+            grantId,
+            grantKey: `grant:${grantId}`,
+            feature: "workspace.subscription",
+            channel: transport.startsWith("REST")
+              ? "rest"
+              : transport.startsWith("GraphQL")
+                ? "graphql"
+                : "mcp",
+          });
+      },
     };
-  } catch (error) {
-    try {
-      await close();
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        "Subscription transport setup and cleanup failed",
-      );
-    }
-    throw error;
-  }
+  });
 }
-export type SubscriptionConnection = Awaited<
-  ReturnType<typeof openSubscriptionTransport>
->;
 
 // Each branch retains its native response contract. Only the operation and
 // fixture identifiers are shared; errors are deliberately not normalized.
@@ -311,6 +615,7 @@ export async function expectMissingSubscriptionKind(
         data: { kind: "auditor" },
       },
     );
+    await response.body();
     expect(response.status()).toBe(404);
   } else if (transport.startsWith("GraphQL")) {
     const { body } = await subscriptionGraphql(
