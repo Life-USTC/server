@@ -7,8 +7,6 @@ export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 const DB_FIXTURE_ATTEMPTS = 3;
 
 const operations = {
-  createOAuthAuthorizationFixture:
-    oauthFixtures.createOAuthAuthorizationFixture,
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
@@ -56,21 +54,6 @@ export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
     redirectUris: string[];
     scopes: string[];
   }>("createOAuthClientFixture", [options]);
-
-export const createOAuthAuthorizationFixture = (options: {
-  name: string;
-  scopes: string[];
-  userId: string;
-}) =>
-  runDbFixture<{
-    clientId: string;
-    clientSecret: string;
-    clientUri: string;
-    consentId: string;
-    name: string;
-    redirectUri: string;
-    scopes: string[];
-  }>("createOAuthAuthorizationFixture", [options]);
 
 export const deleteOAuthClientsByName = (name: string) =>
   runDbFixture<null>("deleteOAuthClientsByName", [name]);
