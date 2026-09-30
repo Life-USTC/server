@@ -5,7 +5,7 @@ import { type APIRequestContext, request } from "@playwright/test";
 import { describe, expect, it } from "vitest";
 
 describe("Playwright read-only request transport recovery", () => {
-  it.each([
+  it.for([
     {
       name: "recovers one connection reset",
       resets: 1,
