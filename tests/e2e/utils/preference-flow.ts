@@ -56,6 +56,9 @@ export async function withPreferenceFlow(
   const noScript = new Set<BrowserContext>();
   const readers = new Map<Page, ReturnType<typeof ownBrowserReads>>();
   const pending = new Set<Promise<void>>();
+  // Playwright passes the same native Request through page/context fallback.
+  // Preserve admission across a controlled request's handoff to the real proxy.
+  const admittedRequests = new WeakSet<Request>();
   // Native page acquisition/event waits need context closure to interrupt;
   // submitted HTTP requests and browser writes must settle before that close.
   const browserOperations = new Map<BrowserContext, Set<Promise<void>>>();
@@ -150,7 +153,10 @@ export async function withPreferenceFlow(
     for (const current of context.pages()) observePage(current);
     await context.route((url) => url.origin === origin, (route) => {
       const request = route.request();
-      const admitted = !closing || Boolean(request.redirectedFrom());
+      const predecessor = request.redirectedFrom();
+      const admitted = admittedRequests.has(request) || !closing ||
+        Boolean(predecessor && admittedRequests.has(predecessor));
+      if (admitted) admittedRequests.add(request);
       return own(async () => {
       if (!admitted) {
         await route.abort("aborted");
@@ -329,7 +335,9 @@ export async function withPreferenceFlow(
           async route(target, match, handler) {
             open();
             const owned = (route: Route) => {
-              const admitted = !closing;
+              const request = route.request();
+              const admitted = admittedRequests.has(request) || !closing;
+              if (admitted) admittedRequests.add(request);
               return own(async () => {
               const record = { path: new URL(route.request().url()).pathname,
                 method: route.request().method(), complete: false };
