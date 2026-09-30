@@ -83,7 +83,7 @@ requirements:
     - Cookie and Accept-Language do not change the same URL response or its public cache policy.
     - Different pages and supported filters return the correct isolated records and totals.
     test:
-      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      file: tests/integration/rest/catalog/public-lists.test.ts
       name: course.public-list-cache
 - id: course.mobile-detail-hierarchy
   category: presentation
