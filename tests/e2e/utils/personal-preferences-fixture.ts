@@ -2,58 +2,45 @@ import type { User } from "../../../src/generated/prisma-node/client";
 import { arrangeBusTimetable } from "../../shared/bus-timetable";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { DEV_SEED } from "./dev-seed";
-import { test as workerTest } from "./isolated-worker";
-import { withSettledPageWrites } from "./settled-page-writes";
+import { test as workerTest } from "./owned-worker";
+import { type PreferenceFlow, withPreferenceFlow } from "./preference-flow";
 
 export const test = workerTest.extend<{
+  preferenceFlow: PreferenceFlow;
   account: User;
-  linkAccount: User;
   pinnedAccount: User;
-  busAccount: User;
   busPreferences: User;
 }>({
-  account: async ({ isolatedWorker, page }, use) => {
-    const actor = await isolatedWorker.createActor();
-    await page.context().addCookies([actor.cookie]);
-    await use(
-      await isolatedWorker.database.owner.user.findUniqueOrThrow({
-        where: { id: actor.id },
-      }),
-    );
+  preferenceFlow: async ({ page, browser, request, isolatedWorker, run }, use, testInfo) => {
+    await run(() => withPreferenceFlow({ page, browser, observer: request, isolatedWorker, testInfo }, use));
   },
-  linkAccount: async ({ account, page }, use) => {
-    await withSettledPageWrites(
-      page,
-      (url) => url.pathname === "/api/workspace/link-pins",
-      () => use(account),
-    );
+  account: async ({ isolatedWorker, page, run, preferenceFlow: _flow }, use) => {
+    const account = await run(async () => {
+      const actor = await isolatedWorker.createActor();
+      await page.context().addCookies([actor.cookie]);
+      return isolatedWorker.database.owner.user.findUniqueOrThrow({ where: { id: actor.id } });
+    });
+    await use(account);
   },
-  pinnedAccount: async ({ isolatedWorker, linkAccount }, use) => {
-    await isolatedWorker.database.owner.workspaceLinkPin.createMany({
+  pinnedAccount: async ({ isolatedWorker, account, run }, use) => {
+    await run(() => isolatedWorker.database.owner.workspaceLinkPin.createMany({
       data: DEV_SEED.catalogLinks.pinnedSlugs.map((slug) => ({
-        userId: linkAccount.id,
+        userId: account.id,
         slug,
       })),
-    });
-    await use(linkAccount);
+    }));
+    await use(account);
   },
-  busAccount: async ({ account, page }, use) => {
-    await withSettledPageWrites(
-      page,
-      (url) => url.pathname === "/api/workspace/bus-preferences",
-      () => use(account),
-    );
-  },
-  busPreferences: async ({ isolatedWorker, busAccount }, use) => {
-    await isolatedWorker.database.owner.busUserPreference.create({
+  busPreferences: async ({ isolatedWorker, account, run }, use) => {
+    await run(() => isolatedWorker.database.owner.busUserPreference.create({
       data: {
-        userId: busAccount.id,
+        userId: account.id,
         preferredOriginCampusId: null,
         preferredDestinationCampusId: null,
         showDepartedTrips: false,
       },
-    });
-    await use(busAccount);
+    }));
+    await use(account);
   },
 });
 
@@ -61,8 +48,8 @@ export const test = workerTest.extend<{
 // state. Links tests never request this fixture or acquire bus data.
 export const busTest = test.extend<{ busTimetable: undefined }>({
   busTimetable: [
-    async ({ isolatedWorker }, use) => {
-      await arrangeBusTimetable(isolatedWorker.database.owner);
+    async ({ isolatedWorker, run }, use) => {
+      await run(() => arrangeBusTimetable(isolatedWorker.database.owner));
       await use(undefined);
     },
     { auto: true },
