@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { observeAction } from "../../../utils/observed-action";
 import { test as workerTest } from "../../../utils/owned-page";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
@@ -73,18 +74,21 @@ test("global search shortcut returns catalog results", async ({
     const dialog = page.locator('[data-slot="dialog-content"]');
     await expect(dialog).toBeVisible();
 
-    const searchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/search?q=math") &&
-        response.url().includes("locale=") &&
-        !response.url().includes("scope=workspace") &&
-        response.ok(),
+    await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/search?q=math") &&
+            response.url().includes("locale=") &&
+            !response.url().includes("scope=workspace") &&
+            response.ok(),
+        ),
+      async () => {
+        const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+        await expect(input).toBeVisible();
+        await input.pressSequentially("math", { delay: 40 });
+      },
     );
-
-    const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
-    await expect(input).toBeVisible();
-    await input.pressSequentially("math", { delay: 40 });
-    await searchResponse;
 
     await expect(
       dialog
@@ -108,18 +112,21 @@ test("global search returns Chinese catalog matches", async ({
     const dialog = page.locator('[data-slot="dialog-content"]');
     await expect(dialog).toBeVisible();
 
-    const searchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(encodeURIComponent("线性代数")) &&
-        response.url().includes("locale=") &&
-        !response.url().includes("scope=workspace") &&
-        response.ok(),
+    await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().includes(encodeURIComponent("线性代数")) &&
+            response.url().includes("locale=") &&
+            !response.url().includes("scope=workspace") &&
+            response.ok(),
+        ),
+      async () => {
+        const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+        await expect(input).toBeVisible();
+        await input.fill("线性代数");
+      },
     );
-
-    const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
-    await expect(input).toBeVisible();
-    await input.fill("线性代数");
-    await searchResponse;
 
     await expect(
       dialog
@@ -150,20 +157,24 @@ test("global search still works after interrupted IME composition", async ({
     });
     await input.fill("线性代数");
 
-    const searchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(encodeURIComponent("线性代数")) &&
-        response.ok(),
+    await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().includes(encodeURIComponent("线性代数")) &&
+            response.ok(),
+        ),
+      async () => {
+        await input.evaluate((element) => {
+          element.dispatchEvent(
+            new CompositionEvent("compositionend", { bubbles: true }),
+          );
+          element.dispatchEvent(
+            new InputEvent("input", { bubbles: true, isComposing: false }),
+          );
+        });
+      },
     );
-    await input.evaluate((element) => {
-      element.dispatchEvent(
-        new CompositionEvent("compositionend", { bubbles: true }),
-      );
-      element.dispatchEvent(
-        new InputEvent("input", { bubbles: true, isComposing: false }),
-      );
-    });
-    await searchResponse;
 
     await expect(
       dialog
@@ -219,22 +230,25 @@ test("signed-in global search returns catalog results", async ({
     expect((await session.json()).user.id).toBe(actor.id);
     await gotoAndWaitForReady(page, "/workspace/overview");
 
-    const searchResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/search") &&
-        response.url().includes(encodeURIComponent("线性代数")) &&
-        response.url().includes("locale=") &&
-        response.url().includes("scope=workspace") &&
-        response.ok(),
-    );
-
-    await page.keyboard.press("Control+k");
     const dialog = page.locator('[data-slot="dialog-content"]');
-    await expect(dialog).toBeVisible();
-    const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
-    await expect(input).toBeVisible();
-    await input.fill("线性代数");
-    const response = await searchResponse;
+    const response = await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/search") &&
+            response.url().includes(encodeURIComponent("线性代数")) &&
+            response.url().includes("locale=") &&
+            response.url().includes("scope=workspace") &&
+            response.ok(),
+        ),
+      async () => {
+        await page.keyboard.press("Control+k");
+        await expect(dialog).toBeVisible();
+        const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+        await expect(input).toBeVisible();
+        await input.fill("线性代数");
+      },
+    );
     expect(response.headers()["cache-control"]).toBe("private, no-store");
 
     await expect(
