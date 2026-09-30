@@ -3,7 +3,6 @@
  */
 import { expect, test } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import { signInAsDebugUser } from "../../../../utils/auth";
 import { openCommentComposer } from "../../../../utils/comments";
 import {
   arrangeDescription,
@@ -19,6 +18,10 @@ import {
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
+import {
+  test as overlayTest,
+  signInPrivateDebugUser,
+} from "../../catalog-personal-overlay-fixture";
 import { getDetailViewport, jumpToSection } from "./_helpers";
 
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
@@ -226,152 +229,162 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
-  test("移动端标题、流式区块与底部主操作保持可达", async ({
-    page,
-  }, testInfo) => {
-    const runtimeErrors: string[] = [];
-    page.on("console", (message) => {
-      if (message.type() === "error") runtimeErrors.push(message.text());
-    });
-    page.on("pageerror", (error) => runtimeErrors.push(error.message));
-    await page.setViewportSize({ width: 375, height: 900 });
-    await signInAsDebugUser(page, SECTION_URL);
-
-    const heading = page.getByRole("heading", { level: 1 }).first();
-    await expect(heading).toHaveCSS("font-size", "24px");
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(375);
-
-    const actions = page.getByTestId("section-mobile-primary-actions");
-    const mobileNavigation = page.getByRole("navigation", {
-      name: /移动主导航|Mobile primary navigation/i,
-    });
-    await expect(actions).toBeVisible();
-    await expect(actions).toBeInViewport();
-    const [actionsBox, navigationBox] = await Promise.all([
-      actions.boundingBox(),
-      mobileNavigation.boundingBox(),
-    ]);
-    expect(actionsBox).not.toBeNull();
-    expect(navigationBox).not.toBeNull();
-    expect(
-      (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
-    ).toBeLessThanOrEqual((navigationBox?.y ?? 0) + 1);
-    await actions
-      .getByRole("button", { name: /添加到日历|Add to calendar/i })
-      .click();
-    await expect(
-      page.locator('[data-slot="dialog-content"]').first(),
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
-
-    await jumpToSection(page, SECTION_URL, /评论|Comments/i, "#comments");
-    await expect(actions).toBeInViewport();
-    for (const width of [280, 320, 375]) {
-      await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
-      await expect(actions).toBeInViewport();
-      await expect(page.locator("#comments")).toBeVisible();
-      await expect
-        .poll(() =>
-          page.evaluate((viewportWidth) => {
-            const mobileActions = document.querySelector<HTMLElement>(
-              '[data-testid="section-mobile-primary-actions"]',
-            );
-            const actionButtons = Array.from(
-              mobileActions?.querySelectorAll<HTMLElement>("button") ?? [],
-            );
-            const actionBox = mobileActions?.getBoundingClientRect();
-            return {
-              actionButtonsFit:
-                actionBox != null &&
-                actionButtons.length === 2 &&
-                actionButtons.every((button) => {
-                  const box = button.getBoundingClientRect();
-                  return (
-                    box.left >= actionBox.left - 1 &&
-                    box.right <= actionBox.right + 1
-                  );
-                }),
-              actionLayoutMatchesWidth:
-                actionButtons.length === 2 &&
-                (viewportWidth < 360
-                  ? actionButtons[1].getBoundingClientRect().top >
-                    actionButtons[0].getBoundingClientRect().top
-                  : Math.abs(
-                      actionButtons[1].getBoundingClientRect().top -
-                        actionButtons[0].getBoundingClientRect().top,
-                    ) < 1),
-              commentComposerFits: (() => {
-                const comments =
-                  document.querySelector<HTMLElement>("#comments");
-                return (
-                  comments != null &&
-                  comments.scrollWidth <= comments.clientWidth + 1
-                );
-              })(),
-              documentFitsViewport:
-                document.documentElement.scrollWidth <=
-                document.documentElement.clientWidth,
-              windowScrollX: window.scrollX,
-            };
-          }, width),
-        )
-        .toEqual({
-          actionButtonsFit: true,
-          actionLayoutMatchesWidth: true,
-          commentComposerFits: true,
-          documentFitsViewport: true,
-          windowScrollX: 0,
+  overlayTest(
+    "移动端标题、流式区块与底部主操作保持可达",
+    async ({ page, overlay }, testInfo) => {
+      await overlay.run({ loginRedirect: SECTION_URL }, async () => {
+        const runtimeErrors: string[] = [];
+        page.on("console", (message) => {
+          if (message.type() === "error") runtimeErrors.push(message.text());
         });
-    }
-    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-    expect(
-      runtimeErrors.filter(
-        (error) =>
-          !error.startsWith(
-            "Executing inline event handler violates the following Content Security Policy directive",
-          ),
-      ),
-    ).toEqual([]);
-    await captureStepScreenshot(page, testInfo, "section/detail-mobile");
-  });
+        page.on("pageerror", (error) => runtimeErrors.push(error.message));
+        await page.setViewportSize({ width: 375, height: 900 });
+        await signInPrivateDebugUser(page, SECTION_URL);
 
-  test("移动端评论编辑器不会让详情内容列横向滚动", async ({ page }) => {
-    await signInAsDebugUser(page, SECTION_URL);
-
-    for (const width of [360, 390]) {
-      await page.setViewportSize({ width, height: 844 });
-      await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
-
-      const detailViewport = getDetailViewport(page);
-      await expect(detailViewport).toBeVisible();
-      await expect(page.locator("#comments")).toBeVisible();
-
-      const assertDetailViewportContained = async () => {
-        const metrics = await detailViewport.evaluate((element) => ({
-          clientWidth: element.clientWidth,
-          overflowX: getComputedStyle(element).overflowX,
-          scrollLeft: element.scrollLeft,
-          scrollWidth: element.scrollWidth,
-        }));
-        expect(metrics.overflowX).toBe("hidden");
-        expect(metrics.scrollLeft).toBe(0);
-        expect(metrics.scrollWidth).toBeGreaterThanOrEqual(metrics.clientWidth);
-        expect(metrics.scrollWidth - metrics.clientWidth).toBeLessThanOrEqual(
-          1,
-        );
+        const heading = page.getByRole("heading", { level: 1 }).first();
+        await expect(heading).toHaveCSS("font-size", "24px");
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
-        ).toBeLessThanOrEqual(width);
-      };
+        ).toBeLessThanOrEqual(375);
 
-      await assertDetailViewportContained();
-      await openCommentComposer(page);
-      await assertDetailViewportContained();
-    }
-  });
+        const actions = page.getByTestId("section-mobile-primary-actions");
+        const mobileNavigation = page.getByRole("navigation", {
+          name: /移动主导航|Mobile primary navigation/i,
+        });
+        await expect(actions).toBeVisible();
+        await expect(actions).toBeInViewport();
+        const [actionsBox, navigationBox] = await Promise.all([
+          actions.boundingBox(),
+          mobileNavigation.boundingBox(),
+        ]);
+        expect(actionsBox).not.toBeNull();
+        expect(navigationBox).not.toBeNull();
+        expect(
+          (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
+        ).toBeLessThanOrEqual((navigationBox?.y ?? 0) + 1);
+        await actions
+          .getByRole("button", { name: /添加到日历|Add to calendar/i })
+          .click();
+        await expect(
+          page.locator('[data-slot="dialog-content"]').first(),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
+
+        await jumpToSection(page, SECTION_URL, /评论|Comments/i, "#comments");
+        await expect(actions).toBeInViewport();
+        for (const width of [280, 320, 375]) {
+          await page.setViewportSize({ width, height: 900 });
+          await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
+          await expect(actions).toBeInViewport();
+          await expect(page.locator("#comments")).toBeVisible();
+          await expect
+            .poll(() =>
+              page.evaluate((viewportWidth) => {
+                const mobileActions = document.querySelector<HTMLElement>(
+                  '[data-testid="section-mobile-primary-actions"]',
+                );
+                const actionButtons = Array.from(
+                  mobileActions?.querySelectorAll<HTMLElement>("button") ?? [],
+                );
+                const actionBox = mobileActions?.getBoundingClientRect();
+                return {
+                  actionButtonsFit:
+                    actionBox != null &&
+                    actionButtons.length === 2 &&
+                    actionButtons.every((button) => {
+                      const box = button.getBoundingClientRect();
+                      return (
+                        box.left >= actionBox.left - 1 &&
+                        box.right <= actionBox.right + 1
+                      );
+                    }),
+                  actionLayoutMatchesWidth:
+                    actionButtons.length === 2 &&
+                    (viewportWidth < 360
+                      ? actionButtons[1].getBoundingClientRect().top >
+                        actionButtons[0].getBoundingClientRect().top
+                      : Math.abs(
+                          actionButtons[1].getBoundingClientRect().top -
+                            actionButtons[0].getBoundingClientRect().top,
+                        ) < 1),
+                  commentComposerFits: (() => {
+                    const comments =
+                      document.querySelector<HTMLElement>("#comments");
+                    return (
+                      comments != null &&
+                      comments.scrollWidth <= comments.clientWidth + 1
+                    );
+                  })(),
+                  documentFitsViewport:
+                    document.documentElement.scrollWidth <=
+                    document.documentElement.clientWidth,
+                  windowScrollX: window.scrollX,
+                };
+              }, width),
+            )
+            .toEqual({
+              actionButtonsFit: true,
+              actionLayoutMatchesWidth: true,
+              commentComposerFits: true,
+              documentFitsViewport: true,
+              windowScrollX: 0,
+            });
+        }
+        await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+        expect(
+          runtimeErrors.filter(
+            (error) =>
+              !error.startsWith(
+                "Executing inline event handler violates the following Content Security Policy directive",
+              ),
+          ),
+        ).toEqual([]);
+        await captureStepScreenshot(page, testInfo, "section/detail-mobile");
+      });
+    },
+  );
+
+  overlayTest(
+    "移动端评论编辑器不会让详情内容列横向滚动",
+    async ({ page, overlay }) => {
+      await overlay.run({ loginRedirect: SECTION_URL }, async () => {
+        await signInPrivateDebugUser(page, SECTION_URL);
+
+        for (const width of [360, 390]) {
+          await page.setViewportSize({ width, height: 844 });
+          await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
+
+          const detailViewport = getDetailViewport(page);
+          await expect(detailViewport).toBeVisible();
+          await expect(page.locator("#comments")).toBeVisible();
+
+          const assertDetailViewportContained = async () => {
+            const metrics = await detailViewport.evaluate((element) => ({
+              clientWidth: element.clientWidth,
+              overflowX: getComputedStyle(element).overflowX,
+              scrollLeft: element.scrollLeft,
+              scrollWidth: element.scrollWidth,
+            }));
+            expect(metrics.overflowX).toBe("hidden");
+            expect(metrics.scrollLeft).toBe(0);
+            expect(metrics.scrollWidth).toBeGreaterThanOrEqual(
+              metrics.clientWidth,
+            );
+            expect(
+              metrics.scrollWidth - metrics.clientWidth,
+            ).toBeLessThanOrEqual(1);
+            expect(
+              await page.evaluate(() => document.documentElement.scrollWidth),
+            ).toBeLessThanOrEqual(width);
+          };
+
+          await assertDetailViewportContained();
+          await openCommentComposer(page);
+          await assertDetailViewportContained();
+        }
+      });
+    },
+  );
 
   test("桌面端保留页首主操作并隐藏移动端操作栏", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
