@@ -88,9 +88,9 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
       ).toMatchObject({
         type: "object",
       });
-      expect(body.components?.schemas?.adminHomeworksResponseSchema).not.toEqual(
-        {},
-      );
+      expect(
+        body.components?.schemas?.adminHomeworksResponseSchema,
+      ).not.toEqual({});
 
       const adminHomeworksPageSize = body.paths?.[
         "/api/admin/homeworks"

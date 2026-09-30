@@ -22,9 +22,9 @@
  * - Search is case-insensitive across nameCn, nameEn, and code fields
  */
 import { expect } from "@playwright/test";
-import { test } from "../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
+import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/courses 接口", () => {
   test("接口契约", async ({ run, request }) => {
@@ -64,7 +64,8 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", async ({ run,
+  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", async ({
+    run,
     request,
   }) => {
     return run(async () => {
@@ -99,7 +100,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
       const invalid = await request.get("/api/catalog/courses?locale=fr-fr");
       expect(invalid.status()).toBe(400);
       expect(invalid.headers()["cache-control"]).toBe("private, no-store");
-      expect(invalid.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
+      expect(invalid.headers()["cloudflare-cdn-cache-control"]).toBe(
+        "no-store",
+      );
     });
   });
 
@@ -130,9 +133,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
       const body = (await response.json()) as {
         data?: Array<{ jwId?: number; nameCn?: string }>;
       };
-      expect(body.data?.some((item) => item.jwId === DEV_SEED.course.jwId)).toBe(
-        true,
-      );
+      expect(
+        body.data?.some((item) => item.jwId === DEV_SEED.course.jwId),
+      ).toBe(true);
     });
   });
 
@@ -240,7 +243,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
         body.sections?.length ?? 0,
       );
       expect(
-        body.sections?.some((section) => section.jwId === DEV_SEED.section.jwId),
+        body.sections?.some(
+          (section) => section.jwId === DEV_SEED.section.jwId,
+        ),
       ).toBe(true);
       const seedSection = body.sections?.find(
         (s) => s.jwId === DEV_SEED.section.jwId,

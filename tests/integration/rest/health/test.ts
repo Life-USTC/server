@@ -13,7 +13,10 @@ import { test } from "../../../e2e/utils/owned-worker";
 const BASE = "/api/health";
 
 test.describe("GET /api/health 健康检查", () => {
-  test("API 契约：匿名访问返回 200 与 plain/text ok", async ({ run, request }) => {
+  test("API 契约：匿名访问返回 200 与 plain/text ok", async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get(BASE);
 
