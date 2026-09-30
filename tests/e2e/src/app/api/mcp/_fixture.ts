@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { User } from "../../../../../../src/generated/prisma-node/client";
-import { test as workerTest } from "../../../../utils/isolated-worker";
+import { test as workerTest } from "../../../../utils/owned-worker";
 import {
   issueAccessToken,
   MCP_CLIENT_SCOPE,
@@ -18,27 +18,39 @@ export const test = workerTest.extend<{
   oauth: OAuth;
   mcp: Client;
 }>({
-  oauthOwner: async ({ isolatedWorker }, use, testInfo) => {
+  oauthOwner: async ({ isolatedWorker, run }, use, testInfo) => {
     const owner: OAuthOwner = { worker: isolatedWorker, clientNames: [] };
+    const errors: unknown[] = [];
     try {
       await use(owner);
-    } finally {
-      await testInfo.attach("oauth-owned-state", {
+    } catch (error) {
+      errors.push(error);
+    }
+    try {
+      await run(() => testInfo.attach("oauth-owned-state", {
         body: JSON.stringify({
           database: isolatedWorker.database.name,
           clientNames: owner.clientNames,
         }),
         contentType: "application/json",
-      });
+      }));
+    } catch (error) {
+      errors.push(error);
     }
+    if (errors.length === 1) throw errors[0];
+    if (errors.length)
+      throw new AggregateError(errors, "OAuth owner and evidence failed");
   },
-  oauth: async ({ oauthOwner, page }, use) => {
-    const actor = await oauthOwner.worker.createActor();
-    await page.context().addCookies([actor.cookie]);
-    const user = await oauthOwner.worker.database.owner.user.findUniqueOrThrow({
-      where: { id: actor.id },
+  oauth: async ({ oauthOwner, page, run }, use) => {
+    const oauth = await run(async () => {
+      const actor = await oauthOwner.worker.createActor();
+      await page.context().addCookies([actor.cookie]);
+      const user = await oauthOwner.worker.database.owner.user.findUniqueOrThrow({
+        where: { id: actor.id },
+      });
+      return { ...oauthOwner, user };
     });
-    await use({ ...oauthOwner, user });
+    await use(oauth);
   },
   mcp: async ({ oauth, page, request }, use) => {
     const resource = `${oauth.worker.origin}/api/mcp`;
