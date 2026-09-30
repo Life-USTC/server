@@ -5,16 +5,16 @@ import { getSignedInCatalogLinksData } from "@/features/catalog-links/server/cat
 import { updateWorkspaceLinkPinState } from "@/features/catalog-links/server/catalog-link-service";
 import { getWorkspaceLinkPinsRoute } from "@/lib/api/routes/workspace-link-pin-route";
 import { getBetterAuthInstance } from "@/lib/auth/core";
-import { isolatedMcpTest as it } from "./mcp/_harness/isolated-context";
+import { mcpProtocolTest as it } from "../shared/mcp-protocol-fixture";
 
 // The real Better Auth singleton belongs to this one-case isolated runner file.
 // It is not shared across private databases or safe for same-realm concurrency.
 it("interface-hierarchy.link-pin-read-parity", async ({
   isolatedDatabase: { owner: db },
-  mcpRuntime,
+  protocolRuntime,
   mcpSessions,
 }) => {
-  await mcpRuntime.run(async () => {
+  await protocolRuntime.run(async () => {
     const owners: { id: string; cookie: string }[] = [];
     const slugs = USTC_CATALOG_LINKS.slice(0, 6)
       .map((row) => row.slug)
@@ -54,13 +54,13 @@ it("interface-hierarchy.link-pin-read-parity", async ({
       });
     for (let index = 0; index < owners.length; index++) {
       const owner = owners[index];
-      const owned = mcpSessions.own(owner.id, ["workspace.link-pin:read"]);
-      await owned.initialize();
-      const mcp = owned.client;
-      const response = await mcpRuntime.run(() =>
+      const mcp = await mcpSessions.createMcpHarness(owner.id, [
+        "workspace.link-pin:read",
+      ]);
+      const response = await protocolRuntime.request(() =>
         getWorkspaceLinkPinsRoute(
           new Request(
-            `https://life.example/api/workspace/link-pins?userId=${owners[(index + 1) % 3].id}`,
+            `http://localhost:3000/api/workspace/link-pins?userId=${owners[(index + 1) % 3].id}`,
             { headers: { cookie: owner.cookie } },
           ),
         ),
