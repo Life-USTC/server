@@ -228,7 +228,8 @@ export async function handleMcpRequest(request: Request) {
           oauthUsage.delete(message.id);
           const outcome =
             isJSONRPCErrorResponse(message) ||
-            (isJSONRPCResultResponse(message) && message.result.isError === true)
+            (isJSONRPCResultResponse(message) &&
+              message.result.isError === true)
               ? "error"
               : "success";
           // The SDK has completed input/callback/output validation. Register

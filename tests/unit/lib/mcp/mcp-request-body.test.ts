@@ -106,25 +106,41 @@ describe("bounded MCP request bodies", () => {
     expect(result).toEqual({ body });
   });
 
-  it.each([1, "request-1"])("rejects duplicate typed request ID %s", async (id) => {
-    const result = await readMcpJsonBodyWithinLimit(post(JSON.stringify([
-      { jsonrpc: "2.0", id, method: "tools/call", params: { name: "workspace_todo_create" } },
-      { jsonrpc: "2.0", id, method: "tools/list" },
-    ])));
-    expect("response" in result && result.response.status).toBe(400);
-    if ("response" in result) {
-      await expect(result.response.json()).resolves.toEqual({
-        jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid Request" },
-      });
-    }
-  });
+  it.each([1, "request-1"])(
+    "rejects duplicate typed request ID %s",
+    async (id) => {
+      const result = await readMcpJsonBodyWithinLimit(
+        post(
+          JSON.stringify([
+            {
+              jsonrpc: "2.0",
+              id,
+              method: "tools/call",
+              params: { name: "workspace_todo_create" },
+            },
+            { jsonrpc: "2.0", id, method: "tools/list" },
+          ]),
+        ),
+      );
+      expect("response" in result && result.response.status).toBe(400);
+      if ("response" in result) {
+        await expect(result.response.json()).resolves.toEqual({
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32600, message: "Invalid Request" },
+        });
+      }
+    },
+  );
 
   it("keeps numeric and string request IDs distinct", async () => {
     const body = [
       { jsonrpc: "2.0", id: 1, method: "tools/list" },
       { jsonrpc: "2.0", id: "1", method: "tools/list" },
     ];
-    expect(await readMcpJsonBodyWithinLimit(post(JSON.stringify(body)))).toEqual({ body });
+    expect(
+      await readMcpJsonBodyWithinLimit(post(JSON.stringify(body))),
+    ).toEqual({ body });
   });
 
   it("does not reserve request IDs for notifications or responses", async () => {
@@ -135,7 +151,9 @@ describe("bounded MCP request bodies", () => {
       { jsonrpc: "2.0", id: 1, error: { code: -32603, message: "failed" } },
       { jsonrpc: "2.0", id: 1, method: "tools/list" },
     ];
-    expect(await readMcpJsonBodyWithinLimit(post(JSON.stringify(body)))).toEqual({ body });
+    expect(
+      await readMcpJsonBodyWithinLimit(post(JSON.stringify(body))),
+    ).toEqual({ body });
   });
 
   it("leaves malformed JSON-RPC entries for SDK validation", async () => {
@@ -143,15 +161,18 @@ describe("bounded MCP request bodies", () => {
       { jsonrpc: "invalid", id: 1, method: "tools/list" },
       { jsonrpc: "2.0", id: 1, method: "tools/list" },
     ];
-    expect(await readMcpJsonBodyWithinLimit(post(JSON.stringify(body)))).toEqual({ body });
+    expect(
+      await readMcpJsonBodyWithinLimit(post(JSON.stringify(body))),
+    ).toEqual({ body });
   });
 
   it("keeps the oversized batch error ahead of duplicate-ID validation", async () => {
     const body = Array.from({ length: MCP_JSON_RPC_BATCH_LIMIT + 1 }, () => ({
-      jsonrpc: "2.0", id: 1, method: "tools/list",
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
     }));
     const result = await readMcpJsonBodyWithinLimit(post(JSON.stringify(body)));
     expect("response" in result && result.response.status).toBe(413);
   });
-
 });
