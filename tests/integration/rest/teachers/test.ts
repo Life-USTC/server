@@ -22,9 +22,9 @@
  * - Results ordered by nameCn ascending
  */
 import { expect } from "@playwright/test";
-import { test } from "../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
+import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/teachers", () => {
   test("契约", async ({ run, request }) => {
@@ -173,7 +173,9 @@ test.describe("GET /api/catalog/teachers", () => {
       expect(body.code).toBe(DEV_SEED.teacher.code);
       expect(body.nameCn).toBe(DEV_SEED.teacher.nameCn);
       expect(
-        body.sections?.some((section) => section.code === DEV_SEED.section.code),
+        body.sections?.some(
+          (section) => section.code === DEV_SEED.section.code,
+        ),
       ).toBe(true);
       expect((body._count?.sections ?? 0) > 0).toBe(true);
       expect(body.sections?.length ?? 0).toBeLessThanOrEqual(20);
@@ -198,7 +200,10 @@ test.describe("GET /api/catalog/teachers", () => {
     });
   });
 
-  test("教师列表项包含所有必需的 TeacherSummary 字段", async ({ run, request }) => {
+  test("教师列表项包含所有必需的 TeacherSummary 字段", async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get(
         `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&pageSize=5`,

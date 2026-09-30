@@ -20,10 +20,10 @@
  * - campuses includes buildings relation
  */
 import { expect } from "@playwright/test";
-import { test } from "../_shared/catalog-reader-fixture";
 import { metadataResponseSchema } from "@/lib/api/schemas/academic-metadata-response-schemas";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
+import { test } from "../_shared/catalog-reader-fixture";
 
 const EXPECTED_KEYS = [
   "educationLevels",
@@ -50,12 +50,17 @@ test.describe("GET /api/catalog/metadata - 元数据字典", () => {
       expect(response.status()).toBe(200);
       const body = (await response.json()) as Record<string, unknown>;
       for (const key of EXPECTED_KEYS) {
-        expect(Array.isArray(body[key]), `${key} should be an array`).toBe(true);
+        expect(Array.isArray(body[key]), `${key} should be an array`).toBe(
+          true,
+        );
       }
     });
   });
 
-  test("seed 数据严格匹配 schema 并按 locale 推导名称", async ({ run, request }) => {
+  test("seed 数据严格匹配 schema 并按 locale 推导名称", async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/metadata?locale=en-us");
       expect(response.status()).toBe(200);

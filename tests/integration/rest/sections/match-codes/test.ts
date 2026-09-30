@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
-import { test } from "../../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
+import { test } from "../../_shared/catalog-reader-fixture";
 
 test("/api/catalog/sections/match-codes", async ({ run, request }) => {
   return run(async () => {
@@ -11,7 +11,8 @@ test("/api/catalog/sections/match-codes", async ({ run, request }) => {
   });
 });
 
-test("/api/catalog/sections/match-codes 返回 matched 与 unmatched", async ({ run,
+test("/api/catalog/sections/match-codes 返回 matched 与 unmatched", async ({
+  run,
   request,
 }) => {
   return run(async () => {

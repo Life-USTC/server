@@ -1,7 +1,7 @@
 import { type APIRequestContext, expect } from "@playwright/test";
-import { test } from "../../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
+import { test } from "../../_shared/catalog-reader-fixture";
 
 async function getSeedSectionId(request: APIRequestContext) {
   const matchResponse = await request.post(
@@ -27,7 +27,10 @@ test("/api/catalog/sections/calendar.ics 契约", async ({ run, request }) => {
   });
 });
 
-test("/api/catalog/sections/calendar.ics 返回日历文本", async ({ run, request }) => {
+test("/api/catalog/sections/calendar.ics 返回日历文本", async ({
+  run,
+  request,
+}) => {
   return run(async () => {
     const sectionId = await getSeedSectionId(request);
 
@@ -41,7 +44,8 @@ test("/api/catalog/sections/calendar.ics 返回日历文本", async ({ run, requ
   });
 });
 
-test("/api/catalog/sections/calendar.ics accepts exactly 50 unique IDs", async ({ run,
+test("/api/catalog/sections/calendar.ics accepts exactly 50 unique IDs", async ({
+  run,
   request,
 }) => {
   return run(async () => {
@@ -61,7 +65,8 @@ test("/api/catalog/sections/calendar.ics accepts exactly 50 unique IDs", async (
   });
 });
 
-test("/api/catalog/sections/calendar.ics rejects 51 unique IDs", async ({ run,
+test("/api/catalog/sections/calendar.ics rejects 51 unique IDs", async ({
+  run,
   request,
 }) => {
   return run(async () => {
@@ -77,7 +82,8 @@ test("/api/catalog/sections/calendar.ics rejects 51 unique IDs", async ({ run,
   });
 });
 
-test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", async ({ run,
+test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", async ({
+  run,
   request,
   baseURL,
 }) => {
@@ -95,7 +101,8 @@ test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", async ({ 
   });
 });
 
-test("/api/catalog/sections/calendar.ics rejects malformed IDs", async ({ run,
+test("/api/catalog/sections/calendar.ics rejects malformed IDs", async ({
+  run,
   request,
 }) => {
   return run(async () => {
