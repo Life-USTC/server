@@ -16,7 +16,10 @@ import {
 } from "@/lib/api/routes/publication-public-routes";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL as principal } from "@/lib/auth/service-principal";
-import { type IsolatedDatabase, isolatedDatabaseTest } from "./isolated-database";
+import {
+  type IsolatedDatabase,
+  isolatedDatabaseTest,
+} from "./isolated-database";
 import {
   createNodeProtocolRuntime,
   type NodeProtocolRuntime,
@@ -228,9 +231,13 @@ function ownPublicationResources(isolatedDatabase: IsolatedDatabase) {
   appConnection.searchParams.set("application_name", connectionLabel);
   const objectBodies = new Set<ReadableStream<Uint8Array>>();
   let directory: string | undefined;
-  let platform: PlatformProxy<{ R2_PUBLICATIONS: PublicationBucket }> | undefined;
+  let platform:
+    | PlatformProxy<{ R2_PUBLICATIONS: PublicationBucket }>
+    | undefined;
   let runtime: NodeProtocolRuntime | undefined;
-  let initialization: Promise<ReturnType<typeof publicationHelpers>> | undefined;
+  let initialization:
+    | Promise<ReturnType<typeof publicationHelpers>>
+    | undefined;
   let closing: Promise<void> | undefined;
 
   function initialize() {
@@ -285,7 +292,9 @@ function ownPublicationResources(isolatedDatabase: IsolatedDatabase) {
         PUBLICATION_INGESTION_SECRET: secret,
         R2_PUBLICATIONS: bucket,
         HYPERDRIVE: { connectionString: appConnection.href },
-        HYPERDRIVE_AUTH: { connectionString: isolatedDatabase.connections.auth },
+        HYPERDRIVE_AUTH: {
+          connectionString: isolatedDatabase.connections.auth,
+        },
         HYPERDRIVE_MAINTENANCE: {
           connectionString: isolatedDatabase.connections.maintenance,
         },
@@ -356,9 +365,14 @@ function ownPublicationResources(isolatedDatabase: IsolatedDatabase) {
       // Directory removal follows platform disposal; neither races active R2 IO.
       const ownedDirectory = directory;
       if (ownedDirectory)
-        await attempt(() => rm(ownedDirectory, { recursive: true, force: true }));
+        await attempt(() =>
+          rm(ownedDirectory, { recursive: true, force: true }),
+        );
       if (failures.length)
-        throw new AggregateError(failures, "Publication resources failed to close");
+        throw new AggregateError(
+          failures,
+          "Publication resources failed to close",
+        );
     })();
     return closing;
   }

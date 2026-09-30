@@ -19,7 +19,9 @@ function readSemesterSeedInserts() {
 }
 
 function readCurrentSemesterSeedInsert() {
-  const insert = readSemesterSeedInserts().find((line) => line.includes("9900001"));
+  const insert = readSemesterSeedInserts().find((line) =>
+    line.includes("9900001"),
+  );
   if (!insert) {
     throw new Error("Current semester seed INSERT is missing");
   }
@@ -27,7 +29,11 @@ function readCurrentSemesterSeedInsert() {
 }
 
 describe("named seed semester dates", () => {
-  it("keeps the current fixture active on the Shanghai calendar day", async ({ isolatedDatabase: { owner: prisma }, protocolRuntime, expect }) => {
+  it("keeps the current fixture active on the Shanghai calendar day", async ({
+    isolatedDatabase: { owner: prisma },
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
       // Execute the checked-in semester seed statements against this case's
       // empty private schema. Expected dates stay independent of the seed SQL.
@@ -35,36 +41,40 @@ describe("named seed semester dates", () => {
         for (const insert of readSemesterSeedInserts())
           await tx.$executeRawUnsafe(insert);
       });
-    const [current, previous] = await Promise.all([
-      prisma.semester.findUnique({
-        where: { jwId: DEV_SEED.semesterJwId },
-        select: { startDate: true, endDate: true },
-      }),
-      prisma.semester.findUnique({
-        where: { jwId: DEV_SEED.previousSemesterJwId },
-        select: { startDate: true, endDate: true },
-      }),
-    ]);
+      const [current, previous] = await Promise.all([
+        prisma.semester.findUnique({
+          where: { jwId: DEV_SEED.semesterJwId },
+          select: { startDate: true, endDate: true },
+        }),
+        prisma.semester.findUnique({
+          where: { jwId: DEV_SEED.previousSemesterJwId },
+          select: { startDate: true, endDate: true },
+        }),
+      ]);
 
-    expect(current).toBeTruthy();
-    expect(previous).toBeTruthy();
-    if (!current || !previous || !current.startDate || !current.endDate) {
-      throw new Error("Named semester fixtures are missing date ranges");
-    }
+      expect(current).toBeTruthy();
+      expect(previous).toBeTruthy();
+      if (!current || !previous || !current.startDate || !current.endDate) {
+        throw new Error("Named semester fixtures are missing date ranges");
+      }
 
-    const today = formatShanghaiDate(new Date());
-    const currentEnd = current.endDate.toISOString().slice(0, 10);
-    expect(current.startDate.toISOString().slice(0, 10)).toBe("2026-04-08");
-    expect(currentEnd >= today).toBe(true);
-    expect(previous.startDate?.toISOString().slice(0, 10)).toBe("2025-10-21");
-    expect(previous.endDate?.toISOString().slice(0, 10)).toBe("2026-03-30");
+      const today = formatShanghaiDate(new Date());
+      const currentEnd = current.endDate.toISOString().slice(0, 10);
+      expect(current.startDate.toISOString().slice(0, 10)).toBe("2026-04-08");
+      expect(currentEnd >= today).toBe(true);
+      expect(previous.startDate?.toISOString().slice(0, 10)).toBe("2025-10-21");
+      expect(previous.endDate?.toISOString().slice(0, 10)).toBe("2026-03-30");
     });
   });
 
-  it("refreshes the current fixture horizon when reseeded in a later year", async ({ isolatedDatabase: { owner: prisma }, protocolRuntime, expect }) => {
+  it("refreshes the current fixture horizon when reseeded in a later year", async ({
+    isolatedDatabase: { owner: prisma },
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
-    await prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe(`
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(`
         CREATE TEMP TABLE seed_semester (
           id integer PRIMARY KEY,
           "jwId" integer UNIQUE NOT NULL,
@@ -75,27 +85,30 @@ describe("named seed semester dates", () => {
         ) ON COMMIT DROP
       `);
 
-      const seedInsert = readCurrentSemesterSeedInsert();
-      const reseedAt = async (timestamp: string) => {
-        await tx.$executeRawUnsafe(
-          seedInsert.replace("CURRENT_TIMESTAMP", `TIMESTAMPTZ '${timestamp}'`),
-        );
-        return tx.$queryRawUnsafe<
-          Array<{ startDate: string; endDate: string }>
-        >(
-          `SELECT "startDate"::text AS "startDate", "endDate"::text AS "endDate"
+        const seedInsert = readCurrentSemesterSeedInsert();
+        const reseedAt = async (timestamp: string) => {
+          await tx.$executeRawUnsafe(
+            seedInsert.replace(
+              "CURRENT_TIMESTAMP",
+              `TIMESTAMPTZ '${timestamp}'`,
+            ),
+          );
+          return tx.$queryRawUnsafe<
+            Array<{ startDate: string; endDate: string }>
+          >(
+            `SELECT "startDate"::text AS "startDate", "endDate"::text AS "endDate"
            FROM pg_temp.seed_semester
            WHERE "jwId" = 9900001`,
-        );
-      };
+          );
+        };
 
-      await expect(reseedAt("2026-09-10 15:59:59+00")).resolves.toEqual([
-        { startDate: "2026-04-08", endDate: "2027-03-09" },
-      ]);
-      await expect(reseedAt("2030-01-02 16:00:00+00")).resolves.toEqual([
-        { startDate: "2026-04-08", endDate: "2030-07-02" },
-      ]);
-    });
+        await expect(reseedAt("2026-09-10 15:59:59+00")).resolves.toEqual([
+          { startDate: "2026-04-08", endDate: "2027-03-09" },
+        ]);
+        await expect(reseedAt("2030-01-02 16:00:00+00")).resolves.toEqual([
+          { startDate: "2026-04-08", endDate: "2030-07-02" },
+        ]);
+      });
     });
   });
 });

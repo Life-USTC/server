@@ -6,8 +6,14 @@ import { publicationFetchTest as it } from "../shared/publication-object-fixture
 
 it("publications.image-archive", async ({ publication, fetchSpy }) => {
   await publication.run(async () => {
-    const { bucket, marker, fixture, responseStatus, registerImage, imageRead } =
-      publication;
+    const {
+      bucket,
+      marker,
+      fixture,
+      responseStatus,
+      registerImage,
+      imageRead,
+    } = publication;
     const f = await fixture("image-archive");
     const img = await registerImage(
       f,

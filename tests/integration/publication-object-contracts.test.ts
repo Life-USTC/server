@@ -44,9 +44,9 @@ it("publications.objects", async ({ publication }) => {
       customMetadata: { kind: f.object.kind, sha256: f.object.sha256 },
     });
     if (!stored) throw new Error("Expected stored publication bytes");
-    expect(new Uint8Array(await new Response(stored.body).arrayBuffer())).toEqual(
-      f.bytes,
-    );
+    expect(
+      new Uint8Array(await new Response(stored.body).arrayBuffer()),
+    ).toEqual(f.bytes);
     expect(await objectRow(f)).toMatchObject({
       status: "linked",
       verifiedAt: expect.any(Date),
@@ -149,8 +149,16 @@ it("publications.unchanged-objects", async ({ publication }) => {
 
 it("publications.content-type", async ({ publication }) => {
   await publication.run(async () => {
-    const { db, fixture, ingest, responseStatus, plan, upload, read, objectRow } =
-      publication;
+    const {
+      db,
+      fixture,
+      ingest,
+      responseStatus,
+      plan,
+      upload,
+      read,
+      objectRow,
+    } = publication;
     const f = await fixture("content-type", "text/plain");
     const item = f.payload.items[0];
     if (item.tombstone) throw new Error("Expected live revision");
@@ -181,9 +189,9 @@ it("publications.content-type", async ({ publication }) => {
     ).toBe(400);
     for (const status of ["pending", "linked"] as const) {
       if (status === "linked")
-        expect(await responseStatus(upload(f, { batchId: alias.batchId }))).toBe(
-          200,
-        );
+        expect(
+          await responseStatus(upload(f, { batchId: alias.batchId })),
+        ).toBe(200);
       const conflict = {
         ...alias,
         batchId: `${f.payload.batchId}-size-${status}`,
@@ -310,7 +318,8 @@ it("publications.publication-markdown", async ({ publication }) => {
       registerImage,
     } = publication;
     const f = await fixture("markdown");
-    const detail = () => runtime(() => getPublicPublicationById(f.publicationId));
+    const detail = () =>
+      runtime(() => getPublicPublicationById(f.publicationId));
     expect((await detail())?.revision).toMatchObject({
       bodyMarkdown: null,
       bodyText: "Never use bodyText as Markdown",
@@ -358,7 +367,9 @@ it("publications.publication-markdown", async ({ publication }) => {
           ...item,
           revisionHash: "c".repeat(64),
           observedAt: "2026-09-03",
-          objects: [{ ...f.object, kind: "body_html", contentType: "text/html" }],
+          objects: [
+            { ...f.object, kind: "body_html", contentType: "text/html" },
+          ],
         },
       ],
     });
@@ -471,7 +482,9 @@ it("publications.object-cache-revalidation", async ({ publication }) => {
     const revoked = await read(f, { "If-None-Match": etag });
     expect(revoked.status).toBe(404);
     expect(revoked.headers.get("cache-control")).toBe("private, no-store");
-    expect(await revoked.text()).not.toContain(new TextDecoder().decode(f.bytes));
+    expect(await revoked.text()).not.toContain(
+      new TextDecoder().decode(f.bytes),
+    );
   });
 });
 
