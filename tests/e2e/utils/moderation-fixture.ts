@@ -173,7 +173,9 @@ export const test = adminTest.extend<{
                           select: { action: true },
                           orderBy: { action: "asc" },
                         })
-                      ).map(({ action }) => action),
+                      )
+                        .map(({ action }) => action)
+                        .sort(),
                     ).toEqual([
                       "admin_comment_moderate",
                       "admin_user_suspend",
