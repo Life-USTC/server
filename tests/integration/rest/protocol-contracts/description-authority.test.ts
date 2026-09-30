@@ -65,7 +65,11 @@ for (const transport of transports) {
           const edits = await h.db.descriptionEdit.findMany({
             where: { descriptionId: row.id },
             orderBy: { createdAt: "asc" },
-            select: { editorId: true, previousContent: true, nextContent: true },
+            select: {
+              editorId: true,
+              previousContent: true,
+              nextContent: true,
+            },
           });
           expect(edits).toEqual([
             ...(previous
@@ -84,7 +88,9 @@ for (const transport of transports) {
             },
           ]);
           expect(
-            await h.db.description.count({ where: { sectionId: h.section.id } }),
+            await h.db.description.count({
+              where: { sectionId: h.section.id },
+            }),
           ).toBe(1);
           expect(await c.effects()).toEqual(onePurge);
         });

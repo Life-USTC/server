@@ -66,9 +66,12 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
         where: { id: { not: recent.id } },
         orderBy: { id: "asc" },
       });
-      const softbanResponse = await admin.request.patch(`${BASE}/${recent.id}`, {
-        data: { status: "softbanned", moderationNote: "e2e moderation test" },
-      });
+      const softbanResponse = await admin.request.patch(
+        `${BASE}/${recent.id}`,
+        {
+          data: { status: "softbanned", moderationNote: "e2e moderation test" },
+        },
+      );
       expect(softbanResponse.status()).toBe(200);
       const softbanBody = await softbanResponse.json();
       expect(softbanBody.comment).toMatchObject({
