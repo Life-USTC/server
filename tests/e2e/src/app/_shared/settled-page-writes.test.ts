@@ -553,3 +553,135 @@ test("interruption during preparation does not start a late business callback", 
     await fixture;
   }
 });
+
+for (const interrupted of [false, true]) {
+  test(`pre-fetch PUT gate releases before drain after ${interrupted ? "fixture interruption" : "body failure"}`, async ({
+    page,
+    endpoint,
+  }) => {
+    const beforePut = createDeferred();
+    const releasePut = createDeferred();
+    const failBody = createDeferred();
+    const bodyError = new Error("Original gated PUT body failure");
+    const useError = new Error("Fixture use ended before PUT was sent");
+    const events: string[] = [];
+    let nativeBodyError: unknown;
+    endpoint.release();
+    page.on("close", () => events.push("page closed"));
+    const failure = withBrowserWorkflow(page, async (workflow) => {
+      const operation = workflow.run(() =>
+        withSettledPageWrites(
+          page,
+          /\/write$/,
+          async () => {
+            try {
+              await workflow.body(async () => {
+                await openWriter(page, endpoint, "PUT");
+                await page
+                  .getByRole("button", { name: "Write", exact: true })
+                  .click();
+                await beforePut.promise;
+                if (interrupted) {
+                  try {
+                    await page.waitForResponse(
+                      (response) => new URL(response.url()).pathname === "/never",
+                    );
+                  } catch (error) {
+                    nativeBodyError = error;
+                    throw error;
+                  }
+                } else {
+                  await failBody.promise;
+                  throw bodyError;
+                }
+              });
+            } finally {
+              events.push("wrapper body ended");
+              releasePut.resolve();
+            }
+          },
+          async (response) => {
+            expect(response.status()).toBe(200);
+            events.push("write observed");
+          },
+          async (request) => {
+            expect(request.method()).toBe("PUT");
+            events.push("PUT gated");
+            beforePut.resolve();
+            await releasePut.promise;
+            events.push("PUT released");
+          },
+        ),
+      );
+      await Promise.race([
+        beforePut.promise,
+        operation.then(() => {
+          throw new Error("Workflow completed before the PUT gate");
+        }),
+      ]);
+      // A real independent round trip confirms that the server is alive while
+      // the original browser PUT remains held before route.fetch.
+      expect((await page.request.get(endpoint.origin)).status()).toBe(200);
+      expect(endpoint.writes).toEqual([]);
+      expect(page.isClosed()).toBe(false);
+      expect(events).toEqual(["PUT gated"]);
+      if (interrupted) throw useError;
+      failBody.resolve();
+      await operation;
+    }).catch((error: unknown) => error);
+    let error: unknown;
+    try {
+      error = await failure;
+    } finally {
+      releasePut.resolve();
+      failBody.resolve();
+      await failure;
+    }
+    expect(events).toEqual([
+      "PUT gated",
+      "wrapper body ended",
+      "PUT released",
+      "write observed",
+      "page closed",
+    ]);
+    expect(endpoint.writes).toEqual([
+      { method: "PUT", path: "/write", body: "owned write" },
+    ]);
+    const errors = workflowErrors(error);
+    if (interrupted) {
+      expect(errors).toContain(useError);
+      expect(nativeBodyError).toBeInstanceOf(Error);
+      expect(String(nativeBodyError)).toContain("closed");
+      expect(errors).toContain(nativeBodyError);
+    } else {
+      expect(errors).toEqual([bodyError]);
+    }
+    expect(page.isClosed()).toBe(true);
+  });
+}
+
+test("pre-fetch failure aborts the paused browser write without sending it", async ({
+  page,
+  endpoint,
+}) => {
+  const hookError = new Error("Original pre-fetch failure");
+  const failure = await withSettledPageWrites(
+    page,
+    /\/write$/,
+    async () => {
+      await openWriter(page, endpoint, "PUT");
+      const failed = page.waitForEvent("requestfailed", {
+        predicate: (request) => new URL(request.url()).pathname === "/write",
+      });
+      await page.getByRole("button", { name: "Write", exact: true }).click();
+      expect((await failed).failure()?.errorText).toBe("net::ERR_ABORTED");
+    },
+    undefined,
+    async () => {
+      throw hookError;
+    },
+  ).catch((error: unknown) => error);
+  expect(workflowErrors(failure)).toEqual([hookError]);
+  expect(endpoint.writes).toEqual([]);
+  expect(page.isClosed()).toBe(true);
+});

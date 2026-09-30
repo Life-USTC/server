@@ -1,22 +1,14 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
-import {
-  OAUTH_DEVICE_CODE_GRANT_TYPE,
-  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-} from "@/lib/oauth/constants";
+import { expect, type Locator, type Page } from "@playwright/test";
 import en from "../../../../../messages/en-us.json" with { type: "json" };
 import zh from "../../../../../messages/zh-cn.json" with { type: "json" };
 import { sha256Base64Url } from "../../../../shared/crypto";
-import { DEV_SEED } from "../../../utils/dev-seed";
 import {
-  createOAuthAuthorizationFixture,
-  createOAuthClientFixture,
-  ensureLinkedAccountFixture,
-  PLAYWRIGHT_BASE_URL,
-} from "../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+  type AccountPriorityFixture as Fixture,
+  test,
+} from "../../../utils/account-priority-fixture";
+import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { assertPriorityView } from "../../../utils/property-priority";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 const oauthScopeLabel = (
   locale: "en-us" | "zh-cn",
@@ -47,124 +39,6 @@ const fact = (scope: Locator, label: string) =>
     .locator("dl > div")
     .filter({ has: scope.page().getByText(label, { exact: true }) })
     .locator("dd");
-
-async function makeFixture() {
-  const marker = crypto.randomUUID();
-  const now = new Date(Math.floor(Date.now() / 60000) * 60000);
-  const user = await withE2ePrisma((db) =>
-    db.user.create({
-      data: {
-        name: "Priority account",
-        username: `pf${marker.replaceAll("-", "").slice(0, 12)}`,
-        email: `${marker}@example.test`,
-        isAdmin: true,
-        image: "/images/priority-current.svg",
-        profilePictures: [
-          "/images/priority-current.svg",
-          "/images/priority-alternate.svg",
-        ],
-      },
-    }),
-  );
-  const authorization = await createOAuthAuthorizationFixture({
-    name: "Priority Calendar",
-    scopes: ["profile", "workspace.calendar:read"],
-    userId: user.id,
-  });
-  const client = await createOAuthClientFixture({
-    name: "Priority Device",
-    clientId: `https://priority-app.example.test/${marker}/client.json`,
-    scopes: ["openid", "profile"],
-    tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-    grantTypes: ["authorization_code", OAUTH_DEVICE_CODE_GRANT_TYPE],
-    redirectUris: ["https://priority-callback.example.test/return"],
-  });
-  const account = await ensureLinkedAccountFixture({
-    userId: user.id,
-    provider: "github",
-    providerAccountId: `priority-${marker}`,
-  });
-  const records = await withE2ePrisma(async (db) => {
-    await db.oAuthClient.update({
-      where: { clientId: authorization.clientId },
-      data: { disabled: true },
-    });
-    await db.oAuthClient.update({
-      where: { clientId: client.clientId },
-      data: { uri: "https://priority-app.example.test" },
-    });
-    const consent = await db.oAuthConsent.update({
-      where: { id: authorization.consentId },
-      data: { updatedAt: now },
-    });
-    await db.oAuthGrantUsageDaily.create({
-      data: {
-        userId: user.id,
-        clientId: authorization.clientId,
-        grantId: consent.grantId,
-        grantKey: `grant:${consent.grantId}`,
-        day: new Date(
-          `${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(now)}T00:00:00Z`,
-        ),
-        feature: "workspace.calendar",
-        channel: "mcp",
-        readCount: 7,
-        writeCount: 3,
-        errorCount: 2,
-        lastUsedAt: now,
-      },
-    });
-    const event = await db.auditLog.create({
-      data: {
-        action: "account_profile_update",
-        outcome: "success",
-        channel: "web",
-        userId: user.id,
-        subjectUserId: user.id,
-        oauthClientId: authorization.clientId,
-        createdAt: now,
-        ipAddress: "203.0.113.42",
-        userAgent:
-          "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/130.0 Safari/537.36",
-      },
-    });
-    const passkey = await db.passkey.create({
-      data: {
-        userId: user.id,
-        name: "Priority laptop",
-        publicKey: "priority-fixture-public-key",
-        credentialID: marker,
-        counter: 0,
-        deviceType: "singleDevice",
-        backedUp: false,
-        createdAt: now,
-      },
-    });
-    return { event, passkey };
-  });
-  return {
-    user,
-    authorization,
-    client,
-    account,
-    now,
-    ...records,
-    async cleanup() {
-      await withE2ePrisma(async (db) => {
-        await db.auditLog.deleteMany({
-          where: { OR: [{ userId: user.id }, { subjectUserId: user.id }] },
-        });
-        await db.oAuthClient.deleteMany({
-          where: {
-            clientId: { in: [authorization.clientId, client.clientId] },
-          },
-        });
-        await db.user.delete({ where: { id: user.id } });
-      });
-    },
-  };
-}
-type Fixture = Awaited<ReturnType<typeof makeFixture>>;
 
 async function checkProfile(page: Page, fixture: Fixture, welcome = false) {
   const scope = page.locator("#main-content");
@@ -292,11 +166,14 @@ for (const locale of ["en-us", "zh-cn"] as const)
   for (const width of [1280, 390]) {
     test(`ui.model-property-priority-account-views ${locale}/${width}`, async ({
       page,
+      isolatedWorker,
+      accountPriority: fixture,
+      accountPriorityDb: accountDb,
+      accountPriorityRun,
     }, testInfo) => {
       test.setTimeout(180_000);
       page.setDefaultTimeout(10_000);
-      const fixture = await makeFixture();
-      try {
+      await accountPriorityRun(async () => {
         await page.route("**/images/priority-*.svg", (route) =>
           route.fulfill({
             contentType: "image/svg+xml",
@@ -305,7 +182,9 @@ for (const locale of ["en-us", "zh-cn"] as const)
         );
         await page
           .context()
-          .addCookies([await createSignedSessionCookie(fixture.user.id)]);
+          .addCookies([
+            (await isolatedWorker.createSession(fixture.user.id)).cookie,
+          ]);
 
         const copy = locale === "en-us" ? en : zh;
         await page.setViewportSize({ width, height: 900 });
@@ -409,7 +288,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
         });
         await checkAuthorizations(page, fixture, locale);
 
-        await withE2ePrisma((db) =>
+        await accountDb((db) =>
           db.user.update({
             where: { id: fixture.user.id },
             data: { name: "", username: null },
@@ -419,7 +298,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
         await checkProfile(page, fixture, true);
         await page.getByRole("button", { name: /继续|Continue/i }).click();
         await expect(page).toHaveURL(/step=subscriptions/);
-        const semester = await withE2ePrisma((db) =>
+        const semester = await accountDb((db) =>
           db.semester.findUniqueOrThrow({
             where: { jwId: DEV_SEED.semesterJwId },
           }),
@@ -490,9 +369,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
         });
 
         await checkOAuthViews(page, fixture, locale);
-      } finally {
-        await fixture.cleanup();
-      }
+      });
     });
   }
 
@@ -549,13 +426,13 @@ async function checkOAuthViews(
     "/api/auth/oauth2/device-authorization",
     {
       headers: {
-        origin: PLAYWRIGHT_BASE_URL,
+        origin: fixture.origin,
         "content-type": "application/x-www-form-urlencoded",
       },
       data: new URLSearchParams({
         client_id: fixture.client.clientId,
         scope: "openid profile",
-        resource: `${PLAYWRIGHT_BASE_URL}/api/mcp`,
+        resource: `${fixture.origin}/api/mcp`,
       }).toString(),
     },
   );
@@ -575,8 +452,8 @@ async function checkOAuthViews(
     },
     secondary: {
       "resources.name": text(
-        main.getByText(`${PLAYWRIGHT_BASE_URL}/api/mcp`, { exact: true }),
-        `${PLAYWRIGHT_BASE_URL}/api/mcp`,
+        main.getByText(`${fixture.origin}/api/mcp`, { exact: true }),
+        `${fixture.origin}/api/mcp`,
       ),
     },
     tertiary: {},

@@ -1,4 +1,4 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Locator } from "@playwright/test";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import enMessages from "../../../../../messages/en-us.json" with {
   type: "json",
@@ -7,35 +7,36 @@ import zhMessages from "../../../../../messages/zh-cn.json" with {
   type: "json",
 };
 import {
-  cleanupCommunityPriorityFixture,
-  createCommunityPriorityFixture,
   PRIORITY_AVATAR,
+  test,
 } from "../../../utils/community-priority-fixture";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   assertPriorityView,
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 for (const locale of ["en-us", "zh-cn"] as const)
   for (const width of [390, 1280]) {
     test(`ui.model-property-priority-community-views ${locale}/${width}`, async ({
       page,
       baseURL,
+      isolatedWorker,
+      communityPriority: f,
+      communityPriorityDb: communityDb,
+      communityPriorityRun,
+      communityUploadGate,
     }, testInfo) => {
       test.setTimeout(240_000);
       page.setDefaultTimeout(10_000);
       if (!baseURL) throw new Error("Missing baseURL");
-      const f = await createCommunityPriorityFixture(page);
       if (!f.author.name) throw new Error("Missing author name");
       const authorName = f.author.name;
       if (!f.description.lastEditedAt || !f.edit.previousContent)
         throw new Error("Missing description fixture fields");
       const editedAt = f.description.lastEditedAt;
       const previousContent = f.edit.previousContent;
-      try {
+      await communityPriorityRun(async () => {
         await page
           .context()
           .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
@@ -72,7 +73,9 @@ for (const locale of ["en-us", "zh-cn"] as const)
         }
         await page
           .context()
-          .addCookies([await createSignedSessionCookie(f.author.id)]);
+          .addCookies([
+            (await isolatedWorker.createSession(f.author.id)).cookie,
+          ]);
         await gotoAndWaitForReady(page, `/catalog/courses/${f.course.jwId}`);
         const comment = page.locator(`#comment-${f.comment.id}`);
         await expect(comment).toBeVisible();
@@ -199,7 +202,9 @@ for (const locale of ["en-us", "zh-cn"] as const)
 
         await page
           .context()
-          .addCookies([await createSignedSessionCookie(f.author.id)]);
+          .addCookies([
+            (await isolatedWorker.createSession(f.author.id)).cookie,
+          ]);
         await gotoAndWaitForReady(page, "/workspace/uploads");
         const main = page.locator("main");
         const row =
@@ -242,7 +247,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           })
           .click();
         const dialog = page.getByRole("dialog");
-        const suspension = await withE2ePrisma((db) =>
+        const suspension = await communityDb((db) =>
           db.userSuspension.create({
             data: { userId: f.author.id, reason: "Priority upload feedback" },
           }),
@@ -261,7 +266,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
             .click();
           expect((await rejected).status()).toBe(403);
           expect(
-            await withE2ePrisma((db) =>
+            await communityDb((db) =>
               db.upload.findUniqueOrThrow({
                 where: { id: f.upload.id },
                 select: { filename: true, updatedAt: true },
@@ -293,7 +298,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
             "manage",
           );
         } finally {
-          await withE2ePrisma((db) =>
+          await communityDb((db) =>
             db.userSuspension.delete({ where: { id: suspension.id } }),
           );
         }
@@ -376,16 +381,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
         await composer
           .getByRole("button", { name: m.comments.postAction, exact: true })
           .click();
-        let releasePut!: () => void;
-        const putGate = new Promise<void>((resolve) => {
-          releasePut = resolve;
-        });
-        const routePattern = "**/api/workspace/uploads/object?*";
-        const handler = async (route: import("@playwright/test").Route) => {
-          await putGate;
-          await route.continue();
-        };
-        await page.route(routePattern, handler);
+        const { resolve: releasePut } = communityUploadGate;
         const imageName = "community-preview.png";
         let uploadedId: string | undefined;
         try {
@@ -463,7 +459,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
           );
         } finally {
           releasePut();
-          await page.unrouteAll({ behavior: "wait" });
           if (uploadedId)
             expect(
               (
@@ -473,8 +468,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
               ).status(),
             ).toBe(200);
         }
-      } finally {
-        await cleanupCommunityPriorityFixture(page, f);
-      }
+      });
     });
   }
