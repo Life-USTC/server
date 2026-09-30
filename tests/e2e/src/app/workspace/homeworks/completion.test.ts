@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
+import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -49,14 +50,18 @@ test.describe("仪表盘作业", () => {
         const before =
           (await completionButton.getAttribute("aria-label"))?.trim() ?? "";
 
-        const completionResponse = page.waitForResponse(
-          (r) =>
-            r.url().includes("/api/workspace/homeworks/") &&
-            r.url().includes("/completion") &&
-            r.status() === 200,
+        await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/api/workspace/homeworks/") &&
+                r.url().includes("/completion") &&
+                r.status() === 200,
+            ),
+          async () => {
+            await completionButton.click();
+          },
         );
-        await completionButton.click();
-        await completionResponse;
         await expect(completionButton).not.toHaveAttribute(
           "aria-label",
           before,
@@ -81,14 +86,18 @@ test.describe("仪表盘作业", () => {
         );
 
         // Clearing completion is a second UI transition on the same owned homework.
-        const restoreResponse = page.waitForResponse(
-          (r) =>
-            r.url().includes("/api/workspace/homeworks/") &&
-            r.url().includes("/completion") &&
-            r.status() === 200,
+        await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/api/workspace/homeworks/") &&
+                r.url().includes("/completion") &&
+                r.status() === 200,
+            ),
+          async () => {
+            await completionButton.click();
+          },
         );
-        await completionButton.click();
-        await restoreResponse;
         expect(
           await storedHomeworkCompletion(account.id, homeworks[0].id),
         ).toBeNull();
@@ -146,14 +155,18 @@ test.describe("仪表盘作业", () => {
           .first();
         await expect(completionButton).toBeVisible();
 
-        const completionResponse = page.waitForResponse(
-          (r) =>
-            r.url().includes("/api/workspace/homeworks/") &&
-            r.url().includes("/completion") &&
-            r.status() === 500,
+        await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/api/workspace/homeworks/") &&
+                r.url().includes("/completion") &&
+                r.status() === 500,
+            ),
+          async () => {
+            await completionButton.click();
+          },
         );
-        await completionButton.click();
-        await completionResponse;
 
         await expect(
           page.getByText(/更新完成状态失败|Couldn't update completion/i),
