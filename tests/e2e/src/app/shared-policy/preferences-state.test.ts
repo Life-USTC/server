@@ -1,7 +1,10 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../utils/account-fixture";
 import { observeAction } from "../../../utils/observed-action";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 
 test("ui.settings-navigation-4", async ({
   run,
@@ -93,6 +96,8 @@ test("ui.settings-navigation-4", async ({
         await expect(
           page.getByRole("region", { name: region, exact: true }),
         ).toBeVisible();
+        // The translated SSR region appears before its controls are hydrated.
+        await waitForUiSettled(page);
         await expect(page).toHaveURL(/\/account\/settings\/preferences$/);
         await expect(page.locator("html")).toHaveAttribute(
           "data-theme",
