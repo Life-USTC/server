@@ -239,13 +239,16 @@ test("interface-hierarchy.shared-delete-error-parity", async ({ h, run }) => {
     expect(await db.comment.findUnique({ where: { id: locked.id } })).toEqual(
       locked,
     );
-    expect(await db.homework.findUnique({ where: { id: homework.id } })).toEqual(
-      homework,
-    );
+    expect(
+      await db.homework.findUnique({ where: { id: homework.id } }),
+    ).toEqual(homework);
   });
 });
 
-test("interface-hierarchy.suspended-delete-error-parity", async ({ h, run }) => {
+test("interface-hierarchy.suspended-delete-error-parity", async ({
+  h,
+  run,
+}) => {
   await run(async () => {
     const db = h.db;
     const f = {
@@ -288,9 +291,9 @@ test("interface-hierarchy.suspended-delete-error-parity", async ({ h, run }) => 
     expect(await db.comment.findUnique({ where: { id: comment.id } })).toEqual(
       comment,
     );
-    expect(await db.homework.findUnique({ where: { id: homework.id } })).toEqual(
-      homework,
-    );
+    expect(
+      await db.homework.findUnique({ where: { id: homework.id } }),
+    ).toEqual(homework);
     expect(await db.upload.findUnique({ where: { id: upload.id } })).toEqual(
       upload,
     );
@@ -538,7 +541,9 @@ for (const surface of transports) {
                 await db.upload.findUnique({ where: { id: row.id } }),
               ).toEqual(row);
               expect(await auditCount()).toBe(0);
-              const bytes = await fetch(storageUrl, { headers: storageHeaders });
+              const bytes = await fetch(storageUrl, {
+                headers: storageHeaders,
+              });
               expect(bytes.status).toBe(200);
               expect(await bytes.text()).toBe(content);
             } finally {
@@ -556,7 +561,9 @@ for (const surface of transports) {
           "storage_delete_failed",
           observePending(true),
         );
-        expect(JSON.stringify(rejected)).not.toContain("private-storage-failure");
+        expect(JSON.stringify(rejected)).not.toContain(
+          "private-storage-failure",
+        );
         expect(await db.upload.findUnique({ where: { id: row.id } })).toEqual(
           row,
         );
@@ -580,7 +587,9 @@ for (const surface of transports) {
         expect(
           (await fetch(storageUrl, { headers: storageHeaders })).status,
         ).toBe(404);
-        expect(await db.upload.findUnique({ where: { id: row.id } })).toBeNull();
+        expect(
+          await db.upload.findUnique({ where: { id: row.id } }),
+        ).toBeNull();
         expect(await auditCount()).toBe(1);
         expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
         expect(await readProbe()).toMatchObject({ attempts: 4, pending: 0 });

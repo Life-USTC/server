@@ -148,7 +148,9 @@ for (const transport of transports) {
       const { homework } = await prepare(h);
       const original = await shared(h);
       for (const actor of h.actors) {
-        const foreign = (await rows(h)).filter((row) => row.userId !== actor.id);
+        const foreign = (await rows(h)).filter(
+          (row) => row.userId !== actor.id,
+        );
         for (const completed of [false, true]) {
           await update(h, transport, actor, homework.id, completed);
           expect(
@@ -179,9 +181,10 @@ for (const transport of transports) {
           ),
           reason,
         );
-        expect({ entities: await shared(h), completions: await rows(h) }).toEqual(
-          before,
-        );
+        expect({
+          entities: await shared(h),
+          completions: await rows(h),
+        }).toEqual(before);
       }
     });
   });
