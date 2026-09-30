@@ -1,9 +1,11 @@
 import { expect, type Page } from "@playwright/test";
 import type { AuditAction } from "@/generated/prisma/client";
 import {
-  type IsolatedWorker,
-  test as workerTest,
-} from "../../../utils/isolated-worker";
+  type CommunityFlow,
+  withCommunityFlow,
+} from "../../../utils/community-flow";
+import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { test as workerTest } from "../../../utils/owned-page";
 
 async function setup(page: Page, worker: IsolatedWorker) {
   const db = worker.database.owner;
@@ -71,10 +73,30 @@ async function setup(page: Page, worker: IsolatedWorker) {
 
 export const test = workerTest.extend<{
   audit: Awaited<ReturnType<typeof setup>>;
+  auditFlow: CommunityFlow;
 }>({
-  audit: async ({ page, isolatedWorker }, use) => {
+  audit: async ({ page, isolatedWorker, run }, use) => {
     // The enclosing Worker owns all records and DDL, including partial setup.
     // Stop it before dropping the database; a failed body need not restore it.
-    await use(await setup(page, isolatedWorker));
+    await use(await run(() => setup(page, isolatedWorker)));
+  },
+  auditFlow: async (
+    { page, browser, request: observer, isolatedWorker, audit, run },
+    use,
+    testInfo,
+  ) => {
+    await run(() =>
+      withCommunityFlow(
+        {
+          page,
+          browser,
+          observer,
+          isolatedWorker,
+          account: audit.admin,
+          testInfo,
+        },
+        use,
+      ),
+    );
   },
 });

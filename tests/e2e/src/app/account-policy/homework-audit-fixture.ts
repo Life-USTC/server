@@ -1,15 +1,17 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import {
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { restWriteScope } from "@/lib/oauth/scope-registry";
-import {
-  type IsolatedWorker,
-  test as workerTest,
-} from "../../../utils/isolated-worker";
+import { adminWriteChecks } from "../../../utils/admin-fixture";
+import { withBrowserWorkflow } from "../../../utils/browser-workflow";
+import { withCalendarProtocol } from "../../../utils/calendar-protocol-lifecycle";
+import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
+import { expectOAuthUsage } from "../../../utils/oauth-usage";
+import { test as workerTest } from "../../../utils/owned-worker";
 
 async function setup(page: Page, worker: IsolatedWorker) {
   const db = worker.database.owner;
@@ -89,9 +91,153 @@ async function setup(page: Page, worker: IsolatedWorker) {
 }
 
 export type HomeworkAudit = Awaited<ReturnType<typeof setup>>;
-export const test = workerTest.extend<{ homework: HomeworkAudit }>({
-  homework: async ({ page, isolatedWorker }, use) => {
-    // Setup, real device grants and any installed DDL share this owned Worker.
-    await use(await setup(page, isolatedWorker));
+type HomeworkAction = "create" | "update" | "delete";
+export const test = workerTest.extend<{
+  homeworkRun: (
+    action: HomeworkAction,
+    work: (fixture: HomeworkAudit) => Promise<void>,
+  ) => Promise<void>;
+}>({
+  homeworkRun: async (
+    { page, request: observer, playwright, isolatedWorker, run },
+    use,
+    testInfo,
+  ) => {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use((action, work) =>
+        workflow.run(() =>
+          run(() => {
+            const writes = {
+              create: [
+                ["POST", "/api/community/section-homeworks", 500],
+                ["POST", "/api/community/section-homeworks", 201],
+              ],
+              update: [
+                ["PATCH", /^\/api\/community\/section-homeworks\/[^/]+$/, 500],
+                ["PATCH", /^\/api\/community\/section-homeworks\/[^/]+$/, 200],
+              ],
+              delete: [
+                ["DELETE", /^\/api\/community\/section-homeworks\/[^/]+$/, 500],
+                ["DELETE", /^\/api\/community\/section-homeworks\/[^/]+$/, 200],
+              ],
+            } as const;
+            const checks = adminWriteChecks(
+              [],
+              [
+                ["POST", "/api/auth/oauth2/device-authorization", 200],
+                ["POST", "/oauth/device", 303],
+                ["POST", "/api/auth/oauth2/token", 200],
+                ...writes[action],
+              ],
+            );
+            return withCalendarProtocol(
+              {
+                page,
+                observer,
+                isolatedWorker,
+                testInfo,
+                runBody: workflow.body,
+                createRequest: (headers) =>
+                  playwright.request.newContext({
+                    baseURL: isolatedWorker.origin,
+                    extraHTTPHeaders: headers,
+                  }),
+                verifyBrowserWrite: checks.verifyBrowserWrite,
+              },
+              async (io) => {
+                // The device authorization requests and their bodies share this owner.
+                const fixture = await setup(page, isolatedWorker);
+                await io.observeCalendar(
+                  fixture.user,
+                  [{ type: "section", sectionId: fixture.section.id }],
+                  { sectionId: fixture.section.id, calendar: "absent" },
+                );
+                const start = Date.now();
+                await work(fixture);
+                const end = Date.now();
+                return {
+                  verifyTransport: ({ effects, sdkRequests }) =>
+                    checks.verifyTransport({ producer: effects, sdkRequests }),
+                  async verifyState() {
+                    const { db, user, client, grant, section } = fixture;
+                    expect(
+                      await db.auditLog.findMany({
+                        where: {
+                          action: {
+                            in: [
+                              "homework_create",
+                              "homework_update",
+                              "homework_delete",
+                            ],
+                          },
+                        },
+                        select: {
+                          action: true,
+                          outcome: true,
+                          userId: true,
+                          oauthClientId: true,
+                          oauthGrantId: true,
+                        },
+                      }),
+                    ).toEqual([
+                      {
+                        action: `homework_${action}`,
+                        outcome: "success",
+                        userId: user.id,
+                        oauthClientId: client.clientId,
+                        oauthGrantId: grant.grantId,
+                      },
+                    ]);
+                    expect(
+                      await db.oAuthConsent.findMany({
+                        select: {
+                          userId: true,
+                          clientId: true,
+                          grantId: true,
+                          scopes: true,
+                          resources: true,
+                        },
+                      }),
+                    ).toEqual([
+                      {
+                        userId: user.id,
+                        clientId: client.clientId,
+                        grantId: grant.grantId,
+                        scopes: ["community.section-homework:write"],
+                        resources: [`${isolatedWorker.origin}/api/auth`],
+                      },
+                    ]);
+                    expectOAuthUsage(
+                      await db.oAuthGrantUsageDaily.findMany({
+                        orderBy: { day: "asc" },
+                      }),
+                      {
+                        dimensions: {
+                          userId: user.id,
+                          clientId: client.clientId,
+                          grantId: grant.grantId,
+                          feature: "community.section-homework",
+                          channel: "rest",
+                        },
+                        counts: [0, 2, 1],
+                        windows: [
+                          { start, end, operation: "write error" },
+                          { start, end, operation: "write" },
+                        ],
+                      },
+                    );
+                    expect(
+                      await db.homework.count({
+                        where: { sectionId: section.id },
+                      }),
+                    ).toBe(1);
+                  },
+                };
+              },
+            );
+          }),
+        ),
+      );
+    });
   },
 });

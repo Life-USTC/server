@@ -48,142 +48,151 @@ async function rejectAudit(f: HomeworkAudit) {
     );
 }
 
-test("audit.action-homework-create", async ({ page, homework: f }) => {
-  const restore = await rejectAudit(f);
-  expect(
-    (
-      await page.request.post("/api/community/section-homeworks", {
+test("audit.action-homework-create", async ({ page, homeworkRun }) => {
+  await homeworkRun("create", async (f) => {
+    const restore = await rejectAudit(f);
+    expect(
+      (
+        await page.request.post("/api/community/section-homeworks", {
+          data: f.input,
+          headers: f.headers,
+        })
+      ).status(),
+    ).toBe(500);
+    expect(await f.db.homework.count({ where: { title: f.title } })).toBe(0);
+    await restore();
+
+    const response = await page.request.post(
+      "/api/community/section-homeworks",
+      {
         data: f.input,
         headers: f.headers,
-      })
-    ).status(),
-  ).toBe(500);
-  expect(await f.db.homework.count({ where: { title: f.title } })).toBe(0);
-  await restore();
+      },
+    );
+    expect(response.status()).toBe(201);
+    const body = await response.json();
 
-  const response = await page.request.post("/api/community/section-homeworks", {
-    data: f.input,
-    headers: f.headers,
-  });
-  expect(response.status()).toBe(201);
-  const body = await response.json();
-
-  expect(
-    await f.db.homework.findUniqueOrThrow({
-      where: { id: body.id },
-      include: { description: { include: { edits: true } } },
-    }),
-  ).toMatchObject({
-    title: f.title,
-    createdById: f.user.id,
-    description: {
-      content: f.content,
-      edits: [expect.objectContaining({ nextContent: f.content })],
-    },
-  });
-  await audit(f, body.id, "homework_create", [
-    "title",
-    "isMajor",
-    "requiresTeam",
-    "publishedAt",
-    "submissionStartAt",
-    "submissionDueAt",
-    "description",
-  ]);
-});
-
-test("audit.action-homework-update", async ({ page, homework: f }) => {
-  const creator = await f.db.user.create({
-    data: {
-      username: "private-homework-creator",
-      name: "Another private homework author",
-      email: "private-homework-creator@example.test",
-    },
-  });
-  const homework = await f.db.homework.create({
-    data: {
-      sectionId: f.section.id,
-      title: f.title,
-      createdById: creator.id,
-    },
-  });
-
-  const restore = await rejectAudit(f);
-  const data = { title: `${f.title} edited`, description: f.content };
-  expect(
-    (
-      await page.request.patch(
-        `/api/community/section-homeworks/${homework.id}`,
-        { data, headers: f.headers },
-      )
-    ).status(),
-  ).toBe(500);
-  expect(
-    await f.db.homework.findUniqueOrThrow({
-      where: { id: homework.id },
-      include: { description: true },
-    }),
-  ).toMatchObject({ title: f.title, description: null });
-  await restore();
-
-  expect(
-    (
-      await page.request.patch(
-        `/api/community/section-homeworks/${homework.id}`,
-        { data, headers: f.headers },
-      )
-    ).status(),
-  ).toBe(200);
-  expect(
-    await f.db.homework.findUniqueOrThrow({
-      where: { id: homework.id },
-      include: { description: true },
-    }),
-  ).toMatchObject({
-    title: data.title,
-    createdById: creator.id,
-    updatedById: f.user.id,
-    description: { content: f.content },
-  });
-  await audit(f, homework.id, "homework_update", ["description", "title"]);
-});
-
-test("audit.action-homework-delete", async ({ page, homework: f }) => {
-  const homework = await f.db.homework.create({
-    data: {
-      sectionId: f.section.id,
+    expect(
+      await f.db.homework.findUniqueOrThrow({
+        where: { id: body.id },
+        include: { description: { include: { edits: true } } },
+      }),
+    ).toMatchObject({
       title: f.title,
       createdById: f.user.id,
-    },
+      description: {
+        content: f.content,
+        edits: [expect.objectContaining({ nextContent: f.content })],
+      },
+    });
+    await audit(f, body.id, "homework_create", [
+      "title",
+      "isMajor",
+      "requiresTeam",
+      "publishedAt",
+      "submissionStartAt",
+      "submissionDueAt",
+      "description",
+    ]);
   });
+});
 
-  const restore = await rejectAudit(f);
-  expect(
-    (
-      await page.request.delete(
-        `/api/community/section-homeworks/${homework.id}`,
-        { headers: f.headers },
-      )
-    ).status(),
-  ).toBe(500);
-  expect(
-    (await f.db.homework.findUniqueOrThrow({ where: { id: homework.id } }))
-      .deletedAt,
-  ).toBeNull();
-  await restore();
+test("audit.action-homework-update", async ({ page, homeworkRun }) => {
+  await homeworkRun("update", async (f) => {
+    const creator = await f.db.user.create({
+      data: {
+        username: "private-homework-creator",
+        name: "Another private homework author",
+        email: "private-homework-creator@example.test",
+      },
+    });
+    const homework = await f.db.homework.create({
+      data: {
+        sectionId: f.section.id,
+        title: f.title,
+        createdById: creator.id,
+      },
+    });
 
-  expect(
-    (
-      await page.request.delete(
-        `/api/community/section-homeworks/${homework.id}`,
-        { headers: f.headers },
-      )
-    ).status(),
-  ).toBe(200);
-  expect(
-    (await f.db.homework.findUniqueOrThrow({ where: { id: homework.id } }))
-      .deletedAt,
-  ).toBeInstanceOf(Date);
-  const row = await audit(f, homework.id, "homework_delete");
-  expect(row.metadata).toEqual({ sectionId: f.section.id });
+    const restore = await rejectAudit(f);
+    const data = { title: `${f.title} edited`, description: f.content };
+    expect(
+      (
+        await page.request.patch(
+          `/api/community/section-homeworks/${homework.id}`,
+          { data, headers: f.headers },
+        )
+      ).status(),
+    ).toBe(500);
+    expect(
+      await f.db.homework.findUniqueOrThrow({
+        where: { id: homework.id },
+        include: { description: true },
+      }),
+    ).toMatchObject({ title: f.title, description: null });
+    await restore();
+
+    expect(
+      (
+        await page.request.patch(
+          `/api/community/section-homeworks/${homework.id}`,
+          { data, headers: f.headers },
+        )
+      ).status(),
+    ).toBe(200);
+    expect(
+      await f.db.homework.findUniqueOrThrow({
+        where: { id: homework.id },
+        include: { description: true },
+      }),
+    ).toMatchObject({
+      title: data.title,
+      createdById: creator.id,
+      updatedById: f.user.id,
+      description: { content: f.content },
+    });
+    await audit(f, homework.id, "homework_update", ["description", "title"]);
+  });
+});
+
+test("audit.action-homework-delete", async ({ page, homeworkRun }) => {
+  await homeworkRun("delete", async (f) => {
+    const homework = await f.db.homework.create({
+      data: {
+        sectionId: f.section.id,
+        title: f.title,
+        createdById: f.user.id,
+      },
+    });
+
+    const restore = await rejectAudit(f);
+    expect(
+      (
+        await page.request.delete(
+          `/api/community/section-homeworks/${homework.id}`,
+          { headers: f.headers },
+        )
+      ).status(),
+    ).toBe(500);
+    expect(
+      (await f.db.homework.findUniqueOrThrow({ where: { id: homework.id } }))
+        .deletedAt,
+    ).toBeNull();
+    await restore();
+
+    expect(
+      (
+        await page.request.delete(
+          `/api/community/section-homeworks/${homework.id}`,
+          { headers: f.headers },
+        )
+      ).status(),
+    ).toBe(200);
+    expect(
+      (await f.db.homework.findUniqueOrThrow({ where: { id: homework.id } }))
+        .deletedAt,
+    ).toBeInstanceOf(Date);
+    const row = await audit(f, homework.id, "homework_delete");
+    expect(row.metadata).toEqual({ sectionId: f.section.id });
+  });
 });
