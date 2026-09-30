@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import type { YoungEvent } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { withBrowserWorkflow } from "./browser-workflow";
+import { fulfillFetchedResponse } from "./fulfill-fetched-response";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
 
@@ -429,7 +430,7 @@ export const test = workerTest.extend<{
                       } finally {
                         await settleEffects();
                       }
-                      await route.fulfill({ response });
+                      await fulfillFetchedResponse(route, response);
                     } catch (error) {
                       errors.push(error);
                       try {
