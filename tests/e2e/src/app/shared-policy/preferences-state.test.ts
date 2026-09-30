@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../utils/account-fixture";
+import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 test("ui.settings-navigation-4", async ({
@@ -71,13 +72,17 @@ test("ui.settings-navigation-4", async ({
         ["zh-cn", "中文", "偏好设置"],
         ["en-us", "English", "Preferences"],
       ]) {
-        const responsePromise = page.waitForResponse(
-          (response) =>
-            new URL(response.url()).pathname === "/api/account/preferences" &&
-            response.request().method() === "POST",
+        const response = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname ===
+                  "/api/account/preferences" &&
+                response.request().method() === "POST",
+            ),
+          () =>
+            page.getByRole("radio", { name: language, exact: true }).click(),
         );
-        await page.getByRole("radio", { name: language, exact: true }).click();
-        const response = await responsePromise;
         expect(response.status()).toBe(200);
         expect(response.request().postDataJSON()).toEqual({ locale });
         expect(

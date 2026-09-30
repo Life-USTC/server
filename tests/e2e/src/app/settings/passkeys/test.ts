@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -414,13 +415,16 @@ test.describe("/account/settings/accounts 通行密钥", () => {
         passkeyCard.getByRole("button", { name: /重试|Retry/i }),
       ).toBeVisible();
       await page.unroute("**/api/auth/passkey/list-user-passkeys");
-      const reloaded = page.waitForResponse(
-        (response) =>
-          new URL(response.url()).pathname ===
-          "/api/auth/passkey/list-user-passkeys",
+      const reloaded = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname ===
+              "/api/auth/passkey/list-user-passkeys",
+          ),
+        () => passkeyCard.getByRole("button", { name: /重试|Retry/i }).click(),
       );
-      await passkeyCard.getByRole("button", { name: /重试|Retry/i }).click();
-      expect((await reloaded).status()).toBe(200);
+      expect(reloaded.status()).toBe(200);
       await expect(
         passkeyCard.getByText(/无法加载通行密钥|Unable to load passkeys/i),
       ).toHaveCount(0);

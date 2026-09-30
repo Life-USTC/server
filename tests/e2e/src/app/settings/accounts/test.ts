@@ -24,6 +24,7 @@
  */
 import { expect } from "@playwright/test";
 import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
+import { observeAction } from "../../../../utils/observed-action";
 
 import {
   gotoAndWaitForReady,
@@ -96,20 +97,21 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
         await waitForUiSettled(page);
         await expect(connectButton).toBeEnabled();
 
-        const linkActionRequestPromise = page.waitForRequest(
-          (request) => {
-            const url = new URL(request.url());
-            return (
-              request.method() === "POST" &&
-              url.pathname === "/account/settings/accounts" &&
-              url.search.includes("/linkAccount")
-            );
-          },
-          { timeout: 15_000 },
+        await observeAction(
+          () =>
+            page.waitForRequest(
+              (request) => {
+                const url = new URL(request.url());
+                return (
+                  request.method() === "POST" &&
+                  url.pathname === "/account/settings/accounts" &&
+                  url.search.includes("/linkAccount")
+                );
+              },
+              { timeout: 15_000 },
+            ),
+          () => connectButton.click(),
         );
-
-        await connectButton.click();
-        await linkActionRequestPromise;
 
         try {
           await captureStepScreenshot(

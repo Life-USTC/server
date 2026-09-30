@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/account-fixture";
 import { expectRequiresSignIn } from "../../../../utils/auth";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
@@ -119,16 +120,20 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
       async () => {
         await gotoAndWaitForReady(page, "/account/settings/preferences");
 
-        const localeResponse = page.waitForResponse(
-          (response) =>
-            response.url().endsWith("/api/account/preferences") &&
-            response.request().method() === "POST",
+        const localeResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().endsWith("/api/account/preferences") &&
+                response.request().method() === "POST",
+            ),
+          () =>
+            page
+              .getByRole("region", { name: /偏好设置|Preferences/i })
+              .getByRole("radio", { name: /^English$/i })
+              .click(),
         );
-        await page
-          .getByRole("region", { name: /偏好设置|Preferences/i })
-          .getByRole("radio", { name: /^English$/i })
-          .click();
-        expect((await localeResponse).status()).toBe(200);
+        expect(localeResponse.status()).toBe(200);
 
         await expect(page).toHaveURL(/\/account\/settings\/preferences$/);
         await expect(page).not.toHaveURL(/\/(?:zh-cn|en-us)\//);
