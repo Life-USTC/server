@@ -50,7 +50,7 @@ export const workspaceRuntimeTest = isolatedDatabaseTest.extend<{
 export const workspaceStateTest = workspaceRuntimeTest.extend<{
   workspace: WorkspaceState;
 }>({
-  workspace: async ({ isolatedDatabase, workspaceRuntime }, use) => {
+  workspace: async ({ isolatedDatabase, workspaceRuntime, task }, use) => {
     const db = isolatedDatabase.owner;
     const userId = "workspace-owner";
     await workspaceRuntime.run(() =>
@@ -58,6 +58,7 @@ export const workspaceStateTest = workspaceRuntimeTest.extend<{
         data: { id: userId, email: `${userId}@test.invalid` },
       }),
     );
+    task.context.signal.throwIfAborted();
     await use({ db, userId, runtime: workspaceRuntime.run });
   },
 });

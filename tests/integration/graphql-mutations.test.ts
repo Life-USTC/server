@@ -18,8 +18,8 @@ const mutationScopes = [
 
 const it = isolatedGraphqlTest
   .extend({ graphqlLocale: "zh-cn" as const })
-  .extend("mutations", async ({ isolatedDatabase, graphqlRuntime }) => {
-    return graphqlRuntime.run(async () => {
+  .extend("mutations", async ({ isolatedDatabase, graphqlRuntime, task }) => {
+    const mutations = await graphqlRuntime.run(async () => {
       const fixturePrisma = isolatedDatabase.owner;
       const marker = `[integration-test] graphql-mutations-${crypto.randomUUID().slice(0, 12)}`;
       const oauthClientId = `graphql-mutations-${crypto.randomUUID()}`;
@@ -110,6 +110,8 @@ const it = isolatedGraphqlTest
           graphqlRuntime.signToken(userId, oauthClientId, scopes),
       };
     });
+    task.context.signal.throwIfAborted();
+    return mutations;
   });
 
 function expectErrorCode(payload: GraphqlPayload, code: string) {
