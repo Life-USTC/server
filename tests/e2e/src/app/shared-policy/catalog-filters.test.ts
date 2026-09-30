@@ -1,8 +1,8 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
-import { test } from "../../../utils/personal-preferences-fixture";
 import { openCatalogFilterSheet } from "../../../utils/catalog-filter-sheet";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test } from "../../../utils/personal-preferences-fixture";
 
 async function cases(db: TestPrismaClient) {
   return db.$transaction(async (db) => {
@@ -16,7 +16,12 @@ async function cases(db: TestPrismaClient) {
       data: { nameCn: "筛选教学班类型", nameEn: "Filter class type" },
     });
     const department = await db.department.create({
-      data: { jwId: 1, code: "FILTER-DEPT", nameCn: "筛选院系", nameEn: "Filter department" },
+      data: {
+        jwId: 1,
+        code: "FILTER-DEPT",
+        nameCn: "筛选院系",
+        nameEn: "Filter department",
+      },
     });
     const campus = await db.campus.create({
       data: { jwId: 1, nameCn: "筛选校区", nameEn: "Filter campus" },
@@ -56,7 +61,8 @@ async function cases(db: TestPrismaClient) {
         teachers: { connect: { id: teacher.id } },
       },
     });
-    if (!teacher.code) throw new Error("Filter fixture teacher requires a public code");
+    if (!teacher.code)
+      throw new Error("Filter fixture teacher requires a public code");
     const courseFilters = {
       educationLevelId: String(course.educationLevelId),
       categoryId: String(course.categoryId),

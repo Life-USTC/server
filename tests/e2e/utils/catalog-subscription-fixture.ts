@@ -1,7 +1,7 @@
 import { withBrowserWorkflow } from "./browser-workflow";
 import {
-  type HomeworkEffects,
   type HomeworkEffectContext,
+  type HomeworkEffects,
   withHomeworkEffects,
 } from "./homework-effects";
 import { test as workerTest } from "./owned-worker";

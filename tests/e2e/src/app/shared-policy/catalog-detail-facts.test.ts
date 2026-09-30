@@ -1,8 +1,6 @@
 import { expect, type Locator } from "@playwright/test";
+import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import { test } from "../../../utils/catalog-subscription-fixture";
-import {
-  createCatalogContractFixture,
-} from "../../../../shared/catalog-contract-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 function requiredText(value: string | null) {
@@ -19,60 +17,72 @@ async function reachable(locator: Locator) {
   await expect(locator).toBeInViewport();
 }
 
-test("ui.detail-two-column-stream-4", async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+test("ui.detail-two-column-stream-4", async ({
+  page,
+  isolatedWorker,
+  run,
+  catalogSubscriptionRun,
+}) => {
   // Three viewport matrices each exercise three routes, navigation, and writes.
   // Keep the per-action deadlines while budgeting 30 seconds per viewport.
   test.setTimeout(90_000);
   const db = isolatedWorker.database.owner;
   const fixture = await run(() => createCatalogContractFixture(db));
-  const { user, classType, courseType } = await run(() => db.$transaction(async (db) => {
-    await db.semester.update({
-      where: { id: fixture.semester.id },
-      data: { nameCn: "2026年秋季学期" },
-    });
-    const classType = await db.classType.create({
-      data: {
-        nameCn: `分类${fixture.marker}`,
-        nameEn: `Class ${fixture.marker}`,
-      },
-    });
-    const courseType = await db.courseType.create({
-      data: {
-        nameCn: `类型${fixture.marker}`,
-        nameEn: `Type ${fixture.marker}`,
-      },
-    });
-    await db.course.update({
-      where: { id: fixture.courses[0].id },
-      data: { classTypeId: classType.id, typeId: courseType.id },
-    });
-    // Teacher URLs use internal IDs; make the cache key unique across fresh databases.
-    fixture.teachers[0] = await db.teacher.update({
-      where: { id: fixture.teachers[0].id },
-      data: { id: fixture.base + 50 },
-    });
-    await db.section.update({
-      where: { id: fixture.sections[0].id },
-      data: {
-        credits: 3.5,
-        period: 32,
-        actualPeriods: 30,
-        stdCount: 12,
-        limitCount: 40,
-      },
-    });
-    const user = await db.user.create({
-      data: {
-        email: `${fixture.marker}@example.test`,
-        name: "Catalog facts viewer",
-        username: fixture.marker,
-      },
-    });
-    return { user, classType, courseType };
-  }));
+  const { user, classType, courseType } = await run(() =>
+    db.$transaction(async (db) => {
+      await db.semester.update({
+        where: { id: fixture.semester.id },
+        data: { nameCn: "2026年秋季学期" },
+      });
+      const classType = await db.classType.create({
+        data: {
+          nameCn: `分类${fixture.marker}`,
+          nameEn: `Class ${fixture.marker}`,
+        },
+      });
+      const courseType = await db.courseType.create({
+        data: {
+          nameCn: `类型${fixture.marker}`,
+          nameEn: `Type ${fixture.marker}`,
+        },
+      });
+      await db.course.update({
+        where: { id: fixture.courses[0].id },
+        data: { classTypeId: classType.id, typeId: courseType.id },
+      });
+      // Teacher URLs use internal IDs; make the cache key unique across fresh databases.
+      fixture.teachers[0] = await db.teacher.update({
+        where: { id: fixture.teachers[0].id },
+        data: { id: fixture.base + 50 },
+      });
+      await db.section.update({
+        where: { id: fixture.sections[0].id },
+        data: {
+          credits: 3.5,
+          period: 32,
+          actualPeriods: 30,
+          stdCount: 12,
+          limitCount: 40,
+        },
+      });
+      const user = await db.user.create({
+        data: {
+          email: `${fixture.marker}@example.test`,
+          name: "Catalog facts viewer",
+          username: fixture.marker,
+        },
+      });
+      return { user, classType, courseType };
+    }),
+  );
   await catalogSubscriptionRun(
     user,
-    { calendarMessages: Array.from({ length: 6 }, () => ({ type: "user" as const, userId: user.id })) },
+    {
+      calendarMessages: Array.from({ length: 6 }, () => ({
+        type: "user" as const,
+        userId: user.id,
+      })),
+    },
     async () => {
       await page.context().clearCookies();
       await page
@@ -129,7 +139,10 @@ test("ui.detail-two-column-stream-4", async ({ page, isolatedWorker, run, catalo
             await expect(page.getByRole("heading", { level: 1 })).toContainText(
               teacher.nameEn ?? teacher.nameCn,
             );
-            await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}`);
+            await gotoAndWaitForReady(
+              page,
+              `/catalog/sections/${section.jwId}`,
+            );
             const actions =
               width >= 1024
                 ? page.getByTestId("detail-pinned-summary")
@@ -161,14 +174,24 @@ test("ui.detail-two-column-stream-4", async ({ page, isolatedWorker, run, catalo
             const [subscribed] = await Promise.all([
               page.waitForResponse((response) => {
                 const url = new URL(response.url());
-                return url.pathname === `/catalog/sections/${section.jwId}` &&
-                  url.search === "?/subscribe" && response.request().method() === "POST";
+                return (
+                  url.pathname === `/catalog/sections/${section.jwId}` &&
+                  url.search === "?/subscribe" &&
+                  response.request().method() === "POST"
+                );
               }),
-              subscription.getByRole("button", { name: "Subscribe to section", exact: true }).click(),
+              subscription
+                .getByRole("button", {
+                  name: "Subscribe to section",
+                  exact: true,
+                })
+                .click(),
             ]);
             expect(subscribed.status()).toBe(200);
             expect(await subscribed.json()).toMatchObject({
-              type: "redirect", status: 303, location: `/catalog/sections/${section.jwId}`,
+              type: "redirect",
+              status: 303,
+              location: `/catalog/sections/${section.jwId}`,
             });
             const unsubscribe = actions.getByRole("button", {
               name: "Unsubscribe from section",
@@ -187,14 +210,19 @@ test("ui.detail-two-column-stream-4", async ({ page, isolatedWorker, run, catalo
             const [unsubscribed] = await Promise.all([
               page.waitForResponse((response) => {
                 const url = new URL(response.url());
-                return url.pathname === `/catalog/sections/${section.jwId}` &&
-                  url.search === "?/unsubscribe" && response.request().method() === "POST";
+                return (
+                  url.pathname === `/catalog/sections/${section.jwId}` &&
+                  url.search === "?/unsubscribe" &&
+                  response.request().method() === "POST"
+                );
               }),
               unsubscribe.click(),
             ]);
             expect(unsubscribed.status()).toBe(200);
             expect(await unsubscribed.json()).toMatchObject({
-              type: "redirect", status: 303, location: `/catalog/sections/${section.jwId}`,
+              type: "redirect",
+              status: 303,
+              location: `/catalog/sections/${section.jwId}`,
             });
             await expect(subscribe).toBeVisible();
             await expect
