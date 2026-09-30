@@ -19,7 +19,8 @@
  * - Filter params preserved in URL and restrict results
  * - Search supports nameCn, nameEn, and code fields
  */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "../../../utils/catalog-search-fixture";
 import {
   arrangeCourses,
   test as catalogTest,
@@ -29,7 +30,6 @@ import {
   openCatalogFilterSheet,
 } from "../../../utils/catalog-filter-sheet";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { getSeedCourseFilterFixture } from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
 import {
   expectNoPageHorizontalOverflow,
@@ -40,182 +40,226 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/courses 课程目录", () => {
-  test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/catalog/courses", testInfo });
-  });
-
-  test("SSR 输出包含搜索查询", async ({ baseURL }) => {
-    const response = await fetch(
-      absoluteTestUrl(
-        `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-        baseURL,
-      ),
-    );
-    expect(response.status).toBe(200);
-    const html = await response.text();
-    expect(html).toContain('id="main-content"');
-    expect(html).toContain(DEV_SEED.course.code);
-  });
-
-  test("无匹配课程时显示明确空状态且不渲染结果链接", async ({ page }) => {
-    await gotoAndWaitForReady(
-      page,
-      "/catalog/courses?search=e2e-no-matching-course-7f3c9a",
-    );
-
-    await expect(page.getByText(/未找到课程|No courses found/i)).toBeVisible();
-    await expect(
-      page.locator("#main-content a[href^='/catalog/courses/']"),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("link", { name: /^(清除|Clear)$/i }),
-    ).toBeVisible();
-  });
-
-  test("目录链接悬停时不预取 __data.json", async ({ page }) => {
-    await gotoAndWaitForReady(
-      page,
-      `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-    );
-    const courseLink = page
-      .locator(
-        `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
-      )
-      .first();
-    await expect(courseLink).toBeVisible();
-
-    const dataJsonDuringHover = page
-      .waitForRequest((request) => request.url().includes("__data.json"), {
-        timeout: 750,
-      })
-      .then(() => true)
-      .catch(() => false);
-
-    await courseLink.hover();
-    expect(await dataJsonDuringHover).toBe(false);
-  });
-
-  test("语言切换正常工作", async ({ page, baseURL }, testInfo) => {
-    await gotoAndWaitForReady(page, "/catalog/courses", {
-      testInfo,
-      screenshotLabel: "courses",
-    });
-
-    const localeResponse = await fetch(
-      absoluteTestUrl("/api/account/preferences", baseURL),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ locale: "en-us" }),
-      },
-    );
-    expect(localeResponse.status).toBe(200);
-
-    await page.context().addCookies([
-      {
-        name: "NEXT_LOCALE",
-        value: "en-us",
-        url: absoluteTestUrl("/", baseURL),
-        sameSite: "Lax",
-      },
-    ]);
-
-    await gotoAndWaitForReady(page, "/catalog/courses", {
-      testInfo,
-      screenshotLabel: "courses",
-    });
-    await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
-    await expect(
-      page.getByRole("navigation", { name: "Primary navigation" }),
-    ).toHaveCount(1);
-    await expect(
-      page.getByRole("navigation", { name: "Footer navigation" }),
-    ).toHaveCount(1);
-    await captureStepScreenshot(page, testInfo, "courses-en-us");
-
-    await page
-      .getByRole("button", { name: /语言选择|Language selector/i })
-      .click();
-    await page
-      .getByRole("menuitemradio", { name: /中文|Chinese/i })
-      .first()
-      .click();
-
-    await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
-    await expect(page.getByRole("navigation", { name: "主导航" })).toHaveCount(
-      1,
-    );
-    await expect(
-      page.getByRole("navigation", { name: "页脚导航" }),
-    ).toHaveCount(1);
-    await captureStepScreenshot(page, testInfo, "courses-zh-cn");
-  });
-
-  test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(
-      page,
-      `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-      { testInfo, screenshotLabel: "courses-list" },
-    );
-    await expectNoPageHorizontalOverflow(page);
-    await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
-    await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-    await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
-    await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
-    const courseCode = page
-      .locator('[data-slot="catalog-code"]')
-      .filter({ hasText: DEV_SEED.course.code })
-      .first();
-    await expect(courseCode).toBeVisible();
-    await expect(
-      courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
-    ).toHaveCount(0);
-    await expectCatalogFilterSheet(page, [
-      /培养层次|Education Level/i,
-      /类别|Category/i,
-      /课程类型|Class Type/i,
-    ]);
-
-    const detailLink = page
-      .locator(
-        `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
-      )
-      .first();
-    await expect(detailLink).toBeVisible();
-    const box = await detailLink.boundingBox();
-    expect(box?.width ?? 0).toBeGreaterThan(250);
-    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
-    await captureStepScreenshot(page, testInfo, "courses-mobile-list");
-    await detailLink.click();
-    await expect(page).toHaveURL(
-      new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}`),
-    );
-    await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
-  });
-
-  test("280 至 1440 像素通过筛选面板提供课程高级筛选", async ({
+  test("页面契约", async ({
     page,
+    preferenceFlow,
+    searchCourse: _searchCourse,
   }, testInfo) => {
-    for (const width of [280, 320, 375, 1024, 1280, 1440]) {
-      await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/catalog/courses");
+    await preferenceFlow.run(async () => {
+      await assertPageContract(page, { routePath: "/catalog/courses", testInfo });
+    });
+  });
+
+  test("SSR 输出包含搜索查询", async ({
+    baseURL,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const response = await fetch(
+        absoluteTestUrl(
+          `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+          baseURL,
+        ),
+        { headers: preferenceFlow.headers },
+      );
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain('id="main-content"');
+      expect(html).toContain(DEV_SEED.course.code);
+    });
+  });
+
+  test("无匹配课程时显示明确空状态且不渲染结果链接", async ({
+    page,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(
+        page,
+        "/catalog/courses?search=e2e-no-matching-course-7f3c9a",
+      );
+
+      await expect(page.getByText(/未找到课程|No courses found/i)).toBeVisible();
+      await expect(
+        page.locator("#main-content a[href^='/catalog/courses/']"),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("link", { name: /^(清除|Clear)$/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("目录链接悬停时不预取 __data.json", async ({
+    page,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+      );
+      const courseLink = page
+        .locator(
+          `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
+        )
+        .first();
+      await expect(courseLink).toBeVisible();
+
+      const dataJsonDuringHover = page
+        .waitForRequest((request) => request.url().includes("__data.json"), {
+          timeout: 750,
+        })
+        .then(() => true)
+        .catch(() => false);
+
+      await courseLink.hover();
+      expect(await dataJsonDuringHover).toBe(false);
+    });
+  });
+
+  test("语言切换正常工作", async ({
+    page,
+    baseURL,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(page, "/catalog/courses", {
+        testInfo,
+        screenshotLabel: "courses",
+      });
+
+      const localeResponse = await fetch(
+        absoluteTestUrl("/api/account/preferences", baseURL),
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...preferenceFlow.headers,
+          },
+          body: JSON.stringify({ locale: "en-us" }),
+        },
+      );
+      expect(localeResponse.status).toBe(200);
+      await localeResponse.text();
+
+      await page.context().addCookies([
+        {
+          name: "NEXT_LOCALE",
+          value: "en-us",
+          url: absoluteTestUrl("/", baseURL),
+          sameSite: "Lax",
+        },
+      ]);
+
+      await gotoAndWaitForReady(page, "/catalog/courses", {
+        testInfo,
+        screenshotLabel: "courses",
+      });
+      await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
+      await expect(
+        page.getByRole("navigation", { name: "Primary navigation" }),
+      ).toHaveCount(1);
+      await expect(
+        page.getByRole("navigation", { name: "Footer navigation" }),
+      ).toHaveCount(1);
+      await captureStepScreenshot(page, testInfo, "courses-en-us");
+
+      await page
+        .getByRole("button", { name: /语言选择|Language selector/i })
+        .click();
+      await page
+        .getByRole("menuitemradio", { name: /中文|Chinese/i })
+        .first()
+        .click();
+
+      await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
+      await expect(page.getByRole("navigation", { name: "主导航" })).toHaveCount(
+        1,
+      );
+      await expect(
+        page.getByRole("navigation", { name: "页脚导航" }),
+      ).toHaveCount(1);
+      await captureStepScreenshot(page, testInfo, "courses-zh-cn");
+    });
+  });
+
+  test("移动端卡片可点击并导航到详情", async ({
+    page,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        { testInfo, screenshotLabel: "courses-list" },
+      );
+      await expectNoPageHorizontalOverflow(page);
+      await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
+      await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
+      await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+      await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
+      const courseCode = page
+        .locator('[data-slot="catalog-code"]')
+        .filter({ hasText: DEV_SEED.course.code })
+        .first();
+      await expect(courseCode).toBeVisible();
+      await expect(
+        courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
+      ).toHaveCount(0);
       await expectCatalogFilterSheet(page, [
         /培养层次|Education Level/i,
         /类别|Category/i,
         /课程类型|Class Type/i,
       ]);
-      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-      if (width === 280 || width === 375) {
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `courses-filter-sheet-${width}`,
-        );
+
+      const detailLink = page
+        .locator(
+          `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
+        )
+        .first();
+      await expect(detailLink).toBeVisible();
+      const box = await detailLink.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThan(250);
+      expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
+      await captureStepScreenshot(page, testInfo, "courses-mobile-list");
+      await detailLink.click();
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}`),
+      );
+      await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
+    });
+  });
+
+  test("280 至 1440 像素通过筛选面板提供课程高级筛选", async ({
+    page,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      for (const width of [280, 320, 375, 1024, 1280, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(page, "/catalog/courses");
+        await expectCatalogFilterSheet(page, [
+          /培养层次|Education Level/i,
+          /类别|Category/i,
+          /课程类型|Class Type/i,
+        ]);
+        await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+        if (width === 280 || width === 375) {
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            `courses-filter-sheet-${width}`,
+          );
+        }
       }
-    }
+    });
   });
 
   catalogTest(
@@ -392,86 +436,105 @@ test.describe("/catalog/courses 课程目录", () => {
     },
   );
 
-  test("搜索和清除按钮", async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, "/catalog/courses", {
-      testInfo,
-      screenshotLabel: "courses",
+  test("搜索和清除按钮", async ({
+    page,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(page, "/catalog/courses", {
+        testInfo,
+        screenshotLabel: "courses",
+      });
+
+      const searchbox = page.getByRole("searchbox").first();
+      await expect(searchbox).toBeVisible();
+
+      await searchbox.fill(DEV_SEED.course.code);
+      const searchButton = page.getByRole("button", {
+        name: /^(搜索|Search)$/,
+      });
+      await expect(searchButton).toBeVisible();
+      await searchButton.click();
+
+      await expect(page).toHaveURL(/search=/);
+      await captureStepScreenshot(page, testInfo, "courses-search-filled");
+
+      const clearLink = page
+        .getByRole("link", { name: /^(清除|Clear)$/i })
+        .first();
+      await expect(clearLink).toBeVisible();
+      await clearLink.click();
+      await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
+
+      await captureStepScreenshot(page, testInfo, "courses-search-clear");
     });
-
-    const searchbox = page.getByRole("searchbox").first();
-    await expect(searchbox).toBeVisible();
-
-    await searchbox.fill(DEV_SEED.course.code);
-    const searchButton = page.getByRole("button", {
-      name: /^(搜索|Search)$/,
-    });
-    await expect(searchButton).toBeVisible();
-    await searchButton.click();
-
-    await expect(page).toHaveURL(/search=/);
-    await captureStepScreenshot(page, testInfo, "courses-search-filled");
-
-    const clearLink = page
-      .getByRole("link", { name: /^(清除|Clear)$/i })
-      .first();
-    await expect(clearLink).toBeVisible();
-    await clearLink.click();
-    await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
-
-    await captureStepScreenshot(page, testInfo, "courses-search-clear");
   });
 
-  test("按种子维度筛选保留结果", async ({ page }, testInfo) => {
-    const filters = await getSeedCourseFilterFixture(DEV_SEED.course.jwId);
-    expect(filters.educationLevelId).toBeTruthy();
-    expect(filters.categoryId).toBeTruthy();
-    await gotoAndWaitForReady(page, "/catalog/courses", {
-      testInfo,
-      screenshotLabel: "courses-filter",
+  test("按种子维度筛选保留结果", async ({
+    page,
+    preferenceFlow,
+    searchCourse: _searchCourse,
+  }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      const filters = {
+        educationLevelId: _searchCourse.educationLevel.id,
+        educationLevelName: _searchCourse.educationLevel.nameCn,
+        categoryId: _searchCourse.category.id,
+        categoryName: _searchCourse.category.nameCn,
+        classTypeId: _searchCourse.classType.id,
+        classTypeName: _searchCourse.classType.nameCn,
+      };
+      expect(filters.educationLevelId).toBeTruthy();
+      expect(filters.categoryId).toBeTruthy();
+      await gotoAndWaitForReady(page, "/catalog/courses", {
+        testInfo,
+        screenshotLabel: "courses-filter",
+      });
+
+      await page.getByRole("searchbox").fill(DEV_SEED.course.code);
+      let filterDialog = await openCatalogFilterSheet(page);
+      await filterDialog
+        .getByLabel(/培养层次|Education Level/i)
+        .selectOption(String(filters.educationLevelId));
+      await expect(page).not.toHaveURL(/educationLevelId=/);
+      await page.keyboard.press("Escape");
+      await expect(filterDialog).toBeHidden();
+      filterDialog = await openCatalogFilterSheet(page);
+      await expect(
+        filterDialog.getByLabel(/培养层次|Education Level/i),
+      ).toHaveValue("");
+      await filterDialog
+        .getByLabel(/培养层次|Education Level/i)
+        .selectOption(String(filters.educationLevelId));
+      await filterDialog
+        .getByRole("button", { name: /应用筛选|Apply filters/i })
+        .click();
+      await expect(filterDialog).toBeHidden();
+      await expect(page).toHaveURL(
+        new RegExp(`educationLevelId=${filters.educationLevelId}`),
+      );
+      await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
+
+      filterDialog = await openCatalogFilterSheet(page);
+      await filterDialog
+        .getByLabel(/类别|Category/i)
+        .selectOption(String(filters.categoryId));
+      await filterDialog
+        .getByRole("button", { name: /应用筛选|Apply filters/i })
+        .click();
+      await expect(filterDialog).toBeHidden();
+      await expect(page).toHaveURL(
+        new RegExp(
+          `educationLevelId=${filters.educationLevelId}.*categoryId=${filters.categoryId}`,
+        ),
+      );
+
+      await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
+      await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "courses-filter-seed");
     });
-
-    await page.getByRole("searchbox").fill(DEV_SEED.course.code);
-    let filterDialog = await openCatalogFilterSheet(page);
-    await filterDialog
-      .getByLabel(/培养层次|Education Level/i)
-      .selectOption(String(filters.educationLevelId));
-    await expect(page).not.toHaveURL(/educationLevelId=/);
-    await page.keyboard.press("Escape");
-    await expect(filterDialog).toBeHidden();
-    filterDialog = await openCatalogFilterSheet(page);
-    await expect(
-      filterDialog.getByLabel(/培养层次|Education Level/i),
-    ).toHaveValue("");
-    await filterDialog
-      .getByLabel(/培养层次|Education Level/i)
-      .selectOption(String(filters.educationLevelId));
-    await filterDialog
-      .getByRole("button", { name: /应用筛选|Apply filters/i })
-      .click();
-    await expect(filterDialog).toBeHidden();
-    await expect(page).toHaveURL(
-      new RegExp(`educationLevelId=${filters.educationLevelId}`),
-    );
-    await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
-
-    filterDialog = await openCatalogFilterSheet(page);
-    await filterDialog
-      .getByLabel(/类别|Category/i)
-      .selectOption(String(filters.categoryId));
-    await filterDialog
-      .getByRole("button", { name: /应用筛选|Apply filters/i })
-      .click();
-    await expect(filterDialog).toBeHidden();
-    await expect(page).toHaveURL(
-      new RegExp(
-        `educationLevelId=${filters.educationLevelId}.*categoryId=${filters.categoryId}`,
-      ),
-    );
-
-    await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-    await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
-    await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "courses-filter-seed");
   });
 });

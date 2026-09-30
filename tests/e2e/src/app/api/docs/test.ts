@@ -3,7 +3,7 @@
  */
 import { expect, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { test } from "../../../../utils/public-worker";
+import { test } from "../../../../utils/personal-preferences-fixture";
 import { capturePageScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -21,8 +21,8 @@ async function waitForSectionsReference(page: Page) {
 }
 
 test.describe("/api/docs 页面", () => {
-  test("接口契约", async ({ page, publicFlow }, testInfo) => {
-    await publicFlow.run(async () => {
+  test("接口契约", async ({ page, preferenceFlow }, testInfo) => {
+    await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/api/docs/tag/catalog-section",
         testInfo,
@@ -30,8 +30,8 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("渲染 API 参考容器", async ({ page, publicFlow }) => {
-    await publicFlow.run(async () => {
+  test("渲染 API 参考容器", async ({ page, preferenceFlow }) => {
+    await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
         waitUntil: "load",
       });
@@ -41,9 +41,9 @@ test.describe("/api/docs 页面", () => {
 
   test("openapi.api-docs-mobile-navigation", async ({
     page,
-    publicFlow,
+    preferenceFlow,
   }, testInfo) => {
-    await publicFlow.run(async () => {
+    await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await setLocale(page, "zh-cn");
       await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
@@ -134,9 +134,9 @@ test.describe("/api/docs 页面", () => {
 
   test("openapi.api-docs-desktop-navigation", async ({
     page,
-    publicFlow,
+    preferenceFlow,
   }, testInfo) => {
-    await publicFlow.run(async () => {
+    await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 1280, height: 800 });
       await setLocale(page, "en-us");
       await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
@@ -169,8 +169,8 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("使用路径导航而非哈希导航", async ({ page, publicFlow }) => {
-    await publicFlow.run(async () => {
+  test("使用路径导航而非哈希导航", async ({ page, preferenceFlow }) => {
+    await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
         waitUntil: "load",
       });
@@ -183,8 +183,8 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("根路径重定向到第一个路由分组", async ({ page, publicFlow }) => {
-    await publicFlow.run(async () => {
+  test("根路径重定向到第一个路由分组", async ({ page, preferenceFlow }) => {
+    await preferenceFlow.run(async () => {
       await page.goto("/api/docs");
       await expect(page).toHaveURL(/\/api\/docs\/tag\/catalog-section$/);
     });
@@ -192,16 +192,16 @@ test.describe("/api/docs 页面", () => {
 });
 
 test.describe("/api-docs 页面", () => {
-  test("重定向到 /api/docs", async ({ page, publicFlow }) => {
-    await publicFlow.run(async () => {
+  test("重定向到 /api/docs", async ({ page, preferenceFlow }) => {
+    await preferenceFlow.run(async () => {
       await page.goto("/api-docs");
       await expect(page).toHaveURL(/\/api\/docs\/tag\/catalog-section$/);
     });
   });
 });
 
-test("页面契约 /api/docs", async ({ page, publicFlow }, testInfo) => {
-  await publicFlow.run(async () => {
+test("页面契约 /api/docs", async ({ page, preferenceFlow }, testInfo) => {
+  await preferenceFlow.run(async () => {
     await assertPageContract(page, { routePath: "/api/docs", testInfo });
   });
 });
