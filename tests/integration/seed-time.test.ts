@@ -1,14 +1,10 @@
 import { readFileSync } from "node:fs";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import { DEV_SEED } from "../fixtures/dev-seed";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
+import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
-const prisma = createFixturePrisma();
-
-afterAll(() => disconnectTestPrisma(prisma));
-
-function readCurrentSemesterSeedInsert() {
+function readSemesterSeedInserts() {
   const seedSql = readFileSync(
     new URL("../../prisma/seed.sql", import.meta.url),
     "utf8",
@@ -17,13 +13,13 @@ function readCurrentSemesterSeedInsert() {
     seedSql.indexOf("-- Data for Name: Semester;"),
     seedSql.indexOf("-- Data for Name: TeachLanguage;"),
   );
-  const insert = semesterBlock
+  return semesterBlock
     .split("\n")
-    .find(
-      (line) =>
-        line.startsWith('INSERT INTO public."Semester"') &&
-        line.includes("9900001"),
-    );
+    .filter((line) => line.startsWith('INSERT INTO public."Semester"'));
+}
+
+function readCurrentSemesterSeedInsert() {
+  const insert = readSemesterSeedInserts().find((line) => line.includes("9900001"));
   if (!insert) {
     throw new Error("Current semester seed INSERT is missing");
   }
@@ -31,7 +27,14 @@ function readCurrentSemesterSeedInsert() {
 }
 
 describe("named seed semester dates", () => {
-  it("keeps the current fixture active on the Shanghai calendar day", async () => {
+  it("keeps the current fixture active on the Shanghai calendar day", async ({ isolatedDatabase: { owner: prisma }, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
+      // Execute the checked-in semester seed statements against this case's
+      // empty private schema. Expected dates stay independent of the seed SQL.
+      await prisma.$transaction(async (tx) => {
+        for (const insert of readSemesterSeedInserts())
+          await tx.$executeRawUnsafe(insert);
+      });
     const [current, previous] = await Promise.all([
       prisma.semester.findUnique({
         where: { jwId: DEV_SEED.semesterJwId },
@@ -55,9 +58,11 @@ describe("named seed semester dates", () => {
     expect(currentEnd >= today).toBe(true);
     expect(previous.startDate?.toISOString().slice(0, 10)).toBe("2025-10-21");
     expect(previous.endDate?.toISOString().slice(0, 10)).toBe("2026-03-30");
+    });
   });
 
-  it("refreshes the current fixture horizon when reseeded in a later year", async () => {
+  it("refreshes the current fixture horizon when reseeded in a later year", async ({ isolatedDatabase: { owner: prisma }, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
     await prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(`
         CREATE TEMP TABLE seed_semester (
@@ -90,6 +95,7 @@ describe("named seed semester dates", () => {
       await expect(reseedAt("2030-01-02 16:00:00+00")).resolves.toEqual([
         { startDate: "2026-04-08", endDate: "2030-07-02" },
       ]);
+    });
     });
   });
 });
