@@ -349,8 +349,8 @@ requirements:
       name: mcp.request-body-limit
 - id: mcp.request-batch-limit
   category: validation
-  rule: An empty MCP JSON-RPC batch returns400/-32600. Batches of at most50 messages are accepted; larger
-    batches return413 before handling.
+  rule: An empty MCP JSON-RPC batch returns400/-32600. Nonempty batches have an inclusive50-message
+    limit; larger batches return413 before handling. Requests within that limit still require protocol validation.
   acceptance:
     given: A private database and Node HTTP MCP server receiving JSON-RPC batches at 0, 50 and 51
       messages.
@@ -361,6 +361,27 @@ requirements:
     test:
       file: tests/integration/mcp-http-contracts.test.ts
       name: mcp.request-batch-limit
+- id: mcp.request-batch-unique-identifiers
+  category: validation
+  rule: Requests in one MCP JSON-RPC batch have distinct IDs. Reusing an ID rejects the entire batch
+    with HTTP400 and JSON-RPC -32600, id null, before authentication, mutation budgets, or tool execution.
+    ID equality preserves JSON types, so numeric1 and string1 are distinct. Notifications and responses
+    do not introduce request IDs.
+  rationale: MCP requires request identifiers not to be reused within a session. A duplicate within one
+    batch cannot be attributed reliably to an operation; rejecting it before dispatch prevents partial
+    effects and incorrect per-operation usage. This check does not keep a cross-request session registry.
+  acceptance:
+    given: The real request handler, body parser and installed SDK, with authentication and usage storage
+      boundaries controlled independently.
+    when: Submit a batch assigning the same request ID to different tools, and valid batches using distinct
+      numeric and string IDs.
+    then:
+    - A duplicate request ID returns the Invalid Request response before authorization or either tool runs.
+    - The rejected batch creates no OAuth usage or partial tool effects.
+    - Numeric and string IDs retain separate responses and per-operation usage when the batch is otherwise valid.
+    test:
+      file: tests/unit/lib/mcp/mcp-usage-outcome.test.ts
+      name: rejects duplicate request IDs before authorization or tool execution
 - id: mcp.parsed-body-reuse
   category: consistency
   rule: Accepted MCP JSON request bodies are parsed once and the same parsed body is shared by scope enforcement,
