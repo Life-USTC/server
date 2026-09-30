@@ -65,7 +65,6 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       await response.body();
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: MCP_CLIENT_SCOPES,
         consentScopes: [MCP_CLIENT_SCOPES],
         resources: [resource],
         tokenRequests: 1,
@@ -137,7 +136,6 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       const todoRead = { start, end: Date.now(), operation: "read" as const };
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: expandedScopes,
         consentScopes: [baselineScopes, expandedScopes],
         resources: [resource],
         tokenRequests: 2,
@@ -198,7 +196,6 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       await response.body();
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: MCP_CLIENT_SCOPES,
         consentScopes: [MCP_CLIENT_SCOPES],
         resources: [resource],
         tokenRequests: 1,
@@ -278,7 +275,6 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       await response.body();
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: [...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE],
         consentScopes: [[...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE]],
         resources: [resource],
         tokenRequests: 2,
@@ -350,7 +346,6 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       );
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: [...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE],
         consentScopes: [[...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE]],
         resources: [],
         tokenRequests: 2,
@@ -440,7 +435,6 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       );
       return oauthProtocolChecks(account, {
         clientId,
-        clientScopes: restClientScopes,
         consentScopes: [restClientScopes],
         resources: [restResource],
         tokenRequests: 2,
