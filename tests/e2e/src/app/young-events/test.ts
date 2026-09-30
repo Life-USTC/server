@@ -22,7 +22,10 @@ import type {
   YoungEvent,
   YoungOrganizer,
 } from "../../../../../src/generated/prisma-node/client";
-import { signInAsDebugUser } from "../../../utils/auth";
+import {
+  expectPrivateViewerState,
+  preparePrivateViewer,
+} from "../../../utils/authenticated-read-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
@@ -383,40 +386,73 @@ for (const width of [1280, 390]) {
 }
 
 for (const status of [200, 401]) {
-  test(`calendar conflicts resolve independently of unavailable shell navigation (${status})`, async ({
-    page,
-  }) => {
-    await signInAsDebugUser(page, "/workspace/overview");
-    const session = await (
-      await page.request.get("/api/auth/get-session")
-    ).json();
-    let bootstrapRequests = 0;
-    await page.route("**/_internal/shell-bootstrap", async (route) => {
-      bootstrapRequests++;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ viewer: session.user, navigation: null }),
+  privateTest(
+    `calendar conflicts resolve independently of unavailable shell navigation (${status})`,
+    async ({ page, isolatedWorker, preferenceFlow, run }) => {
+      await run(async () => {
+        const viewer = await preferenceFlow.prepare(() =>
+          preparePrivateViewer(page, isolatedWorker, false),
+        );
+        await preferenceFlow.run(async () => {
+          await gotoAndWaitForReady(page, "/workspace/overview");
+          const session = await (
+            await preferenceFlow.http(() =>
+              page.request.get("/api/auth/get-session"),
+            )
+          ).json();
+          let bootstrapRequests = 0;
+          await preferenceFlow.route(
+            page,
+            "**/_internal/shell-bootstrap",
+            async (route) => {
+              bootstrapRequests++;
+              await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify({
+                  viewer: session.user,
+                  navigation: null,
+                }),
+              });
+            },
+          );
+          await preferenceFlow.route(
+            page,
+            "**/api/workspace/calendar/events?*",
+            async (route) => {
+              await route.fulfill({
+                status,
+                contentType: "application/json",
+                body: JSON.stringify(
+                  status === 200
+                    ? {
+                        data: [],
+                        pagination: {
+                          page: 1,
+                          pageSize: 100,
+                          total: 0,
+                          totalPages: 0,
+                        },
+                      }
+                    : { error: "Unauthorized" },
+                ),
+              });
+            },
+          );
+          await gotoAndWaitForReady(page, "/catalog/young-events/calendar");
+          await expect(
+            page.getByTestId("young-calendar-conflict-status"),
+          ).toContainText(
+            status === 200 ? /仅基于|Conflicts use/ : /登录后|Sign in/,
+          );
+          await expect.poll(() => bootstrapRequests).toBe(1);
+        });
+        await expectPrivateViewerState(
+          isolatedWorker.database.owner,
+          viewer,
+          [],
+        );
       });
-    });
-    await page.route("**/api/workspace/calendar/events?*", async (route) => {
-      await route.fulfill({
-        status,
-        contentType: "application/json",
-        body: JSON.stringify(
-          status === 200
-            ? {
-                data: [],
-                pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 },
-              }
-            : { error: "Unauthorized" },
-        ),
-      });
-    });
-    await gotoAndWaitForReady(page, "/catalog/young-events/calendar");
-    await expect(
-      page.getByTestId("young-calendar-conflict-status"),
-    ).toContainText(status === 200 ? /仅基于|Conflicts use/ : /登录后|Sign in/);
-    await expect.poll(() => bootstrapRequests).toBe(1);
-  });
+    },
+  );
 }
