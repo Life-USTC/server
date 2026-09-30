@@ -32,7 +32,6 @@
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
     "static:load": "bun run src/static-loader/cli.ts",
-    "e2e:server": "bash tests/ci/e2e-worker-server.sh",
     "e2e:test": "bash tests/ci/e2e-full-suite-parity.sh",
     "e2e:test:parallel": "bash tests/ci/e2e-parallel-local.sh",
     "e2e:test:shard1": "bash tests/ci/e2e-run-shard.sh 1/8",

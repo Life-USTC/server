@@ -19,14 +19,17 @@ describe("E2E full-suite parity orchestration", () => {
     );
   });
 
-  test("orchestration script reseeds before each shard", () => {
+  test("orchestration prepares roles once before all eight native shards", () => {
     const script = readFileSync(
       resolve(repoRoot, "tests/ci/e2e-full-suite-parity.sh"),
       "utf8",
     );
 
     expect(script).toContain("readonly E2E_SHARD_TOTAL=8");
-    expect(script).toContain("source tests/ci/setup-runtime-database.sh");
+    const setup = "source tests/ci/setup-runtime-database.sh";
+    expect(script.split(setup)).toHaveLength(2);
+    expect(script.indexOf(setup)).toBeLessThan(script.indexOf("for shard in"));
+    expect(script).not.toMatch(/migrate reset|prisma db seed/);
     expect(script).toContain("bash tests/ci/e2e-run-shard.sh");
     expect(script).toContain("E2E_SHARD_TOTAL");
   });
