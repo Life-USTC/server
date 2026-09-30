@@ -21,17 +21,17 @@
  * - Structured filters update URL parameters and preserve matching results
  * - Advanced search syntax parsed server-side (sort:, order:asc/desc)
  */
-import { expect, type Page, type Request } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
-  waitForUiSettled,
 } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
 import { assertPageContract } from "../_shared/page-contract";
 
 async function useChineseLocale(page: Page) {
@@ -189,40 +189,16 @@ test.describe("/catalog/sections 班级搜索页", () => {
       expect(box?.width ?? 0).toBeGreaterThan(250);
       expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
       await captureStepScreenshot(page, testInfo, "sections-mobile-list");
-      const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
-      const viewerRequests: Request[] = [];
-      const observeViewer = (request: Request) => {
-        if (
-          request.method() !== "GET" ||
-          new URL(request.url()).pathname !== viewerPath
-        )
-          return;
-        viewerRequests.push(request);
-        // Shell refresh replaces the first detail controller during SPA navigation.
-        // The reader still requires this exact request's native abort terminal.
-        if (viewerRequests.length === 1)
-          preferenceFlow.expectReadCancellation(page, request);
-      };
-      page.on("request", observeViewer);
-      preferenceFlow.onClosing(() => page.off("request", observeViewer));
+      const expectSectionDetailReady = observeSectionDetailNavigation(
+        page,
+        preferenceFlow,
+        DEV_SEED.section.jwId,
+      );
       await detailLink.click();
 
       await expect(page).toHaveURL(/\/catalog\/sections\/\d+(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
-      await expect.poll(() => viewerRequests.length).toBe(2);
-      const successor = await viewerRequests[1].response();
-      expect(successor?.status()).toBe(200);
-      await successor?.body();
-      // The URL and SSR shell precede the lazy detail panels. Require the final
-      // panel and its known empty state before closing request admission.
-      await expect(
-        page.locator("[data-detail-scroll-container]"),
-      ).toHaveAttribute("aria-busy", "false");
-      await expect(
-        page.locator('#comments [data-slot="empty-description"]'),
-      ).toBeVisible();
-      await waitForUiSettled(page);
-      expect(viewerRequests).toHaveLength(2);
+      await expectSectionDetailReady();
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       expect(runtimeErrors).toEqual([]);
       await captureStepScreenshot(page, testInfo, "sections-navigate-detail");
