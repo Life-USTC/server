@@ -10,6 +10,7 @@ import {
   PRIORITY_AVATAR,
   test,
 } from "../../../utils/community-priority-fixture";
+import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   assertPriorityView,
@@ -280,18 +281,22 @@ for (const locale of ["en-us", "zh-cn"] as const)
           }),
         );
         try {
-          const rejected = page.waitForResponse(
-            (r) =>
-              r.url().endsWith(`/api/workspace/uploads/${f.upload.id}`) &&
-              r.request().method() === "PATCH",
+          const rejected = await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().endsWith(`/api/workspace/uploads/${f.upload.id}`) &&
+                  r.request().method() === "PATCH",
+              ),
+            () =>
+              dialog
+                .getByRole("button", {
+                  name: m.uploads.saveRenameAction,
+                  exact: true,
+                })
+                .click(),
           );
-          await dialog
-            .getByRole("button", {
-              name: m.uploads.saveRenameAction,
-              exact: true,
-            })
-            .click();
-          expect((await rejected).status()).toBe(403);
+          expect(rejected.status()).toBe(403);
           expect(
             await communityDb((db) =>
               db.upload.findUniqueOrThrow({

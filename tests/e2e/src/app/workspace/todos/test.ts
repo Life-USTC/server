@@ -5,6 +5,7 @@ import {
   expectDialogAction,
 } from "../../../../utils/detail-dialog";
 import { visibleText } from "../../../../utils/locators";
+import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { expectTodoFormResponse, test } from "../../../../utils/todo-fixture";
@@ -166,20 +167,24 @@ test.describe("仪表盘待办", () => {
           await initial.click();
           const row = page.getByRole("row").filter({ hasText: todo.title });
           await expect(row).toBeVisible();
-          const changed = page.waitForResponse(
-            (response) =>
-              response.request().method() === "PATCH" &&
-              response.url().includes(`/api/workspace/todos/${todo.id}`),
+          const changed = await observeAction(
+            () =>
+              page.waitForResponse(
+                (response) =>
+                  response.request().method() === "PATCH" &&
+                  response.url().includes(`/api/workspace/todos/${todo.id}`),
+              ),
+            () =>
+              row
+                .getByRole("button", {
+                  name: completed
+                    ? /取消完成|Mark as incomplete/i
+                    : /标记为完成|Mark as complete/i,
+                })
+                .click(),
           );
-          await row
-            .getByRole("button", {
-              name: completed
-                ? /取消完成|Mark as incomplete/i
-                : /标记为完成|Mark as complete/i,
-            })
-            .click();
-          expect((await changed).status()).toBe(200);
-          expect(await (await changed).json()).toMatchObject({
+          expect(changed.status()).toBe(200);
+          expect(await changed.json()).toMatchObject({
             success: true,
             todo: {
               id: todo.id,
@@ -342,21 +347,25 @@ test.describe("仪表盘待办", () => {
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
 
-        const postResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "POST" &&
-            response.url().includes("/workspace/todos?/createTodo"),
+        const postResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "POST" &&
+                response.url().includes("/workspace/todos?/createTodo"),
+            ),
+          async () => {
+            await page.evaluate(() => {
+              const form = document.createElement("form");
+              form.method = "POST";
+              form.action = "/workspace/todos?/createTodo";
+              document.body.append(form);
+              form.requestSubmit();
+            });
+          },
         );
-        await page.evaluate(() => {
-          const form = document.createElement("form");
-          form.method = "POST";
-          form.action = "/workspace/todos?/createTodo";
-          document.body.append(form);
-          form.requestSubmit();
-        });
-
-        await expect((await postResponse).status()).toBe(400);
-        expect(await (await postResponse).text()).toMatch(
+        await expect(postResponse.status()).toBe(400);
+        expect(await postResponse.text()).toMatch(
           /请输入标题|Please enter a title/i,
         );
         await expect(
@@ -467,18 +476,23 @@ test.describe("仪表盘待办", () => {
         const editTitleInput = editDialog.getByLabel(/^(标题|Title)$/i);
         await expect(editTitleInput).toHaveValue(title);
         await editTitleInput.fill(editedTitle);
-        const updateResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "POST" &&
-            response.url().includes("/workspace/todos?/updateTodo"),
+        const updateResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "POST" &&
+                response.url().includes("/workspace/todos?/updateTodo"),
+            ),
+          async () => {
+            const saveButton = editDialog.getByRole("button", {
+              name: /保存修改|Save Changes/i,
+            });
+            await expect(saveButton).toBeEnabled();
+            await saveButton.click();
+          },
         );
-        const saveButton = editDialog.getByRole("button", {
-          name: /保存修改|Save Changes/i,
-        });
-        await expect(saveButton).toBeEnabled();
-        await saveButton.click();
-        await expect((await updateResponse).status()).toBe(200);
-        await expectTodoFormResponse(await updateResponse);
+        await expect(updateResponse.status()).toBe(200);
+        await expectTodoFormResponse(updateResponse);
         await expect(editDialog).toBeHidden();
         await expect(visibleText(page, editedTitle)).toBeVisible({
           timeout: 15_000,
@@ -516,16 +530,20 @@ test.describe("仪表盘待办", () => {
           '[data-slot="dialog-title"]',
         );
         await expect(detailTitle).toHaveText(editedTitle);
-        const completed = page.waitForResponse(
-          (response) =>
-            response.request().method() === "PATCH" &&
-            response.url().includes(`/api/workspace/todos/${created.id}`),
+        const completed = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "PATCH" &&
+                response.url().includes(`/api/workspace/todos/${created.id}`),
+            ),
+          () =>
+            editedDetailDialog
+              .getByRole("button", { name: /标记为完成|Mark as complete/i })
+              .click(),
         );
-        await editedDetailDialog
-          .getByRole("button", { name: /标记为完成|Mark as complete/i })
-          .click();
-        expect((await completed).status()).toBe(200);
-        expect(await (await completed).json()).toMatchObject({
+        expect(completed.status()).toBe(200);
+        expect(await completed.json()).toMatchObject({
           success: true,
           todo: { id: created.id, title: editedTitle, completed: true },
         });
@@ -607,16 +625,20 @@ test.describe("仪表盘待办", () => {
         await deleteButton.click();
         const reopenedConfirmDialog = page.getByRole("alertdialog");
         await expect(reopenedConfirmDialog).toBeVisible();
-        const deleteResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "DELETE" &&
-            response.url().includes("/api/workspace/todos/"),
+        const deleteResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "DELETE" &&
+                response.url().includes("/api/workspace/todos/"),
+            ),
+          () =>
+            reopenedConfirmDialog
+              .getByRole("button", { name: /删除|Delete/i })
+              .click(),
         );
-        await reopenedConfirmDialog
-          .getByRole("button", { name: /删除|Delete/i })
-          .click();
-        await expect((await deleteResponse).status()).toBe(200);
-        expect(await (await deleteResponse).json()).toMatchObject({
+        await expect(deleteResponse.status()).toBe(200);
+        expect(await deleteResponse.json()).toMatchObject({
           success: true,
         });
 
@@ -807,17 +829,21 @@ test.describe("仪表盘待办", () => {
           calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
         await deleteButton.click();
-        const deleteResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "DELETE" &&
-            response.url().includes("/api/workspace/todos/"),
+        const deleteResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "DELETE" &&
+                response.url().includes("/api/workspace/todos/"),
+            ),
+          () =>
+            page
+              .getByRole("alertdialog")
+              .getByRole("button", { name: /删除|Delete/i })
+              .click(),
         );
-        await page
-          .getByRole("alertdialog")
-          .getByRole("button", { name: /删除|Delete/i })
-          .click();
-        await expect((await deleteResponse).status()).toBe(200);
-        expect(await (await deleteResponse).json()).toMatchObject({
+        await expect(deleteResponse.status()).toBe(200);
+        expect(await deleteResponse.json()).toMatchObject({
           success: true,
         });
         await expect(page.getByText(title, { exact: true })).toHaveCount(0, {

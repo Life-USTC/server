@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { observeAction } from "../../../utils/observed-action";
 import { test as workerTest } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { withSettledPageWrites } from "../../../utils/settled-page-writes";
@@ -281,13 +282,16 @@ test("upload.web-rename", async ({ page, owned, uploadRun }) => {
         },
       }),
     );
-    const rejected = page.waitForResponse(
-      (r) =>
-        r.url().endsWith(`/api/workspace/uploads/${id}`) &&
-        r.request().method() === "PATCH",
+    const rejected = await observeAction(
+      () =>
+        page.waitForResponse(
+          (r) =>
+            r.url().endsWith(`/api/workspace/uploads/${id}`) &&
+            r.request().method() === "PATCH",
+        ),
+      () => save.click(),
     );
-    await save.click();
-    expect((await rejected).status()).toBe(403);
+    expect(rejected.status()).toBe(403);
     await expect(dialog.getByRole("alert")).toHaveText(
       "We couldn't rename the file.",
     );
@@ -353,13 +357,16 @@ test("upload.web-delete-feedback", async ({
         },
       }),
     );
-    const rejected = page.waitForResponse(
-      (r) =>
-        r.url().endsWith(`/api/workspace/uploads/${id}`) &&
-        r.request().method() === "DELETE",
+    const rejected = await observeAction(
+      () =>
+        page.waitForResponse(
+          (r) =>
+            r.url().endsWith(`/api/workspace/uploads/${id}`) &&
+            r.request().method() === "DELETE",
+        ),
+      () => confirm.click(),
     );
-    await confirm.click();
-    expect((await rejected).status()).toBe(403);
+    expect(rejected.status()).toBe(403);
     await expect(dialog.getByRole("alert")).toHaveText(
       "We couldn't delete the file.",
     );

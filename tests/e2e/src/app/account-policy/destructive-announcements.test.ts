@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "./destructive-security-fixture";
 
@@ -53,13 +54,16 @@ test("cases.content-security.destructive-actions-1", async ({
     const suspension = await f.db.userSuspension.create({
       data: { userId: owner.id, reason: marker },
     });
-    const refused = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/api/community/comments/${commentId}`) &&
-        response.request().method() === "DELETE",
+    const refused = await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().endsWith(`/api/community/comments/${commentId}`) &&
+            response.request().method() === "DELETE",
+        ),
+      () => confirm.click(),
     );
-    await confirm.click();
-    expect((await refused).status()).toBe(403);
+    expect(refused.status()).toBe(403);
     await page.screenshot({
       path: testInfo.outputPath("comment-deletion-refused.png"),
       fullPage: true,
@@ -137,13 +141,16 @@ test("cases.content-security.destructive-actions-2", async ({
       where: { id: users.admin.id },
       data: { isAdmin: false },
     });
-    const refused = page.waitForResponse(
-      (response) =>
-        response.url().endsWith("/api/admin/suspensions") &&
-        response.request().method() === "POST",
+    const refused = await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().endsWith("/api/admin/suspensions") &&
+            response.request().method() === "POST",
+        ),
+      () => suspend.click(),
     );
-    await suspend.click();
-    expect((await refused).status()).toBe(401);
+    expect(refused.status()).toBe(401);
     await expect(dialog.getByRole("alert")).toHaveText("Unauthorized");
     await unchanged();
     await f.db.user.update({
@@ -252,13 +259,16 @@ test("cases.content-security.destructive-actions-3", async ({
       where: { id: admin.id },
       data: { isAdmin: false },
     });
-    const refused = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/api/admin/comments/${commentId}`) &&
-        response.request().method() === "PATCH",
+    const refused = await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().endsWith(`/api/admin/comments/${commentId}`) &&
+            response.request().method() === "PATCH",
+        ),
+      () => confirm.click(),
     );
-    await confirm.click();
-    expect((await refused).status()).toBe(401);
+    expect(refused.status()).toBe(401);
     await expect(dialog.getByRole("alert")).toHaveText("Unauthorized");
     await unchanged();
     await f.db.user.update({

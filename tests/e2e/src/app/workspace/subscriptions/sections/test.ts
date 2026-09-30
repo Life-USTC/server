@@ -27,6 +27,7 @@ import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
+import { observeAction } from "../../../../../utils/observed-action";
 import { test as anonymousTest } from "../../../../../utils/owned-worker";
 import {
   gotoAndWaitForReady,
@@ -381,18 +382,21 @@ test.describe("仪表盘教学班订阅", () => {
       });
       await expect(confirmDialog).toBeVisible();
       await expect(confirmDialog).not.toContainText(catalog.section.code);
-      const unsubscribeResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/workspace/subscriptions/batch") &&
-          response.request().method() === "POST" &&
-          response.ok(),
+      await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/workspace/subscriptions/batch") &&
+              response.request().method() === "POST" &&
+              response.ok(),
+          ),
+        () =>
+          confirmDialog
+            .getByRole("button", {
+              name: /确认取消订阅|Confirm Unsubscribe/i,
+            })
+            .click(),
       );
-      await confirmDialog
-        .getByRole("button", {
-          name: /确认取消订阅|Confirm Unsubscribe/i,
-        })
-        .click();
-      await unsubscribeResponse;
       await expect(confirmDialog).not.toBeVisible();
       await expect(courseLink).toHaveCount(0);
       expect(
@@ -477,14 +481,17 @@ test.describe("仪表盘教学班订阅", () => {
       ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn");
       await expect(importDialog).toContainText("MATH1001.01");
       await textarea.fill(catalog.section.code);
-      const matchResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/workspace/subscriptions/query") &&
-          response.request().method() === "POST" &&
-          response.status() === 200,
+      await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/workspace/subscriptions/query") &&
+              response.request().method() === "POST" &&
+              response.status() === 200,
+          ),
+        () =>
+          page.getByRole("button", { name: /识别并匹配课程|Match/i }).click(),
       );
-      await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
-      await matchResponse;
       const dialog = page
         .getByRole("dialog", {
           name: /确认订阅|Confirm .*section subscriptions/i,
@@ -543,16 +550,17 @@ test.describe("仪表盘教学班订阅", () => {
           name: /搜索课程或教师|Search courses or teachers/i,
         })
         .fill(catalog.course.nameCn);
-      const matchResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/catalog/sections?") &&
-          response.request().method() === "GET" &&
-          response.status() === 200,
+      await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/catalog/sections?") &&
+              response.request().method() === "GET" &&
+              response.status() === 200,
+          ),
+        () =>
+          quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click(),
       );
-      await quickAddDialog
-        .getByRole("button", { name: /搜索|Search/i })
-        .click();
-      await matchResponse;
       await expect(
         quickAddDialog.getByText(catalog.section.code).first(),
       ).toBeVisible();
@@ -651,17 +659,18 @@ test.describe("仪表盘教学班订阅", () => {
           name: /搜索课程或教师|Search courses or teachers/i,
         })
         .fill(catalog.teacher.nameCn);
-      const teacherResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/catalog/sections?") &&
-          new URL(response.url()).searchParams.get("search") ===
-            catalog.teacher.nameCn &&
-          response.status() === 200,
+      await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/catalog/sections?") &&
+              new URL(response.url()).searchParams.get("search") ===
+                catalog.teacher.nameCn &&
+              response.status() === 200,
+          ),
+        () =>
+          quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click(),
       );
-      await quickAddDialog
-        .getByRole("button", { name: /搜索|Search/i })
-        .click();
-      await teacherResponse;
       await expect(
         quickAddDialog.getByText(catalog.section.code).first(),
       ).toBeVisible();
@@ -683,18 +692,21 @@ test.describe("仪表盘教学班订阅", () => {
         testInfo,
         "workspace-subscriptions-quick-add-results",
       );
-      const subscribeResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/workspace/subscriptions/batch") &&
-          response.request().method() === "POST" &&
-          response.status() === 200,
+      await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/workspace/subscriptions/batch") &&
+              response.request().method() === "POST" &&
+              response.status() === 200,
+          ),
+        () =>
+          quickAddDialog
+            .getByRole("button", {
+              name: /订阅所选|Subscribe selected/i,
+            })
+            .click(),
       );
-      await quickAddDialog
-        .getByRole("button", {
-          name: /订阅所选|Subscribe selected/i,
-        })
-        .click();
-      await subscribeResponse;
       await expect(quickAddDialog).not.toBeVisible();
       await expect(
         page.locator("[data-sonner-toast]").filter({
@@ -754,15 +766,17 @@ test.describe("仪表盘教学班订阅", () => {
               name: /搜索课程或教师|Search courses or teachers/i,
             })
             .fill(query);
-          const response = page.waitForResponse(
-            (response) =>
-              response.url().includes("/api/catalog/sections?") &&
-              response.request().method() === "GET",
+          const response = await observeAction(
+            () =>
+              page.waitForResponse(
+                (response) =>
+                  response.url().includes("/api/catalog/sections?") &&
+                  response.request().method() === "GET",
+              ),
+            () =>
+              dialog.getByRole("button", { name: /^(搜索|Search)$/i }).click(),
           );
-          await dialog
-            .getByRole("button", { name: /^(搜索|Search)$/i })
-            .click();
-          expect((await response).ok()).toBe(true);
+          expect(response.ok()).toBe(true);
         };
         const submit = dialog.getByRole("button", {
           name: /订阅所选|Subscribe selected/i,
@@ -796,13 +810,16 @@ test.describe("仪表盘教学班订阅", () => {
         await expect(second).not.toBeChecked();
         await expect(submit).toBeDisabled();
         await first.click();
-        const subscribed = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/workspace/subscriptions/batch") &&
-            response.request().method() === "POST",
+        const subscribed = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/workspace/subscriptions/batch") &&
+                response.request().method() === "POST",
+            ),
+          () => submit.click(),
         );
-        await submit.click();
-        expect((await subscribed).ok()).toBe(true);
+        expect(subscribed.ok()).toBe(true);
         await expect(dialog).toBeHidden();
         await gotoAndWaitForReady(page, "/workspace/subscriptions");
         await openDialog();
@@ -875,16 +892,17 @@ test.describe("仪表盘教学班订阅", () => {
           name: /搜索课程或教师|Search courses or teachers/i,
         })
         .fill("DEVXX000.99");
-      const matchResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/catalog/sections?") &&
-          response.request().method() === "GET" &&
-          response.status() === 200,
+      await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/catalog/sections?") &&
+              response.request().method() === "GET" &&
+              response.status() === 200,
+          ),
+        () =>
+          quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click(),
       );
-      await quickAddDialog
-        .getByRole("button", { name: /搜索|Search/i })
-        .click();
-      await matchResponse;
       await expect(
         quickAddDialog.getByText(/没有找到教学班|No sections found/i),
       ).toBeVisible();
@@ -918,14 +936,17 @@ test.describe("仪表盘教学班订阅", () => {
       const textarea = await openBulkImportDialog(page);
       // Include a valid code and an invalid one
       await textarea.fill(`\n${catalog.section.code}\nDEVXX000.99\n`);
-      const matchResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/workspace/subscriptions/query") &&
-          response.request().method() === "POST" &&
-          response.status() === 200,
+      await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/workspace/subscriptions/query") &&
+              response.request().method() === "POST" &&
+              response.status() === 200,
+          ),
+        () =>
+          page.getByRole("button", { name: /识别并匹配课程|Match/i }).click(),
       );
-      await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
-      await matchResponse;
       const dialog = page
         .getByRole("dialog", {
           name: /确认订阅|Confirm .*section subscriptions/i,
