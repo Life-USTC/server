@@ -17,7 +17,7 @@ test("匿名订阅入口说明非选课含义并要求登录", async ({
   page,
   section,
 }, testInfo) => {
-  await sectionRun([], async () => {
+  await sectionRun({ writes: [], calendar: null }, async () => {
     await gotoAndWaitForReady(page, section.path);
     await expect(
       page.getByRole("button", { name: /enroll|报名选课/i }),
@@ -53,7 +53,7 @@ test("section.retired-detail-presentation", async ({
   section,
   isolatedWorker,
 }) => {
-  await sectionRun([], async () => {
+  await sectionRun({ writes: [], calendar: null }, async () => {
     await isolatedWorker.database.owner.section.update({
       where: { id: section.id },
       data: { retiredAt: new Date("2026-01-01T00:00:00Z") },
@@ -82,7 +82,15 @@ test("已订阅用户仍可取消订阅已退役教学班", async ({
   isolatedWorker,
 }) => {
   await sectionRun(
-    [{ action: "unsubscribe", userId: section.userId, subscribedIds: [] }],
+    {
+      writes: [
+        { action: "unsubscribe", userId: section.userId, subscribedIds: [] },
+      ],
+      calendar: {
+        userId: section.userId,
+        messages: [{ type: "user", userId: section.userId }],
+      },
+    },
     async () => {
       const db = isolatedWorker.database.owner;
       await db.$transaction([
@@ -132,14 +140,23 @@ test("已登录用户可订阅与取消订阅", async ({
   isolatedWorker,
 }, testInfo) => {
   await sectionRun(
-    [
-      {
-        action: "subscribe",
+    {
+      writes: [
+        {
+          action: "subscribe",
+          userId: section.userId,
+          subscribedIds: [section.id],
+        },
+        { action: "unsubscribe", userId: section.userId, subscribedIds: [] },
+      ],
+      calendar: {
         userId: section.userId,
-        subscribedIds: [section.id],
+        messages: [
+          { type: "user", userId: section.userId },
+          { type: "user", userId: section.userId },
+        ],
       },
-      { action: "unsubscribe", userId: section.userId, subscribedIds: [] },
-    ],
+    },
     async () => {
       const db = isolatedWorker.database.owner;
       expect(await getUserSubscribedSectionIds(db, section.userId)).toEqual([]);
