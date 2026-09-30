@@ -140,12 +140,116 @@ function pinSnapshot(h: ProtocolFixture) {
 
 for (const transport of transports) {
   test(`bus preferences successful updates preserve ownership through ${transport}`, async ({
+    run,
     h,
   }) => {
-    for (const actor of h.actors) {
-      const foreign = (await busSnapshot(h)).filter(
-        (row) => row.userId !== actor.id,
-      );
+    await run(async () => {
+      for (const actor of h.actors) {
+        const foreign = (await busSnapshot(h)).filter(
+          (row) => row.userId !== actor.id,
+        );
+        for (const departed of [true, false]) {
+          const expected = {
+            preferredOriginCampusId: null,
+            preferredDestinationCampusId: null,
+            showDepartedTrips: departed,
+          };
+          const result = await call(
+            h,
+            transport,
+            busPreference(null, null, departed),
+            actor,
+          );
+          expect(transport === "graphql" ? result : result.preference).toEqual(
+            expected,
+          );
+          expect(
+            await h.db.busUserPreference.findUnique({
+              where: { userId: actor.id },
+            }),
+          ).toMatchObject(expected);
+          expect(
+            (await busSnapshot(h)).filter((row) => row.userId !== actor.id),
+          ).toEqual(foreign);
+        }
+      }
+    });
+  });
+
+  test(`bus preferences authorization rejection preserves state through ${transport}`, async ({
+    run,
+    h,
+  }) => {
+    await run(async () => {
+      await h.db.busUserPreference.createMany({
+        data: h.actors.map((actor) => ({
+          userId: actor.id,
+          preferredOriginCampusId: null,
+          preferredDestinationCampusId: null,
+          showDepartedTrips: false,
+        })),
+      });
+      const before = await busSnapshot(h);
+      for (const outcome of ["anonymous", "read_scope"] as const) {
+        await call(
+          h,
+          transport,
+          busPreference(null, null, true),
+          h.actors[0],
+          outcome,
+        );
+        expect(await busSnapshot(h)).toEqual(before);
+      }
+    });
+  });
+
+  test(`bus preferences invalid input preserves state through ${transport}`, async ({
+    run,
+    h,
+  }) => {
+    await run(async () => {
+      await h.db.busUserPreference.createMany({
+        data: h.actors.map((actor) => ({
+          userId: actor.id,
+          preferredOriginCampusId: null,
+          preferredDestinationCampusId: null,
+          showDepartedTrips: false,
+        })),
+      });
+      const before = await busSnapshot(h);
+      for (const [origin, destination] of [
+        [2147483647, null],
+        [null, 2147483647],
+      ]) {
+        await call(
+          h,
+          transport,
+          busPreference(origin, destination, true),
+          h.actors[0],
+          "invalid_bus_preference",
+        );
+        expect(await busSnapshot(h)).toEqual(before);
+      }
+    });
+  });
+
+  test(`bus preferences suspended updates preserve ownership through ${transport}`, async ({
+    run,
+    h,
+  }) => {
+    await run(async () => {
+      await h.db.busUserPreference.createMany({
+        data: h.actors.map((actor) => ({
+          userId: actor.id,
+          preferredOriginCampusId: null,
+          preferredDestinationCampusId: null,
+          showDepartedTrips: false,
+        })),
+      });
+      await h.db.userSuspension.create({
+        data: { userId: h.actors[0].id, reason: h.marker },
+      });
+      const before = await busSnapshot(h);
       for (const departed of [true, false]) {
         const expected = {
           preferredOriginCampusId: null,
@@ -156,203 +260,123 @@ for (const transport of transports) {
           h,
           transport,
           busPreference(null, null, departed),
-          actor,
+          h.actors[0],
         );
         expect(transport === "graphql" ? result : result.preference).toEqual(
           expected,
         );
         expect(
           await h.db.busUserPreference.findUnique({
-            where: { userId: actor.id },
+            where: { userId: h.actors[0].id },
           }),
         ).toMatchObject(expected);
         expect(
-          (await busSnapshot(h)).filter((row) => row.userId !== actor.id),
-        ).toEqual(foreign);
+          (await busSnapshot(h)).filter((row) => row.userId !== h.actors[0].id),
+        ).toEqual(before.filter((row) => row.userId !== h.actors[0].id));
       }
-    }
-  });
-
-  test(`bus preferences authorization rejection preserves state through ${transport}`, async ({
-    h,
-  }) => {
-    await h.db.busUserPreference.createMany({
-      data: h.actors.map((actor) => ({
-        userId: actor.id,
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: false,
-      })),
     });
-    const before = await busSnapshot(h);
-    for (const outcome of ["anonymous", "read_scope"] as const) {
-      await call(
-        h,
-        transport,
-        busPreference(null, null, true),
-        h.actors[0],
-        outcome,
-      );
-      expect(await busSnapshot(h)).toEqual(before);
-    }
-  });
-
-  test(`bus preferences invalid input preserves state through ${transport}`, async ({
-    h,
-  }) => {
-    await h.db.busUserPreference.createMany({
-      data: h.actors.map((actor) => ({
-        userId: actor.id,
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: false,
-      })),
-    });
-    const before = await busSnapshot(h);
-    for (const [origin, destination] of [
-      [2147483647, null],
-      [null, 2147483647],
-    ]) {
-      await call(
-        h,
-        transport,
-        busPreference(origin, destination, true),
-        h.actors[0],
-        "invalid_bus_preference",
-      );
-      expect(await busSnapshot(h)).toEqual(before);
-    }
-  });
-
-  test(`bus preferences suspended updates preserve ownership through ${transport}`, async ({
-    h,
-  }) => {
-    await h.db.busUserPreference.createMany({
-      data: h.actors.map((actor) => ({
-        userId: actor.id,
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: false,
-      })),
-    });
-    await h.db.userSuspension.create({
-      data: { userId: h.actors[0].id, reason: h.marker },
-    });
-    const before = await busSnapshot(h);
-    for (const departed of [true, false]) {
-      const expected = {
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: departed,
-      };
-      const result = await call(
-        h,
-        transport,
-        busPreference(null, null, departed),
-        h.actors[0],
-      );
-      expect(transport === "graphql" ? result : result.preference).toEqual(
-        expected,
-      );
-      expect(
-        await h.db.busUserPreference.findUnique({
-          where: { userId: h.actors[0].id },
-        }),
-      ).toMatchObject(expected);
-      expect(
-        (await busSnapshot(h)).filter((row) => row.userId !== h.actors[0].id),
-      ).toEqual(before.filter((row) => row.userId !== h.actors[0].id));
-    }
   });
 }
 
 for (const transport of transports) {
   test(`link pins successful updates preserve ownership through ${transport}`, async ({
+    run,
     h,
   }) => {
-    await h.db.workspaceLinkPin.createMany({
-      data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
-    });
-    for (const actor of h.actors) {
-      const foreign = (await pinSnapshot(h)).filter(
-        (row) => row.userId !== actor.id,
-      );
-      for (const pinned of [true, false]) {
-        const expected = pinned ? ["jw", "mail"] : ["jw"];
-        const result = await call(h, transport, linkPin("mail", pinned), actor);
-        expect(result.pinnedSlugs).toEqual(expected);
-        expect(
-          (await pinSnapshot(h))
-            .filter((row) => row.userId === actor.id)
-            .map((row) => row.slug),
-        ).toEqual(expected);
-        expect(
-          (await pinSnapshot(h)).filter((row) => row.userId !== actor.id),
-        ).toEqual(foreign);
+    await run(async () => {
+      await h.db.workspaceLinkPin.createMany({
+        data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
+      });
+      for (const actor of h.actors) {
+        const foreign = (await pinSnapshot(h)).filter(
+          (row) => row.userId !== actor.id,
+        );
+        for (const pinned of [true, false]) {
+          const expected = pinned ? ["jw", "mail"] : ["jw"];
+          const result = await call(h, transport, linkPin("mail", pinned), actor);
+          expect(result.pinnedSlugs).toEqual(expected);
+          expect(
+            (await pinSnapshot(h))
+              .filter((row) => row.userId === actor.id)
+              .map((row) => row.slug),
+          ).toEqual(expected);
+          expect(
+            (await pinSnapshot(h)).filter((row) => row.userId !== actor.id),
+          ).toEqual(foreign);
+        }
       }
-    }
+    });
   });
 
   test(`link pins authorization rejection preserves state through ${transport}`, async ({
+    run,
     h,
   }) => {
-    await h.db.workspaceLinkPin.createMany({
-      data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
+    await run(async () => {
+      await h.db.workspaceLinkPin.createMany({
+        data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
+      });
+      const before = await pinSnapshot(h);
+      for (const outcome of ["anonymous", "read_scope"] as const) {
+        await call(h, transport, linkPin("mail", true), h.actors[0], outcome);
+        expect(await pinSnapshot(h)).toEqual(before);
+      }
     });
-    const before = await pinSnapshot(h);
-    for (const outcome of ["anonymous", "read_scope"] as const) {
-      await call(h, transport, linkPin("mail", true), h.actors[0], outcome);
-      expect(await pinSnapshot(h)).toEqual(before);
-    }
   });
 
   test(`link pins invalid input preserves state through ${transport}`, async ({
+    run,
     h,
   }) => {
-    await h.db.workspaceLinkPin.createMany({
-      data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
+    await run(async () => {
+      await h.db.workspaceLinkPin.createMany({
+        data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
+      });
+      const before = await pinSnapshot(h);
+      for (const pinned of [true, false]) {
+        const result = await call(
+          h,
+          transport,
+          linkPin("unknown-test-link", pinned),
+          h.actors[0],
+          "invalid_slug",
+        );
+        if (transport !== "graphql") expect(result.pinnedSlugs).toEqual(["jw"]);
+        expect(await pinSnapshot(h)).toEqual(before);
+      }
     });
-    const before = await pinSnapshot(h);
-    for (const pinned of [true, false]) {
-      const result = await call(
-        h,
-        transport,
-        linkPin("unknown-test-link", pinned),
-        h.actors[0],
-        "invalid_slug",
-      );
-      if (transport !== "graphql") expect(result.pinnedSlugs).toEqual(["jw"]);
-      expect(await pinSnapshot(h)).toEqual(before);
-    }
   });
 
   test(`link pins suspended updates preserve ownership through ${transport}`, async ({
+    run,
     h,
   }) => {
-    await h.db.workspaceLinkPin.createMany({
-      data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
+    await run(async () => {
+      await h.db.workspaceLinkPin.createMany({
+        data: h.actors.map((actor) => ({ userId: actor.id, slug: "jw" })),
+      });
+      await h.db.userSuspension.create({
+        data: { userId: h.actors[0].id, reason: h.marker },
+      });
+      const before = await pinSnapshot(h);
+      for (const pinned of [true, false]) {
+        const result = await call(
+          h,
+          transport,
+          linkPin("mail", pinned),
+          h.actors[0],
+        );
+        expect(result.pinnedSlugs).toEqual(pinned ? ["jw", "mail"] : ["jw"]);
+        expect(
+          (await pinSnapshot(h))
+            .filter((row) => row.userId === h.actors[0].id)
+            .map((row) => row.slug),
+        ).toEqual(pinned ? ["jw", "mail"] : ["jw"]);
+        expect(
+          (await pinSnapshot(h)).filter((row) => row.userId !== h.actors[0].id),
+        ).toEqual(before.filter((row) => row.userId !== h.actors[0].id));
+      }
+      expect(await pinSnapshot(h)).toEqual(before);
     });
-    await h.db.userSuspension.create({
-      data: { userId: h.actors[0].id, reason: h.marker },
-    });
-    const before = await pinSnapshot(h);
-    for (const pinned of [true, false]) {
-      const result = await call(
-        h,
-        transport,
-        linkPin("mail", pinned),
-        h.actors[0],
-      );
-      expect(result.pinnedSlugs).toEqual(pinned ? ["jw", "mail"] : ["jw"]);
-      expect(
-        (await pinSnapshot(h))
-          .filter((row) => row.userId === h.actors[0].id)
-          .map((row) => row.slug),
-      ).toEqual(pinned ? ["jw", "mail"] : ["jw"]);
-      expect(
-        (await pinSnapshot(h)).filter((row) => row.userId !== h.actors[0].id),
-      ).toEqual(before.filter((row) => row.userId !== h.actors[0].id));
-    }
-    expect(await pinSnapshot(h)).toEqual(before);
   });
 }
