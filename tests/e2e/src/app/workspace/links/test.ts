@@ -19,10 +19,17 @@ import { assertPageContract } from "../../_shared/page-contract";
 const PIN_LABEL = /^(?:置顶|Pin)$/i;
 const UNPIN_LABEL = /^(?:取消置顶|Unpin)$/i;
 
-async function setLocale(page: Page, locale: "en-us" | "zh-cn", preferenceFlow: PreferenceFlow) {
-  const response = await preferenceFlow.http(() => page.request.post("/api/account/preferences", { headers: preferenceFlow.headers,
-    data: { locale },
-  }));
+async function setLocale(
+  page: Page,
+  locale: "en-us" | "zh-cn",
+  preferenceFlow: PreferenceFlow,
+) {
+  const response = await preferenceFlow.http(() =>
+    page.request.post("/api/account/preferences", {
+      headers: preferenceFlow.headers,
+      data: { locale },
+    }),
+  );
   expect(response.status()).toBe(200);
 }
 
@@ -49,22 +56,33 @@ async function locateJwPinButton(page: Page) {
   return button;
 }
 
-async function clickJwPin(page: Page, expectedPins: string[], preferenceFlow: PreferenceFlow) {
+async function clickJwPin(
+  page: Page,
+  expectedPins: string[],
+  preferenceFlow: PreferenceFlow,
+) {
   const button = await locateJwPinButton(page);
   const [response] = await Promise.all([
-    preferenceFlow.waitForResponse(page,
+    preferenceFlow.waitForResponse(
+      page,
       (response) =>
         response.url().includes("/api/workspace/link-pins") &&
         response.request().method() === "POST",
     ),
     button.click(),
   ]);
-  expect(await response.json()).toMatchObject({ pinnedSlugs: expectedPins, error: null });
+  expect(await response.json()).toMatchObject({
+    pinnedSlugs: expectedPins,
+    error: null,
+  });
   return response;
 }
 
 test.describe("仪表盘网站链接", () => {
-  test("公共 /links 显示搜索和链接，无置顶控件", async ({ preferenceFlow, page }, testInfo) => {
+  test("公共 /links 显示搜索和链接，无置顶控件", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await setLocale(page, "zh-cn", preferenceFlow);
       const response = await gotoAndWaitForReady(page, "/catalog/links");
@@ -94,10 +112,17 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("旧版 links 查询标签永久重定向到语义路径", async ({ preferenceFlow, page }) => {
+  test("旧版 links 查询标签永久重定向到语义路径", async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
-      const response = await preferenceFlow.http(() => page.request.get(
-        "/?tab=links&linkView=list&utm_source=bookmark", { headers: preferenceFlow.headers,  maxRedirects: 0 }));
+      const response = await preferenceFlow.http(() =>
+        page.request.get("/?tab=links&linkView=list&utm_source=bookmark", {
+          headers: preferenceFlow.headers,
+          maxRedirects: 0,
+        }),
+      );
 
       expect(response.status()).toBe(308);
       expect(response.headers().location).toBe(
@@ -106,7 +131,10 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("公共英文链接页面在搜索中使用本地化标题", async ({ preferenceFlow, page }, testInfo) => {
+  test("公共英文链接页面在搜索中使用本地化标题", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await setLocale(page, "en-us", preferenceFlow);
 
@@ -143,7 +171,8 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("登录后可以导航到链接标签", async ({ preferenceFlow,
+  test("登录后可以导航到链接标签", async ({
+    preferenceFlow,
     page,
     pinnedAccount: _account,
   }, testInfo) => {
@@ -172,7 +201,11 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("搜索可筛选链接", async ({ preferenceFlow, page, account: _account }, testInfo) => {
+  test("搜索可筛选链接", async ({
+    preferenceFlow,
+    page,
+    account: _account,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await setLocale(page, "zh-cn", preferenceFlow);
       await gotoAndWaitForReady(page, "/catalog/links");
@@ -218,7 +251,8 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("可以置顶和取消置顶链接并恢复状态", async ({ preferenceFlow,
+  test("可以置顶和取消置顶链接并恢复状态", async ({
+    preferenceFlow,
     page,
     account,
     isolatedWorker,
@@ -268,7 +302,8 @@ test.describe("仪表盘网站链接", () => {
     }, "pins");
   });
 
-  test("搜索重新计算链接时保持置顶状态", async ({ preferenceFlow,
+  test("搜索重新计算链接时保持置顶状态", async ({
+    preferenceFlow,
     page,
     account,
     isolatedWorker,

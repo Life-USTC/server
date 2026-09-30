@@ -118,7 +118,9 @@ async function expectDiscoverableTimetableScroll(page: Page) {
 
 test.describe("校车面板标签页", () => {
   test.beforeEach(async ({ page, preferenceFlow }) => {
-    await preferenceFlow.prepare(() => page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z")));
+    await preferenceFlow.prepare(() =>
+      page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z")),
+    );
   });
 
   test("bus.public-no-signin", async ({ preferenceFlow, page }, testInfo) => {
@@ -140,18 +142,27 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("旧版查询标签永久重定向并保留其他状态", async ({ preferenceFlow, page }) => {
+  test("旧版查询标签永久重定向并保留其他状态", async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
-      const response = await preferenceFlow.http(() => page.request.get("/?tab=bus&linkView=list", { headers: preferenceFlow.headers,
-        maxRedirects: 0,
-      }));
+      const response = await preferenceFlow.http(() =>
+        page.request.get("/?tab=bus&linkView=list", {
+          headers: preferenceFlow.headers,
+          maxRedirects: 0,
+        }),
+      );
 
       expect(response.status()).toBe(308);
       expect(response.headers().location).toBe("/catalog/bus?linkView=list");
     }, "consume");
   });
 
-  test("bus.public-responsive-planner", async ({ preferenceFlow, page }, testInfo) => {
+  test("bus.public-responsive-planner", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus", {
         testInfo,
@@ -185,7 +196,9 @@ test.describe("校车面板标签页", () => {
         }),
       ).toBeVisible();
       await expect(
-        page.getByRole("main").getByRole("link", { name: /Transit map|线路图/ }),
+        page
+          .getByRole("main")
+          .getByRole("link", { name: /Transit map|线路图/ }),
       ).toHaveCount(0);
       const controls = await page
         .getByTestId("bus-start-stop-group")
@@ -199,7 +212,8 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.public-version-metadata-omitted", async ({ preferenceFlow,
+  test("bus.public-version-metadata-omitted", async ({
+    preferenceFlow,
     page,
     baseURL,
     account: _account,
@@ -216,7 +230,11 @@ test.describe("校车面板标签页", () => {
       await expect(
         page.getByText("Static Structured Bus Timetable", { exact: true }),
       ).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "bus-version-label-zh-public");
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "bus-version-label-zh-public",
+      );
 
       await page.context().addCookies(sessionCookies);
       await setLocale(page, baseURL, "zh-cn");
@@ -234,23 +252,26 @@ test.describe("校车面板标签页", () => {
       await expect(
         page.getByText(DEV_SEED.bus.versionKey, { exact: true }),
       ).toHaveCount(0);
-      await expect(page.getByText("Active version", { exact: true })).toHaveCount(
-        0,
-      );
+      await expect(
+        page.getByText("Active version", { exact: true }),
+      ).toHaveCount(0);
       await expect(
         page.getByText("Static Structured Bus Timetable", { exact: true }),
       ).toHaveCount(0);
     }, "consume");
   });
 
-  test("登录校车面板 SSR 渲染服务端时刻表数据", async ({ preferenceFlow,
+  test("登录校车面板 SSR 渲染服务端时刻表数据", async ({
+    preferenceFlow,
     page,
     account: _account,
   }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
-      const response = await preferenceFlow.http(() => page.request.get("/catalog/bus", { headers: preferenceFlow.headers }));
+      const response = await preferenceFlow.http(() =>
+        page.request.get("/catalog/bus", { headers: preferenceFlow.headers }),
+      );
       expect(response.status()).toBe(200);
       const html = await response.text();
 
@@ -263,9 +284,14 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("匿名校车面板 SSR 渲染公共时刻表数据", async ({ preferenceFlow, page }) => {
+  test("匿名校车面板 SSR 渲染公共时刻表数据", async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
-      const response = await preferenceFlow.http(() => page.request.get("/catalog/bus", { headers: preferenceFlow.headers }));
+      const response = await preferenceFlow.http(() =>
+        page.request.get("/catalog/bus", { headers: preferenceFlow.headers }),
+      );
       expect(response.status()).toBe(200);
       const html = await response.text();
 
@@ -278,7 +304,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.mobile-full-timetable", async ({ preferenceFlow, page }, testInfo) => {
+  test("bus.mobile-full-timetable", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/catalog/bus", {
@@ -321,7 +350,8 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("默认站点对按下一班可用校车排序显示所有适用线路", async ({ preferenceFlow,
+  test("默认站点对按下一班可用校车排序显示所有适用线路", async ({
+    preferenceFlow,
     page,
   }, testInfo) => {
     await preferenceFlow.run(async () => {
@@ -346,7 +376,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("反向交换方向并重新计算适用线路", async ({ preferenceFlow, page }, testInfo) => {
+  test("反向交换方向并重新计算适用线路", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus", {
         testInfo,
@@ -386,7 +419,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("选择东区到南区缩小为直达线路", async ({ preferenceFlow, page }, testInfo) => {
+  test("选择东区到南区缩小为直达线路", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus", {
         testInfo,
@@ -405,7 +441,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("已发车切换保持时刻表可见且可切换", async ({ preferenceFlow, page }, testInfo) => {
+  test("已发车切换保持时刻表可见且可切换", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus", {
         testInfo,
@@ -428,7 +467,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("工作日/周日切换更新所选线路时刻表", async ({ preferenceFlow, page }, testInfo) => {
+  test("工作日/周日切换更新所选线路时刻表", async ({
+    preferenceFlow,
+    page,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus", {
         testInfo,
@@ -500,7 +542,8 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("280px 登录规划器与时刻表保持在页面宽度内", async ({ preferenceFlow,
+  test("280px 登录规划器与时刻表保持在页面宽度内", async ({
+    preferenceFlow,
     page,
     account: _account,
   }) => {
@@ -520,7 +563,8 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("登录规划器自动保存到校车偏好设置", async ({ preferenceFlow,
+  test("登录规划器自动保存到校车偏好设置", async ({
+    preferenceFlow,
     page,
     busPreferences,
     isolatedWorker,
@@ -542,7 +586,8 @@ test.describe("校车面板标签页", () => {
       });
       await expect(departedToggle).not.toBeChecked();
       const [toggleSaveResponse] = await Promise.all([
-        preferenceFlow.waitForResponse(page,
+        preferenceFlow.waitForResponse(
+          page,
           (response) =>
             response.url().includes("/api/workspace/bus-preferences") &&
             response.request().method() === "POST",
@@ -556,7 +601,8 @@ test.describe("校车面板标签页", () => {
         .getByRole("radio", { name: /南区/ });
       await expect(endSouthButton).toHaveAttribute("aria-checked", "false");
       const [stopSaveResponse] = await Promise.all([
-        preferenceFlow.waitForResponse(page,
+        preferenceFlow.waitForResponse(
+          page,
           (response) =>
             response.url().includes("/api/workspace/bus-preferences") &&
             response.request().method() === "POST",
@@ -564,7 +610,11 @@ test.describe("校车面板标签页", () => {
         endSouthButton.click(),
       ]);
       expect(stopSaveResponse.ok()).toBe(true);
-      const response = await preferenceFlow.http(() => page.request.get("/api/workspace/bus-preferences", { headers: preferenceFlow.headers }));
+      const response = await preferenceFlow.http(() =>
+        page.request.get("/api/workspace/bus-preferences", {
+          headers: preferenceFlow.headers,
+        }),
+      );
       expect(response.status()).toBe(200);
       const body = await response.json();
       const expected = {
@@ -572,7 +622,9 @@ test.describe("校车面板标签页", () => {
         preferredDestinationCampusId: 4,
         showDepartedTrips: true,
       };
-      expect((await stopSaveResponse.json()).preference).toMatchObject(expected);
+      expect((await stopSaveResponse.json()).preference).toMatchObject(
+        expected,
+      );
       expect(body.preference).toMatchObject(expected);
       await expect
         .poll(() => storedBusPreference(db, busPreferences.id))

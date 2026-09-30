@@ -584,7 +584,8 @@ for (const interrupted of [false, true]) {
                 if (interrupted) {
                   try {
                     await page.waitForResponse(
-                      (response) => new URL(response.url()).pathname === "/never",
+                      (response) =>
+                        new URL(response.url()).pathname === "/never",
                     );
                   } catch (error) {
                     nativeBodyError = error;

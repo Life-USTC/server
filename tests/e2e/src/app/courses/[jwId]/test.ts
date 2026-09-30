@@ -288,7 +288,9 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           await editButton.click();
           await expect(editor).toBeVisible();
           await editor.fill(content);
-          await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
+          await introduction
+            .getByRole("tab", { name: /预览|Preview/i })
+            .click();
           await expect(
             introduction
               .getByRole("tabpanel", { name: /预览|Preview/i })
@@ -301,7 +303,9 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
               r.request().method() === "POST" &&
               r.status() === 200,
           );
-          await introduction.getByRole("button", { name: /保存|Save/i }).click();
+          await introduction
+            .getByRole("button", { name: /保存|Save/i })
+            .click();
           await saveResponse;
           await expect(
             introduction
@@ -327,8 +331,15 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           await expect(
             historyPanel.getByText(/更新后|Updated/i).first(),
           ).toBeVisible();
-          await captureStepScreenshot(page, testInfo, "course/description-updated");
-          const persisted = await storedDescription(community.db, description.id);
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "course/description-updated",
+          );
+          const persisted = await storedDescription(
+            community.db,
+            description.id,
+          );
           expect(persisted).toMatchObject({
             content,
             lastEditedById: account.id,
@@ -412,7 +423,9 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
               .filter({ hasText: /评论已发布|Comment posted/i }),
           ).toBeVisible();
           // comment.author.name visible
-          await expect(commentCard.getByText(account.name).first()).toBeVisible();
+          await expect(
+            commentCard.getByText(account.name).first(),
+          ).toBeVisible();
           await captureStepScreenshot(page, testInfo, "course/comment-posted");
 
           // Edit
