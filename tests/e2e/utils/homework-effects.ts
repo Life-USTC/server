@@ -103,6 +103,7 @@ export async function withHomeworkEffects(
     calendarTokenCreated = false,
     auditActions = {},
     observeReads = false,
+    runBody = (body) => body(),
   }: HomeworkEffects & {
     page: Page;
     isolatedWorker: IsolatedWorker;
@@ -111,6 +112,8 @@ export async function withHomeworkEffects(
     testInfo: TestInfo;
     // Consumer scenarios must drain GET waitUntil work before asserting no effects.
     observeReads?: boolean;
+    // The wrapper may interrupt its wait; this helper still owns the real body.
+    runBody?: (body: () => Promise<void>) => Promise<void>;
   },
   work: (effects: HomeworkEffectContext) => Promise<void>,
 ) {
@@ -124,6 +127,9 @@ export async function withHomeworkEffects(
   const consumerPath = `/__test/calendar-consumer?userId=${account.id}${sectionId === undefined ? "" : `&sectionId=${sectionId}`}`;
   const pending = new Set<Promise<void>>();
   const errors: unknown[] = [];
+  let actualBody:
+    | Promise<{ ok: true } | { ok: false; error: unknown }>
+    | undefined;
   const writes: { method: string; path: string; status: number }[] = [];
   const retiredNativeStatuses = new Map<number, number>();
   const removedNativeStatuses = new Map<number, number>();
@@ -544,39 +550,47 @@ export async function withHomeworkEffects(
           body: "",
         }),
     );
-    await work({
-      checkpoint,
-      headers,
-      readHeaders,
-      activeReads: browserReads.activeReads,
-      duringRemoval: browserReads.duringRemoval,
+    await runBody(() => {
+      const body = Promise.resolve().then(() =>
+        work({
+          checkpoint,
+          headers,
+          readHeaders,
+          activeReads: browserReads.activeReads,
+          duringRemoval: browserReads.duringRemoval,
+        }),
+      );
+      actualBody = body.then(
+        () => ({ ok: true as const }),
+        (error: unknown) => ({ ok: false as const, error }),
+      );
+      return body;
     });
   } catch (error) {
     errors.push(error);
   } finally {
     accepting = false;
     try {
-      await settleReads(calendarMessages.length);
+      // Preserve native read/redirect completion while the page is open. Full
+      // business expectations may depend on a callback released by page.close.
+      await settleReads(0);
       if (observeReads && registered) {
         browserReads.prepareRetiredClose();
       }
     } catch (error) {
       errors.push(error);
     }
-    if (!observeReads && registered)
-      try {
-        await testInfo.attach("homework-effects", {
-          body: JSON.stringify({ ...(await observe()), checkpoints }, null, 2),
-          contentType: "application/json",
-        });
-      } catch (error) {
-        errors.push(error);
-      }
     try {
       await page.close();
     } catch (error) {
       errors.push(error);
     }
+    // workflow.body() can reject on interruption before its callback finishes.
+    // Join the real callback, including cookie preparation and finally work,
+    // before the final producer/consumer/token/audit snapshot in either mode.
+    const bodyResult = await actualBody;
+    if (bodyResult && !bodyResult.ok && !errors.includes(bodyResult.error))
+      errors.push(bodyResult.error);
     // Context-owned page.request remains available after the page is closed.
     // Closing joins only proven retired reads; other rejections remain errors.
     // Redirect successors admitted during finalization can add route operations.
@@ -590,7 +604,7 @@ export async function withHomeworkEffects(
         ...pendingReads,
         ...browserReads.pendingNavigations,
       ]);
-    if (observeReads && registered)
+    if (registered)
       try {
         await testInfo.attach("homework-effects", {
           body: JSON.stringify({ ...(await observe()), checkpoints }, null, 2),

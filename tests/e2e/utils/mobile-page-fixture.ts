@@ -70,38 +70,38 @@ export const test = workerTest.extend<{
                 isolatedWorker,
                 account: mobileAccount,
                 testInfo,
+                runBody: workflow.body,
                 calendarMessages: [],
                 calendarTokenCreated,
                 observeReads: true,
               },
-              (effects) =>
-                workflow.body(async () => {
-                  await page.context().addCookies([mobileSession.cookie]);
-                  const startPage = async () => {
-                    const response = await page.request.get(
-                      "/api/auth/get-session",
-                      { headers: effects.headers },
+              async (effects) => {
+                await page.context().addCookies([mobileSession.cookie]);
+                const startPage = async () => {
+                  const response = await page.request.get(
+                    "/api/auth/get-session",
+                    { headers: effects.headers },
+                  );
+                  expect(response.status()).toBe(200);
+                  expect((await response.json()).user).toMatchObject({
+                    id: mobileAccount.id,
+                    isAdmin: mobileRole === "admin",
+                  });
+                  // Preserve the signed-in landing before route navigation.
+                  if (!incompleteMobileProfile) {
+                    const landing =
+                      mobileRole === "admin"
+                        ? "/admin/users"
+                        : "/workspace/overview";
+                    await gotoAndWaitForReady(page, landing);
+                    await expect(page).toHaveURL(
+                      new URL(landing, isolatedWorker.origin).href,
                     );
-                    expect(response.status()).toBe(200);
-                    expect((await response.json()).user).toMatchObject({
-                      id: mobileAccount.id,
-                      isAdmin: mobileRole === "admin",
-                    });
-                    // Preserve the signed-in landing before route navigation.
-                    if (!incompleteMobileProfile) {
-                      const landing =
-                        mobileRole === "admin"
-                          ? "/admin/users"
-                          : "/workspace/overview";
-                      await gotoAndWaitForReady(page, landing);
-                      await expect(page).toHaveURL(
-                        new URL(landing, isolatedWorker.origin).href,
-                      );
-                      await expect(page.locator("#main-content")).toBeVisible();
-                    }
-                  };
-                  await work({ ...effects, startPage });
-                }),
+                    await expect(page.locator("#main-content")).toBeVisible();
+                  }
+                };
+                await work({ ...effects, startPage });
+              },
             ),
           ),
         ),
