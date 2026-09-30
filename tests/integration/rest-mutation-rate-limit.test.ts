@@ -9,28 +9,30 @@ import { nodeProtocolTest } from "../shared/node-protocol-fixture";
 const modules = import.meta.glob<Record<string, RequestHandler>>(
   "../../src/routes/api/**/+server.ts",
 );
-const it = nodeProtocolTest.extend<{
-  rateLimitCalls: { key: string; tier: string }[];
-}>({
-  // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
-  rateLimitCalls: async ({}, use) => {
-    await use([]);
-  },
-}).extend({
-  protocolBindings: async ({ rateLimitCalls }, use) => {
-    const limiter = (tier: string) => ({
-      limit: async ({ key }: { key: string }) => {
-        rateLimitCalls.push({ key, tier });
-        return { success: false };
-      },
-    });
-    await use({
-      NODE_ENV: "test",
-      USER_WRITE_RATE_LIMITER: limiter("write"),
-      USER_BATCH_WRITE_RATE_LIMITER: limiter("batch"),
-    });
-  },
-});
+const it = nodeProtocolTest
+  .extend<{
+    rateLimitCalls: { key: string; tier: string }[];
+  }>({
+    // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
+    rateLimitCalls: async ({}, use) => {
+      await use([]);
+    },
+  })
+  .extend({
+    protocolBindings: async ({ rateLimitCalls }, use) => {
+      const limiter = (tier: string) => ({
+        limit: async ({ key }: { key: string }) => {
+          rateLimitCalls.push({ key, tier });
+          return { success: false };
+        },
+      });
+      await use({
+        NODE_ENV: "test",
+        USER_WRITE_RATE_LIMITER: limiter("write"),
+        USER_BATCH_WRITE_RATE_LIMITER: limiter("batch"),
+      });
+    },
+  });
 
 const batchPaths = new Set([
   "/api/community/comments/batch",

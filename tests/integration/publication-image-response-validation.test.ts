@@ -4,7 +4,10 @@ import { publicationFetchTest as it } from "../shared/publication-object-fixture
 // This file deliberately contains one scenario: its controlled fetch boundary
 // belongs to one Vitest-isolated module and cannot race another case's spy.
 
-it("publications.image-response-validation", async ({ publication, fetchSpy }) => {
+it("publications.image-response-validation", async ({
+  publication,
+  fetchSpy,
+}) => {
   await publication.run(async () => {
     const { bucket, marker, fixture, registerImage, imageRead } = publication;
     let responseFactory: () => Response;
