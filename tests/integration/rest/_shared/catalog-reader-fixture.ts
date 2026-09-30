@@ -117,11 +117,11 @@ async function prepareCatalog(worker: IsolatedWorker) {
   });
 }
 
-export const test = workerTest.extend<{ _catalog: void }>({
+export const test = workerTest.extend<{ _catalog: undefined }>({
   _catalog: [
     async ({ isolatedWorker, run }, use) => {
       await run(() => prepareCatalog(isolatedWorker));
-      await use();
+      await use(undefined);
     },
     { auto: true },
   ],
