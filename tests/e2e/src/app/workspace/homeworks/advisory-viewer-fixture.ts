@@ -19,6 +19,7 @@ import {
 import { arrangeSection, facts } from "../../api/mcp/_data";
 import { test as oauthTest } from "../../api/mcp/_fixture";
 import type { OAuthOwner } from "../../api/mcp/helpers";
+import { REGISTERED_CLIENT_CAPABILITIES } from "../../api/mcp/protocol-checks";
 
 export type Target = {
   worker: IsolatedWorker;
@@ -502,7 +503,7 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
               clientId,
               name: owner.clientNames[0],
               userId: null,
-              scopes: ["community.section-homework:write"],
+              scopes: REGISTERED_CLIENT_CAPABILITIES,
               redirectUris: [`${origin}/e2e/oauth/callback`],
               grantTypes: ["authorization_code"],
               responseTypes: ["code"],
