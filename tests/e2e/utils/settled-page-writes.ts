@@ -1,4 +1,5 @@
 import type { APIResponse, Page, Request } from "@playwright/test";
+import { fulfillFetchedResponse } from "./fulfill-fetched-response";
 
 /** Keep owned fixture data alive until real UI writes settle, even after failure. */
 export async function withSettledPageWrites(
@@ -41,23 +42,7 @@ export async function withSettledPageWrites(
           await afterResponse?.(response, route.request());
           if (page.isClosed())
             throw new Error("Page closed before its write settled");
-          // APIResponse exposes decoded bytes. Replaying gzip/chunked framing
-          // from the upstream response can leave the browser body unfinished.
-          const body = await response.body();
-          const headers = response.headers();
-          // Match APIRequestContext's decoders; other encodings retain their
-          // original bytes and representation header.
-          if (
-            ["gzip", "x-gzip", "br", "deflate"].includes(
-              headers["content-encoding"]?.toLowerCase() ?? "",
-            )
-          )
-            delete headers["content-encoding"];
-          delete headers["transfer-encoding"];
-          if ([204, 304].includes(response.status()))
-            delete headers["content-length"];
-          else headers["content-length"] = String(body.length);
-          await route.fulfill({ response, body, headers });
+          await fulfillFetchedResponse(route, response);
         } catch (error) {
           errors.push(error);
           // A failed proxy must not leave the original browser write paused:
