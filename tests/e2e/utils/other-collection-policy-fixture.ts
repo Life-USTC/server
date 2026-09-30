@@ -88,11 +88,13 @@ export type OtherCollectionPolicyFixture = Awaited<
 export const test = browseTest.extend<{
   collection: OtherCollectionPolicyFixture;
 }>({
-  collection: async ({ isolatedWorker, browse }, use) => {
+  collection: async ({ isolatedWorker, browse, run }, use) => {
     await use(
-      await arrangeOtherCollectionPolicyFixture(
-        isolatedWorker.database.owner,
-        browse,
+      await run(() =>
+        arrangeOtherCollectionPolicyFixture(
+          isolatedWorker.database.owner,
+          browse,
+        ),
       ),
     );
   },

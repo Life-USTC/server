@@ -230,11 +230,13 @@ export async function arrangePropertyDiscoveryFixture(
 export const test = publicationStorageTest.extend<{
   discoveryState: Awaited<ReturnType<typeof arrangePropertyDiscoveryFixture>>;
 }>({
-  discoveryState: async ({ isolatedWorker, publicationObjects }, use) => {
+  discoveryState: async ({ isolatedWorker, publicationObjects, run }, use) => {
     await use(
-      await arrangePropertyDiscoveryFixture(
-        isolatedWorker.database.owner,
-        publicationObjects.put,
+      await run(() =>
+        arrangePropertyDiscoveryFixture(
+          isolatedWorker.database.owner,
+          publicationObjects.put,
+        ),
       ),
     );
   },
