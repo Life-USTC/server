@@ -8,6 +8,7 @@ import { unflatten } from "devalue";
 import { restReadScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
+import { observeAction } from "../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -150,13 +151,15 @@ test("rendering-and-cache.personal-overlays-4", async ({ shell, page }) => {
             "/catalog/courses",
             "/account/settings/preferences",
           ]) {
-            const bootstrap = page.waitForResponse(
-              (response) =>
-                new URL(response.url()).pathname ===
-                "/_internal/shell-bootstrap",
+            const hydrated = await observeAction(
+              () =>
+                page.waitForResponse(
+                  (response) =>
+                    new URL(response.url()).pathname ===
+                    "/_internal/shell-bootstrap",
+                ),
+              () => gotoAndWaitForReady(page, path),
             );
-            await gotoAndWaitForReady(page, path);
-            const hydrated = await bootstrap;
             expect(hydrated.request().resourceType()).toBe("fetch");
             expect(hydrated.headers()["cache-control"]).toBe(
               "private, no-store",
@@ -429,17 +432,21 @@ test("rendering-and-cache.web-rendering-and-cache-1", async ({ shell }) => {
           await expect(page.locator("#app-user-menu")).toContainText(
             users[0].name,
           );
-          const catalogData = page.waitForResponse(
-            (response) =>
-              new URL(response.url()).pathname ===
-              "/catalog/courses/__data.json",
+          const catalogData = await observeAction(
+            () =>
+              page.waitForResponse(
+                (response) =>
+                  new URL(response.url()).pathname ===
+                  "/catalog/courses/__data.json",
+              ),
+            () =>
+              page
+                .locator(
+                  '[data-shell-navigation="desktop"] a[href="/catalog/courses"]',
+                )
+                .click(),
           );
-          await page
-            .locator(
-              '[data-shell-navigation="desktop"] a[href="/catalog/courses"]',
-            )
-            .click();
-          expect((await catalogData).status()).toBe(200);
+          expect(catalogData.status()).toBe(200);
           await expect(page).toHaveURL(/\/catalog\/courses$/);
           await expect(page.locator("#app-user-menu")).toContainText(
             users[0].name,
@@ -679,17 +686,22 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       ];
       for (const item of cases) {
         identities.length = 0;
-        const projection = page.waitForResponse(
-          (response) =>
-            new URL(response.url()).pathname === item.projection &&
-            response.request().method() === "GET",
+        const [personal, shell] = await observeAction(
+          () =>
+            Promise.all([
+              page.waitForResponse(
+                (response) =>
+                  new URL(response.url()).pathname === item.projection &&
+                  response.request().method() === "GET",
+              ),
+              page.waitForResponse(
+                (response) =>
+                  new URL(response.url()).pathname ===
+                  "/_internal/shell-bootstrap",
+              ),
+            ]),
+          () => gotoAndWaitForReady(page, item.path),
         );
-        const bootstrap = page.waitForResponse(
-          (response) =>
-            new URL(response.url()).pathname === "/_internal/shell-bootstrap",
-        );
-        await gotoAndWaitForReady(page, item.path);
-        const [personal, shell] = await Promise.all([projection, bootstrap]);
         expect(personal.status(), item.path).toBe(200);
         expect((await shell.json()).viewer.id, item.path).toBe(users[0].id);
         await expect(page.locator("#app-user-menu")).toContainText(
@@ -707,17 +719,21 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       expect(identities).toEqual([]);
       const destination = `/catalog/sections/${DEV_SEED.section.jwId}`;
       // The real subscribed-section link retains the root-layout viewer.
-      const projected = page.waitForResponse(
-        (response) =>
-          new URL(response.url()).pathname ===
-          `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`,
+      const projected = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname ===
+              `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`,
+          ),
+        () =>
+          page
+            .getByRole("main")
+            .locator(`a[href="${destination}"]:visible`)
+            .first()
+            .click(),
       );
-      await page
-        .getByRole("main")
-        .locator(`a[href="${destination}"]:visible`)
-        .first()
-        .click();
-      expect((await projected).status()).toBe(200);
+      expect(projected.status()).toBe(200);
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
       await expect(page.locator("#app-user-menu")).toContainText(
         users[0].name ?? "",
@@ -731,10 +747,6 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
         `/account/sign-in?callbackUrl=${encodeURIComponent(destination)}`,
       );
       identities.length = 0;
-      const signedInBootstrap = page.waitForResponse(
-        (response) =>
-          new URL(response.url()).pathname === "/_internal/shell-bootstrap",
-      );
       const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
       const viewerRequests: Request[] = [];
       const observeViewer = (request: Request) => {
@@ -750,10 +762,21 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       };
       page.on("request", observeViewer);
       try {
-        await page
-          .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
-          .click();
-        expect((await (await signedInBootstrap).json()).viewer.name).toBe(
+        const signedInBootstrap = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname ===
+                "/_internal/shell-bootstrap",
+            ),
+          () =>
+            page
+              .getByRole("button", {
+                name: /Debug User \(Dev\)|调试用户（开发）/i,
+              })
+              .click(),
+        );
+        expect((await signedInBootstrap.json()).viewer.name).toBe(
           DEV_SEED.debugName,
         );
         await expect(page).toHaveURL(new RegExp(`${destination}$`));

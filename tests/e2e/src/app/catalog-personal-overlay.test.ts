@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../utils/dev-seed";
+import { observeAction } from "../../utils/observed-action";
 import {
   test as overlayTest,
   signInPrivateDebugUser,
@@ -221,15 +222,18 @@ overlayTest(
         await expect(publicControl).toBeEnabled();
         await publicControl.click();
         expect(writes).toBe(0);
-        const loaded = page.waitForResponse(
-          (response) =>
-            response.url().endsWith("/api/workspace/bus-preferences") &&
-            response.status() === 200,
+        await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.url().endsWith("/api/workspace/bus-preferences") &&
+                response.status() === 200,
+            ),
+          () =>
+            page
+              .getByRole("button", { name: /重试|Retry|重新加载|Reload/i })
+              .click(),
         );
-        await page
-          .getByRole("button", { name: /重试|Retry|重新加载|Reload/i })
-          .click();
-        await loaded;
         await expect(page.getByRole("alert")).toHaveCount(0);
         await expect(planner).toBeVisible();
         expect(reads).toBe(2);

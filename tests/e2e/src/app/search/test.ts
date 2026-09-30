@@ -1,23 +1,26 @@
 import { expect, test } from "@playwright/test";
+import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { assertPageContract } from "../_shared/page-contract";
 
 test("search page returns catalog and link results", async ({ page }) => {
-  const searchResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/search") &&
-      response.url().includes("email") &&
-      response.url().includes("locale=") &&
-      response.ok(),
+  const response = await observeAction(
+    () =>
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/search") &&
+          response.url().includes("email") &&
+          response.url().includes("locale=") &&
+          response.ok(),
+      ),
+    async () => {
+      await gotoAndWaitForReady(page, "/search?q=email");
+
+      await expect(
+        page.getByRole("heading", { name: /搜索|Search/ }),
+      ).toBeVisible();
+    },
   );
-
-  await gotoAndWaitForReady(page, "/search?q=email");
-
-  await expect(
-    page.getByRole("heading", { name: /搜索|Search/ }),
-  ).toBeVisible();
-
-  const response = await searchResponse;
   const body = (await response.json()) as {
     groups: Array<{ type: string; items: unknown[] }>;
   };
@@ -52,14 +55,16 @@ test("search page matches course and teacher terms in one section", async ({
   page.on("pageerror", (error) => runtimeErrors.push(error.message));
   await gotoAndWaitForReady(page, "/search");
 
-  const searchResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/search") &&
-      new URL(response.url()).searchParams.get("q") === query &&
-      response.ok(),
+  await observeAction(
+    () =>
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/search") &&
+          new URL(response.url()).searchParams.get("q") === query &&
+          response.ok(),
+      ),
+    () => page.getByRole("combobox").fill(query),
   );
-  await page.getByRole("combobox").fill(query);
-  await searchResponse;
 
   await expect(page).toHaveURL(/\/search\?q=/);
   await expect(page).toHaveTitle(/^(搜索|Search) - Life@USTC$/);

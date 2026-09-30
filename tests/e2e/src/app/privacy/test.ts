@@ -3,8 +3,10 @@
  *
  * Static legal page rendering the privacy policy from i18n keys.
  */
+
 import { expect, test } from "@playwright/test";
 import { test as privateTest } from "../../../utils/account-fixture";
+import { observeAction } from "../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -86,11 +88,13 @@ test.describe("/privacy 隐私政策页", () => {
         expect(user.id).toBe(actor.id);
         expect(html).not.toContain(user.id);
 
-        const bootstrapResponse = page.waitForResponse((response) =>
-          response.url().endsWith("/_internal/shell-bootstrap"),
+        const bootstrap = await observeAction(
+          () =>
+            page.waitForResponse((response) =>
+              response.url().endsWith("/_internal/shell-bootstrap"),
+            ),
+          () => gotoAndWaitForReady(page, "/privacy"),
         );
-        await gotoAndWaitForReady(page, "/privacy");
-        const bootstrap = await bootstrapResponse;
         expect(bootstrap.status()).toBe(200);
         expect(bootstrap.headers()["cache-control"]).toBe("private, no-store");
         expect((await bootstrap.json()).viewer.id).toBe(user.id);
