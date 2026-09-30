@@ -13,7 +13,10 @@ type Observation = {
 export const observabilityTest = metricsTest.extend<{
   observation: Observation;
 }>({
-  observation: async ({ metrics, isolatedDatabase, workspaceRuntime }, use) => {
+  observation: async (
+    { metrics, isolatedDatabase, protocolRuntime, onTestFinished },
+    use,
+  ) => {
     const { db } = metrics;
     const { maintenance } = isolatedDatabase;
     const userId = `observation-${crypto.randomUUID()}`;
@@ -71,18 +74,29 @@ export const observabilityTest = metricsTest.extend<{
         );
     }
     try {
-      await db.user.create({
-        data: { id: userId, email: `${userId}@test.invalid` },
-      });
+      await metrics.run(() =>
+        db.user.create({
+          data: { id: userId, email: `${userId}@test.invalid` },
+        }),
+      );
       await use({
         db,
         maintenance,
         userId,
         capture,
-        runtime: workspaceRuntime.run,
+        runtime: metrics.run,
       });
     } finally {
-      await cleanup();
+      // Captured original responses belong to full admitted callbacks. The
+      // enclosing protocol owner reports its cached drain error after DB cleanup.
+      await Promise.allSettled([protocolRuntime.drain()]);
+      try {
+        await cleanup();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
 });
