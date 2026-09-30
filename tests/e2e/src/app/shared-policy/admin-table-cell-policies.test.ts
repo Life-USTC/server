@@ -1,6 +1,9 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
-import { test as adminTest } from "../../../utils/admin-fixture";
+import {
+  test as adminTest,
+  adminWriteChecks,
+} from "../../../utils/admin-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 const longText =
@@ -93,14 +96,17 @@ async function createFixture(db: TestPrismaClient, adminId: string) {
 const test = adminTest.extend<{
   fixture: Awaited<ReturnType<typeof createFixture>>;
 }>({
-  fixture: async ({ isolatedWorker, admin, page }, use) => {
-    await page
-      .context()
-      .addCookies([
-        { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
-      ]);
-    await page.setViewportSize({ width: 1600, height: 1000 });
-    await use(await createFixture(isolatedWorker.database.owner, admin.id));
+  fixture: async ({ isolatedWorker, admin, page, run }, use) => {
+    const fixture = await run(async () => {
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
+        ]);
+      await page.setViewportSize({ width: 1600, height: 1000 });
+      return createFixture(isolatedWorker.database.owner, admin.id);
+    });
+    await use(fixture);
   },
 });
 
@@ -152,142 +158,180 @@ async function secondaryHeight(cell: Locator) {
     });
 }
 
-test("ui.data-table-cells-1", async ({ page, fixture }, testInfo) => {
-  for (const matrix of matrices(fixture)) {
-    await gotoAndWaitForReady(page, matrix.path);
-    const populated = fixtureRow(page, matrix.labels[0]);
-    const missing = fixtureRow(page, matrix.labels[1]);
-    await expect(populated).toHaveCount(1);
-    await expect(missing).toHaveCount(1);
-    await page.locator("table:visible").screenshot({
-      path: testInfo.outputPath(`secondary-${matrix.name}.png`),
-    });
-    const first = await secondaryHeight(
-      populated.locator("td").nth(matrix.cell),
-    );
-    const second = await secondaryHeight(
-      missing.locator("td").nth(matrix.cell),
-    );
-    expect
-      .soft(first, `${matrix.name}: populated secondary line`)
-      .toBeGreaterThan(0);
-    expect
-      .soft(second, `${matrix.name}: missing secondary line reserves space`)
-      .toBe(first);
-    const longRow = fixtureRow(page, matrix.labels[2]);
-    if (matrix.name === "bus" || matrix.name === "comments") {
-      const context = longRow.getByText(
-        matrix.name === "comments"
-          ? `Moderation note (optional): ${longText}`
-          : longText,
-        { exact: true },
-      );
-      await context.hover();
-      await expect(
-        page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toContainText(longText);
-      await page.keyboard.press("Escape");
-    }
-    const buttons = longRow.getByRole("button");
-    expect(await buttons.count()).toBeGreaterThan(0);
-    for (const button of await buttons.all()) {
-      await button.scrollIntoViewIfNeeded();
-      await expect(button).toBeInViewport({ ratio: 1 });
-      const box = await button.boundingBox();
-      expect(box?.width).toBeGreaterThan(0);
-      expect(box?.height).toBeGreaterThan(0);
-    }
-  }
-});
-
-test("ui.data-table-cells-5", async ({ page, fixture }) => {
-  for (const matrix of matrices(fixture)) {
-    await gotoAndWaitForReady(page, matrix.path);
-    const cell = fixtureRow(page, matrix.labels[1])
-      .locator("td")
-      .nth(matrix.cell);
-    const blank = cell.locator('[data-slot="truncated-text-placeholder"]');
-    await expect(blank).toHaveCount(1);
-    await expect(blank).toHaveAttribute("aria-hidden", "true");
-    expect(await blank.ariaSnapshot()).toBe("");
-    expect(await blank.innerText()).toBe("");
-    if (matrix.name === "users") {
-      const unknown = fixtureRow(page, matrix.labels[1]).locator("td").nth(1);
-      expect(await unknown.ariaSnapshot()).toContain("No ID");
-    }
-  }
-  await gotoAndWaitForReady(
-    page,
-    `/catalog/teachers?search=${fixture.teacher.code}`,
+test("ui.data-table-cells-1", async ({
+  adminFlow,
+  run,
+  page,
+  fixture,
+}, testInfo) => {
+  await run(() =>
+    adminFlow.run(
+      async () => {
+        for (const matrix of matrices(fixture)) {
+          await gotoAndWaitForReady(page, matrix.path);
+          const populated = fixtureRow(page, matrix.labels[0]);
+          const missing = fixtureRow(page, matrix.labels[1]);
+          await expect(populated).toHaveCount(1);
+          await expect(missing).toHaveCount(1);
+          await page.locator("table:visible").screenshot({
+            path: testInfo.outputPath(`secondary-${matrix.name}.png`),
+          });
+          const first = await secondaryHeight(
+            populated.locator("td").nth(matrix.cell),
+          );
+          const second = await secondaryHeight(
+            missing.locator("td").nth(matrix.cell),
+          );
+          expect
+            .soft(first, `${matrix.name}: populated secondary line`)
+            .toBeGreaterThan(0);
+          expect
+            .soft(
+              second,
+              `${matrix.name}: missing secondary line reserves space`,
+            )
+            .toBe(first);
+          const longRow = fixtureRow(page, matrix.labels[2]);
+          if (matrix.name === "bus" || matrix.name === "comments") {
+            const context = longRow.getByText(
+              matrix.name === "comments"
+                ? `Moderation note (optional): ${longText}`
+                : longText,
+              { exact: true },
+            );
+            await context.hover();
+            await expect(
+              page.locator('[data-slot="tooltip-content"]:visible'),
+            ).toContainText(longText);
+            await page.keyboard.press("Escape");
+          }
+          const buttons = longRow.getByRole("button");
+          expect(await buttons.count()).toBeGreaterThan(0);
+          for (const button of await buttons.all()) {
+            await button.scrollIntoViewIfNeeded();
+            await expect(button).toBeInViewport({ ratio: 1 });
+            const box = await button.boundingBox();
+            expect(box?.width).toBeGreaterThan(0);
+            expect(box?.height).toBeGreaterThan(0);
+          }
+        }
+      },
+      {},
+      adminWriteChecks([]),
+    ),
   );
-  const title = fixtureRow(page, "Table unknown teacher (表格未知值教师)")
-    .locator("td")
-    .nth(3);
-  await expect(title).toHaveText("Unknown");
-  expect(await title.ariaSnapshot()).toContain("Unknown");
 });
 
-test("ui.data-table-cells-6", async ({ page, fixture }) => {
-  const columns: Record<string, number[]> = {
-    bus: [2, 5],
-    comments: [4],
-    suspensions: [3],
-    users: [3, 4],
-  };
-  for (const matrix of matrices(fixture)) {
-    await gotoAndWaitForReady(page, matrix.path);
-    const row = fixtureRow(page, matrix.labels[0]);
-    await expect(row).toHaveCount(1);
-    for (const index of columns[matrix.name]) {
-      const cell = row.locator("td").nth(index);
-      await expect(cell).toHaveText(/\S/);
-      if (matrix.name === "users" && index === 4) {
-        await expect(cell.locator('[data-slot="truncated-text"]')).toHaveText(
-          "Permanent",
+test("ui.data-table-cells-5", async ({ adminFlow, run, page, fixture }) => {
+  await run(() =>
+    adminFlow.run(
+      async () => {
+        for (const matrix of matrices(fixture)) {
+          await gotoAndWaitForReady(page, matrix.path);
+          const cell = fixtureRow(page, matrix.labels[1])
+            .locator("td")
+            .nth(matrix.cell);
+          const blank = cell.locator(
+            '[data-slot="truncated-text-placeholder"]',
+          );
+          await expect(blank).toHaveCount(1);
+          await expect(blank).toHaveAttribute("aria-hidden", "true");
+          expect(await blank.ariaSnapshot()).toBe("");
+          expect(await blank.innerText()).toBe("");
+          if (matrix.name === "users") {
+            const unknown = fixtureRow(page, matrix.labels[1])
+              .locator("td")
+              .nth(1);
+            expect(await unknown.ariaSnapshot()).toContain("No ID");
+          }
+        }
+        await gotoAndWaitForReady(
+          page,
+          `/catalog/teachers?search=${fixture.teacher.code}`,
         );
-      }
-      await expect(cell.locator("[title]")).toHaveCount(0);
-      await cell.hover();
-      await expect(
-        page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toHaveCount(0);
-      for (const text of await cell
-        .locator('[data-slot="truncated-text"]')
-        .all()) {
-        const geometry = await text.evaluate((node) => ({
-          width: node.clientWidth,
-          scrollWidth: node.scrollWidth,
-          height: node.clientHeight,
-          scrollHeight: node.scrollHeight,
-        }));
-        expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.width);
-        expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.height);
-        await text.hover();
-        await expect(
-          page.locator('[data-slot="tooltip-content"]:visible'),
-        ).toHaveCount(0);
-        await text.focus();
-        await expect(
-          page.locator('[data-slot="tooltip-content"]:visible'),
-        ).toHaveCount(0);
-        await text.blur();
-      }
-    }
-    const actions = row.getByRole("button");
-    expect(await actions.count()).toBeGreaterThan(0);
-    for (const action of await actions.all()) {
-      await expect(action.locator('[data-slot="truncated-text"]')).toHaveCount(
-        0,
-      );
-      expect(await action.getAttribute("title")).toBeNull();
-      const label = await action.getAttribute("aria-label");
-      if (!label) throw new Error("Expected an explicit action label");
-      await action.focus();
-      await expect(
-        page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toHaveText(label);
-      await page.keyboard.press("Escape");
-      await action.blur();
-    }
-  }
+        const title = fixtureRow(page, "Table unknown teacher (表格未知值教师)")
+          .locator("td")
+          .nth(3);
+        await expect(title).toHaveText("Unknown");
+        expect(await title.ariaSnapshot()).toContain("Unknown");
+      },
+      {},
+      adminWriteChecks([]),
+    ),
+  );
+});
+
+test("ui.data-table-cells-6", async ({ adminFlow, run, page, fixture }) => {
+  await run(() =>
+    adminFlow.run(
+      async () => {
+        const columns: Record<string, number[]> = {
+          bus: [2, 5],
+          comments: [4],
+          suspensions: [3],
+          users: [3, 4],
+        };
+        for (const matrix of matrices(fixture)) {
+          await gotoAndWaitForReady(page, matrix.path);
+          const row = fixtureRow(page, matrix.labels[0]);
+          await expect(row).toHaveCount(1);
+          for (const index of columns[matrix.name]) {
+            const cell = row.locator("td").nth(index);
+            await expect(cell).toHaveText(/\S/);
+            if (matrix.name === "users" && index === 4) {
+              await expect(
+                cell.locator('[data-slot="truncated-text"]'),
+              ).toHaveText("Permanent");
+            }
+            await expect(cell.locator("[title]")).toHaveCount(0);
+            await cell.hover();
+            await expect(
+              page.locator('[data-slot="tooltip-content"]:visible'),
+            ).toHaveCount(0);
+            for (const text of await cell
+              .locator('[data-slot="truncated-text"]')
+              .all()) {
+              const geometry = await text.evaluate((node) => ({
+                width: node.clientWidth,
+                scrollWidth: node.scrollWidth,
+                height: node.clientHeight,
+                scrollHeight: node.scrollHeight,
+              }));
+              expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.width);
+              expect(geometry.scrollHeight).toBeLessThanOrEqual(
+                geometry.height,
+              );
+              await text.hover();
+              await expect(
+                page.locator('[data-slot="tooltip-content"]:visible'),
+              ).toHaveCount(0);
+              await text.focus();
+              await expect(
+                page.locator('[data-slot="tooltip-content"]:visible'),
+              ).toHaveCount(0);
+              await text.blur();
+            }
+          }
+          const actions = row.getByRole("button");
+          expect(await actions.count()).toBeGreaterThan(0);
+          for (const action of await actions.all()) {
+            await expect(
+              action.locator('[data-slot="truncated-text"]'),
+            ).toHaveCount(0);
+            expect(await action.getAttribute("title")).toBeNull();
+            const label = await action.getAttribute("aria-label");
+            if (!label) throw new Error("Expected an explicit action label");
+            await action.focus();
+            await expect(
+              page.locator('[data-slot="tooltip-content"]:visible'),
+            ).toHaveText(label);
+            await page.keyboard.press("Escape");
+            await action.blur();
+          }
+        }
+      },
+      {},
+      adminWriteChecks([]),
+    ),
+  );
 });
