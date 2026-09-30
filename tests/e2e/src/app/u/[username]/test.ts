@@ -218,7 +218,11 @@ test.describe("/community/users/[identifier]", () => {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(390);
-      await captureStepScreenshot(page, testInfo, "u-username/stats-grid-mobile");
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "u-username/stats-grid-mobile",
+      );
     });
   });
 
@@ -268,9 +272,13 @@ test.describe("/community/users/[identifier]", () => {
 
   test("不存在的用户名返回 404", async ({ preferenceFlow, page }, testInfo) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/community/users/non-existing-username", {
-        expectMainContent: false,
-      });
+      await gotoAndWaitForReady(
+        page,
+        "/community/users/non-existing-username",
+        {
+          expectMainContent: false,
+        },
+      );
       await expect(page.getByText("404").first()).toBeVisible();
       await expect(
         page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),

@@ -1,8 +1,11 @@
-import { test, arrangeSectionDetails } from "../../../../utils/catalog-detail-fixture";
 /**
  * E2E: /catalog/sections/[jwId] — Section detail calendar and iCal export
  */
 import { expect } from "@playwright/test";
+import {
+  arrangeSectionDetails,
+  test,
+} from "../../../../utils/catalog-detail-fixture";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
@@ -15,8 +18,17 @@ import { jumpToSection } from "./_helpers";
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
-  test("schedule.schedule-as-context", async ({ page, preferenceFlow, detailCatalog, isolatedWorker }, testInfo) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction((db) => arrangeSectionDetails(db, detailCatalog)));
+  test("schedule.schedule-as-context", async ({
+    page,
+    preferenceFlow,
+    detailCatalog,
+    isolatedWorker,
+  }, testInfo) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction((db) =>
+        arrangeSectionDetails(db, detailCatalog),
+      ),
+    );
     await preferenceFlow.run(async () => {
       test.setTimeout(90_000);
       await gotoAndWaitForReady(page, SECTION_URL);
@@ -38,7 +50,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(
         scheduleTable
           .getByText(DEV_SEED.building.nameCn, { exact: false })
-          .or(scheduleTable.getByText(DEV_SEED.building.nameEn, { exact: false }))
+          .or(
+            scheduleTable.getByText(DEV_SEED.building.nameEn, { exact: false }),
+          )
           .first(),
       ).toBeVisible();
       await expect(
@@ -58,7 +72,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         endTime: string;
         teachers: Array<{ id: number; nameCn: string; nameEn: string | null }>;
       }>;
-      const meeting = schedules.find((item) => item.date && item.teachers.length);
+      const meeting = schedules.find(
+        (item) => item.date && item.teachers.length,
+      );
       if (!meeting?.date)
         throw new Error("Seed must contain a dated meeting with teachers");
       const row = scheduleTable
@@ -87,8 +103,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("日历区块以课表表格展示班级日程", async ({ page, preferenceFlow, detailCatalog, isolatedWorker }, testInfo) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction((db) => arrangeSectionDetails(db, detailCatalog)));
+  test("日历区块以课表表格展示班级日程", async ({
+    page,
+    preferenceFlow,
+    detailCatalog,
+    isolatedWorker,
+  }, testInfo) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction((db) =>
+        arrangeSectionDetails(db, detailCatalog),
+      ),
+    );
     await preferenceFlow.run(async () => {
       test.setTimeout(90_000);
       await gotoAndWaitForReady(page, SECTION_URL);
@@ -109,8 +134,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("移动端日历使用可横向滚动的紧凑表格", async ({ page, preferenceFlow, detailCatalog, isolatedWorker }) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction((db) => arrangeSectionDetails(db, detailCatalog)));
+  test("移动端日历使用可横向滚动的紧凑表格", async ({
+    page,
+    preferenceFlow,
+    detailCatalog,
+    isolatedWorker,
+  }) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction((db) =>
+        arrangeSectionDetails(db, detailCatalog),
+      ),
+    );
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, SECTION_URL);
@@ -125,7 +159,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(container).toHaveAttribute("role", "region");
       await expect(container).toHaveAttribute("tabindex", "0");
       await expect(container).toHaveAttribute("aria-label", /.+/);
-      await expect(calendar.getByTestId("section-calendar-items")).toHaveCount(0);
+      await expect(calendar.getByTestId("section-calendar-items")).toHaveCount(
+        0,
+      );
       const dimensions = await container.evaluate((element) => ({
         clientWidth: element.clientWidth,
         scrollWidth: element.scrollWidth,
@@ -139,8 +175,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("日历区块显示考试信息（examBatch、examRooms）", async ({ page, preferenceFlow, detailCatalog, isolatedWorker }, testInfo) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction((db) => arrangeSectionDetails(db, detailCatalog)));
+  test("日历区块显示考试信息（examBatch、examRooms）", async ({
+    page,
+    preferenceFlow,
+    detailCatalog,
+    isolatedWorker,
+  }, testInfo) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction((db) =>
+        arrangeSectionDetails(db, detailCatalog),
+      ),
+    );
     await preferenceFlow.run(async () => {
       test.setTimeout(90_000);
       await gotoAndWaitForReady(page, SECTION_URL);

@@ -52,7 +52,10 @@ const DCR_CLIENT_SCOPE = [
 
 test.describe("OAuth 提供者", () => {
   test.describe.configure({ mode: "parallel" });
-  test("标准 issuer/resource 发现地址可读且额外别名不存在", async ({ run, request }) => {
+  test("标准 issuer/resource 发现地址可读且额外别名不存在", async ({
+    run,
+    request,
+  }) => {
     await run(async () => {
       for (const path of [
         "/.well-known/oauth-authorization-server/api/auth",
@@ -79,7 +82,9 @@ test.describe("OAuth 提供者", () => {
         "/api/mcp/.well-known/oauth-authorization-server",
         "/api/mcp/.well-known/openid-configuration",
       ]) {
-        expect((await request.get(path, { maxRedirects: 0 })).status()).toBe(404);
+        expect((await request.get(path, { maxRedirects: 0 })).status()).toBe(
+          404,
+        );
       }
     });
   });

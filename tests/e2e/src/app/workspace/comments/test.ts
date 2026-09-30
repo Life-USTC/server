@@ -26,7 +26,10 @@ import { test } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘无效标签（comments）", () => {
-  test("/workspace/comments 不是仪表盘路由页面", async ({ publicFlow, page }, testInfo) => {
+  test("/workspace/comments 不是仪表盘路由页面", async ({
+    publicFlow,
+    page,
+  }, testInfo) => {
     await publicFlow.run(async () => {
       const response = await gotoAndWaitForReady(page, "/workspace/comments", {
         testInfo,
@@ -38,7 +41,10 @@ test.describe("仪表盘无效标签（comments）", () => {
     });
   });
 
-  test("未登录 ?tab=comments 保持轻量公共首页", async ({ publicFlow, page }, testInfo) => {
+  test("未登录 ?tab=comments 保持轻量公共首页", async ({
+    publicFlow,
+    page,
+  }, testInfo) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(page, "/?tab=comments", {
         testInfo,

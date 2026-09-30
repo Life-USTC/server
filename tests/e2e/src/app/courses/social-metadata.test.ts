@@ -1,15 +1,15 @@
-import { test } from "../../../utils/catalog-detail-fixture";
-import { test as assetTest } from "../../../utils/owned-worker";
 import { readFile } from "node:fs/promises";
 import { expect, type Page } from "@playwright/test";
+import { test } from "../../../utils/catalog-detail-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { test as assetTest } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test as privateTest } from "../../../utils/personal-preferences-fixture";
+import type { PreferenceFlow } from "../../../utils/preference-flow";
 import {
   expectPublicIdentityEffectsEmpty,
   publicIdentityState,
 } from "../../../utils/public-identity-state";
-import type { PreferenceFlow } from "../../../utils/preference-flow";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
 const metadataSelectors = {
@@ -49,10 +49,16 @@ type StructuredDataGraph = {
   "@graph": Array<Record<string, unknown>>;
 };
 
-async function setLocale(page: Page, flow: PreferenceFlow, locale: "en-us" | "zh-cn") {
-  const response = await flow.http(() => page.request.post("/api/account/preferences", {
-    data: { locale },
-  }));
+async function setLocale(
+  page: Page,
+  flow: PreferenceFlow,
+  locale: "en-us" | "zh-cn",
+) {
+  const response = await flow.http(() =>
+    page.request.post("/api/account/preferences", {
+      data: { locale },
+    }),
+  );
   expect(response.status()).toBe(200);
 }
 
@@ -158,7 +164,10 @@ async function readRawStructuredData(page: Page, path: string) {
   }, html);
 }
 
-test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", async ({ page, preferenceFlow }) => {
+test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", async ({
+  page,
+  preferenceFlow,
+}) => {
   await preferenceFlow.run(async () => {
     const cases = [
       {
@@ -177,7 +186,10 @@ test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", asyn
 
     for (const current of cases) {
       await setLocale(page, preferenceFlow, current.locale);
-      const metadata = await readRawSocialMetadata(page, "/?utm_source=e2e#top");
+      const metadata = await readRawSocialMetadata(
+        page,
+        "/?utm_source=e2e#top",
+      );
       expectCompleteSocialMetadata(metadata, {
         canonicalPath: "/",
         ...current,
@@ -186,11 +198,17 @@ test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", asyn
   });
 });
 
-test("interface-hierarchy.locale-caching-and-seo-3", async ({ page,
-  context, preferenceFlow }) => {
+test("interface-hierarchy.locale-caching-and-seo-3", async ({
+  page,
+  context,
+  preferenceFlow,
+}) => {
   await preferenceFlow.run(async () => {
     await context.clearCookies();
-    await context.setExtraHTTPHeaders({ ...preferenceFlow.headers, "accept-language": "*" });
+    await context.setExtraHTTPHeaders({
+      ...preferenceFlow.headers,
+      "accept-language": "*",
+    });
     for (const path of [
       "/catalog/courses",
       "/catalog/sections",
@@ -398,7 +416,11 @@ privateTest(
   },
 );
 
-test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }) => {
+test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", async ({
+  page,
+  preferenceFlow,
+  detailCatalog: _detailCatalog,
+}) => {
   await preferenceFlow.run(async () => {
     await setLocale(page, preferenceFlow, "zh-cn");
     const courseResult = await readRawStructuredData(
@@ -511,7 +533,11 @@ assetTest("ui.social-sharing-metadata-6", async ({ request, run }) => {
   });
 });
 
-test("分享元数据不改变首页与课程详情可见布局", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+test("分享元数据不改变首页与课程详情可见布局", async ({
+  page,
+  preferenceFlow,
+  detailCatalog: _detailCatalog,
+}, testInfo) => {
   await preferenceFlow.run(async () => {
     await setLocale(page, preferenceFlow, "en-us");
     await gotoAndWaitForReady(page, "/");
@@ -527,6 +553,10 @@ test("分享元数据不改变首页与课程详情可见布局", async ({ page,
         name: DEV_SEED.course.nameCn,
       }),
     ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "social-metadata/course-mobile");
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "social-metadata/course-mobile",
+    );
   });
 });

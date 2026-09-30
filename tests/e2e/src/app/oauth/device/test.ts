@@ -212,7 +212,10 @@ async function exchangeDeviceToken(
     refreshToken: tokenBody.refresh_token,
   };
 }
-test("/oauth/device 移动端只呈现一个标题和一个代码输入", async ({ publicFlow, page }, testInfo) => {
+test("/oauth/device 移动端只呈现一个标题和一个代码输入", async ({
+  publicFlow,
+  page,
+}, testInfo) => {
   await publicFlow.run(async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/oauth/device");
@@ -265,7 +268,10 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", async 
     await captureStepScreenshot(page, testInfo, "oauth/device/form-mobile");
   });
 });
-test("/oauth/device 320px 和 375px 输入槽完整显示", async ({ publicFlow, page }, testInfo) => {
+test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
+  publicFlow,
+  page,
+}, testInfo) => {
   await publicFlow.run(async () => {
     for (const width of [320, 375]) {
       await page.setViewportSize({ width, height: 800 });
@@ -294,9 +300,15 @@ test("/oauth/device 320px 和 375px 输入槽完整显示", async ({ publicFlow,
     }
   });
 });
-test("/oauth/device 无效用户代码显示公开错误", async ({ publicFlow, page }, testInfo) => {
+test("/oauth/device 无效用户代码显示公开错误", async ({
+  publicFlow,
+  page,
+}, testInfo) => {
   await publicFlow.run(async () => {
-    await gotoAndWaitForReady(page, "/oauth/device?code=NOPE-NOPE&step=approve");
+    await gotoAndWaitForReady(
+      page,
+      "/oauth/device?code=NOPE-NOPE&step=approve",
+    );
     await expect(
       page.getByText(/未找到|not found|No device login request/i).first(),
     ).toBeVisible();
@@ -1302,27 +1314,30 @@ isolatedTest(
   },
 );
 
-requestTest("/oauth/device 发现文档包含设备授权端点", async ({ run, request }) => {
-  await run(async () => {
-    const discoveryResponse = await request.get(
-      "/api/auth/.well-known/openid-configuration",
-    );
-    expect(discoveryResponse.status()).toBe(200);
-    const discovery = (await discoveryResponse.json()) as {
-      device_authorization_endpoint?: string;
-      grant_types_supported?: string[];
-    };
-    expect(typeof discovery.device_authorization_endpoint).toBe("string");
-    expect(discovery.device_authorization_endpoint).toContain(
-      "/oauth2/device-authorization",
-    );
-    expect(
-      discovery.grant_types_supported?.includes(
-        "urn:ietf:params:oauth:grant-type:device_code",
-      ),
-    ).toBe(true);
-  });
-});
+requestTest(
+  "/oauth/device 发现文档包含设备授权端点",
+  async ({ run, request }) => {
+    await run(async () => {
+      const discoveryResponse = await request.get(
+        "/api/auth/.well-known/openid-configuration",
+      );
+      expect(discoveryResponse.status()).toBe(200);
+      const discovery = (await discoveryResponse.json()) as {
+        device_authorization_endpoint?: string;
+        grant_types_supported?: string[];
+      };
+      expect(typeof discovery.device_authorization_endpoint).toBe("string");
+      expect(discovery.device_authorization_endpoint).toContain(
+        "/oauth2/device-authorization",
+      );
+      expect(
+        discovery.grant_types_supported?.includes(
+          "urn:ietf:params:oauth:grant-type:device_code",
+        ),
+      ).toBe(true);
+    });
+  },
+);
 test("页面契约", async ({ publicFlow, page }, testInfo) => {
   await publicFlow.run(async () => {
     await assertPageContract(page, { routePath: "/oauth/device", testInfo });

@@ -61,50 +61,49 @@ overlayTest(
   },
 );
 
-searchTest("section viewer failure disables personal actions and supports retry", async ({
-  preferenceFlow,
-  searchSection: _searchSection,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    let requests = 0;
-    await preferenceFlow.route(
-      page,
-      "**/_internal/catalog/sections/*/viewer*",
-      async (route) => {
-        requests += 1;
-        if (requests === 1) {
-          await route.fulfill({
-            status: 500,
-            contentType: "application/json",
-            body: JSON.stringify({ error: "unavailable" }),
-          });
-        } else {
-          await route.continue();
-        }
-      },
-    );
-    await page.goto(`${SECTION_URL}?subscribe=1`, {
-      waitUntil: "domcontentloaded",
+searchTest(
+  "section viewer failure disables personal actions and supports retry",
+  async ({ preferenceFlow, searchSection: _searchSection, page }) => {
+    await preferenceFlow.run(async () => {
+      let requests = 0;
+      await preferenceFlow.route(
+        page,
+        "**/_internal/catalog/sections/*/viewer*",
+        async (route) => {
+          requests += 1;
+          if (requests === 1) {
+            await route.fulfill({
+              status: 500,
+              contentType: "application/json",
+              body: JSON.stringify({ error: "unavailable" }),
+            });
+          } else {
+            await route.continue();
+          }
+        },
+      );
+      await page.goto(`${SECTION_URL}?subscribe=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      const error = page
+        .getByRole("alert")
+        .filter({ has: page.getByRole("button") })
+        .first();
+      await expect(error).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: subscriptionLabel }),
+      ).toHaveCount(0);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await error.getByRole("button").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(
+        page.getByRole("dialog").getByRole("link", { name: /登录|Sign in/i }),
+      ).toBeVisible();
+      expect(requests).toBe(2);
     });
-    const error = page
-      .getByRole("alert")
-      .filter({ has: page.getByRole("button") })
-      .first();
-    await expect(error).toBeVisible();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(
-      page.getByRole("button", { name: subscriptionLabel }),
-    ).toHaveCount(0);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await error.getByRole("button").click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(
-      page.getByRole("dialog").getByRole("link", { name: /登录|Sign in/i }),
-    ).toBeVisible();
-    expect(requests).toBe(2);
-  });
-});
+  },
+);
 
 overlayTest(
   "description editing awaits private permissions while preserving SSR content",
