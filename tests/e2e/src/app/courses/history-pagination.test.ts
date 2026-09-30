@@ -2,7 +2,10 @@ import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-browser-fixture";
 import type { CommunityFlow } from "../../../utils/community-flow";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 
 // Isolated rows, never shared seed courses or teachers. Equal sort values force
 // the unique jwId tie-breaker to keep all 23 offerings reachable without repeats.
@@ -135,6 +138,10 @@ async function verifyHistory(
         new RegExp(`/catalog/sections/${sectionBase + 22}$`),
       );
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(
+        page.getByTestId("section-mobile-primary-actions"),
+      ).toBeVisible();
+      await waitForUiSettled(page);
     },
     { anonymousCourseCount: 1 },
     {
