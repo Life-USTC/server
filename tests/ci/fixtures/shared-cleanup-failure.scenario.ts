@@ -1,7 +1,10 @@
 import { appendFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { vi } from "vitest";
+import { getCoursePage } from "@/features/catalog/server/course-page-data";
+import { findCourseDetailByJwId } from "@/features/catalog/server/course-section-read-queries";
 import { withUserDbContext } from "@/lib/db/prisma";
+import { catalogReadTest } from "../../shared/catalog-read-fixture";
 import { commentReadTest } from "../../shared/comment-read-contract-fixture";
 import { createDeferred } from "../../shared/deferred";
 import { domainStateTest } from "../../shared/domain-state-fixture";
@@ -146,6 +149,8 @@ if (
     "http-timeout",
     "metrics",
     "metrics-timeout",
+    "catalog",
+    "catalog-timeout",
     "discovery",
     "oauth",
     "cimd",
@@ -394,6 +399,108 @@ if (phase === "subscription") {
       failClientClose(client, "subscription");
       await prepareProtocolFailures(protocolRuntime);
       record("body-finished");
+    },
+  );
+}
+
+if (phase === "catalog") {
+  catalogReadTest.extend("probe", prepareProbe)(
+    title,
+    async ({ probe, catalogRead, expect }) => {
+      await catalogRead.run(async () => {
+        const course = catalogRead.fixture.courses[0];
+        const detail = await catalogRead.request(() =>
+          findCourseDetailByJwId(course.jwId),
+        );
+        expect(detail?.namePrimary).toBe(course.nameCn);
+        await catalogRead.request(
+          () =>
+            new Response(
+              new ReadableStream({
+                cancel: () => successfulCancellation(probe),
+              }),
+            ),
+        );
+      });
+      await catalogRead.run(() => cancellation("workflow"));
+      await catalogRead.request(() => cancellation("request"));
+      record("body-finished");
+    },
+  );
+}
+if (phase === "catalog-timeout") {
+  catalogReadTest.extend("probe", prepareProbe)(
+    title,
+    { timeout: 5_000 },
+    async ({ probe: _probe, catalogRead, signal }) => {
+      const gate = createDeferred();
+      signal.addEventListener(
+        "abort",
+        () => {
+          record("native-test-aborted");
+          gate.resolve();
+        },
+        { once: true },
+      );
+      await catalogRead.run(async () => {
+        record("body-entered");
+        const { db, fixture, request, commitRevision } = catalogRead;
+        const course = fixture.courses[0];
+        const revisionBefore = await db.staticImportState.findUniqueOrThrow({
+          where: { id: "global" },
+          select: { snapshotSha256: true },
+        });
+        const before = await request(() =>
+          findCourseDetailByJwId(course.jwId),
+        );
+        try {
+          await db.course.update({
+            where: { id: course.id },
+            data: { nameCn: "Catalog updated before native timeout" },
+          });
+          record("catalog-mutation-finished");
+          await gate.promise;
+          const created = await db.course.create({
+            data: {
+              jwId: fixture.base + 99,
+              code: "CATALOG-AFTER-TIMEOUT",
+              nameCn: "Catalog created after native timeout",
+            },
+            select: { id: true, jwId: true, nameCn: true },
+          });
+          record("catalog-late-write-finished");
+          await commitRevision();
+          record("catalog-revision-finished");
+          const updatedPage = await request(() =>
+            getCoursePage(course.jwId),
+          );
+          const createdDetail = await request(() =>
+            findCourseDetailByJwId(created.jwId),
+          );
+          const persisted = await db.course.findUniqueOrThrow({
+            where: { id: created.id },
+            select: { id: true, jwId: true, nameCn: true },
+          });
+          const revisionAfter = await db.staticImportState.findUniqueOrThrow({
+            where: { id: "global" },
+            select: { snapshotSha256: true },
+          });
+          save("late-catalog-work.json", {
+            nativeAborted: signal.aborted,
+            originalName: course.nameCn,
+            beforeName: before?.namePrimary,
+            updatedName: updatedPage?.namePrimary,
+            createdName: createdDetail?.namePrimary,
+            created,
+            persisted,
+            revisionBefore: revisionBefore.snapshotSha256,
+            revisionAfter: revisionAfter.snapshotSha256,
+          });
+          record("catalog-late-read-finished");
+        } finally {
+          record("catalog-workflow-finally");
+        }
+      });
     },
   );
 }
