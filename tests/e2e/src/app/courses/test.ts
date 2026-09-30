@@ -291,9 +291,9 @@ test.describe("/catalog/courses 课程目录", () => {
           await expect(codeText).toHaveText(`${blankPrefix}-00`);
           await expect(codeText).not.toHaveAttribute("title");
           await expect(codeText.locator("[aria-hidden=true]")).toHaveCount(0);
-          await expect(codeText.locator("[data-slot=truncated-text]")).toHaveText(
-            `${blankPrefix}-00`,
-          );
+          await expect(
+            codeText.locator("[data-slot=truncated-text]"),
+          ).toHaveText(`${blankPrefix}-00`);
           const codeGeometry = await codeText.evaluate((node) => ({
             clientWidth: node.clientWidth,
             scrollWidth: node.scrollWidth,
@@ -308,7 +308,11 @@ test.describe("/catalog/courses 课程目录", () => {
             await expect(tooltip).toContainText(`${blankName}-00`);
           }
           await expect(blankRowLink).toHaveAccessibleName(`${blankName}-00`);
-          await captureStepScreenshot(page, testInfo, "courses-table-truncation");
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "courses-table-truncation",
+          );
         },
         { anonymousCourseCount: 2 },
       );
@@ -335,7 +339,9 @@ test.describe("/catalog/courses 课程目录", () => {
 
           let pagination = page.locator('[data-slot="list-pagination"]');
           await expect(pagination).toBeVisible();
-          await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
+          await expect(pagination.locator('[aria-current="page"]')).toHaveText(
+            "1",
+          );
           const page2Link = pagination.getByRole("link", {
             name: /分页 2|Pagination 2/i,
           });
@@ -363,7 +369,9 @@ test.describe("/catalog/courses 课程目录", () => {
           });
 
           pagination = page.locator('[data-slot="list-pagination"]');
-          await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
+          await expect(pagination.locator('[aria-current="page"]')).toHaveText(
+            "2",
+          );
           await expect(
             pagination.getByRole("link", { name: /上一页|Previous page/i }),
           ).toHaveAttribute("href", searchPath);

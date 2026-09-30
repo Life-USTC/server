@@ -1,8 +1,5 @@
 import { expect } from "@playwright/test";
-import {
-  createCommentAudiences,
-  test,
-} from "../../../utils/community-fixture";
+import { createCommentAudiences, test } from "../../../utils/community-fixture";
 
 test("ui.detail-two-column-stream-6", async ({
   communityFlow,
