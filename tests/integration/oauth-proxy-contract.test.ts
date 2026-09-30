@@ -107,7 +107,14 @@ const test = isolatedDatabaseTest.extend<{ proxy: ProxyFixture }>({
     }
     const failures: unknown[] = [];
     try {
-      await use({ marker, email, sharedSecret, exchanges, instance, run: workflows.run });
+      await use({
+        marker,
+        email,
+        sharedSecret,
+        exchanges,
+        instance,
+        run: workflows.run,
+      });
     } catch (error) {
       failures.push(error);
     } finally {
@@ -124,103 +131,109 @@ const test = isolatedDatabaseTest.extend<{ proxy: ProxyFixture }>({
       );
     }
     if (failures.length) {
-      const error = new AggregateError(failures, "Proxy runtime cleanup failed");
-      onTestFinished(() => { throw error; });
+      const error = new AggregateError(
+        failures,
+        "Proxy runtime cleanup failed",
+      );
+      onTestFinished(() => {
+        throw error;
+      });
     }
   },
 });
 
-test("oauth.oauth-proxy-for-dev", async ({ isolatedDatabase, proxy }) => proxy.run(async () => {
-  const db = isolatedDatabase.owner;
-  const { marker, email, sharedSecret, exchanges, instance } = proxy;
-  const current = await instance(preview);
-  const configured = current.passkey;
-  if (!configured || !("options" in configured))
-    throw new Error("Expected configured Passkey plugin");
-  expect(configured.options).toMatchObject({
-    rpID: "preview-unique.example",
-    origin: [preview],
-  });
-  const canonical = await instance(production);
-  const wrongKey = await instance(preview, `incorrect-${sharedSecret}`);
-  const signIn = await current.handler(
-    new Request(`${preview}/api/auth/sign-in/social`, {
-      method: "POST",
-      headers: { "content-type": "application/json", origin: preview },
-      body: JSON.stringify({
-        provider: "contract",
-        callbackURL: `${preview}/workspace`,
+test("oauth.oauth-proxy-for-dev", async ({ isolatedDatabase, proxy }) =>
+  proxy.run(async () => {
+    const db = isolatedDatabase.owner;
+    const { marker, email, sharedSecret, exchanges, instance } = proxy;
+    const current = await instance(preview);
+    const configured = current.passkey;
+    if (!configured || !("options" in configured))
+      throw new Error("Expected configured Passkey plugin");
+    expect(configured.options).toMatchObject({
+      rpID: "preview-unique.example",
+      origin: [preview],
+    });
+    const canonical = await instance(production);
+    const wrongKey = await instance(preview, `incorrect-${sharedSecret}`);
+    const signIn = await current.handler(
+      new Request(`${preview}/api/auth/sign-in/social`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: preview },
+        body: JSON.stringify({
+          provider: "contract",
+          callbackURL: `${preview}/workspace`,
+        }),
       }),
-    }),
-  );
-  expect(signIn.status, await signIn.clone().text()).toBe(200);
-  const providerUrl = new URL((await signIn.json()).url);
-  expect(providerUrl.origin).toBe("https://external-provider.example");
-  expect(providerUrl.searchParams.get("redirect_uri")).toBe(
-    `${production}/api/auth/callback/contract`,
-  );
-  expect(providerUrl.searchParams.get("code_challenge_method")).toBe("S256");
-  const state = providerUrl.searchParams.get("state");
-  if (!state) throw new Error("Expected encrypted proxy state");
-  expect(state).not.toContain(preview);
-  const callbackUrl = new URL(`${production}/api/auth/callback/contract`);
-  callbackUrl.searchParams.set("state", state);
-  callbackUrl.searchParams.set("code", "external-authorization-code");
-  const callback = await canonical.handler(new Request(callbackUrl));
-  expect(callback.status, await callback.clone().text()).toBe(302);
-  const returnUrl = new URL(callback.headers.get("location") ?? "");
-  expect(returnUrl.origin).toBe(preview);
-  expect(returnUrl.pathname).toBe("/api/auth/oauth-proxy-callback");
-  expect(returnUrl.searchParams.get("callbackURL")).toBe(
-    `${preview}/workspace`,
-  );
-  const profile = returnUrl.searchParams.get("profile");
-  expect(profile).toBeTruthy();
-  expect(returnUrl.href).not.toContain(email);
-  expect(returnUrl.href).not.toContain("upstream-private-access");
-  expect(exchanges).toEqual([
-    expect.objectContaining({
-      code: "external-authorization-code",
-      redirectURI: `${production}/api/auth/callback/contract`,
-      codeVerifier: expect.any(String),
-    }),
-  ]);
-  expect(await db.user.count({ where: { email } })).toBe(0);
+    );
+    expect(signIn.status, await signIn.clone().text()).toBe(200);
+    const providerUrl = new URL((await signIn.json()).url);
+    expect(providerUrl.origin).toBe("https://external-provider.example");
+    expect(providerUrl.searchParams.get("redirect_uri")).toBe(
+      `${production}/api/auth/callback/contract`,
+    );
+    expect(providerUrl.searchParams.get("code_challenge_method")).toBe("S256");
+    const state = providerUrl.searchParams.get("state");
+    if (!state) throw new Error("Expected encrypted proxy state");
+    expect(state).not.toContain(preview);
+    const callbackUrl = new URL(`${production}/api/auth/callback/contract`);
+    callbackUrl.searchParams.set("state", state);
+    callbackUrl.searchParams.set("code", "external-authorization-code");
+    const callback = await canonical.handler(new Request(callbackUrl));
+    expect(callback.status, await callback.clone().text()).toBe(302);
+    const returnUrl = new URL(callback.headers.get("location") ?? "");
+    expect(returnUrl.origin).toBe(preview);
+    expect(returnUrl.pathname).toBe("/api/auth/oauth-proxy-callback");
+    expect(returnUrl.searchParams.get("callbackURL")).toBe(
+      `${preview}/workspace`,
+    );
+    const profile = returnUrl.searchParams.get("profile");
+    expect(profile).toBeTruthy();
+    expect(returnUrl.href).not.toContain(email);
+    expect(returnUrl.href).not.toContain("upstream-private-access");
+    expect(exchanges).toEqual([
+      expect.objectContaining({
+        code: "external-authorization-code",
+        redirectURI: `${production}/api/auth/callback/contract`,
+        codeVerifier: expect.any(String),
+      }),
+    ]);
+    expect(await db.user.count({ where: { email } })).toBe(0);
 
-  const denied = await wrongKey.handler(new Request(returnUrl));
-  expect(denied.status).toBe(302);
-  expect(
-    new URL(denied.headers.get("location") ?? "").searchParams.get("error"),
-  ).toBe("invalid_profile");
-  expect(await db.user.count({ where: { email } })).toBe(0);
-  const result = await current.handler(new Request(returnUrl));
-  expect(result.status, await result.clone().text()).toBe(302);
-  expect(result.headers.get("location")).toBe(`${preview}/workspace`);
-  expect(result.headers.get("set-cookie")).toContain("session_token=");
-  const account = await db.account.findUniqueOrThrow({
-    where: {
-      issuer_providerAccountId: {
-        issuer: "https://external-provider.example",
-        providerAccountId: marker,
+    const denied = await wrongKey.handler(new Request(returnUrl));
+    expect(denied.status).toBe(302);
+    expect(
+      new URL(denied.headers.get("location") ?? "").searchParams.get("error"),
+    ).toBe("invalid_profile");
+    expect(await db.user.count({ where: { email } })).toBe(0);
+    const result = await current.handler(new Request(returnUrl));
+    expect(result.status, await result.clone().text()).toBe(302);
+    expect(result.headers.get("location")).toBe(`${preview}/workspace`);
+    expect(result.headers.get("set-cookie")).toContain("session_token=");
+    const account = await db.account.findUniqueOrThrow({
+      where: {
+        issuer_providerAccountId: {
+          issuer: "https://external-provider.example",
+          providerAccountId: marker,
+        },
       },
-    },
-  });
-  expect(
-    await db.user.findUniqueOrThrow({ where: { id: account.userId } }),
-  ).toMatchObject({ email });
-  const sessionCount = await db.session.count({
-    where: { userId: account.userId },
-  });
-  expect(sessionCount).toBe(1);
-  const replay = await current.handler(new Request(returnUrl));
-  expect(replay.status).toBe(302);
-  expect(
-    new URL(replay.headers.get("location") ?? "").searchParams.get("error"),
-  ).toBe("state_mismatch");
-  expect(await db.session.count({ where: { userId: account.userId } })).toBe(
-    sessionCount,
-  );
-  expect(await db.user.count()).toBe(1);
-  expect(await db.account.count()).toBe(1);
-  expect(await db.session.count()).toBe(1);
-}));
+    });
+    expect(
+      await db.user.findUniqueOrThrow({ where: { id: account.userId } }),
+    ).toMatchObject({ email });
+    const sessionCount = await db.session.count({
+      where: { userId: account.userId },
+    });
+    expect(sessionCount).toBe(1);
+    const replay = await current.handler(new Request(returnUrl));
+    expect(replay.status).toBe(302);
+    expect(
+      new URL(replay.headers.get("location") ?? "").searchParams.get("error"),
+    ).toBe("state_mismatch");
+    expect(await db.session.count({ where: { userId: account.userId } })).toBe(
+      sessionCount,
+    );
+    expect(await db.user.count()).toBe(1);
+    expect(await db.account.count()).toBe(1);
+    expect(await db.session.count()).toBe(1);
+  }));
