@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 import type { Semester } from "@/generated/prisma-node/client";
-import { PUBLIC_OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 import type { CalendarProtocolChecks } from "../../../../utils/calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
 import {
@@ -9,6 +8,64 @@ import {
   type OAuthUsageWindow,
 } from "../../../../utils/oauth-usage";
 import type { OAuthOwner } from "./helpers";
+
+/** Independently maintained DCR capability contract. Consent remains narrower. */
+export const REGISTERED_CLIENT_CAPABILITIES = [
+  "openid",
+  "profile",
+  "email",
+  "offline_access",
+  "account.client-activity:read",
+  "account.profile:read",
+  "account.profile:write",
+  "catalog.bus:read",
+  "catalog.bus:write",
+  "catalog.course:read",
+  "catalog.course:write",
+  "catalog.exam:read",
+  "catalog.exam:write",
+  "catalog.link:read",
+  "catalog.link:write",
+  "catalog.schedule:read",
+  "catalog.schedule:write",
+  "catalog.section:read",
+  "catalog.section:write",
+  "catalog.teacher:read",
+  "catalog.teacher:write",
+  "community.comment:read",
+  "community.comment:write",
+  "community.description:read",
+  "community.description:write",
+  "community.section-homework:read",
+  "community.section-homework:write",
+  "community.user:read",
+  "community.user:write",
+  "workspace.bus-preferences:read",
+  "workspace.bus-preferences:write",
+  "workspace.calendar:read",
+  "workspace.calendar:write",
+  "workspace.calendar-feed:read",
+  "workspace.exam:read",
+  "workspace.exam:write",
+  "workspace.homework:read",
+  "workspace.homework:write",
+  "workspace.link-pin:read",
+  "workspace.link-pin:write",
+  "workspace.overview:read",
+  "workspace.overview:write",
+  "workspace.schedule:read",
+  "workspace.schedule:write",
+  "workspace.subscription:read",
+  "workspace.subscription:write",
+  "workspace.young-subscription:read",
+  "workspace.young-subscription:write",
+  "workspace.young-notification:read",
+  "workspace.young-notification:write",
+  "workspace.todo:read",
+  "workspace.todo:write",
+  "workspace.upload:read",
+  "workspace.upload:write",
+] as const;
 
 type NativeRequest = readonly [method: string, path: string, status: number];
 type Database = IsolatedWorker["database"]["owner"];
@@ -239,7 +296,7 @@ export function oauthProtocolChecks(
           userId: null,
           // Dynamic registration stores the provider's declared capabilities.
           // Requested consent and issued token scopes remain case-specific.
-          scopes: PUBLIC_OAUTH_SCOPES,
+          scopes: REGISTERED_CLIENT_CAPABILITIES,
           redirectUris: [`${oauth.worker.origin}/e2e/oauth/callback`],
           grantTypes: ["authorization_code"],
           responseTypes: ["code"],
