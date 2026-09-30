@@ -16,7 +16,12 @@ it("maintenance can only discover recipients through its bounded function", asyn
         data: { id: userId, email: `${userId}@test.invalid` },
       });
       await tx.youngEvent.create({
-        data: { youngId, name: "Recipient fixture", rawJson: {}, isActive: true },
+        data: {
+          youngId,
+          name: "Recipient fixture",
+          rawJson: {},
+          isActive: true,
+        },
       });
     }),
   );
