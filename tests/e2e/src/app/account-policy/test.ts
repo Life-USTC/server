@@ -428,6 +428,15 @@ test("cases.account.username-change-2", async ({
         username: newUsername,
       });
       const finished = Date.now();
+      // Audit queue delivery is independent of the request's waitUntil drain.
+      // Observe the required native write before the final exact row oracle.
+      await expect
+        .poll(() =>
+          db.auditLog.count({
+            where: { userId: user.id, action: "account_profile_update" },
+          }),
+        )
+        .toBe(1);
       return {
         async verifyTransport({ effects, sdkRequests }) {
           expect(sdkRequests).toEqual([]);
@@ -633,6 +642,7 @@ test("cases.account.oauth-connection-error-2", async ({
             }),
           )
           .toBeGreaterThan(0);
+        await expect.poll(() => db.auditLog.count()).toBe(6);
         const signedInSessions = await db.session.findMany();
         expect(signedInSessions).toHaveLength(1);
         const signedIn = signedInSessions[0];
