@@ -46,6 +46,7 @@ import { visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { observeSectionDetailNavigation } from "../../../../utils/section-detail-navigation";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
@@ -282,8 +283,14 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         .or(page.locator("tbody a[href^='/catalog/sections/']:visible"))
         .first();
       await expect(sectionLink).toBeVisible();
+      const expectSectionDetailReady = observeSectionDetailNavigation(
+        page,
+        preferenceFlow,
+        DEV_SEED.section.jwId,
+      );
       await sectionLink.click();
       await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
+      await expectSectionDetailReady();
       await captureStepScreenshot(page, testInfo, "course/section-link");
     });
   });
