@@ -41,6 +41,7 @@ export type CalendarProtocol = {
   mcp: (
     identity: { name: string; version: string },
     accessToken: string,
+    expectedForbiddenTools?: readonly string[],
   ) => Promise<Client>;
 };
 
@@ -134,10 +135,14 @@ export async function withCalendarProtocol(
                   };
                   await calendar.observer.register();
                 },
-                async mcp(identity, accessToken) {
+                async mcp(identity, accessToken, expectedForbiddenTools) {
                   if (!accepting)
                     throw new Error("Calendar workflow is closing");
-                  return sdk.connect(identity, accessToken);
+                  return sdk.connect(
+                    identity,
+                    accessToken,
+                    expectedForbiddenTools,
+                  );
                 },
               });
               completed = true;
