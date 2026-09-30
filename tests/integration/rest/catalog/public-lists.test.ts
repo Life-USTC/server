@@ -121,11 +121,32 @@ async function publicList(
       expect(effects.backgroundErrors).toEqual([]);
       expect(effects.messages).toEqual([]);
       expect(effects.purges).toEqual([]);
-      if (completed) expect(effects.requests.length).toBeGreaterThan(0);
-      for (const request of effects.requests) {
-        expect(request.outcome).toBe("fulfilled");
-        expect(request.result).toEqual(expect.any(Number));
+      if (completed) {
+        expect(effects.requests).toHaveLength(5);
+        for (const request of effects.requests) {
+          expect(request).toMatchObject({
+            outcome: "fulfilled",
+            value: { method: "GET", path: `/api/catalog/${kind}` },
+            result: 200,
+          });
+        }
+      } else {
+        for (const request of effects.requests) {
+          expect(request.outcome).toBe("fulfilled");
+          expect(request.result).toEqual(expect.any(Number));
+        }
       }
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  // DELETE performs a final drain even when the preceding observation failed.
+  // Complete that fallback before observing state; retain either failure.
+  if (registered) {
+    try {
+      const response = await request.delete(probePath, { headers: secret });
+      await response.body();
+      expect(response.status()).toBe(204);
     } catch (error) {
       errors.push(error);
     }
@@ -139,12 +160,6 @@ async function publicList(
     })(),
     (async () => {
       expect(await db.auditLog.findMany()).toEqual([]);
-    })(),
-    (async () => {
-      if (!registered) return;
-      const response = await request.delete(probePath, { headers: secret });
-      await response.body();
-      expect(response.status()).toBe(204);
     })(),
   ]);
   errors.push(
