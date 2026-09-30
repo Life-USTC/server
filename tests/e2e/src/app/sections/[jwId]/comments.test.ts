@@ -8,6 +8,7 @@ import {
   test as uploadTest,
 } from "../../../../utils/comment-upload-fixture";
 import { openCommentComposer } from "../../../../utils/comments";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -58,17 +59,21 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           const body = `e2e-section-comment-${Date.now()}`;
           const composer = await openCommentComposer(page);
           await composer.fill(body);
-          const createResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments") &&
-              r.request().method() === "POST" &&
-              r.status() === 201,
+          const createdCommentResponse = await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments") &&
+                  r.request().method() === "POST" &&
+                  r.status() === 201,
+              ),
+            async () => {
+              await page
+                .locator("#comments")
+                .getByRole("button", { name: /发布评论|Post comment/i })
+                .click();
+            },
           );
-          await page
-            .locator("#comments")
-            .getByRole("button", { name: /发布评论|Post comment/i })
-            .click();
-          const createdCommentResponse = await createResponse;
           const createResponseBody = (await createdCommentResponse.json()) as {
             id: string;
           };
@@ -106,20 +111,24 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           await expect(commentCard.getByText(body).first()).toBeVisible();
 
           // React with upvote (comment.reactions[])
-          const reactionResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments/") &&
-              r.url().includes("/reactions") &&
-              r.request().method() === "POST" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments/") &&
+                  r.url().includes("/reactions") &&
+                  r.request().method() === "POST" &&
+                  r.status() === 200,
+              ),
+            async () => {
+              await commentCard
+                .getByRole("button", { name: /表情|Reactions/i })
+                .click({ force: true });
+              await page
+                .getByRole("menuitemcheckbox", { name: /点赞|Upvote/i })
+                .click();
+            },
           );
-          await commentCard
-            .getByRole("button", { name: /表情|Reactions/i })
-            .click({ force: true });
-          await page
-            .getByRole("menuitemcheckbox", { name: /点赞|Upvote/i })
-            .click();
-          await reactionResponse;
           expect(
             (await storedComment(isolatedWorker.database.owner, commentId))
               ?.reactions,
@@ -153,14 +162,20 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
             .first();
           await expect(editTextarea).toBeVisible();
           await editTextarea.fill(editedBody);
-          const editResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments/") &&
-              r.request().method() === "PATCH" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments/") &&
+                  r.request().method() === "PATCH" &&
+                  r.status() === 200,
+              ),
+            async () => {
+              await editCard
+                .getByRole("button", { name: /保存|Save/i })
+                .click();
+            },
           );
-          await editCard.getByRole("button", { name: /保存|Save/i }).click();
-          await editResponse;
           expect(
             await storedComment(isolatedWorker.database.owner, commentId),
           ).toMatchObject({
@@ -194,16 +209,20 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           const replyEditor = replyTextbox.locator(
             "xpath=ancestor::*[@data-slot='field-group'][1]",
           );
-          const replyResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments") &&
-              r.request().method() === "POST" &&
-              r.status() === 201,
+          const createdReplyResponse = await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments") &&
+                  r.request().method() === "POST" &&
+                  r.status() === 201,
+              ),
+            async () => {
+              await replyEditor
+                .getByRole("button", { name: /回复|Reply/i })
+                .click();
+            },
           );
-          await replyEditor
-            .getByRole("button", { name: /回复|Reply/i })
-            .click();
-          const createdReplyResponse = await replyResponse;
           const replyResponseBody = (await createdReplyResponse.json()) as {
             id: string;
           };
@@ -280,27 +299,38 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
             "**/api/community/comments/**",
             deleteGate,
           );
-          const deleteResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments/") &&
-              r.request().method() === "DELETE" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments/") &&
+                  r.request().method() === "DELETE" &&
+                  r.status() === 200,
+              ),
+            async () => {
+              try {
+                await reopenedDeleteDialog
+                  .getByRole("button", { name: /删除|Delete/i })
+                  .click();
+                await expect(reopenedDeleteDialog).toBeVisible();
+                await expect(
+                  reopenedDeleteDialog.getByRole("button", {
+                    name: /删除|Delete/i,
+                  }),
+                ).toBeDisabled();
+                await expect(
+                  reopenedDeleteDialog.getByRole("button", {
+                    name: /取消|Cancel/i,
+                  }),
+                ).toBeDisabled();
+                await expect(
+                  reopenedDeleteDialog.locator('[data-icon="inline-start"]'),
+                ).toBeVisible();
+              } finally {
+                releaseDeleteRequest();
+              }
+            },
           );
-          await reopenedDeleteDialog
-            .getByRole("button", { name: /删除|Delete/i })
-            .click();
-          await expect(reopenedDeleteDialog).toBeVisible();
-          await expect(
-            reopenedDeleteDialog.getByRole("button", { name: /删除|Delete/i }),
-          ).toBeDisabled();
-          await expect(
-            reopenedDeleteDialog.getByRole("button", { name: /取消|Cancel/i }),
-          ).toBeDisabled();
-          await expect(
-            reopenedDeleteDialog.locator('[data-icon="inline-start"]'),
-          ).toBeVisible();
-          releaseDeleteRequest();
-          await deleteResponse;
           expect(
             await storedComment(isolatedWorker.database.owner, commentId),
           ).toMatchObject({
@@ -365,16 +395,20 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           .first()
           .fill(body);
 
-        const createResponse = page.waitForResponse(
-          (r) =>
-            r.url().includes("/api/community/comments") &&
-            r.request().method() === "POST" &&
-            r.status() === 201,
+        const createdCommentResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (r) =>
+                r.url().includes("/api/community/comments") &&
+                r.request().method() === "POST" &&
+                r.status() === 201,
+            ),
+          async () => {
+            await comments
+              .getByRole("button", { name: /发布评论|Post comment/i })
+              .click();
+          },
         );
-        await comments
-          .getByRole("button", { name: /发布评论|Post comment/i })
-          .click();
-        const createdCommentResponse = await createResponse;
         const createResponseBody = (await createdCommentResponse.json()) as {
           id: string;
         };
@@ -492,35 +526,56 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           await expect(uploadButton).toBeFocused();
 
           // Upload attachment (upload.yml three-step flow)
-          const uploadCreate = page.waitForResponse(
-            (r) =>
-              new URL(r.url()).pathname === "/api/workspace/uploads" &&
-              r.request().method() === "POST" &&
-              r.status() === 200,
+          const [
+            uploadCreateResponse,
+            uploadPutResponse,
+            uploadCompleteResponse,
+          ] = await observeAction(
+            async () => {
+              const outcomes = await Promise.allSettled([
+                page.waitForResponse(
+                  (r) =>
+                    new URL(r.url()).pathname === "/api/workspace/uploads" &&
+                    r.request().method() === "POST" &&
+                    r.status() === 200,
+                ),
+                page.waitForResponse(
+                  (r) =>
+                    r.request().method() === "PUT" &&
+                    r.status() >= 200 &&
+                    r.status() < 300 &&
+                    new URL(r.url()).origin === new URL(page.url()).origin &&
+                    new URL(r.url()).pathname ===
+                      "/api/workspace/uploads/object",
+                ),
+                page.waitForResponse(
+                  (r) =>
+                    r.url().includes("/api/workspace/uploads/complete") &&
+                    r.request().method() === "POST" &&
+                    r.status() === 200,
+                ),
+              ]);
+              const failures = outcomes.flatMap((outcome) =>
+                outcome.status === "rejected" ? [outcome.reason] : [],
+              );
+              if (failures.length)
+                throw new AggregateError(
+                  failures,
+                  "Upload response observations failed",
+                );
+              return outcomes.map((outcome) => {
+                if (outcome.status === "rejected") throw outcome.reason;
+                return outcome.value;
+              });
+            },
+            async () => {
+              await comments.locator('input[type="file"]').setInputFiles({
+                name: filename,
+                mimeType: "text/plain",
+                buffer: Buffer.from(contents),
+              });
+            },
           );
-          const uploadPut = page.waitForResponse(
-            (r) =>
-              r.request().method() === "PUT" &&
-              r.status() >= 200 &&
-              r.status() < 300 &&
-              new URL(r.url()).origin === new URL(page.url()).origin &&
-              new URL(r.url()).pathname === "/api/workspace/uploads/object",
-          );
-          const uploadComplete = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/workspace/uploads/complete") &&
-              r.request().method() === "POST" &&
-              r.status() === 200,
-          );
-
-          await comments.locator('input[type="file"]').setInputFiles({
-            name: filename,
-            mimeType: "text/plain",
-            buffer: Buffer.from(contents),
-          });
-          const uploadCreateResponse = await uploadCreate;
-          const uploadPutResponse = await uploadPut;
-          const uploadCompleteResponse = await uploadComplete;
           const session = await uploadCreateResponse.json();
           expect(new URL(session.url).origin).toBe(new URL(page.url()).origin);
           expect(uploadPutResponse.url()).toBe(session.url);
@@ -599,14 +654,18 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
             .getByRole("button", { name: /发布评论|Post comment/i })
             .first();
           await expect(postButton).toBeEnabled();
-          const createComment = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments") &&
-              r.request().method() === "POST" &&
-              r.status() === 201,
+          const createCommentResponse = await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments") &&
+                  r.request().method() === "POST" &&
+                  r.status() === 201,
+              ),
+            async () => {
+              await postButton.click();
+            },
           );
-          await postButton.click();
-          const createCommentResponse = await createComment;
           const createCommentBody = (await createCommentResponse.json()) as {
             id: string;
           };
@@ -648,12 +707,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           );
 
           // Download is served by the authorized on-site R2 streaming route.
-          const popupPromise = page.waitForEvent("popup");
-          await commentCard
-            .getByRole("link", { name: /打开附件|Open attachment/i })
-            .first()
-            .click();
-          const popup = await popupPromise;
+          const popup = await observeAction(
+            () => page.waitForEvent("popup"),
+            async () => {
+              await commentCard
+                .getByRole("link", { name: /打开附件|Open attachment/i })
+                .first()
+                .click();
+            },
+          );
           await popup.waitForLoadState("domcontentloaded");
           await expect(popup).toHaveURL(
             /\/api\/workspace\/uploads\/.*\/download/,
@@ -670,14 +732,18 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
           // Delete through the UI; fixture teardown owns physical object cleanup.
           const dlg = await openCommentDeleteDialog(page, commentCard);
-          const deleteResponse = page.waitForResponse(
-            (r) =>
-              r.url().includes("/api/community/comments/") &&
-              r.request().method() === "DELETE" &&
-              r.status() === 200,
+          await observeAction(
+            () =>
+              page.waitForResponse(
+                (r) =>
+                  r.url().includes("/api/community/comments/") &&
+                  r.request().method() === "DELETE" &&
+                  r.status() === 200,
+              ),
+            async () => {
+              await dlg.getByRole("button", { name: /删除|Delete/i }).click();
+            },
           );
-          await dlg.getByRole("button", { name: /删除|Delete/i }).click();
-          await deleteResponse;
           expect(
             await storedComment(isolatedWorker.database.owner, commentId),
           ).toMatchObject({
