@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { test } from "../../../../utils/todo-fixture";
+import { readTodoCalendar, test } from "../../../../utils/todo-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -9,12 +9,12 @@ for (const viewport of [
   { width: 1280, height: 800 },
   { width: 390, height: 844 },
 ]) {
-  test(`待办筛选、截止时间排序和删除即时更新 ${viewport.width}`, async ({
+  test(`待办筛选、截止时间排序和删除即时更新 ${viewport.width}`, async ({ todoActor,
     todoRun,
     page,
     todoState,
   }, testInfo) => {
-    await todoRun(async () => {
+    await todoRun(async (effects) => {
       test.setTimeout(90_000);
       await page.setViewportSize(viewport);
       const prefix = `e2e-todo-state-${viewport.width}-${Date.now()}`;
@@ -88,11 +88,33 @@ for (const viewport of [
         .getByRole("button", { name: /标记为完成|Mark as complete/i })
         .click();
       expect((await completionResponse).ok()).toBe(true);
+      expect((await completionResponse).status()).toBe(200);
+      expect(await (await completionResponse).json()).toMatchObject({
+        success: true,
+        todo: { id: rows[3].id, title: `${prefix}-near`, completed: true },
+      });
       expect(await todoState.read()).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ id: rows[3].id, completed: true }),
+          expect.objectContaining({
+            id: rows[3].id,
+            userId: todoActor.id,
+            title: `${prefix}-near`,
+            content: null,
+            priority: "medium",
+            dueAt: new Date("2026-09-10T13:00:00+08:00"),
+            completed: true,
+          }),
         ]),
       );
+      await effects.checkpoint("completed", {
+        calendarMessages: [{ type: "user", userId: todoActor.id }],
+      });
+      const completedCalendar = await readTodoCalendar(page, todoActor.id);
+      expect(completedCalendar.match(/BEGIN:VEVENT/g) ?? []).toHaveLength(2);
+      for (const index of [0, 2])
+        expect(completedCalendar).toContain(`/todo/${rows[index].id}`);
+      for (const index of [1, 3])
+        expect(completedCalendar).not.toContain(`/todo/${rows[index].id}`);
       await expect(detail.getByRole("heading")).toHaveCSS(
         "text-decoration-line",
         "line-through",
@@ -120,9 +142,23 @@ for (const viewport of [
         .getByRole("button", { name: /^(删除|Delete)$/i })
         .click();
       expect((await deletedResponse).ok()).toBe(true);
+      expect((await deletedResponse).status()).toBe(200);
+      expect(await (await deletedResponse).json()).toMatchObject({ success: true });
       const remaining = await todoState.read();
       expect(remaining).toHaveLength(3);
       expect(remaining).toEqual(expect.arrayContaining(rows.slice(0, 3)));
+      await effects.checkpoint("deleted", {
+        calendarMessages: [
+          { type: "user", userId: todoActor.id },
+          { type: "user", userId: todoActor.id },
+        ],
+      });
+      const deletedCalendar = await readTodoCalendar(page, todoActor.id);
+      expect(deletedCalendar.match(/BEGIN:VEVENT/g) ?? []).toHaveLength(2);
+      for (const index of [0, 2])
+        expect(deletedCalendar).toContain(`/todo/${rows[index].id}`);
+      for (const index of [1, 3])
+        expect(deletedCalendar).not.toContain(`/todo/${rows[index].id}`);
       await expect(detail).toBeHidden();
       for (const filter of [all, incomplete, completed, all]) {
         await filter.click();
@@ -148,6 +184,9 @@ for (const viewport of [
         testInfo,
         `todo-filtered-list-${viewport.width}`,
       );
-    });
+    }, { calendarMessages: [
+        { type: "user", userId: todoActor.id },
+        { type: "user", userId: todoActor.id },
+      ] });
   });
 }

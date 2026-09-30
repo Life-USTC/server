@@ -1,9 +1,9 @@
-import { expect } from "@playwright/test";
+import { expect, type Page, type Response } from "@playwright/test";
 import type { Todo } from "../../../src/generated/prisma-node/client";
 import { withBrowserWorkflow } from "./browser-workflow";
+import { type HomeworkEffects, withHomeworkEffects } from "./homework-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
-import { withSettledPageWrites } from "./settled-page-writes";
 
 type TodoInput = Pick<Todo, "title"> &
   Partial<Pick<Todo, "content" | "completed" | "priority" | "dueAt">>;
@@ -14,95 +14,41 @@ type TodoState = {
 
 export const test = workerTest.extend<{
   todoActor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
-  todoRun: (work: () => Promise<void>) => Promise<void>;
+  todoRun: (
+    work: Parameters<typeof withHomeworkEffects>[1],
+    effects: HomeworkEffects,
+  ) => Promise<void>;
   todoState: TodoState;
   todos: { pending: Todo; overdue: Todo; completed: Todo };
 }>({
   todoActor: async ({ isolatedWorker, run }, use) => {
     await use(await run(() => isolatedWorker.createActor()));
   },
-  // Join the complete workflow before Playwright tears down its page. The
-  // Worker operation fixture separately owns setup SQL and request contexts.
-  todoRun: async ({ page, todoActor, isolatedWorker, run }, use) => {
+  // The existing effect owner joins the complete callback before its final
+  // producer/calendar snapshot, including after runner interruption.
+  todoRun: async ({ page, todoActor, isolatedWorker, run }, use, testInfo) => {
     await withBrowserWorkflow(page, async (workflow) => {
-      await use((work) => {
-        return workflow.run(() =>
+      await use((work, effects) =>
+        workflow.run(() =>
           run(() =>
-            withSettledPageWrites(
-              page,
-              (url) =>
-                url.pathname === "/workspace/todos" ||
-                url.pathname.startsWith("/api/workspace/todos/"),
-              async () => {
-                await page.context().addCookies([todoActor.cookie]);
-                await workflow.body(work);
+            withHomeworkEffects(
+              {
+                page,
+                isolatedWorker,
+                account: todoActor,
+                testInfo,
+                runBody: workflow.body,
+                ...effects,
+                observeReads: true,
               },
-              async (response, request) => {
-                // Consume actual responses and inspect persisted effects before
-                // releasing the browser write or disposing its private database.
-                const body = await response.text();
-                const db = isolatedWorker.database.owner;
-                const url = new URL(request.url());
-                if (url.pathname.startsWith("/api/workspace/todos/")) {
-                  const id = decodeURIComponent(
-                    url.pathname.slice("/api/workspace/todos/".length),
-                  );
-                  expect(response.status()).toBe(200);
-                  const result = JSON.parse(body);
-                  expect(result.success).toBe(true);
-                  const row = await db.todo.findUnique({ where: { id } });
-                  if (request.method() === "DELETE") expect(row).toBeNull();
-                  else {
-                    expect(request.method()).toBe("PATCH");
-                    const { completed } = request.postDataJSON();
-                    expect(typeof completed).toBe("boolean");
-                    expect(result.todo).toMatchObject({ id, completed });
-                    expect(row).toMatchObject({
-                      id,
-                      userId: todoActor.id,
-                      completed,
-                    });
-                  }
-                  return;
-                }
-                const form = await new Request(request.url(), {
-                  method: request.method(),
-                  headers: request.headers(),
-                  body: request.postData() ?? "",
-                }).formData();
-                const title = String(form.get("title") ?? "").trim();
-                if (!title) {
-                  expect(response.status()).toBe(400);
-                  expect(body).toMatch(/请输入标题|Please enter a title/i);
-                  expect(
-                    await db.todo.count({ where: { userId: todoActor.id } }),
-                  ).toBe(0);
-                  return;
-                }
-                expect(response.status()).toBe(200);
-                expect(JSON.parse(body)).toMatchObject({
-                  type: "redirect",
-                  status: 303,
-                  location: "/workspace/todos",
-                });
-                const id = form.get("id");
-                const rows = await db.todo.findMany({
-                  where: {
-                    userId: todoActor.id,
-                    ...(id ? { id: String(id) } : { title }),
-                  },
-                });
-                expect(rows).toHaveLength(1);
-                expect(rows[0]).toMatchObject({
-                  title,
-                  content: String(form.get("content") ?? "").trim() || null,
-                  priority: String(form.get("priority")),
-                });
+              async (effects) => {
+                await page.context().addCookies([todoActor.cookie]);
+                await work(effects);
               },
             ),
           ),
-        );
-      });
+        ),
+      );
     });
   },
   todoState: async ({ todoActor, isolatedWorker, run }, use) => {
@@ -142,3 +88,33 @@ export const test = workerTest.extend<{
     await use({ pending, overdue, completed });
   },
 });
+
+// Svelte's enhanced form transports its redirect as an HTTP 200 action result.
+// This observes the real response; expected Todo data belongs to each scenario.
+export async function expectTodoFormResponse(response: Response) {
+  expect(response.request().method()).toBe("POST");
+  expect(new URL(response.url()).pathname).toBe("/workspace/todos");
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toMatchObject({
+    type: "redirect",
+    status: 303,
+    location: "/workspace/todos",
+  });
+}
+
+// Read only the export already written by the registered native consumer.
+// Call after effects.checkpoint; this does not rebuild a calendar on demand.
+export async function readTodoCalendar(page: Page, userId: string) {
+  const response = await page.request.get(
+    `/__test/calendar-consumer?userId=${userId}`,
+    { headers: { "x-test-storage-secret": "local-test-storage-observer" } },
+  );
+  expect(response.status()).toBe(200);
+  const observed: { calendar: string | null } = await response.json();
+  expect(observed.calendar).not.toBeNull();
+  if (!observed.calendar) throw new Error("Native todo consumer has no export");
+  const calendar: { version: number; text: string } = JSON.parse(observed.calendar);
+  expect(calendar).toMatchObject({ version: 2, text: expect.any(String) });
+  // Unfold ICS content lines before matching UUIDs split at the byte limit.
+  return calendar.text.replace(/\r?\n[ \t]/g, "");
+}

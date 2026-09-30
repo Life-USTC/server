@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
-import { test } from "../../../../utils/todo-fixture";
+import { expectTodoFormResponse, readTodoCalendar, test } from "../../../../utils/todo-fixture";
 
 test.describe.configure({ mode: "parallel" });
 const widths = [1280, 390];
@@ -52,7 +52,7 @@ for (const width of widths) {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
-    });
+    }, { calendarMessages: [] });
   });
 }
 
@@ -120,7 +120,7 @@ for (const locale of ["zh-CN", "en-US"] as const) {
           await page.keyboard.press("Escape");
           await expect(dialog).toBeHidden();
         }
-      });
+      }, { calendarMessages: [] });
     });
   }
 }
@@ -159,13 +159,13 @@ for (const width of widths) {
       await expect(
         surface(page, width).locator('[data-slot="empty"]'),
       ).toHaveCount(0);
-    });
+    }, { calendarMessages: [] });
   });
 }
 
 for (const width of widths) {
-  test(`todo.web-due-order ${width}`, async ({ todoRun, page, todoState }) => {
-    await todoRun(async () => {
+  test(`todo.web-due-order ${width}`, async ({ todoActor, todoRun, page, todoState }) => {
+    await todoRun(async (effects) => {
       const prefix = `due-order-${crypto.randomUUID()}`;
       const anchor = new Date(Math.floor(Date.now() / 60_000) * 60_000);
       const offset = (hours: number) =>
@@ -192,7 +192,7 @@ for (const width of widths) {
         await page.getByRole("radio", { name: label }).click();
         await expect(titles).toHaveText(expected);
       }
-      for (const { title, id } of fixtures) {
+      for (const [index, { title, id }] of fixtures.entries()) {
         const row =
           width >= 768
             ? list.getByRole("row").filter({ hasText: title })
@@ -206,6 +206,34 @@ for (const width of widths) {
           .getByRole("button", { name: /标记为完成|Mark as complete/i })
           .click();
         expect((await completed).status()).toBe(200);
+        expect(await (await completed).json()).toMatchObject({
+          success: true,
+          todo: { id, title, completed: true },
+        });
+        expect((await todoState.read()).find((todo) => todo.id === id)).toMatchObject({
+          id,
+          userId: todoActor.id,
+          title,
+          content: null,
+          priority: "medium",
+          dueAt: inputs[index].dueAt ? new Date(inputs[index].dueAt) : null,
+          completed: true,
+        });
+        // The first five explicit fixture rows are completed once each.
+        await effects.checkpoint(`completed-${index + 1}`, {
+          calendarMessages: Array.from({ length: index + 1 }, () => ({
+            type: "user" as const,
+            userId: todoActor.id,
+          })),
+        });
+        const calendar = await readTodoCalendar(page, todoActor.id);
+        expect(calendar.match(/BEGIN:VEVENT/g) ?? []).toHaveLength([3, 2, 1, 0, 0][index]);
+        for (const [position, row] of fixtures.entries()) {
+          // Four dated tasks enter the export; completion removes them one by one.
+          if (position > index && position < 4)
+            expect(calendar).toContain(`/todo/${row.id}`);
+          else expect(calendar).not.toContain(`/todo/${row.id}`);
+        }
         await expect(
           list.getByRole("button", { name: title, exact: true }),
         ).toHaveCount(0);
@@ -236,22 +264,53 @@ for (const width of widths) {
             .toISOString()
             .slice(0, 16),
         );
-      await editor
+      const [edited] = await Promise.all([
+        page.waitForResponse((response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname === "/workspace/todos" &&
+          new URL(response.url()).search === "?/updateTodo",
+        ),
+        editor
         .getByRole("button", { name: /保存修改|Save Changes/i })
-        .click();
+        .click(),
+      ]);
+      await expectTodoFormResponse(edited);
       await expect(editor).toBeHidden();
       const changed = (await todoState.read()).find(
         (todo) => todo.id === fixtures[0].id,
       );
       expect(changed).toMatchObject({
+        id: fixtures[0].id,
+        userId: todoActor.id,
+        title: inputs[0].title,
+        content: null,
+        priority: "medium",
         completed: true,
         dueAt: new Date(anchor.getTime() + 0.5 * 3_600_000),
       });
+      await effects.checkpoint("completed-deadline-edited", {
+        calendarMessages: [
+          { type: "user", userId: todoActor.id },
+          { type: "user", userId: todoActor.id },
+          { type: "user", userId: todoActor.id },
+          { type: "user", userId: todoActor.id },
+          { type: "user", userId: todoActor.id },
+          { type: "user", userId: todoActor.id },
+        ],
+      });
+      expect(await readTodoCalendar(page, todoActor.id)).not.toContain("BEGIN:VEVENT");
       // Editing the oldest deadline moves it between the adjacent deadlines.
       const reordered = [3, 0, 2, 1, 4].map((index) => inputs[index].title);
       await expect(titles).toHaveText(reordered);
       await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
       await expect(titles).toHaveText(reordered);
-    });
+    }, { calendarMessages: [
+        { type: "user", userId: todoActor.id },
+        { type: "user", userId: todoActor.id },
+        { type: "user", userId: todoActor.id },
+        { type: "user", userId: todoActor.id },
+        { type: "user", userId: todoActor.id },
+        { type: "user", userId: todoActor.id },
+      ] });
   });
 }
