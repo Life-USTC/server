@@ -557,23 +557,24 @@ export const test = ownedTest.extend<{
                     expect(actualSessions).toHaveLength(
                       expectedSessions.length,
                     );
-                    const auditRows = () =>
-                      db.auditLog.findMany({
-                        orderBy: { action: "asc" },
-                        select: {
-                          action: true,
-                          outcome: true,
-                          channel: true,
-                          userId: true,
-                          subjectUserId: true,
-                          targetId: true,
-                          targetType: true,
-                          sessionId: true,
-                          oauthClientId: true,
-                          oauthGrantId: true,
-                          metadata: true,
-                        },
-                      });
+                    const auditRows = async () =>
+                      (
+                        await db.auditLog.findMany({
+                          select: {
+                            action: true,
+                            outcome: true,
+                            channel: true,
+                            userId: true,
+                            subjectUserId: true,
+                            targetId: true,
+                            targetType: true,
+                            sessionId: true,
+                            oauthClientId: true,
+                            oauthGrantId: true,
+                            metadata: true,
+                          },
+                        })
+                      ).sort((a, b) => a.action.localeCompare(b.action));
                     const expectedAudits = [
                       ...(plan.feedToken
                         ? [
@@ -629,7 +630,13 @@ export const test = ownedTest.extend<{
                           : [],
                       ),
                     ];
-                    await expect.poll(auditRows).toEqual(expectedAudits);
+                    await expect
+                      .poll(auditRows)
+                      .toEqual(
+                        expectedAudits.sort((a, b) =>
+                          a.action.localeCompare(b.action),
+                        ),
+                      );
                     expect(await db.deviceCode.count()).toBe(0);
                     expect(await db.oAuthAccessToken.count()).toBe(0);
                     expect(await db.oAuthRefreshToken.count()).toBe(0);

@@ -2,12 +2,16 @@ import {
   type APIResponse,
   test as browserTest,
   expect,
+  type Request,
 } from "@playwright/test";
 import { unflatten } from "devalue";
 import { restReadScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 import { test } from "./shell-projection-fixture";
 
 function expectPrivate(response: APIResponse) {
@@ -625,7 +629,7 @@ test("rendering-and-cache.web-rendering-and-cache-2", async ({
 test("user.shell-viewer", async ({ shell, page, context }) => {
   await shell.run(
     { debug: true, feedToken: true, sessions: [{ user: 0 }] },
-    async ({ users, sessionCookie, teacher, organizer, event }) => {
+    async ({ users, flow, sessionCookie, teacher, organizer, event }) => {
       await context.addCookies([await sessionCookie(users[0].id)]);
       const identities: string[] = [];
       const identityPaths = new Set([
@@ -726,17 +730,40 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
         (response) =>
           new URL(response.url()).pathname === "/_internal/shell-bootstrap",
       );
-      await page
-        .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
-        .click();
-      expect((await (await signedInBootstrap).json()).viewer.name).toBe(
-        DEV_SEED.debugName,
-      );
-      await expect(page).toHaveURL(new RegExp(`${destination}$`));
-      await expect(page.locator("#app-user-menu")).toContainText(
-        DEV_SEED.debugName,
-      );
-      expect(identities).toEqual(["/_internal/shell-bootstrap"]);
+      const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
+      const viewerRequests: Request[] = [];
+      const observeViewer = (request: Request) => {
+        if (
+          request.method() !== "GET" ||
+          new URL(request.url()).pathname !== viewerPath
+        )
+          return;
+        viewerRequests.push(request);
+        // Login's shell refresh replaces the first section controller.
+        if (viewerRequests.length === 1)
+          flow.expectReadCancellation(page, request);
+      };
+      page.on("request", observeViewer);
+      try {
+        await page
+          .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
+          .click();
+        expect((await (await signedInBootstrap).json()).viewer.name).toBe(
+          DEV_SEED.debugName,
+        );
+        await expect(page).toHaveURL(new RegExp(`${destination}$`));
+        await expect(page.locator("#app-user-menu")).toContainText(
+          DEV_SEED.debugName,
+        );
+        expect(identities).toEqual(["/_internal/shell-bootstrap"]);
+        await waitForUiSettled(page);
+        expect(viewerRequests).toHaveLength(2);
+        const successor = await viewerRequests[1].response();
+        expect(successor?.status()).toBe(200);
+        await successor?.body();
+      } finally {
+        page.off("request", observeViewer);
+      }
     },
   );
 });
