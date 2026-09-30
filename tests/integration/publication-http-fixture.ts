@@ -30,6 +30,8 @@ function ownPublicationHttp(database: IsolatedDatabase) {
     HYPERDRIVE_AUTH: { connectionString: database.connections.auth },
     PUBLICATION_INGESTION_SECRET: secret,
   };
+  // Workflows may admit more requests after native timeout; keep their owners separate.
+  const workflows = createNodeRuntime(env);
   const runtime = createNodeRuntime(env);
   const graphqlHandler = createGraphqlRequestHandler(false);
   const responses = new Set<Response>();
@@ -39,6 +41,7 @@ function ownPublicationHttp(database: IsolatedDatabase) {
   let origin = "";
   let initialization: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
+  let accepting = true;
   const server = createServer((incoming, outgoing) => {
     const handling = (async () => {
       try {
@@ -114,7 +117,7 @@ function ownPublicationHttp(database: IsolatedDatabase) {
   }
 
   function fetchOwned(input: string | URL | Request, init?: RequestInit) {
-    if (closing)
+    if (!accepting)
       return Promise.reject(new Error("Publication HTTP is closing"));
     const operation = fetch(input, init).then((response) => {
       responses.add(response);
@@ -131,17 +134,21 @@ function ownPublicationHttp(database: IsolatedDatabase) {
 
   function close() {
     closing ??= (async () => {
+      const outcomes = await Promise.allSettled([workflows.close()]);
+      accepting = false;
       listenAbort.abort();
       await initialization?.catch(() => undefined);
       for (const request of requests) await request;
-      const outcomes = await Promise.allSettled(
-        [...responses].map((response) =>
-          response.body && !response.bodyUsed
-            ? response.body.cancel()
-            : undefined,
-        ),
+      outcomes.push(
+        ...(await Promise.allSettled(
+          [...responses].map((response) =>
+            response.body && !response.bodyUsed
+              ? response.body.cancel()
+              : undefined,
+          ),
+        )),
       );
-      for (const handler of handlers) await handler;
+      outcomes.push(...(await Promise.allSettled(handlers)));
       outcomes.push(...(await Promise.allSettled([runtime.close()])));
       outcomes.push(
         ...(await Promise.allSettled([
@@ -211,7 +218,9 @@ function ownPublicationHttp(database: IsolatedDatabase) {
     close,
     batch,
     fetch: fetchOwned,
-    run: runtime.run,
+    run: workflows.run,
+    request: runtime.run,
+    drain: workflows.close,
     configureSecret(value: string) {
       env.PUBLICATION_INGESTION_SECRET = value;
     },
@@ -239,19 +248,30 @@ export const publicationHttpTest = isolatedDatabaseTest.extend<{
   _publicationMcpResources: OwnedMcp[];
   publicationMcp: McpHarness[];
 }>({
-  _publicationHttpResources: async ({ isolatedDatabase }, use) => {
+  _publicationHttpResources: async (
+    { isolatedDatabase, onTestFinished },
+    use,
+  ) => {
     const owned = ownPublicationHttp(isolatedDatabase);
     try {
       await use(owned);
     } finally {
-      await owned.close();
+      try {
+        await owned.close();
+      } catch (error) {
+        // Release the outer database before reporting this original error.
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
-  http: async ({ _publicationHttpResources }, use) => {
-    await _publicationHttpResources.initialize();
-    await use(_publicationHttpResources);
+  http: async ({ _publicationHttpResources: http, signal }, use) => {
+    await http.run(() => http.initialize());
+    signal.throwIfAborted();
+    await use(http);
   },
-  _publicationMcpResources: async ({ http }, use) => {
+  _publicationMcpResources: async ({ http, onTestFinished }, use) => {
     const owned: OwnedMcp[] = [];
     async function closeClients() {
       const results = await Promise.allSettled(
@@ -264,15 +284,30 @@ export const publicationHttpTest = isolatedDatabaseTest.extend<{
         throw new AggregateError(errors, "Publication MCP cleanup failed");
     }
     try {
-      owned.push(ownAnonymousMcpHarness());
-      owned.push(ownMcpHarness(`${http.marker}-publication-reader`));
+      owned.push(ownAnonymousMcpHarness({ run: http.request }));
+      owned.push(
+        ownMcpHarness(`${http.marker}-publication-reader`, undefined, {
+          run: http.request,
+        }),
+      );
       await use(owned);
     } finally {
-      await closeClients();
+      // Borrow the workflow drain; the HTTP owner reports its cached failure.
+      await Promise.allSettled([http.drain()]);
+      try {
+        await closeClients();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
-  publicationMcp: async ({ _publicationMcpResources }, use) => {
-    for (const owned of _publicationMcpResources) await owned.initialize();
+  publicationMcp: async ({ _publicationMcpResources, http, signal }, use) => {
+    await http.run(async () => {
+      for (const owned of _publicationMcpResources) await owned.initialize();
+    });
+    signal.throwIfAborted();
     await use(_publicationMcpResources.map(({ client }) => client));
   },
 });
