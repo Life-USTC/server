@@ -572,8 +572,11 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
             releaseSlow.resolve();
             releaseError.resolve();
             releaseCalendar.resolve();
-            const response = await pending;
-            await response.consumed;
+            // Join late response registration without replacing an earlier test
+            // assertion. withSdk owns and aggregates the actual request/body errors.
+            await Promise.allSettled([
+              pending.then(({ consumed }) => consumed),
+            ]);
           }
         },
       );
