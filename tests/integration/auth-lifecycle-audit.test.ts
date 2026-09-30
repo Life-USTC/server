@@ -1,143 +1,121 @@
 import { betterAuth } from "better-auth";
 import { makeSignature } from "better-auth/crypto";
-import { describe, expect, test } from "vitest";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { describe } from "vitest";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { buildBetterAuthOptions } from "@/lib/auth/better-auth-options";
-import { createFixturePrisma, type TestPrismaClient } from "../shared/prisma";
+import { nodeProtocolTest } from "../shared/node-protocol-fixture";
 
 const authOrigin = "http://localhost:3000";
-type Lifecycle = {
-  fixturePrisma: TestPrismaClient;
-  userId: string;
-  unlinkAccountId: string;
-  replayAuditId: string;
-  runtime<T>(work: () => Promise<T>): Promise<T>;
-  authRequest(path: string, cookie: string, body?: unknown): Promise<Response>;
-  createSessionCookie(): Promise<{
-    cookie: string;
-    sessionId: string;
-    token: string;
-  }>;
-};
-const it = test.extend<{ lifecycle: Lifecycle }>({
-  // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
-  lifecycle: async ({}, use) => {
-    const fixturePrisma = createFixturePrisma();
-    const marker = crypto.randomUUID();
-    const userId = `auth-lifecycle-${marker}`;
-    const replayAuditId = `audit-replay-${marker}`;
-    function runtime<T>(work: () => Promise<T>) {
-      if (!process.env.DATABASE_URL || !process.env.AUTH_DATABASE_URL)
-        throw new Error(
-          "Lifecycle tests require restricted runtime database URLs",
-        );
-      return runWithCloudflareRuntimeEnv(
-        {
-          APP_PUBLIC_ORIGIN: authOrigin,
-          AUTH_GOOGLE_ID: "test-google",
-          AUTH_GOOGLE_SECRET: "test-google-secret",
-          HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
-          HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
-        },
-        work,
-      );
-    }
-    try {
-      // Same production options and real handlers, with a case-owned auth
-      // instance so provider configuration never changes process.env.
-      const auth = await runtime(async () =>
-        betterAuth(buildBetterAuthOptions()),
-      );
-      const user = await fixturePrisma.user.create({
-        data: {
-          id: userId,
-          email: `${userId}@example.test`,
-          name: "Before update",
-          accounts: {
-            create: [
-              {
-                issuer: "https://github.example",
-                provider: "github",
-                providerAccountId: `github-${marker}`,
+const it = nodeProtocolTest
+  .extend({
+    protocolBindings: {
+      NODE_ENV: "test",
+      E2E_DEBUG_AUTH: "",
+      AUTH_GITHUB_ID: "test-github",
+      AUTH_GITHUB_SECRET: "test-github-secret",
+      AUTH_GOOGLE_ID: "test-google",
+      AUTH_GOOGLE_SECRET: "test-google-secret",
+      AUTH_OIDC_CLIENT_ID: "",
+      AUTH_OIDC_CLIENT_SECRET: "",
+    },
+  })
+  .extend(
+    "lifecycle",
+    async ({ isolatedDatabase: { owner: fixturePrisma }, protocolRuntime }) =>
+      protocolRuntime.run(async () => {
+        const marker = crypto.randomUUID();
+        const userId = `auth-lifecycle-${marker}`;
+        const replayAuditId = `audit-replay-${marker}`;
+        // Each case constructs real production options and its own auth instance.
+        const auth = betterAuth(buildBetterAuthOptions());
+        const context = await auth.$context;
+        const user = await fixturePrisma.$transaction((tx) =>
+          tx.user.create({
+            data: {
+              id: userId,
+              email: `${userId}@example.test`,
+              name: "Before update",
+              accounts: {
+                create: [
+                  {
+                    issuer: "https://github.example",
+                    provider: "github",
+                    providerAccountId: `github-${marker}`,
+                  },
+                  {
+                    issuer: "https://accounts.google.com",
+                    provider: "google",
+                    providerAccountId: `google-${marker}`,
+                  },
+                ],
               },
-              {
-                issuer: "https://accounts.google.com",
-                provider: "google",
-                providerAccountId: `google-${marker}`,
-              },
-            ],
-          },
-        },
-        select: {
-          accounts: { orderBy: { provider: "asc" }, select: { id: true } },
-        },
-      });
-      async function authRequest(path: string, cookie: string, body?: unknown) {
-        return auth.handler(
-          new Request(`${authOrigin}/api/auth${path}`, {
-            method: "POST",
-            headers: {
-              cookie,
-              origin: authOrigin,
-              ...(body === undefined
-                ? {}
-                : { "content-type": "application/json" }),
             },
-            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+            select: {
+              accounts: { orderBy: { provider: "asc" }, select: { id: true } },
+            },
           }),
         );
-      }
-      async function createSessionCookie() {
-        const token = crypto.randomUUID();
-        const session = await fixturePrisma.session.create({
-          data: {
-            expires: new Date(Date.now() + 60 * 60 * 1000),
-            sessionToken: token,
-            userId,
-          },
-          select: { id: true },
-        });
-        const context = await auth.$context;
+        async function authRequest(
+          path: string,
+          cookie: string,
+          body?: unknown,
+        ) {
+          const response = await protocolRuntime.request(() =>
+            auth.handler(
+              new Request(`${authOrigin}/api/auth${path}`, {
+                method: "POST",
+                headers: {
+                  cookie,
+                  origin: authOrigin,
+                  ...(body === undefined
+                    ? {}
+                    : { "content-type": "application/json" }),
+                },
+                ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+              }),
+            ),
+          );
+          // These lifecycle scenarios observe status and committed state; still
+          // finish the real response before inspecting the resulting audit rows.
+          await response.text();
+          return response;
+        }
+        async function createSessionCookie() {
+          const token = crypto.randomUUID();
+          const session = await fixturePrisma.$transaction((tx) =>
+            tx.session.create({
+              data: {
+                expires: new Date(Date.now() + 60 * 60 * 1000),
+                sessionToken: token,
+                userId,
+              },
+              select: { id: true },
+            }),
+          );
+          return {
+            cookie: `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${await makeSignature(token, context.secret)}`)}`,
+            sessionId: session.id,
+            token,
+          };
+        }
         return {
-          cookie: `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${await makeSignature(token, context.secret)}`)}`,
-          sessionId: session.id,
-          token,
+          fixturePrisma,
+          userId,
+          unlinkAccountId: user.accounts[0].id,
+          replayAuditId,
+          runtime: protocolRuntime.run,
+          request: protocolRuntime.request,
+          authRequest,
+          createSessionCookie,
         };
-      }
-      await use({
-        fixturePrisma,
-        userId,
-        unlinkAccountId: user.accounts[0].id,
-        replayAuditId,
-        runtime,
-        authRequest,
-        createSessionCookie,
-      });
-    } finally {
-      try {
-        await fixturePrisma.$transaction(async (tx) => {
-          await tx.auditLog.deleteMany({
-            where: {
-              OR: [
-                { id: replayAuditId },
-                { userId },
-                { subjectUserId: userId },
-              ],
-            },
-          });
-          await tx.featureOperationEvent.deleteMany({ where: { userId } });
-          await tx.user.deleteMany({ where: { id: userId } });
-        });
-      } finally {
-        await fixturePrisma.$disconnect();
-      }
-    }
-  },
-});
+      }),
+  );
 
 describe("committed Better Auth lifecycle audit", () => {
-  it("stores a producer-ID replay exactly once", async ({ lifecycle }) => {
+  it("stores a producer-ID replay exactly once", async ({
+    lifecycle,
+    expect,
+  }) => {
     const { fixturePrisma, userId, replayAuditId } = lifecycle;
     await lifecycle.runtime(async () => {
       const event = {
@@ -147,8 +125,8 @@ describe("committed Better Auth lifecycle audit", () => {
         userId,
       };
 
-      await writeAuditLog(event);
-      await writeAuditLog(event);
+      await lifecycle.request(() => writeAuditLog(event));
+      await lifecycle.request(() => writeAuditLog(event));
 
       await expect(
         fixturePrisma.auditLog.count({ where: { id: replayAuditId } }),
@@ -156,7 +134,7 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-profile-update", async ({ lifecycle }) => {
+  it("audit.action-account-profile-update", async ({ lifecycle, expect }) => {
     const { fixturePrisma, userId, authRequest, createSessionCookie } =
       lifecycle;
     await lifecycle.runtime(async () => {
@@ -186,7 +164,7 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-unlink", async ({ lifecycle }) => {
+  it("audit.action-account-unlink", async ({ lifecycle, expect }) => {
     const {
       fixturePrisma,
       userId,
@@ -228,7 +206,7 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-sign-out", async ({ lifecycle }) => {
+  it("audit.action-account-sign-out", async ({ lifecycle, expect }) => {
     const { fixturePrisma, userId, authRequest, createSessionCookie } =
       lifecycle;
     await lifecycle.runtime(async () => {
