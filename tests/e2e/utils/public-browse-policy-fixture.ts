@@ -4,7 +4,6 @@ import {
   arrangePublicationFixture,
   type PutPublicationObject,
 } from "./e2e-db/publications";
-import { test as workerTest } from "./isolated-worker";
 import { publicationStorageTest } from "./publication-fixture";
 
 export async function arrangePublicBrowsePolicyFixture(
@@ -176,26 +175,30 @@ export async function arrangeYoungNavigationFixture(
 export const test = publicationStorageTest.extend<{
   browse: PublicBrowsePolicyFixture;
 }>({
-  browse: async ({ isolatedWorker, publicationObjects }, use) => {
+  browse: async ({ isolatedWorker, publicationObjects, run }, use) => {
     await use(
-      await arrangePublicBrowsePolicyFixture(
-        isolatedWorker.database.owner,
-        publicationObjects.put,
-        "browse-0123456789",
-        1_400_000_000,
+      await run(() =>
+        arrangePublicBrowsePolicyFixture(
+          isolatedWorker.database.owner,
+          publicationObjects.put,
+          "browse-0123456789",
+          1_400_000_000,
+        ),
       ),
     );
   },
 });
 
-export const youngTest = workerTest.extend<{
+export const youngTest = publicationStorageTest.extend<{
   youngBrowse: Awaited<ReturnType<typeof arrangeYoungNavigationFixture>>;
 }>({
-  youngBrowse: async ({ isolatedWorker }, use) => {
+  youngBrowse: async ({ isolatedWorker, run }, use) => {
     await use(
-      await arrangeYoungNavigationFixture(
-        isolatedWorker.database.owner,
-        "browse-0123456789",
+      await run(() =>
+        arrangeYoungNavigationFixture(
+          isolatedWorker.database.owner,
+          "browse-0123456789",
+        ),
       ),
     );
   },
