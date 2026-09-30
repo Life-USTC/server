@@ -1,11 +1,11 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
+import { expect, type Locator, type Page } from "@playwright/test";
+import type { TestPrismaClient } from "../../../../shared/prisma";
+import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { test } from "../../../utils/navigation-policy-fixture";
 
-async function fixture() {
+async function fixture(db: TestPrismaClient) {
   const suffix = crypto.randomUUID().slice(0, 8);
-  const result = await withE2ePrisma(async (db) => {
+  return db.$transaction(async (db) => {
     const users = [];
     for (const role of ["academic", "personal"])
       users.push(
@@ -72,26 +72,15 @@ async function fixture() {
     }
     return { users, section, course, organizer, notices };
   });
-  return {
-    ...result,
-    cleanup: () =>
-      withE2ePrisma(async (db) => {
-        await db.user.deleteMany({
-          where: { id: { in: result.users.map((user) => user.id) } },
-        });
-        await db.section.delete({ where: { id: result.section.id } });
-        await db.course.delete({ where: { id: result.course.id } });
-        await db.youngOrganizer.delete({ where: { id: result.organizer.id } });
-      }),
-  };
 }
-async function identify(page: Page, userId: string) {
+async function identify(page: Page, worker: IsolatedWorker, userId: string) {
+  const session = await worker.createSession(userId);
   await page.context().clearCookies();
   await page
     .context()
     .addCookies([
-      await createSignedSessionCookie(userId),
-      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+      session.cookie,
+      { name: "NEXT_LOCALE", value: "en-us", url: worker.origin },
     ]);
 }
 async function sidebar(page: Page, width: number) {
@@ -118,10 +107,10 @@ async function insideHorizontalViewport(link: Locator, viewport: Locator) {
   expect(item.x + item.width).toBeLessThanOrEqual(region.x + region.width + 1);
 }
 
-test("ui.context-tabs-3", async ({ page }) => {
-  const data = await fixture();
-  try {
-    await identify(page, data.users[1].id);
+test("ui.context-tabs-3", async ({ page, isolatedWorker, navigationRun }) => {
+  await navigationRun(async () => {
+    const data = await fixture(isolatedWorker.database.owner);
+    await identify(page, isolatedWorker, data.users[1].id);
     const paths = [
       "profile",
       "preferences",
@@ -212,18 +201,20 @@ test("ui.context-tabs-3", async ({ page }) => {
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(width);
     }
-  } finally {
-    await data.cleanup();
-  }
+  });
 });
 
-test("ui.navigation-landmarks-6", async ({ page }) => {
-  for (const width of [1280, 390]) {
-    const data = await fixture();
-    try {
+test("ui.navigation-landmarks-6", async ({
+  page,
+  isolatedWorker,
+  navigationRun,
+}) => {
+  await navigationRun(async () => {
+    for (const width of [1280, 390]) {
+      const data = await fixture(isolatedWorker.database.owner);
       await page.setViewportSize({ width, height: 1000 });
       for (const owner of [0, 1]) {
-        await identify(page, data.users[owner].id);
+        await identify(page, isolatedWorker, data.users[owner].id);
         await page.goto("/terms");
         const shell = await sidebar(page, width);
         const publicNotices = shell.locator('a[href="/news"]');
@@ -266,10 +257,39 @@ test("ui.navigation-landmarks-6", async ({ page }) => {
           await expect(
             main.getByRole("link", { name: notice.title, exact: true }),
           ).toHaveCount(0);
-        await main
-          .getByRole("button", { name: "Mark read", exact: true })
-          .first()
-          .click();
+        const db = isolatedWorker.database.owner;
+        const before = await db.youngNotification.findMany({
+          orderBy: { id: "asc" },
+        });
+        const [marked] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              response.request().method() === "POST" &&
+              /^\/api\/workspace\/young-notifications\/[^/]+\/read$/.test(
+                new URL(response.url()).pathname,
+              ),
+          ),
+          main
+            .getByRole("button", { name: "Mark read", exact: true })
+            .first()
+            .click(),
+        ]);
+        expect(marked.status()).toBe(200);
+        const result = await marked.json();
+        expect(result).toEqual({ id: expect.any(String), success: true });
+        expect(before.find((notice) => notice.id === result.id)).toMatchObject({
+          userId: data.users[owner].id,
+          readAt: null,
+        });
+        expect(
+          await db.youngNotification.findMany({ orderBy: { id: "asc" } }),
+        ).toEqual(
+          before.map((notice) =>
+            notice.id === result.id
+              ? { ...notice, readAt: expect.any(Date) }
+              : notice,
+          ),
+        );
         await expect(
           main.getByRole("button", { name: "Mark read", exact: true }),
         ).toHaveCount(owner === 0 ? 1 : 0);
@@ -283,8 +303,6 @@ test("ui.navigation-landmarks-6", async ({ page }) => {
         if (owner === 0) await expect(updatedBadge).toHaveText("1");
         else await expect(updatedBadge).toHaveCount(0);
       }
-    } finally {
-      await data.cleanup();
     }
-  }
+  });
 });
