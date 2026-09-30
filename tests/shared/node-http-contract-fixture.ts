@@ -8,7 +8,10 @@ import type { NodeProtocolRuntime } from "./node-protocol-runtime";
 
 type Handler = (request: Request) => Response | Promise<Response>;
 
-function ownHttpServer(runtime: NodeProtocolRuntime, handler: Handler) {
+export function ownHttpServer(
+  runtime: Pick<NodeProtocolRuntime, "request" | "drain" | "close">,
+  handler: Handler,
+) {
   let origin = "";
   let initialization: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
