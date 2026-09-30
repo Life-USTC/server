@@ -1,14 +1,10 @@
-import { expect, type Locator, test } from "@playwright/test";
-import {
-  cleanupAdminPriorityFixture,
-  createAdminPriorityFixture,
-} from "../../../utils/admin-priority-fixture";
+import { expect, type Locator } from "@playwright/test";
+import { test } from "../../../utils/admin-priority-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   assertPriorityView,
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
 function required<T>(value: T | null | undefined): T {
   if (value == null) throw new Error("Missing priority fixture field");
@@ -20,16 +16,12 @@ for (const locale of ["en-us", "zh-cn"] as const)
     test(`ui.model-property-priority-admin-views ${locale}/${width}`, async ({
       page,
       baseURL,
+      adminPriorityRun,
     }, testInfo) => {
       test.setTimeout(240_000);
       page.setDefaultTimeout(10_000);
       if (!baseURL) throw new Error("Missing Playwright baseURL");
-      const f = await createAdminPriorityFixture();
-      try {
-        await page
-          .context()
-          .addCookies([await createSignedSessionCookie(f.admin.id)]);
-
+      await adminPriorityRun(async (f) => {
         await page
           .context()
           .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
@@ -42,6 +34,11 @@ for (const locale of ["en-us", "zh-cn"] as const)
           }).format(value);
 
         await page.setViewportSize({ width, height: 900 });
+
+        const visit = async (path: string) => {
+          const response = await gotoAndWaitForReady(page, path);
+          expect(response?.status()).toBe(200);
+        };
 
         const row = (title: string) =>
           page
@@ -82,10 +79,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 .getByText(title, { exact: true })
                 .first();
 
-        await gotoAndWaitForReady(
-          page,
-          `/admin/users?search=${f.author.username}`,
-        );
+        await visit(`/admin/users?search=${f.author.username}`);
         let scope = row(required(f.author.name));
         await check(
           {
@@ -111,7 +105,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           "users",
         );
 
-        await gotoAndWaitForReady(page, "/admin/oauth");
+        await visit("/admin/oauth");
         scope = row(required(f.client.name));
         await check(
           {
@@ -145,7 +139,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           "clients",
         );
 
-        await gotoAndWaitForReady(page, "/admin/bus");
+        await visit("/admin/bus");
         scope = row(f.bus.title);
         await check(
           {
@@ -174,8 +168,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           "bus",
         );
 
-        await gotoAndWaitForReady(
-          page,
+        await visit(
           "/admin/moderation?tab=comments&status=softbanned&search=Priority%20review%20comment",
         );
         scope = row(f.comment.body);
@@ -212,8 +205,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           );
         }
 
-        await gotoAndWaitForReady(
-          page,
+        await visit(
           "/admin/moderation?tab=descriptions&search=Priority%20review",
         );
         for (const description of [f.description, f.fallbackDescription]) {
@@ -256,10 +248,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           }
         }
 
-        await gotoAndWaitForReady(
-          page,
-          "/admin/moderation?tab=homeworks&search=Priority%20review",
-        );
+        await visit("/admin/moderation?tab=homeworks&search=Priority%20review");
         scope = row(f.homework.title);
         await check(
           {
@@ -279,8 +268,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
           f.homework.title,
           "homeworks",
         );
-      } finally {
-        await cleanupAdminPriorityFixture(f);
-      }
+      });
     });
   }
