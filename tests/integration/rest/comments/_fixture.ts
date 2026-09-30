@@ -3,7 +3,7 @@ import type {
   Comment,
   Prisma,
 } from "../../../../src/generated/prisma-node/client";
-import { test as isolatedTest } from "../../../e2e/utils/isolated-worker";
+import { test as ownedTest } from "../../../e2e/utils/owned-worker";
 import {
   createUploadBucket,
   type UploadBucket,
@@ -33,6 +33,7 @@ type CommentState = {
 };
 type CommentEffects = {
   initialize: () => Promise<void>;
+  run: <T>(work: () => Promise<T>) => Promise<T>;
   observe: (request: APIRequestContext) => APIRequestContext;
 };
 
@@ -51,7 +52,7 @@ const requestMethods = new Set([
  * queue consumption: native Worker teardown prevents deferred work reaching
  * another test's environment, including when setup or the body fails.
  */
-export const test = isolatedTest.extend<{
+export const test = ownedTest.extend<{
   commentState: CommentState;
   _commentEffects: CommentEffects;
 }>({
@@ -102,6 +103,22 @@ export const test = isolatedTest.extend<{
     try {
       await use({
         observe,
+        run: (work) => {
+          if (closing)
+            return Promise.reject(new Error("Comment fixture is closing"));
+          // Admit the complete setup/body before its first await. The probe's
+          // native teardown must join DB and body continuations as well as HTTP.
+          const operation = Promise.resolve().then(work);
+          pending.add(operation);
+          void operation.then(
+            () => pending.delete(operation),
+            (error) => {
+              pending.delete(operation);
+              failures.push(error);
+            },
+          );
+          return operation;
+        },
         initialize: async () => {
           expect((await probe("post")).status()).toBe(201);
           probeCreated = true;
@@ -148,48 +165,60 @@ export const test = isolatedTest.extend<{
     if (failures.length)
       throw new AggregateError(failures, "Comment effect observation failed");
   },
-  commentState: async ({ isolatedWorker, request, _commentEffects }, use) => {
-    await _commentEffects.initialize();
-    const db = isolatedWorker.database.owner;
-    const actor = async (options?: { isAdmin: boolean }) => {
-      const created = await isolatedWorker.createActor(options);
-      return { ...created, request: _commentEffects.observe(created.request) };
-    };
-    const owner = await actor();
-    const other = await actor();
-    const anonymous = _commentEffects.observe(request);
-    const catalog = await createCatalogContractFixture(db);
-    const youngEvent = await db.youngEvent.create({
-      data: {
-        youngId: `comment-event-${crypto.randomUUID()}`,
-        name: "Private comment event",
-        isActive: true,
-        rawJson: {},
-      },
+  run: async ({ run, _commentEffects }, use) => {
+    await use((work) => _commentEffects.run(() => run(work)));
+  },
+  commentState: async (
+    { isolatedWorker, request, _commentEffects, run },
+    use,
+  ) => {
+    const state = await run<CommentState>(async () => {
+      await _commentEffects.initialize();
+      const db = isolatedWorker.database.owner;
+      const actor = async (options?: { isAdmin: boolean }) => {
+        const created = await isolatedWorker.createActor(options);
+        return {
+          ...created,
+          request: _commentEffects.observe(created.request),
+        };
+      };
+      const owner = await actor();
+      const other = await actor();
+      const anonymous = _commentEffects.observe(request);
+      const catalog = await createCatalogContractFixture(db);
+      const youngEvent = await db.youngEvent.create({
+        data: {
+          youngId: `comment-event-${crypto.randomUUID()}`,
+          name: "Private comment event",
+          isActive: true,
+          rawJson: {},
+        },
+      });
+      const section = catalog.sections[0];
+      return {
+        db,
+        owner,
+        other,
+        anonymous,
+        bucket: createUploadBucket(anonymous, isolatedWorker.origin),
+        catalog,
+        section,
+        course: catalog.courses[0],
+        teacher: catalog.teachers[0],
+        youngEvent,
+        admin: () => actor({ isAdmin: true }),
+        comment: (data = {}) =>
+          db.comment.create({
+            data: {
+              userId: owner.id,
+              sectionId: section.id,
+              body: "Prepared root comment",
+              createdAt: new Date("2026-01-01T00:00:00Z"),
+              ...data,
+            },
+          }),
+      };
     });
-    const section = catalog.sections[0];
-    await use({
-      db,
-      owner,
-      other,
-      anonymous,
-      bucket: createUploadBucket(anonymous, isolatedWorker.origin),
-      catalog,
-      section,
-      course: catalog.courses[0],
-      teacher: catalog.teachers[0],
-      youngEvent,
-      admin: () => actor({ isAdmin: true }),
-      comment: (data = {}) =>
-        db.comment.create({
-          data: {
-            userId: owner.id,
-            sectionId: section.id,
-            body: "Prepared root comment",
-            createdAt: new Date("2026-01-01T00:00:00Z"),
-            ...data,
-          },
-        }),
-    });
+    await use(state);
   },
 });
