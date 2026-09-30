@@ -36,7 +36,7 @@ test("ui.settings-navigation-5", async ({ page, pageRun, isolatedWorker }) => {
             const consent = await tx.oAuthConsent.create({
               data: { clientId, scopes, userId: user.id },
             });
-            grants.push({ name, consentId: consent.id });
+            grants.push({ name, clientId, consentId: consent.id, grantId: consent.grantId });
           }
           return { user, grants };
         });
@@ -68,6 +68,14 @@ test("ui.settings-navigation-5", async ({ page, pageRun, isolatedWorker }) => {
         const original = await db.oAuthConsent.findMany({
           where: { userId: user.id },
           orderBy: { id: "asc" },
+        });
+        const audits = () => db.auditLog.findMany({
+          where: { userId: user.id },
+          select: {
+            action: true, channel: true, outcome: true,
+            userId: true, subjectUserId: true, targetId: true, targetType: true,
+            oauthClientId: true, oauthGrantId: true, metadata: true,
+          },
         });
         let mutations = 0;
         page.on("request", (request) => {
@@ -110,6 +118,7 @@ test("ui.settings-navigation-5", async ({ page, pageRun, isolatedWorker }) => {
           await expect(selected).toBeVisible();
           await expect(other).toBeVisible();
           expect(mutations).toBe(0);
+          expect(await audits()).toEqual([]);
         }
         await selected
           .getByRole("button", { name: revoke, exact: true })
@@ -127,6 +136,20 @@ test("ui.settings-navigation-5", async ({ page, pageRun, isolatedWorker }) => {
             select: { id: true },
           }),
         ).toEqual([{ id: grants[1].consentId }]);
+        // Revocation and its audit commit in the same transaction. Observe the
+        // selected grant explicitly; cancel/Escape must not create an audit.
+        expect(await audits()).toEqual([{
+          action: "oauth_authorization_revoke",
+          channel: "web", outcome: "success",
+          userId: user.id, subjectUserId: user.id,
+          targetType: "oauth_consent", targetId: grants[0].consentId,
+          oauthClientId: grants[0].clientId, oauthGrantId: grants[0].grantId,
+          metadata: {
+            revokedAccessTokenCount: 0,
+            revokedDeviceCodeCount: 0,
+            revokedRefreshTokenCount: 0,
+          },
+        }]);
       }
     },
     async (response, request) => {
