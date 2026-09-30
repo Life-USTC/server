@@ -50,13 +50,12 @@ describe("static import source coverage", () => {
           code: String(courseJwId),
         }),
       );
-      tables.jw_ws_schedule_table_datum_result_lessonList = importedSemesters.map(
-        (semester_id) => ({
+      tables.jw_ws_schedule_table_datum_result_lessonList =
+        importedSemesters.map((semester_id) => ({
           id: semester_id + 20,
           store_id: semester_id,
           semester_id,
-        }),
-      );
+        }));
       tables.upstream_fetches = semesterJwIds.slice(1).flatMap((semester) => [
         {
           source: "catalog_teach_lesson_list_for_teach",
@@ -99,54 +98,56 @@ describe("static import source coverage", () => {
         { parent_store_id: 1, room: "new-room", count: 25 },
       ];
 
-      const { sections, exams, omittedCoveredExam } = await prisma.$transaction(async (tx) => {
-        const course = await tx.course.create({
-          data: {
-            jwId: courseJwId,
-            code: String(courseJwId),
-            nameCn: "[integration-test] coverage",
-          },
-        });
-        const sections = [];
-        const exams = [];
-        for (const [index, semesterJwId] of semesterJwIds.entries()) {
-          const semester = await tx.semester.create({
+      const { sections, exams, omittedCoveredExam } = await prisma.$transaction(
+        async (tx) => {
+          const course = await tx.course.create({
             data: {
-              jwId: semesterJwId,
-              code: String(semesterJwId),
+              jwId: courseJwId,
+              code: String(courseJwId),
               nameCn: "[integration-test] coverage",
             },
           });
-          const section = await tx.section.create({
+          const sections = [];
+          const exams = [];
+          for (const [index, semesterJwId] of semesterJwIds.entries()) {
+            const semester = await tx.semester.create({
+              data: {
+                jwId: semesterJwId,
+                code: String(semesterJwId),
+                nameCn: "[integration-test] coverage",
+              },
+            });
+            const section = await tx.section.create({
+              data: {
+                jwId: sectionJwIds[index],
+                code: String(semesterJwId),
+                courseId: course.id,
+                semesterId: semester.id,
+              },
+            });
+            sections.push(section);
+            exams.push(
+              await tx.exam.create({
+                data: {
+                  jwId: marker + 30 + index,
+                  sectionId: section.id,
+                  examTakeCount: 1,
+                  examRooms: { create: { room: "old-room", count: 1 } },
+                },
+                include: { examRooms: true },
+              }),
+            );
+          }
+          const omittedCoveredExam = await tx.exam.create({
             data: {
-              jwId: sectionJwIds[index],
-              code: String(semesterJwId),
-              courseId: course.id,
-              semesterId: semester.id,
+              jwId: marker + 40,
+              sectionId: sections[3].id,
+              examRooms: { create: { room: "obsolete-room", count: 1 } },
             },
           });
-          sections.push(section);
-          exams.push(
-            await tx.exam.create({
-              data: {
-                jwId: marker + 30 + index,
-                sectionId: section.id,
-                examTakeCount: 1,
-                examRooms: { create: { room: "old-room", count: 1 } },
-              },
-              include: { examRooms: true },
-            }),
-          );
-        }
-        const omittedCoveredExam = await tx.exam.create({
-          data: {
-            jwId: marker + 40,
-            sectionId: sections[3].id,
-            examRooms: { create: { room: "obsolete-room", count: 1 } },
-          },
-        });
-        return { sections, exams, omittedCoveredExam };
-      });
+          return { sections, exams, omittedCoveredExam };
+        },
+      );
 
       const failedFetch = {
         source: "catalog_teach_exam_list",
@@ -154,7 +155,8 @@ describe("static import source coverage", () => {
         ok: false,
       };
       tables.upstream_fetches.push(failedFetch);
-      const rejectedSnapshot = await staticImportProcess.prepareSnapshot(snapshot);
+      const rejectedSnapshot =
+        await staticImportProcess.prepareSnapshot(snapshot);
       await expect(rejectedSnapshot.apply()).rejects.toThrow(
         `Snapshot fetch catalog_teach_exam_list for semester ${semesterJwIds[1]} failed`,
       );
@@ -166,7 +168,8 @@ describe("static import source coverage", () => {
       ).not.toBeNull();
       tables.upstream_fetches.pop();
 
-      const currentSnapshot = await staticImportProcess.prepareSnapshot(snapshot);
+      const currentSnapshot =
+        await staticImportProcess.prepareSnapshot(snapshot);
       const report = await currentSnapshot.apply();
       expect(report.outcome).toBe("committed");
       expect(report.reconciliation.sectionPresence).toMatchObject({
@@ -192,7 +195,9 @@ describe("static import source coverage", () => {
         await prisma.exam.findUnique({ where: { id: omittedCoveredExam.id } }),
       ).toBeNull();
       expect(
-        await prisma.examRoom.count({ where: { examId: omittedCoveredExam.id } }),
+        await prisma.examRoom.count({
+          where: { examId: omittedCoveredExam.id },
+        }),
       ).toBe(0);
       expect(
         await prisma.exam.findUnique({
