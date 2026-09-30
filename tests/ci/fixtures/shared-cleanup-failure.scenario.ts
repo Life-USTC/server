@@ -34,13 +34,16 @@ const runtimeJournal = await vi.hoisted(async () => {
   let nextError = 0;
   let nextRuntime = 0;
   let sequence = 0;
+  // Discovery intentionally replaces Date; journal ordering uses the original clock.
+  const now = Date.now.bind(Date);
   function record(value: Record<string, unknown>) {
     appendFileSync(
       join(journalOutput, "runtime.jsonl"),
-      `${JSON.stringify({ at: Date.now(), sequence: ++sequence, ...value })}\n`,
+      `${JSON.stringify({ at: now(), sequence: ++sequence, ...value })}\n`,
     );
   }
   return {
+    now,
     next: () => ++nextRuntime,
     tick: () => ++sequence,
     record,
@@ -99,17 +102,39 @@ if (
     "public",
     "subscription",
     "http-timeout",
+    "discovery",
+    "oauth",
+    "cimd",
   ].includes(inputPhase ?? "")
 )
   throw new Error("Missing shared cleanup phase/output");
 const phase = inputPhase as SharedCleanupFailurePhase;
 const probeOutput = output;
+const originalGlobals = {
+  date: globalThis.Date,
+  fetch: globalThis.fetch,
+  caches: Object.getOwnPropertyDescriptor(globalThis, "caches"),
+};
+function saveGlobals(stage: string) {
+  const caches = Object.getOwnPropertyDescriptor(globalThis, "caches");
+  save(`globals-${stage}.json`, {
+    date: globalThis.Date === originalGlobals.date,
+    fetch: globalThis.fetch === originalGlobals.fetch,
+    caches:
+      caches?.value === originalGlobals.caches?.value &&
+      caches?.get === originalGlobals.caches?.get &&
+      caches?.set === originalGlobals.caches?.set &&
+      caches?.enumerable === originalGlobals.caches?.enumerable &&
+      caches?.configurable === originalGlobals.caches?.configurable &&
+      caches?.writable === originalGlobals.caches?.writable,
+  });
+}
 const title =
   "native shared cleanup preserves failures and releases owned state";
 function record(event: string, values: Record<string, unknown> = {}) {
   appendFileSync(
     join(probeOutput, "phases.jsonl"),
-    `${JSON.stringify({ event, at: Date.now(), sequence: runtimeJournal.tick(), ...values })}\n`,
+    `${JSON.stringify({ event, at: runtimeJournal.now(), sequence: runtimeJournal.tick(), ...values })}\n`,
   );
 }
 function save(name: string, value: unknown) {
@@ -147,6 +172,10 @@ async function prepareProbe({
   record("state-committed");
   const dispose = _databaseResources.dispose;
   _databaseResources.dispose = async () => {
+    if (["discovery", "oauth", "cimd"].includes(phase)) {
+      saveGlobals("before-dispose");
+      record("globals-observed-before-dispose");
+    }
     record("database-dispose-start");
     await dispose();
     record("database-dispose-finished");
@@ -154,10 +183,11 @@ async function prepareProbe({
   return { db: isolatedDatabase.owner, userId };
 }
 type Probe = Awaited<ReturnType<typeof prepareProbe>>;
-function cancellation(label: string) {
+function cancellation(label: string, observe?: () => void) {
   return new Response(
     new ReadableStream({
       cancel() {
+        observe?.();
         record(`${label}-cancel`);
         const error = new Error(`SHARED-${label.toUpperCase()}-CANCEL`);
         save(`${label}-error.json`, errorTree(error));
@@ -382,6 +412,66 @@ if (phase === "http-timeout") {
         });
         record("late-http-consumed");
       });
+    },
+  );
+}
+
+async function prepareGlobalFailures(
+  runtime: Pick<NodeProtocolRuntime, "run" | "request">,
+  probe: Probe,
+) {
+  await runtime.run(() =>
+    cancellation("workflow", () => saveGlobals("workflow")),
+  );
+  await runtime.request(() =>
+    cancellation("request", () => saveGlobals("request")),
+  );
+  await runtime.request(
+    () =>
+      new Response(
+        new ReadableStream({
+          async cancel() {
+            await successfulCancellation(probe);
+            saveGlobals("sibling");
+          },
+        }),
+      ),
+  );
+}
+if (phase === "discovery") {
+  const { publicDiscoveryTest } = await import(
+    "../../shared/public-discovery-fixture"
+  );
+  publicDiscoveryTest.extend("probe", prepareProbe)(
+    title,
+    async ({ probe, _discoveryLifetime }) => {
+      await prepareGlobalFailures(_discoveryLifetime, probe);
+      record("body-finished");
+    },
+  );
+}
+if (phase === "oauth") {
+  const { oauthProviderTest } = await import(
+    "../../shared/oauth-provider-runtime"
+  );
+  oauthProviderTest.extend("probe", prepareProbe)(
+    title,
+    async ({ probe, oauthRuntime }) => {
+      await prepareGlobalFailures(oauthRuntime, probe);
+      record("body-finished");
+    },
+  );
+}
+if (phase === "cimd") {
+  const { cimdTest } = await import("../../shared/oauth-cimd-fixture");
+  cimdTest.extend("probe", prepareProbe)(
+    title,
+    async ({ probe, oauthRuntime, _cimdNetwork, expect }) => {
+      // Resolve the real network fixture so its borrower cleanup runs first.
+      expect(_cimdNetwork.metadataByUrl.size).toBe(0);
+      await prepareGlobalFailures(oauthRuntime, probe);
+      record("body-rejected");
+      throw new Error("SHARED-BODY");
     },
   );
 }

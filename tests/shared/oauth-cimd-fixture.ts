@@ -59,7 +59,9 @@ export const cimdTest = oauthProviderTest.extend<{
       try {
         // DNS/fetch remain installed while admitted provider calls finish, including
         // response reads and the outer assertions after a runner timeout.
-        await oauthRuntime.close();
+        // The enclosing runtime owns its cached close failure. Await it here
+        // without reporting it twice or stopping outer database cleanup.
+        await Promise.allSettled([oauthRuntime.close()]);
       } finally {
         vi.unstubAllGlobals();
       }

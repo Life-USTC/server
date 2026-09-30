@@ -14,7 +14,10 @@ export const oauthProviderTest = isolatedDatabaseTest.extend<{
   oauthRuntime: ProviderRuntime;
 }>({
   oauthEnvironment: {},
-  oauthRuntime: async ({ isolatedDatabase, oauthEnvironment }, use) => {
+  oauthRuntime: async (
+    { isolatedDatabase, oauthEnvironment, onTestFinished },
+    use,
+  ) => {
     const { connections } = isolatedDatabase;
     const env = {
       APP_PUBLIC_ORIGIN: "http://localhost:3000",
@@ -40,7 +43,14 @@ export const oauthProviderTest = isolatedDatabaseTest.extend<{
     try {
       await use({ run: lifetime.run, request: requests.run, close });
     } finally {
-      await close();
+      try {
+        await close();
+      } catch (error) {
+        // This owner reports the cached close failure after outer DB cleanup.
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
 });
