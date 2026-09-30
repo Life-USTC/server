@@ -1,36 +1,36 @@
-import { expect, test } from "@playwright/test";
-import {
-  createOAuthAuthorizationFixture,
-  deleteOAuthClientsByName,
-} from "../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect } from "@playwright/test";
+import { test } from "../../../utils/owned-page";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
-test("ui.settings-navigation-5", async ({ page }) => {
+test("ui.settings-navigation-5", async ({ page, pageRun, isolatedWorker }) => {
+  await pageRun(async () => {
+  const db = isolatedWorker.database.owner;
   for (const locale of ["en-us", "zh-cn"]) {
     const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
-    const user = await withE2ePrisma((db) =>
-      db.user.create({
+    const { user, grants } = await db.$transaction(async (tx) => {
+      const user = await tx.user.create({
         data: {
           name: `Grant owner ${suffix}`,
           username: `grant${suffix}`,
           email: `grant-${suffix}@example.test`,
         },
-      }),
-    );
-    const grants = [];
-    try {
+      });
+      const grants = [];
       for (const label of ["Selected application", "Other application"]) {
-        grants.push(
-          await createOAuthAuthorizationFixture({
-            name: `${label} ${suffix}`,
-            userId: user.id,
-            scopes: ["workspace.todo:read"],
-          }),
-        );
+        const clientId = crypto.randomUUID();
+        const name = `${label} ${suffix}`;
+        const scopes = ["workspace.todo:read"];
+        await tx.oAuthClient.create({ data: {
+          clientId, clientSecret: `hidden-secret-${crypto.randomUUID()}`, name,
+          redirectUris: [`${isolatedWorker.origin}/hidden-oauth-callback`],
+          scopes, uri: "https://calendar.example",
+        } });
+        const consent = await tx.oAuthConsent.create({ data: { clientId, scopes, userId: user.id } });
+        grants.push({ name, consentId: consent.id });
       }
-      const cookie = await createSignedSessionCookie(user.id);
+      return { user, grants };
+    });
+    const { cookie } = await isolatedWorker.createSession(user.id);
       await page.context().clearCookies();
       await page
         .context()
@@ -55,12 +55,10 @@ test("ui.settings-navigation-5", async ({ page }) => {
       const other = page
         .getByRole("listitem")
         .filter({ hasText: grants[1].name });
-      const original = await withE2ePrisma((db) =>
-        db.oAuthConsent.findMany({
+      const original = await db.oAuthConsent.findMany({
           where: { userId: user.id },
           orderBy: { id: "asc" },
-        }),
-      );
+        });
       let mutations = 0;
       page.on("request", (request) => {
         if (
@@ -88,12 +86,10 @@ test("ui.settings-navigation-5", async ({ page }) => {
         ).toBeVisible();
         expect(mutations).toBe(0);
         expect(
-          await withE2ePrisma((db) =>
-            db.oAuthConsent.findMany({
+          await db.oAuthConsent.findMany({
               where: { userId: user.id },
               orderBy: { id: "asc" },
             }),
-          ),
         ).toEqual(original);
         if (dismiss === "cancel")
           await dialog
@@ -114,21 +110,21 @@ test("ui.settings-navigation-5", async ({ page }) => {
       await expect(other).toBeVisible();
       expect(mutations).toBe(1);
       expect(
-        await withE2ePrisma((db) =>
-          db.oAuthConsent.findMany({
+        await db.oAuthConsent.findMany({
             where: { userId: user.id },
             select: { id: true },
           }),
-        ),
       ).toEqual([{ id: grants[1].consentId }]);
-    } finally {
-      for (const grant of grants) await deleteOAuthClientsByName(grant.name);
-      await withE2ePrisma(async (db) => {
-        await db.auditLog.deleteMany({
-          where: { OR: [{ userId: user.id }, { subjectUserId: user.id }] },
-        });
-        await db.user.delete({ where: { id: user.id } });
-      });
-    }
   }
+  }, async (response, request) => {
+    const url = new URL(request.url());
+    expect(request.method()).toBe("POST");
+    expect(url.pathname).toBe("/account/settings/authorizations");
+    expect(url.search).toContain("revokeAuthorization");
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({
+      type: "redirect", status: 303,
+      location: "/account/settings/authorizations?message=AuthorizationRevoked",
+    });
+  });
 });
