@@ -1,7 +1,5 @@
-import {
-  type IsolatedWorker,
-  test as isolatedTest,
-} from "../../../../e2e/utils/isolated-worker";
+import type { IsolatedWorker } from "../../../../e2e/utils/isolated-worker";
+import { test as workerTest } from "../../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 
 async function prepareHomeworks(worker: IsolatedWorker) {
@@ -32,12 +30,12 @@ async function prepareHomeworks(worker: IsolatedWorker) {
 }
 
 // Admin lists observe every homework, so each case needs a private database.
-// Worker teardown covers partial setup, failed assertions and soft deletes.
-export const test = isolatedTest.extend<{
+// The run fixture joins complete preparation and test callbacks before disposal.
+export const test = workerTest.extend<{
   homeworkState: Awaited<ReturnType<typeof prepareHomeworks>>;
 }>({
-  homeworkState: async ({ isolatedWorker }, use) => {
-    await use(await prepareHomeworks(isolatedWorker));
+  homeworkState: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => prepareHomeworks(isolatedWorker)));
   },
 });
 export const base = "/api/admin/homeworks";
