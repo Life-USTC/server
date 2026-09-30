@@ -60,6 +60,7 @@ export const test = subscriptionTest.extend<{
           });
           const user = await db.user.create({
             data: {
+              id: crypto.randomUUID(),
               email: `${fixture.marker}@example.test`,
               name: "Mobile contract viewer",
               username: fixture.marker,
