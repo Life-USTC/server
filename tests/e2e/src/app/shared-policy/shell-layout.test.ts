@@ -1,23 +1,23 @@
 import { expect, type Page } from "@playwright/test";
 import type { User } from "../../../../../src/generated/prisma-node/client";
-import {
-  type IsolatedWorker,
-  test as workerTest,
-} from "../../../utils/isolated-worker";
+import { test as workerTest } from "../../../utils/account-fixture";
+import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 // The footer scenario visits public content before explicitly signing in.
 const test = workerTest.extend<{ shellUser: User }>({
-  shellUser: async ({ isolatedWorker }, use) => {
+  shellUser: async ({ isolatedWorker, run }, use) => {
     await use(
-      await isolatedWorker.database.owner.user.create({
-        data: {
-          name: "Shell policy user",
-          username: `shell${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
-          email: `shell-policy-${crypto.randomUUID()}@example.test`,
-          isAdmin: true,
-        },
-      }),
+      await run(() =>
+        isolatedWorker.database.owner.user.create({
+          data: {
+            name: "Shell policy user",
+            username: `shell${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
+            email: `shell-policy-${crypto.randomUUID()}@example.test`,
+            isAdmin: true,
+          },
+        }),
+      ),
     );
   },
 });
@@ -78,44 +78,56 @@ test("ui.shell-layout-1", async ({ page }) => {
   );
 });
 
-test("ui.shell-layout-5", async ({ page, shellUser, isolatedWorker }) => {
-  await signIn(page, isolatedWorker, shellUser.id);
-  for (const width of [1280, 390]) {
-    await page.setViewportSize({ width, height: 900 });
-    await gotoAndWaitForReady(page, "/workspace/todos");
-    const topbar = page.locator("[data-shell-topbar]");
-    for (const name of [/Language/, /Theme/]) {
-      const control = topbar.getByRole("button", { name });
-      await expect(control).toBeVisible();
-      await control.focus();
-      await page.keyboard.press("Enter");
-      await expect(page.getByRole("menu")).toBeVisible();
-      await expect(page.getByRole("menuitemradio").first()).toBeVisible();
-      await page.keyboard.press("Escape");
-      await expect(control).toBeFocused();
-    }
-    await expect(
-      topbar.getByRole("button", { name: "Profile menu" }),
-    ).toHaveCount(0);
-    if (width < 768)
-      await topbar.getByRole("button", { name: "Menu", exact: true }).click();
-    const shell =
-      width < 768
-        ? page.getByRole("dialog", { name: "Sidebar", exact: true })
-        : page.getByTestId("app-sidebar");
-    const profile = shell
-      .locator('[data-slot="sidebar-footer"]')
-      .getByRole("button", { name: "Profile menu", exact: true });
-    await expect(profile).toBeVisible();
-    await profile.focus();
-    await page.keyboard.press("Enter");
-    for (const name of ["Personal page", "Settings", "Sign Out"])
-      await expect(
-        page.getByRole("menuitem", { name, exact: true }),
-      ).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(profile).toBeFocused();
-  }
+test("ui.shell-layout-5", async ({
+  accountRun,
+  page,
+  shellUser,
+  isolatedWorker,
+}) => {
+  await accountRun(
+    { writes: [["/api/account/preferences", 200]], audits: [] },
+    async () => {
+      await signIn(page, isolatedWorker, shellUser.id);
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(page, "/workspace/todos");
+        const topbar = page.locator("[data-shell-topbar]");
+        for (const name of [/Language/, /Theme/]) {
+          const control = topbar.getByRole("button", { name });
+          await expect(control).toBeVisible();
+          await control.focus();
+          await page.keyboard.press("Enter");
+          await expect(page.getByRole("menu")).toBeVisible();
+          await expect(page.getByRole("menuitemradio").first()).toBeVisible();
+          await page.keyboard.press("Escape");
+          await expect(control).toBeFocused();
+        }
+        await expect(
+          topbar.getByRole("button", { name: "Profile menu" }),
+        ).toHaveCount(0);
+        if (width < 768)
+          await topbar
+            .getByRole("button", { name: "Menu", exact: true })
+            .click();
+        const shell =
+          width < 768
+            ? page.getByRole("dialog", { name: "Sidebar", exact: true })
+            : page.getByTestId("app-sidebar");
+        const profile = shell
+          .locator('[data-slot="sidebar-footer"]')
+          .getByRole("button", { name: "Profile menu", exact: true });
+        await expect(profile).toBeVisible();
+        await profile.focus();
+        await page.keyboard.press("Enter");
+        for (const name of ["Personal page", "Settings", "Sign Out"])
+          await expect(
+            page.getByRole("menuitem", { name, exact: true }),
+          ).toBeVisible();
+        await page.keyboard.press("Escape");
+        await expect(profile).toBeFocused();
+      }
+    },
+  );
 });
 
 test("ui.shell-layout-7", async ({ page }) => {
@@ -137,116 +149,156 @@ test("ui.shell-layout-7", async ({ page }) => {
 });
 
 test("ui.workspace-footer-policy-2", async ({
+  accountRun,
   page,
   shellUser,
   isolatedWorker,
 }) => {
-  await gotoAndWaitForReady(page, "/terms");
-  await expect(
-    page.getByRole("navigation", { name: /Footer navigation|页脚导航/ }),
-  ).toBeVisible();
-  await signIn(page, isolatedWorker, shellUser.id);
-  for (const path of [
-    "/workspace/overview",
-    "/workspace/calendar",
-    "/workspace/homeworks",
-    "/workspace/todos",
-    "/workspace/exams",
-    "/workspace/subscriptions",
-    "/account/settings/profile",
-    "/account/settings/accounts",
-    "/account/settings/preferences",
-    "/account/settings/danger",
-    "/admin/users",
-    "/admin/moderation",
-    "/admin/bus",
-  ]) {
-    await gotoAndWaitForReady(page, path);
-    await expect(page).toHaveURL(new RegExp(`${path}$`));
-    await expect(
-      page.getByRole("navigation", {
-        name: "Footer navigation",
-        exact: true,
-      }),
-    ).toHaveCount(0);
-  }
-  await isolatedWorker.database.owner.user.update({
-    where: { id: shellUser.id },
-    data: { name: "", username: null },
-  });
-  await gotoAndWaitForReady(page, "/account/welcome");
-  await expect(page).toHaveURL(/\/account\/welcome$/);
-  await expect(
-    page.getByRole("navigation", { name: "Footer navigation", exact: true }),
-  ).toHaveCount(0);
+  await accountRun(
+    {
+      writes: [["/api/account/preferences", 200]],
+      audits: ["account_calendar_token_create"],
+    },
+    async () => {
+      await gotoAndWaitForReady(page, "/terms");
+      await expect(
+        page.getByRole("navigation", { name: /Footer navigation|页脚导航/ }),
+      ).toBeVisible();
+      await signIn(page, isolatedWorker, shellUser.id);
+      for (const path of [
+        "/workspace/overview",
+        "/workspace/calendar",
+        "/workspace/homeworks",
+        "/workspace/todos",
+        "/workspace/exams",
+        "/workspace/subscriptions",
+        "/account/settings/profile",
+        "/account/settings/accounts",
+        "/account/settings/preferences",
+        "/account/settings/danger",
+        "/admin/users",
+        "/admin/moderation",
+        "/admin/bus",
+      ]) {
+        await gotoAndWaitForReady(page, path);
+        await expect(page).toHaveURL(new RegExp(`${path}$`));
+        await expect(
+          page.getByRole("navigation", {
+            name: "Footer navigation",
+            exact: true,
+          }),
+        ).toHaveCount(0);
+      }
+      await isolatedWorker.database.owner.user.update({
+        where: { id: shellUser.id },
+        data: { name: "", username: null },
+      });
+      await gotoAndWaitForReady(page, "/account/welcome");
+      await expect(page).toHaveURL(/\/account\/welcome$/);
+      await expect(
+        page.getByRole("navigation", {
+          name: "Footer navigation",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      return async () => {
+        expect(await isolatedWorker.database.owner.user.findMany()).toEqual([
+          {
+            ...shellUser,
+            name: "",
+            username: null,
+            calendarFeedToken: expect.any(String),
+            updatedAt: expect.any(Date),
+          },
+        ]);
+      };
+    },
+  );
 });
 
-test("ui.shell-layout-4", async ({ page, shellUser, isolatedWorker }) => {
-  await signIn(page, isolatedWorker, shellUser.id);
-  const cdp = await page.context().newCDPSession(page);
-  try {
-    await page.setViewportSize({ width: 390, height: 700 });
-    await gotoAndWaitForReady(page, "/workspace/todos");
-    const navigation = page.locator('[data-shell-navigation="mobile-primary"]');
-    const destinations = [
-      ["Today", "/workspace/overview"],
-      ["Calendar", "/workspace/calendar"],
-      ["Tasks", "/workspace/homeworks"],
-      ["Explore", "/catalog/courses"],
-    ];
-    await expect(navigation.getByRole("link")).toHaveText(
-      destinations.map(([label]) => label),
-    );
-    for (const [label, href] of destinations) {
-      const link = navigation.getByRole("link", { name: label, exact: true });
-      await expect(link).toHaveAttribute("href", href);
-      await link.focus();
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(new RegExp(`${href}$`));
-      await expect(link).toHaveAttribute("aria-current", "page");
-    }
-    await gotoAndWaitForReady(page, "/terms");
-    const contentEnd = page.locator("[data-shell-scroll-container] p").last();
-    for (const inset of [0, 34]) {
-      await cdp.send("Emulation.setSafeAreaInsetsOverride", {
-        insets: { bottom: inset },
-      });
-      await expect
-        .poll(() =>
-          navigation.evaluate((element) =>
-            Number.parseFloat(getComputedStyle(element).paddingBottom),
-          ),
-        )
-        .toBe(inset);
-      const height = await navigation.evaluate(
-        (element) => element.getBoundingClientRect().height,
-      );
-      expect(height).toBe(57 + inset);
-      const padding = await page
-        .locator('[data-slot="sidebar-wrapper"]')
-        .evaluate((element) =>
-          Number.parseFloat(getComputedStyle(element).paddingBottom),
+test("ui.shell-layout-4", async ({
+  accountRun,
+  page,
+  shellUser,
+  isolatedWorker,
+}) => {
+  await accountRun(
+    { writes: [["/api/account/preferences", 200]], audits: [] },
+    async () => {
+      await signIn(page, isolatedWorker, shellUser.id);
+      const cdp = await page.context().newCDPSession(page);
+      try {
+        await page.setViewportSize({ width: 390, height: 700 });
+        await gotoAndWaitForReady(page, "/workspace/todos");
+        const navigation = page.locator(
+          '[data-shell-navigation="mobile-primary"]',
         );
-      expect(padding).toBe(56 + inset);
-      await page.evaluate(() =>
-        window.scrollTo(0, document.documentElement.scrollHeight),
-      );
-      await expect(contentEnd).toBeInViewport();
-      const endBox = await contentEnd.boundingBox();
-      const navigationBox = await navigation.boundingBox();
-      expect(endBox).not.toBeNull();
-      expect(navigationBox).not.toBeNull();
-      if (!endBox || !navigationBox)
-        throw new Error("Missing mobile content or navigation bounds");
-      expect(endBox.y + endBox.height).toBeLessThanOrEqual(navigationBox.y);
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth),
-      ).toBeLessThanOrEqual(390);
-    }
-  } finally {
-    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: {} });
-    await cdp.detach();
-  }
+        const destinations = [
+          ["Today", "/workspace/overview"],
+          ["Calendar", "/workspace/calendar"],
+          ["Tasks", "/workspace/homeworks"],
+          ["Explore", "/catalog/courses"],
+        ];
+        await expect(navigation.getByRole("link")).toHaveText(
+          destinations.map(([label]) => label),
+        );
+        for (const [label, href] of destinations) {
+          const link = navigation.getByRole("link", {
+            name: label,
+            exact: true,
+          });
+          await expect(link).toHaveAttribute("href", href);
+          await link.focus();
+          await page.keyboard.press("Enter");
+          await expect(page).toHaveURL(new RegExp(`${href}$`));
+          await expect(link).toHaveAttribute("aria-current", "page");
+        }
+        await gotoAndWaitForReady(page, "/terms");
+        const contentEnd = page
+          .locator("[data-shell-scroll-container] p")
+          .last();
+        for (const inset of [0, 34]) {
+          await cdp.send("Emulation.setSafeAreaInsetsOverride", {
+            insets: { bottom: inset },
+          });
+          await expect
+            .poll(() =>
+              navigation.evaluate((element) =>
+                Number.parseFloat(getComputedStyle(element).paddingBottom),
+              ),
+            )
+            .toBe(inset);
+          const height = await navigation.evaluate(
+            (element) => element.getBoundingClientRect().height,
+          );
+          expect(height).toBe(57 + inset);
+          const padding = await page
+            .locator('[data-slot="sidebar-wrapper"]')
+            .evaluate((element) =>
+              Number.parseFloat(getComputedStyle(element).paddingBottom),
+            );
+          expect(padding).toBe(56 + inset);
+          await page.evaluate(() =>
+            window.scrollTo(0, document.documentElement.scrollHeight),
+          );
+          await expect(contentEnd).toBeInViewport();
+          const endBox = await contentEnd.boundingBox();
+          const navigationBox = await navigation.boundingBox();
+          expect(endBox).not.toBeNull();
+          expect(navigationBox).not.toBeNull();
+          if (!endBox || !navigationBox)
+            throw new Error("Missing mobile content or navigation bounds");
+          expect(endBox.y + endBox.height).toBeLessThanOrEqual(navigationBox.y);
+          expect(
+            await page.evaluate(() => document.documentElement.scrollWidth),
+          ).toBeLessThanOrEqual(390);
+        }
+      } finally {
+        await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: {} });
+        await cdp.detach();
+      }
+    },
+  );
 });
 
 test("ui.navigation-landmarks-5", async ({ page }) => {
