@@ -20,7 +20,6 @@
  * - Search supports nameCn, nameEn, and code fields
  */
 import { expect } from "@playwright/test";
-import { test } from "../../../utils/catalog-search-fixture";
 import {
   arrangeCourses,
   test as catalogTest,
@@ -29,6 +28,7 @@ import {
   expectCatalogFilterSheet,
   openCatalogFilterSheet,
 } from "../../../utils/catalog-filter-sheet";
+import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import {
@@ -46,7 +46,10 @@ test.describe("/catalog/courses 课程目录", () => {
     searchCourse: _searchCourse,
   }, testInfo) => {
     await preferenceFlow.run(async () => {
-      await assertPageContract(page, { routePath: "/catalog/courses", testInfo });
+      await assertPageContract(page, {
+        routePath: "/catalog/courses",
+        testInfo,
+      });
     });
   });
 
@@ -81,7 +84,9 @@ test.describe("/catalog/courses 课程目录", () => {
         "/catalog/courses?search=e2e-no-matching-course-7f3c9a",
       );
 
-      await expect(page.getByText(/未找到课程|No courses found/i)).toBeVisible();
+      await expect(
+        page.getByText(/未找到课程|No courses found/i),
+      ).toBeVisible();
       await expect(
         page.locator("#main-content a[href^='/catalog/courses/']"),
       ).toHaveCount(0);
@@ -177,9 +182,9 @@ test.describe("/catalog/courses 课程目录", () => {
         .click();
 
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
-      await expect(page.getByRole("navigation", { name: "主导航" })).toHaveCount(
-        1,
-      );
+      await expect(
+        page.getByRole("navigation", { name: "主导航" }),
+      ).toHaveCount(1);
       await expect(
         page.getByRole("navigation", { name: "页脚导航" }),
       ).toHaveCount(1);
@@ -466,7 +471,9 @@ test.describe("/catalog/courses 课程目录", () => {
         .first();
       await expect(clearLink).toBeVisible();
       await clearLink.click();
-      await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
+      await expect(page).toHaveURL(
+        new RegExp(`search=${DEV_SEED.course.code}`),
+      );
 
       await captureStepScreenshot(page, testInfo, "courses-search-clear");
     });
@@ -515,7 +522,9 @@ test.describe("/catalog/courses 课程目录", () => {
       await expect(page).toHaveURL(
         new RegExp(`educationLevelId=${filters.educationLevelId}`),
       );
-      await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
+      await expect(page).toHaveURL(
+        new RegExp(`search=${DEV_SEED.course.code}`),
+      );
 
       filterDialog = await openCatalogFilterSheet(page);
       await filterDialog

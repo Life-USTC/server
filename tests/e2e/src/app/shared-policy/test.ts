@@ -126,7 +126,11 @@ test("ui.detail-two-column-stream-3", async ({
       await page.setViewportSize(viewport);
       for (const { href } of pages) {
         await gotoAndWaitForReady(page, href);
-        await assertReadingOrder(page, ["introduction", "sections", "comments"]);
+        await assertReadingOrder(page, [
+          "introduction",
+          "sections",
+          "comments",
+        ]);
       }
     }
   });
@@ -413,7 +417,9 @@ test("ui.workspace-footer-policy-1", async ({
         const footer = page.locator("footer");
         await expect(footer).toBeVisible();
         for (const destination of ["/terms", "/privacy", "/usage/mobile"]) {
-          await expect(footer.locator(`a[href="${destination}"]`)).toBeVisible();
+          await expect(
+            footer.locator(`a[href="${destination}"]`),
+          ).toBeVisible();
         }
       }
     }

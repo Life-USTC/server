@@ -19,11 +19,11 @@
  * - Search and clear controls must be present
  */
 import { expect } from "@playwright/test";
-import { test } from "../../../utils/catalog-search-fixture";
 import {
   expectCatalogFilterSheet,
   openCatalogFilterSheet,
 } from "../../../utils/catalog-filter-sheet";
+import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import {
@@ -79,7 +79,9 @@ test.describe("/catalog/teachers", () => {
         "/catalog/teachers?search=e2e-no-matching-teacher-7f3c9a",
       );
 
-      await expect(page.getByText(/未找到教师|No teachers found/i)).toBeVisible();
+      await expect(
+        page.getByText(/未找到教师|No teachers found/i),
+      ).toBeVisible();
       await expect(
         page.locator("#main-content a[href^='/catalog/teachers/']"),
       ).toHaveCount(0);

@@ -15,16 +15,19 @@
  * - Responsive: SVG scales within a height-capped aspect box
  */
 import { expect } from "@playwright/test";
-import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
+import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("校车线路图", () => {
-  test("SVG 中渲染校区节点与线路", async ({ page, preferenceFlow }, testInfo) => {
+  test("SVG 中渲染校区节点与线路", async ({
+    page,
+    preferenceFlow,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus/map", {
         testInfo,
@@ -35,7 +38,9 @@ test.describe("校车线路图", () => {
       await expect(
         page.getByText(/Experimental|实验性功能/).first(),
       ).toBeVisible();
-      await expect(page.getByText(/返回时刻表|Back to timetable/)).toHaveCount(0);
+      await expect(page.getByText(/返回时刻表|Back to timetable/)).toHaveCount(
+        0,
+      );
       await expect(page.getByTestId("bus-map-summary")).toHaveCount(0);
       await expect(page.getByTestId("bus-map-legend")).toHaveCount(0);
       await expect(page.getByText(/线路概览|Network overview/)).toHaveCount(0);
@@ -56,7 +61,10 @@ test.describe("校车线路图", () => {
     });
   });
 
-  test("移动端地图按容器宽度缩放且不造成页面溢出", async ({ page, preferenceFlow }, testInfo) => {
+  test("移动端地图按容器宽度缩放且不造成页面溢出", async ({
+    page,
+    preferenceFlow,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/catalog/bus/map", {

@@ -284,52 +284,53 @@ test("young-event.web-detail-priority", async ({
   });
 });
 
-publicTest("young-event.web-mobile-calendar", async ({
-  page,
-  isolatedWorker,
-  publicFlow,
-}) => {
-  await publicFlow.run(async () => {
-    await identify(page, isolatedWorker.origin);
-    await page.setViewportSize({ width: 390, height: 1000 });
-    await page.goto("/catalog/young-events/calendar?view=month&date=2035-09-25");
-    const calendar = page.getByTestId("young-calendar");
-    await expect(
-      calendar.getByRole("link", { name: "Month", exact: true }),
-    ).toHaveAttribute("aria-current", "page");
-    const headings = page
-      .getByTestId("young-calendar-agenda")
-      .getByRole("heading", { level: 3 });
-    await expect(headings.first()).toHaveAttribute(
-      "id",
-      "young-agenda-2035-09-25",
-    );
-    await expect(headings.last()).toHaveAttribute(
-      "id",
-      "young-agenda-2035-09-30",
-    );
-    await calendar
-      .getByRole("button", { name: "Show earlier dates", exact: true })
-      .click();
-    await expect(page.locator("#young-agenda-2035-09-01")).toBeVisible();
-    await expect(page.locator("#young-agenda-2035-08-31")).toHaveCount(0);
-    await expect(page.locator("#young-agenda-2035-10-01")).toHaveCount(0);
-    for (const [label, value, heading] of [
-      ["Day", "day", "Tuesday, September 25, 2035"],
-      ["Week", "week", /Sep 24\s*–\s*30, 2035/],
-      ["Month", "month", "September 2035"],
-    ] as const) {
-      await calendar.getByRole("link", { name: label, exact: true }).click();
-      await expect(page).toHaveURL(new RegExp(`view=${value}`));
-      await expect(
-        calendar.getByRole("link", { name: label, exact: true }),
-      ).toHaveAttribute("aria-current", "page");
-      await expect(calendar.getByRole("heading", { level: 2 })).toHaveText(
-        heading,
+publicTest(
+  "young-event.web-mobile-calendar",
+  async ({ page, isolatedWorker, publicFlow }) => {
+    await publicFlow.run(async () => {
+      await identify(page, isolatedWorker.origin);
+      await page.setViewportSize({ width: 390, height: 1000 });
+      await page.goto(
+        "/catalog/young-events/calendar?view=month&date=2035-09-25",
       );
-    }
-  });
-});
+      const calendar = page.getByTestId("young-calendar");
+      await expect(
+        calendar.getByRole("link", { name: "Month", exact: true }),
+      ).toHaveAttribute("aria-current", "page");
+      const headings = page
+        .getByTestId("young-calendar-agenda")
+        .getByRole("heading", { level: 3 });
+      await expect(headings.first()).toHaveAttribute(
+        "id",
+        "young-agenda-2035-09-25",
+      );
+      await expect(headings.last()).toHaveAttribute(
+        "id",
+        "young-agenda-2035-09-30",
+      );
+      await calendar
+        .getByRole("button", { name: "Show earlier dates", exact: true })
+        .click();
+      await expect(page.locator("#young-agenda-2035-09-01")).toBeVisible();
+      await expect(page.locator("#young-agenda-2035-08-31")).toHaveCount(0);
+      await expect(page.locator("#young-agenda-2035-10-01")).toHaveCount(0);
+      for (const [label, value, heading] of [
+        ["Day", "day", "Tuesday, September 25, 2035"],
+        ["Week", "week", /Sep 24\s*–\s*30, 2035/],
+        ["Month", "month", "September 2035"],
+      ] as const) {
+        await calendar.getByRole("link", { name: label, exact: true }).click();
+        await expect(page).toHaveURL(new RegExp(`view=${value}`));
+        await expect(
+          calendar.getByRole("link", { name: label, exact: true }),
+        ).toHaveAttribute("aria-current", "page");
+        await expect(calendar.getByRole("heading", { level: 2 })).toHaveText(
+          heading,
+        );
+      }
+    });
+  },
+);
 
 test("young-event.read-only", async ({
   page,
