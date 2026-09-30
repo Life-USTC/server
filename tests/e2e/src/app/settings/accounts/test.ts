@@ -32,6 +32,7 @@ import {
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
+import { test as oauthTest } from "../../../../utils/settings-oauth-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -67,15 +68,13 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     });
   });
 
-  test("连接按钮启动账号关联 OAuth 流程", async ({
+  oauthTest("连接按钮启动账号关联 OAuth 流程", async ({
     accountRun,
     page,
-    account: _account,
+    account,
+    isolatedWorker,
+    authorizationProvider,
   }, testInfo) => {
-    test.skip(
-      !process.env.E2E_LIVE_OAUTH,
-      "Live OAuth account linking requires E2E_LIVE_OAUTH and real provider credentials.",
-    );
     await accountRun(
       {
         writes: [["/account/settings/accounts", 200, "linkAccount"]],
@@ -97,31 +96,74 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
         await waitForUiSettled(page);
         await expect(connectButton).toBeEnabled();
 
-        await observeAction(
+        const response = await observeAction(
           () =>
-            page.waitForRequest(
-              (request) => {
+            page.waitForResponse(
+              (response) => {
+                const request = response.request();
                 const url = new URL(request.url());
                 return (
                   request.method() === "POST" &&
+                  url.origin === isolatedWorker.origin &&
                   url.pathname === "/account/settings/accounts" &&
-                  url.search.includes("/linkAccount")
+                  url.search === "?/linkAccount"
                 );
               },
               { timeout: 15_000 },
             ),
           () => connectButton.click(),
         );
+        expect(response.status()).toBe(200);
+        const result = await response.json();
+        expect(result.type).toBe("redirect");
+        expect(result.status).toBe(303);
+        const authorization = new URL(result.location);
+        expect(authorization.origin).toBe(authorizationProvider.origin);
+        expect(authorization.pathname).toBe("/authorize/");
+        const parameters = authorization.searchParams;
+        expect(parameters.get("client_id")).toBe(authorizationProvider.clientId);
+        expect(parameters.get("redirect_uri")).toBe(
+          `${isolatedWorker.origin}/api/auth/callback/oidc`,
+        );
+        expect(parameters.get("response_type")).toBe("code");
+        expect(parameters.get("scope")?.split(" ").sort()).toEqual(["openid"]);
+        expect(Boolean(parameters.get("state"))).toBe(true);
+        expect(parameters.get("code_challenge_method")).toBe("S256");
+        expect(
+          /^[A-Za-z0-9_-]{43}$/.test(parameters.get("code_challenge") ?? ""),
+        ).toBe(true);
+        expect(parameters.has("client_secret")).toBe(false);
+        expect(parameters.has("code_verifier")).toBe(false);
 
-        try {
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "settings-accounts-oauth",
-          );
-        } catch {
-          // OAuth redirect may leave the page in an unscreenshottable state
-        }
+        await page.waitForURL(
+          (url) =>
+            url.origin === authorizationProvider.origin &&
+            url.pathname === "/authorize/",
+        );
+        await expect(
+          page.getByRole("heading", {
+            name: "Authorize account connection",
+            exact: true,
+          }),
+        ).toBeVisible();
+        expect(authorizationProvider.requests.length).toBe(1);
+        // Compare opaque state only in memory; do not print it in diagnostics.
+        expect(
+          authorizationProvider.requests[0].href === authorization.href,
+        ).toBe(true);
+        await captureStepScreenshot(page, testInfo, "settings-accounts-oauth");
+        return async () => {
+          expect(
+            await isolatedWorker.database.owner.account.count({
+              where: { userId: account.id },
+            }),
+          ).toBe(0);
+          expect(
+            await isolatedWorker.database.owner.user.findMany({
+              orderBy: { id: "asc" },
+            }),
+          ).toEqual([account]);
+        };
       },
     );
   });
