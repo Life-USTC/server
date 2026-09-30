@@ -11,7 +11,10 @@ export type SharedCleanupFailurePhase =
   | "comment"
   | "public"
   | "subscription"
-  | "http-timeout";
+  | "http-timeout"
+  | "discovery"
+  | "oauth"
+  | "cimd";
 
 export function errorTree(error: unknown): {
   name: unknown;
