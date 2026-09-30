@@ -279,7 +279,9 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
               r.request().method() === "POST" &&
               r.status() === 200,
           );
-          await introduction.getByRole("button", { name: /保存|Save/i }).click();
+          await introduction
+            .getByRole("button", { name: /保存|Save/i })
+            .click();
           await saveResponse;
           await waitForUiSettled(page);
 
@@ -301,7 +303,10 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
             testInfo,
             "teacher/description-updated",
           );
-          const persisted = await storedDescription(community.db, description.id);
+          const persisted = await storedDescription(
+            community.db,
+            description.id,
+          );
           expect(persisted).toMatchObject({
             content,
             lastEditedById: account.id,
@@ -479,7 +484,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
               .filter({ hasText: /评论已删除|Comment deleted/i }),
           ).toBeVisible();
           await expect(page.locator(`#comment-${commentId}`)).toHaveCount(0);
-          await captureStepScreenshot(page, testInfo, "teacher/comment-deleted");
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "teacher/comment-deleted",
+          );
         },
         {
           auditActions: {

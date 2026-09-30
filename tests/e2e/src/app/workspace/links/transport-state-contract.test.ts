@@ -1,8 +1,8 @@
 import { expect, type Page } from "@playwright/test";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
+import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test as preferenceTest } from "../../../../utils/personal-preferences-fixture";
 import type { PreferenceFlow } from "../../../../utils/preference-flow";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 
 const viewerPath = "/_internal/catalog/links/viewer";
 const pinPath = "/api/workspace/link-pins";
@@ -20,12 +20,16 @@ async function arrangeLinkState(isolatedWorker: IsolatedWorker) {
           username: marker,
           email: `${marker}@example.test`,
           emailVerified: true,
-          workspaceLinkPins: { create: {
-            slug: index === 0 ? "jw" : "vlab",
-            // The initial jw pin is unambiguously older than all real API pins.
-            createdAt: new Date("2020-01-01T00:00:00.000Z"),
-          } },
-          catalogLinkClicks: { create: { slug: "jw", count: index === 0 ? 7654321 : 8765432 } },
+          workspaceLinkPins: {
+            create: {
+              slug: index === 0 ? "jw" : "vlab",
+              // The initial jw pin is unambiguously older than all real API pins.
+              createdAt: new Date("2020-01-01T00:00:00.000Z"),
+            },
+          },
+          catalogLinkClicks: {
+            create: { slug: "jw", count: index === 0 ? 7654321 : 8765432 },
+          },
         },
       });
       users.push(user.id);
@@ -45,7 +49,8 @@ async function arrangeLinkState(isolatedWorker: IsolatedWorker) {
         orderBy: [{ userId: "asc" }, { slug: "asc" }],
       }),
     }),
-    session: async (userId: string) => (await isolatedWorker.createSession(userId)).cookie,
+    session: async (userId: string) =>
+      (await isolatedWorker.createSession(userId)).cookie,
     injectFailure: async () => {
       const name = `link_failure_${crypto.randomUUID().replaceAll("-", "")}`;
       await db.$transaction(async (transaction) => {
@@ -62,7 +67,9 @@ async function arrangeLinkState(isolatedWorker: IsolatedWorker) {
       if (!failureTrigger) throw new Error("No owned link failure trigger");
       const name = failureTrigger;
       await db.$transaction(async (transaction) => {
-        await transaction.$executeRawUnsafe(`DROP TRIGGER ${name} ON "WorkspaceLinkPin"`);
+        await transaction.$executeRawUnsafe(
+          `DROP TRIGGER ${name} ON "WorkspaceLinkPin"`,
+        );
         await transaction.$executeRawUnsafe(`DROP FUNCTION ${name}()`);
       });
       failureTrigger = undefined;
@@ -70,11 +77,15 @@ async function arrangeLinkState(isolatedWorker: IsolatedWorker) {
   };
 }
 
-const test = preferenceTest.extend<{ linkState: Awaited<ReturnType<typeof arrangeLinkState>> }>({
+const test = preferenceTest.extend<{
+  linkState: Awaited<ReturnType<typeof arrangeLinkState>>;
+}>({
   linkState: async ({ isolatedWorker, page, preferenceFlow }, use) => {
     const fixture = await preferenceFlow.prepare(async () => {
       const fixture = await arrangeLinkState(isolatedWorker);
-      await page.context().addCookies([await fixture.session(fixture.users[0])]);
+      await page
+        .context()
+        .addCookies([await fixture.session(fixture.users[0])]);
       return fixture;
     });
     // The private database owns the trigger even if its creation or test fails;
@@ -90,12 +101,20 @@ function form(page: Page, slug: string) {
     .filter({ visible: true })
     .first();
 }
-async function locale(page: Page, value: string, origin: string, preferenceFlow: PreferenceFlow) {
+async function locale(
+  page: Page,
+  value: string,
+  origin: string,
+  preferenceFlow: PreferenceFlow,
+) {
   expect(
     (
-      await preferenceFlow.http(() => page.request.post("/api/account/preferences", { headers: preferenceFlow.headers,
-        data: { locale: value },
-      }))
+      await preferenceFlow.http(() =>
+        page.request.post("/api/account/preferences", {
+          headers: preferenceFlow.headers,
+          data: { locale: value },
+        }),
+      )
     ).status(),
   ).toBe(200);
   await page
@@ -117,10 +136,12 @@ test("catalog-link.pin-limit", async ({ preferenceFlow, linkState, page }) => {
       action: "pin" | "unpin",
       expected: string[],
     ) => {
-      const response = await preferenceFlow.http(() => page.request.post(pinPath, {
-        form: { slug, action, returnTo: "/catalog/links" },
-        headers: { ...preferenceFlow.headers,  accept: "application/json" },
-      }));
+      const response = await preferenceFlow.http(() =>
+        page.request.post(pinPath, {
+          form: { slug, action, returnTo: "/catalog/links" },
+          headers: { ...preferenceFlow.headers, accept: "application/json" },
+        }),
+      );
       expect(response.status()).toBe(200);
       const body = await response.json();
       expect(body.maxPinnedLinks).toBe(4);
@@ -153,17 +174,20 @@ test("catalog-link.pin-limit", async ({ preferenceFlow, linkState, page }) => {
     await apply("official", "pin", ["library", "vlab", "jw", "official"]);
     await gotoAndWaitForReady(page, "/catalog/links");
     for (const slug of ["library", "vlab", "jw", "official"])
-      await expect(form(page, slug).locator('input[name="action"]')).toHaveValue(
-        "unpin",
-      );
+      await expect(
+        form(page, slug).locator('input[name="action"]'),
+      ).toHaveValue("unpin");
     for (const slug of ["mail", "icourse"])
-      await expect(form(page, slug).locator('input[name="action"]')).toHaveValue(
-        "pin",
-      );
+      await expect(
+        form(page, slug).locator('input[name="action"]'),
+      ).toHaveValue("pin");
   }, "pins");
 });
 
-test("catalog-link.public-web-personal-overlay", async ({ preferenceFlow, linkState, isolatedWorker,
+test("catalog-link.public-web-personal-overlay", async ({
+  preferenceFlow,
+  linkState,
+  isolatedWorker,
   page,
   request,
 }) => {
@@ -191,7 +215,9 @@ test("catalog-link.public-web-personal-overlay", async ({ preferenceFlow, linkSt
             .filter({ visible: true })
             .first(),
         ).toBeVisible();
-        const overlay = await preferenceFlow.http(() => context.request.get(viewerPath, { headers: preferenceFlow.headers }));
+        const overlay = await preferenceFlow.http(() =>
+          context.request.get(viewerPath, { headers: preferenceFlow.headers }),
+        );
         expect(overlay.status()).toBe(200);
         expect(overlay.headers()["cache-control"]).toBe("private, no-store");
         const body = await overlay.json();
@@ -207,29 +233,40 @@ test("catalog-link.public-web-personal-overlay", async ({ preferenceFlow, linkSt
         ).toBe(index === 0 ? 7654321 : 8765432);
         expect(
           (
-            await preferenceFlow.http(() => context.request.get(viewerPath, {
-              headers: { ...preferenceFlow.headers,  authorization: "Bearer unsupported-session-token" },
-            }))
+            await preferenceFlow.http(() =>
+              context.request.get(viewerPath, {
+                headers: {
+                  ...preferenceFlow.headers,
+                  authorization: "Bearer unsupported-session-token",
+                },
+              }),
+            )
           ).status(),
         ).toBe(401);
       } finally {
         await preferenceFlow.closeContext(context);
       }
     }
-    const anonymous = await preferenceFlow.http(() => request.get(viewerPath, { headers: preferenceFlow.headers }));
+    const anonymous = await preferenceFlow.http(() =>
+      request.get(viewerPath, { headers: preferenceFlow.headers }),
+    );
     expect(anonymous.headers()["cache-control"]).toBe("private, no-store");
     expect(await anonymous.json()).toEqual({ signedIn: false, links: null });
     await gotoAndWaitForReady(page, "/catalog/links");
     await expect(form(page, "jw").locator('input[name="action"]')).toHaveValue(
       "unpin",
     );
-    await expect(form(page, "vlab").locator('input[name="action"]')).toHaveValue(
-      "pin",
-    );
+    await expect(
+      form(page, "vlab").locator('input[name="action"]'),
+    ).toHaveValue("pin");
   }, "consume");
 });
 
-test("catalog-link.pin-write-gate", async ({ preferenceFlow, linkState, page }) => {
+test("catalog-link.pin-write-gate", async ({
+  preferenceFlow,
+  linkState,
+  page,
+}) => {
   await preferenceFlow.run(async () => {
     const { users, state } = linkState;
     const before = await state();
@@ -249,7 +286,11 @@ test("catalog-link.pin-write-gate", async ({ preferenceFlow, linkState, page }) 
     void requested.catch(() => undefined);
     preferenceFlow.onClosing(() => {
       release();
-      cancelRequested(new Error("Overlay request was not observed before workflow interruption"));
+      cancelRequested(
+        new Error(
+          "Overlay request was not observed before workflow interruption",
+        ),
+      );
     });
     page.on("request", (request) => {
       if (
@@ -286,8 +327,11 @@ test("catalog-link.pin-write-gate", async ({ preferenceFlow, linkState, page }) 
     await expect(form(page, "jw").getByRole("button")).toBeEnabled();
     expect(reads).toBe(2);
     expect(writes).toBe(0);
-    const savedResponse = preferenceFlow.waitForResponse(page, (response) =>
-      new URL(response.url()).pathname === pinPath && response.request().method() === "POST",
+    const savedResponse = preferenceFlow.waitForResponse(
+      page,
+      (response) =>
+        new URL(response.url()).pathname === pinPath &&
+        response.request().method() === "POST",
     );
     await form(page, "jw").getByRole("button").click();
     const saved = await savedResponse;
@@ -297,13 +341,18 @@ test("catalog-link.pin-write-gate", async ({ preferenceFlow, linkState, page }) 
       "pin",
     );
     expect(writes).toBe(1);
-    expect((await state()).pins.filter((pin) => pin.userId === users[0])).toEqual(
-      [],
-    );
+    expect(
+      (await state()).pins.filter((pin) => pin.userId === users[0]),
+    ).toEqual([]);
   }, "pins");
 });
 
-test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolatedWorker, page }) => {
+test("catalog-link.pin-error-clear", async ({
+  preferenceFlow,
+  linkState,
+  isolatedWorker,
+  page,
+}) => {
   await preferenceFlow.run(async () => {
     const { state } = linkState;
     await linkState.injectFailure();
@@ -316,8 +365,11 @@ test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolate
         ["vlab", "pin"],
       ]) {
         const target = form(page, slug);
-        await expect(target.locator('input[name="action"]')).toHaveValue(action);
-        const response = preferenceFlow.waitForResponse(page,
+        await expect(target.locator('input[name="action"]')).toHaveValue(
+          action,
+        );
+        const response = preferenceFlow.waitForResponse(
+          page,
           (response) =>
             new URL(response.url()).pathname === pinPath &&
             response.request().method() === "POST",
@@ -332,25 +384,32 @@ test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolate
         await expect(page.getByRole("alert")).toContainText(
           language === "zh-cn" ? "置顶更新失败" : "Pin update failed",
         );
-        await expect(target.locator('input[name="action"]')).toHaveValue(action);
+        await expect(target.locator('input[name="action"]')).toHaveValue(
+          action,
+        );
         await expect(target.getByRole("button")).toBeEnabled();
         expect(await state()).toEqual(before);
       }
       // A stale client catalog sends a slug no longer present in the current catalog.
-      await preferenceFlow.route(page, "**/api/workspace/link-pins", async (route) => {
-        await route.fallback({
-          headers: {
-            ...route.request().headers(),
-            "content-type": "application/x-www-form-urlencoded",
-          },
-          postData: new URLSearchParams({
-            slug: "unknown-test-link",
-            action: "pin",
-            returnTo: "/catalog/links",
-          }).toString(),
-        });
-      });
-      const response = preferenceFlow.waitForResponse(page,
+      await preferenceFlow.route(
+        page,
+        "**/api/workspace/link-pins",
+        async (route) => {
+          await route.fallback({
+            headers: {
+              ...route.request().headers(),
+              "content-type": "application/x-www-form-urlencoded",
+            },
+            postData: new URLSearchParams({
+              slug: "unknown-test-link",
+              action: "pin",
+              returnTo: "/catalog/links",
+            }).toString(),
+          });
+        },
+      );
+      const response = preferenceFlow.waitForResponse(
+        page,
         (response) =>
           new URL(response.url()).pathname === pinPath &&
           response.request().method() === "POST",
@@ -365,9 +424,9 @@ test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolate
       await expect(page.getByRole("alert")).toContainText(
         language === "zh-cn" ? "置顶更新失败" : "Pin update failed",
       );
-      await expect(form(page, "jw").locator('input[name="action"]')).toHaveValue(
-        "unpin",
-      );
+      await expect(
+        form(page, "jw").locator('input[name="action"]'),
+      ).toHaveValue("unpin");
       await expect(
         form(page, "vlab").locator('input[name="action"]'),
       ).toHaveValue("pin");
@@ -375,27 +434,45 @@ test("catalog-link.pin-error-clear", async ({ preferenceFlow, linkState, isolate
       await preferenceFlow.clearRoutes(page);
     }
     await linkState.removeFailureTrigger();
-    const recoveredResponse = preferenceFlow.waitForResponse(page, (response) =>
-      new URL(response.url()).pathname === pinPath && response.request().method() === "POST",
+    const recoveredResponse = preferenceFlow.waitForResponse(
+      page,
+      (response) =>
+        new URL(response.url()).pathname === pinPath &&
+        response.request().method() === "POST",
     );
     await form(page, "vlab").getByRole("button").click();
     const recovered = await recoveredResponse;
     expect(recovered.status()).toBe(200);
-    expect(await recovered.json()).toMatchObject({ pinnedSlugs: ["jw", "vlab"], error: null });
-    await expect.poll(async () => (await state()).pins.filter((pin) => pin.userId === linkState.users[0]).map((pin) => pin.slug)).toEqual(["jw", "vlab"]);
-    await expect(form(page, "vlab").locator('input[name="action"]')).toHaveValue(
-      "unpin",
-    );
+    expect(await recovered.json()).toMatchObject({
+      pinnedSlugs: ["jw", "vlab"],
+      error: null,
+    });
+    await expect
+      .poll(async () =>
+        (await state()).pins
+          .filter((pin) => pin.userId === linkState.users[0])
+          .map((pin) => pin.slug),
+      )
+      .toEqual(["jw", "vlab"]);
+    await expect(
+      form(page, "vlab").locator('input[name="action"]'),
+    ).toHaveValue("unpin");
     await expect(page.getByRole("alert")).toHaveCount(0);
   }, "pins");
 });
 
-test("catalog-link.visit-tracking-link", async ({ preferenceFlow, linkState, isolatedWorker }) => {
+test("catalog-link.visit-tracking-link", async ({
+  preferenceFlow,
+  linkState,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     const { users, state } = linkState;
     const before = await state();
     for (const signedIn of [false, true]) {
-      const context = await preferenceFlow.newContext({ baseURL: isolatedWorker.origin });
+      const context = await preferenceFlow.newContext({
+        baseURL: isolatedWorker.origin,
+      });
       try {
         if (signedIn)
           await context.addCookies([await linkState.session(users[0])]);
@@ -421,11 +498,14 @@ test("catalog-link.visit-tracking-link", async ({ preferenceFlow, linkState, iso
           expect(link.role).not.toBe("button");
           expect(link.target).toBe("_blank");
         }
-        const clicked = preferenceFlow.waitForRequest(context, (request) =>
-          new URL(request.url()).pathname === "/api/catalog/links/resolve",
+        const clicked = preferenceFlow.waitForRequest(
+          context,
+          (request) =>
+            new URL(request.url()).pathname === "/api/catalog/links/resolve",
         );
         const popup = preferenceFlow.waitForPopup(target);
-        await preferenceFlow.route(context,
+        await preferenceFlow.route(
+          context,
           "**/api/catalog/links/resolve?slug=jw",
           async (route) => {
             const response = await route.fetch({ maxRedirects: 0 });
@@ -454,8 +534,12 @@ test("catalog-link.visit-tracking-link", async ({ preferenceFlow, linkState, iso
         );
         const after = await state();
         expect(after.pins).toEqual(before.pins);
-        expect(after.clicks.find((click) => click.userId === users[0])?.count).toBe(7654321 + Number(signedIn));
-        expect(after.clicks.find((click) => click.userId === users[1])?.count).toBe(8765432);
+        expect(
+          after.clicks.find((click) => click.userId === users[0])?.count,
+        ).toBe(7654321 + Number(signedIn));
+        expect(
+          after.clicks.find((click) => click.userId === users[1])?.count,
+        ).toBe(8765432);
       } finally {
         await preferenceFlow.closeContext(context);
       }
@@ -463,22 +547,36 @@ test("catalog-link.visit-tracking-link", async ({ preferenceFlow, linkState, iso
   }, "visits");
 });
 
-test("catalog-link.visit-owner-count", async ({ preferenceFlow, linkState, isolatedWorker, page, request }) => {
+test("catalog-link.visit-owner-count", async ({
+  preferenceFlow,
+  linkState,
+  isolatedWorker,
+  page,
+  request,
+}) => {
   await preferenceFlow.run(async () => {
     const { users, state } = linkState;
     const before = await state();
     const url = "/api/catalog/links/resolve?slug=jw";
-    const anonymous = await preferenceFlow.http(() => request.get(url, { headers: preferenceFlow.headers,  maxRedirects: 0 }));
+    const anonymous = await preferenceFlow.http(() =>
+      request.get(url, { headers: preferenceFlow.headers, maxRedirects: 0 }),
+    );
     expect(anonymous.status()).toBe(307);
     expect(anonymous.headers().location).toBe("https://jw.ustc.edu.cn/");
     expect(await state()).toEqual(before);
     for (const [index, userId] of users.entries()) {
-      const context = await preferenceFlow.newContext({ baseURL: isolatedWorker.origin });
+      const context = await preferenceFlow.newContext({
+        baseURL: isolatedWorker.origin,
+      });
       try {
         await context.addCookies([await linkState.session(userId)]);
         for (const increment of [1, 2]) {
-          const response = await preferenceFlow.http(() => context.request.get(
-            `${url}&userId=${users[1 - index]}`, { headers: preferenceFlow.headers,  maxRedirects: 0 }));
+          const response = await preferenceFlow.http(() =>
+            context.request.get(`${url}&userId=${users[1 - index]}`, {
+              headers: preferenceFlow.headers,
+              maxRedirects: 0,
+            }),
+          );
           expect(response.status()).toBe(307);
           expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
           const after = await state();

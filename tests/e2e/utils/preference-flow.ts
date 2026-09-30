@@ -22,13 +22,25 @@ export type PreferenceFlow = {
   prepare: <T>(work: () => Promise<T>) => Promise<T>;
   http: (work: () => Promise<APIResponse>) => Promise<APIResponse>;
   run: (work: () => Promise<void>, mode?: Mode) => Promise<void>;
-  newContext: (options?: Parameters<Browser["newContext"]>[0]) => Promise<BrowserContext>;
+  newContext: (
+    options?: Parameters<Browser["newContext"]>[0],
+  ) => Promise<BrowserContext>;
   newPage: (context: BrowserContext) => Promise<Page>;
-  waitForRequest: (context: BrowserContext, predicate: (request: Request) => boolean) => Promise<Request>;
+  waitForRequest: (
+    context: BrowserContext,
+    predicate: (request: Request) => boolean,
+  ) => Promise<Request>;
   waitForPopup: (page: Page) => Promise<Page>;
-  waitForResponse: (page: Page, predicate: (response: Response) => boolean) => Promise<Response>;
+  waitForResponse: (
+    page: Page,
+    predicate: (response: Response) => boolean,
+  ) => Promise<Response>;
   closeContext: (context: BrowserContext) => Promise<void>;
-  route: (target: RouteTarget, match: RouteMatch, handler: (route: Route) => Promise<void>) => Promise<void>;
+  route: (
+    target: RouteTarget,
+    match: RouteMatch,
+    handler: (route: Route) => Promise<void>,
+  ) => Promise<void>;
   clearRoutes: (target: RouteTarget) => Promise<void>;
   onClosing: (release: () => void) => void;
 };
@@ -37,7 +49,13 @@ export type PreferenceFlow = {
  * Scenario assertions specify results; this owner verifies transport completion
  * and that consumers do not change independently arranged preference state. */
 export async function withPreferenceFlow(
-  { page, browser, observer, isolatedWorker, testInfo }: {
+  {
+    page,
+    browser,
+    observer,
+    isolatedWorker,
+    testInfo,
+  }: {
     page: Page;
     browser: Browser;
     observer: APIRequestContext;
@@ -63,7 +81,11 @@ export async function withPreferenceFlow(
   // submitted HTTP requests and browser writes must settle before that close.
   const browserOperations = new Map<BrowserContext, Set<Promise<void>>>();
   const releases: (() => void)[] = [];
-  const controls: { target: RouteTarget; match: RouteMatch; handler: (route: Route) => Promise<void> }[] = [];
+  const controls: {
+    target: RouteTarget;
+    match: RouteMatch;
+    handler: (route: Route) => Promise<void>;
+  }[] = [];
   const writes: { path: string; method: string; status: number }[] = [];
   const controlled: { path: string; method: string; complete: boolean }[] = [];
   const errors: unknown[] = [];
@@ -74,12 +96,15 @@ export async function withPreferenceFlow(
   let completed = false;
   let mode: Mode = "consume";
   let before: Awaited<ReturnType<typeof state>> | undefined;
-  const contains = (parent: unknown, child: unknown): boolean => parent === child ||
-    (parent instanceof AggregateError && parent.errors.some((entry) => contains(entry, child)));
+  const contains = (parent: unknown, child: unknown): boolean =>
+    parent === child ||
+    (parent instanceof AggregateError &&
+      parent.errors.some((entry) => contains(entry, child)));
   const remember = (error: unknown) => {
     if (error instanceof AggregateError) {
       for (const child of error.errors) remember(child);
-    } else if (!errors.some((entry) => contains(entry, error))) errors.push(error);
+    } else if (!errors.some((entry) => contains(entry, error)))
+      errors.push(error);
   };
   const open = () => {
     if (closing) throw new Error("Preference workflow is closing");
@@ -91,9 +116,15 @@ export async function withPreferenceFlow(
     void settled.finally(() => pending.delete(settled));
     return operation;
   }
-  function ownBrowserOperation<T>(context: BrowserContext, work: () => Promise<T>) {
+  function ownBrowserOperation<T>(
+    context: BrowserContext,
+    work: () => Promise<T>,
+  ) {
     open();
-    if (!contexts.has(context)) throw new Error("Browser context is not owned by this preference workflow");
+    if (!contexts.has(context))
+      throw new Error(
+        "Browser context is not owned by this preference workflow",
+      );
     let operations = browserOperations.get(context);
     if (!operations) {
       operations = new Set();
@@ -111,9 +142,13 @@ export async function withPreferenceFlow(
   }
   async function state() {
     return {
-      pins: await db.workspaceLinkPin.findMany({ orderBy: [{ userId: "asc" }, { slug: "asc" }] }),
+      pins: await db.workspaceLinkPin.findMany({
+        orderBy: [{ userId: "asc" }, { slug: "asc" }],
+      }),
       bus: await db.busUserPreference.findMany({ orderBy: { userId: "asc" } }),
-      visits: await db.catalogLinkClick.findMany({ orderBy: [{ userId: "asc" }, { slug: "asc" }] }),
+      visits: await db.catalogLinkClick.findMany({
+        orderBy: [{ userId: "asc" }, { slug: "asc" }],
+      }),
     };
   }
   const observePage = (current: Page) => {
@@ -133,9 +168,18 @@ export async function withPreferenceFlow(
   async function prepareClose(current: Page) {
     const reader = readers.get(current);
     if (!reader || current.isClosed()) return;
-    await expect.poll(() => [...reader.ownedReads.values()].filter(
-      (read) => !read.settled && !read.retiredBy,
-    ).length, { timeout: 15_000, message: "Preference active reads reach their browser terminal" }).toBe(0);
+    await expect
+      .poll(
+        () =>
+          [...reader.ownedReads.values()].filter(
+            (read) => !read.settled && !read.retiredBy,
+          ).length,
+        {
+          timeout: 15_000,
+          message: "Preference active reads reach their browser terminal",
+        },
+      )
+      .toBe(0);
     reader.prepareRetiredClose();
   }
   async function closeContext(context: BrowserContext) {
@@ -143,51 +187,73 @@ export async function withPreferenceFlow(
     // Do not close an intercepted resolver/write before its real response.
     await settle();
     const results = await Promise.allSettled(context.pages().map(prepareClose));
-    results.push(...await Promise.allSettled([context.close()]));
-    const failures = results.flatMap((result) => result.status === "rejected" ? [result.reason] : []);
-    if (failures.length) throw new AggregateError(failures, "Preference context did not settle");
+    results.push(...(await Promise.allSettled([context.close()])));
+    const failures = results.flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+    if (failures.length)
+      throw new AggregateError(failures, "Preference context did not settle");
   }
   async function installContext(context: BrowserContext) {
     contexts.add(context);
     context.on("page", onPage);
     for (const current of context.pages()) observePage(current);
-    await context.route((url) => url.origin === origin, (route) => {
-      const request = route.request();
-      const predecessor = request.redirectedFrom();
-      const admitted = admittedRequests.has(request) || !closing ||
-        Boolean(predecessor && admittedRequests.has(predecessor));
-      if (admitted) admittedRequests.add(request);
-      return own(async () => {
-      if (!admitted) {
-        await route.abort("aborted");
-        return;
-      }
-      if (!["POST", "PUT", "PATCH", "DELETE"].includes(request.method())) {
-        await route.continue();
-        return;
-      }
-      try {
-        const path = new URL(request.url()).pathname;
-        const allowed = path === "/api/account/preferences" ||
-          (mode === "pins" && path === "/api/workspace/link-pins") ||
-          (mode === "bus" && path === "/api/workspace/bus-preferences");
-        if (!allowed) remember(new Error("Unexpected preference write: " + path));
-        const response = await route.fetch({ maxRedirects: 0 });
-        // Retain the real status and body, including intentional 400/500 cases.
-        await response.body();
-        writes.push({ path, method: request.method(), status: response.status() });
-        await route.fulfill({ response });
-      } catch (error) {
-        remember(error);
-        try { await route.abort("aborted"); } catch (abortError) { remember(abortError); }
-      }
-      });
-    });
+    await context.route(
+      (url) => url.origin === origin,
+      (route) => {
+        const request = route.request();
+        const predecessor = request.redirectedFrom();
+        const admitted =
+          admittedRequests.has(request) ||
+          !closing ||
+          Boolean(predecessor && admittedRequests.has(predecessor));
+        if (admitted) admittedRequests.add(request);
+        return own(async () => {
+          if (!admitted) {
+            await route.abort("aborted");
+            return;
+          }
+          if (!["POST", "PUT", "PATCH", "DELETE"].includes(request.method())) {
+            await route.continue();
+            return;
+          }
+          try {
+            const path = new URL(request.url()).pathname;
+            const allowed =
+              path === "/api/account/preferences" ||
+              (mode === "pins" && path === "/api/workspace/link-pins") ||
+              (mode === "bus" && path === "/api/workspace/bus-preferences");
+            if (!allowed)
+              remember(new Error("Unexpected preference write: " + path));
+            const response = await route.fetch({ maxRedirects: 0 });
+            // Retain the real status and body, including intentional 400/500 cases.
+            await response.body();
+            writes.push({
+              path,
+              method: request.method(),
+              status: response.status(),
+            });
+            await route.fulfill({ response });
+          } catch (error) {
+            remember(error);
+            try {
+              await route.abort("aborted");
+            } catch (abortError) {
+              remember(abortError);
+            }
+          }
+        });
+      },
+    );
   }
   function releaseHeld() {
     closing = true;
     for (const release of releases.splice(0)) {
-      try { release(); } catch (error) { remember(error); }
+      try {
+        release();
+      } catch (error) {
+        remember(error);
+      }
     }
   }
   function finish() {
@@ -198,28 +264,52 @@ export async function withPreferenceFlow(
       // Release its actual native promise after all admitted HTTP/writes settle.
       for (const [context, operations] of browserOperations) {
         if (!operations.size) continue;
-        try { await context.close(); } catch (error) { remember(error); }
+        try {
+          await context.close();
+        } catch (error) {
+          remember(error);
+        }
       }
       for (const context of contexts) {
         for (const current of context.pages()) {
-          try { await prepareClose(current); } catch (error) { remember(error); }
-          try { await current.close(); } catch (error) { remember(error); }
+          try {
+            await prepareClose(current);
+          } catch (error) {
+            remember(error);
+          }
+          try {
+            await current.close();
+          } catch (error) {
+            remember(error);
+          }
         }
       }
       // Page closure releases remaining UI callbacks. Contexts without a
       // pending native acquisition/event wait retain their API response storage
       // until the actual callback finishes reading it and observing state.
-      if (actualBody) try { await actualBody; } catch (error) { remember(error); }
+      if (actualBody)
+        try {
+          await actualBody;
+        } catch (error) {
+          remember(error);
+        }
       for (const operations of browserOperations.values()) {
         while (operations.size) await Promise.all([...operations]);
       }
       await settle();
       for (const context of contexts) {
-        try { await context.close(); } catch (error) { remember(error); }
+        try {
+          await context.close();
+        } catch (error) {
+          remember(error);
+        }
       }
       for (const reader of readers.values()) {
         while (reader.pendingReads.size || reader.pendingNavigations.size)
-          await Promise.allSettled([...reader.pendingReads, ...reader.pendingNavigations]);
+          await Promise.allSettled([
+            ...reader.pendingReads,
+            ...reader.pendingNavigations,
+          ]);
         reader.stop();
         for (const error of reader.errors) remember(error);
       }
@@ -245,23 +335,43 @@ export async function withPreferenceFlow(
             if (mode !== "bus") expect(after.bus).toEqual(before.bus);
             if (mode !== "visits") expect(after.visits).toEqual(before.visits);
           }
-        } catch (error) { remember(error); }
+        } catch (error) {
+          remember(error);
+        }
         try {
-          expect((await observer.delete(probePath, { headers: secret })).status()).toBe(204);
-        } catch (error) { remember(error); }
+          expect(
+            (await observer.delete(probePath, { headers: secret })).status(),
+          ).toBe(204);
+        } catch (error) {
+          remember(error);
+        }
       }
       try {
         await testInfo.attach("preference-workflow-effects", {
           contentType: "application/json",
-          body: JSON.stringify({ database: isolatedWorker.database.name, origin, mode,
-            completed, before, after, producer, writes, controlled,
+          body: JSON.stringify({
+            database: isolatedWorker.database.name,
+            origin,
+            mode,
+            completed,
+            before,
+            after,
+            producer,
+            writes,
+            controlled,
             browsers: [...readers.values()].map((reader) => ({
-              reads: reader.reads, retiredReads: reader.retiredReads,
-              blockedReads: reader.blockedReads, navigationCommits: reader.navigationCommits,
+              reads: reader.reads,
+              retiredReads: reader.retiredReads,
+              blockedReads: reader.blockedReads,
+              navigationCommits: reader.navigationCommits,
               errors: reader.errors.map(String),
-            })), errors: errors.map(String) }),
+            })),
+            errors: errors.map(String),
+          }),
         });
-      } catch (error) { remember(error); }
+      } catch (error) {
+        remember(error);
+      }
     })();
     return finalization;
   }
@@ -272,7 +382,10 @@ export async function withPreferenceFlow(
       try {
         await use({
           headers,
-          prepare(work) { open(); return own(work); },
+          prepare(work) {
+            open();
+            return own(work);
+          },
           http(work) {
             open();
             return own(async () => {
@@ -285,7 +398,11 @@ export async function withPreferenceFlow(
             return workflow.run(async () => {
               mode = kind;
               try {
-                expect((await observer.post(probePath, { headers: secret })).status()).toBe(201);
+                expect(
+                  (
+                    await observer.post(probePath, { headers: secret })
+                  ).status(),
+                ).toBe(201);
                 registered = true;
                 open();
                 await page.context().setExtraHTTPHeaders(headers);
@@ -299,22 +416,37 @@ export async function withPreferenceFlow(
                   });
                   return actualBody;
                 });
-              } catch (error) { remember(error); }
+              } catch (error) {
+                remember(error);
+              }
               await finish();
               if (errors.length === 1) throw errors[0];
-              if (errors.length) throw new AggregateError([...errors], "Preference workflow failed");
+              if (errors.length)
+                throw new AggregateError(
+                  [...errors],
+                  "Preference workflow failed",
+                );
             });
           },
           newContext(options = {}) {
             open();
             return own(async () => {
-              const context = await browser.newContext({ ...options, baseURL: origin,
-                extraHTTPHeaders: { ...options.extraHTTPHeaders, ...headers } });
+              const context = await browser.newContext({
+                ...options,
+                baseURL: origin,
+                extraHTTPHeaders: { ...options.extraHTTPHeaders, ...headers },
+              });
               contexts.add(context);
               if (options.javaScriptEnabled === false) noScript.add(context);
-              if (closing) { await context.close(); open(); }
+              if (closing) {
+                await context.close();
+                open();
+              }
               await installContext(context);
-              if (closing) { await context.close(); open(); }
+              if (closing) {
+                await context.close();
+                open();
+              }
               return context;
             });
           },
@@ -322,16 +454,25 @@ export async function withPreferenceFlow(
             return ownBrowserOperation(context, () => context.newPage());
           },
           waitForRequest(context, predicate) {
-            return ownBrowserOperation(context, () => context.waitForEvent("request", { predicate }));
+            return ownBrowserOperation(context, () =>
+              context.waitForEvent("request", { predicate }),
+            );
           },
           waitForPopup(current) {
-            return ownBrowserOperation(current.context(), () => current.waitForEvent("popup"));
+            return ownBrowserOperation(current.context(), () =>
+              current.waitForEvent("popup"),
+            );
           },
           waitForResponse(current, predicate) {
-            return ownBrowserOperation(current.context(), () => current.waitForResponse(predicate));
+            return ownBrowserOperation(current.context(), () =>
+              current.waitForResponse(predicate),
+            );
           },
           closeContext,
-          onClosing(release) { open(); releases.push(release); },
+          onClosing(release) {
+            open();
+            releases.push(release);
+          },
           async route(target, match, handler) {
             open();
             const owned = (route: Route) => {
@@ -339,18 +480,27 @@ export async function withPreferenceFlow(
               const admitted = admittedRequests.has(request) || !closing;
               if (admitted) admittedRequests.add(request);
               return own(async () => {
-              const record = { path: new URL(route.request().url()).pathname,
-                method: route.request().method(), complete: false };
-              controlled.push(record);
-              try {
-                if (!admitted) throw new Error("Controlled preference request began during closing");
-                await handler(route);
-                record.complete = true;
-              }
-              catch (error) {
-                remember(error);
-                try { await route.abort("aborted"); } catch (abortError) { remember(abortError); }
-              }
+                const record = {
+                  path: new URL(route.request().url()).pathname,
+                  method: route.request().method(),
+                  complete: false,
+                };
+                controlled.push(record);
+                try {
+                  if (!admitted)
+                    throw new Error(
+                      "Controlled preference request began during closing",
+                    );
+                  await handler(route);
+                  record.complete = true;
+                } catch (error) {
+                  remember(error);
+                  try {
+                    await route.abort("aborted");
+                  } catch (abortError) {
+                    remember(abortError);
+                  }
+                }
               });
             };
             controls.push({ target, match, handler: owned });
@@ -366,13 +516,17 @@ export async function withPreferenceFlow(
             await settle();
           },
         });
-      } finally { releaseHeld(); }
+      } finally {
+        releaseHeld();
+      }
     });
-  } catch (error) { remember(error); }
-  finally {
+  } catch (error) {
+    remember(error);
+  } finally {
     await finish();
     for (const context of contexts) context.off("page", onPage);
   }
   if (errors.length === 1) throw errors[0];
-  if (errors.length) throw new AggregateError(errors, "Preference workflow failed");
+  if (errors.length)
+    throw new AggregateError(errors, "Preference workflow failed");
 }

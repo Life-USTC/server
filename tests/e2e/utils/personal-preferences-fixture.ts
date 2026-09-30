@@ -11,35 +11,50 @@ export const test = workerTest.extend<{
   pinnedAccount: User;
   busPreferences: User;
 }>({
-  preferenceFlow: async ({ page, browser, request, isolatedWorker, run }, use, testInfo) => {
-    await run(() => withPreferenceFlow({ page, browser, observer: request, isolatedWorker, testInfo }, use));
+  preferenceFlow: async (
+    { page, browser, request, isolatedWorker, run },
+    use,
+    testInfo,
+  ) => {
+    await run(() =>
+      withPreferenceFlow(
+        { page, browser, observer: request, isolatedWorker, testInfo },
+        use,
+      ),
+    );
   },
   account: async ({ isolatedWorker, page, preferenceFlow }, use) => {
     const account = await preferenceFlow.prepare(async () => {
       const actor = await isolatedWorker.createActor();
       await page.context().addCookies([actor.cookie]);
-      return isolatedWorker.database.owner.user.findUniqueOrThrow({ where: { id: actor.id } });
+      return isolatedWorker.database.owner.user.findUniqueOrThrow({
+        where: { id: actor.id },
+      });
     });
     await use(account);
   },
   pinnedAccount: async ({ isolatedWorker, account, preferenceFlow }, use) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.workspaceLinkPin.createMany({
-      data: DEV_SEED.catalogLinks.pinnedSlugs.map((slug) => ({
-        userId: account.id,
-        slug,
-      })),
-    }));
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.workspaceLinkPin.createMany({
+        data: DEV_SEED.catalogLinks.pinnedSlugs.map((slug) => ({
+          userId: account.id,
+          slug,
+        })),
+      }),
+    );
     await use(account);
   },
   busPreferences: async ({ isolatedWorker, account, preferenceFlow }, use) => {
-    await preferenceFlow.prepare(() => isolatedWorker.database.owner.busUserPreference.create({
-      data: {
-        userId: account.id,
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: false,
-      },
-    }));
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.busUserPreference.create({
+        data: {
+          userId: account.id,
+          preferredOriginCampusId: null,
+          preferredDestinationCampusId: null,
+          showDepartedTrips: false,
+        },
+      }),
+    );
     await use(account);
   },
 });
@@ -49,7 +64,9 @@ export const test = workerTest.extend<{
 export const busTest = test.extend<{ busTimetable: undefined }>({
   busTimetable: [
     async ({ isolatedWorker, preferenceFlow }, use) => {
-      await preferenceFlow.prepare(() => arrangeBusTimetable(isolatedWorker.database.owner));
+      await preferenceFlow.prepare(() =>
+        arrangeBusTimetable(isolatedWorker.database.owner),
+      );
       await use(undefined);
     },
     { auto: true },
