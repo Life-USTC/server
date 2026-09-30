@@ -12,16 +12,17 @@ import {
   storedPins,
   test,
 } from "../../../../utils/personal-preferences-fixture";
+import type { PreferenceFlow } from "../../../../utils/preference-flow";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const PIN_LABEL = /^(?:置顶|Pin)$/i;
 const UNPIN_LABEL = /^(?:取消置顶|Unpin)$/i;
 
-async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
-  const response = await page.request.post("/api/account/preferences", {
+async function setLocale(page: Page, locale: "en-us" | "zh-cn", preferenceFlow: PreferenceFlow) {
+  const response = await preferenceFlow.http(() => page.request.post("/api/account/preferences", { headers: preferenceFlow.headers,
     data: { locale },
-  });
+  }));
   expect(response.status()).toBe(200);
 }
 
@@ -48,7 +49,7 @@ async function locateJwPinButton(page: Page) {
   return button;
 }
 
-async function clickJwPin(page: Page) {
+async function clickJwPin(page: Page, expectedPins: string[]) {
   const button = await locateJwPinButton(page);
   const [response] = await Promise.all([
     page.waitForResponse(
@@ -58,243 +59,258 @@ async function clickJwPin(page: Page) {
     ),
     button.click(),
   ]);
+  expect(await response.json()).toMatchObject({ pinnedSlugs: expectedPins, error: null });
   return response;
 }
 
 test.describe("仪表盘网站链接", () => {
-  test("公共 /links 显示搜索和链接，无置顶控件", async ({ page }, testInfo) => {
-    await setLocale(page, "zh-cn");
-    const response = await gotoAndWaitForReady(page, "/catalog/links");
+  test("公共 /links 显示搜索和链接，无置顶控件", async ({ preferenceFlow, page }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await setLocale(page, "zh-cn", preferenceFlow);
+      const response = await gotoAndWaitForReady(page, "/catalog/links");
 
-    expect(response?.status()).toBe(200);
-    await expect(page).toHaveURL(/\/links$/);
-    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-      "href",
-      /\/links$/,
-    );
-    const searchInput = page.getByRole("searchbox", {
-      name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
-    });
-    await expect(searchInput).toBeVisible();
-    await page.keyboard.press("ControlOrMeta+Shift+K");
-    await expect(searchInput).toBeFocused();
-    await expect(
-      page.getByRole("link", { name: /教务系统/i }).first(),
-    ).toBeVisible();
-
-    // No pin forms in public view
-    await expect(
-      page.locator('form[action="/api/workspace/link-pins"]').first(),
-    ).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "public-workspace-links-tab");
-  });
-
-  test("旧版 links 查询标签永久重定向到语义路径", async ({ page }) => {
-    const response = await page.request.get(
-      "/?tab=links&linkView=list&utm_source=bookmark",
-      { maxRedirects: 0 },
-    );
-
-    expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe(
-      "/catalog/links?linkView=list&utm_source=bookmark",
-    );
-  });
-
-  test("公共英文链接页面在搜索中使用本地化标题", async ({ page }, testInfo) => {
-    await setLocale(page, "en-us");
-
-    await gotoAndWaitForReady(page, "/catalog/links");
-
-    const searchInput = page.getByRole("searchbox", {
-      name: /Search by name, description, or domain/i,
-    });
-    await expect(searchInput).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /Academic Affairs System/i }).first(),
-    ).toBeVisible();
-
-    await expect(async () => {
-      await searchInput.click();
-      await searchInput.clear();
-      await searchInput.pressSequentially("email");
+      expect(response?.status()).toBe(200);
+      await expect(page).toHaveURL(/\/links$/);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        "href",
+        /\/links$/,
+      );
+      const searchInput = page.getByRole("searchbox", {
+        name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
+      });
+      await expect(searchInput).toBeVisible();
+      await page.keyboard.press("ControlOrMeta+Shift+K");
+      await expect(searchInput).toBeFocused();
       await expect(
-        page.getByRole("link", { name: /USTC Email/i }).first(),
-      ).toBeVisible({ timeout: 3_000 });
-      await expect(
-        page.getByRole("link", { name: /Academic Affairs System/i }),
-      ).toHaveCount(0, { timeout: 3_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+        page.getByRole("link", { name: /教务系统/i }).first(),
+      ).toBeVisible();
 
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "public-workspace-links-en-search",
-    );
+      // No pin forms in public view
+      await expect(
+        page.locator('form[action="/api/workspace/link-pins"]').first(),
+      ).toHaveCount(0);
+
+      await captureStepScreenshot(page, testInfo, "public-workspace-links-tab");
+    }, "consume");
   });
 
-  test("登录后可以导航到链接标签", async ({
+  test("旧版 links 查询标签永久重定向到语义路径", async ({ preferenceFlow, page }) => {
+    await preferenceFlow.run(async () => {
+      const response = await preferenceFlow.http(() => page.request.get(
+        "/?tab=links&linkView=list&utm_source=bookmark", { headers: preferenceFlow.headers,  maxRedirects: 0 }));
+
+      expect(response.status()).toBe(308);
+      expect(response.headers().location).toBe(
+        "/catalog/links?linkView=list&utm_source=bookmark",
+      );
+    }, "consume");
+  });
+
+  test("公共英文链接页面在搜索中使用本地化标题", async ({ preferenceFlow, page }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await setLocale(page, "en-us", preferenceFlow);
+
+      await gotoAndWaitForReady(page, "/catalog/links");
+
+      const searchInput = page.getByRole("searchbox", {
+        name: /Search by name, description, or domain/i,
+      });
+      await expect(searchInput).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /Academic Affairs System/i }).first(),
+      ).toBeVisible();
+
+      await expect(async () => {
+        await searchInput.click();
+        await searchInput.clear();
+        await searchInput.pressSequentially("email");
+        await expect(
+          page.getByRole("link", { name: /USTC Email/i }).first(),
+        ).toBeVisible({ timeout: 3_000 });
+        await expect(
+          page.getByRole("link", { name: /Academic Affairs System/i }),
+        ).toHaveCount(0, { timeout: 3_000 });
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "public-workspace-links-en-search",
+      );
+    }, "consume");
+  });
+
+  test("登录后可以导航到链接标签", async ({ preferenceFlow,
     page,
     pinnedAccount: _account,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/workspace/overview");
-    await expandSidebarGroup(page, /^(校园服务|Campus Services)$/i);
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(page, "/workspace/overview");
+      await expandSidebarGroup(page, /^(校园服务|Campus Services)$/i);
 
-    const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
-    await expect(linksTab).toBeVisible();
-    await linksTab.click();
+      const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
+      await expect(linksTab).toBeVisible();
+      await linksTab.click();
 
-    await expect(page).toHaveURL(/\/catalog\/links$/);
-    await expect(
-      page.getByRole("searchbox", {
+      await expect(page).toHaveURL(/\/catalog\/links$/);
+      await expect(
+        page.getByRole("searchbox", {
+          name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.locator('input[name="action"][value="unpin"]'),
+      ).not.toHaveCount(0);
+      expect(
+        await page.locator('input[name="action"][value="unpin"]').count(),
+      ).toBeGreaterThanOrEqual(DEV_SEED.catalogLinks.overviewLimit);
+
+      await captureStepScreenshot(page, testInfo, "workspace-links-tab");
+    }, "consume");
+  });
+
+  test("搜索可筛选链接", async ({ preferenceFlow, page, account: _account }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await setLocale(page, "zh-cn", preferenceFlow);
+      await gotoAndWaitForReady(page, "/catalog/links");
+
+      const searchInput = page.getByRole("searchbox", {
         name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.locator('input[name="action"][value="unpin"]'),
-    ).not.toHaveCount(0);
-    expect(
-      await page.locator('input[name="action"][value="unpin"]').count(),
-    ).toBeGreaterThanOrEqual(DEV_SEED.catalogLinks.overviewLimit);
+      });
+      await expect(searchInput).toBeVisible();
+      await page.keyboard.press("ControlOrMeta+Shift+K");
+      await expect(searchInput).toBeFocused();
 
-    await captureStepScreenshot(page, testInfo, "workspace-links-tab");
+      // Search for a specific link
+      await expect(async () => {
+        await searchInput.click();
+        await searchInput.clear();
+        await searchInput.pressSequentially("邮箱");
+        await expect(
+          page.getByRole("link", { name: /邮箱/i }).first(),
+        ).toBeVisible({ timeout: 3_000 });
+        await expect(
+          page.getByRole("link", { name: /教务系统/i }).first(),
+        ).toHaveCount(0);
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+
+      await expect(async () => {
+        await searchInput.clear();
+        await searchInput.pressSequentially("faculty.ustc.edu.cn");
+        await expect(
+          page.getByRole("link", { name: /教师个人主页/i }).first(),
+        ).toBeVisible({ timeout: 3_000 });
+        await expect(
+          page.getByRole("link", { name: /教务系统/i }).first(),
+        ).toHaveCount(0);
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+
+      await captureStepScreenshot(page, testInfo, "workspace-links-search");
+    }, "consume");
   });
 
-  test("搜索可筛选链接", async ({ page, linkAccount: _account }, testInfo) => {
-    await setLocale(page, "zh-cn");
-    await gotoAndWaitForReady(page, "/catalog/links");
-
-    const searchInput = page.getByRole("searchbox", {
-      name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
-    });
-    await expect(searchInput).toBeVisible();
-    await page.keyboard.press("ControlOrMeta+Shift+K");
-    await expect(searchInput).toBeFocused();
-
-    // Search for a specific link
-    await expect(async () => {
-      await searchInput.click();
-      await searchInput.clear();
-      await searchInput.pressSequentially("邮箱");
-      await expect(
-        page.getByRole("link", { name: /邮箱/i }).first(),
-      ).toBeVisible({ timeout: 3_000 });
-      await expect(
-        page.getByRole("link", { name: /教务系统/i }).first(),
-      ).toHaveCount(0);
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-
-    await expect(async () => {
-      await searchInput.clear();
-      await searchInput.pressSequentially("faculty.ustc.edu.cn");
-      await expect(
-        page.getByRole("link", { name: /教师个人主页/i }).first(),
-      ).toBeVisible({ timeout: 3_000 });
-      await expect(
-        page.getByRole("link", { name: /教务系统/i }).first(),
-      ).toHaveCount(0);
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-
-    await captureStepScreenshot(page, testInfo, "workspace-links-search");
-  });
-
-  test("可以置顶和取消置顶链接并恢复状态", async ({
+  test("可以置顶和取消置顶链接并恢复状态", async ({ preferenceFlow,
     page,
-    linkAccount,
+    account,
     isolatedWorker,
   }, testInfo) => {
-    const db = isolatedWorker.database.owner;
-    await setLocale(page, "zh-cn");
-    expect(await storedPins(db, linkAccount.id)).toEqual([]);
-    await gotoAndWaitForReady(page, "/catalog/links", {
-      testInfo,
-      screenshotLabel: "workspace-links",
-    });
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      PIN_LABEL,
-    );
-    expect((await clickJwPin(page)).ok()).toBe(true);
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      UNPIN_LABEL,
-    );
-    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual(["jw"]);
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await waitForUiSettled(page);
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      UNPIN_LABEL,
-    );
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-links-toggle-request",
-    );
+    await preferenceFlow.run(async () => {
+      const db = isolatedWorker.database.owner;
+      await setLocale(page, "zh-cn", preferenceFlow);
+      expect(await storedPins(db, account.id)).toEqual([]);
+      await gotoAndWaitForReady(page, "/catalog/links", {
+        testInfo,
+        screenshotLabel: "workspace-links",
+      });
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        PIN_LABEL,
+      );
+      expect((await clickJwPin(page, ["jw"])).ok()).toBe(true);
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        UNPIN_LABEL,
+      );
+      await expect.poll(() => storedPins(db, account.id)).toEqual(["jw"]);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForUiSettled(page);
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        UNPIN_LABEL,
+      );
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-links-toggle-request",
+      );
 
-    expect((await clickJwPin(page)).ok()).toBe(true);
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      PIN_LABEL,
-    );
-    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual([]);
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await waitForUiSettled(page);
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      PIN_LABEL,
-    );
+      expect((await clickJwPin(page, [])).ok()).toBe(true);
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        PIN_LABEL,
+      );
+      await expect.poll(() => storedPins(db, account.id)).toEqual([]);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForUiSettled(page);
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        PIN_LABEL,
+      );
+    }, "pins");
   });
 
-  test("搜索重新计算链接时保持置顶状态", async ({
+  test("搜索重新计算链接时保持置顶状态", async ({ preferenceFlow,
     page,
-    linkAccount,
+    account,
     isolatedWorker,
   }, testInfo) => {
-    const db = isolatedWorker.database.owner;
-    await setLocale(page, "zh-cn");
-    expect(await storedPins(db, linkAccount.id)).toEqual([]);
-    await gotoAndWaitForReady(page, "/catalog/links");
-    const searchInput = page.getByRole("searchbox", {
-      name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
-    });
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      PIN_LABEL,
-    );
-    expect((await clickJwPin(page)).ok()).toBe(true);
-    await searchInput.fill("教务");
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      UNPIN_LABEL,
-    );
-    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual(["jw"]);
+    await preferenceFlow.run(async () => {
+      const db = isolatedWorker.database.owner;
+      await setLocale(page, "zh-cn", preferenceFlow);
+      expect(await storedPins(db, account.id)).toEqual([]);
+      await gotoAndWaitForReady(page, "/catalog/links");
+      const searchInput = page.getByRole("searchbox", {
+        name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
+      });
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        PIN_LABEL,
+      );
+      expect((await clickJwPin(page, ["jw"])).ok()).toBe(true);
+      await searchInput.fill("教务");
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        UNPIN_LABEL,
+      );
+      await expect.poll(() => storedPins(db, account.id)).toEqual(["jw"]);
 
-    expect((await clickJwPin(page)).ok()).toBe(true);
-    await searchInput.fill("教务系统");
-    await expect(await locateJwPinButton(page)).toHaveAttribute(
-      "aria-label",
-      PIN_LABEL,
-    );
-    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual([]);
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "workspace-links-pin-search-stable",
-    );
+      expect((await clickJwPin(page, [])).ok()).toBe(true);
+      await searchInput.fill("教务系统");
+      await expect(await locateJwPinButton(page)).toHaveAttribute(
+        "aria-label",
+        PIN_LABEL,
+      );
+      await expect.poll(() => storedPins(db, account.id)).toEqual([]);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "workspace-links-pin-search-stable",
+      );
+    }, "pins");
   });
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/catalog/links", testInfo });
+test("页面契约", async ({ preferenceFlow, page }, testInfo) => {
+  await preferenceFlow.run(async () => {
+    await assertPageContract(page, { routePath: "/catalog/links", testInfo });
+  }, "consume");
 });
