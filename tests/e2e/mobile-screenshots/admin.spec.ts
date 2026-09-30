@@ -12,9 +12,9 @@ test.describe("移动端页面健全性", () => {
     }) => {
       await mobileRun(
         async ({ startPage, checkpoint }) => {
+          await startPage();
           for (const path of mobileScreenshotPaths("admin")) {
             await test.step(path, async () => {
-              await startPage();
               await expectHealthyMobileRoute(page, path);
               await checkpoint(path, {
                 calendarMessages: [],
