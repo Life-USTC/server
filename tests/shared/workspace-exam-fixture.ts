@@ -13,7 +13,7 @@ export const workspaceExamTest = nodeProtocolTest.extend(
     protocolRuntime.run(async () => {
       const { users, sectionIds, semesterIds, examIds, clientId, grantIds } =
         await db.$transaction(async (tx) => {
-          const users = [crypto.randomUUID(), crypto.randomUUID()];
+          const users: string[] = [crypto.randomUUID(), crypto.randomUUID()];
           const sectionIds: number[] = [];
           const semesterIds: number[] = [];
           const examIds: number[] = [];
@@ -75,14 +75,22 @@ export const workspaceExamTest = nodeProtocolTest.extend(
               data: {
                 jwId: i + 1,
                 sectionId: sectionIds[i === 5 ? 3 : Math.floor(i / 2)],
-                examDate: i === 3 ? null : new Date(`2026-09-${14 + i}T00:00:00Z`),
+                examDate:
+                  i === 3 ? null : new Date(`2026-09-${14 + i}T00:00:00Z`),
                 startTime: 900,
                 endTime: 1100,
               },
             });
             examIds.push(exam.id);
           }
-          return { users, sectionIds, semesterIds, examIds, clientId, grantIds };
+          return {
+            users,
+            sectionIds,
+            semesterIds,
+            examIds,
+            clientId,
+            grantIds,
+          };
         });
       async function signedRequest(
         userIndex: number,
@@ -90,15 +98,17 @@ export const workspaceExamTest = nodeProtocolTest.extend(
         audience = getOAuthRestAudienceUrls()[0],
       ) {
         const issuedAt = Math.floor(Date.now() / 1000);
-        const token = await protocolRuntime.request(() => signResourceBoundOAuthAccessToken({
-          clientId,
-          userId: users[userIndex],
-          grantId: grantIds[userIndex],
-          scopes: [scope],
-          resources: [audience],
-          issuedAt,
-          expiresAt: issuedAt + 300,
-        }));
+        const token = await protocolRuntime.request(() =>
+          signResourceBoundOAuthAccessToken({
+            clientId,
+            userId: users[userIndex],
+            grantId: grantIds[userIndex],
+            scopes: [scope],
+            resources: [audience],
+            issuedAt,
+            expiresAt: issuedAt + 300,
+          }),
+        );
         if (!token) throw new Error("Expected a signed resource-bound token");
         return new Request("https://example.test/api/workspace/exams", {
           headers: { Authorization: `Bearer ${token}` },
@@ -112,14 +122,24 @@ export const workspaceExamTest = nodeProtocolTest.extend(
         );
         const url = new URL(signed.url);
         url.search = new URLSearchParams(input).toString();
-        const response = await protocolRuntime.request(() => getSubscribedExamsRoute(
-          new Request(url, { headers: signed.headers }),
-        ));
+        const response = await protocolRuntime.request(() =>
+          getSubscribedExamsRoute(
+            new Request(url, { headers: signed.headers }),
+          ),
+        );
         expect(response.status).toBe(200);
         expect(response.headers.get("Cache-Control")).toBe("private, no-store");
         return subscribedExamsResponseSchema.parse(await response.json());
       }
 
-      return { db, users, sectionIds, semesterIds, examIds, signedRequest, read };
+      return {
+        db,
+        users,
+        sectionIds,
+        semesterIds,
+        examIds,
+        signedRequest,
+        read,
+      };
     }),
 );

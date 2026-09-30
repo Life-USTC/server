@@ -187,55 +187,56 @@ describe("static import write churn", () => {
     await protocolRuntime.run(async () => {
       const marker = 1;
 
-      const { section, group, firstTeacher, secondTeacher } = await db.$transaction(async (tx) => {
-        const course = await tx.course.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-          },
+      const { section, group, firstTeacher, secondTeacher } =
+        await db.$transaction(async (tx) => {
+          const course = await tx.course.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+            },
+          });
+          const section = await tx.section.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              courseId: course.id,
+            },
+          });
+          const group = await tx.scheduleGroup.create({
+            data: {
+              jwId: marker,
+              no: 1,
+              limitCount: 1,
+              stdCount: 1,
+              actualPeriods: 1,
+              isDefault: true,
+              sectionId: section.id,
+            },
+          });
+          const department = await tx.department.create({
+            data: { code: `${marker}`, nameCn: `${marker}` },
+          });
+          const firstTeacher = await tx.teacher.create({
+            data: {
+              jwId: marker,
+              personId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+              departmentId: department.id,
+            },
+          });
+          const secondTeacher = await tx.teacher.create({
+            data: {
+              jwId: marker + 1,
+              personId: marker + 1,
+              code: `${marker + 1}`,
+              nameCn: `${marker + 1}`,
+              departmentId: department.id,
+            },
+          });
+          return { section, group, firstTeacher, secondTeacher };
         });
-        const section = await tx.section.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            courseId: course.id,
-          },
-        });
-        const group = await tx.scheduleGroup.create({
-          data: {
-            jwId: marker,
-            no: 1,
-            limitCount: 1,
-            stdCount: 1,
-            actualPeriods: 1,
-            isDefault: true,
-            sectionId: section.id,
-          },
-        });
-        const department = await tx.department.create({
-          data: { code: `${marker}`, nameCn: `${marker}` },
-        });
-        const firstTeacher = await tx.teacher.create({
-          data: {
-            jwId: marker,
-            personId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-            departmentId: department.id,
-          },
-        });
-        const secondTeacher = await tx.teacher.create({
-          data: {
-            jwId: marker + 1,
-            personId: marker + 1,
-            code: `${marker + 1}`,
-            nameCn: `${marker + 1}`,
-            departmentId: department.id,
-          },
-        });
-        return { section, group, firstTeacher, secondTeacher };
-      });
 
       await importer.$transaction(async (tx) => {
         const sectionMap = new Map([[section.jwId, section.id]]);
@@ -546,8 +547,12 @@ describe("static import write churn", () => {
           const sectionMap = new Map(
             sections.map((section) => [section.jwId, section.id]),
           );
-          const groupMap = new Map(groups.map((group) => [group.jwId, group.id]));
-          const build = (section: (typeof sections)[number]): ScheduleBuild => ({
+          const groupMap = new Map(
+            groups.map((group) => [group.jwId, group.id]),
+          );
+          const build = (
+            section: (typeof sections)[number],
+          ): ScheduleBuild => ({
             periods: 2,
             weekday: 1,
             startTime: 750,
@@ -591,7 +596,9 @@ describe("static import write churn", () => {
           ).toBe(0);
           expect(
             await tx.schedule.findMany({
-              where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
+              where: {
+                sectionId: { in: [keptSection.id, uncoveredSection.id] },
+              },
               orderBy: { id: "asc" },
             }),
           ).toEqual(before);
@@ -619,38 +626,40 @@ describe("static import write churn", () => {
     await protocolRuntime.run(async () => {
       const marker = 1;
 
-      const { section, teacher, adminClass } = await db.$transaction(async (tx) => {
-        const course = await tx.course.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-          },
-        });
-        const section = await tx.section.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            courseId: course.id,
-          },
-        });
-        const department = await tx.department.create({
-          data: { code: `${marker}`, nameCn: `${marker}` },
-        });
-        const teacher = await tx.teacher.create({
-          data: {
-            jwId: marker,
-            personId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-            departmentId: department.id,
-          },
-        });
-        const adminClass = await tx.adminClass.create({
-          data: { jwId: marker, nameCn: `${marker}` },
-        });
-        return { section, teacher, adminClass };
-      });
+      const { section, teacher, adminClass } = await db.$transaction(
+        async (tx) => {
+          const course = await tx.course.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+            },
+          });
+          const section = await tx.section.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              courseId: course.id,
+            },
+          });
+          const department = await tx.department.create({
+            data: { code: `${marker}`, nameCn: `${marker}` },
+          });
+          const teacher = await tx.teacher.create({
+            data: {
+              jwId: marker,
+              personId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+              departmentId: department.id,
+            },
+          });
+          const adminClass = await tx.adminClass.create({
+            data: { jwId: marker, nameCn: `${marker}` },
+          });
+          return { section, teacher, adminClass };
+        },
+      );
 
       await importer.$transaction(async (tx) => {
         const sectionMap = new Map([[section.jwId, section.id]]);
@@ -750,11 +759,7 @@ describe("Young source reconciliation", () => {
         return row;
       });
 
-      for (const date of [
-        undefined,
-        seen,
-        new Date("2029-12-01T00:00:00Z"),
-      ]) {
+      for (const date of [undefined, seen, new Date("2029-12-01T00:00:00Z")]) {
         expect(
           await importer.$transaction((tx) => syncYoungSnapshot(tx, [], date)),
         ).toBeUndefined();
