@@ -1,3 +1,4 @@
+import { test } from "../../../../utils/catalog-detail-fixture";
 /**
  * E2E tests for /teachers/[id] — Teacher Detail Page
  *
@@ -24,7 +25,7 @@
  * - Comment CRUD: post → edit → delete
  */
 
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import {
   arrangeDescription,
   test as communityTest,
@@ -82,166 +83,184 @@ async function jumpToTeacherSection(
 }
 
 test.describe("/catalog/teachers/[id] 教师详情页", () => {
-  test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, {
-      routePath: "/catalog/teachers/[id]",
-      testInfo,
+  test("页面契约", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await assertPageContract(page, {
+        routePath: "/catalog/teachers/[id]",
+        testInfo,
+      });
     });
   });
 
-  test("无效参数返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/catalog/teachers/999999999", {
-      expectMainContent: false,
+  test("无效参数返回 404", async ({ page, preferenceFlow }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(page, "/catalog/teachers/999999999", {
+        expectMainContent: false,
+      });
+      await expect(page.getByText("404").first()).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+      ).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "teacher/404");
     });
-    await expect(page.getByText("404").first()).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "teacher/404");
   });
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("标题中显示教师主名称", async ({ page }, testInfo) => {
-    await navigateToSeedTeacher(page);
+  test("标题中显示教师主名称", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await navigateToSeedTeacher(page);
 
-    // teacher.namePrimary (h1) (locale-dependent)
-    await expect(
-      page
-        .getByRole("heading", {
-          level: 1,
-          name: DEV_SEED.teacher.nameCn,
-        })
-        .or(
-          page.getByRole("heading", {
+      // teacher.namePrimary (h1) (locale-dependent)
+      await expect(
+        page
+          .getByRole("heading", {
             level: 1,
-            name: DEV_SEED.teacher.nameEn,
-          }),
-        )
-        .filter({ visible: true })
-        .first(),
-    ).toBeVisible();
+            name: DEV_SEED.teacher.nameCn,
+          })
+          .or(
+            page.getByRole("heading", {
+              level: 1,
+              name: DEV_SEED.teacher.nameEn,
+            }),
+          )
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "teacher/heading");
+      await captureStepScreenshot(page, testInfo, "teacher/heading");
+    });
   });
 
-  test("常规界面不显示内部教师 ID", async ({ page }) => {
-    await navigateToSeedTeacher(page);
-    const teacherId = new URL(page.url()).pathname.split("/").pop();
-    expect(teacherId).toBeTruthy();
-    await expect(page.getByText(/教师 ID|Teacher ID/i)).toHaveCount(0);
-    await expect(page.locator("#main-content")).not.toContainText(
-      new RegExp(`(?:教师 ID|Teacher ID)\\s*${teacherId}`),
-    );
+  test("常规界面不显示内部教师 ID", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }) => {
+    await preferenceFlow.run(async () => {
+      await navigateToSeedTeacher(page);
+      const teacherId = new URL(page.url()).pathname.split("/").pop();
+      expect(teacherId).toBeTruthy();
+      await expect(page.getByText(/教师 ID|Teacher ID/i)).toHaveCount(0);
+      await expect(page.locator("#main-content")).not.toContainText(
+        new RegExp(`(?:教师 ID|Teacher ID)\\s*${teacherId}`),
+      );
+    });
   });
 
-  test("基本信息中显示院系、职称与邮箱", async ({ page }, testInfo) => {
-    await navigateToSeedTeacher(page);
+  test("基本信息中显示院系、职称与邮箱", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await navigateToSeedTeacher(page);
 
-    // teacher.department.namePrimary (locale-dependent)
-    await expect(
-      page
-        .getByText(DEV_SEED.teacher.departmentNameCn)
-        .or(page.getByText(DEV_SEED.teacher.departmentNameEn))
-        .filter({ visible: true })
-        .first(),
-    ).toBeVisible();
-    // teacher.teacherTitle.namePrimary (locale-dependent)
-    await expect(
-      page
-        .getByText(DEV_SEED.teacher.titleNameCn)
-        .or(page.getByText(DEV_SEED.teacher.titleNameEn))
-        .first(),
-    ).toBeVisible();
-    // teacher.email (if not null)
-    await expect(visibleText(page, DEV_SEED.teacher.email)).toBeVisible();
+      // teacher.department.namePrimary (locale-dependent)
+      await expect(
+        page
+          .getByText(DEV_SEED.teacher.departmentNameCn)
+          .or(page.getByText(DEV_SEED.teacher.departmentNameEn))
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
+      // teacher.teacherTitle.namePrimary (locale-dependent)
+      await expect(
+        page
+          .getByText(DEV_SEED.teacher.titleNameCn)
+          .or(page.getByText(DEV_SEED.teacher.titleNameEn))
+          .first(),
+      ).toBeVisible();
+      // teacher.email (if not null)
+      await expect(visibleText(page, DEV_SEED.teacher.email)).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "teacher/basic-info");
+      await captureStepScreenshot(page, testInfo, "teacher/basic-info");
+    });
   });
 
-  test("班级表格显示学期、课程名、代码与学分", async ({ page }, testInfo) => {
-    await navigateToSeedTeacher(page);
-    await jumpToTeacherSection(
-      page,
-      /授课班级|Teaching Sections/i,
-      "#sections",
-    );
-
-    const locale = await page.locator("html").getAttribute("lang");
-    await expect(
-      visibleText(
+  test("班级表格显示学期、课程名、代码与学分", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await navigateToSeedTeacher(page);
+      await jumpToTeacherSection(
         page,
-        locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
-      ),
-    ).toBeVisible();
-    // section.course.namePrimary (locale-dependent)
-    await expect(
-      page
-        .getByText(DEV_SEED.course.nameCn)
-        .or(page.getByText(DEV_SEED.course.nameEn))
-        .filter({ visible: true })
-        .first(),
-    ).toBeVisible();
-    // section.code (plain monospace text)
-    await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
-    // section.credits
-    await expect(
-      visibleText(page, String(DEV_SEED.section.credits)),
-    ).toBeVisible();
+        /授课班级|Teaching Sections/i,
+        "#sections",
+      );
 
-    await captureStepScreenshot(page, testInfo, "teacher/sections-table");
+      const locale = await page.locator("html").getAttribute("lang");
+      await expect(
+        visibleText(
+          page,
+          locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
+        ),
+      ).toBeVisible();
+      // section.course.namePrimary (locale-dependent)
+      await expect(
+        page
+          .getByText(DEV_SEED.course.nameCn)
+          .or(page.getByText(DEV_SEED.course.nameEn))
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
+      // section.code (plain monospace text)
+      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
+      // section.credits
+      await expect(
+        visibleText(page, String(DEV_SEED.section.credits)),
+      ).toBeVisible();
+
+      await captureStepScreenshot(page, testInfo, "teacher/sections-table");
+    });
   });
 
-  test("班级链接导航到班级详情", async ({ page }, testInfo) => {
-    await navigateToSeedTeacher(page);
-    await jumpToTeacherSection(
-      page,
-      /授课班级|Teaching Sections/i,
-      "#sections",
-    );
+  test("班级链接导航到班级详情", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await navigateToSeedTeacher(page);
+      await jumpToTeacherSection(
+        page,
+        /授课班级|Teaching Sections/i,
+        "#sections",
+      );
 
-    const sectionLink = page
-      .locator("tbody a[href^='/catalog/sections/']:visible")
-      .first();
-    await expect(sectionLink).toBeVisible();
-    await sectionLink.click();
-    await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
-    await captureStepScreenshot(page, testInfo, "teacher/section-link");
+      const sectionLink = page
+        .locator("tbody a[href^='/catalog/sections/']:visible")
+        .first();
+      await expect(sectionLink).toBeVisible();
+      await sectionLink.click();
+      await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
+      await captureStepScreenshot(page, testInfo, "teacher/section-link");
+    });
   });
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", async ({ page }, testInfo) => {
-    await navigateToSeedTeacher(page);
+  test("详情流式布局包含主要锚点区块", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await navigateToSeedTeacher(page);
 
-    await expect(page.locator("#introduction")).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /评论|Comments/i }),
-    ).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /评论|Comments/i }),
+      ).toBeVisible();
 
-    await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
-    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
-    await expect(page.locator("#comments")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
+      await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
+      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+      await expect(page.locator("#comments")).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
+    });
   });
 
-  test("移动端教师标题与流式区块保持紧凑", async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await navigateToSeedTeacher(page);
+  test("移动端教师标题与流式区块保持紧凑", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await navigateToSeedTeacher(page);
 
-    const heading = page.getByRole("heading", { level: 1 }).first();
-    await expect(heading).toHaveCSS("font-size", "24px");
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(390);
+      const heading = page.getByRole("heading", { level: 1 }).first();
+      await expect(heading).toHaveCSS("font-size", "24px");
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(390);
 
-    await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
-    await expect(page.locator("#comments")).toBeVisible();
+      await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
+      await expect(page.locator("#comments")).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "teacher/detail-mobile");
+      await captureStepScreenshot(page, testInfo, "teacher/detail-mobile");
+    });
   });
 
   // ── Description ─────────────────────────────────────────────────────────────
@@ -518,9 +537,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   );
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, {
-    routePath: "/catalog/teachers/[id]/[section]",
-    testInfo,
+test("页面契约", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  await preferenceFlow.run(async () => {
+    await assertPageContract(page, {
+      routePath: "/catalog/teachers/[id]/[section]",
+      testInfo,
+    });
   });
 });

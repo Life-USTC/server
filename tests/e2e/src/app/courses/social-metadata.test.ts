@@ -1,5 +1,6 @@
+import { test } from "../../../utils/catalog-detail-fixture";
 import { readFile } from "node:fs/promises";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test as privateTest } from "../../../utils/personal-preferences-fixture";
@@ -7,6 +8,7 @@ import {
   expectPublicIdentityEffectsEmpty,
   publicIdentityState,
 } from "../../../utils/public-identity-state";
+import type { PreferenceFlow } from "../../../utils/preference-flow";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
 const metadataSelectors = {
@@ -46,10 +48,10 @@ type StructuredDataGraph = {
   "@graph": Array<Record<string, unknown>>;
 };
 
-async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
-  const response = await page.request.post("/api/account/preferences", {
+async function setLocale(page: Page, flow: PreferenceFlow, locale: "en-us" | "zh-cn") {
+  const response = await flow.http(() => page.request.post("/api/account/preferences", {
     data: { locale },
-  });
+  }));
   expect(response.status()).toBe(200);
 }
 
@@ -155,120 +157,122 @@ async function readRawStructuredData(page: Page, path: string) {
   }, html);
 }
 
-test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", async ({ page }) => {
-  const cases = [
-    {
-      locale: "zh-cn" as const,
-      title: "Life@USTC - 课程与日程管理",
-      description: "中国科学技术大学课程与日程管理系统",
-      imageAlt: "Life@USTC 课程与日程工作台分享卡片",
-    },
-    {
-      locale: "en-us" as const,
-      title: "Life@USTC - Course and Schedule Management",
-      description: "USTC course and schedule management system",
-      imageAlt: "Life@USTC course and schedule workspace social card",
-    },
-  ];
+test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", async ({ page, preferenceFlow }) => {
+  await preferenceFlow.run(async () => {
+    const cases = [
+      {
+        locale: "zh-cn" as const,
+        title: "Life@USTC - 课程与日程管理",
+        description: "中国科学技术大学课程与日程管理系统",
+        imageAlt: "Life@USTC 课程与日程工作台分享卡片",
+      },
+      {
+        locale: "en-us" as const,
+        title: "Life@USTC - Course and Schedule Management",
+        description: "USTC course and schedule management system",
+        imageAlt: "Life@USTC course and schedule workspace social card",
+      },
+    ];
 
-  for (const current of cases) {
-    await setLocale(page, current.locale);
-    const metadata = await readRawSocialMetadata(page, "/?utm_source=e2e#top");
-    expectCompleteSocialMetadata(metadata, {
-      canonicalPath: "/",
-      ...current,
-    });
-  }
+    for (const current of cases) {
+      await setLocale(page, preferenceFlow, current.locale);
+      const metadata = await readRawSocialMetadata(page, "/?utm_source=e2e#top");
+      expectCompleteSocialMetadata(metadata, {
+        canonicalPath: "/",
+        ...current,
+      });
+    }
+  });
 });
 
-test("interface-hierarchy.locale-caching-and-seo-3", async ({
-  page,
-  context,
-}) => {
-  await context.clearCookies();
-  await context.setExtraHTTPHeaders({ "accept-language": "*" });
-  for (const path of [
-    "/catalog/courses",
-    "/catalog/sections",
-    "/catalog/teachers",
-  ]) {
-    const response = await page.request.get(path);
-    expect(response.status()).toBe(200);
-    expect(response.headers()["x-robots-tag"] ?? "").not.toContain("noindex");
-    const markup = await response.text();
-    const robots = await page.evaluate((html) => {
-      const document = new DOMParser().parseFromString(html, "text/html");
-      return Array.from(document.querySelectorAll('meta[name="robots"]'))
-        .map((element) => element.getAttribute("content") ?? "")
-        .join(" ");
-    }, markup);
-    expect(robots).not.toContain("noindex");
-    const metadata = await readRawSocialMetadata(page, path);
-    expect(metadata.htmlLang).toBe("zh-cn");
-    expect(metadata.values.canonical).toEqual([`${metadata.origin}${path}`]);
-  }
-
-  const cases = [
-    {
-      locale: "zh-cn" as const,
-      imageAlt: "Life@USTC 课程与日程工作台分享卡片",
-      pages: [
-        {
-          canonicalPath: "/catalog/courses",
-          description: "浏览和搜索所有可用课程",
-          title: "课程 - Life@USTC",
-        },
-        {
-          canonicalPath: "/catalog/sections",
-          description: "浏览和筛选所有可用的课程班级",
-          title: "班级 - Life@USTC",
-        },
-        {
-          canonicalPath: "/catalog/teachers",
-          description: "浏览和搜索所有教师",
-          title: "教师 - Life@USTC",
-        },
-      ],
-    },
-    {
-      locale: "en-us" as const,
-      imageAlt: "Life@USTC course and schedule workspace social card",
-      pages: [
-        {
-          canonicalPath: "/catalog/courses",
-          description: "Browse and search through all available courses",
-          title: "Courses - Life@USTC",
-        },
-        {
-          canonicalPath: "/catalog/sections",
-          description:
-            "Browse and filter through all available course sections",
-          title: "Sections - Life@USTC",
-        },
-        {
-          canonicalPath: "/catalog/teachers",
-          description: "Browse and search through all teachers",
-          title: "Teachers - Life@USTC",
-        },
-      ],
-    },
-  ];
-
-  for (const current of cases) {
-    await setLocale(page, current.locale);
-    for (const collection of current.pages) {
-      const metadata = await readRawSocialMetadata(
-        page,
-        `${collection.canonicalPath}?utm_source=e2e#catalog`,
-      );
-      expectCompleteSocialMetadata(metadata, {
-        ...collection,
-        imageAlt: current.imageAlt,
-        locale: current.locale,
-      });
-      expect(metadata.documentTitle).toBe(collection.title);
+test("interface-hierarchy.locale-caching-and-seo-3", async ({ page,
+  context, preferenceFlow }) => {
+  await preferenceFlow.run(async () => {
+    await context.clearCookies();
+    await context.setExtraHTTPHeaders({ "accept-language": "*" });
+    for (const path of [
+      "/catalog/courses",
+      "/catalog/sections",
+      "/catalog/teachers",
+    ]) {
+      const response = await page.request.get(path);
+      expect(response.status()).toBe(200);
+      expect(response.headers()["x-robots-tag"] ?? "").not.toContain("noindex");
+      const markup = await response.text();
+      const robots = await page.evaluate((html) => {
+        const document = new DOMParser().parseFromString(html, "text/html");
+        return Array.from(document.querySelectorAll('meta[name="robots"]'))
+          .map((element) => element.getAttribute("content") ?? "")
+          .join(" ");
+      }, markup);
+      expect(robots).not.toContain("noindex");
+      const metadata = await readRawSocialMetadata(page, path);
+      expect(metadata.htmlLang).toBe("zh-cn");
+      expect(metadata.values.canonical).toEqual([`${metadata.origin}${path}`]);
     }
-  }
+
+    const cases = [
+      {
+        locale: "zh-cn" as const,
+        imageAlt: "Life@USTC 课程与日程工作台分享卡片",
+        pages: [
+          {
+            canonicalPath: "/catalog/courses",
+            description: "浏览和搜索所有可用课程",
+            title: "课程 - Life@USTC",
+          },
+          {
+            canonicalPath: "/catalog/sections",
+            description: "浏览和筛选所有可用的课程班级",
+            title: "班级 - Life@USTC",
+          },
+          {
+            canonicalPath: "/catalog/teachers",
+            description: "浏览和搜索所有教师",
+            title: "教师 - Life@USTC",
+          },
+        ],
+      },
+      {
+        locale: "en-us" as const,
+        imageAlt: "Life@USTC course and schedule workspace social card",
+        pages: [
+          {
+            canonicalPath: "/catalog/courses",
+            description: "Browse and search through all available courses",
+            title: "Courses - Life@USTC",
+          },
+          {
+            canonicalPath: "/catalog/sections",
+            description:
+              "Browse and filter through all available course sections",
+            title: "Sections - Life@USTC",
+          },
+          {
+            canonicalPath: "/catalog/teachers",
+            description: "Browse and search through all teachers",
+            title: "Teachers - Life@USTC",
+          },
+        ],
+      },
+    ];
+
+    for (const current of cases) {
+      await setLocale(page, preferenceFlow, current.locale);
+      for (const collection of current.pages) {
+        const metadata = await readRawSocialMetadata(
+          page,
+          `${collection.canonicalPath}?utm_source=e2e#catalog`,
+        );
+        expectCompleteSocialMetadata(metadata, {
+          ...collection,
+          imageAlt: current.imageAlt,
+          locale: current.locale,
+        });
+        expect(metadata.documentTitle).toBe(collection.title);
+      }
+    }
+  });
 });
 
 privateTest(
@@ -393,131 +397,135 @@ privateTest(
   },
 );
 
-test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", async ({
-  page,
-}) => {
-  await setLocale(page, "zh-cn");
-  const courseResult = await readRawStructuredData(
-    page,
-    `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
-  );
-  expect(courseResult.count).toBe(1);
-  expect(courseResult.data[0]?.["@context"]).toBe("https://schema.org");
-  expect(courseResult.data[0]?.["@graph"]).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        "@type": "Course",
-        courseCode: DEV_SEED.course.code,
+test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }) => {
+  await preferenceFlow.run(async () => {
+    await setLocale(page, preferenceFlow, "zh-cn");
+    const courseResult = await readRawStructuredData(
+      page,
+      `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
+    );
+    expect(courseResult.count).toBe(1);
+    expect(courseResult.data[0]?.["@context"]).toBe("https://schema.org");
+    expect(courseResult.data[0]?.["@graph"]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          "@type": "Course",
+          courseCode: DEV_SEED.course.code,
+          name: DEV_SEED.course.nameCn,
+        }),
+        expect.objectContaining({ "@type": "BreadcrumbList" }),
+      ]),
+    );
+
+    await setLocale(page, preferenceFlow, "en-us");
+    const sectionResult = await readRawStructuredData(
+      page,
+      `/catalog/sections/${DEV_SEED.section.jwId}#teachers`,
+    );
+    expect(sectionResult.count).toBe(1);
+    expect(sectionResult.data[0]?.["@graph"]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          "@type": "CourseInstance",
+          instructor: expect.arrayContaining([
+            expect.objectContaining({
+              "@type": "Person",
+              name: DEV_SEED.teacher.nameEn,
+            }),
+          ]),
+          isPartOf: expect.objectContaining({
+            "@type": "Course",
+            name: DEV_SEED.course.nameEn,
+          }),
+        }),
+        expect.objectContaining({ "@type": "BreadcrumbList" }),
+      ]),
+    );
+
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
+    );
+    const teacherHref = await page
+      .locator("#main-content a[href^='/catalog/teachers/']:visible")
+      .first()
+      .getAttribute("href");
+    expect(teacherHref).toMatch(/^\/catalog\/teachers\/\d+$/);
+    const teacherResult = await readRawStructuredData(page, teacherHref ?? "");
+    expect(teacherResult.count).toBe(1);
+    expect(teacherResult.data[0]?.["@graph"]).toEqual(
+      expect.arrayContaining([
+        {
+          "@id": `${teacherResult.data[0]?.["@graph"][0]?.url}#person`,
+          "@type": "Person",
+          name: DEV_SEED.teacher.nameEn,
+          url: teacherResult.data[0]?.["@graph"][0]?.url,
+        },
+        expect.objectContaining({ "@type": "BreadcrumbList" }),
+      ]),
+    );
+
+    for (const result of [courseResult, sectionResult, teacherResult]) {
+      expect(JSON.stringify(result.data)).not.toMatch(
+        /"viewer"|"session"|"email"|"telephone"|"mobile"|"address"/i,
+      );
+    }
+  });
+});
+
+test("ui.social-sharing-metadata-6", async ({ request, preferenceFlow }) => {
+  await preferenceFlow.run(async () => {
+    const response = await request.get("/open-graph.png");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("image/png");
+
+    const image = await response.body();
+    expect(image).toEqual(
+      await readFile(
+        new URL("../../../../../public/open-graph.png", import.meta.url),
+      ),
+    );
+    expect(image.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect(image.readUInt32BE(16)).toBe(1200);
+    expect(image.readUInt32BE(20)).toBe(630);
+    expect(image[24]).toBe(8);
+    expect([2, 6]).toContain(image[25]);
+    expect(image.byteLength).toBeGreaterThan(10_000);
+    expect(image.byteLength).toBeLessThan(500_000);
+    expect(response.headers()["x-request-id"]).toBeUndefined();
+    expect(response.headers()["cache-control"]).toBe("public, max-age=86400");
+    const withQuery = await request.get(
+      "/open-graph.png?title=Another+page&variant=profile&avatar=https://example.com/avatar.png",
+    );
+    expect(withQuery.status()).toBe(200);
+    expect(await withQuery.body()).toEqual(image);
+    expect(withQuery.headers()["x-request-id"]).toBeUndefined();
+    const head = await request.head("/open-graph.png");
+    expect(head.status()).toBe(200);
+    expect(await head.body()).toHaveLength(0);
+    const conditional = await request.get("/open-graph.png", {
+      headers: { "If-None-Match": response.headers().etag },
+    });
+    expect(conditional.status()).toBe(304);
+  });
+});
+
+test("分享元数据不改变首页与课程详情可见布局", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  await preferenceFlow.run(async () => {
+    await setLocale(page, preferenceFlow, "en-us");
+    await gotoAndWaitForReady(page, "/");
+    await expect(page.getByRole("main")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "social-metadata/home-desktop");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setLocale(page, preferenceFlow, "zh-cn");
+    await gotoAndWaitForReady(page, `/catalog/courses/${DEV_SEED.course.jwId}`);
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
         name: DEV_SEED.course.nameCn,
       }),
-      expect.objectContaining({ "@type": "BreadcrumbList" }),
-    ]),
-  );
-
-  await setLocale(page, "en-us");
-  const sectionResult = await readRawStructuredData(
-    page,
-    `/catalog/sections/${DEV_SEED.section.jwId}#teachers`,
-  );
-  expect(sectionResult.count).toBe(1);
-  expect(sectionResult.data[0]?.["@graph"]).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        "@type": "CourseInstance",
-        instructor: expect.arrayContaining([
-          expect.objectContaining({
-            "@type": "Person",
-            name: DEV_SEED.teacher.nameEn,
-          }),
-        ]),
-        isPartOf: expect.objectContaining({
-          "@type": "Course",
-          name: DEV_SEED.course.nameEn,
-        }),
-      }),
-      expect.objectContaining({ "@type": "BreadcrumbList" }),
-    ]),
-  );
-
-  await gotoAndWaitForReady(
-    page,
-    `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
-  );
-  const teacherHref = await page
-    .locator("#main-content a[href^='/catalog/teachers/']:visible")
-    .first()
-    .getAttribute("href");
-  expect(teacherHref).toMatch(/^\/catalog\/teachers\/\d+$/);
-  const teacherResult = await readRawStructuredData(page, teacherHref ?? "");
-  expect(teacherResult.count).toBe(1);
-  expect(teacherResult.data[0]?.["@graph"]).toEqual(
-    expect.arrayContaining([
-      {
-        "@id": `${teacherResult.data[0]?.["@graph"][0]?.url}#person`,
-        "@type": "Person",
-        name: DEV_SEED.teacher.nameEn,
-        url: teacherResult.data[0]?.["@graph"][0]?.url,
-      },
-      expect.objectContaining({ "@type": "BreadcrumbList" }),
-    ]),
-  );
-
-  for (const result of [courseResult, sectionResult, teacherResult]) {
-    expect(JSON.stringify(result.data)).not.toMatch(
-      /"viewer"|"session"|"email"|"telephone"|"mobile"|"address"/i,
-    );
-  }
-});
-
-test("ui.social-sharing-metadata-6", async ({ request }) => {
-  const response = await request.get("/open-graph.png");
-  expect(response.status()).toBe(200);
-  expect(response.headers()["content-type"]).toContain("image/png");
-
-  const image = await response.body();
-  expect(image).toEqual(
-    await readFile(
-      new URL("../../../../../public/open-graph.png", import.meta.url),
-    ),
-  );
-  expect(image.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-  expect(image.readUInt32BE(16)).toBe(1200);
-  expect(image.readUInt32BE(20)).toBe(630);
-  expect(image[24]).toBe(8);
-  expect([2, 6]).toContain(image[25]);
-  expect(image.byteLength).toBeGreaterThan(10_000);
-  expect(image.byteLength).toBeLessThan(500_000);
-  expect(response.headers()["x-request-id"]).toBeUndefined();
-  expect(response.headers()["cache-control"]).toBe("public, max-age=86400");
-  const withQuery = await request.get(
-    "/open-graph.png?title=Another+page&variant=profile&avatar=https://example.com/avatar.png",
-  );
-  expect(withQuery.status()).toBe(200);
-  expect(await withQuery.body()).toEqual(image);
-  expect(withQuery.headers()["x-request-id"]).toBeUndefined();
-  const head = await request.head("/open-graph.png");
-  expect(head.status()).toBe(200);
-  expect(await head.body()).toHaveLength(0);
-  const conditional = await request.get("/open-graph.png", {
-    headers: { "If-None-Match": response.headers().etag },
+    ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "social-metadata/course-mobile");
   });
-  expect(conditional.status()).toBe(304);
-});
-
-test("分享元数据不改变首页与课程详情可见布局", async ({ page }, testInfo) => {
-  await setLocale(page, "en-us");
-  await gotoAndWaitForReady(page, "/");
-  await expect(page.getByRole("main")).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "social-metadata/home-desktop");
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await setLocale(page, "zh-cn");
-  await gotoAndWaitForReady(page, `/catalog/courses/${DEV_SEED.course.jwId}`);
-  await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: DEV_SEED.course.nameCn,
-    }),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "social-metadata/course-mobile");
 });
