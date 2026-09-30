@@ -502,6 +502,28 @@ requirements:
     test:
       file: tests/integration/oauth-usage-contracts.test.ts
       name: oauth.authorization-management.oauth-usage-aggregation
+- id: oauth.authorization-management.mcp-successful-operation-count
+  category: consistency
+  rule: A completed, successful MCP tool call increments its grant's read or write count without
+    increasing the error count. A bounded response inspection that cannot determine the result does
+    not turn a successful operation into a failed operation.
+  rationale: The authorization page reports application activity. A large successful response is not
+    an application failure; telemetry may independently report that its response inspection was incomplete.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: A real browser-approved calendar-read grant and a private calendar containing 130 visible events,
+      whose default and full MCP responses exceed the response inspection limit.
+    when: Read the full calendar through both MCP modes and independently inspect persisted grant usage
+      after request and background work has completed.
+    then:
+    - Both tool calls succeed and return all expected events in order.
+    - The approved grant records two reads, zero writes, and zero errors across the applicable Shanghai days.
+    - Session-based REST and GraphQL reads, MCP initialization, and the other user's session-based reads
+      create no additional OAuth usage or transfer activity to another user or grant.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/transport-completeness.test.ts
+      name: interface-hierarchy.representative-cross-surface-contract-6
 - id: oauth.authorization-management.recent-auth-for-consent
   category: authorization
   rule: Approving a new grant or expanding an existing grant requires an authoritative server-side session
