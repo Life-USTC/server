@@ -131,7 +131,7 @@ overlayTest(
         });
         await requested;
         await expect(
-          page.locator("#introduction").getByRole("heading"),
+          page.locator("#introduction").getByRole("heading", { level: 2 }),
         ).toBeVisible();
         await expect(page.getByTestId("description-edit")).toHaveCount(0);
         await expect(page.getByTestId("description-edit-login")).toHaveCount(0);
