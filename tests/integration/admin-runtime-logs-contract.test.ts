@@ -16,11 +16,13 @@ const context = {
 
 // This file owns one console spy scope; other cases run in isolated modules.
 it("admin.platform-runtime-logs", async ({ observation }) => {
-  const { db, capture } = observation;
-  const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-  try {
-    await observation.runtime(async () => {
+  await observation.runtime(async () => {
+    const { db, capture } = observation;
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
       const id = crypto.randomUUID();
       await capture(() => {
         identifyObservedRequest(id);
@@ -72,9 +74,9 @@ it("admin.platform-runtime-logs", async ({ observation }) => {
       expect(
         await db.runtimeIssueEvent.count({ where: { requestId: failId } }),
       ).toBe(0);
-    });
-  } finally {
-    warn.mockRestore();
-    error.mockRestore();
-  }
+    } finally {
+      warn.mockRestore();
+      error.mockRestore();
+    }
+  });
 });

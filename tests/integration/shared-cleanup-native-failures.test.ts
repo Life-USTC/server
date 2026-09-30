@@ -50,6 +50,8 @@ const expectedMessages: Record<SharedCleanupFailurePhase, string[]> = {
     "SHARED-SUBSCRIPTION-CLOSE",
   ],
   "http-timeout": [timeoutMessage],
+  metrics: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
+  "metrics-timeout": [timeoutMessage],
   discovery: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   oauth: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   cimd: ["SHARED-BODY", "SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
@@ -85,6 +87,8 @@ const expectedNativeErrors: Record<SharedCleanupFailurePhase, ErrorTree[]> = {
     errorLeaf("SHARED-SUBSCRIPTION-CLOSE"),
   ],
   "http-timeout": [errorLeaf(timeoutMessage)],
+  metrics: [...protocolRuntimeErrors],
+  "metrics-timeout": [errorLeaf(timeoutMessage)],
   discovery: [...protocolRuntimeErrors],
   oauth: [...protocolRuntimeErrors],
   cimd: [errorLeaf("SHARED-BODY"), ...protocolRuntimeErrors],
@@ -133,6 +137,8 @@ test.for<SharedCleanupFailurePhase>([
   "public",
   "subscription",
   "http-timeout",
+  "metrics",
+  "metrics-timeout",
   "discovery",
   "oauth",
   "cimd",
@@ -262,7 +268,63 @@ test.for<SharedCleanupFailurePhase>([
         }
       }
       const errors = runtime.filter((event) => event.event === "runtime-error");
-      if (phase === "http-timeout") {
+      if (phase === "metrics-timeout") {
+        expect(errors).toEqual([]);
+        expect(names).toEqual([
+          "state-committed",
+          "body-entered",
+          "metrics-lock-acquired",
+          "metrics-scrape-entered",
+          "native-test-aborted",
+          "metrics-scrape-resumed",
+          "metrics-scrape-consumed",
+          "metrics-lock-released",
+          "metrics-late-work-finished",
+          "database-dispose-start",
+          "database-dispose-finished",
+        ]);
+        const work = await load("late-metrics-work.json");
+        expect(work.nativeAborted).toBe(true);
+        expect(work.status).toBe(503);
+        expect(work.body).toBe("Metrics unavailable\n");
+        expect(work.event).toEqual({ id: expect.any(String), durationMs: 7 });
+        expect(work.persisted).toEqual(work.event);
+        expect(work.features).toEqual([
+          {
+            feature: "catalog.search",
+            operation: "search",
+            protocol: "rest",
+            surface: "unknown",
+            authMode: "anonymous",
+            outcome: "success",
+            events: 1,
+          },
+        ]);
+        expect(work.recoveredStatus).toBe(200);
+        expect(work.recoveredBody).toContain("# TYPE life_ustc_users gauge\n");
+      } else if (phase === "metrics") {
+        expect(errors.map((event) => event.error)).toEqual(
+          protocolRuntimeErrors,
+        );
+        expect(new Set(errors.map((event) => event.errorId)).size).toBe(2);
+        expect(new Set(errors.map((event) => event.runtime)).size).toBe(2);
+        expect(names).toEqual([
+          "state-committed",
+          "body-finished",
+          "workflow-cancel",
+          "request-cancel",
+          "sibling-cancel-finished",
+          "database-dispose-start",
+          "database-dispose-finished",
+        ]);
+        const work = await load("sibling-work.json");
+        expect(work.written).toEqual({
+          id: expect.any(String),
+          userId: "shared-cleanup-owner",
+          title: "Sibling cancellation completed",
+        });
+        expect(work.persisted).toEqual(work.written);
+      } else if (phase === "http-timeout") {
         expect(errors).toEqual([]);
         expect(
           names.filter((name) => name === "native-test-aborted"),

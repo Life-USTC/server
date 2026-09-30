@@ -13,6 +13,7 @@ import type {
 } from "../../shared/isolated-database-lifecycle";
 import { isolatedNodeTest } from "../../shared/isolated-node-fixture";
 import { mcpProtocolTest } from "../../shared/mcp-protocol-fixture";
+import { metricsTest } from "../../shared/metrics-fixture";
 import { nodeHttpTest } from "../../shared/node-http-contract-fixture";
 import type { NodeProtocolRuntime } from "../../shared/node-protocol-runtime";
 import { publicCatalogProtocolTest } from "../../shared/public-catalog-protocol-fixture";
@@ -30,6 +31,8 @@ const runtimeJournal = await vi.hoisted(async () => {
   const output = process.env.SHARED_CLEANUP_PROBE_OUTPUT;
   if (!output) throw new Error("Missing shared cleanup output");
   const journalOutput = output;
+  const { createDeferred } = await import("../../shared/deferred");
+  const metricsGate = createDeferred();
   const ids = new WeakMap<object, number>();
   let nextError = 0;
   let nextRuntime = 0;
@@ -43,6 +46,7 @@ const runtimeJournal = await vi.hoisted(async () => {
     );
   }
   return {
+    metricsGate,
     now,
     next: () => ++nextRuntime,
     tick: () => ++sequence,
@@ -88,6 +92,44 @@ vi.mock("../../shared/node-runtime", async (importOriginal) => {
   };
 });
 
+// Delay the actual route across native timeout, or fail cancellation only after
+// its real response body has released its resources. Route behavior stays real.
+vi.mock("@/routes/metrics/+server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/routes/metrics/+server")>();
+  return {
+    ...actual,
+    GET: async (...args: Parameters<typeof actual.GET>) => {
+      const phase = process.env.SHARED_CLEANUP_PROBE_PHASE;
+      if (phase === "metrics-timeout") {
+        record("metrics-scrape-entered");
+        await runtimeJournal.metricsGate.promise;
+        record("metrics-scrape-resumed");
+      }
+      const response = await actual.GET(...args);
+      if (phase !== "metrics" || !response.body) return response;
+      const reader = response.body.getReader();
+      return new Response(
+        new ReadableStream({
+          async pull(controller) {
+            const result = await reader.read();
+            if (result.done) controller.close();
+            else controller.enqueue(result.value);
+          },
+          async cancel(reason) {
+            await reader.cancel(reason);
+            record("request-cancel");
+            const error = new Error("SHARED-REQUEST-CANCEL");
+            save("request-error.json", errorTree(error));
+            throw error;
+          },
+        }),
+        response,
+      );
+    },
+  };
+});
+
 const inputPhase = process.env.SHARED_CLEANUP_PROBE_PHASE;
 const output = process.env.SHARED_CLEANUP_PROBE_OUTPUT;
 if (
@@ -102,6 +144,8 @@ if (
     "public",
     "subscription",
     "http-timeout",
+    "metrics",
+    "metrics-timeout",
     "discovery",
     "oauth",
     "cimd",
@@ -353,6 +397,118 @@ if (phase === "subscription") {
     },
   );
 }
+
+if (phase === "metrics") {
+  metricsTest.extend("probe", prepareProbe)(
+    title,
+    async ({ probe, metrics, protocolRuntime, expect }) => {
+      await metrics.run(async () => {
+        const response = await metrics.scrape(
+          new Request("http://localhost:3000/metrics", {
+            headers: { authorization: "Bearer metrics-probe-secret" },
+          }),
+          "metrics-probe-secret",
+        );
+        expect(response.status).toBe(200);
+        // Leave the real metrics body unconsumed; its cancellation will fail.
+        await protocolRuntime.request(
+          () =>
+            new Response(
+              new ReadableStream({
+                cancel: () => successfulCancellation(probe),
+              }),
+            ),
+        );
+      });
+      await protocolRuntime.run(() => cancellation("workflow"));
+      record("body-finished");
+    },
+  );
+}
+if (phase === "metrics-timeout") {
+  metricsTest.extend("probe", prepareProbe)(
+    title,
+    { timeout: 5_000 },
+    async ({ probe, metrics, signal }) => {
+      signal.addEventListener(
+        "abort",
+        () => {
+          record("native-test-aborted");
+          runtimeJournal.metricsGate.resolve();
+        },
+        { once: true },
+      );
+      await metrics.run(async () => {
+        record("body-entered");
+        const locked = createDeferred();
+        const release = createDeferred();
+        const holder = probe.db.$transaction(
+          async (tx) => {
+            await tx.$executeRaw`SELECT pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('life-ustc.prometheus-metrics-cache', 0))`;
+            record("metrics-lock-acquired");
+            locked.resolve();
+            await release.promise;
+          },
+          { timeout: 15_000 },
+        );
+        let status: number;
+        let body: string;
+        try {
+          await Promise.race([locked.promise, holder]);
+          const response = await metrics.scrape(
+            new Request("http://localhost:3000/metrics", {
+              headers: { authorization: "Bearer metrics-timeout-secret" },
+            }),
+            "metrics-timeout-secret",
+          );
+          status = response.status;
+          body = await response.text();
+          record("metrics-scrape-consumed");
+        } finally {
+          release.resolve();
+          await holder;
+          record("metrics-lock-released");
+        }
+        const event = {
+          id: crypto.randomUUID(),
+          feature: "catalog.search",
+          operation: "search",
+          protocol: "rest",
+          surface: "unknown",
+          authMode: "anonymous",
+          outcome: "success",
+          errorClass: "none",
+          durationMs: 7,
+        };
+        await metrics.write({ features: [event] });
+        const snapshot = await metrics.read();
+        const persisted =
+          await probe.db.featureOperationEvent.findUniqueOrThrow({
+            where: { id: event.id },
+            select: { id: true, durationMs: true },
+          });
+        const recovered = await metrics.serve(
+          new Request("http://localhost:3000/metrics", {
+            headers: { authorization: "Bearer metrics-fixture-secret" },
+          }),
+        );
+        const recoveredBody = await recovered.text();
+        save("late-metrics-work.json", {
+          nativeAborted: signal.aborted,
+          status,
+          body,
+          event: { id: event.id, durationMs: event.durationMs },
+          persisted,
+          features: snapshot.features,
+          recoveredStatus: recovered.status,
+          recoveredBody,
+        });
+        record("metrics-late-work-finished");
+      });
+    },
+  );
+}
+
 if (phase === "http-timeout") {
   const timeoutTest = nodeHttpTest.extend("probe", prepareProbe).extend({
     httpHandler: async ({ probe }, use) => {

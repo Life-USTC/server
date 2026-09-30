@@ -12,6 +12,8 @@ export type SharedCleanupFailurePhase =
   | "public"
   | "subscription"
   | "http-timeout"
+  | "metrics"
+  | "metrics-timeout"
   | "discovery"
   | "oauth"
   | "cimd";

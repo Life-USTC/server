@@ -323,124 +323,130 @@ async function prepareProjection(fixturePrisma: TestPrismaClient) {
 
 const it = metricsTest.extend<{ projection: undefined }>({
   projection: async ({ metrics }, use) => {
-    await prepareProjection(metrics.db);
+    await metrics.run(() => prepareProjection(metrics.db));
     await use(undefined);
   },
 });
 
 it("preserves current-state summaries, rolling clients and audit policy exclusions", async ({
   projection: _projection,
-  metrics: { read },
+  metrics: { run, read },
 }) => {
-  const snapshot = await read();
-  expect(snapshot.summary).toEqual({
-    users: 2,
-    comments: 1,
-    homeworks: 1,
-    oauthClients: 2,
-    activeSuspensions: 1,
+  await run(async () => {
+    const snapshot = await read();
+    expect(snapshot.summary).toEqual({
+      users: 2,
+      comments: 1,
+      homeworks: 1,
+      oauthClients: 2,
+      activeSuspensions: 1,
+    });
+    expect(snapshot.registrations).toBe(2);
+    expect(snapshot.audit).toHaveLength(4);
+    expect(snapshot.audit).toEqual(
+      expect.arrayContaining([
+        {
+          action: "admin_user_suspend",
+          channel: "web",
+          outcome: "success",
+          events: 1,
+        },
+        {
+          action: "admin_user_unsuspend",
+          channel: "system",
+          outcome: "failure",
+          events: 1,
+        },
+        {
+          action: "oauth_authorization_update",
+          channel: "auth",
+          outcome: "success",
+          events: 1,
+        },
+        {
+          action: "admin_bus_import",
+          channel: "system",
+          outcome: "failure",
+          events: 1,
+        },
+      ]),
+    );
+    expect(
+      snapshot.audit.some((row) => row.action === "oauth_authorization_grant"),
+    ).toBe(false);
+    expect(snapshot.oauth).toEqual([
+      {
+        channel: "mcp",
+        feature: "account.profile",
+        readCount: 111,
+        writeCount: 104,
+        errorCount: 104,
+      },
+    ]);
+    // Activity follows lastUsedAt, including the 40-day-old daily row used now.
+    expect(snapshot.oauthSummary).toHaveLength(3);
+    expect(snapshot.oauthSummary).toEqual(
+      expect.arrayContaining([
+        { window: "24h", activeClients: 2 },
+        { window: "7d", activeClients: 2 },
+        { window: "30d", activeClients: 2 },
+      ]),
+    );
   });
-  expect(snapshot.registrations).toBe(2);
-  expect(snapshot.audit).toHaveLength(4);
-  expect(snapshot.audit).toEqual(
-    expect.arrayContaining([
-      {
-        action: "admin_user_suspend",
-        channel: "web",
-        outcome: "success",
-        events: 1,
-      },
-      {
-        action: "admin_user_unsuspend",
-        channel: "system",
-        outcome: "failure",
-        events: 1,
-      },
-      {
-        action: "oauth_authorization_update",
-        channel: "auth",
-        outcome: "success",
-        events: 1,
-      },
-      {
-        action: "admin_bus_import",
-        channel: "system",
-        outcome: "failure",
-        events: 1,
-      },
-    ]),
-  );
-  expect(
-    snapshot.audit.some((row) => row.action === "oauth_authorization_grant"),
-  ).toBe(false);
-  expect(snapshot.oauth).toEqual([
-    {
-      channel: "mcp",
-      feature: "account.profile",
-      readCount: 111,
-      writeCount: 104,
-      errorCount: 104,
-    },
-  ]);
-  // Activity follows lastUsedAt, including the 40-day-old daily row used now.
-  expect(snapshot.oauthSummary).toHaveLength(3);
-  expect(snapshot.oauthSummary).toEqual(
-    expect.arrayContaining([
-      { window: "24h", activeClients: 2 },
-      { window: "7d", activeClients: 2 },
-      { window: "30d", activeClients: 2 },
-    ]),
-  );
 });
 
 it("projects all committed feature and runtime observations independently of their event dates", async ({
   projection: _projection,
-  metrics: { read },
+  metrics: { run, read },
 }) => {
-  const snapshot = await read();
-  expect(snapshot.features).toHaveLength(3);
-  expect(snapshot.features).toEqual(
-    expect.arrayContaining([
-      {
-        feature: "catalog.search",
-        operation: "search",
-        protocol: "mcp",
-        surface: "mcp",
-        authMode: "oauth",
-        outcome: "success",
-        events: 2,
-      },
-      {
-        feature: "workspace.subscription",
-        operation: "list",
-        protocol: "graphql",
-        surface: "unknown",
-        authMode: "session",
-        outcome: "rejected",
-        events: 1,
-      },
-      {
-        feature: "catalog.course",
-        operation: "get",
-        protocol: "rest",
-        surface: "web",
-        authMode: "anonymous",
-        outcome: "success",
-        events: 1,
-      },
-    ]),
-  );
-  // Rejected requests are counted as outcomes, not server-error events.
-  expect(snapshot.featureErrors).toEqual([]);
-  expect(snapshot.runtime).toEqual([
-    { level: "error", event: "other", status: "5xx", events: 2 },
-  ]);
+  await run(async () => {
+    const snapshot = await read();
+    expect(snapshot.features).toHaveLength(3);
+    expect(snapshot.features).toEqual(
+      expect.arrayContaining([
+        {
+          feature: "catalog.search",
+          operation: "search",
+          protocol: "mcp",
+          surface: "mcp",
+          authMode: "oauth",
+          outcome: "success",
+          events: 2,
+        },
+        {
+          feature: "workspace.subscription",
+          operation: "list",
+          protocol: "graphql",
+          surface: "unknown",
+          authMode: "session",
+          outcome: "rejected",
+          events: 1,
+        },
+        {
+          feature: "catalog.course",
+          operation: "get",
+          protocol: "rest",
+          surface: "web",
+          authMode: "anonymous",
+          outcome: "success",
+          events: 1,
+        },
+      ]),
+    );
+    // Rejected requests are counted as outcomes, not server-error events.
+    expect(snapshot.featureErrors).toEqual([]);
+    expect(snapshot.runtime).toEqual([
+      { level: "error", event: "other", status: "5xx", events: 2 },
+    ]);
+  });
 });
 
 it("does not grant runtime access to cached activity rows", async ({
-  metrics: { app },
+  metrics: { run, app },
 }) => {
-  await expect(
-    app.$queryRaw`SELECT id FROM public."PrometheusMetricsCache"`,
-  ).rejects.toThrow(/permission denied/i);
+  await run(async () => {
+    await expect(
+      app.$queryRaw`SELECT id FROM public."PrometheusMetricsCache"`,
+    ).rejects.toThrow(/permission denied/i);
+  });
 });
