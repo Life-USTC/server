@@ -668,7 +668,7 @@ test("cases.account.oauth-connection-error-2", async ({
               ["POST", "/api/auth/unlink-account", 400],
               ["POST", "/api/auth/passkey/verify-registration", 200],
               ["POST", "/account/settings/accounts", 200],
-              ["POST", "/api/auth/sign-out", 200],
+              ["POST", "/account/sign-out", 303],
               ["POST", "/api/auth/passkey/verify-authentication", 200],
               ["POST", "/api/auth/passkey/delete-passkey", 400],
             ]);
@@ -808,15 +808,20 @@ test("cases.account.oauth-connection-error-2", async ({
     },
     async (response, incoming) => {
       expect(incoming.method()).toBe("POST");
-      expect(response.status()).toBe(200);
       await response.body();
       const path = new URL(incoming.url()).pathname;
-      expect([
-        "/api/auth/passkey/verify-registration",
-        "/account/settings/accounts",
-        "/api/auth/sign-out",
-        "/api/auth/passkey/verify-authentication",
-      ]).toContain(path);
+      const expectedStatus = {
+        "/api/auth/passkey/verify-registration": 200,
+        "/account/settings/accounts": 200,
+        "/account/sign-out": 303,
+        "/api/auth/passkey/verify-authentication": 200,
+      };
+      expect(expectedStatus).toHaveProperty(path);
+      expect(response.status()).toBe(
+        expectedStatus[path as keyof typeof expectedStatus],
+      );
+      if (path === "/account/sign-out")
+        expect(response.headers().location).toBe("/");
       if (path === "/account/settings/accounts")
         expect(await response.json()).toMatchObject({
           type: "redirect",
