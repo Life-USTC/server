@@ -144,7 +144,9 @@ test("teacher.identified-by-name", async ({
             : page
                 .getByRole("row")
                 .filter({
-                  has: page.locator(`a[href="/catalog/teachers/${teacher.id}"]`),
+                  has: page.locator(
+                    `a[href="/catalog/teachers/${teacher.id}"]`,
+                  ),
                 })
                 .filter({ visible: true });
         await expect(row).toHaveCount(1);
@@ -196,20 +198,22 @@ test("section.private-section-projection", async ({
   catalogFlow: flow,
 }) => {
   await flow.run(async () => {
-    const homework = await isolatedWorker.database.owner.$transaction(async (db) => {
-      await db.userSectionSubscription.create({
-        data: { userId: user.id, sectionId: fixture.sections[0].id },
-      });
-      return db.homework.create({
-        data: {
-          sectionId: fixture.sections[0].id,
-          createdById: user.id,
-          title: "Private completion contract",
-          publishedAt: new Date(),
-          homeworkCompletions: { create: { userId: user.id } },
-        },
-      });
-    });
+    const homework = await isolatedWorker.database.owner.$transaction(
+      async (db) => {
+        await db.userSectionSubscription.create({
+          data: { userId: user.id, sectionId: fixture.sections[0].id },
+        });
+        return db.homework.create({
+          data: {
+            sectionId: fixture.sections[0].id,
+            createdById: user.id,
+            title: "Private completion contract",
+            publishedAt: new Date(),
+            homeworkCompletions: { create: { userId: user.id } },
+          },
+        });
+      },
+    );
     const path = `/_internal/catalog/sections/${fixture.sections[0].jwId}/viewer?homeworkId=${homework.id}`;
     const anonymous = await flow.http(() =>
       request.get(path, { headers: flow.headers }),
@@ -218,9 +222,9 @@ test("section.private-section-projection", async ({
     expect(await anonymous.json()).toMatchObject({
       viewer: { signedIn: false, isSubscribed: false },
     });
-    await page.context().addCookies([
-      (await isolatedWorker.createSession(user.id)).cookie,
-    ]);
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
     // A session must not personalize either public HTML or Svelte page data.
     const publicPath = `/catalog/sections/${fixture.sections[0].jwId}`;
     for (const client of [request, page.request, request]) {
@@ -318,9 +322,9 @@ test("section.personal-deep-link-gate", async ({
   catalogFlow: flow,
 }) => {
   await flow.run(async () => {
-    await page.context().addCookies([
-      (await isolatedWorker.createSession(user.id)).cookie,
-    ]);
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
     await chinese(page, flow);
     const endpoint = `**/_internal/catalog/sections/${fixture.sections[0].jwId}/viewer*`;
     let release: () => void = () => {};
