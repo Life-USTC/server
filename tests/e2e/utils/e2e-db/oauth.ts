@@ -1,4 +1,3 @@
-import { createOAuthAccountIssuer } from "@better-auth/core/db";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
@@ -10,17 +9,6 @@ import {
 } from "@/lib/oauth/constants";
 import { generateToken, PLAYWRIGHT_BASE_URL } from "./core";
 import { withE2ePrisma } from "./prisma";
-
-function accountIssuer(provider: "github" | "google" | "oidc") {
-  if (provider === "google") return "https://accounts.google.com";
-  if (provider === "oidc") {
-    return (
-      process.env.AUTH_OIDC_ISSUER ??
-      "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2"
-    );
-  }
-  return createOAuthAccountIssuer(provider);
-}
 
 export async function createOAuthClientFixture(
   options: {
@@ -141,44 +129,4 @@ export async function deleteOAuthClientsByName(name: string) {
       where: { name },
     }),
   );
-}
-
-export async function ensureLinkedAccountFixture(options: {
-  userId: string;
-  provider: "github" | "google" | "oidc";
-  providerAccountId?: string;
-  email?: string;
-}) {
-  const providerAccountId =
-    options.providerAccountId ??
-    `${options.provider}-e2e-${Date.now()}-${generateToken(6)}`;
-  const email =
-    options.email ??
-    `${options.provider}-${Date.now()}-${generateToken(6)}@example.test`;
-
-  await withE2ePrisma(async (prisma) => {
-    await prisma.account.create({
-      data: {
-        userId: options.userId,
-        type: "oauth",
-        provider: options.provider,
-        issuer: accountIssuer(options.provider),
-        providerAccountId,
-      },
-    });
-
-    await prisma.verifiedEmail.create({
-      data: {
-        userId: options.userId,
-        provider: options.provider,
-        email,
-      },
-    });
-  });
-
-  return {
-    provider: options.provider,
-    providerAccountId,
-    email,
-  };
 }
