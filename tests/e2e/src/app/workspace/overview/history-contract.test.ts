@@ -1,21 +1,21 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { prepareCalendarRead, readCalendarState } from "../../../../utils/calendar-read-observation";
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/private-calendar-fixture";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
+import { parseTextContent } from "../../api/mcp/helpers";
 
 test("overview.historical-subscriptions-remain-discoverable", async ({
   page,
-  request,
+  calendarProtocolRun,
   isolatedWorker,
   createCalendar,
   oauthOwner,
 }) => {
   test.setTimeout(120_000);
+  await calendarProtocolRun(async (io) => {
   const db = isolatedWorker.database.owner;
   const fixture = await createCalendar();
-  const semester = await (async () => {
-    const past = await db.semester.create({
+  const semester = await db.$transaction(async (tx) => {
+    const past = await tx.semester.create({
       data: {
         jwId: fixture.section.jwId + 40,
         nameCn: "历史验证学期",
@@ -24,33 +24,43 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
         endDate: new Date("2026-01-15T00:00:00Z"),
       },
     });
-    await db.section.update({
+    await tx.section.update({
       where: { id: fixture.section.id },
       data: { semesterId: past.id },
     });
-    await db.schedule.updateMany({
+    await tx.schedule.updateMany({
       where: { sectionId: fixture.section.id },
       data: { date: new Date("2026-01-07T00:00:00Z") },
     });
-    await db.exam.updateMany({
+    await tx.exam.updateMany({
       where: { sectionId: fixture.section.id },
       data: { examDate: new Date("2026-01-07T00:00:00Z") },
     });
-    await db.homework.update({
+    await tx.homework.update({
       where: { id: fixture.homework.id },
       data: { submissionDueAt: new Date("2026-01-07T12:00:00+08:00") },
     });
     return past;
-  })();
-  const client = new Client({ name: "overview-history", version: "1" });
-  try {
-    await page.context().clearCookies();
-    await page
-      .context()
-      .addCookies([
-        (await isolatedWorker.createSession(fixture.users[0].id)).cookie,
-        { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
-      ]);
+  });
+  const expectedState = await readCalendarState(db);
+  await page.context().clearCookies();
+  const client = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+    name: "overview-history",
+    scopes: ["workspace.overview:read", "workspace.subscription:read", "workspace.homework:read", "workspace.schedule:read", "workspace.exam:read"],
+    tools: [
+      ["workspace_snapshot_get", "workspace.overview"],
+      ["workspace_subscription_list", "workspace.subscription"],
+      ["workspace_homework_list", "workspace.homework"],
+      ["workspace_homework_list", "workspace.homework"],
+      ["workspace_schedule_list", "workspace.schedule"],
+      ["workspace_schedule_list", "workspace.schedule"],
+      ["workspace_exam_list", "workspace.exam"],
+      ["workspace_exam_list", "workspace.exam"],
+    ],
+    usage: [["workspace.overview", 1], ["workspace.subscription", 1], ["workspace.homework", 2], ["workspace.schedule", 2], ["workspace.exam", 2]],
+    feedTokenCreated: true,
+  });
+  await page.context().addCookies([{ name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin }]);
     const overviewUrl =
       "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00";
     for (const width of [1280, 390]) {
@@ -95,12 +105,16 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
                 .first(),
             ).toBeVisible();
           } catch (error) {
+            try {
             await page.screenshot({
               path: test
                 .info()
                 .outputPath(`life-spec-business-history-calendar-${width}.png`),
               fullPage: true,
             });
+            } catch (screenshotError) {
+              throw new AggregateError([error, screenshotError], "Historical calendar visibility and screenshot failed");
+            }
             throw error;
           }
           await page.screenshot({
@@ -124,22 +138,7 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
         }
       }
     }
-    const scope =
-      "workspace.overview:read workspace.subscription:read workspace.homework:read workspace.schedule:read workspace.exam:read";
-    const resource = `${isolatedWorker.origin}/api/mcp`;
-    const token = await issueAccessToken(page, request, {
-      owner: oauthOwner,
-      scope,
-      clientScopes: scope.split(" "),
-      resource,
-    });
-    await client.connect(
-      new StreamableHTTPClientTransport(new URL(resource), {
-        requestInit: {
-          headers: { Authorization: `Bearer ${token.accessToken}` },
-        },
-      }),
-    );
+    await client.authorize();
     const snapshot = await client.callTool({
       name: "workspace_snapshot_get",
       arguments: { atTime: "2026-04-29T09:30:00+08:00" },
@@ -183,7 +182,6 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
         (parseTextContent(otherTerm) as Record<string, unknown[]>)[key],
       ).toEqual([]);
     }
-  } finally {
-    await client.close();
-  }
+    return client.checks(expectedState);
+  });
 });
