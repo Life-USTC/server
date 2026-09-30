@@ -10,14 +10,16 @@ it("maintenance can only discover recipients through its bounded function", asyn
   const userId = `young-recipient-${crypto.randomUUID()}`;
   const youngId = `recipient-${crypto.randomUUID()}`;
   // The database owns all acquisition, including failure before the body completes.
-  await db.$transaction(async (tx) => {
-    await tx.user.create({
-      data: { id: userId, email: `${userId}@test.invalid` },
-    });
-    await tx.youngEvent.create({
-      data: { youngId, name: "Recipient fixture", rawJson: {}, isActive: true },
-    });
-  });
+  await workspaceRuntime.run(() =>
+    db.$transaction(async (tx) => {
+      await tx.user.create({
+        data: { id: userId, email: `${userId}@test.invalid` },
+      });
+      await tx.youngEvent.create({
+        data: { youngId, name: "Recipient fixture", rawJson: {}, isActive: true },
+      });
+    }),
+  );
   await workspaceRuntime.run(async () => {
     await setYoungEventSubscription(userId, youngId, true);
     const rows = await maintenance.$queryRaw<Array<{ id: string }>>`
