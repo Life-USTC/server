@@ -9,7 +9,7 @@
  * ## UI/UX Elements
  * - Search input (searchbox) with submit and clear buttons
  * - Signup status and category selects (native comboboxes)
- * - Date-grouped rows with links to /catalog/young-events/{youngId}
+ * - Desktop table / mobile item list with links to /catalog/young-events/{youngId}
  * - URL-driven pagination
  * - Empty state when no events match
  *
@@ -18,11 +18,15 @@
  * - Non-matching search shows the empty state instead of an error
  */
 import { expect, test } from "@playwright/test";
-import { createFixturePrisma } from "../../../../shared/prisma";
+import type {
+  YoungEvent,
+  YoungOrganizer,
+} from "../../../../../src/generated/prisma-node/client";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test as privateTest } from "../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -87,7 +91,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     ).toBeVisible();
   });
 
-  test("筛选面板保值，详情可返回，边栏进入日历", async ({ page }) => {
+  test("筛选面板保值并在日历与详情之间保留上下文", async ({ page }) => {
     const search = encodeURIComponent(DEV_SEED.youngEvent.name);
     await gotoAndWaitForReady(
       page,
@@ -143,7 +147,18 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     await youngNav
       .getByRole("link", { name: /^(?:活动日历|Event calendar)$/ })
       .click();
-    await expect(page).toHaveURL(/\/catalog\/young-events\/calendar$/);
+    await expect(page).toHaveURL(browseUrl);
+    await page
+      .getByTestId("young-browse-nav")
+      .getByRole("link", { name: /^(日历|Calendar)$/ })
+      .click();
+    await expect(page).toHaveURL(/calendar\?/);
+    expect(new URL(page.url()).searchParams.get("search")).toBe(
+      DEV_SEED.youngEvent.name,
+    );
+    expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
+      "dev-scenario-young-organizer",
+    );
   });
 
   test("手机日历从所选日期开始并可展开此前日期", async ({ page }) => {
@@ -259,84 +274,134 @@ for (const width of [1280, 390]) {
   });
 }
 
-for (const width of [1280, 390]) {
-  test(`calendar has all pages, day drilldown, and independent registration times at ${width}px`, async ({
+test("calendar sheet preserves selected dates and unsubmitted primary filters", async ({
+  page,
+}) => {
+  await gotoAndWaitForReady(
     page,
-  }) => {
-    const db = createFixturePrisma();
-    const marker = `browser-young-${crypto.randomUUID()}`;
-    const errors: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    await db.youngOrganizer.create({
-      data: { id: marker, name: marker, normalizedName: marker },
-    });
-    await db.youngEvent.createMany({
-      data: Array.from({ length: 106 }, (_, index) => ({
-        youngId: `${marker}-${String(index).padStart(3, "0")}`,
-        name: `Calendar activity ${String(index).padStart(3, "0")}`,
-        organizerId: marker,
-        isActive: true,
-        rawJson: {},
-        startAt: new Date("2035-09-15T10:00:00+08:00"),
-        endAt: new Date("2035-09-15T12:00:00+08:00"),
-        applyStartAt: new Date("2035-09-14T08:00:00+08:00"),
-        applyEndAt: new Date("2035-09-14T18:00:00+08:00"),
-      })),
-    });
-    try {
-      await page.setViewportSize({ width, height: 844 });
-      await gotoAndWaitForReady(
-        page,
-        `/catalog/young-events/calendar?view=month&date=2035-09-15&organizerId=${marker}`,
-      );
-      const root = page.getByTestId("young-calendar");
-      if (width > 700)
-        await root
-          .getByRole("link", { name: /^(?:还有 103 场|103 more)$/ })
-          .click();
-      else await root.getByRole("link", { name: /^(日|Day)$/ }).click();
-      await expect(page).toHaveURL(/view=day/);
-      await expect(
-        root
-          .getByRole("link", { name: /Calendar activity 105/ })
-          .filter({ visible: true }),
-      ).toBeVisible();
-      await root.getByRole("link", { name: /^(周|Week)$/ }).click();
-      await expect(page).toHaveURL(/view=week/);
-      await gotoAndWaitForReady(
-        page,
-        `/catalog/young-events/calendar?view=day&date=2035-09-15&organizerId=${marker}&timeBasis=registration`,
-      );
-      await expect(
-        root
-          .getByRole("link", { name: /Calendar activity/ })
-          .filter({ visible: true }),
-      ).toHaveCount(0);
-      await root
-        .getByRole("link", { name: /^(上一段|Previous|上一)/ })
-        .first()
-        .click();
-      await expect(
-        root
-          .getByRole("link", { name: /Calendar activity 105/ })
-          .filter({ visible: true }),
-      ).toBeVisible();
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-      ).toBe(true);
-      await page.screenshot({
-        path: test.info().outputPath(`young-calendar-${width}.png`),
-        fullPage: true,
-      });
-      expect(errors).toEqual([]);
-    } finally {
-      await db.youngEvent.deleteMany({ where: { organizerId: marker } });
-      await db.youngOrganizer.delete({ where: { id: marker } });
-      await db.$disconnect();
-    }
+    "/catalog/young-events/calendar?view=week&date=2035-09-15&category=sport",
+  );
+  await page.getByRole("searchbox").fill("calendar draft");
+  await page.locator("#young-calendar-active").selectOption("false");
+  await page.locator("#young-calendar-time-basis").selectOption("registration");
+  await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+  const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
+  await sheet.locator("#young-calendar-module").selectOption("智");
+  await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("module") === "智",
+  );
+  const params = new URL(page.url()).searchParams;
+  expect(Object.fromEntries(params)).toMatchObject({
+    view: "week",
+    date: "2035-09-15",
+    search: "calendar draft",
+    active: "false",
+    timeBasis: "registration",
+    category: "sport",
   });
+});
+
+for (const width of [1280, 390]) {
+  privateTest(
+    `calendar has all pages, day drilldown, and independent registration times at ${width}px`,
+    async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
+      await run(async () => {
+        const db = isolatedWorker.database.owner;
+        const events: YoungEvent[] = [];
+        const organizers: YoungOrganizer[] = [];
+        await preferenceFlow.run(async () => {
+          const marker = `browser-young-${crypto.randomUUID()}`;
+          const errors: string[] = [];
+          page.on("pageerror", (error) => errors.push(error.message));
+          const organizer = await db.youngOrganizer.create({
+            data: { id: marker, name: marker, normalizedName: marker },
+          });
+          organizers.push(organizer);
+          await db.youngEvent.createMany({
+            data: Array.from({ length: 106 }, (_, index) => ({
+              youngId: `${marker}-${String(index).padStart(3, "0")}`,
+              name: `Calendar activity ${String(index).padStart(3, "0")}`,
+              organizerId: marker,
+              isActive: true,
+              rawJson: {},
+              startAt: new Date("2035-09-15T10:00:00+08:00"),
+              endAt: new Date("2035-09-15T12:00:00+08:00"),
+              applyStartAt: new Date("2035-09-14T08:00:00+08:00"),
+              applyEndAt: new Date("2035-09-14T18:00:00+08:00"),
+            })),
+          });
+          events.push(
+            ...(await db.youngEvent.findMany({
+              orderBy: { youngId: "asc" },
+            })),
+          );
+          expect(events).toHaveLength(106);
+          await page.setViewportSize({ width, height: 844 });
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/young-events/calendar?view=month&date=2035-09-15&organizerId=${marker}`,
+          );
+          const root = page.getByTestId("young-calendar");
+          if (width > 700)
+            await root.getByRole("link", { name: "+101", exact: true }).click();
+          else await root.getByRole("link", { name: /^(日|Day)$/ }).click();
+          await expect(page).toHaveURL(/view=day/);
+          await expect(
+            root
+              .getByRole("link", { name: /Calendar activity 105/ })
+              .filter({ visible: true }),
+          ).toBeVisible();
+          await root.getByRole("link", { name: /^(周|Week)$/ }).click();
+          await expect(page).toHaveURL(/view=week/);
+          await page
+            .locator("#young-calendar-time-basis")
+            .selectOption("registration");
+          await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+          await expect(page).toHaveURL(/timeBasis=registration/);
+          await expect(
+            root.getByRole("link", { name: /^(日|Day)$/ }),
+          ).toHaveAttribute("href", /timeBasis=registration/);
+          await root.getByRole("link", { name: /^(日|Day)$/ }).click();
+          await expect(page).toHaveURL(/view=day/);
+          await expect(
+            root
+              .getByRole("link", { name: /Calendar activity/ })
+              .filter({ visible: true }),
+          ).toHaveCount(0);
+          await root
+            .getByRole("link", { name: /^(上一段|Previous|上一)/ })
+            .first()
+            .click();
+          await expect(
+            root
+              .getByRole("link", { name: /Calendar activity 105/ })
+              .filter({ visible: true }),
+          ).toBeVisible();
+          expect(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= window.innerWidth,
+            ),
+          ).toBe(true);
+          await page.screenshot({
+            path: testInfo.outputPath(`young-calendar-${width}.png`),
+            fullPage: true,
+          });
+          expect(errors).toEqual([]);
+        });
+        expect(
+          await db.youngEvent.findMany({ orderBy: { youngId: "asc" } }),
+        ).toEqual(events);
+        expect(await db.youngOrganizer.findMany()).toEqual(organizers);
+        expect(await db.user.findMany()).toEqual([]);
+        expect(await db.session.findMany()).toEqual([]);
+        expect(await db.userYoungEventSubscription.findMany()).toEqual([]);
+        expect(await db.userYoungOrganizerSubscription.findMany()).toEqual([]);
+        expect(await db.youngNotification.findMany()).toEqual([]);
+        expect(await db.auditLog.findMany()).toEqual([]);
+      });
+    },
+  );
 }
 
 for (const status of [200, 401]) {
