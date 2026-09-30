@@ -404,7 +404,7 @@ requirements:
     - Both inclusive size boundaries are accepted and out-of-range sizes rejected before writes.
     - Duplicate target IDs follow the specified uniqueness policy.
     test:
-      file: tests/integration/graphql-homework-completion-hundred.test.ts
+      file: tests/integration/graphql-homework-completion-batches.test.ts
       name: accepts 100 items and persists every completion
   rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: homework.public-section-read
