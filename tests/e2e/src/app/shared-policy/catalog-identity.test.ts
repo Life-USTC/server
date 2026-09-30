@@ -37,6 +37,7 @@ async function createFixture(db: TestPrismaClient) {
     });
     const user = await tx.user.create({
       data: {
+        id: crypto.randomUUID(),
         name: "Identity display user",
         username: `identity${suffix}`,
         email: `identity-${suffix}@example.test`,
