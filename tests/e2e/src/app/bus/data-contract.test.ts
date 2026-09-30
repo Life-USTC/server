@@ -99,6 +99,7 @@ async function createFixture(db: Prisma.TransactionClient) {
       users.push(
         await db.user.create({
           data: {
+            id: crypto.randomUUID(),
             name,
             username: name,
             email: `${name}@example.test`,
