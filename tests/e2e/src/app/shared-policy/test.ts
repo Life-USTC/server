@@ -1,5 +1,4 @@
 import { expect, type Page, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test as taskFilterTest } from "../../../utils/workspace-task-filters";
@@ -18,12 +17,22 @@ const workspace = {
   subscriptions: ["教学班订阅", "Section Subscriptions"],
 } as const;
 
-async function setLocale(page: Page, locale: string) {
+async function setLocale(
+  page: Page,
+  locale: string,
+  headers?: Record<string, string>,
+) {
+  const response = await page.request.post("/api/account/preferences", {
+    data: { locale },
+    headers,
+  });
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toEqual({ success: true });
   expect(
-    (
-      await page.request.post("/api/account/preferences", { data: { locale } })
-    ).status(),
-  ).toBe(200);
+    (await page.context().cookies(response.url())).find(
+      (cookie) => cookie.name === "NEXT_LOCALE",
+    )?.value,
+  ).toBe(locale);
 }
 
 async function catalogPages(page: Page) {
@@ -260,47 +269,71 @@ test("ui.navigation-landmarks-1", async ({ page }) => {
   }
 });
 
-test("ui.navigation-landmarks-2", async ({ page }) => {
-  await page.setViewportSize(viewports[1]);
-  await signInAsDebugUser(page, "/workspace/overview");
-  for (const locale of locales) {
-    await setLocale(page, locale);
-    await gotoAndWaitForReady(page, "/workspace/overview");
-    await expect(
-      page.getByRole("navigation", {
-        name: locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
-        exact: true,
-      }),
-    ).toBeVisible();
-    await openMobileMenu(page);
-    await expect(
-      page.getByRole("navigation", {
-        name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
-        exact: true,
-      }),
-    ).toBeVisible();
-  }
-});
+taskFilterTest(
+  "ui.navigation-landmarks-2",
+  async ({ page, taskFilterRun }) => {
+    await taskFilterRun(
+      async ({ headers, checkpoint }) => {
+        await page.setViewportSize(viewports[1]);
+        await gotoAndWaitForReady(page, "/workspace/overview");
+        for (const locale of locales) {
+          await setLocale(page, locale, headers);
+          await gotoAndWaitForReady(page, "/workspace/overview");
+          await expect(
+            page.getByRole("navigation", {
+              name: locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
+              exact: true,
+            }),
+          ).toBeVisible();
+          await openMobileMenu(page);
+          await expect(
+            page.getByRole("navigation", {
+              name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+              exact: true,
+            }),
+          ).toBeVisible();
+        }
+        await checkpoint("mobile navigation has no calendar side effects", {
+          calendarMessages: [],
+          calendarTokenCreated: false,
+        });
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
+  },
+);
 
-test("ui.navigation-landmarks-3", async ({ page }) => {
-  await signInAsDebugUser(page, "/workspace/overview");
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    for (const href of [
-      "/workspace/todos",
-      "/catalog/courses",
-      "/account/settings/preferences",
-    ]) {
-      await gotoAndWaitForReady(page, href);
-      if (viewport.width < 768) await openMobileMenu(page);
-      for (const nav of await page.getByRole("navigation").all()) {
-        expect(
-          await nav.locator('[aria-current="page"]').count(),
-        ).toBeLessThanOrEqual(1);
-      }
-    }
-  }
-});
+taskFilterTest(
+  "ui.navigation-landmarks-3",
+  async ({ page, taskFilterRun }) => {
+    await taskFilterRun(
+      async ({ checkpoint }) => {
+        await gotoAndWaitForReady(page, "/workspace/overview");
+        for (const viewport of viewports) {
+          await page.setViewportSize(viewport);
+          for (const href of [
+            "/workspace/todos",
+            "/catalog/courses",
+            "/account/settings/preferences",
+          ]) {
+            await gotoAndWaitForReady(page, href);
+            if (viewport.width < 768) await openMobileMenu(page);
+            for (const nav of await page.getByRole("navigation").all()) {
+              expect(
+                await nav.locator('[aria-current="page"]').count(),
+              ).toBeLessThanOrEqual(1);
+            }
+          }
+        }
+        await checkpoint("navigation does not create a personal calendar token", {
+          calendarMessages: [],
+          calendarTokenCreated: false,
+        });
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
+  },
+);
 
 test("ui.footer-navigation-landmark", async ({ page }) => {
   for (const href of ["/catalog/courses", "/terms", "/privacy"]) {
