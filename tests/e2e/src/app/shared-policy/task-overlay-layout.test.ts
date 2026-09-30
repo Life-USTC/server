@@ -170,6 +170,31 @@ test("ui.layout-principles-5", async ({
             kind === "homework" ? "1/3/99, 12:30 PM" : "Jan 3, 2099, 12:30 PM",
           );
           await expect(relative).toContainText(/left/);
+          // Compare only the two deadline values in this summary, in one
+          // rendered sample. The dialog title is not their local style baseline.
+          const deadlineStyles = await summary
+            .locator(":scope > p")
+            .evaluateAll(async (paragraphs) => {
+              await document.fonts.ready;
+              return paragraphs.slice(1, 3).map((paragraph) => {
+                const style = getComputedStyle(paragraph);
+                return {
+                  size: Number.parseFloat(style.fontSize),
+                  weight: Number.parseInt(style.fontWeight, 10),
+                  color: style.color,
+                };
+              });
+            });
+          expect(deadlineStyles).toHaveLength(2);
+          const [dueStyle, relativeStyle] = deadlineStyles;
+          expect(relativeStyle.size).toBeLessThanOrEqual(dueStyle.size);
+          expect(relativeStyle.weight).toBeLessThanOrEqual(dueStyle.weight);
+          expect(
+            relativeStyle.size < dueStyle.size ||
+              relativeStyle.weight < dueStyle.weight ||
+              relativeStyle.color !== dueStyle.color,
+            "relative urgency must retain distinct supporting emphasis",
+          ).toBe(true);
           const parts = await Promise.all(
             [due, relative, facts, reading].map(bounds),
           );

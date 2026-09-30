@@ -200,6 +200,32 @@ for (const locale of ["en-us", "zh-cn"] as const)
           "history",
         );
 
+        const revision = history.locator('[data-slot="item"]').filter({
+          has: page.getByText(date(f.edit.createdAt), { exact: true }),
+        });
+        await expect(revision).toHaveCount(1);
+        const historyStyles = await revision
+          .locator(".whitespace-pre-wrap")
+          .evaluateAll(async (bodies) => {
+            await document.fonts.ready;
+            const typography = (element: Element) => {
+              const style = getComputedStyle(element);
+              return { size: style.fontSize, lineHeight: style.lineHeight };
+            };
+            return bodies.map((body) => ({
+              base: typography(body),
+              segments: [...body.querySelectorAll("span")].map(typography),
+            }));
+          });
+        expect(historyStyles).toHaveLength(2);
+        // These are peer versions of one revision, including when desktop puts
+        // them in different columns. Diff colors carry meaning and may differ.
+        expect(historyStyles[0].base).toEqual(historyStyles[1].base);
+        for (const body of historyStyles) {
+          expect(body.segments.length).toBeGreaterThan(0);
+          for (const segment of body.segments) expect(segment).toEqual(body.base);
+        }
+
         await page
           .context()
           .addCookies([
