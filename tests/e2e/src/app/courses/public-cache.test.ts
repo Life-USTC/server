@@ -51,6 +51,15 @@ test("signed-in catalog documents remain public while the private shell resolves
             ),
             page.goto("/catalog/courses"),
           ]);
+          if (
+            shellResult.status === "rejected" &&
+            documentResult.status === "rejected"
+          ) {
+            throw new AggregateError(
+              [shellResult.reason, documentResult.reason],
+              "Catalog navigation and private shell response both failed",
+            );
+          }
           if (shellResult.status === "rejected") throw shellResult.reason;
           if (documentResult.status === "rejected") throw documentResult.reason;
           const document = documentResult.value;
