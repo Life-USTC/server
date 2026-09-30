@@ -1,4 +1,3 @@
-import { afterAll, expect, it } from "vitest";
 import {
   getSectionForCalendar,
   getSectionsForCalendar,
@@ -22,42 +21,23 @@ import {
   subscribeUserToSectionByJwId,
   unsubscribeUserFromSectionByJwId,
 } from "@/features/subscriptions/server/subscription-write-model";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
+import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
+import type { TestPrismaClient } from "../shared/prisma";
 
-const db = createFixturePrisma();
-afterAll(async () => {
-  await Promise.all([disconnectTestPrisma(db), runtimePrisma.$disconnect()]);
-});
-
-async function withSections(
-  run: (fixture: Awaited<ReturnType<typeof createSections>>) => Promise<void>,
-) {
-  const fixture = await createSections();
-  try {
-    await run(fixture);
-  } finally {
-    await db.section.deleteMany({ where: { courseId: fixture.course.id } });
-    await db.course.delete({ where: { id: fixture.course.id } });
-    await db.teacher.delete({ where: { id: fixture.teacher.id } });
-    await db.semester.delete({ where: { id: fixture.semester.id } });
-    await db.user.delete({ where: { id: fixture.user.id } });
-  }
-}
-
-async function createSections() {
+async function createSections(db: TestPrismaClient) {
+  return db.$transaction(async (tx) => {
   const marker = crypto.randomUUID();
   const jwId = 2_145_000_000 + Math.floor(Math.random() * 100_000);
-  const semester = await db.semester.create({
+  const semester = await tx.semester.create({
     data: { jwId, code: marker, nameCn: marker },
   });
-  const course = await db.course.create({
+  const course = await tx.course.create({
     data: { jwId, code: marker, nameCn: marker },
   });
-  const teacher = await db.teacher.create({
+  const teacher = await tx.teacher.create({
     data: { jwId, code: marker, nameCn: marker },
   });
-  const user = await db.user.create({
+  const user = await tx.user.create({
     data: { email: `${marker}@retired.test`, name: marker },
   });
   const base = {
@@ -66,10 +46,10 @@ async function createSections() {
     teachers: { connect: { id: teacher.id } },
     sectionSubscriptions: { create: { userId: user.id } },
   };
-  const active = await db.section.create({
+  const active = await tx.section.create({
     data: { ...base, jwId, code: `active-${marker}` },
   });
-  const retired = await db.section.create({
+  const retired = await tx.section.create({
     data: {
       ...base,
       jwId: jwId + 1,
@@ -78,11 +58,12 @@ async function createSections() {
     },
   });
   return { semester, course, teacher, user, active, retired };
+  });
 }
 
-it("section.retired-read-semantics", async () => {
-  await withSections(
-    async ({ semester, course, teacher, user, active, retired }) => {
+it("section.retired-read-semantics", async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
+    const { semester, course, teacher, user, active, retired } = await createSections(db);
       for (const reader of [listSections, listSectionSummaries]) {
         for (const search of [undefined, course.nameCn]) {
           const page = await reader({
@@ -133,12 +114,12 @@ it("section.retired-read-semantics", async () => {
         [active.id, retired.id].sort(),
       );
       expect(subscriptions.pagination.total).toBe(2);
-    },
-  );
+  });
 });
 
-it("section.retired-subscription-mutations", async () => {
-  await withSections(async ({ user, active, retired }) => {
+it("section.retired-subscription-mutations", async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
+    const { user, active, retired } = await createSections(db);
     expect(
       await subscribeUserToSectionByJwId(user.id, retired.jwId),
     ).toBeNull();
