@@ -246,87 +246,92 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   communityTest(
     "已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）",
-    async ({ page, account, community }, testInfo) => {
-      const description = await arrangeDescription(
-        community.db,
-        "teacher",
-        community.teacher.id,
-        account.id,
-      );
-      await gotoAndWaitForReady(
-        page,
-        `/catalog/teachers/${community.teacher.id}#introduction`,
-      );
-      const introduction = page.locator("#introduction");
-      await expect(introduction).toBeVisible();
+    async ({ page, account, community, communityFlow }, testInfo) => {
+      await communityFlow.run(
+        async () => {
+          const description = await arrangeDescription(
+            community.db,
+            "teacher",
+            community.teacher.id,
+            account.id,
+          );
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/teachers/${community.teacher.id}#introduction`,
+          );
+          const introduction = page.locator("#introduction");
+          await expect(introduction).toBeVisible();
 
-      const content = `e2e-teacher-desc-${Date.now()}`;
-      const editor = introduction.locator(
-        '[data-slot="markdown-editor"] textarea',
-      );
-      const editButton = introduction.getByTestId("description-edit");
-      await expect(editButton).toBeVisible({ timeout: 60_000 });
-      await editButton.scrollIntoViewIfNeeded();
-      await editButton.click();
-      await expect(editor).toBeVisible();
-      await editor.fill(content);
+          const content = `e2e-teacher-desc-${Date.now()}`;
+          const editor = introduction.locator(
+            '[data-slot="markdown-editor"] textarea',
+          );
+          const editButton = introduction.getByTestId("description-edit");
+          await expect(editButton).toBeVisible({ timeout: 60_000 });
+          await editButton.scrollIntoViewIfNeeded();
+          await editButton.click();
+          await expect(editor).toBeVisible();
+          await editor.fill(content);
 
-      const saveResponse = page.waitForResponse(
-        (r) =>
-          r.url().includes("/api/community/descriptions") &&
-          r.request().method() === "POST" &&
-          r.status() === 200,
-      );
-      await introduction.getByRole("button", { name: /保存|Save/i }).click();
-      await saveResponse;
-      await waitForUiSettled(page);
+          const saveResponse = page.waitForResponse(
+            (r) =>
+              r.url().includes("/api/community/descriptions") &&
+              r.request().method() === "POST" &&
+              r.status() === 200,
+          );
+          await introduction.getByRole("button", { name: /保存|Save/i }).click();
+          await saveResponse;
+          await waitForUiSettled(page);
 
-      // description.content rendered in the description tabpanel
-      await expect(
-        introduction
-          .getByRole("tabpanel", { name: /简介|Description/i })
-          .getByText(content),
-      ).toBeVisible();
-      // description.lastEditedBy.name
-      await expect(
-        page.getByText(account.name, { exact: false }).first(),
-      ).toBeVisible();
-      // description.lastEditedAt — some date/time text present near description
-      await expect(introduction.getByText(/\d{4}/).first()).toBeVisible();
+          // description.content rendered in the description tabpanel
+          await expect(
+            introduction
+              .getByRole("tabpanel", { name: /简介|Description/i })
+              .getByText(content),
+          ).toBeVisible();
+          // description.lastEditedBy.name
+          await expect(
+            page.getByText(account.name, { exact: false }).first(),
+          ).toBeVisible();
+          // description.lastEditedAt — some date/time text present near description
+          await expect(introduction.getByText(/\d{4}/).first()).toBeVisible();
 
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "teacher/description-updated",
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "teacher/description-updated",
+          );
+          const persisted = await storedDescription(community.db, description.id);
+          expect(persisted).toMatchObject({
+            content,
+            lastEditedById: account.id,
+            lastEditedAt: expect.any(Date),
+          });
+          expect(persisted?.edits).toEqual([
+            expect.objectContaining({
+              editorId: account.id,
+              previousContent: supplement,
+              nextContent: content,
+            }),
+          ]);
+          await expect
+            .poll(() => storedDescriptionAudits(community.db, description.id))
+            .toEqual([
+              expect.objectContaining({
+                userId: account.id,
+                action: "description_edit",
+                outcome: "success",
+              }),
+            ]);
+          await page.reload();
+          await expect(
+            introduction
+              .getByRole("tabpanel", { name: /简介|Description/i })
+              .getByText(content),
+          ).toBeVisible();
+        },
+        { auditActions: { description_edit: 1 }, catalogPurges: 1 },
       );
-      const persisted = await storedDescription(community.db, description.id);
-      expect(persisted).toMatchObject({
-        content,
-        lastEditedById: account.id,
-        lastEditedAt: expect.any(Date),
-      });
-      expect(persisted?.edits).toEqual([
-        expect.objectContaining({
-          editorId: account.id,
-          previousContent: supplement,
-          nextContent: content,
-        }),
-      ]);
-      await expect
-        .poll(() => storedDescriptionAudits(community.db, description.id))
-        .toEqual([
-          expect.objectContaining({
-            userId: account.id,
-            action: "description_edit",
-            outcome: "success",
-          }),
-        ]);
-      await page.reload();
-      await expect(
-        introduction
-          .getByRole("tabpanel", { name: /简介|Description/i })
-          .getByText(content),
-      ).toBeVisible();
     },
   );
 
@@ -334,145 +339,156 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   communityTest(
     "已登录用户可发布、编辑与删除评论",
-    async ({ page, account, community }, testInfo) => {
-      await gotoAndWaitForReady(
-        page,
-        `/catalog/teachers/${community.teacher.id}#comments`,
+    async ({ page, account, community, communityFlow }, testInfo) => {
+      await communityFlow.run(
+        async () => {
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/teachers/${community.teacher.id}#comments`,
+          );
+          await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+          const composer = await openCommentComposer(page);
+          const anonymousCheckbox = page
+            .locator("#comments")
+            .getByRole("checkbox", {
+              name: /匿名|Anonymous/i,
+            });
+          await expect(anonymousCheckbox).not.toBeChecked();
+
+          const body = `e2e-teacher-comment-${Date.now()}`;
+          await composer.fill(body);
+          const createResponse = page.waitForResponse(
+            (r) =>
+              r.url().includes("/api/community/comments") &&
+              r.request().method() === "POST" &&
+              r.status() === 201,
+          );
+          await page
+            .locator("#comments")
+            .getByRole("button", { name: /发布评论|Post comment/i })
+            .click();
+          const createdCommentResponse = await createResponse;
+          const createResponseBody = (await createdCommentResponse.json()) as {
+            id: string;
+          };
+          expect(createResponseBody.id).toBeTruthy();
+          const commentId = createResponseBody.id;
+          expect(await storedComment(community.db, commentId)).toMatchObject({
+            userId: account.id,
+            teacherId: community.teacher.id,
+            body,
+            isAnonymous: false,
+            status: "active",
+          });
+          await waitForUiSettled(page);
+
+          const commentCard = page
+            .locator('[id^="comment-"]')
+            .filter({ hasText: body })
+            .first();
+          await expect(commentCard).toBeVisible();
+          await expect(
+            page
+              .locator("[data-sonner-toast]")
+              .filter({ hasText: /评论已发布|Comment posted/i }),
+          ).toBeVisible();
+          // comment.body
+          await expect(commentCard.getByText(body).first()).toBeVisible();
+          // comment.createdAt (timestamp text)
+          await expect(
+            commentCard.getByText(/ago|\d{4}|\d+\s*(分钟|小时|天)/i).first(),
+          ).toBeVisible();
+          await captureStepScreenshot(page, testInfo, "teacher/comment-posted");
+
+          // Edit
+          await commentCard.hover();
+          await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
+          const editedBody = `${body}-edited`;
+          const editCard = page
+            .locator('[id^="comment-"]')
+            .filter({ has: page.locator(".sr-only", { hasText: body }) })
+            .first();
+          const editTextarea = editCard
+            .getByRole("textbox", {
+              name: /编辑评论内容|Edit comment body/i,
+            })
+            .first();
+          await expect(editTextarea).toBeVisible();
+          await editTextarea.fill(editedBody);
+          const editResponse = page.waitForResponse(
+            (r) =>
+              r.url().includes("/api/community/comments/") &&
+              r.request().method() === "PATCH" &&
+              r.status() === 200,
+          );
+          await editCard.getByRole("button", { name: /保存|Save/i }).click();
+          await editResponse;
+          expect(await storedComment(community.db, commentId)).toMatchObject({
+            body: editedBody,
+            userId: account.id,
+            status: "active",
+          });
+          await waitForUiSettled(page);
+          await expect(page.getByText(editedBody).first()).toBeVisible();
+          const editedCommentCard = page
+            .locator('[id^="comment-"]')
+            .filter({ hasText: editedBody })
+            .first();
+          await expect(editedCommentCard).toBeVisible();
+          await expect(
+            page
+              .locator("[data-sonner-toast]")
+              .filter({ hasText: /评论已更新|Comment updated/i }),
+          ).toBeVisible();
+
+          // The share route and a reload consume the persisted edit.
+          await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
+          await expect(editedCommentCard).toContainText(editedBody);
+          await page.reload();
+          await expect(editedCommentCard).toContainText(editedBody);
+
+          // Delete
+          await editedCommentCard.hover();
+          await editedCommentCard
+            .getByRole("button", { name: /更多操作|More actions/i })
+            .first()
+            .click();
+          await expect(
+            page.getByRole("menuitem", { name: /举报|Report/i }),
+          ).toHaveCount(0);
+          const deleteResponse = page.waitForResponse(
+            (r) =>
+              r.url().includes("/api/community/comments/") &&
+              r.request().method() === "DELETE" &&
+              r.status() === 200,
+          );
+          await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
+          const dialog = page.getByRole("alertdialog", {
+            name: /删除评论|Delete Comment/i,
+          });
+          await expect(dialog).toBeVisible();
+          await dialog.getByRole("button", { name: /删除|Delete/i }).click();
+          await deleteResponse;
+          expect(await storedComment(community.db, commentId)).toMatchObject({
+            status: "deleted",
+            deletedAt: expect.any(Date),
+          });
+          await expect(
+            page
+              .locator("[data-sonner-toast]")
+              .filter({ hasText: /评论已删除|Comment deleted/i }),
+          ).toBeVisible();
+          await expect(page.locator(`#comment-${commentId}`)).toHaveCount(0);
+          await captureStepScreenshot(page, testInfo, "teacher/comment-deleted");
+        },
+        {
+          auditActions: {
+            comment_create: 1,
+            comment_edit: 1,
+            comment_delete: 1,
+          },
+        },
       );
-      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
-      const composer = await openCommentComposer(page);
-      const anonymousCheckbox = page
-        .locator("#comments")
-        .getByRole("checkbox", {
-          name: /匿名|Anonymous/i,
-        });
-      await expect(anonymousCheckbox).not.toBeChecked();
-
-      const body = `e2e-teacher-comment-${Date.now()}`;
-      await composer.fill(body);
-      const createResponse = page.waitForResponse(
-        (r) =>
-          r.url().includes("/api/community/comments") &&
-          r.request().method() === "POST" &&
-          r.status() === 201,
-      );
-      await page
-        .locator("#comments")
-        .getByRole("button", { name: /发布评论|Post comment/i })
-        .click();
-      const createdCommentResponse = await createResponse;
-      const createResponseBody = (await createdCommentResponse.json()) as {
-        id: string;
-      };
-      expect(createResponseBody.id).toBeTruthy();
-      const commentId = createResponseBody.id;
-      expect(await storedComment(community.db, commentId)).toMatchObject({
-        userId: account.id,
-        teacherId: community.teacher.id,
-        body,
-        isAnonymous: false,
-        status: "active",
-      });
-      await waitForUiSettled(page);
-
-      const commentCard = page
-        .locator('[id^="comment-"]')
-        .filter({ hasText: body })
-        .first();
-      await expect(commentCard).toBeVisible();
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: /评论已发布|Comment posted/i }),
-      ).toBeVisible();
-      // comment.body
-      await expect(commentCard.getByText(body).first()).toBeVisible();
-      // comment.createdAt (timestamp text)
-      await expect(
-        commentCard.getByText(/ago|\d{4}|\d+\s*(分钟|小时|天)/i).first(),
-      ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "teacher/comment-posted");
-
-      // Edit
-      await commentCard.hover();
-      await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
-      const editedBody = `${body}-edited`;
-      const editCard = page
-        .locator('[id^="comment-"]')
-        .filter({ has: page.locator(".sr-only", { hasText: body }) })
-        .first();
-      const editTextarea = editCard
-        .getByRole("textbox", {
-          name: /编辑评论内容|Edit comment body/i,
-        })
-        .first();
-      await expect(editTextarea).toBeVisible();
-      await editTextarea.fill(editedBody);
-      const editResponse = page.waitForResponse(
-        (r) =>
-          r.url().includes("/api/community/comments/") &&
-          r.request().method() === "PATCH" &&
-          r.status() === 200,
-      );
-      await editCard.getByRole("button", { name: /保存|Save/i }).click();
-      await editResponse;
-      expect(await storedComment(community.db, commentId)).toMatchObject({
-        body: editedBody,
-        userId: account.id,
-        status: "active",
-      });
-      await waitForUiSettled(page);
-      await expect(page.getByText(editedBody).first()).toBeVisible();
-      const editedCommentCard = page
-        .locator('[id^="comment-"]')
-        .filter({ hasText: editedBody })
-        .first();
-      await expect(editedCommentCard).toBeVisible();
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: /评论已更新|Comment updated/i }),
-      ).toBeVisible();
-
-      // The share route and a reload consume the persisted edit.
-      await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
-      await expect(editedCommentCard).toContainText(editedBody);
-      await page.reload();
-      await expect(editedCommentCard).toContainText(editedBody);
-
-      // Delete
-      await editedCommentCard.hover();
-      await editedCommentCard
-        .getByRole("button", { name: /更多操作|More actions/i })
-        .first()
-        .click();
-      await expect(
-        page.getByRole("menuitem", { name: /举报|Report/i }),
-      ).toHaveCount(0);
-      const deleteResponse = page.waitForResponse(
-        (r) =>
-          r.url().includes("/api/community/comments/") &&
-          r.request().method() === "DELETE" &&
-          r.status() === 200,
-      );
-      await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-      const dialog = page.getByRole("alertdialog", {
-        name: /删除评论|Delete Comment/i,
-      });
-      await expect(dialog).toBeVisible();
-      await dialog.getByRole("button", { name: /删除|Delete/i }).click();
-      await deleteResponse;
-      expect(await storedComment(community.db, commentId)).toMatchObject({
-        status: "deleted",
-        deletedAt: expect.any(Date),
-      });
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: /评论已删除|Comment deleted/i }),
-      ).toBeVisible();
-      await expect(page.locator(`#comment-${commentId}`)).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "teacher/comment-deleted");
     },
   );
 });
