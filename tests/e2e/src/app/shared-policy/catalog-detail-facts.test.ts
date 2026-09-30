@@ -67,6 +67,7 @@ test("ui.detail-two-column-stream-4", async ({
       });
       const user = await db.user.create({
         data: {
+          id: crypto.randomUUID(),
           email: `${fixture.marker}@example.test`,
           name: "Catalog facts viewer",
           username: fixture.marker,
