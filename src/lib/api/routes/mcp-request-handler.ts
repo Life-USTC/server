@@ -1,5 +1,11 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  isJSONRPCErrorResponse,
+  isJSONRPCRequest,
+  isJSONRPCResultResponse,
+  type RequestId,
+} from "@modelcontextprotocol/sdk/types.js";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { rateLimitResponse } from "@/lib/api/helpers";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -42,13 +48,24 @@ async function finishMcpOAuthUsage(
   outcome: "success" | "error",
 ) {
   await Promise.all(
-    usage.map((input) =>
-      scheduleOAuthGrantUsage({
-        ...input,
-        channel: "mcp",
-        outcome,
-      }),
-    ),
+    usage.map(async (input) => {
+      try {
+        await scheduleOAuthGrantUsage({
+          ...input,
+          channel: "mcp",
+          outcome,
+        });
+      } catch (error) {
+        // Informational bookkeeping must not change the protocol result.
+        try {
+          logAppEvent("error", "mcp.oauth_usage.failed", {
+            errorName: getSafeErrorName(error),
+          });
+        } catch {
+          // A failed diagnostic must not leave an unhandled usage task.
+        }
+      }
+    }),
   );
 }
 
@@ -59,7 +76,13 @@ export async function handleMcpRequest(request: Request) {
   const logContext = { correlationId, request, requestUrl };
   let rpcSummary: McpRequestSummary | null = null;
   let toolCount: number | undefined;
-  let oauthUsage: McpOAuthUsage[] = [];
+  // Populated only after body validation guarantees unique batch request IDs.
+  const oauthUsage = new Map<RequestId, McpOAuthUsage>();
+  const failPendingOAuthUsage = () => {
+    const pending = [...oauthUsage.values()];
+    oauthUsage.clear();
+    return finishMcpOAuthUsage(pending, "error");
+  };
   logMcpTransportRequest(logContext);
 
   try {
@@ -126,25 +149,34 @@ export async function handleMcpRequest(request: Request) {
     }
 
     if (authInfo && typeof authInfo.extra?.userId === "string") {
-      oauthUsage = toolCallNames.flatMap((toolName) => {
+      const messages = Array.isArray(bodyResult.body)
+        ? bodyResult.body
+        : [bodyResult.body];
+      for (const message of messages) {
+        if (!isJSONRPCRequest(message)) continue;
+        if (
+          message.method !== "tools/call" ||
+          typeof message.params?.name !== "string"
+        ) {
+          continue;
+        }
+        const toolName = message.params.name;
         // graphql_operation_run records each selected field through its
         // GraphQL principal while retaining the MCP channel.
-        if (toolName === "graphql_operation_run") return [];
+        if (toolName === "graphql_operation_run") continue;
         const usage = getMcpToolUsageCategory(toolName);
-        if (!usage) return [];
-        return [
-          {
-            userId: authInfo.extra?.userId as string,
-            clientId: authInfo.clientId,
-            grantId:
-              typeof authInfo.extra?.grantId === "string"
-                ? authInfo.extra.grantId
-                : undefined,
-            feature: usage.feature,
-            action: usage.action,
-          },
-        ];
-      });
+        if (!usage) continue;
+        oauthUsage.set(message.id, {
+          userId: authInfo.extra.userId,
+          clientId: authInfo.clientId,
+          grantId:
+            typeof authInfo.extra.grantId === "string"
+              ? authInfo.extra.grantId
+              : undefined,
+          feature: usage.feature,
+          action: usage.action,
+        });
+      }
     }
 
     const { summarizeMcpJsonRpcBody } = await import("@/lib/mcp/observability");
@@ -176,7 +208,7 @@ export async function handleMcpRequest(request: Request) {
             status: response.status,
             start,
           });
-          await finishMcpOAuthUsage(oauthUsage, "error");
+          await failPendingOAuthUsage();
           return withMcpCors(request, response);
         }
       }
@@ -185,6 +217,28 @@ export async function handleMcpRequest(request: Request) {
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
+    const send = transport.send.bind(transport);
+    transport.send = (message, options) => {
+      if (
+        (isJSONRPCResultResponse(message) || isJSONRPCErrorResponse(message)) &&
+        message.id !== undefined
+      ) {
+        const usage = oauthUsage.get(message.id);
+        if (usage) {
+          oauthUsage.delete(message.id);
+          const outcome =
+            isJSONRPCErrorResponse(message) ||
+            (isJSONRPCResultResponse(message) && message.result.isError === true)
+              ? "error"
+              : "success";
+          // The SDK has completed input/callback/output validation. Register
+          // waitUntil before send can close the response and release its scope.
+          // Delivery failure must not recount this completed operation.
+          void finishMcpOAuthUsage([usage], outcome);
+        }
+      }
+      return send(message, options);
+    };
     const { createMcpServer } = await import("@/lib/mcp/server");
     const server = createMcpServer();
     toolCount = getRegisteredMcpToolCount(server);
@@ -219,13 +273,8 @@ export async function handleMcpRequest(request: Request) {
           parsedBody: bodyResult.body,
         }),
     );
+    if (res.status >= 400) await failPendingOAuthUsage();
     const responseInspection = await inspectMcpResponse(res);
-    await finishMcpOAuthUsage(
-      oauthUsage,
-      responseInspection.hasError || responseInspection.truncated
-        ? "error"
-        : "success",
-    );
     recordAndLogMcpResponse({
       context: logContext,
       hasError: responseInspection.hasError,
@@ -240,7 +289,7 @@ export async function handleMcpRequest(request: Request) {
     });
     return withMcpCors(request, res);
   } catch (error) {
-    await finishMcpOAuthUsage(oauthUsage, "error");
+    await failPendingOAuthUsage();
     recordAndLogMcpResponse({
       context: logContext,
       errorName: getSafeErrorName(error),
