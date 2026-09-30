@@ -22,9 +22,10 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
   createCalendar,
   oauthOwner,
 }) => {
-  await calendarProtocolRun(async ({ request, mcp }) => {
+  await calendarProtocolRun(async ({ request, mcp, observeCalendar }) => {
     const db = isolatedWorker.database.owner;
     const fixture = await createCalendar();
+    await observeCalendar(fixture.users[0], []);
     await page
       .context()
       .addCookies([
@@ -237,145 +238,184 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
       foreignBody.data.map((item: { title: string }) => item.title).sort(),
     ).toEqual([fixture.young.name, "Foreign calendar task"].sort());
     // Runs only after browser, API, SDK and real server waitUntil work drain.
-    return async () => {
-      const consents = await db.oAuthConsent.findMany({
-        select: {
-          clientId: true,
-          userId: true,
-          grantId: true,
-          scopes: true,
-          resources: true,
-          requestedUserInfoClaims: true,
-        },
-      });
-      expect(consents).toEqual([
-        {
-          clientId: token.clientId,
-          userId: fixture.users[0].id,
-          grantId: expect.any(String),
-          scopes: [scope],
-          resources: [resource],
-          requestedUserInfoClaims: [],
-        },
-      ]);
-      const { grantId } = consents[0];
-      expect(grantId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
-      expect(
-        await db.auditLog.findMany({
-          select: {
-            action: true,
-            outcome: true,
-            channel: true,
-            userId: true,
-            subjectUserId: true,
-            targetId: true,
-            targetType: true,
-            oauthClientId: true,
-            oauthGrantId: true,
-            sessionId: true,
-            metadata: true,
-          },
-        }),
-      ).toEqual([
-        {
-          action: "oauth_authorization_grant",
-          outcome: "success",
-          channel: "web",
-          userId: fixture.users[0].id,
-          subjectUserId: fixture.users[0].id,
-          targetId: token.clientId,
-          targetType: "oauth_client",
-          oauthClientId: token.clientId,
-          oauthGrantId: grantId,
-          sessionId: ownerSessionId,
-          metadata: {
-            changedFields: ["resources", "scopes", "userinfoClaims"],
-            resourceCount: 1,
-            scopeCount: 1,
-          },
-        },
-      ]);
-      expect(
-        await db.user.findMany({
-          orderBy: { id: "asc" },
-          select: { id: true, calendarFeedToken: true },
-        }),
-      ).toEqual(
-        fixture.users
-          .map(({ id }) => ({
-            id,
-            calendarFeedToken: null,
-          }))
-          .sort((left, right) => left.id.localeCompare(right.id)),
-      );
-      const usage = await db.oAuthGrantUsageDaily.findMany({
-        orderBy: { day: "asc" },
-        select: {
-          userId: true,
-          clientId: true,
-          grantId: true,
-          grantKey: true,
-          day: true,
-          feature: true,
-          channel: true,
-          readCount: true,
-          writeCount: true,
-          errorCount: true,
-          lastUsedAt: true,
-        },
-      });
-      expect(usage.length).toBeGreaterThanOrEqual(1);
-      expect(usage.length).toBeLessThanOrEqual(2);
-      expect(usage.reduce((sum, row) => sum + row.readCount, 0)).toBe(2);
-      for (const row of usage) {
-        expect(row).toMatchObject({
-          userId: fixture.users[0].id,
-          clientId: token.clientId,
-          grantId,
-          grantKey: `grant:${grantId}`,
-          feature: "workspace.calendar",
-          channel: "mcp",
-          writeCount: 0,
-          // Successful large responses remain successes even when an observer
-          // cannot inspect their entire payload. Do not bless truncation as error.
-          errorCount: 0,
-        });
-      }
-      // Independently enumerate only the day assignments allowed by these two
-      // call intervals, including a call that crosses Shanghai midnight.
-      const day = (time: number) =>
-        new Date(time + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      expect(callWindows).toHaveLength(2);
-      const days = callWindows.map(({ start, end }) => [
-        ...new Set([day(start), day(end)]),
-      ]);
-      const assignments = days[0].flatMap((first) =>
-        days[1].map((second) => [first, second]),
-      );
-      expect(
-        assignments.some((assignment) => {
-          const expectedDays = [...new Set(assignment)].sort();
-          return (
-            expectedDays.length === usage.length &&
-            expectedDays.every((expectedDay, index) => {
-              const contributors = callWindows.filter(
-                (_, call) => assignment[call] === expectedDay,
-              );
-              const row = usage[index];
-              const last = row.lastUsedAt.getTime();
-              return (
-                row.day.toISOString() === `${expectedDay}T00:00:00.000Z` &&
-                row.readCount === contributors.length &&
-                day(last) === expectedDay &&
-                last >= Math.max(...contributors.map(({ start }) => start)) &&
-                last <= Math.max(...contributors.map(({ end }) => end))
-              );
-            })
+    return {
+      async verifyTransport({ effects, sdkRequests }) {
+        for (const [method, path, count, status] of [
+          ["GET", "/api/workspace/calendar/events", 9, 200],
+          ["POST", "/api/graphql", 8, 200],
+          ["POST", "/api/auth/oauth2/register", 1, 201],
+          ["GET", "/api/auth/oauth2/authorize", 1, 302],
+          ["POST", "/oauth/authorize", 1, 200],
+          ["POST", "/api/auth/oauth2/token", 1, 200],
+        ] as const) {
+          const producers = effects.requests.filter(
+            (native: { value: { method: string; path: string } }) =>
+              native.value.method === method && native.value.path === path,
           );
-        }),
-      ).toBe(true);
+          expect(producers).toHaveLength(count);
+          for (const producer of producers)
+            expect(producer.result).toBe(status);
+        }
+        expect(
+          sdkRequests
+            .map((read) => `${read.method} ${read.rpc ?? "stream"}`)
+            .sort(),
+        ).toEqual([
+          "GET stream",
+          "POST initialize",
+          "POST notifications/initialized",
+          "POST tools/call",
+          "POST tools/call",
+        ]);
+        expect(
+          sdkRequests
+            .filter((request) => request.rpc === "tools/call")
+            .map((request) => request.tool),
+        ).toEqual([
+          "workspace_calendar_event_list",
+          "workspace_calendar_event_list",
+        ]);
+      },
+      async verifyState() {
+        const consents = await db.oAuthConsent.findMany({
+          select: {
+            clientId: true,
+            userId: true,
+            grantId: true,
+            scopes: true,
+            resources: true,
+            requestedUserInfoClaims: true,
+          },
+        });
+        expect(consents).toEqual([
+          {
+            clientId: token.clientId,
+            userId: fixture.users[0].id,
+            grantId: expect.any(String),
+            scopes: [scope],
+            resources: [resource],
+            requestedUserInfoClaims: [],
+          },
+        ]);
+        const { grantId } = consents[0];
+        expect(grantId).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        );
+        expect(
+          await db.auditLog.findMany({
+            select: {
+              action: true,
+              outcome: true,
+              channel: true,
+              userId: true,
+              subjectUserId: true,
+              targetId: true,
+              targetType: true,
+              oauthClientId: true,
+              oauthGrantId: true,
+              sessionId: true,
+              metadata: true,
+            },
+          }),
+        ).toEqual([
+          {
+            action: "oauth_authorization_grant",
+            outcome: "success",
+            channel: "web",
+            userId: fixture.users[0].id,
+            subjectUserId: fixture.users[0].id,
+            targetId: token.clientId,
+            targetType: "oauth_client",
+            oauthClientId: token.clientId,
+            oauthGrantId: grantId,
+            sessionId: ownerSessionId,
+            metadata: {
+              changedFields: ["resources", "scopes", "userinfoClaims"],
+              resourceCount: 1,
+              scopeCount: 1,
+            },
+          },
+        ]);
+        expect(
+          await db.user.findMany({
+            orderBy: { id: "asc" },
+            select: { id: true, calendarFeedToken: true },
+          }),
+        ).toEqual(
+          fixture.users
+            .map(({ id }) => ({
+              id,
+              calendarFeedToken: null,
+            }))
+            .sort((left, right) => left.id.localeCompare(right.id)),
+        );
+        const usage = await db.oAuthGrantUsageDaily.findMany({
+          orderBy: { day: "asc" },
+          select: {
+            userId: true,
+            clientId: true,
+            grantId: true,
+            grantKey: true,
+            day: true,
+            feature: true,
+            channel: true,
+            readCount: true,
+            writeCount: true,
+            errorCount: true,
+            lastUsedAt: true,
+          },
+        });
+        expect(usage.length).toBeGreaterThanOrEqual(1);
+        expect(usage.length).toBeLessThanOrEqual(2);
+        expect(usage.reduce((sum, row) => sum + row.readCount, 0)).toBe(2);
+        for (const row of usage) {
+          expect(row).toMatchObject({
+            userId: fixture.users[0].id,
+            clientId: token.clientId,
+            grantId,
+            grantKey: `grant:${grantId}`,
+            feature: "workspace.calendar",
+            channel: "mcp",
+            writeCount: 0,
+            // Successful large responses remain successes even when an observer
+            // cannot inspect their entire payload. Do not bless truncation as error.
+            errorCount: 0,
+          });
+        }
+        // Independently enumerate only the day assignments allowed by these two
+        // call intervals, including a call that crosses Shanghai midnight.
+        const day = (time: number) =>
+          new Date(time + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        expect(callWindows).toHaveLength(2);
+        const days = callWindows.map(({ start, end }) => [
+          ...new Set([day(start), day(end)]),
+        ]);
+        const assignments = days[0].flatMap((first) =>
+          days[1].map((second) => [first, second]),
+        );
+        expect(
+          assignments.some((assignment) => {
+            const expectedDays = [...new Set(assignment)].sort();
+            return (
+              expectedDays.length === usage.length &&
+              expectedDays.every((expectedDay, index) => {
+                const contributors = callWindows.filter(
+                  (_, call) => assignment[call] === expectedDay,
+                );
+                const row = usage[index];
+                const last = row.lastUsedAt.getTime();
+                return (
+                  row.day.toISOString() === `${expectedDay}T00:00:00.000Z` &&
+                  row.readCount === contributors.length &&
+                  day(last) === expectedDay &&
+                  last >= Math.max(...contributors.map(({ start }) => start)) &&
+                  last <= Math.max(...contributors.map(({ end }) => end))
+                );
+              })
+            );
+          }),
+        ).toBe(true);
+      },
     };
   });
 });
