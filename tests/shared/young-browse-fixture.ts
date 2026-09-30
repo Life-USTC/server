@@ -93,14 +93,3 @@ export async function createYoungBrowseFixture(
 export type YoungBrowseFixture = Awaited<
   ReturnType<typeof createYoungBrowseFixture>
 >;
-export async function cleanupYoungBrowseFixture(
-  db: TestPrismaClient,
-  fixture: YoungBrowseFixture,
-) {
-  await db.youngEvent.deleteMany({
-    where: { youngId: { startsWith: fixture.marker } },
-  });
-  await db.youngOrganizer.deleteMany({
-    where: { id: { in: fixture.organizerIds } },
-  });
-}
