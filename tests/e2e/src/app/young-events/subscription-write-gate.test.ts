@@ -7,6 +7,19 @@ import { withHomeworkEffects } from "../../../utils/homework-effects";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { test as workerTest } from "../../../utils/owned-worker";
 
+async function joinClickAndResponse(
+  click: Promise<void>,
+  response: Promise<unknown>,
+) {
+  const results = await Promise.allSettled([click, response]);
+  const failures = results.flatMap((result) =>
+    result.status === "rejected" ? [result.reason] : [],
+  );
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1)
+    throw new AggregateError(failures, "Young click and response failed");
+}
+
 async function prepareGate(worker: IsolatedWorker) {
   const state = await worker.database.owner.$transaction(async (db) => {
     await db.semester.create({
@@ -52,8 +65,11 @@ const test = workerTest.extend<{
                 account: gate.fixture.users[0],
                 testInfo,
                 runBody: workflow.body,
-                // The deliberate 503 below tests read recovery. Writes still
-                // reach the real Worker; only event unsubscribe rebuilds ICS.
+                // The 503 is local; targeted real GET/401 callbacks below are
+                // tagged and joined. Other document GETs are not individually
+                // correlated in this mutation scenario.
+                observeReads: false,
+                // Only the successful event unsubscribe rebuilds ICS.
                 calendarMessages: [
                   { type: "user", userId: gate.fixture.users[0].id },
                 ],
@@ -117,43 +133,61 @@ test("young-event.subscription-write-gate", async ({
       page.on("close", releaseGates);
       const handler = (route: Route) => {
         const operation = (async () => {
-          if (route.request().method() === "GET" && failRead) {
-            enterRead();
-            await held;
-            await route.fulfill({
-              status: 503,
-              contentType: "application/json",
-              body: JSON.stringify({ error: "Fixture read unavailable" }),
-            });
-            return;
-          }
-          if (route.request().method() === "PUT") {
-            writes++;
-            if (rejectWrite) {
+          try {
+            if (route.request().method() === "GET" && failRead) {
+              enterRead();
+              await held;
+              await route.fulfill({
+                status: 503,
+                contentType: "application/json",
+                body: JSON.stringify({ error: "Fixture read unavailable" }),
+              });
+              return;
+            }
+            if (route.request().method() === "GET") {
               const response = await route.fetch({
-                headers: {
-                  ...route.request().headers(),
-                  ...headers,
-                  cookie: "",
-                },
+                headers: { ...route.request().headers(), ...headers },
                 maxRedirects: 0,
               });
-              expect(response.status()).toBe(401);
+              expect(response.status()).toBe(200);
               await response.body();
               await route.fulfill({ response });
               return;
             }
+            if (route.request().method() === "PUT") {
+              writes++;
+              if (rejectWrite) {
+                const response = await route.fetch({
+                  headers: {
+                    ...route.request().headers(),
+                    ...headers,
+                    cookie: "",
+                  },
+                  maxRedirects: 0,
+                });
+                expect(response.status()).toBe(401);
+                await response.body();
+                await route.fulfill({ response });
+                return;
+              }
+            }
+            // Successful PUTs pass through the existing write/effect owner.
+            await route.fallback();
+          } catch (error) {
+            failures.push(error);
+            // A rejected handler must not leave the browser request parked.
+            try {
+              await route.abort();
+            } catch (abortError) {
+              failures.push(abortError);
+            }
+            throw error;
           }
-          // Successful PUTs pass through the existing write/effect owner.
-          await route.fallback();
         })();
         pending.add(operation);
         void operation.then(
           () => pending.delete(operation),
-          (error) => {
-            failures.push(error);
-            pending.delete(operation);
-          },
+          () => pending.delete(operation),
         );
         return operation;
       };
@@ -177,7 +211,7 @@ test("young-event.subscription-write-gate", async ({
         await expect(action).toBeEnabled();
         expect(writes).toBe(0);
         const readState = async () => {
-          const response = await page.request.get(endpoint);
+          const response = await page.request.get(endpoint, { headers });
           expect(response.status()).toBe(200);
           return response.json();
         };
@@ -203,7 +237,7 @@ test("young-event.subscription-write-gate", async ({
             response.request().method() === "PUT" &&
             response.status() === 401,
         );
-        await Promise.all([action.click(), rejection]);
+        await joinClickAndResponse(action.click(), rejection);
         await expect(action).toBeEnabled();
         expect(await readState()).toEqual(before);
         expect(writes).toBe(1);
@@ -218,7 +252,7 @@ test("young-event.subscription-write-gate", async ({
             response.request().method() === "PUT" &&
             response.status() === 200,
         );
-        await Promise.all([action.click(), saved]);
+        await joinClickAndResponse(action.click(), saved);
         await expect(
           page.getByRole("button", {
             name: kind === "event" ? "Subscribe to event" : "Follow organizer",
