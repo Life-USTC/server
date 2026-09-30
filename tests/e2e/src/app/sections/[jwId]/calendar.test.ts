@@ -2,10 +2,13 @@
  * E2E: /catalog/sections/[jwId] — Section detail calendar and iCal export
  */
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import {
+  test as overlayTest,
+  signInPrivateDebugUser,
+} from "../../catalog-personal-overlay-fixture";
 import { jumpToSection } from "./_helpers";
 
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
@@ -149,65 +152,68 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/exam-calendar");
   });
 
-  test("日历导出弹窗显示公开 iCal URL 且不暴露私人订阅凭据", async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(60_000);
-    await page
-      .context()
-      .grantPermissions(["clipboard-read", "clipboard-write"]);
-    await signInAsDebugUser(page, SECTION_URL);
+  overlayTest(
+    "日历导出弹窗显示公开 iCal URL 且不暴露私人订阅凭据",
+    async ({ page, overlay }, testInfo) => {
+      await overlay.run({ loginRedirect: SECTION_URL }, async () => {
+        test.setTimeout(60_000);
+        await page
+          .context()
+          .grantPermissions(["clipboard-read", "clipboard-write"]);
+        await signInPrivateDebugUser(page, SECTION_URL);
 
-    const calendarButton = page
-      .getByTestId("detail-pinned-summary")
-      .getByRole("button", { name: /添加到日历|Add to calendar/i })
-      .first();
-    await expect(calendarButton).toBeVisible();
+        const calendarButton = page
+          .getByTestId("detail-pinned-summary")
+          .getByRole("button", { name: /添加到日历|Add to calendar/i })
+          .first();
+        await expect(calendarButton).toBeVisible();
 
-    await calendarButton.click();
-    const calDialog = page.locator('[data-slot="dialog-content"]').first();
-    await expect(calDialog).toBeVisible();
+        await calendarButton.click();
+        const calDialog = page.locator('[data-slot="dialog-content"]').first();
+        await expect(calDialog).toBeVisible();
 
-    // iCalendar URL (ical.yml → section-calendar-dialog.display.fields)
-    const singleUrl = calDialog.locator("#calendar-url");
-    const subscriptionUrl = calDialog.locator("#subscription-url");
-    await expect(singleUrl).toBeVisible();
+        // iCalendar URL (ical.yml → section-calendar-dialog.display.fields)
+        const singleUrl = calDialog.locator("#calendar-url");
+        const subscriptionUrl = calDialog.locator("#subscription-url");
+        await expect(singleUrl).toBeVisible();
 
-    // Single section URL
-    const singleValue = await singleUrl.inputValue();
-    expect(singleValue).toContain(
-      `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
-    );
+        // Single section URL
+        const singleValue = await singleUrl.inputValue();
+        expect(singleValue).toContain(
+          `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
+        );
 
-    // Long-lived private feed credentials are only revealed from the
-    // recent-authenticated subscriptions workspace, never a public section.
-    const subscriptionValue = await subscriptionUrl.inputValue();
-    expect(subscriptionValue).toMatch(
-      /前往订阅页|Open subscriptions to securely view your personal feed/i,
-    );
-    await expect(subscriptionUrl).toBeDisabled();
-    expect(subscriptionValue).not.toContain("/api/calendar-feeds/");
+        // Long-lived private feed credentials are only revealed from the
+        // recent-authenticated subscriptions workspace, never a public section.
+        const subscriptionValue = await subscriptionUrl.inputValue();
+        expect(subscriptionValue).toMatch(
+          /前往订阅页|Open subscriptions to securely view your personal feed/i,
+        );
+        await expect(subscriptionUrl).toBeDisabled();
+        expect(subscriptionValue).not.toContain("/api/calendar-feeds/");
 
-    // Copy single URL
-    await calDialog
-      .getByRole("button", { name: /复制|Copy/i })
-      .nth(0)
-      .click();
-    const singleClipboard = await page.evaluate(async () =>
-      navigator.clipboard.readText(),
-    );
-    expect(singleClipboard).toBe(singleValue);
+        // Copy single URL
+        await calDialog
+          .getByRole("button", { name: /复制|Copy/i })
+          .nth(0)
+          .click();
+        const singleClipboard = await page.evaluate(async () =>
+          navigator.clipboard.readText(),
+        );
+        expect(singleClipboard).toBe(singleValue);
 
-    await expect(
-      calDialog.getByRole("button", { name: /复制|Copy/i }).nth(1),
-    ).toBeDisabled();
+        await expect(
+          calDialog.getByRole("button", { name: /复制|Copy/i }).nth(1),
+        ).toBeDisabled();
 
-    await expect(
-      calDialog.getByRole("link", {
-        name: /查看教学班订阅|View section subscriptions/i,
-      }),
-    ).toHaveAttribute("href", "/workspace/subscriptions");
+        await expect(
+          calDialog.getByRole("link", {
+            name: /查看教学班订阅|View section subscriptions/i,
+          }),
+        ).toHaveAttribute("href", "/workspace/subscriptions");
 
-    await captureStepScreenshot(page, testInfo, "section/calendar-dialog");
-  });
+        await captureStepScreenshot(page, testInfo, "section/calendar-dialog");
+      });
+    },
+  );
 });
