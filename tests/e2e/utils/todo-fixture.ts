@@ -113,7 +113,9 @@ export async function readTodoCalendar(page: Page, userId: string) {
   const observed: { calendar: string | null } = await response.json();
   expect(observed.calendar).not.toBeNull();
   if (!observed.calendar) throw new Error("Native todo consumer has no export");
-  const calendar: { version: number; text: string } = JSON.parse(observed.calendar);
+  const calendar: { version: number; text: string } = JSON.parse(
+    observed.calendar,
+  );
   expect(calendar).toMatchObject({ version: 2, text: expect.any(String) });
   // Unfold ICS content lines before matching UUIDs split at the byte limit.
   return calendar.text.replace(/\r?\n[ \t]/g, "");

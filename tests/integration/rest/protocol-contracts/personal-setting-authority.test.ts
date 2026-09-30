@@ -293,7 +293,12 @@ for (const transport of transports) {
         );
         for (const pinned of [true, false]) {
           const expected = pinned ? ["jw", "mail"] : ["jw"];
-          const result = await call(h, transport, linkPin("mail", pinned), actor);
+          const result = await call(
+            h,
+            transport,
+            linkPin("mail", pinned),
+            actor,
+          );
           expect(result.pinnedSlugs).toEqual(expected);
           expect(
             (await pinSnapshot(h))

@@ -225,12 +225,16 @@ for (const transport of transports)
         ).toMatchObject({ subscribed: false });
         const after = await snapshot(h);
         expect(selected(after, target)).toEqual(
-          selected(before, target).filter((row) => row.userId === h.actors[0].id),
+          selected(before, target).filter(
+            (row) => row.userId === h.actors[0].id,
+          ),
         );
         expect(after.notices).toEqual([ownedNotice]);
         expect(
           selected(after, target === "event" ? "organizer" : "event"),
-        ).toEqual(selected(initial, target === "event" ? "organizer" : "event"));
+        ).toEqual(
+          selected(initial, target === "event" ? "organizer" : "event"),
+        );
       });
     });
     test(`young ${target} authorization rejection preserves state through ${transport}`, async ({
@@ -304,7 +308,9 @@ for (const transport of transports)
           ).toMatchObject({ subscribed });
           const state = await snapshot(h);
           expect(
-            selected(state, target).some((row) => row.userId === h.actors[0].id),
+            selected(state, target).some(
+              (row) => row.userId === h.actors[0].id,
+            ),
           ).toBe(subscribed);
           expect(
             selected(state, target).filter(
@@ -317,7 +323,9 @@ for (const transport of transports)
           );
           expect(state.notices).toEqual([foreign]);
           expect(
-            await h.db.youngNotification.findUnique({ where: { id: owned.id } }),
+            await h.db.youngNotification.findUnique({
+              where: { id: owned.id },
+            }),
           ).toBeNull();
         }
       });
@@ -348,7 +356,9 @@ for (const transport of transports)
           before.notices.filter((row) => row.id !== unread.id),
         );
         expect(selected(after, target)).toEqual(
-          selected(before, target).filter((row) => row.userId !== h.actors[0].id),
+          selected(before, target).filter(
+            (row) => row.userId !== h.actors[0].id,
+          ),
         );
         expect(
           successful(

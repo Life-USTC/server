@@ -269,71 +269,66 @@ test("ui.navigation-landmarks-1", async ({ page }) => {
   }
 });
 
-taskFilterTest(
-  "ui.navigation-landmarks-2",
-  async ({ page, taskFilterRun }) => {
-    await taskFilterRun(
-      async ({ headers, checkpoint }) => {
-        await page.setViewportSize(viewports[1]);
+taskFilterTest("ui.navigation-landmarks-2", async ({ page, taskFilterRun }) => {
+  await taskFilterRun(
+    async ({ headers, checkpoint }) => {
+      await page.setViewportSize(viewports[1]);
+      await gotoAndWaitForReady(page, "/workspace/overview");
+      for (const locale of locales) {
+        await setLocale(page, locale, headers);
         await gotoAndWaitForReady(page, "/workspace/overview");
-        for (const locale of locales) {
-          await setLocale(page, locale, headers);
-          await gotoAndWaitForReady(page, "/workspace/overview");
-          await expect(
-            page.getByRole("navigation", {
-              name: locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
-              exact: true,
-            }),
-          ).toBeVisible();
-          await openMobileMenu(page);
-          await expect(
-            page.getByRole("navigation", {
-              name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
-              exact: true,
-            }),
-          ).toBeVisible();
-        }
-        await checkpoint("mobile navigation has no calendar side effects", {
-          calendarMessages: [],
-          calendarTokenCreated: false,
-        });
-      },
-      { calendarMessages: [], calendarTokenCreated: false },
-    );
-  },
-);
+        await expect(
+          page.getByRole("navigation", {
+            name:
+              locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
+            exact: true,
+          }),
+        ).toBeVisible();
+        await openMobileMenu(page);
+        await expect(
+          page.getByRole("navigation", {
+            name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+            exact: true,
+          }),
+        ).toBeVisible();
+      }
+      await checkpoint("mobile navigation has no calendar side effects", {
+        calendarMessages: [],
+        calendarTokenCreated: false,
+      });
+    },
+    { calendarMessages: [], calendarTokenCreated: false },
+  );
+});
 
-taskFilterTest(
-  "ui.navigation-landmarks-3",
-  async ({ page, taskFilterRun }) => {
-    await taskFilterRun(
-      async ({ checkpoint }) => {
-        await gotoAndWaitForReady(page, "/workspace/overview");
-        for (const viewport of viewports) {
-          await page.setViewportSize(viewport);
-          for (const href of [
-            "/workspace/todos",
-            "/catalog/courses",
-            "/account/settings/preferences",
-          ]) {
-            await gotoAndWaitForReady(page, href);
-            if (viewport.width < 768) await openMobileMenu(page);
-            for (const nav of await page.getByRole("navigation").all()) {
-              expect(
-                await nav.locator('[aria-current="page"]').count(),
-              ).toBeLessThanOrEqual(1);
-            }
+taskFilterTest("ui.navigation-landmarks-3", async ({ page, taskFilterRun }) => {
+  await taskFilterRun(
+    async ({ checkpoint }) => {
+      await gotoAndWaitForReady(page, "/workspace/overview");
+      for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        for (const href of [
+          "/workspace/todos",
+          "/catalog/courses",
+          "/account/settings/preferences",
+        ]) {
+          await gotoAndWaitForReady(page, href);
+          if (viewport.width < 768) await openMobileMenu(page);
+          for (const nav of await page.getByRole("navigation").all()) {
+            expect(
+              await nav.locator('[aria-current="page"]').count(),
+            ).toBeLessThanOrEqual(1);
           }
         }
-        await checkpoint("navigation does not create a personal calendar token", {
-          calendarMessages: [],
-          calendarTokenCreated: false,
-        });
-      },
-      { calendarMessages: [], calendarTokenCreated: false },
-    );
-  },
-);
+      }
+      await checkpoint("navigation does not create a personal calendar token", {
+        calendarMessages: [],
+        calendarTokenCreated: false,
+      });
+    },
+    { calendarMessages: [], calendarTokenCreated: false },
+  );
+});
 
 test("ui.footer-navigation-landmark", async ({ page }) => {
   for (const href of ["/catalog/courses", "/terms", "/privacy"]) {
