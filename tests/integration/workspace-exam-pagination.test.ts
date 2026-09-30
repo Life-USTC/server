@@ -2,7 +2,11 @@ import { describe } from "vitest";
 import { workspaceExamTest as it } from "../shared/workspace-exam-fixture";
 
 describe("complete subscribed exam pages", () => {
-  it("exam.owned-page-completeness", async ({ exams, protocolRuntime, expect }) => {
+  it("exam.owned-page-completeness", async ({
+    exams,
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
       const { users, examIds, read } = exams;
       const first = await read(users[0], { pageSize: "2" });

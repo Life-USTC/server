@@ -19,7 +19,9 @@ describe("complete subscribed exam pages", () => {
       );
       expect(overviewResponse.status).toBe(200);
       await overviewResponse.text();
-      const response = await protocolRuntime.request(async () => getSubscribedExamsRoute(request));
+      const response = await protocolRuntime.request(async () =>
+        getSubscribedExamsRoute(request),
+      );
       expect(response.status).toBe(401);
       expect(await response.json()).toEqual({ error: "Unauthorized" });
     });

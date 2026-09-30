@@ -2,7 +2,11 @@ import { describe } from "vitest";
 import { workspaceExamTest as it } from "../shared/workspace-exam-fixture";
 
 describe("complete subscribed exam pages", () => {
-  it("exam.retired-exam-exclusion", async ({ exams, protocolRuntime, expect }) => {
+  it("exam.retired-exam-exclusion", async ({
+    exams,
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
       const { db, users, sectionIds, examIds, read } = exams;
       expect(
