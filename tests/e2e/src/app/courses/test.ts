@@ -220,155 +220,167 @@ test.describe("/catalog/courses 课程目录", () => {
 
   catalogTest(
     "桌面表格截断溢出文本",
-    async ({ page, isolatedWorker }, testInfo) => {
-      const prefix = `e2etable-${Date.now()}-${testInfo.workerIndex}`;
-      const blankPrefix = `${prefix}-blank`;
-      const namedPrefix = `${prefix}-named`;
-      const blankName = `${"very-long-course-name-".repeat(12)}blank`;
-      const namedName = `${"very-long-course-name-".repeat(12)}named`;
-      const secondaryName = "Short alternate name";
+    async ({ page, isolatedWorker, catalogFlow }, testInfo) => {
+      await catalogFlow.run(
+        async () => {
+          const prefix = `e2etable-${Date.now()}-${testInfo.workerIndex}`;
+          const blankPrefix = `${prefix}-blank`;
+          const namedPrefix = `${prefix}-named`;
+          const blankName = `${"very-long-course-name-".repeat(12)}blank`;
+          const namedName = `${"very-long-course-name-".repeat(12)}named`;
+          const secondaryName = "Short alternate name";
 
-      await arrangeCourses(isolatedWorker.database.owner, {
-        firstJwId: 1_500_000_000,
-        count: 1,
-        nameCn: blankName,
-        prefix: blankPrefix,
-      });
-      await arrangeCourses(isolatedWorker.database.owner, {
-        firstJwId: 1_500_000_001,
-        count: 1,
-        nameCn: namedName,
-        nameEn: secondaryName,
-        prefix: namedPrefix,
-      });
+          await isolatedWorker.database.owner.$transaction(async (tx) => {
+            await arrangeCourses(tx, {
+              firstJwId: 1_500_000_000,
+              count: 1,
+              nameCn: blankName,
+              prefix: blankPrefix,
+            });
+            await arrangeCourses(tx, {
+              firstJwId: 1_500_000_001,
+              count: 1,
+              nameCn: namedName,
+              nameEn: secondaryName,
+              prefix: namedPrefix,
+            });
+          });
 
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await gotoAndWaitForReady(
-        page,
-        `/catalog/courses?search=${encodeURIComponent(prefix)}`,
+          await page.setViewportSize({ width: 1440, height: 900 });
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/courses?search=${encodeURIComponent(prefix)}`,
+          );
+
+          const rows = page.locator("table:visible tbody tr");
+          const blankRow = rows.filter({ hasText: `${blankPrefix}-00` });
+          const namedRow = rows.filter({ hasText: `${namedPrefix}-00` });
+          await expect(blankRow).toHaveCount(1);
+          await expect(namedRow).toHaveCount(1);
+
+          const primaryText = blankRow
+            .locator('[data-slot="truncated-text"]')
+            .first();
+          const primaryGeometry = await primaryText.evaluate((node) => ({
+            clientWidth: node.clientWidth,
+            scrollWidth: node.scrollWidth,
+          }));
+          expect(primaryGeometry.scrollWidth).toBeGreaterThanOrEqual(
+            primaryGeometry.clientWidth,
+          );
+          const primaryOverflows =
+            primaryGeometry.scrollWidth > primaryGeometry.clientWidth;
+          const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
+
+          if (primaryOverflows) {
+            await primaryText.hover();
+            await expect(tooltip).toContainText(`${blankName}-00`);
+
+            await page.mouse.move(0, 0);
+            await expect(tooltip).toHaveCount(0);
+          } else {
+            await primaryText.hover();
+            await expect(tooltip).toHaveCount(0);
+          }
+          const codeText = blankRow
+            .locator("td")
+            .nth(1)
+            .locator('[data-slot="catalog-code"]');
+          await expect(codeText).toBeVisible();
+          await expect(blankRow.locator('[data-slot="badge"]')).toHaveCount(0);
+          await expect(codeText).toHaveText(`${blankPrefix}-00`);
+          await expect(codeText).not.toHaveAttribute("title");
+          await expect(codeText.locator("[aria-hidden=true]")).toHaveCount(0);
+          await expect(codeText.locator("[data-slot=truncated-text]")).toHaveText(
+            `${blankPrefix}-00`,
+          );
+          const codeGeometry = await codeText.evaluate((node) => ({
+            clientWidth: node.clientWidth,
+            scrollWidth: node.scrollWidth,
+          }));
+          expect(codeGeometry.scrollWidth).toBeGreaterThanOrEqual(
+            codeGeometry.clientWidth,
+          );
+
+          const blankRowLink = blankRow.locator("a").first();
+          await blankRowLink.focus();
+          if (primaryOverflows) {
+            await expect(tooltip).toContainText(`${blankName}-00`);
+          }
+          await expect(blankRowLink).toHaveAccessibleName(`${blankName}-00`);
+          await captureStepScreenshot(page, testInfo, "courses-table-truncation");
+        },
+        { anonymousCourseCount: 2 },
       );
-
-      const rows = page.locator("table:visible tbody tr");
-      const blankRow = rows.filter({ hasText: `${blankPrefix}-00` });
-      const namedRow = rows.filter({ hasText: `${namedPrefix}-00` });
-      await expect(blankRow).toHaveCount(1);
-      await expect(namedRow).toHaveCount(1);
-
-      const primaryText = blankRow
-        .locator('[data-slot="truncated-text"]')
-        .first();
-      const primaryGeometry = await primaryText.evaluate((node) => ({
-        clientWidth: node.clientWidth,
-        scrollWidth: node.scrollWidth,
-      }));
-      expect(primaryGeometry.scrollWidth).toBeGreaterThanOrEqual(
-        primaryGeometry.clientWidth,
-      );
-      const primaryOverflows =
-        primaryGeometry.scrollWidth > primaryGeometry.clientWidth;
-      const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
-
-      if (primaryOverflows) {
-        await primaryText.hover();
-        await expect(tooltip).toContainText(`${blankName}-00`);
-
-        await page.mouse.move(0, 0);
-        await expect(tooltip).toHaveCount(0);
-      } else {
-        await primaryText.hover();
-        await expect(tooltip).toHaveCount(0);
-      }
-      const codeText = blankRow
-        .locator("td")
-        .nth(1)
-        .locator('[data-slot="catalog-code"]');
-      await expect(codeText).toBeVisible();
-      await expect(blankRow.locator('[data-slot="badge"]')).toHaveCount(0);
-      await expect(codeText).toHaveText(`${blankPrefix}-00`);
-      await expect(codeText).not.toHaveAttribute("title");
-      await expect(codeText.locator("[aria-hidden=true]")).toHaveCount(0);
-      await expect(codeText.locator("[data-slot=truncated-text]")).toHaveText(
-        `${blankPrefix}-00`,
-      );
-      const codeGeometry = await codeText.evaluate((node) => ({
-        clientWidth: node.clientWidth,
-        scrollWidth: node.scrollWidth,
-      }));
-      expect(codeGeometry.scrollWidth).toBeGreaterThanOrEqual(
-        codeGeometry.clientWidth,
-      );
-
-      const blankRowLink = blankRow.locator("a").first();
-      await blankRowLink.focus();
-      if (primaryOverflows) {
-        await expect(tooltip).toContainText(`${blankName}-00`);
-      }
-      await expect(blankRowLink).toHaveAccessibleName(`${blankName}-00`);
-      await captureStepScreenshot(page, testInfo, "courses-table-truncation");
     },
   );
 
   catalogTest(
     "分页提供上一页、页码和下一页并写入浏览历史",
-    async ({ page, isolatedWorker }, testInfo) => {
-      const prefix = `e2epagination-${Date.now()}-${testInfo.workerIndex}`;
-      await arrangeCourses(isolatedWorker.database.owner, {
-        firstJwId: 1_500_000_000,
-        count: 25,
-        prefix,
-      });
+    async ({ page, isolatedWorker, catalogFlow }, testInfo) => {
+      await catalogFlow.run(
+        async () => {
+          const prefix = `e2epagination-${Date.now()}-${testInfo.workerIndex}`;
+          await arrangeCourses(isolatedWorker.database.owner, {
+            firstJwId: 1_500_000_000,
+            count: 25,
+            prefix,
+          });
 
-      const searchPath = `/catalog/courses?search=${prefix}`;
-      await gotoAndWaitForReady(page, searchPath, {
-        testInfo,
-        screenshotLabel: "courses-page-1",
-      });
+          const searchPath = `/catalog/courses?search=${prefix}`;
+          await gotoAndWaitForReady(page, searchPath, {
+            testInfo,
+            screenshotLabel: "courses-page-1",
+          });
 
-      let pagination = page.locator('[data-slot="list-pagination"]');
-      await expect(pagination).toBeVisible();
-      await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
-      const page2Link = pagination.getByRole("link", {
-        name: /分页 2|Pagination 2/i,
-      });
-      await expect(page2Link).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
-      await expect(page2Link).toHaveAttribute(
-        "href",
-        new RegExp(`[?&]search=${prefix}(?:&|$)`),
+          let pagination = page.locator('[data-slot="list-pagination"]');
+          await expect(pagination).toBeVisible();
+          await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
+          const page2Link = pagination.getByRole("link", {
+            name: /分页 2|Pagination 2/i,
+          });
+          await expect(page2Link).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
+          await expect(page2Link).toHaveAttribute(
+            "href",
+            new RegExp(`[?&]search=${prefix}(?:&|$)`),
+          );
+
+          const nextLink = pagination.getByRole("link", {
+            name: /下一页|Next page/i,
+          });
+          await expect(nextLink).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
+          await expect(nextLink).toHaveAttribute(
+            "href",
+            new RegExp(`[?&]search=${prefix}(?:&|$)`),
+          );
+          await nextLink.click();
+          await expect(page).toHaveURL((url) => {
+            return (
+              url.pathname === "/catalog/courses" &&
+              url.searchParams.get("search") === prefix &&
+              url.searchParams.get("page") === "2"
+            );
+          });
+
+          pagination = page.locator('[data-slot="list-pagination"]');
+          await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
+          await expect(
+            pagination.getByRole("link", { name: /上一页|Previous page/i }),
+          ).toHaveAttribute("href", searchPath);
+          await captureStepScreenshot(page, testInfo, "courses-pagination");
+
+          await page.goBack();
+          await expect(page).toHaveURL((url) => {
+            return (
+              url.pathname === "/catalog/courses" &&
+              url.searchParams.get("search") === prefix &&
+              (url.searchParams.get("page") == null ||
+                url.searchParams.get("page") === "1")
+            );
+          });
+        },
+        { anonymousCourseCount: 25 },
       );
-
-      const nextLink = pagination.getByRole("link", {
-        name: /下一页|Next page/i,
-      });
-      await expect(nextLink).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
-      await expect(nextLink).toHaveAttribute(
-        "href",
-        new RegExp(`[?&]search=${prefix}(?:&|$)`),
-      );
-      await nextLink.click();
-      await expect(page).toHaveURL((url) => {
-        return (
-          url.pathname === "/catalog/courses" &&
-          url.searchParams.get("search") === prefix &&
-          url.searchParams.get("page") === "2"
-        );
-      });
-
-      pagination = page.locator('[data-slot="list-pagination"]');
-      await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
-      await expect(
-        pagination.getByRole("link", { name: /上一页|Previous page/i }),
-      ).toHaveAttribute("href", searchPath);
-      await captureStepScreenshot(page, testInfo, "courses-pagination");
-
-      await page.goBack();
-      await expect(page).toHaveURL((url) => {
-        return (
-          url.pathname === "/catalog/courses" &&
-          url.searchParams.get("search") === prefix &&
-          (url.searchParams.get("page") == null ||
-            url.searchParams.get("page") === "1")
-        );
-      });
     },
   );
 
