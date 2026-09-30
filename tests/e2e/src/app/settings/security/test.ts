@@ -83,7 +83,7 @@ test.describe("/account/settings/security 安全活动", () => {
         writes: [
           [
             "/account/settings/security",
-            200,
+            303,
             "rotateCalendarToken",
             "/account/settings/security?message=CalendarTokenRotated",
           ],

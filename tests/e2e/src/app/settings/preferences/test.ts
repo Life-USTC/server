@@ -4,6 +4,7 @@ import { expectRequiresSignIn } from "../../../../utils/auth";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
+  waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { expectSettingsPage } from "../../../../utils/settings-fixture";
@@ -139,6 +140,7 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
             (cookie) => cookie.name === "NEXT_LOCALE",
           )?.value,
         ).toBe("en-us");
+        await waitForUiSettled(page);
         await page.reload();
         await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
         await captureStepScreenshot(
