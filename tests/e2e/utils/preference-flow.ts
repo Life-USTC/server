@@ -43,6 +43,7 @@ export type PreferenceFlow = {
   ) => Promise<void>;
   clearRoutes: (target: RouteTarget) => Promise<void>;
   onClosing: (release: () => void) => void;
+  expectReadCancellation: (page: Page, request: Request) => void;
 };
 
 /** Own preference scenarios through native browser, HTTP and Worker completion.
@@ -362,6 +363,7 @@ export async function withPreferenceFlow(
             browsers: [...readers.values()].map((reader) => ({
               reads: reader.reads,
               retiredReads: reader.retiredReads,
+              canceledReads: reader.canceledReads,
               blockedReads: reader.blockedReads,
               navigationCommits: reader.navigationCommits,
               errors: reader.errors.map(String),
@@ -469,6 +471,13 @@ export async function withPreferenceFlow(
             );
           },
           closeContext,
+          expectReadCancellation(current, request) {
+            open();
+            const reader = readers.get(current);
+            if (!reader)
+              throw new Error("Cancellation page is not owned by this workflow");
+            reader.expectCancellation(request);
+          },
           onClosing(release) {
             open();
             releases.push(release);
