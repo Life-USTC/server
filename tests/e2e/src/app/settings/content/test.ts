@@ -23,14 +23,17 @@ test.describe("/account/settings/content legacy redirect", () => {
   });
 
   test("direct /account/settings/content path returns 404", async ({
+    accountRun,
     page,
     account: _account,
   }) => {
-    await gotoAndWaitForReady(page, "/account/settings/profile");
-    await gotoAndWaitForReady(page, "/account/settings/content", {
-      expectMainContent: false,
-    });
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await gotoAndWaitForReady(page, "/account/settings/profile");
+      await gotoAndWaitForReady(page, "/account/settings/content", {
+        expectMainContent: false,
+      });
 
-    await expect(page.locator("h1")).toHaveText("404");
+      await expect(page.locator("h1")).toHaveText("404");
+    });
   });
 });

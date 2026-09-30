@@ -17,12 +17,39 @@
  * - Live USTC/GitHub/Google OAuth round-trips are not exercised in CI; set
  *   `E2E_LIVE_OAUTH=1` locally with real provider credentials to test them.
  */
-import { expect, type Page } from "@playwright/test";
+import {
+  type APIResponse,
+  expect,
+  type Page,
+  type Request,
+} from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { signInThroughDevButton, test } from "../../../utils/signin-fixture";
 import { assertPageContract } from "../_shared/page-contract";
+
+type AuthWrite = [path: string, status: number, redirect: string];
+async function verifyAuthWrite(
+  planned: AuthWrite | undefined,
+  response: APIResponse,
+  request: Request,
+) {
+  if (!planned) throw new Error(`Unexpected auth write: ${request.url()}`);
+  const [path, status, location] = planned;
+  const url = new URL(request.url());
+  expect(request.method()).toBe("POST");
+  expect(`${url.pathname}${url.search}`).toBe(path);
+  expect(response.status()).toBe(status);
+  await response.body();
+  if (status === 303) expect(response.headers().location).toBe(location);
+  else
+    expect(await response.json()).toMatchObject({
+      type: "redirect",
+      status: 303,
+      location,
+    });
+}
 
 async function expectSignedOutAfterMenuClick(page: Page) {
   await page.locator("#app-user-menu").getByRole("button").click();
@@ -168,103 +195,238 @@ test("/account/sign-in 显示账户未关联错误", async ({ page }) => {
 });
 
 test("/account/sign-in 已登录用户直接返回回调页面", async ({
+  isolatedWorker,
+  pageRun,
   page,
   debugUser,
 }) => {
-  await signInThroughDevButton(page, debugUser);
-  await page.goto(
-    "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Fprofile",
-    { waitUntil: "domcontentloaded" },
+  const writes: AuthWrite[] = [["/account/sign-in?callbackUrl=%2F", 200, "/"]];
+  await pageRun(
+    async () => {
+      await signInThroughDevButton(page, debugUser);
+      await page.goto(
+        "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Fprofile",
+        { waitUntil: "domcontentloaded" },
+      );
+      await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
+      expect(writes).toEqual([]);
+      await expect
+        .poll(() => isolatedWorker.database.owner.auditLog.count())
+        .toBe(1);
+      expect(
+        (
+          await isolatedWorker.database.owner.auditLog.findMany({
+            select: { action: true },
+          })
+        )
+          .map((row) => row.action)
+          .sort(),
+      ).toEqual(["account_sign_in"]);
+    },
+    (response, request) => verifyAuthWrite(writes.shift(), response, request),
   );
-  await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
 });
 
 test("/account/sign-in 调试用户按钮可登录", async ({
+  pageRun,
   page,
   debugUser,
   isolatedWorker,
 }, testInfo) => {
-  await gotoAndWaitForReady(page, "/account/sign-in", {
-    testInfo,
-    screenshotLabel: "signin",
-  });
+  const writes: AuthWrite[] = [["/account/sign-in?callbackUrl=%2F", 200, "/"]];
+  await pageRun(
+    async () => {
+      await gotoAndWaitForReady(page, "/account/sign-in", {
+        testInfo,
+        screenshotLabel: "signin",
+      });
 
-  await captureStepScreenshot(page, testInfo, "signin/initial");
+      await captureStepScreenshot(page, testInfo, "signin/initial");
 
-  await signInThroughDevButton(page, debugUser);
-  await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await expect(page.locator("#app-logo")).toBeVisible();
-  await expect(page.locator("#app-user-menu")).toBeVisible();
-  expect(
-    await isolatedWorker.database.owner.session.count({
-      where: { userId: debugUser.id },
-    }),
-  ).toBe(1);
-  await captureStepScreenshot(page, testInfo, "signin/after-login");
+      await signInThroughDevButton(page, debugUser);
+      await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
+      await expect(page.locator("#main-content")).toBeVisible();
+      await expect(page.locator("#app-logo")).toBeVisible();
+      await expect(page.locator("#app-user-menu")).toBeVisible();
+      expect(
+        await isolatedWorker.database.owner.session.count({
+          where: { userId: debugUser.id },
+        }),
+      ).toBe(1);
+      await captureStepScreenshot(page, testInfo, "signin/after-login");
+      expect(writes).toEqual([]);
+      await expect
+        .poll(() => isolatedWorker.database.owner.auditLog.count())
+        .toBe(1);
+      expect(
+        (
+          await isolatedWorker.database.owner.auditLog.findMany({
+            select: { action: true },
+          })
+        )
+          .map((row) => row.action)
+          .sort(),
+      ).toEqual(["account_sign_in"]);
+    },
+    (response, request) => verifyAuthWrite(writes.shift(), response, request),
+  );
 });
 
 test("/account/sign-in 调试用户可登出", async ({
+  pageRun,
   page,
   debugUser,
   isolatedWorker,
 }, testInfo) => {
-  await signInThroughDevButton(page, debugUser);
+  const writes: AuthWrite[] = [
+    ["/account/sign-in?callbackUrl=%2F", 200, "/"],
+    ["/account/sign-out", 303, "/"],
+  ];
+  await pageRun(
+    async () => {
+      await signInThroughDevButton(page, debugUser);
 
-  await expectSignedOutAfterMenuClick(page);
+      await expectSignedOutAfterMenuClick(page);
 
-  expect(
-    await isolatedWorker.database.owner.session.count({
-      where: { userId: debugUser.id },
-    }),
-  ).toBe(0);
-  await captureStepScreenshot(page, testInfo, "signin/after-sign-out");
+      expect(
+        await isolatedWorker.database.owner.session.count({
+          where: { userId: debugUser.id },
+        }),
+      ).toBe(0);
+      await captureStepScreenshot(page, testInfo, "signin/after-sign-out");
+      expect(writes).toEqual([]);
+      await expect
+        .poll(() => isolatedWorker.database.owner.auditLog.count())
+        .toBe(2);
+      expect(
+        (
+          await isolatedWorker.database.owner.auditLog.findMany({
+            select: { action: true },
+          })
+        )
+          .map((row) => row.action)
+          .sort(),
+      ).toEqual(["account_sign_in", "account_sign_out"]);
+    },
+    (response, request) => verifyAuthWrite(writes.shift(), response, request),
+  );
 });
 
 test("/account/sign-in 调试管理员可登出", async ({
+  pageRun,
   page,
   adminUser,
   isolatedWorker,
 }, testInfo) => {
-  await signInThroughDevButton(page, adminUser);
+  const writes: AuthWrite[] = [
+    ["/account/sign-in?callbackUrl=%2F", 200, "/"],
+    ["/account/sign-out", 303, "/"],
+  ];
+  await pageRun(
+    async () => {
+      await signInThroughDevButton(page, adminUser);
 
-  await expectSignedOutAfterMenuClick(page);
+      await expectSignedOutAfterMenuClick(page);
 
-  expect(
-    await isolatedWorker.database.owner.session.count({
-      where: { userId: adminUser.id },
-    }),
-  ).toBe(0);
-  await captureStepScreenshot(page, testInfo, "signin/admin-after-sign-out");
+      expect(
+        await isolatedWorker.database.owner.session.count({
+          where: { userId: adminUser.id },
+        }),
+      ).toBe(0);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "signin/admin-after-sign-out",
+      );
+      expect(writes).toEqual([]);
+      await expect
+        .poll(() => isolatedWorker.database.owner.auditLog.count())
+        .toBe(2);
+      expect(
+        (
+          await isolatedWorker.database.owner.auditLog.findMany({
+            select: { action: true },
+          })
+        )
+          .map((row) => row.action)
+          .sort(),
+      ).toEqual(["account_sign_in", "account_sign_out"]);
+    },
+    (response, request) => verifyAuthWrite(writes.shift(), response, request),
+  );
 });
 
-test("user.post-login-redirect", async ({ page, debugUser }) => {
-  for (const callback of [
-    "/catalog/sections?search=COMP#results",
-    "https://attacker.example/",
-    "//attacker.example/",
-    "/\\attacker.example/",
-    "/%2f%2fattacker.example/",
-  ]) {
-    await page.context().clearCookies();
-    await gotoAndWaitForReady(
-      page,
-      `/account/sign-in?callbackUrl=${encodeURIComponent(callback)}`,
-    );
-    await page
-      .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
-      .click();
-    await expect(page).toHaveURL(
-      callback.startsWith("/catalog/")
-        ? /\/catalog\/sections\?search=COMP#results$/
-        : /\/workspace\/overview$/,
-    );
-    const response = await page.request.get(
-      "/api/auth/get-session?disableCookieCache=true",
-    );
-    expect(response.status()).toBe(200);
-    const session = await response.json();
-    expect(session.user.username).toBe(DEV_SEED.debugUsername);
-    expect(session.user.id).toBe(debugUser.id);
-  }
+test("user.post-login-redirect", async ({
+  isolatedWorker,
+  pageRun,
+  page,
+  debugUser,
+}) => {
+  const writes: AuthWrite[] = [
+    [
+      "/account/sign-in?callbackUrl=%2Fcatalog%2Fsections%3Fsearch%3DCOMP%23results",
+      200,
+      "/catalog/sections?search=COMP#results",
+    ],
+    [
+      "/account/sign-in?callbackUrl=https%3A%2F%2Fattacker.example%2F",
+      200,
+      "/",
+    ],
+    ["/account/sign-in?callbackUrl=%2F%2Fattacker.example%2F", 200, "/"],
+    ["/account/sign-in?callbackUrl=%2F%5Cattacker.example%2F", 200, "/"],
+    ["/account/sign-in?callbackUrl=%2F%252f%252fattacker.example%2F", 200, "/"],
+  ];
+  await pageRun(
+    async () => {
+      for (const callback of [
+        "/catalog/sections?search=COMP#results",
+        "https://attacker.example/",
+        "//attacker.example/",
+        "/\\attacker.example/",
+        "/%2f%2fattacker.example/",
+      ]) {
+        await page.context().clearCookies();
+        await gotoAndWaitForReady(
+          page,
+          `/account/sign-in?callbackUrl=${encodeURIComponent(callback)}`,
+        );
+        await page
+          .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
+          .click();
+        await expect(page).toHaveURL(
+          callback.startsWith("/catalog/")
+            ? /\/catalog\/sections\?search=COMP#results$/
+            : /\/workspace\/overview$/,
+        );
+        const response = await page.request.get(
+          "/api/auth/get-session?disableCookieCache=true",
+        );
+        expect(response.status()).toBe(200);
+        const session = await response.json();
+        expect(session.user.username).toBe(DEV_SEED.debugUsername);
+        expect(session.user.id).toBe(debugUser.id);
+      }
+      expect(writes).toEqual([]);
+      await expect
+        .poll(() => isolatedWorker.database.owner.auditLog.count())
+        .toBe(5);
+      expect(
+        (
+          await isolatedWorker.database.owner.auditLog.findMany({
+            select: { action: true },
+          })
+        )
+          .map((row) => row.action)
+          .sort(),
+      ).toEqual([
+        "account_sign_in",
+        "account_sign_in",
+        "account_sign_in",
+        "account_sign_in",
+        "account_sign_in",
+      ]);
+    },
+    (response, request) => verifyAuthWrite(writes.shift(), response, request),
+  );
 });

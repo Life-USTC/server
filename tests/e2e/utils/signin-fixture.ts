@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
 import type { User } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
-import { test as workerTest } from "./isolated-worker";
+import { test as workerTest } from "./owned-page";
 import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 /** Only credential records are arranged; sessions must come from the real UI. */

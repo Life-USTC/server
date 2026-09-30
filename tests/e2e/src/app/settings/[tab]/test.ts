@@ -15,20 +15,23 @@ test("/account/settings 别名路由需要登录", async ({ page }, testInfo) =>
 });
 
 test("/account/settings/profile 别名路由生效", async ({
+  accountRun,
   page,
   account: _account,
 }, testInfo) => {
-  await gotoAndWaitForReady(page, "/account/settings/profile");
-  await gotoAndWaitForReady(page, "/account/settings/profile", {
-    testInfo,
-    screenshotLabel: "settings-profile-alias",
-  });
+  await accountRun({ writes: [], audits: [] }, async () => {
+    await gotoAndWaitForReady(page, "/account/settings/profile");
+    await gotoAndWaitForReady(page, "/account/settings/profile", {
+      testInfo,
+      screenshotLabel: "settings-profile-alias",
+    });
 
-  await expect(page).toHaveURL(
-    /\/account\/settings(?:\/profile)?(?:[/?#].*)?$/,
-  );
-  await expect(page.locator("input#name")).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "settings-profile");
+    await expect(page).toHaveURL(
+      /\/account\/settings(?:\/profile)?(?:[/?#].*)?$/,
+    );
+    await expect(page.locator("input#name")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-profile");
+  });
 });
 
 test("legacy query settings tabs 的 GET/HEAD 永久跳转到语义分区", async ({
@@ -57,13 +60,16 @@ test("legacy query settings tabs 的 GET/HEAD 永久跳转到语义分区", asyn
 });
 
 test("/account/settings 无效别名返回 404", async ({
+  accountRun,
   page,
   account: _account,
 }) => {
-  await gotoAndWaitForReady(page, "/account/settings/profile");
-  await gotoAndWaitForReady(page, "/account/settings/not-a-tab", {
-    expectMainContent: false,
-  });
+  await accountRun({ writes: [], audits: [] }, async () => {
+    await gotoAndWaitForReady(page, "/account/settings/profile");
+    await gotoAndWaitForReady(page, "/account/settings/not-a-tab", {
+      expectMainContent: false,
+    });
 
-  await expect(page.locator("h1")).toHaveText("404");
+    await expect(page.locator("h1")).toHaveText("404");
+  });
 });
