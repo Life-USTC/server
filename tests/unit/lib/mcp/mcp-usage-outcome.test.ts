@@ -28,9 +28,6 @@ vi.mock("@/lib/security/user-mutation-rate-limit", () => ({
   checkUserMutationRateLimit: rateLimitMock,
   USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS: 60,
 }));
-vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
-  runCloudflareTraceSpan: (_name: string, _attributes: unknown, work: () => unknown) => work(),
-}));
 vi.mock("@/lib/mcp/feature-observability", () => ({
   observeMcpFeature: (_name: string, _args: unknown, _extra: unknown, work: () => unknown) => work(),
 }));
@@ -363,19 +360,32 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
           if (message.id === 2) calendarDelivered.resolve();
         });
         try {
-          await Promise.all([
-            slowEntered.promise, errorEntered.promise, calendarEntered.promise,
-            inspected.promise,
+          await Promise.race([
+            Promise.all([
+              slowEntered.promise, errorEntered.promise, calendarEntered.promise,
+              inspected.promise,
+            ]),
+            // A rejected or early HTTP response cannot reach callback gates.
+            // Propagate it into finally instead of waiting for the test timeout.
+            pending.then(({ response }) => {
+              throw new Error(`MCP returned ${response.status} before callback gates`);
+            }),
           ]);
           await vi.advanceTimersByTimeAsync(inspection.MCP_RESPONSE_INSPECTION_LIMITS.inspectionDeadlineMs);
           const { response, consumed } = await pending;
           expect(response.status).toBe(200);
           expect(usage()).toEqual([]);
           releaseError.resolve();
-          await errorDelivered.promise;
+          await Promise.race([
+            errorDelivered.promise,
+            consumed.then(() => { throw new Error("MCP EOF before error response"); }),
+          ]);
           expect(usage()).toEqual([{ ...readSuccess, outcome: "error" }]);
           releaseCalendar.resolve();
-          await calendarDelivered.promise;
+          await Promise.race([
+            calendarDelivered.promise,
+            consumed.then(() => { throw new Error("MCP EOF before calendar response"); }),
+          ]);
           expect(usage()).toEqual([
             { ...readSuccess, outcome: "error" },
             { ...readSuccess, feature: "workspace.calendar" },
