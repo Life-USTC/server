@@ -54,16 +54,24 @@ requirements:
   rule: A committed course, section, or teacher description write invalidates its cached public HTML and
     structured data only after the content is committed. Administrator moderation follows the same invalidation
     contract. A same-content retry repeats failed invalidation without creating another edit history entry.
+  rationale: The service integration cases use real database writes and description rendering with a controlled
+    cache adapter. They establish commit ordering, purge retry, history and moderation behavior for all
+    three target types. They do not establish Workers Caching hits or native edge eviction; that still
+    requires a cache-enabled runtime acceptance with a warmed representation. The representative pointer
+    is one supporting case, not evidence that the complete native cache contract has passed.
   acceptance:
-    given: Public teacher HTML is cached and the first purge after a description edit will fail.
-    when: The production write commits, retries identical content after purge recovery, and an administrator moderates it.
+    given: Independent course, section and teacher cases own descriptions and a controlled cached rendered
+      fragment. Retry cases reject the first purge; moderation cases independently prepare original content with prior history and audit.
+    when: Production use cases edit and retry identical content, or independently clear content as an administrator.
     then:
     - A separate database connection sees committed content before each purge.
-    - The next rendered representation reflects the committed write and moderation.
-    - The identical-content retry purges again, reports updated=false and leaves exactly one edit history entry.
+    - A rejected purge leaves the controlled cached fragment unchanged while the database retains the edit.
+    - Recovery refreshes the controlled rendered fragment; identical-content retry reports updated=false
+      and preserves the exact single edit history and audit entries.
+    - Independent moderation clears its cached fragment, preserves prior history and audit rows, and appends one moderation history entry and audit.
     test:
       file: tests/integration/description-cache-invalidation.test.ts
-      name: description.public-cache-invalidation
+      name: 'description cache retry preserves committed history: teacher'
 - id: description.public-web-personal-overlay
   category: consistency
   rule: Public course, teacher, and section SSR retains description text and structured data with an anonymous
