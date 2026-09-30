@@ -1,5 +1,4 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   type APIRequestContext,
   type APIResponse,
@@ -15,6 +14,7 @@ import {
   createCalendarEffectObserver,
   type ProducerObservation,
 } from "./calendar-effects";
+import { type HttpMcpRequest, ownHttpMcp } from "./http-mcp-lifecycle";
 import type { IsolatedWorker } from "./isolated-worker";
 import { withSettledPageWrites } from "./settled-page-writes";
 
@@ -29,7 +29,7 @@ export type CalendarProtocolChecks = {
 };
 export type CalendarProtocolObservation = {
   effects: ProducerObservation;
-  sdkRequests: SdkRequest[];
+  sdkRequests: HttpMcpRequest[];
 };
 export type CalendarProtocol = {
   request: APIRequestContext;
@@ -41,14 +41,6 @@ export type CalendarProtocol = {
     identity: { name: string; version: string },
     accessToken: string,
   ) => Promise<Client>;
-};
-type SdkRequest = {
-  requestId: string;
-  method: string;
-  path: string;
-  rpc?: string;
-  tool?: string;
-  status: number;
 };
 
 /** Calendar protocol lifecycle with real browser OAuth consent. The
@@ -80,11 +72,7 @@ export async function withCalendarProtocol(
   const probeId = crypto.randomUUID();
   const probePath = `/__test/community-effects?id=${probeId}`;
   const headers = { ...secret, "x-test-community-probe": probeId };
-  const pendingSdk = new Set<Promise<void>>();
-  const sdkRequests: SdkRequest[] = [];
-  const clients: (() => Promise<void>)[] = [];
   const errors: unknown[] = [];
-  const abort = new AbortController();
   let request: APIRequestContext | undefined;
   let actualBody: Promise<void> | undefined;
   let checks: CalendarProtocolChecks | undefined;
@@ -98,7 +86,6 @@ export async function withCalendarProtocol(
   let registrationAttempted = false;
   let registered = false;
   let accepting = true;
-  let sdkClosed = false;
   let completed = false;
   const reads = ownBrowserReads(page, origin, () => !page.isClosed());
   const remember = (error: unknown) => {
@@ -106,70 +93,8 @@ export async function withCalendarProtocol(
       for (const child of error.errors) remember(child);
     } else if (!errors.includes(error)) errors.push(error);
   };
-  const settleSdk = async () => {
-    while (pendingSdk.size) await Promise.all([...pendingSdk]);
-  };
-  const sdkFetch: typeof fetch = (input, init) => {
-    const operation = Promise.resolve().then(async () => {
-      if (sdkClosed) throw new Error("Calendar MCP transport is closed");
-      const incoming = new Request(input, init);
-      const url = new URL(incoming.url);
-      expect(url.origin).toBe(origin);
-      expect(url.pathname).toBe("/api/mcp");
-      const payload =
-        incoming.method === "POST"
-          ? ((await incoming.clone().json()) as {
-              method: string;
-              params?: { name?: string };
-            })
-          : undefined;
-      expect(
-        incoming.method === "GET" ||
-          (incoming.method === "POST" &&
-            ["initialize", "notifications/initialized", "tools/call"].includes(
-              payload?.method ?? "",
-            )),
-      ).toBe(true);
-      const expectedStatus =
-        incoming.method === "GET"
-          ? 405
-          : payload?.method === "notifications/initialized"
-            ? 202
-            : 200;
-      const requestId = crypto.randomUUID();
-      sdkRequests.push({
-        requestId,
-        method: incoming.method,
-        path: url.pathname,
-        rpc: payload?.method,
-        tool: payload?.params?.name,
-        status: expectedStatus,
-      });
-      const tagged = new Headers(incoming.headers);
-      for (const [name, value] of Object.entries(headers))
-        tagged.set(name, value);
-      tagged.set("x-test-community-request", requestId);
-      const response = await fetch(
-        new Request(incoming, {
-          headers: tagged,
-          signal: AbortSignal.any([incoming.signal, abort.signal]),
-        }),
-      );
-      // Current stateless MCP replies are finite. Join genuine response bytes
-      // through EOF before letting the SDK parse the same body and headers.
-      const body = response.body ? await response.arrayBuffer() : null;
-      expect(response.status).toBe(expectedStatus);
-      return new Response(body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-      });
-    });
-    const settled = operation.then(() => undefined, remember);
-    pendingSdk.add(settled);
-    void settled.finally(() => pendingSdk.delete(settled));
-    return operation;
-  };
+  const sdk = ownHttpMcp({ origin, headers, remember });
+  const sdkRequests = sdk.requests;
   try {
     registrationAttempted = true;
     const registration = await observer.post(probePath, { headers: secret });
@@ -210,21 +135,7 @@ export async function withCalendarProtocol(
                 async mcp(identity, accessToken) {
                   if (!accepting)
                     throw new Error("Calendar workflow is closing");
-                  const client = new Client(identity);
-                  const transport = new StreamableHTTPClientTransport(
-                    new URL("/api/mcp", origin),
-                    {
-                      requestInit: {
-                        headers: { Authorization: `Bearer ${accessToken}` },
-                      },
-                      fetch: sdkFetch,
-                    },
-                  );
-                  let closed: Promise<void> | undefined;
-                  // Register close before connect can start its handshake/stream.
-                  clients.push(() => (closed ??= client.close()));
-                  await client.connect(transport);
-                  return client;
+                  return sdk.connect(identity, accessToken);
                 },
               });
               completed = true;
@@ -271,25 +182,7 @@ export async function withCalendarProtocol(
     remember(error);
   } finally {
     accepting = false;
-    // Normally join finite fetches before closing; interruption must first abort
-    // the SDK so a pending call can release the still-owned callback.
-    if (completed) {
-      try {
-        await expect.poll(() => pendingSdk.size, { timeout: 15_000 }).toBe(0);
-      } catch (error) {
-        remember(error);
-      }
-    }
-    for (const close of clients) {
-      try {
-        await close();
-      } catch (error) {
-        remember(error);
-      }
-    }
-    sdkClosed = true;
-    abort.abort(new Error("Calendar protocol transport disposed"));
-    await settleSdk();
+    await sdk.close(completed);
     if (!page.isClosed()) {
       try {
         await page.close();
@@ -306,7 +199,7 @@ export async function withCalendarProtocol(
         remember(error);
       }
     }
-    await settleSdk();
+    await sdk.settle();
     while (reads.pendingReads.size || reads.pendingNavigations.size)
       await Promise.allSettled([
         ...reads.pendingReads,
