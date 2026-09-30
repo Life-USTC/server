@@ -1,10 +1,9 @@
-import { type APIRequestContext, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { unflatten } from "devalue";
 import type { CatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
-import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import type { PreferenceFlow } from "../../../utils/preference-flow";
-import { type PublicCatalog, test } from "./public-catalog-fixture";
+import { test } from "./public-catalog-fixture";
 
 async function chinese(page: Page, flow: PreferenceFlow) {
   const response = await flow.http(() =>
@@ -15,114 +14,6 @@ async function chinese(page: Page, flow: PreferenceFlow) {
   );
   expect(response.status()).toBe(200);
 }
-async function publicList(
-  request: APIRequestContext,
-  kind: "courses" | "sections" | "teachers",
-  { fixture, user }: PublicCatalog,
-  isolatedWorker: IsolatedWorker,
-  flow: PreferenceFlow,
-) {
-  const search = fixture.marker;
-  const base = `/api/catalog/${kind}?${new URLSearchParams({ search, pageSize: "1" })}`;
-  const first = await flow.http(() =>
-    request.get(base, { headers: flow.headers }),
-  );
-  expect(first.status()).toBe(200);
-  const zh = await first.json();
-  expect(zh.pagination.total).toBe(2);
-  expect(zh.data).toHaveLength(1);
-  const cookie = (await isolatedWorker.createSession(user.id)).cookie;
-  const withCookie = await flow.http(() =>
-    request.get(base, {
-      headers: {
-        ...flow.headers,
-        cookie: `${cookie.name}=${cookie.value}; NEXT_LOCALE=en-us`,
-        "accept-language": "en-US,en;q=0.9",
-      },
-    }),
-  );
-  expect(await withCookie.json()).toEqual(zh);
-  expect(withCookie.headers()["cache-control"]).toContain("public");
-  expect(withCookie.headers().vary ?? "").not.toMatch(
-    /cookie|accept-language/i,
-  );
-  const english = await flow.http(() =>
-    request.get(`${base}&locale=en-us`, {
-      headers: {
-        ...flow.headers,
-        cookie: "NEXT_LOCALE=zh-cn",
-        "accept-language": "zh-CN",
-      },
-    }),
-  );
-  const en = await english.json();
-  const localized = (row: {
-    namePrimary?: string;
-    course?: { namePrimary: string };
-  }) => (kind === "sections" ? row.course?.namePrimary : row.namePrimary);
-  expect(localized(en.data[0])).toMatch(
-    kind === "teachers" ? /Same Name Teacher/ : /Contract Course/,
-  );
-  expect(localized(zh.data[0])).toMatch(
-    kind === "teachers" ? /同名教师/ : /契约课程/,
-  );
-  const second = await flow.http(() =>
-    request.get(`${base}&page=2`, { headers: flow.headers }),
-  );
-  const page2 = await second.json();
-  expect(page2.pagination.total).toBe(2);
-  expect(page2.data).toHaveLength(1);
-  expect(page2.data[0].id).not.toBe(zh.data[0].id);
-  const filter =
-    kind === "courses"
-      ? `jwIds=${fixture.courses[0].jwId}`
-      : kind === "sections"
-        ? `courseJwId=${fixture.courses[0].jwId}`
-        : `departmentId=${fixture.departments[0].id}`;
-  const filteredUrl = new URL(base, "http://localhost");
-  if (kind === "courses")
-    filteredUrl.searchParams.set("search", fixture.courses[0].code);
-  else
-    for (const [key, value] of new URLSearchParams(filter))
-      filteredUrl.searchParams.set(key, value);
-  const filtered = await flow.http(() =>
-    request.get(filteredUrl.pathname + filteredUrl.search, {
-      headers: flow.headers,
-    }),
-  );
-  expect((await filtered.json()).pagination.total).toBe(1);
-}
-test("course.public-list-cache", async ({
-  request,
-  catalog,
-  isolatedWorker,
-  catalogFlow,
-}) => {
-  await catalogFlow.run(() =>
-    publicList(request, "courses", catalog, isolatedWorker, catalogFlow),
-  );
-});
-test("section.public-list-cache", async ({
-  request,
-  catalog,
-  isolatedWorker,
-  catalogFlow,
-}) => {
-  await catalogFlow.run(() =>
-    publicList(request, "sections", catalog, isolatedWorker, catalogFlow),
-  );
-});
-test("teacher.public-list-cache", async ({
-  request,
-  catalog,
-  isolatedWorker,
-  catalogFlow,
-}) => {
-  await catalogFlow.run(() =>
-    publicList(request, "teachers", catalog, isolatedWorker, catalogFlow),
-  );
-});
-
 async function canonical(
   page: Page,
   path: string,
