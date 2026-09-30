@@ -45,13 +45,13 @@ describe("complete subscribed exam pages", () => {
         const request = await signedRequest(0, "workspace.exam:read");
         const url = new URL(request.url);
         url.search = new URLSearchParams(input).toString();
-        expect(
-          (
-            await protocolRuntime.request(async () => getSubscribedExamsRoute(
-              new Request(url, { headers: request.headers }),
-            ))
-          ).status,
-        ).toBe(400);
+        const response = await protocolRuntime.request(() =>
+          getSubscribedExamsRoute(
+            new Request(url, { headers: request.headers }),
+          ),
+        );
+        expect(response.status).toBe(400);
+        await response.text();
       }
     });
   });

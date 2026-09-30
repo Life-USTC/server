@@ -10,15 +10,15 @@ describe("complete subscribed exam pages", () => {
       const request = await signedRequest(0, "workspace.overview:read");
       // The same JWT succeeds on its authorized feature, proving the denial is
       // the exam scope boundary rather than a broken signer or consent fixture.
-      expect(
-        (
-          await protocolRuntime.request(async () => getMyCompactOverviewRoute(
-            new Request("https://example.test/api/workspace/overview", {
-              headers: request.headers,
-            }),
-          ))
-        ).status,
-      ).toBe(200);
+      const overviewResponse = await protocolRuntime.request(() =>
+        getMyCompactOverviewRoute(
+          new Request("https://example.test/api/workspace/overview", {
+            headers: request.headers,
+          }),
+        ),
+      );
+      expect(overviewResponse.status).toBe(200);
+      await overviewResponse.text();
       const response = await protocolRuntime.request(async () => getSubscribedExamsRoute(request));
       expect(response.status).toBe(401);
       expect(await response.json()).toEqual({ error: "Unauthorized" });
