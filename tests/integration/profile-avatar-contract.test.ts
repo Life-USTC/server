@@ -1,8 +1,7 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { afterAll, expect, it, vi } from "vitest";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { expect, vi } from "vitest";
 import { GET } from "@/routes/media/avatars/[userId]/[avatarId].webp/+server";
-import { createFixturePrisma } from "../shared/prisma";
+import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
 const { getObject } = vi.hoisted(() => ({ getObject: vi.fn() }));
 // The object transport is controlled; route validation and profile authorization
@@ -12,34 +11,36 @@ vi.mock("@/lib/storage/r2-object", () => ({
   putStorageObject: vi.fn(),
   deleteStorageObject: vi.fn(),
 }));
-const db = createFixturePrisma();
-afterAll(async () => {
-  await Promise.all([db.$disconnect(), runtimePrisma.$disconnect()]);
-});
-
-it("user.avatar-current-reference", async () => {
-  const userId = crypto.randomUUID();
-  const otherId = crypto.randomUUID();
-  const avatarId = crypto.randomUUID();
-  const url = `/media/avatars/${userId}/${avatarId}.webp`;
-  await db.user.createMany({
-    data: [
-      { id: userId, email: `${userId}@avatar.test`, image: url },
-      { id: otherId, email: `${otherId}@avatar.test` },
-    ],
-  });
-  getObject.mockImplementation(
-    async () =>
-      new Response("controlled-image-bytes", {
-        headers: { "Content-Type": "image/webp" },
-      }),
-  );
-  const read = (owner: string, id: string = avatarId) =>
-    GET({ params: { userId: owner, avatarId: id } } as unknown as RequestEvent<
-      { userId: string; avatarId: string },
-      "/media/avatars/[userId]/[avatarId].webp"
-    >);
-  try {
+// The object spy belongs to this single-case isolated runner file. It does not
+// provide isolation for concurrent cases sharing the same module environment.
+it("user.avatar-current-reference", async ({
+  isolatedDatabase: { owner: db },
+  protocolRuntime,
+}) => {
+  await protocolRuntime.run(async () => {
+    const userId = crypto.randomUUID();
+    const otherId = crypto.randomUUID();
+    const avatarId = crypto.randomUUID();
+    const url = `/media/avatars/${userId}/${avatarId}.webp`;
+    await db.user.createMany({
+      data: [
+        { id: userId, email: `${userId}@avatar.test`, image: url },
+        { id: otherId, email: `${otherId}@avatar.test` },
+      ],
+    });
+    getObject.mockImplementation(
+      async () =>
+        new Response("controlled-image-bytes", {
+          headers: { "Content-Type": "image/webp" },
+        }),
+    );
+    const read = (owner: string, id: string = avatarId) =>
+      protocolRuntime.request(() =>
+        GET({ params: { userId: owner, avatarId: id } } as unknown as RequestEvent<
+          { userId: string; avatarId: string },
+          "/media/avatars/[userId]/[avatarId].webp"
+        >),
+      );
     for (const reference of ["current", "choice"] as const) {
       await db.user.update({
         where: { id: userId },
@@ -61,12 +62,16 @@ it("user.avatar-current-reference", async () => {
     }
     for (const owner of [otherId, "missing-user"]) {
       getObject.mockClear();
-      expect((await read(owner)).status).toBe(404);
+      const response = await read(owner);
+      expect(response.status).toBe(404);
+      await response.text();
       expect(getObject).not.toHaveBeenCalled();
     }
     for (const id of ["../private", "not-a-uuid"]) {
       getObject.mockClear();
-      expect((await read(userId, id)).status).toBe(404);
+      const response = await read(userId, id);
+      expect(response.status).toBe(404);
+      await response.text();
       expect(getObject).not.toHaveBeenCalled();
     }
     await db.user.update({
@@ -74,16 +79,20 @@ it("user.avatar-current-reference", async () => {
       data: { image: null, profilePictures: [] },
     });
     getObject.mockClear();
-    expect((await read(userId)).status).toBe(404);
+    const unreferenced = await read(userId);
+    expect(unreferenced.status).toBe(404);
+    await unreferenced.text();
     expect(getObject).not.toHaveBeenCalled();
     await db.user.update({ where: { id: userId }, data: { image: url } });
     getObject.mockResolvedValueOnce(null);
-    expect((await read(userId)).status).toBe(404);
+    const missingObject = await read(userId);
+    expect(missingObject.status).toBe(404);
+    await missingObject.text();
     await db.user.delete({ where: { id: userId } });
     getObject.mockClear();
-    expect((await read(userId)).status).toBe(404);
+    const deletedOwner = await read(userId);
+    expect(deletedOwner.status).toBe(404);
+    await deletedOwner.text();
     expect(getObject).not.toHaveBeenCalled();
-  } finally {
-    await db.user.deleteMany({ where: { id: { in: [userId, otherId] } } });
-  }
+  });
 });
