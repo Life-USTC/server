@@ -1,8 +1,7 @@
-import { afterAll, describe, expect, it } from "vitest";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
+import { describe } from "vitest";
+import { isolatedNodeTest as it } from "../shared/isolated-node-fixture";
 
 const functionOwnerRole = "life_ustc_function_owner";
-const adminPrisma = createFixturePrisma();
 
 const expectedFunctions = [
   {
@@ -247,22 +246,23 @@ const expectedColumnPrivileges = [
 describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
   "security-definer function owner role contract",
   () => {
-    afterAll(async () => {
-      await disconnectTestPrisma(adminPrisma);
-    });
-
-    it("is a standalone NOLOGIN role that owns no relation or schema", async () => {
-      const [role] = await adminPrisma.$queryRaw<
-        Array<{
-          bypassRls: boolean;
-          canCreateDatabase: boolean;
-          canCreateRole: boolean;
-          canLogin: boolean;
-          inheritsRoles: boolean;
-          replication: boolean;
-          superuser: boolean;
-        }>
-      >`
+    it("is a standalone NOLOGIN role that owns no relation or schema", async ({
+      isolatedDatabase: { owner: adminPrisma },
+      nodeRuntime,
+      expect,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const [role] = await adminPrisma.$queryRaw<
+          Array<{
+            bypassRls: boolean;
+            canCreateDatabase: boolean;
+            canCreateRole: boolean;
+            canLogin: boolean;
+            inheritsRoles: boolean;
+            replication: boolean;
+            superuser: boolean;
+          }>
+        >`
         SELECT
           rolcanlogin AS "canLogin",
           rolcreatedb AS "canCreateDatabase",
@@ -274,19 +274,19 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         FROM pg_catalog.pg_roles
         WHERE rolname = ${functionOwnerRole}
       `;
-      expect(role).toEqual({
-        bypassRls: false,
-        canCreateDatabase: false,
-        canCreateRole: false,
-        canLogin: false,
-        inheritsRoles: false,
-        replication: false,
-        superuser: false,
-      });
+        expect(role).toEqual({
+          bypassRls: false,
+          canCreateDatabase: false,
+          canCreateRole: false,
+          canLogin: false,
+          inheritsRoles: false,
+          replication: false,
+          superuser: false,
+        });
 
-      const memberships = await adminPrisma.$queryRaw<
-        Array<{ grantedRole: string; memberRole: string }>
-      >`
+        const memberships = await adminPrisma.$queryRaw<
+          Array<{ grantedRole: string; memberRole: string }>
+        >`
         SELECT
           parent.rolname AS "grantedRole",
           member.rolname AS "memberRole"
@@ -299,11 +299,11 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           OR member.rolname = ${functionOwnerRole}
         ORDER BY parent.rolname, member.rolname
       `;
-      expect(memberships).toEqual([]);
+        expect(memberships).toEqual([]);
 
-      const ownedRelations = await adminPrisma.$queryRaw<
-        Array<{ relation: string }>
-      >`
+        const ownedRelations = await adminPrisma.$queryRaw<
+          Array<{ relation: string }>
+        >`
         SELECT pg_catalog.format('%I.%I', namespace.nspname, relation.relname)
           AS relation
         FROM pg_catalog.pg_class AS relation
@@ -316,11 +316,11 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         )
         ORDER BY relation
       `;
-      expect(ownedRelations).toEqual([]);
+        expect(ownedRelations).toEqual([]);
 
-      const ownedSchemas = await adminPrisma.$queryRaw<
-        Array<{ schemaName: string }>
-      >`
+        const ownedSchemas = await adminPrisma.$queryRaw<
+          Array<{ schemaName: string }>
+        >`
         SELECT nspname AS "schemaName"
         FROM pg_catalog.pg_namespace
         WHERE nspowner = (
@@ -330,18 +330,24 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         )
         ORDER BY nspname
       `;
-      expect(ownedSchemas).toEqual([]);
+        expect(ownedSchemas).toEqual([]);
+      });
     });
 
-    it("owns exactly the audited SECURITY DEFINER functions", async () => {
-      const functions = await adminPrisma.$queryRaw<
-        Array<{
-          securityDefiner: boolean;
-          settings: string[] | null;
-          signature: string;
-          volatility: string;
-        }>
-      >`
+    it("owns exactly the audited SECURITY DEFINER functions", async ({
+      isolatedDatabase: { owner: adminPrisma },
+      nodeRuntime,
+      expect,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const functions = await adminPrisma.$queryRaw<
+          Array<{
+            securityDefiner: boolean;
+            settings: string[] | null;
+            signature: string;
+            volatility: string;
+          }>
+        >`
         SELECT
           pg_catalog.format(
             '%I.%I(%s)',
@@ -367,13 +373,19 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         ORDER BY signature
       `;
 
-      expect(functions).toEqual(expectedFunctions);
+        expect(functions).toEqual(expectedFunctions);
+      });
     });
 
-    it("has only the audited schema, table, column, and function ACLs", async () => {
-      const schemaPrivileges = await adminPrisma.$queryRaw<
-        Array<{ isGrantable: boolean; signature: string }>
-      >`
+    it("has only the audited schema, table, column, and function ACLs", async ({
+      isolatedDatabase: { owner: adminPrisma },
+      nodeRuntime,
+      expect,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const schemaPrivileges = await adminPrisma.$queryRaw<
+          Array<{ isGrantable: boolean; signature: string }>
+        >`
         SELECT
           pg_catalog.format(
             '%I:%s',
@@ -390,13 +402,13 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         )
         ORDER BY signature
       `;
-      expect(schemaPrivileges).toEqual([
-        { isGrantable: false, signature: "public:USAGE" },
-      ]);
+        expect(schemaPrivileges).toEqual([
+          { isGrantable: false, signature: "public:USAGE" },
+        ]);
 
-      const tablePrivileges = await adminPrisma.$queryRaw<
-        Array<{ isGrantable: boolean; signature: string }>
-      >`
+        const tablePrivileges = await adminPrisma.$queryRaw<
+          Array<{ isGrantable: boolean; signature: string }>
+        >`
         SELECT
           pg_catalog.format(
             '%s.%s:%s',
@@ -416,16 +428,16 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         )
         ORDER BY signature
       `;
-      expect(tablePrivileges).toEqual(
-        expectedTablePrivileges.map((signature) => ({
-          isGrantable: false,
-          signature,
-        })),
-      );
+        expect(tablePrivileges).toEqual(
+          expectedTablePrivileges.map((signature) => ({
+            isGrantable: false,
+            signature,
+          })),
+        );
 
-      const columnPrivileges = await adminPrisma.$queryRaw<
-        Array<{ isGrantable: boolean; signature: string }>
-      >`
+        const columnPrivileges = await adminPrisma.$queryRaw<
+          Array<{ isGrantable: boolean; signature: string }>
+        >`
         SELECT
           pg_catalog.format(
             '%s.%s:%s:%s',
@@ -448,18 +460,18 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         )
         ORDER BY signature
       `;
-      expect(columnPrivileges).toEqual(
-        expectedColumnPrivileges.map((signature) => ({
-          isGrantable: false,
-          signature,
-        })),
-      );
+        expect(columnPrivileges).toEqual(
+          expectedColumnPrivileges.map((signature) => ({
+            isGrantable: false,
+            signature,
+          })),
+        );
 
-      // Function ownership is asserted above. PostgreSQL owner privileges are
-      // inherent and deliberately absent from the role's explicit ACL here.
-      const functionAclEntries = await adminPrisma.$queryRaw<
-        Array<{ isGrantable: boolean; signature: string }>
-      >`
+        // Function ownership is asserted above. PostgreSQL owner privileges are
+        // inherent and deliberately absent from the role's explicit ACL here.
+        const functionAclEntries = await adminPrisma.$queryRaw<
+          Array<{ isGrantable: boolean; signature: string }>
+        >`
         SELECT
           pg_catalog.format(
             '%I.%I(%s):%s',
@@ -480,17 +492,23 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         )
         ORDER BY signature
       `;
-      expect(functionAclEntries).toEqual([]);
+        expect(functionAclEntries).toEqual([]);
+      });
     });
 
-    it("has no database creation, temporary-table, or sequence privileges", async () => {
-      const [databasePrivileges] = await adminPrisma.$queryRaw<
-        Array<{
-          canConnect: boolean;
-          canCreate: boolean;
-          canCreateTemporaryTables: boolean;
-        }>
-      >`
+    it("has no database creation, temporary-table, or sequence privileges", async ({
+      isolatedDatabase: { owner: adminPrisma },
+      nodeRuntime,
+      expect,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const [databasePrivileges] = await adminPrisma.$queryRaw<
+          Array<{
+            canConnect: boolean;
+            canCreate: boolean;
+            canCreateTemporaryTables: boolean;
+          }>
+        >`
         SELECT
           pg_catalog.has_database_privilege(
             ${functionOwnerRole},
@@ -508,15 +526,15 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
             'TEMPORARY'
           ) AS "canCreateTemporaryTables"
       `;
-      expect(databasePrivileges).toEqual({
-        canConnect: false,
-        canCreate: false,
-        canCreateTemporaryTables: false,
-      });
+        expect(databasePrivileges).toEqual({
+          canConnect: false,
+          canCreate: false,
+          canCreateTemporaryTables: false,
+        });
 
-      const sequencePrivileges = await adminPrisma.$queryRaw<
-        Array<{ sequenceName: string }>
-      >`
+        const sequencePrivileges = await adminPrisma.$queryRaw<
+          Array<{ sequenceName: string }>
+        >`
         SELECT pg_catalog.format('%I.%I', namespace.nspname, sequence.relname)
           AS "sequenceName"
         FROM pg_catalog.pg_class AS sequence
@@ -542,22 +560,28 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           )
         ORDER BY "sequenceName"
       `;
-      expect(sequencePrivileges).toEqual([]);
+        expect(sequencePrivileges).toEqual([]);
+      });
     });
 
-    it("is the sole role on the audited definer policies", async () => {
-      const policies = await adminPrisma.$queryRaw<
-        Array<{
-          checkExpression: string | null;
-          command: string;
-          permissive: string;
-          policyName: string;
-          roles: string[];
-          schemaName: string;
-          tableName: string;
-          usingExpression: string;
-        }>
-      >`
+    it("is the sole role on the audited definer policies", async ({
+      isolatedDatabase: { owner: adminPrisma },
+      nodeRuntime,
+      expect,
+    }) => {
+      await nodeRuntime.run(async () => {
+        const policies = await adminPrisma.$queryRaw<
+          Array<{
+            checkExpression: string | null;
+            command: string;
+            permissive: string;
+            policyName: string;
+            roles: string[];
+            schemaName: string;
+            tableName: string;
+            usingExpression: string;
+          }>
+        >`
         SELECT
           schemaname AS "schemaName",
           tablename AS "tableName",
@@ -572,165 +596,166 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         ORDER BY schemaname, tablename, policyname
       `;
 
-      expect(
-        policies.map((policy) => ({
-          ...policy,
-          usingExpression: policy.usingExpression.replaceAll("::text", ""),
-        })),
-      ).toEqual([
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "AuditLog_function_owner",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "AuditLog",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: null,
-          command: "SELECT",
-          permissive: "PERMISSIVE",
-          policyName: "Comment_hidden_count_reader",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "Comment",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: "false",
-          command: "UPDATE",
-          permissive: "PERMISSIVE",
-          policyName: "Comment_reply_parent_lock",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "Comment",
-          usingExpression:
-            "(current_setting('app.comment_reply_lock', true) = 'on')",
-        },
-        {
-          checkExpression: null,
-          command: "SELECT",
-          permissive: "PERMISSIVE",
-          policyName: "CommentReaction_summary_reader",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "CommentReaction",
-          usingExpression:
-            "(current_setting('app.comment_reaction_summary', true) = 'on')",
-        },
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "FeatureOperationEvent_function_owner",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "FeatureOperationEvent",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "OAuthGrantUsageDaily_function_owner",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "OAuthGrantUsageDaily",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "PrometheusCounter_function_owner",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "PrometheusCounter",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "PrometheusCounterEpoch_function_owner",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "PrometheusCounterEpoch",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "PrometheusMetricsCache_function_owner",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "PrometheusMetricsCache",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "RuntimeIssueEvent_function_owner",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "RuntimeIssueEvent",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: null,
-          command: "SELECT",
-          permissive: "PERMISSIVE",
-          policyName: "Upload_definer_read",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "Upload",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: "true",
-          command: "ALL",
-          permissive: "PERMISSIVE",
-          policyName: "UploadPending_cleanup_worker",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "UploadPending",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: null,
-          command: "SELECT",
-          permissive: "PERMISSIVE",
-          policyName: "UserSectionSubscription_calendar_recipients",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "UserSectionSubscription",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: null,
-          command: "SELECT",
-          permissive: "PERMISSIVE",
-          policyName: "UserYoungEventSubscription_recipients",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "UserYoungEventSubscription",
-          usingExpression: "true",
-        },
-        {
-          checkExpression: null,
-          command: "SELECT",
-          permissive: "PERMISSIVE",
-          policyName: "UserYoungOrganizerSubscription_recipients",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "UserYoungOrganizerSubscription",
-          usingExpression: "true",
-        },
-      ]);
+        expect(
+          policies.map((policy) => ({
+            ...policy,
+            usingExpression: policy.usingExpression.replaceAll("::text", ""),
+          })),
+        ).toEqual([
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "AuditLog_function_owner",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "AuditLog",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: null,
+            command: "SELECT",
+            permissive: "PERMISSIVE",
+            policyName: "Comment_hidden_count_reader",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "Comment",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: "false",
+            command: "UPDATE",
+            permissive: "PERMISSIVE",
+            policyName: "Comment_reply_parent_lock",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "Comment",
+            usingExpression:
+              "(current_setting('app.comment_reply_lock', true) = 'on')",
+          },
+          {
+            checkExpression: null,
+            command: "SELECT",
+            permissive: "PERMISSIVE",
+            policyName: "CommentReaction_summary_reader",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "CommentReaction",
+            usingExpression:
+              "(current_setting('app.comment_reaction_summary', true) = 'on')",
+          },
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "FeatureOperationEvent_function_owner",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "FeatureOperationEvent",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "OAuthGrantUsageDaily_function_owner",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "OAuthGrantUsageDaily",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "PrometheusCounter_function_owner",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "PrometheusCounter",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "PrometheusCounterEpoch_function_owner",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "PrometheusCounterEpoch",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "PrometheusMetricsCache_function_owner",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "PrometheusMetricsCache",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "RuntimeIssueEvent_function_owner",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "RuntimeIssueEvent",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: null,
+            command: "SELECT",
+            permissive: "PERMISSIVE",
+            policyName: "Upload_definer_read",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "Upload",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: "true",
+            command: "ALL",
+            permissive: "PERMISSIVE",
+            policyName: "UploadPending_cleanup_worker",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "UploadPending",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: null,
+            command: "SELECT",
+            permissive: "PERMISSIVE",
+            policyName: "UserSectionSubscription_calendar_recipients",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "UserSectionSubscription",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: null,
+            command: "SELECT",
+            permissive: "PERMISSIVE",
+            policyName: "UserYoungEventSubscription_recipients",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "UserYoungEventSubscription",
+            usingExpression: "true",
+          },
+          {
+            checkExpression: null,
+            command: "SELECT",
+            permissive: "PERMISSIVE",
+            policyName: "UserYoungOrganizerSubscription_recipients",
+            roles: [functionOwnerRole],
+            schemaName: "public",
+            tableName: "UserYoungOrganizerSubscription",
+            usingExpression: "true",
+          },
+        ]);
+      });
     });
   },
 );
