@@ -49,10 +49,10 @@ async function locateJwPinButton(page: Page) {
   return button;
 }
 
-async function clickJwPin(page: Page, expectedPins: string[]) {
+async function clickJwPin(page: Page, expectedPins: string[], preferenceFlow: PreferenceFlow) {
   const button = await locateJwPinButton(page);
   const [response] = await Promise.all([
-    page.waitForResponse(
+    preferenceFlow.waitForResponse(page,
       (response) =>
         response.url().includes("/api/workspace/link-pins") &&
         response.request().method() === "POST",
@@ -235,7 +235,7 @@ test.describe("仪表盘网站链接", () => {
         "aria-label",
         PIN_LABEL,
       );
-      expect((await clickJwPin(page, ["jw"])).ok()).toBe(true);
+      expect((await clickJwPin(page, ["jw"], preferenceFlow)).ok()).toBe(true);
       await expect(await locateJwPinButton(page)).toHaveAttribute(
         "aria-label",
         UNPIN_LABEL,
@@ -253,7 +253,7 @@ test.describe("仪表盘网站链接", () => {
         "workspace-links-toggle-request",
       );
 
-      expect((await clickJwPin(page, [])).ok()).toBe(true);
+      expect((await clickJwPin(page, [], preferenceFlow)).ok()).toBe(true);
       await expect(await locateJwPinButton(page)).toHaveAttribute(
         "aria-label",
         PIN_LABEL,
@@ -285,7 +285,7 @@ test.describe("仪表盘网站链接", () => {
         "aria-label",
         PIN_LABEL,
       );
-      expect((await clickJwPin(page, ["jw"])).ok()).toBe(true);
+      expect((await clickJwPin(page, ["jw"], preferenceFlow)).ok()).toBe(true);
       await searchInput.fill("教务");
       await expect(await locateJwPinButton(page)).toHaveAttribute(
         "aria-label",
@@ -293,7 +293,7 @@ test.describe("仪表盘网站链接", () => {
       );
       await expect.poll(() => storedPins(db, account.id)).toEqual(["jw"]);
 
-      expect((await clickJwPin(page, [])).ok()).toBe(true);
+      expect((await clickJwPin(page, [], preferenceFlow)).ok()).toBe(true);
       await searchInput.fill("教务系统");
       await expect(await locateJwPinButton(page)).toHaveAttribute(
         "aria-label",

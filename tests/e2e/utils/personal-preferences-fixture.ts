@@ -14,16 +14,16 @@ export const test = workerTest.extend<{
   preferenceFlow: async ({ page, browser, request, isolatedWorker, run }, use, testInfo) => {
     await run(() => withPreferenceFlow({ page, browser, observer: request, isolatedWorker, testInfo }, use));
   },
-  account: async ({ isolatedWorker, page, run, preferenceFlow: _flow }, use) => {
-    const account = await run(async () => {
+  account: async ({ isolatedWorker, page, preferenceFlow }, use) => {
+    const account = await preferenceFlow.prepare(async () => {
       const actor = await isolatedWorker.createActor();
       await page.context().addCookies([actor.cookie]);
       return isolatedWorker.database.owner.user.findUniqueOrThrow({ where: { id: actor.id } });
     });
     await use(account);
   },
-  pinnedAccount: async ({ isolatedWorker, account, run }, use) => {
-    await run(() => isolatedWorker.database.owner.workspaceLinkPin.createMany({
+  pinnedAccount: async ({ isolatedWorker, account, preferenceFlow }, use) => {
+    await preferenceFlow.prepare(() => isolatedWorker.database.owner.workspaceLinkPin.createMany({
       data: DEV_SEED.catalogLinks.pinnedSlugs.map((slug) => ({
         userId: account.id,
         slug,
@@ -31,8 +31,8 @@ export const test = workerTest.extend<{
     }));
     await use(account);
   },
-  busPreferences: async ({ isolatedWorker, account, run }, use) => {
-    await run(() => isolatedWorker.database.owner.busUserPreference.create({
+  busPreferences: async ({ isolatedWorker, account, preferenceFlow }, use) => {
+    await preferenceFlow.prepare(() => isolatedWorker.database.owner.busUserPreference.create({
       data: {
         userId: account.id,
         preferredOriginCampusId: null,
@@ -48,8 +48,8 @@ export const test = workerTest.extend<{
 // state. Links tests never request this fixture or acquire bus data.
 export const busTest = test.extend<{ busTimetable: undefined }>({
   busTimetable: [
-    async ({ isolatedWorker, run }, use) => {
-      await run(() => arrangeBusTimetable(isolatedWorker.database.owner));
+    async ({ isolatedWorker, preferenceFlow }, use) => {
+      await preferenceFlow.prepare(() => arrangeBusTimetable(isolatedWorker.database.owner));
       await use(undefined);
     },
     { auto: true },

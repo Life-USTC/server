@@ -5,6 +5,8 @@ import {
   type BrowserContext,
   expect,
   type Page,
+  type Request,
+  type Response,
   type Route,
   type TestInfo,
 } from "@playwright/test";
@@ -17,9 +19,14 @@ type RouteTarget = Page | BrowserContext;
 type RouteMatch = Parameters<Page["route"]>[0];
 export type PreferenceFlow = {
   headers: Record<string, string>;
+  prepare: <T>(work: () => Promise<T>) => Promise<T>;
   http: (work: () => Promise<APIResponse>) => Promise<APIResponse>;
   run: (work: () => Promise<void>, mode?: Mode) => Promise<void>;
   newContext: (options?: Parameters<Browser["newContext"]>[0]) => Promise<BrowserContext>;
+  newPage: (context: BrowserContext) => Promise<Page>;
+  waitForRequest: (context: BrowserContext, predicate: (request: Request) => boolean) => Promise<Request>;
+  waitForPopup: (page: Page) => Promise<Page>;
+  waitForResponse: (page: Page, predicate: (response: Response) => boolean) => Promise<Response>;
   closeContext: (context: BrowserContext) => Promise<void>;
   route: (target: RouteTarget, match: RouteMatch, handler: (route: Route) => Promise<void>) => Promise<void>;
   clearRoutes: (target: RouteTarget) => Promise<void>;
@@ -45,10 +52,13 @@ export async function withPreferenceFlow(
   const probeId = crypto.randomUUID();
   const probePath = "/__test/community-effects?id=" + probeId;
   const headers = { ...secret, "x-test-community-probe": probeId };
-  const contexts = new Set<BrowserContext>();
+  const contexts = new Set<BrowserContext>([page.context()]);
   const noScript = new Set<BrowserContext>();
   const readers = new Map<Page, ReturnType<typeof ownBrowserReads>>();
   const pending = new Set<Promise<void>>();
+  // Native page acquisition/event waits need context closure to interrupt;
+  // submitted HTTP requests and browser writes must settle before that close.
+  const browserOperations = new Map<BrowserContext, Set<Promise<void>>>();
   const releases: (() => void)[] = [];
   const controls: { target: RouteTarget; match: RouteMatch; handler: (route: Route) => Promise<void> }[] = [];
   const writes: { path: string; method: string; status: number }[] = [];
@@ -76,6 +86,21 @@ export async function withPreferenceFlow(
     const settled = operation.then(() => undefined, remember);
     pending.add(settled);
     void settled.finally(() => pending.delete(settled));
+    return operation;
+  }
+  function ownBrowserOperation<T>(context: BrowserContext, work: () => Promise<T>) {
+    open();
+    if (!contexts.has(context)) throw new Error("Browser context is not owned by this preference workflow");
+    let operations = browserOperations.get(context);
+    if (!operations) {
+      operations = new Set();
+      browserOperations.set(context, operations);
+    }
+    const operation = Promise.resolve().then(work);
+    const settled = operation.then(() => undefined, remember);
+    const owned = operations;
+    owned.add(settled);
+    void settled.finally(() => owned.delete(settled));
     return operation;
   }
   async function settle() {
@@ -111,6 +136,9 @@ export async function withPreferenceFlow(
     reader.prepareRetiredClose();
   }
   async function closeContext(context: BrowserContext) {
+    // Scenario finally blocks may reach this before the workflow finalizer.
+    // Do not close an intercepted resolver/write before its real response.
+    await settle();
     const results = await Promise.allSettled(context.pages().map(prepareClose));
     results.push(...await Promise.allSettled([context.close()]));
     const failures = results.flatMap((result) => result.status === "rejected" ? [result.reason] : []);
@@ -120,9 +148,11 @@ export async function withPreferenceFlow(
     contexts.add(context);
     context.on("page", onPage);
     for (const current of context.pages()) observePage(current);
-    await context.route((url) => url.origin === origin, (route) => own(async () => {
+    await context.route((url) => url.origin === origin, (route) => {
       const request = route.request();
-      if (closing && !request.redirectedFrom()) {
+      const admitted = !closing || Boolean(request.redirectedFrom());
+      return own(async () => {
+      if (!admitted) {
         await route.abort("aborted");
         return;
       }
@@ -145,7 +175,8 @@ export async function withPreferenceFlow(
         remember(error);
         try { await route.abort("aborted"); } catch (abortError) { remember(abortError); }
       }
-    }));
+      });
+    });
   }
   function releaseHeld() {
     closing = true;
@@ -157,16 +188,25 @@ export async function withPreferenceFlow(
     finalization ??= (async () => {
       releaseHeld();
       await settle();
+      // An interrupted newPage()/event wait may have no Page handle to close.
+      // Release its actual native promise after all admitted HTTP/writes settle.
+      for (const [context, operations] of browserOperations) {
+        if (!operations.size) continue;
+        try { await context.close(); } catch (error) { remember(error); }
+      }
       for (const context of contexts) {
         for (const current of context.pages()) {
           try { await prepareClose(current); } catch (error) { remember(error); }
           try { await current.close(); } catch (error) { remember(error); }
         }
       }
-      // Page closure releases interrupted UI callbacks. Keep native request
-      // contexts and their buffered API responses available until the actual
-      // callback finishes reading responses and observing persisted state.
+      // Page closure releases remaining UI callbacks. Contexts without a
+      // pending native acquisition/event wait retain their API response storage
+      // until the actual callback finishes reading it and observing state.
       if (actualBody) try { await actualBody; } catch (error) { remember(error); }
+      for (const operations of browserOperations.values()) {
+        while (operations.size) await Promise.all([...operations]);
+      }
       await settle();
       for (const context of contexts) {
         try { await context.close(); } catch (error) { remember(error); }
@@ -220,14 +260,13 @@ export async function withPreferenceFlow(
     return finalization;
   }
   try {
-    expect((await observer.post(probePath, { headers: secret })).status()).toBe(201);
-    registered = true;
-    await page.context().setExtraHTTPHeaders(headers);
-    await installContext(page.context());
+    // Yield the native fixture before any asynchronous probe or browser setup.
+    // Admitted prepare() operations are joined by finish() before page closure.
     await withBrowserWorkflow(page, async (workflow) => {
       try {
         await use({
           headers,
+          prepare(work) { open(); return own(work); },
           http(work) {
             open();
             return own(async () => {
@@ -240,6 +279,11 @@ export async function withPreferenceFlow(
             return workflow.run(async () => {
               mode = kind;
               try {
+                expect((await observer.post(probePath, { headers: secret })).status()).toBe(201);
+                registered = true;
+                open();
+                await page.context().setExtraHTTPHeaders(headers);
+                await installContext(page.context());
                 before = await state();
                 await workflow.body(() => {
                   actualBody = Promise.resolve().then(async () => {
@@ -268,20 +312,39 @@ export async function withPreferenceFlow(
               return context;
             });
           },
+          newPage(context) {
+            return ownBrowserOperation(context, () => context.newPage());
+          },
+          waitForRequest(context, predicate) {
+            return ownBrowserOperation(context, () => context.waitForEvent("request", { predicate }));
+          },
+          waitForPopup(current) {
+            return ownBrowserOperation(current.context(), () => current.waitForEvent("popup"));
+          },
+          waitForResponse(current, predicate) {
+            return ownBrowserOperation(current.context(), () => current.waitForResponse(predicate));
+          },
           closeContext,
           onClosing(release) { open(); releases.push(release); },
           async route(target, match, handler) {
             open();
-            const owned = (route: Route) => own(async () => {
+            const owned = (route: Route) => {
+              const admitted = !closing;
+              return own(async () => {
               const record = { path: new URL(route.request().url()).pathname,
                 method: route.request().method(), complete: false };
               controlled.push(record);
-              try { open(); await handler(route); record.complete = true; }
+              try {
+                if (!admitted) throw new Error("Controlled preference request began during closing");
+                await handler(route);
+                record.complete = true;
+              }
               catch (error) {
                 remember(error);
                 try { await route.abort("aborted"); } catch (abortError) { remember(abortError); }
               }
-            });
+              });
+            };
             controls.push({ target, match, handler: owned });
             await target.route(match, owned);
           },

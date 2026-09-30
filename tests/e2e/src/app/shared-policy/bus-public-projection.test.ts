@@ -4,8 +4,8 @@ import type { User } from "../../../../../src/generated/prisma-node/client";
 import { busTest } from "../../../utils/personal-preferences-fixture";
 
 const test = busTest.extend<{ busUsers: User[] }>({
-  busUsers: async ({ isolatedWorker, run, busTimetable: _busTimetable }, use) => {
-    const owners = await run(() => isolatedWorker.database.owner.$transaction(async (db) => {
+  busUsers: async ({ isolatedWorker, preferenceFlow, busTimetable: _busTimetable }, use) => {
+    const owners = await preferenceFlow.prepare(() => isolatedWorker.database.owner.$transaction(async (db) => {
       const owners: User[] = [];
       for (const destination of [4, 6]) {
         const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
@@ -72,7 +72,7 @@ test("bus.public-web-personal-overlay", async ({ preferenceFlow,
           expect(projection.bus.preferences).toBeNull();
           expect(projection.bus.routes.length).toBeGreaterThan(0);
           expect(projection.bus.trips.length).toBeGreaterThan(0);
-          const page = await context.newPage();
+          const page = await preferenceFlow.newPage(context);
           await page.goto("/catalog/bus", { waitUntil: "domcontentloaded" });
           await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
           const selectedDestination = page
