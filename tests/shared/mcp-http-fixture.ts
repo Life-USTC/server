@@ -1,8 +1,3 @@
-import { createServer } from "node:http";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
-import type { ReadableStream as NodeReadableStream } from "node:stream/web";
-import { getRequest } from "@sveltejs/kit/node";
 import { betterAuth } from "better-auth";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import type { CloudflareR2Bucket } from "@/lib/adapters/cloudflare-runtime";
@@ -20,6 +15,7 @@ import {
   type IsolatedDatabase,
   isolatedDatabaseTest,
 } from "./isolated-database";
+import { ownHttpServer } from "./node-http-contract-fixture";
 import { createNodeRuntime } from "./node-runtime";
 
 export const call = (name: string, args: Record<string, unknown> = {}) => ({
@@ -45,7 +41,7 @@ export async function payload(response: Response) {
 
 /** Real Node HTTP routes and JWT/JWKS verification, with a private memory R2.
  * Deployment hooks and OAuth issuance flows belong to the Worker E2E suite. */
-async function createMcpHttpFixture(database: IsolatedDatabase) {
+function ownMcpHttpFixture(database: IsolatedDatabase) {
   const db = database.owner;
   const marker = crypto.randomUUID();
   const userId = `mcp-http-${marker}`;
@@ -102,11 +98,14 @@ async function createMcpHttpFixture(database: IsolatedDatabase) {
     typeof betterAuth<ReturnType<typeof buildBetterAuthOptions>>
   >;
   const runtimes: ReturnType<typeof createNodeRuntime>[] = [];
-  const handlers: Promise<void>[] = [];
-  const requests: Promise<void>[] = [];
-  const responses = new Set<Response>();
+  const workflows = createNodeRuntime({});
+  let initialization: Promise<void> | undefined;
+  let token = "";
   let closing: Promise<void> | undefined;
-  function run<T>(work: () => T | Promise<T>): Promise<T> {
+  let requestsClosed = false;
+  function request<T>(work: () => T | Promise<T>): Promise<T> {
+    if (requestsClosed)
+      return Promise.reject(new Error("MCP HTTP requests are closed"));
     const runtime = createNodeRuntime({
       APP_PUBLIC_ORIGIN: publicOrigin,
       APP_CANONICAL_ORIGIN: canonicalOrigin,
@@ -123,99 +122,52 @@ async function createMcpHttpFixture(database: IsolatedDatabase) {
     runtimes.push(runtime);
     return runtime.run(work);
   }
-  function fetchOwned(input: string | URL | Request, init?: RequestInit) {
-    if (closing)
-      return Promise.reject(new Error("MCP HTTP fixture is closing"));
-    const operation = fetch(input, init).then((response) => {
-      responses.add(response);
-      return response;
-    });
-    requests.push(
-      operation.then(
-        () => undefined,
-        () => undefined,
-      ),
-    );
-    return operation;
-  }
-  const server = createServer((incoming, outgoing) => {
-    const handling = (async () => {
-      try {
-        const request = await getRequest({ request: incoming, base: origin });
-        const path = new URL(request.url).pathname;
-        const response = await run(() => {
-          if (path === "/api/auth/jwks") {
-            publicJwksRequests++;
-            return auth.handler(request);
-          }
-          if (path === "/api/workspace/uploads/object")
-            return putUploadObjectRoute(request);
-          if (/^\/api\/workspace\/uploads\/[^/]+\/download$/.test(path))
-            return getUploadDownloadRoute(request, { id: path.split("/")[4] });
-          return (
-            {
-              POST: mcpPostRoute,
-              GET: mcpGetRoute,
-              DELETE: mcpDeleteRoute,
-              OPTIONS: mcpOptionsRoute,
-            }[request.method] ?? (() => new Response(null, { status: 405 }))
-          )(request);
-        });
-        // SvelteKit setResponse starts a detached body pump. Own the native
-        // pipeline so EOF/cancellation has finished before database teardown.
-        for (const [name, value] of response.headers)
-          outgoing.setHeader(
-            name,
-            name === "set-cookie" ? response.headers.getSetCookie() : value,
-          );
-        outgoing.writeHead(response.status);
-        if (response.body) {
-          await pipeline(
-            Readable.fromWeb(response.body as NodeReadableStream<Uint8Array>),
-            outgoing,
-          );
-        } else outgoing.end();
-      } catch (error) {
-        if (!outgoing.destroyed) {
-          if (!outgoing.headersSent) outgoing.statusCode = 500;
-          outgoing.end(String(error));
-        }
-      }
-    })();
-    handlers.push(handling);
-    // Observe immediately, including when a failing test no longer awaits fetch.
-    void handling.catch(() => undefined);
+  const runtime = {
+    request,
+    drain: workflows.close,
+    async close() {
+      const results = await Promise.allSettled([workflows.close()]);
+      requestsClosed = true;
+      // A workflow may admit more requests after its native test times out.
+      // Finish it before taking the final set of request runtimes.
+      results.push(
+        ...(await Promise.allSettled(runtimes.map((item) => item.close()))),
+      );
+      const failures = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (failures.length)
+        throw new AggregateError(failures, "MCP HTTP runtime cleanup failed");
+    },
+  };
+  const server = ownHttpServer(runtime, (incoming) => {
+    const path = new URL(incoming.url).pathname;
+    if (path === "/api/auth/jwks") {
+      publicJwksRequests++;
+      return auth.handler(incoming);
+    }
+    if (path === "/api/workspace/uploads/object")
+      return putUploadObjectRoute(incoming);
+    if (/^\/api\/workspace\/uploads\/[^/]+\/download$/.test(path))
+      return getUploadDownloadRoute(incoming, { id: path.split("/")[4] });
+    return (
+      {
+        POST: mcpPostRoute,
+        GET: mcpGetRoute,
+        DELETE: mcpDeleteRoute,
+        OPTIONS: mcpOptionsRoute,
+      }[incoming.method] ?? (() => new Response(null, { status: 405 }))
+    )(incoming);
   });
-  async function close() {
+  function close() {
     closing ??= (async () => {
-      // Accepted handlers can fetch JWKS from this same server. Keep it open
-      // while they finish; cancel unread client bodies before awaiting streams.
-      for (let i = 0; i < requests.length; i++) await requests[i];
-      const outcomes = await Promise.allSettled(
-        [...responses].map((response) =>
-          response.body && !response.bodyUsed
-            ? response.body.cancel()
-            : undefined,
-        ),
-      );
-      for (let i = 0; i < handlers.length; i++) await handlers[i];
-      outcomes.push(
-        ...(await Promise.allSettled(
-          runtimes.map((runtime) => runtime.close()),
-        )),
-      );
-      outcomes.push(
-        ...(await Promise.allSettled([
-          new Promise<void>((resolve, reject) => {
-            if (!server.listening) return resolve();
-            server.close((error) => (error ? reject(error) : resolve()));
-            server.closeAllConnections();
-          }),
-        ])),
-      );
+      // The server drains workflows, client bodies and handlers while the JWKS
+      // listener remains available. This owner reports runtime cleanup failures.
+      const results = await Promise.allSettled([server.close()]);
+      results.push(...(await Promise.allSettled([runtime.close()])));
       objects.clear();
       calendarMessages.length = 0;
-      const failures = outcomes.flatMap((result) =>
+      const failures = results.flatMap((result) =>
         result.status === "rejected" ? [result.reason] : [],
       );
       if (failures.length)
@@ -232,7 +184,7 @@ async function createMcpHttpFixture(database: IsolatedDatabase) {
     } = {},
   ) {
     const issuedAt = Math.floor(Date.now() / 1000);
-    const signed = await run(() =>
+    const signed = await request(() =>
       signResourceBoundOAuthAccessToken({
         userId,
         clientId,
@@ -246,39 +198,39 @@ async function createMcpHttpFixture(database: IsolatedDatabase) {
     if (!signed) throw new Error("Expected signed MCP token");
     return signed;
   }
-  try {
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(0, "127.0.0.1", () => {
-        server.off("error", reject);
-        resolve();
+  function initialize() {
+    if (closing)
+      return Promise.reject(new Error("MCP HTTP fixture is closing"));
+    initialization ??= workflows.run(async () => {
+      await server.initialize();
+      origin = server.origin;
+      publicOrigin = origin;
+      canonicalOrigin = origin;
+      auth = await request(async () => {
+        const instance = betterAuth(buildBetterAuthOptions());
+        await instance.$context;
+        return instance;
       });
+      await db.$transaction(async (tx) => {
+        await tx.user.create({
+          data: { id: userId, email: `${userId}@example.test` },
+        });
+        await tx.oAuthClient.create({
+          data: {
+            clientId,
+            name: "MCP HTTP contract",
+            scopes,
+            redirectUris: ["https://example.test/callback"],
+            consents: { create: { userId, grantId, scopes } },
+          },
+        });
+      });
+      token = await sign();
     });
-    const address = server.address();
-    if (!address || typeof address === "string")
-      throw new Error("Missing HTTP address");
-    origin = `http://127.0.0.1:${address.port}`;
-    publicOrigin = origin;
-    canonicalOrigin = origin;
-    auth = await run(async () => {
-      const instance = betterAuth(buildBetterAuthOptions());
-      await instance.$context;
-      return instance;
-    });
-    await db.user.create({
-      data: { id: userId, email: `${userId}@example.test` },
-    });
-    await db.oAuthClient.create({
-      data: {
-        clientId,
-        name: "MCP HTTP contract",
-        scopes,
-        redirectUris: ["https://example.test/callback"],
-        consents: { create: { userId, grantId, scopes } },
-      },
-    });
-    const token = await sign();
-    async function arrangeClock() {
+    return initialization;
+  }
+  async function arrangeClock() {
+    return db.$transaction(async (db) => {
       const semester = await db.semester.create({
         data: {
           jwId: 1,
@@ -386,60 +338,68 @@ async function createMcpHttpFixture(database: IsolatedDatabase) {
         },
       });
       return section;
-    }
-    return {
-      db,
-      userId,
-      origin,
-      token,
-      objects,
-      run,
-      sign,
-      close,
-      arrangeClock,
-      fetch: fetchOwned,
-      get publicJwksRequests() {
-        return publicJwksRequests;
-      },
-      setOrigins(next: { public?: string; canonical?: string }) {
-        publicOrigin = next.public ?? origin;
-        canonicalOrigin = next.canonical ?? origin;
-      },
-      signJwt: (claims: Record<string, unknown>) =>
-        run(() => auth.api.signJWT({ body: { payload: claims } })),
-      post: (body: unknown, authorization?: string) =>
-        fetchOwned(`${origin}/api/mcp`, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            accept: "application/json, text/event-stream",
-            ...(authorization ? { authorization } : {}),
-          },
-          body: typeof body === "string" ? body : JSON.stringify(body),
-        }),
-    };
-  } catch (error) {
-    try {
-      await close();
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        "MCP HTTP setup and cleanup failed",
-      );
-    }
-    throw error;
+    });
   }
+  return {
+    db,
+    userId,
+    get origin() {
+      return origin;
+    },
+    get token() {
+      return token;
+    },
+    objects,
+    run: workflows.run,
+    request,
+    initialize,
+    sign,
+    close,
+    arrangeClock,
+    fetch: server.fetch,
+    get publicJwksRequests() {
+      return publicJwksRequests;
+    },
+    setOrigins(next: { public?: string; canonical?: string }) {
+      publicOrigin = next.public ?? origin;
+      canonicalOrigin = next.canonical ?? origin;
+    },
+    signJwt: (claims: Record<string, unknown>) =>
+      request(() => auth.api.signJWT({ body: { payload: claims } })),
+    post: (body: unknown, authorization?: string) =>
+      server.fetch(`${origin}/api/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          ...(authorization ? { authorization } : {}),
+        },
+        body: typeof body === "string" ? body : JSON.stringify(body),
+      }),
+  };
 }
 
 export const mcpHttpTest = isolatedDatabaseTest.extend<{
-  http: Awaited<ReturnType<typeof createMcpHttpFixture>>;
+  _mcpHttpResources: ReturnType<typeof ownMcpHttpFixture>;
+  http: ReturnType<typeof ownMcpHttpFixture>;
 }>({
-  http: async ({ isolatedDatabase }, use) => {
-    const http = await createMcpHttpFixture(isolatedDatabase);
+  _mcpHttpResources: async ({ isolatedDatabase, onTestFinished }, use) => {
+    const http = ownMcpHttpFixture(isolatedDatabase);
     try {
+      // Register ownership before starting the listener, auth or database setup.
       await use(http);
     } finally {
-      await http.close();
+      try {
+        await http.close();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
+  },
+  http: async ({ _mcpHttpResources }, use) => {
+    await _mcpHttpResources.initialize();
+    await use(_mcpHttpResources);
   },
 });
