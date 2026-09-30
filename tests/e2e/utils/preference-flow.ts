@@ -12,6 +12,7 @@ import {
 } from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
+import { fulfillFetchedResponse } from "./fulfill-fetched-response";
 import type { IsolatedWorker } from "./isolated-worker";
 
 type Mode = "consume" | "pins" | "bus" | "visits";
@@ -234,7 +235,7 @@ export async function withPreferenceFlow(
               method: request.method(),
               status: response.status(),
             });
-            await route.fulfill({ response });
+            await fulfillFetchedResponse(route, response);
           } catch (error) {
             remember(error);
             try {
