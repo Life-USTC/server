@@ -1020,7 +1020,7 @@ requirements:
     - Setup actions reach the public section/course pages, and the authorized todo action creates the first task in the database and displays it.
     test:
       file: tests/e2e/src/app/shared-policy/setup-empty.test.ts
-      name: ui.workspace-filters-and-empty-states-6
+      name: "ui.workspace-filters-and-empty-states-6 en-us/1280"
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation

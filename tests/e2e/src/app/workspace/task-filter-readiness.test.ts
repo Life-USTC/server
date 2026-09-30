@@ -78,7 +78,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
     todoTest(
       `ui.workspace-filters-and-empty-states-2 (${tab})`,
       async ({ page, todoRun }) => {
-        await todoRun(() => verify(page));
+        await todoRun(() => verify(page), { calendarMessages: [] });
       },
     );
   } else {
