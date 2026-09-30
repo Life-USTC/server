@@ -1,14 +1,8 @@
-import type { SupportedOAuthClientAuthMethod } from "@/lib/oauth/constants";
-import * as oauthFixtures from "./e2e-db/oauth";
 import * as seedFixtures from "./e2e-db/seed";
-
-export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 
 const DB_FIXTURE_ATTEMPTS = 3;
 
 const operations = {
-  createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
-  deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
   getSeedSectionSemesterFixture: seedFixtures.getSeedSectionSemesterFixture,
   getSeedTeacherDepartmentFixture: seedFixtures.getSeedTeacherDepartmentFixture,
@@ -33,30 +27,6 @@ async function runDbFixture<T>(operation: string, args: unknown[] = []) {
 
   throw lastError;
 }
-
-type OAuthClientFixtureOptions = {
-  name?: string;
-  redirectUris?: string[];
-  scopes?: string[];
-  grantTypes?: string[];
-  clientId?: string;
-  clientSecret?: string;
-  tokenEndpointAuthMethod?: SupportedOAuthClientAuthMethod;
-};
-
-export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
-  runDbFixture<{
-    id: string;
-    clientId: string;
-    name: string;
-    clientSecret: string | null;
-    tokenEndpointAuthMethod: string;
-    redirectUris: string[];
-    scopes: string[];
-  }>("createOAuthClientFixture", [options]);
-
-export const deleteOAuthClientsByName = (name: string) =>
-  runDbFixture<null>("deleteOAuthClientsByName", [name]);
 
 export const getSeedCourseFilterFixture = (jwId: number) =>
   runDbFixture<{
