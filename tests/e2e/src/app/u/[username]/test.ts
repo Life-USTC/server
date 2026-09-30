@@ -22,10 +22,12 @@
  * - Empty username param → 404
  */
 import { expect, test } from "@playwright/test";
+import type { User } from "../../../../../../src/generated/prisma-node/client";
 import { createFixturePrisma } from "../../../../../shared/prisma";
 import { signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { test as privateTest } from "../../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
@@ -67,29 +69,36 @@ test("user.public-profile-canonical-route", async ({ page }) => {
   }
 });
 
-test("user.public-profile-id-addressability", async ({ page }) => {
-  const db = createFixturePrisma();
-  const user = await db.user.create({
-    data: {
-      name: "Public profile without username",
-      email: `${crypto.randomUUID()}@profile.test`,
-    },
-  });
-  try {
-    await gotoAndWaitForReady(page, `/community/users/${user.id}`);
-    await expect(
-      page.getByRole("heading", { level: 1, name: user.name }),
-    ).toBeVisible();
-    await expect(page).toHaveTitle(`${user.name} - Life@USTC`);
-    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-      "href",
-      new URL(`/community/users/${user.id}`, page.url()).href,
-    );
-  } finally {
-    await db.user.delete({ where: { id: user.id } });
-    await db.$disconnect();
-  }
-});
+privateTest(
+  "user.public-profile-id-addressability",
+  async ({ page, isolatedWorker, preferenceFlow, run }) => {
+    await run(async () => {
+      const db = isolatedWorker.database.owner;
+      const users: User[] = [];
+      await preferenceFlow.run(async () => {
+        const user = await db.user.create({
+          data: {
+            name: "Public profile without username",
+            email: `${crypto.randomUUID()}@profile.test`,
+          },
+        });
+        users.push(user);
+        await gotoAndWaitForReady(page, `/community/users/${user.id}`);
+        await expect(
+          page.getByRole("heading", { level: 1, name: user.name }),
+        ).toBeVisible();
+        await expect(page).toHaveTitle(`${user.name} - Life@USTC`);
+        await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+          "href",
+          new URL(`/community/users/${user.id}`, page.url()).href,
+        );
+      });
+      expect(await db.user.findMany()).toEqual(users);
+      expect(await db.session.findMany()).toEqual([]);
+      expect(await db.auditLog.findMany()).toEqual([]);
+    });
+  },
+);
 
 test.describe("/community/users/[identifier]", () => {
   test("页面契约", async ({ page }, testInfo) => {
