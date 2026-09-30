@@ -88,6 +88,9 @@ requirements:
     when: Each actual detail overlay opens at 1280, 390 and 320 pixels, and the user scrolls to its reading end and discussion where available.
     then:
     - Due date, relative urgency, facts and reading content have one column in the required order, followed by homework discussion.
+    - Within each deadline summary, the due datetime has no smaller computed font size or lighter weight than
+      its relative urgency text. The two differ in size, weight or text color; urgency colors may convey
+      status without making the relative label larger or heavier than the due datetime.
     - Exactly one content viewport scrolls; the title remains visible at the same position while the reading content moves.
     - Bottom actions remain visible, enabled and keyboard-focusable without horizontal overflow.
     test:
@@ -559,6 +562,9 @@ requirements:
     then:
     - Every declared primary field is visible in its identifying content, input or version title;
       before-and-after history content remains equally readable and upload state stays task-critical.
+    - Within one description revision, before-and-after bodies and their diff segments share the same
+      computed base font size and line height. Added and removed segment colors may differ; the responsive
+      side-by-side or stacked arrangement does not impose a vertical order between the two bodies.
     - Secondary metadata remains visible and subordinate to its local identity, including rendered image
       previews, storage usage, attribution, timestamps and profile statistics.
     - Public comment text omits its raw moderation state and private badge; ordinary views omit internal
