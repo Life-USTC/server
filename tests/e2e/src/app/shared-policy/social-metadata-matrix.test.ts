@@ -3,7 +3,7 @@ import { createCatalogContractFixture } from "../../../../shared/catalog-contrac
 import { createCalendarContractFixture } from "../../../utils/calendar-contract";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { waitForUiSettled } from "../../../utils/page-ready";
-import { test } from "../../../utils/personal-preferences-fixture";
+import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import {
   arrangeWeatherCache,
   readWeatherCache,
