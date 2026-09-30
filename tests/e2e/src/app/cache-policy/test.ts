@@ -1,103 +1,153 @@
-import { type APIRequestContext, expect, test } from "@playwright/test";
+import { type APIRequestContext, expect } from "@playwright/test";
 import {
+  OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { restReadScope } from "@/lib/oauth/scope-registry";
-import { DEV_SEED } from "../../../utils/dev-seed";
-import {
-  createOAuthClientFixture,
-  deleteOAuthClientsByName,
-  PLAYWRIGHT_BASE_URL,
-} from "../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { arrangeBusTimetable } from "../../../../shared/bus-timetable";
+import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
+import { test } from "../../../utils/owned-worker";
+
+test.use({ storageState: { cookies: [], origins: [] } });
 
 test("rendering-and-cache.personal-overlays-9", async ({
-  playwright,
+  isolatedWorker,
   request,
+  run,
 }) => {
   test.setTimeout(90_000);
-  const clientName = `public-cache-policy-${crypto.randomUUID()}`;
-  const client = await createOAuthClientFixture({
-    name: clientName,
-    scopes: [restReadScope("account.profile")],
-    grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
-    tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  });
-  const users: Array<{
-    id: string;
-    name: string;
-    email: string;
-    username: string | null;
-  }> = [];
-  const contexts: APIRequestContext[] = [];
-  try {
-    for (const index of [0, 1]) {
-      const user = await withE2ePrisma((db) =>
-        db.user.create({
-          data: {
-            username: `cache${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
-            name: `Private cache viewer ${index}`,
-            email: `cache-${crypto.randomUUID()}@example.test`,
-            todos: {
-              create: { title: `Private task only for viewer ${index}` },
+  await run(async () => {
+    const db = isolatedWorker.database.owner;
+    const catalog = await createCatalogContractFixture(db);
+    const section = catalog.sections[0];
+    await arrangeBusTimetable(db);
+    await db.$transaction(async (tx) => {
+      await tx.scheduleGroup.create({
+        data: {
+          jwId: 1,
+          sectionId: section.id,
+          no: 1,
+          limitCount: 30,
+          stdCount: 1,
+          actualPeriods: 2,
+          isDefault: true,
+          schedules: {
+            create: {
+              sectionId: section.id,
+              date: new Date("2035-09-17T00:00:00Z"),
+              weekday: 1,
+              startTime: 800,
+              endTime: 935,
+              startUnit: 1,
+              endUnit: 2,
+              weekIndex: 1,
+              periods: 2,
+              customPlace: "Public cache classroom",
             },
           },
-        }),
-      );
-      users.push(user);
-      if (index === 0) {
-        await withE2ePrisma(async (db) => {
-          const section = await db.section.findUniqueOrThrow({
-            where: { jwId: DEV_SEED.section.jwId },
-          });
-          await db.userSectionSubscription.create({
-            data: { userId: user.id, sectionId: section.id },
-          });
-        });
-      }
-      const cookie = await createSignedSessionCookie(user.id);
-      const session = await playwright.request.newContext({
-        baseURL: PLAYWRIGHT_BASE_URL,
-        extraHTTPHeaders: {
-          cookie: `${cookie.name}=${cookie.value}; NEXT_LOCALE=${index === 0 ? "en-us" : "zh-cn"}`,
         },
       });
-      contexts.push(session);
-      const profile = await session.get("/api/account/profile");
+      await tx.youngOrganizer.create({
+        data: {
+          id: "public-cache-organizer",
+          name: "Public cache organizer",
+          normalizedName: "public-cache-organizer",
+          events: {
+            create: {
+              youngId: "public-cache-event",
+              name: "Public cache event",
+              isActive: true,
+              startAt: new Date("2035-09-17T10:00:00Z"),
+              endAt: new Date("2035-09-17T12:00:00Z"),
+              rawJson: {},
+            },
+          },
+        },
+      });
+    });
+    const client = await db.oAuthClient.create({
+      data: {
+        name: `public-cache-policy-${crypto.randomUUID()}`,
+        clientId: crypto.randomUUID(),
+        clientSecret: crypto.randomUUID(),
+        redirectUris: [`${isolatedWorker.origin}/oauth-e2e/callback`],
+        type: "public",
+        disabled: false,
+        scopes: [restReadScope("account.profile")],
+        grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
+        tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+        responseTypes: [OAUTH_CODE_RESPONSE_TYPE],
+        requirePKCE: true,
+        metadata: { source: "e2e_fixture" },
+      },
+    });
+    const users: Array<{
+      id: string;
+      name: string;
+      email: string;
+      username: string | null;
+    }> = [];
+    const contexts: Array<{
+      request: APIRequestContext;
+      headers: Record<string, string>;
+    }> = [];
+    for (const index of [0, 1]) {
+      const user = await db.user.create({
+        data: {
+          username: `cache${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
+          name: `Private cache viewer ${index}`,
+          email: `cache-${crypto.randomUUID()}@example.test`,
+          todos: {
+            create: { title: `Private task only for viewer ${index}` },
+          },
+        },
+      });
+      users.push(user);
+      if (index === 0) {
+        await db.userSectionSubscription.create({
+          data: { userId: user.id, sectionId: section.id },
+        });
+      }
+      const session = await isolatedWorker.createSession(user.id);
+      const cookie = session.cookie;
+      const sessionHeaders = {
+        cookie: `${cookie.name}=${cookie.value}; NEXT_LOCALE=${index === 0 ? "en-us" : "zh-cn"}`,
+      };
+      contexts.push({ request: session.request, headers: sessionHeaders });
+      const profile = await session.request.get("/api/account/profile", {
+        headers: sessionHeaders,
+      });
       expect(profile.status()).toBe(200);
       expect(await profile.json()).toMatchObject({ id: user.id });
       const token = await authorizeDeviceBearer(
-        session,
-        PLAYWRIGHT_BASE_URL,
+        session.request,
+        isolatedWorker.origin,
         client.clientId,
         restReadScope("account.profile"),
       );
-      const bearer = await playwright.request.newContext({
-        baseURL: PLAYWRIGHT_BASE_URL,
-        extraHTTPHeaders: { authorization: `Bearer ${token}` },
+      // Native request has no session: these calls must authenticate by the
+      // genuinely issued device-grant token, independently for each owner.
+      const bearerHeaders = { authorization: `Bearer ${token}` };
+      contexts.push({ request, headers: bearerHeaders });
+      expect((await request.storageState()).cookies).toEqual([]);
+      const bearerProfile = await request.get("/api/account/profile", {
+        headers: bearerHeaders,
       });
-      contexts.push(bearer);
-      const bearerProfile = await bearer.get("/api/account/profile");
       expect(bearerProfile.status()).toBe(200);
       expect(await bearerProfile.json()).toMatchObject({ id: user.id });
+      expect((await request.storageState()).cookies).toEqual([]);
     }
 
-    const teacher = await withE2ePrisma((db) =>
-      db.teacher.findFirstOrThrow({
-        where: { code: DEV_SEED.teacher.code },
-        select: { id: true },
-      }),
-    );
+    const teacher = catalog.teachers[0];
     const paths = [
       "/api/catalog/courses",
-      `/api/catalog/courses/${DEV_SEED.course.jwId}`,
+      `/api/catalog/courses/${catalog.courses[0].jwId}`,
       "/api/catalog/sections",
-      `/api/catalog/sections/${DEV_SEED.section.jwId}`,
-      `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
-      `/api/catalog/sections/${DEV_SEED.section.jwId}/schedule-groups`,
+      `/api/catalog/sections/${section.jwId}`,
+      `/api/catalog/sections/${section.jwId}/schedules`,
+      `/api/catalog/sections/${section.jwId}/schedule-groups`,
       "/api/catalog/teachers",
       `/api/catalog/teachers/${teacher.id}`,
       "/api/catalog/semesters",
@@ -109,6 +159,7 @@ test("rendering-and-cache.personal-overlays-9", async ({
     ];
     for (const path of paths) {
       const url = `${path}?locale=zh-cn`;
+      expect((await request.storageState()).cookies, url).toEqual([]);
       const anonymous = await request.get(url);
       expect(anonymous.status(), url).toBe(200);
       const publicBody = await anonymous.json();
@@ -124,8 +175,10 @@ test("rendering-and-cache.personal-overlays-9", async ({
         expect(serialized, url).not.toContain(user.email);
       }
       expect(serialized, url).not.toContain("Private task only for viewer");
-      for (const context of contexts) {
-        const authenticated = await context.get(url);
+      for (const { request: context, headers: authHeaders } of contexts) {
+        if (context === request)
+          expect((await request.storageState()).cookies, url).toEqual([]);
+        const authenticated = await context.get(url, { headers: authHeaders });
         expect(authenticated.status(), url).toBe(200);
         expect(await authenticated.json(), url).toEqual(publicBody);
         expect(authenticated.headers()["cache-control"], url).toBe(
@@ -138,17 +191,5 @@ test("rendering-and-cache.personal-overlays-9", async ({
         expect(authenticated.headers()["set-cookie"], url).toBeUndefined();
       }
     }
-  } finally {
-    await Promise.all(contexts.map((context) => context.dispose()));
-    await deleteOAuthClientsByName(clientName);
-    await withE2ePrisma(async (db) => {
-      const ids = users.map((user) => user.id);
-      await db.auditLog.deleteMany({
-        where: {
-          OR: [{ userId: { in: ids } }, { subjectUserId: { in: ids } }],
-        },
-      });
-      await db.user.deleteMany({ where: { id: { in: ids } } });
-    });
-  }
+  });
 });
