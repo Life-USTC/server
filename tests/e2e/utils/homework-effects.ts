@@ -8,11 +8,13 @@ import {
 } from "@playwright/test";
 import { parse } from "jsonc-parser";
 import { ownBrowserReads } from "./browser-read-lifecycle";
+import {
+  type CalendarMessage,
+  createCalendarEffectObserver,
+  type ProducerObservation,
+} from "./calendar-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 
-type CalendarMessage =
-  | { type: "section"; sectionId: number }
-  | { type: "user"; userId: string };
 export type HomeworkEffects = {
   calendarTokenCreated?: boolean;
   calendarMessages: CalendarMessage[];
@@ -36,35 +38,6 @@ export type HomeworkEffectContext = {
     requests: readonly Request[],
     action: () => Promise<void>,
   ) => Promise<void>;
-};
-type CalendarObservation = {
-  attempts: {
-    id: string;
-    attempts: number;
-    userId: string;
-    sectionId?: number;
-    ackCalls: number;
-    retryCalls: number;
-    complete: boolean;
-    errors: string[];
-    calendar: string | null;
-  }[];
-  calendar: string | null;
-};
-type ProducerObservation = {
-  messages: { outcome: string; value: CalendarMessage }[];
-  purges: { outcome: string }[];
-  backgroundErrors: string[];
-  requests: {
-    outcome: string;
-    value: {
-      method: string;
-      path: string;
-      requestId?: string;
-      entrypoint?: "PublicSsr";
-    };
-    result: number;
-  }[];
 };
 
 /** Only existing files on the configured assets-first routes bypass the Worker. */
@@ -160,48 +133,13 @@ export async function withHomeworkEffects(
     };
   }
 
-  async function collect(
-    expectedMessages: number | "submitted" = calendarMessages.length,
-  ) {
-    let snapshot:
-      | { producer: ProducerObservation; consumer: CalendarObservation }
-      | undefined;
-    await expect
-      .poll(
-        async () => {
-          const producerResponse = await request.get(producerPath, {
-            headers: secret,
-          });
-          expect(producerResponse.status()).toBe(200);
-          const producer: ProducerObservation = await producerResponse.json();
-          const consumerResponse = await request.get(consumerPath, {
-            headers: secret,
-          });
-          expect(consumerResponse.status()).toBe(200);
-          const consumer: CalendarObservation = await consumerResponse.json();
-          snapshot = { producer, consumer };
-          const submitted = producer.messages.filter(
-            ({ outcome }) => outcome === "fulfilled",
-          ).length;
-          const required =
-            expectedMessages === "submitted"
-              ? submitted
-              : Math.max(expectedMessages, submitted);
-          return (
-            producer.messages.length >= required &&
-            consumer.attempts.length >= required &&
-            consumer.attempts.every((attempt) => attempt.complete)
-          );
-        },
-        {
-          timeout: 15_000,
-          message: "Native homework calendar consumers complete",
-        },
-      )
-      .toBe(true);
-    if (!snapshot) throw new Error("Missing homework effect observations");
-    return snapshot;
-  }
+  const calendarEffects = createCalendarEffectObserver({
+    request,
+    producerPath,
+    account,
+    sectionId,
+  });
+  const collect = calendarEffects.collect;
 
   function assertServerReads(producer: ProducerObservation) {
     if (observeReads) {
@@ -284,78 +222,12 @@ export async function withHomeworkEffects(
       calendarTokenCreated = false,
       auditActions = {},
     } = expected;
-    const { producer, consumer } = await collect(
+    const observation = await collect(
       completed ? calendarMessages.length : "submitted",
     );
+    const { producer, consumer } = observation;
     assertServerReads(producer);
-    expect(producer.backgroundErrors).toEqual([]);
-    expect(
-      producer.purges.every((purge) => purge.outcome === "fulfilled"),
-    ).toBe(true);
-    if (completed) {
-      expect(
-        producer.messages.map((message) => JSON.stringify(message)).sort(),
-      ).toEqual(
-        calendarMessages
-          .map((value) => JSON.stringify({ outcome: "fulfilled", value }))
-          .sort(),
-      );
-    } else {
-      // The original body error remains fatal. A partial workflow drains only
-      // submitted work, but cannot exceed its planned message multiset.
-      const remaining = calendarMessages.map((value) => JSON.stringify(value));
-      for (const { outcome, value } of producer.messages) {
-        expect(outcome).toBe("fulfilled");
-        const index = remaining.indexOf(JSON.stringify(value));
-        expect(
-          index,
-          "Partial workflow submitted an unplanned calendar message",
-        ).toBeGreaterThanOrEqual(0);
-        remaining.splice(index, 1);
-      }
-    }
-    const consumedMessages = completed
-      ? calendarMessages
-      : producer.messages.map(({ value }) => value);
-    expect(consumer.attempts).toHaveLength(consumedMessages.length);
-    expect(new Set(consumer.attempts.map((attempt) => attempt.id)).size).toBe(
-      consumedMessages.length,
-    );
-    expect(
-      consumer.attempts
-        .map((attempt) =>
-          JSON.stringify(
-            attempt.sectionId === undefined
-              ? { type: "user", userId: attempt.userId }
-              : { type: "section", sectionId: attempt.sectionId },
-          ),
-        )
-        .sort(),
-    ).toEqual(
-      consumedMessages.map((message) => JSON.stringify(message)).sort(),
-    );
-    for (const attempt of consumer.attempts) {
-      expect(attempt).toMatchObject({
-        attempts: 1,
-        userId: account.id,
-        ackCalls: 1,
-        retryCalls: 0,
-        complete: true,
-        errors: [],
-        calendar: expect.any(String),
-      });
-      const calendar = JSON.parse(attempt.calendar as string);
-      expect(calendar).toMatchObject({ version: 2, text: expect.any(String) });
-      expect(calendar.text).toContain("BEGIN:VCALENDAR");
-      expect(calendar.text).toContain("END:VCALENDAR");
-    }
-    if (consumedMessages.length)
-      expect(
-        consumer.attempts.some(
-          (attempt) => attempt.calendar === consumer.calendar,
-        ),
-      ).toBe(true);
-
+    calendarEffects.assert(observation, calendarMessages, completed);
     const actor = await db.user.findUniqueOrThrow({
       where: { id: account.id },
     });
@@ -504,9 +376,7 @@ export async function withHomeworkEffects(
     expect(
       (await request.post(producerPath, { headers: secret })).status(),
     ).toBe(201);
-    expect(
-      (await request.post(consumerPath, { headers: secret })).status(),
-    ).toBe(201);
+    await calendarEffects.register();
     registered = true;
     if (observeReads) browserReads.start();
     await page.route(

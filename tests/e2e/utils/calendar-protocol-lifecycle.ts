@@ -7,28 +7,46 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
+import {
+  type CalendarMessage,
+  type CalendarObservation,
+  createCalendarEffectObserver,
+  type ProducerObservation,
+} from "./calendar-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 import { withSettledPageWrites } from "./settled-page-writes";
 
-type Verify = () => Promise<void>;
-export type CalendarProtocolRead = {
+export type CalendarProtocolChecks = {
+  verifyTransport: (observation: CalendarProtocolObservation) => Promise<void>;
+  verifyState: () => Promise<void>;
+};
+export type CalendarProtocolObservation = {
+  effects: ProducerObservation;
+  sdkRequests: SdkRequest[];
+};
+export type CalendarProtocol = {
   request: APIRequestContext;
+  observeCalendar: (
+    account: { id: string },
+    messages: CalendarMessage[],
+  ) => Promise<void>;
   mcp: (
     identity: { name: string; version: string },
     accessToken: string,
   ) => Promise<Client>;
 };
-type SdkRead = {
+type SdkRequest = {
   requestId: string;
   method: string;
   path: string;
   rpc?: string;
+  tool?: string;
   status: number;
 };
 
-/** Read-only calendar transport pilot with real browser OAuth consent. The
+/** Calendar protocol lifecycle with real browser OAuth consent. The
  * scenario supplies its independent post-drain grant/usage/state assertions. */
-export async function withCalendarProtocolRead(
+export async function withCalendarProtocol(
   {
     page,
     observer,
@@ -46,7 +64,7 @@ export async function withCalendarProtocolRead(
     runBody: (body: () => Promise<void>) => Promise<void>;
     testInfo: TestInfo;
   },
-  work: (io: CalendarProtocolRead) => Promise<Verify>,
+  work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
 ) {
   const origin = isolatedWorker.origin;
   const secret = { "x-test-storage-secret": "local-test-storage-observer" };
@@ -54,13 +72,20 @@ export async function withCalendarProtocolRead(
   const probePath = `/__test/community-effects?id=${probeId}`;
   const headers = { ...secret, "x-test-community-probe": probeId };
   const pendingSdk = new Set<Promise<void>>();
-  const sdkReads: SdkRead[] = [];
+  const sdkRequests: SdkRequest[] = [];
   const clients: (() => Promise<void>)[] = [];
   const errors: unknown[] = [];
   const abort = new AbortController();
   let request: APIRequestContext | undefined;
   let actualBody: Promise<void> | undefined;
-  let verify: Verify | undefined;
+  let checks: CalendarProtocolChecks | undefined;
+  let observation: CalendarProtocolObservation | undefined;
+  let calendar:
+    | {
+        observer: ReturnType<typeof createCalendarEffectObserver>;
+        messages: CalendarMessage[];
+      }
+    | undefined;
   let registrationAttempted = false;
   let registered = false;
   let accepting = true;
@@ -96,8 +121,6 @@ export async function withCalendarProtocolRead(
               payload?.method ?? "",
             )),
       ).toBe(true);
-      if (payload?.method === "tools/call")
-        expect(payload.params?.name).toBe("workspace_calendar_event_list");
       const expectedStatus =
         incoming.method === "GET"
           ? 405
@@ -105,11 +128,12 @@ export async function withCalendarProtocolRead(
             ? 202
             : 200;
       const requestId = crypto.randomUUID();
-      sdkReads.push({
+      sdkRequests.push({
         requestId,
         method: incoming.method,
         path: url.pathname,
         rpc: payload?.method,
+        tool: payload?.params?.name,
         status: expectedStatus,
       });
       const tagged = new Headers(incoming.headers);
@@ -155,8 +179,25 @@ export async function withCalendarProtocolRead(
         try {
           await runBody(() => {
             actualBody = Promise.resolve().then(async () => {
-              verify = await work({
+              checks = await work({
                 request: anonymous,
+                async observeCalendar(account, messages) {
+                  if (!accepting || calendar)
+                    throw new Error(
+                      "Calendar consumer is already owned or closing",
+                    );
+                  // Retain the observer before registration can fail or be
+                  // interrupted. The successful plan never follows actual sends.
+                  calendar = {
+                    observer: createCalendarEffectObserver({
+                      request: observer,
+                      producerPath: probePath,
+                      account,
+                    }),
+                    messages: structuredClone(messages),
+                  };
+                  await calendar.observer.register();
+                },
                 async mcp(identity, accessToken) {
                   if (!accepting)
                     throw new Error("Calendar workflow is closing");
@@ -264,26 +305,45 @@ export async function withCalendarProtocolRead(
     }
     if (registered) {
       try {
-        const response = await observer.get(probePath, { headers: secret });
-        await response.body();
-        expect(response.status()).toBe(200);
-        const effects = await response.json();
+        let effects: ProducerObservation;
+        let consumer: CalendarObservation | undefined;
+        if (calendar) {
+          ({ producer: effects, consumer } = await calendar.observer.collect(
+            completed ? calendar.messages.length : "submitted",
+          ));
+        } else {
+          const response = await observer.get(probePath, { headers: secret });
+          await response.body();
+          expect(response.status()).toBe(200);
+          effects = await response.json();
+        }
+        observation = { effects, sdkRequests };
         await testInfo.attach("calendar-protocol-effects", {
           contentType: "application/json",
           body: JSON.stringify({
             effects,
-            sdkReads,
+            consumer,
+            sdkRequests,
             browserReads: reads.reads,
           }),
         });
+        if (calendar && consumer)
+          calendar.observer.assert(
+            { producer: effects, consumer },
+            calendar.messages,
+            completed,
+          );
+        else {
+          // No actor was registered: setup cannot have admitted a queue write.
+          expect(effects.messages).toEqual([]);
+        }
         expect(effects.backgroundErrors).toEqual([]);
-        expect(effects.messages).toEqual([]);
         expect(effects.purges).toEqual([]);
         for (const native of effects.requests) {
           expect(native.outcome).toBe("fulfilled");
           expect(native.result).toEqual(expect.any(Number));
         }
-        for (const read of sdkReads) {
+        for (const read of sdkRequests) {
           const producers = effects.requests.filter(
             (native: { value: { requestId?: string } }) =>
               native.value.requestId === read.requestId,
@@ -298,35 +358,6 @@ export async function withCalendarProtocolRead(
               },
               result: read.status,
             },
-          ]);
-        }
-        if (completed) {
-          for (const [method, path, count, status] of [
-            ["GET", "/api/workspace/calendar/events", 9, 200],
-            ["POST", "/api/graphql", 8, 200],
-            ["POST", "/api/auth/oauth2/register", 1, 201],
-            ["GET", "/api/auth/oauth2/authorize", 1, 302],
-            ["POST", "/oauth/authorize", 1, 200],
-            ["POST", "/api/auth/oauth2/token", 1, 200],
-          ] as const) {
-            const producers = effects.requests.filter(
-              (native: { value: { method: string; path: string } }) =>
-                native.value.method === method && native.value.path === path,
-            );
-            expect(producers).toHaveLength(count);
-            for (const producer of producers)
-              expect(producer.result).toBe(status);
-          }
-          expect(
-            sdkReads
-              .map((read) => `${read.method} ${read.rpc ?? "stream"}`)
-              .sort(),
-          ).toEqual([
-            "GET stream",
-            "POST initialize",
-            "POST notifications/initialized",
-            "POST tools/call",
-            "POST tools/call",
           ]);
         }
       } catch (error) {
@@ -345,9 +376,17 @@ export async function withCalendarProtocolRead(
         remember(error);
       }
     }
-    if (completed && verify) {
+    if (completed && checks) {
+      if (observation) {
+        try {
+          await checks.verifyTransport(observation);
+        } catch (error) {
+          remember(error);
+        }
+      }
+      // State observations are independent of transport/evidence failures.
       try {
-        await verify();
+        await checks.verifyState();
       } catch (error) {
         remember(error);
       }
