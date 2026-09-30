@@ -1,25 +1,23 @@
-import { expect, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect } from "@playwright/test";
+import { test } from "../../../utils/owned-page";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
 
-test("ui.workspace-filters-and-empty-states-6", async ({ page }) => {
+test("ui.workspace-filters-and-empty-states-6", async ({ page, pageRun, isolatedWorker }) => {
+  await pageRun(async () => {
+  const db = isolatedWorker.database.owner;
   for (const [locale, width] of [
     ["en-us", 1280],
     ["zh-cn", 390],
   ] as const) {
     const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
-    const user = await withE2ePrisma((db) =>
-      db.user.create({
+    const user = await db.user.create({
         data: {
           name: `Setup ${suffix}`,
           username: `setup${suffix}`,
           email: `setup-${suffix}@example.test`,
         },
-      }),
-    );
-    try {
-      const cookie = await createSignedSessionCookie(user.id);
+      });
+      const { cookie } = await isolatedWorker.createSession(user.id);
       await page.context().clearCookies();
       await page
         .context()
@@ -50,9 +48,7 @@ test("ui.workspace-filters-and-empty-states-6", async ({ page }) => {
         }
       }
       expect(
-        await withE2ePrisma((db) =>
-          db.userSectionSubscription.count({ where: { userId: user.id } }),
-        ),
+        await db.userSectionSubscription.count({ where: { userId: user.id } }),
       ).toBe(0);
       await gotoAndWaitForReady(page, "/workspace/todos");
       const main = page.getByRole("main");
@@ -75,18 +71,18 @@ test("ui.workspace-filters-and-empty-states-6", async ({ page }) => {
           .getByRole("button", { name: title, exact: true })
           .filter({ visible: true }),
       ).toBeVisible();
-      const todos = await withE2ePrisma((db) =>
-        db.todo.findMany({
+      const todos = await db.todo.findMany({
           where: { userId: user.id },
           select: { title: true, completed: true },
-        }),
-      );
+        });
       expect(todos).toEqual([{ title, completed: false }]);
-    } finally {
-      await withE2ePrisma(async (db) => {
-        await db.todo.deleteMany({ where: { userId: user.id } });
-        await db.user.delete({ where: { id: user.id } });
-      });
-    }
   }
+  }, async (response, request) => {
+    expect(request.method()).toBe("POST");
+    expect(new URL(request.url()).pathname).toBe("/workspace/todos");
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({
+      type: "redirect", status: 303, location: "/workspace/todos",
+    });
+  });
 });
