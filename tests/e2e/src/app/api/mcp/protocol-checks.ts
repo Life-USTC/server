@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 import type { Semester } from "@/generated/prisma-node/client";
+import { PUBLIC_OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 import type { CalendarProtocolChecks } from "../../../../utils/calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
 import {
@@ -140,7 +141,6 @@ export function oauthProtocolChecks(
   account: Awaited<ReturnType<typeof prepareProtocolAccount>>,
   expected: {
     clientId: string;
-    clientScopes: readonly string[];
     consentScopes: readonly (readonly string[])[];
     resources: string[];
     tokenRequests: number;
@@ -237,7 +237,9 @@ export function oauthProtocolChecks(
           clientId: expected.clientId,
           name: oauth.clientNames[0],
           userId: null,
-          scopes: expected.clientScopes,
+          // Dynamic registration stores the provider's declared capabilities.
+          // Requested consent and issued token scopes remain case-specific.
+          scopes: PUBLIC_OAUTH_SCOPES,
           redirectUris: [`${oauth.worker.origin}/e2e/oauth/callback`],
           grantTypes: ["authorization_code"],
           responseTypes: ["code"],
