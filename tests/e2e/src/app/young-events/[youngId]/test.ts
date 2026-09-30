@@ -1,4 +1,3 @@
-import { test } from "../../../../utils/young-public-fixture";
 /**
  * E2E tests for /catalog/young-events/[youngId] — 第二课堂活动详情
  *
@@ -25,12 +24,17 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test as privateTest } from "../../../../utils/personal-preferences-fixture";
+import { test } from "../../../../utils/young-public-fixture";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const DETAIL_PATH = `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`;
 
 test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => {
-  test("页面契约", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }, testInfo) => {
+  test("页面契约", async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/young-events/[youngId]",
@@ -39,14 +43,20 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     });
   });
 
-  test("young-event.public-no-signin", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  test("young-event.public-no-signin", async ({
+    page,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, DETAIL_PATH);
 
       await expect(
         page.getByRole("heading", { level: 1, name: DEV_SEED.youngEvent.name }),
       ).toBeVisible();
-      await expect(visibleText(page, DEV_SEED.youngEvent.location)).toBeVisible();
+      await expect(
+        visibleText(page, DEV_SEED.youngEvent.location),
+      ).toBeVisible();
       await expect(
         visibleText(page, DEV_SEED.youngEvent.organizer),
       ).toBeVisible();
@@ -284,7 +294,11 @@ for (const status of [200, 401]) {
   );
 }
 
-test("anonymous subscription state does not request private data", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
+test("anonymous subscription state does not request private data", async ({
+  page,
+  preferenceFlow,
+  youngPublicState: _youngPublicState,
+}) => {
   await preferenceFlow.run(async () => {
     let privateRequests = 0;
     page.on("request", (request) => {

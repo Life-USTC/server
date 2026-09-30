@@ -83,7 +83,11 @@ async function jumpToTeacherSection(
 }
 
 test.describe("/catalog/teachers/[id] 教师详情页", () => {
-  test("页面契约", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("页面契约", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/teachers/[id]",
@@ -107,7 +111,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("标题中显示教师主名称", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("标题中显示教师主名称", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
 
@@ -132,7 +140,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("常规界面不显示内部教师 ID", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }) => {
+  test("常规界面不显示内部教师 ID", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
       const teacherId = new URL(page.url()).pathname.split("/").pop();
@@ -144,7 +156,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("基本信息中显示院系、职称与邮箱", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("基本信息中显示院系、职称与邮箱", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
 
@@ -170,7 +186,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("班级表格显示学期、课程名、代码与学分", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("班级表格显示学期、课程名、代码与学分", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
       await jumpToTeacherSection(
@@ -205,7 +225,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("班级链接导航到班级详情", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("班级链接导航到班级详情", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
       await jumpToTeacherSection(
@@ -226,7 +250,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("详情流式布局包含主要锚点区块", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
 
@@ -245,7 +273,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("移动端教师标题与流式区块保持紧凑", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+  test("移动端教师标题与流式区块保持紧凑", async ({
+    page,
+    preferenceFlow,
+    detailCatalog: _detailCatalog,
+  }, testInfo) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await navigateToSeedTeacher(page);
@@ -537,7 +569,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   );
 });
 
-test("页面契约", async ({ page, preferenceFlow, detailCatalog: _detailCatalog }, testInfo) => {
+test("页面契约", async ({
+  page,
+  preferenceFlow,
+  detailCatalog: _detailCatalog,
+}, testInfo) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
       routePath: "/catalog/teachers/[id]/[section]",

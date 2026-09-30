@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
-import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import { expectNoPageHorizontalOverflow } from "../../../utils/page-ready";
+import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import {
   busContractState,
   expectBusContractEffectsEmpty,
@@ -34,7 +34,11 @@ async function openControls(page: Page) {
   await expect(page.getByTestId("bus-start-stop-group")).toBeVisible();
 }
 
-test("bus.core-filters-only", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("bus.core-filters-only", async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const width of [1280, 390]) {
       await openPlanner(page, width, "en-us", isolatedWorker.origin);
@@ -134,7 +138,11 @@ privateTest(
   },
 );
 
-test("bus.mobile-next-departures", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("bus.mobile-next-departures", async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const width of [280, 390]) {
       await openPlanner(page, width, "en-us", isolatedWorker.origin);
@@ -160,20 +168,30 @@ test("bus.mobile-next-departures", async ({ page, preferenceFlow, isolatedWorker
   });
 });
 
-test("bus.responsive-route-surfaces", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("bus.responsive-route-surfaces", async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const width of [280, 320, 390, 1280]) {
       await openPlanner(page, width, "en-us", isolatedWorker.origin);
       await openControls(page);
       await expectNoPageHorizontalOverflow(page);
       await page.goto("/catalog/bus/map");
-      await expect(page.locator("text[data-campus-label]").first()).toBeVisible();
+      await expect(
+        page.locator("text[data-campus-label]").first(),
+      ).toBeVisible();
       await expectNoPageHorizontalOverflow(page);
     }
   });
 });
 
-test("bus.stop-label-wrapping", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("bus.stop-label-wrapping", async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const width of [280, 390]) {
       await openPlanner(page, width, "en-us", isolatedWorker.origin);
@@ -236,7 +254,11 @@ test("bus.map-label-legibility", async ({ page, preferenceFlow }) => {
   });
 });
 
-test("bus.visual-priority", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("bus.visual-priority", async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const width of [1280, 390]) {
       await openPlanner(page, width, "en-us", isolatedWorker.origin);

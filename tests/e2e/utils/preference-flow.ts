@@ -475,7 +475,9 @@ export async function withPreferenceFlow(
             open();
             const reader = readers.get(current);
             if (!reader)
-              throw new Error("Cancellation page is not owned by this workflow");
+              throw new Error(
+                "Cancellation page is not owned by this workflow",
+              );
             reader.expectCancellation(request);
           },
           onClosing(release) {
