@@ -3,71 +3,55 @@ import { readPrometheusMetrics } from "@/features/admin/server/prometheus-metric
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { writeObservabilityBatch } from "@/lib/db/feature-event-store";
 import { GET } from "@/routes/metrics/+server";
+import { nodeProtocolTest } from "./node-protocol-fixture";
+import type { NodeProtocolRuntime } from "./node-protocol-runtime";
 import type { TestPrismaClient } from "./prisma";
-import { workspaceRuntimeTest } from "./workspace-state-fixture";
 
 type MetricsFixture = {
   db: TestPrismaClient;
   app: TestPrismaClient;
+  run: NodeProtocolRuntime["run"];
   read: typeof readPrometheusMetrics;
   write: typeof writeObservabilityBatch;
   serve: typeof servePrometheusMetrics;
   scrape: (request: Request, secret?: string) => Promise<Response>;
 };
 
-export const metricsTest = workspaceRuntimeTest.extend<{
-  metrics: MetricsFixture;
-}>({
-  metrics: async ({ isolatedDatabase: { owner, app, connections } }, use) => {
-    // Initial singleton/counter data from the native-counter migration. Schema
-    // snapshots contain no rows; these belong only to this test's database.
-    await owner.$executeRaw`INSERT INTO public."PrometheusCounterEpoch" DEFAULT VALUES`;
-    await owner.$executeRaw`INSERT INTO public."PrometheusCounter" VALUES ('registrations', '{}', 0), ('deletions', '{}', 0)`;
-    const env = {
-      HYPERDRIVE: { connectionString: connections.app },
-      HYPERDRIVE_AUTH: { connectionString: connections.auth },
-      HYPERDRIVE_MAINTENANCE: { connectionString: connections.maintenance },
-      METRICS_SECRET: "metrics-fixture-secret",
-    };
-    const responses: Response[] = [];
-    async function ownResponse(operation: Promise<Response>) {
-      const response = await operation;
-      responses.push(response);
-      return response;
-    }
-    try {
+export const metricsTest = nodeProtocolTest
+  .extend({ protocolBindings: { METRICS_SECRET: "metrics-fixture-secret" } })
+  .extend<{ metrics: MetricsFixture }>({
+    metrics: async (
+      { isolatedDatabase: { owner, app, connections }, protocolRuntime },
+      use,
+    ) => {
+      await protocolRuntime.run(async () => {
+        // Schema snapshots contain no rows; counters belong only to this test.
+        await owner.$executeRaw`INSERT INTO public."PrometheusCounterEpoch" DEFAULT VALUES`;
+        await owner.$executeRaw`INSERT INTO public."PrometheusCounter" VALUES ('registrations', '{}', 0), ('deletions', '{}', 0)`;
+      });
       await use({
         db: owner,
         app,
-        read: () => runWithCloudflareRuntimeEnv(env, readPrometheusMetrics),
+        run: protocolRuntime.run,
+        read: () => protocolRuntime.request(readPrometheusMetrics),
         write: (batch) =>
-          runWithCloudflareRuntimeEnv(env, () =>
-            writeObservabilityBatch(batch),
-          ),
+          protocolRuntime.request(() => writeObservabilityBatch(batch)),
         serve: (request) =>
-          ownResponse(
-            runWithCloudflareRuntimeEnv(env, () =>
-              servePrometheusMetrics(request),
-            ),
-          ),
-        scrape: (request, secret = env.METRICS_SECRET) =>
-          ownResponse(
+          protocolRuntime.request(() => servePrometheusMetrics(request)),
+        scrape: (request, secret = "metrics-fixture-secret") =>
+          protocolRuntime.request(() =>
             runWithCloudflareRuntimeEnv(
-              { ...env, METRICS_SECRET: secret },
+              {
+                HYPERDRIVE: { connectionString: connections.app },
+                HYPERDRIVE_AUTH: { connectionString: connections.auth },
+                HYPERDRIVE_MAINTENANCE: {
+                  connectionString: connections.maintenance,
+                },
+                METRICS_SECRET: secret,
+              },
               async () => GET({ request } as Parameters<typeof GET>[0]),
             ),
           ),
       });
-    } finally {
-      // Runtime Prisma cleanup follows response consumption. An assertion may
-      // fail before text() is reached, so release those bodies before DB drop.
-      await Promise.all(
-        responses.map((response) =>
-          response.body && !response.bodyUsed
-            ? response.body.cancel()
-            : undefined,
-        ),
-      );
-    }
-  },
-});
+    },
+  });
