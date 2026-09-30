@@ -9,105 +9,115 @@ import { authPrisma } from "@/lib/db/auth-prisma";
 import { nodeProtocolTest } from "../shared/node-protocol-fixture";
 
 const origin = "http://localhost:3000";
-const it = nodeProtocolTest.extend({
-  protocolBindings: {
-    NODE_ENV: "test",
-    APP_CANONICAL_ORIGIN: origin,
-    E2E_DEBUG_AUTH: "1",
-    DEV_DEBUG_PASSWORD: "fixture-debug-password",
-    DEV_ADMIN_PASSWORD: "fixture-admin-password",
-    AUTH_GITHUB_ID: "fixture-github",
-    AUTH_GITHUB_SECRET: "fixture-github-secret",
-    AUTH_GOOGLE_ID: "",
-    AUTH_GOOGLE_SECRET: "",
-    AUTH_OIDC_CLIENT_ID: "",
-    AUTH_OIDC_CLIENT_SECRET: "",
-  },
-})
-  .extend("signInMethods", async ({
-    isolatedDatabase: { owner: fixture },
-    protocolRuntime,
-    expect,
-  }) => protocolRuntime.run(async () => {
-    // Configure before constructing Better Auth's singleton for this module.
-    // Different configurations still require separate module/process isolation.
-    const { getBetterAuthInstance } = await import("@/lib/auth/core");
-    const auth = getBetterAuthInstance();
-    const context = await auth.$context;
-    expect(auth.options.emailAndPassword?.enabled).toBe(true);
-    expect(context.socialProviders.map((provider) => provider.id)).toEqual([
-      "github",
-    ]);
+const it = nodeProtocolTest
+  .extend({
+    protocolBindings: {
+      NODE_ENV: "test",
+      APP_CANONICAL_ORIGIN: origin,
+      E2E_DEBUG_AUTH: "1",
+      DEV_DEBUG_PASSWORD: "fixture-debug-password",
+      DEV_ADMIN_PASSWORD: "fixture-admin-password",
+      AUTH_GITHUB_ID: "fixture-github",
+      AUTH_GITHUB_SECRET: "fixture-github-secret",
+      AUTH_GOOGLE_ID: "",
+      AUTH_GOOGLE_SECRET: "",
+      AUTH_OIDC_CLIENT_ID: "",
+      AUTH_OIDC_CLIENT_SECRET: "",
+    },
+  })
+  .extend(
+    "signInMethods",
+    async ({ isolatedDatabase: { owner: fixture }, protocolRuntime, expect }) =>
+      protocolRuntime.run(async () => {
+        // Configure before constructing Better Auth's singleton for this module.
+        // Different configurations still require separate module/process isolation.
+        const { getBetterAuthInstance } = await import("@/lib/auth/core");
+        const auth = getBetterAuthInstance();
+        const context = await auth.$context;
+        expect(auth.options.emailAndPassword?.enabled).toBe(true);
+        expect(context.socialProviders.map((provider) => provider.id)).toEqual([
+          "github",
+        ]);
 
-    async function userWithMethods(
-      providers: string[],
-      passkeys: number,
-      verifiedEmailProvider?: string,
-    ) {
-      const email = `method-policy-${crypto.randomUUID()}@example.test`;
-      return fixture.$transaction((tx) =>
-        tx.user.create({
-          data: {
-            email,
-            name: "Sign-in policy fixture",
-            ...(verifiedEmailProvider
-              ? { verifiedEmails: { create: { email, provider: verifiedEmailProvider } } }
-              : {}),
-            accounts: {
-              create: providers.map((provider) => ({
-                provider,
-                providerAccountId: crypto.randomUUID(),
-                issuer:
-                  provider === "github"
-                    ? createOAuthAccountIssuer("github")
-                    : "https://accounts.google.com",
-              })),
-            },
-            passkeys: {
-              create: Array.from({ length: passkeys }, () => ({
-                publicKey: "fixture-key",
-                credentialID: crypto.randomUUID(),
-                counter: 0,
-                deviceType: "singleDevice",
-                backedUp: false,
-              })),
-            },
-          },
-          include: { accounts: true, passkeys: true },
-        }),
-      );
-    }
+        async function userWithMethods(
+          providers: string[],
+          passkeys: number,
+          verifiedEmailProvider?: string,
+        ) {
+          const email = `method-policy-${crypto.randomUUID()}@example.test`;
+          return fixture.$transaction((tx) =>
+            tx.user.create({
+              data: {
+                email,
+                name: "Sign-in policy fixture",
+                ...(verifiedEmailProvider
+                  ? {
+                      verifiedEmails: {
+                        create: { email, provider: verifiedEmailProvider },
+                      },
+                    }
+                  : {}),
+                accounts: {
+                  create: providers.map((provider) => ({
+                    provider,
+                    providerAccountId: crypto.randomUUID(),
+                    issuer:
+                      provider === "github"
+                        ? createOAuthAccountIssuer("github")
+                        : "https://accounts.google.com",
+                  })),
+                },
+                passkeys: {
+                  create: Array.from({ length: passkeys }, () => ({
+                    publicKey: "fixture-key",
+                    credentialID: crypto.randomUUID(),
+                    counter: 0,
+                    deviceType: "singleDevice",
+                    backedUp: false,
+                  })),
+                },
+              },
+              include: { accounts: true, passkeys: true },
+            }),
+          );
+        }
 
-    async function cookieFor(userId: string) {
-      const token = crypto.randomUUID();
-      await fixture.$transaction((tx) =>
-        tx.session.create({
-          data: {
-            userId,
-            sessionToken: token,
-            expires: new Date(Date.now() + 3600000),
-          },
-        }),
-      );
-      return `${context.authCookies.sessionToken.name}=${encodeURIComponent(
-        `${token}.${await makeSignature(token, context.secret)}`,
-      )}`;
-    }
+        async function cookieFor(userId: string) {
+          const token = crypto.randomUUID();
+          await fixture.$transaction((tx) =>
+            tx.session.create({
+              data: {
+                userId,
+                sessionToken: token,
+                expires: new Date(Date.now() + 3600000),
+              },
+            }),
+          );
+          return `${context.authCookies.sessionToken.name}=${encodeURIComponent(
+            `${token}.${await makeSignature(token, context.secret)}`,
+          )}`;
+        }
 
-    function request(cookie: string, path: string, body: unknown) {
-      return protocolRuntime.request(() =>
-        auth.handler(
-          new Request(`${origin}/api/auth${path}`, {
-            method: "POST",
-            headers: { cookie, origin, "content-type": "application/json" },
-            body: JSON.stringify(body),
-          }),
-        ),
-      );
-    }
+        function request(cookie: string, path: string, body: unknown) {
+          return protocolRuntime.request(() =>
+            auth.handler(
+              new Request(`${origin}/api/auth${path}`, {
+                method: "POST",
+                headers: { cookie, origin, "content-type": "application/json" },
+                body: JSON.stringify(body),
+              }),
+            ),
+          );
+        }
 
-    return { userWithMethods, cookieFor, request, adapter: context.adapter };
-  }));
+        return {
+          userWithMethods,
+          cookieFor,
+          request,
+          adapter: context.adapter,
+        };
+      }),
+  );
 
 // Status-only callers still consume the actual handler response.
 async function consume(response: Response) {
@@ -124,9 +134,11 @@ it("disabled providers cannot replace the last usable sign-in method", async ({
   await protocolRuntime.run(async () => {
     // A disabled provider is not a recovery path, even when its row remains.
     const disabled = await userWithMethods(["github", "google"], 0);
-    expect(await protocolRuntime.request(() => unlinkSettingsAccount(disabled.id, "github"))).toBe(
-      "last_account",
-    );
+    expect(
+      await protocolRuntime.request(() =>
+        unlinkSettingsAccount(disabled.id, "github"),
+      ),
+    ).toBe("last_account");
     const cookie = await cookieFor(disabled.id);
     const denied = await request(cookie, "/unlink-account", {
       accountId: disabled.accounts.find((a) => a.provider === "github")?.id,
@@ -135,9 +147,9 @@ it("disabled providers cannot replace the last usable sign-in method", async ({
     expect(await denied.json()).toMatchObject({
       code: "FAILED_TO_UNLINK_LAST_ACCOUNT",
     });
-    expect(await fixture.account.count({ where: { userId: disabled.id } })).toBe(
-      2,
-    );
+    expect(
+      await fixture.account.count({ where: { userId: disabled.id } }),
+    ).toBe(2);
     // A valid enabled provider permits removal of the disabled one.
     const allowed = await request(cookie, "/unlink-account", {
       accountId: disabled.accounts.find((a) => a.provider === "google")?.id,
@@ -156,9 +168,11 @@ it("a password permits provider removal only with a valid issuer and subject and
   await protocolRuntime.run(async () => {
     // Only an enabled password credential with a password is a sign-in method.
     const passwordUser = await userWithMethods(["github", "credential"], 0);
-    expect(await protocolRuntime.request(() => unlinkSettingsAccount(passwordUser.id, "github"))).toBe(
-      "last_account",
-    );
+    expect(
+      await protocolRuntime.request(() =>
+        unlinkSettingsAccount(passwordUser.id, "github"),
+      ),
+    ).toBe("last_account");
     const credential = passwordUser.accounts.find(
       (account) => account.provider === "credential",
     );
@@ -171,9 +185,11 @@ it("a password permits provider removal only with a valid issuer and subject and
       data: { password: await hashPassword(password) },
     });
     // A password with an incompatible issuer/subject still cannot authenticate.
-    expect(await protocolRuntime.request(() => unlinkSettingsAccount(passwordUser.id, "github"))).toBe(
-      "last_account",
-    );
+    expect(
+      await protocolRuntime.request(() =>
+        unlinkSettingsAccount(passwordUser.id, "github"),
+      ),
+    ).toBe("last_account");
     await fixture.account.update({
       where: {
         id: credential.id,
@@ -183,9 +199,11 @@ it("a password permits provider removal only with a valid issuer and subject and
         providerAccountId: passwordUser.id,
       },
     });
-    expect(await protocolRuntime.request(() => unlinkSettingsAccount(passwordUser.id, "github"))).toBe(
-      "unlinked",
-    );
+    expect(
+      await protocolRuntime.request(() =>
+        unlinkSettingsAccount(passwordUser.id, "github"),
+      ),
+    ).toBe("unlinked");
     const passwordLogin = await request("", "/sign-in/email", {
       email: passwordUser.email,
       password,
@@ -214,9 +232,13 @@ it("a remaining passkey permits account unlinking but cannot itself be removed l
         }).then(consume)
       ).status,
     ).toBe(200);
-    const lastPasskey = await request(passkeyCookie, "/passkey/delete-passkey", {
-      id: passkeyUser.passkeys[0].id,
-    });
+    const lastPasskey = await request(
+      passkeyCookie,
+      "/passkey/delete-passkey",
+      {
+        id: passkeyUser.passkeys[0].id,
+      },
+    );
     expect(lastPasskey.status).toBe(400);
     await lastPasskey.text();
     expect(
@@ -236,13 +258,17 @@ it("cases.account.sign-in-method-removal-atomic", async ({
     for (let attempt = 0; attempt < 4; attempt++) {
       const concurrent = await userWithMethods(["github"], 1);
       const outcomes = await Promise.all([
-        protocolRuntime.request(() => unlinkSettingsAccount(concurrent.id, "github")),
-        protocolRuntime.request(() => removeSignInMethod(
-          authPrisma,
-          concurrent.id,
-          "passkey",
-          concurrent.passkeys[0].id,
-        )),
+        protocolRuntime.request(() =>
+          unlinkSettingsAccount(concurrent.id, "github"),
+        ),
+        protocolRuntime.request(() =>
+          removeSignInMethod(
+            authPrisma,
+            concurrent.id,
+            "passkey",
+            concurrent.passkeys[0].id,
+          ),
+        ),
       ]);
       expect(outcomes.sort()).toEqual(["last_account", "unlinked"]);
       const remaining = await fixture.user.findUniqueOrThrow({
@@ -269,12 +295,14 @@ it("transaction adapters reject removing the last account or passkey", async ({
       ["passkey", passkeyOnly.passkeys[0].id],
     ]) {
       await expect(
-        protocolRuntime.request(() => adapter.transaction((tx) =>
-          tx.delete({
-            model,
-            where: [{ field: "id", value: id }],
-          }),
-        )),
+        protocolRuntime.request(() =>
+          adapter.transaction((tx) =>
+            tx.delete({
+              model,
+              where: [{ field: "id", value: id }],
+            }),
+          ),
+        ),
       ).rejects.toMatchObject({
         body: { code: "FAILED_TO_UNLINK_LAST_ACCOUNT" },
       });
@@ -298,41 +326,46 @@ it("transaction rollback restores sign-in methods and preserves independent visi
     const rollback = await userWithMethods(["github"], 1, "github");
     const sentinel = new Error("Rollback sign-in method deletion");
     await expect(
-      protocolRuntime.request(() => adapter.transaction(async (tx) => {
-        // Hold the same User lock the deletion function needs. A separate Prisma
-        // connection here would deadlock instead of joining this transaction.
-        await tx.update({
-          model: "user",
-          where: [{ field: "id", value: rollback.id }],
-          update: { name: "Uncommitted name" },
-        });
-        await tx.delete({
-          model: "account",
-          where: [{ field: "id", value: rollback.accounts[0].id }],
-        });
-        expect(
-          await tx.findOne({
+      protocolRuntime.request(() =>
+        adapter.transaction(async (tx) => {
+          // Hold the same User lock the deletion function needs. A separate Prisma
+          // connection here would deadlock instead of joining this transaction.
+          await tx.update({
+            model: "user",
+            where: [{ field: "id", value: rollback.id }],
+            update: { name: "Uncommitted name" },
+          });
+          await tx.delete({
             model: "account",
             where: [{ field: "id", value: rollback.accounts[0].id }],
-          }),
-        ).toBeNull();
-        expect(
-          await fixture.account.count({ where: { userId: rollback.id } }),
-        ).toBe(1);
-        expect(
-          await fixture.verifiedEmail.count({ where: { userId: rollback.id } }),
-        ).toBe(1);
-        throw sentinel;
-      })),
+          });
+          expect(
+            await tx.findOne({
+              model: "account",
+              where: [{ field: "id", value: rollback.accounts[0].id }],
+            }),
+          ).toBeNull();
+          expect(
+            await fixture.account.count({ where: { userId: rollback.id } }),
+          ).toBe(1);
+          expect(
+            await fixture.verifiedEmail.count({
+              where: { userId: rollback.id },
+            }),
+          ).toBe(1);
+          throw sentinel;
+        }),
+      ),
     ).rejects.toBe(sentinel);
-    expect(await fixture.account.count({ where: { userId: rollback.id } })).toBe(
-      1,
-    );
+    expect(
+      await fixture.account.count({ where: { userId: rollback.id } }),
+    ).toBe(1);
     expect(
       await fixture.verifiedEmail.count({ where: { userId: rollback.id } }),
     ).toBe(1);
     expect(
-      (await fixture.user.findUniqueOrThrow({ where: { id: rollback.id } })).name,
+      (await fixture.user.findUniqueOrThrow({ where: { id: rollback.id } }))
+        .name,
     ).toBe(rollback.name);
   });
 });
@@ -347,18 +380,22 @@ it("concurrent adapter removals retain exactly one sign-in method", async ({
     for (let attempt = 0; attempt < 4; attempt++) {
       const concurrent = await userWithMethods(["github"], 1);
       const outcomes = await Promise.allSettled([
-        protocolRuntime.request(() => adapter.transaction((tx) =>
-          tx.delete({
-            model: "account",
-            where: [{ field: "id", value: concurrent.accounts[0].id }],
-          }),
-        )),
-        protocolRuntime.request(() => adapter.transaction((tx) =>
-          tx.delete({
-            model: "passkey",
-            where: [{ field: "id", value: concurrent.passkeys[0].id }],
-          }),
-        )),
+        protocolRuntime.request(() =>
+          adapter.transaction((tx) =>
+            tx.delete({
+              model: "account",
+              where: [{ field: "id", value: concurrent.accounts[0].id }],
+            }),
+          ),
+        ),
+        protocolRuntime.request(() =>
+          adapter.transaction((tx) =>
+            tx.delete({
+              model: "passkey",
+              where: [{ field: "id", value: concurrent.passkeys[0].id }],
+            }),
+          ),
+        ),
       ]);
       expect(outcomes.map((result) => result.status).sort()).toEqual([
         "fulfilled",
