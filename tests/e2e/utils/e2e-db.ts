@@ -1,13 +1,6 @@
 import type { SupportedOAuthClientAuthMethod } from "@/lib/oauth/constants";
-import type {
-  AuditLogCleanupInput,
-  AuditLogCleanupTarget,
-} from "../../shared/audit-cleanup";
-import * as auditFixtures from "./e2e-db/audit";
-import * as busFixtures from "./e2e-db/bus";
 import * as oauthFixtures from "./e2e-db/oauth";
 import * as seedFixtures from "./e2e-db/seed";
-import * as userFixtures from "./e2e-db/users";
 
 export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 
@@ -17,31 +10,11 @@ const operations = {
   createOAuthAuthorizationFixture:
     oauthFixtures.createOAuthAuthorizationFixture,
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
-  cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
-  cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
-  createAccountSecurityActivityFixture:
-    auditFixtures.createAccountSecurityActivityFixture,
-  deleteAccountSecurityActivityFixture:
-    auditFixtures.deleteAccountSecurityActivityFixture,
-  isolateSingleActiveBusTripFixture:
-    busFixtures.isolateSingleActiveBusTripFixture,
-  restoreBusTripTimesFixture: busFixtures.restoreBusTripTimesFixture,
-  setBusPreferenceFixture: busFixtures.setBusPreferenceFixture,
-  deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
-  deletePasskeysForUserFixture: userFixtures.deletePasskeysForUserFixture,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
-  disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
-  getOAuthClientByName: oauthFixtures.getOAuthClientByName,
   ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
   getSeedSectionSemesterFixture: seedFixtures.getSeedSectionSemesterFixture,
   getSeedTeacherDepartmentFixture: seedFixtures.getSeedTeacherDepartmentFixture,
-  ensureUserCalendarFeedFixture: userFixtures.ensureUserCalendarFeedFixture,
-  getUserProfileById: userFixtures.getUserProfileById,
-  createTempUsersFixture: userFixtures.createTempUsersFixture,
-  deleteUsersByPrefix: userFixtures.deleteUsersByPrefix,
-  restoreDebugUserFixture: userFixtures.restoreDebugUserFixture,
-  updateUserProfileById: userFixtures.updateUserProfileById,
 };
 
 async function runDbFixture<T>(operation: string, args: unknown[] = []) {
@@ -81,20 +54,6 @@ type LinkedAccountFixtureOptions = {
   email?: string;
 };
 
-type UserProfileFixture = {
-  name: string;
-  username: string | null;
-  image: string | null;
-  profilePictures: string[];
-};
-
-type UserProfileUpdateFixture = {
-  name?: string | null;
-  username?: string | null;
-  image?: string | null;
-  profilePictures?: string[];
-};
-
 export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
   runDbFixture<{
     id: string;
@@ -121,51 +80,8 @@ export const createOAuthAuthorizationFixture = (options: {
     scopes: string[];
   }>("createOAuthAuthorizationFixture", [options]);
 
-export const cleanupAuditLogsForE2e = (input: AuditLogCleanupInput) =>
-  runDbFixture<void>("cleanupAuditLogsForE2e", [input]);
-
-export const cleanupAuditTargetsForE2e = (
-  targets: readonly AuditLogCleanupTarget[],
-) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
-
-export const createAccountSecurityActivityFixture = (userId: string) =>
-  runDbFixture<{ id: string }>("createAccountSecurityActivityFixture", [
-    userId,
-  ]);
-
-export const deleteAccountSecurityActivityFixture = (id: string) =>
-  runDbFixture<void>("deleteAccountSecurityActivityFixture", [id]);
-
-export const isolateSingleActiveBusTripFixture = () =>
-  runDbFixture<busFixtures.BusTripTimesSnapshot>(
-    "isolateSingleActiveBusTripFixture",
-  );
-
-export const restoreBusTripTimesFixture = (
-  snapshot: busFixtures.BusTripTimesSnapshot,
-) => runDbFixture<void>("restoreBusTripTimesFixture", [snapshot]);
-
-export const setBusPreferenceFixture = (
-  userId: string,
-  preference: busFixtures.BusPreferenceFixture,
-) => runDbFixture<void>("setBusPreferenceFixture", [userId, preference]);
-
 export const deleteOAuthClientsByName = (name: string) =>
   runDbFixture<null>("deleteOAuthClientsByName", [name]);
-
-export const disableOAuthClientByName = (name: string) =>
-  runDbFixture<null>("disableOAuthClientByName", [name]);
-
-export const getOAuthClientByName = (name: string) =>
-  runDbFixture<{
-    clientId: string;
-    disabled: boolean;
-    enableEndSession: boolean;
-    requirePKCE: boolean;
-    scopes: string[];
-    skipConsent: boolean | null;
-    tokenEndpointAuthMethod: string | null;
-  } | null>("getOAuthClientByName", [name]);
 
 export const ensureLinkedAccountFixture = (
   options: LinkedAccountFixtureOptions,
@@ -175,14 +91,6 @@ export const ensureLinkedAccountFixture = (
     providerAccountId: string;
     email: string;
   }>("ensureLinkedAccountFixture", [options]);
-
-export const deleteLinkedAccountFixture = (options: {
-  userId: string;
-  provider: string;
-}) => runDbFixture<null>("deleteLinkedAccountFixture", [options]);
-
-export const deletePasskeysForUserFixture = (userId: string) =>
-  runDbFixture<void>("deletePasskeysForUserFixture", [userId]);
 
 export const getSeedCourseFilterFixture = (jwId: number) =>
   runDbFixture<{
@@ -207,32 +115,3 @@ export const getSeedSectionSemesterFixture = (jwId: number) =>
     semesterId: number | null;
     semesterName: string | null;
   }>("getSeedSectionSemesterFixture", [jwId]);
-
-export const getUserProfileById = (userId: string) =>
-  runDbFixture<UserProfileFixture>("getUserProfileById", [userId]);
-
-export const ensureUserCalendarFeedFixture = (userId: string) =>
-  runDbFixture<{ userId: string; token: string; path: string }>(
-    "ensureUserCalendarFeedFixture",
-    [userId],
-  );
-
-export const updateUserProfileById = (
-  userId: string,
-  data: UserProfileUpdateFixture,
-) => runDbFixture<null>("updateUserProfileById", [userId, data]);
-
-export const restoreDebugUserFixture = () =>
-  runDbFixture<void>("restoreDebugUserFixture");
-
-export const createTempUsersFixture = (options: {
-  prefix: string;
-  count: number;
-}) =>
-  runDbFixture<{ userIds: string[]; usernames: string[] }>(
-    "createTempUsersFixture",
-    [options],
-  );
-
-export const deleteUsersByPrefix = (prefix: string) =>
-  runDbFixture<null>("deleteUsersByPrefix", [prefix]);

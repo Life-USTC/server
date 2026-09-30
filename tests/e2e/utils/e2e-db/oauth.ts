@@ -143,32 +143,6 @@ export async function deleteOAuthClientsByName(name: string) {
   );
 }
 
-export async function disableOAuthClientByName(name: string) {
-  await withE2ePrisma((prisma) =>
-    prisma.oAuthClient.updateMany({
-      where: { name },
-      data: { disabled: true },
-    }),
-  );
-}
-
-export async function getOAuthClientByName(name: string) {
-  return withE2ePrisma((prisma) =>
-    prisma.oAuthClient.findFirst({
-      where: { name },
-      select: {
-        clientId: true,
-        disabled: true,
-        enableEndSession: true,
-        requirePKCE: true,
-        scopes: true,
-        skipConsent: true,
-        tokenEndpointAuthMethod: true,
-      },
-    }),
-  );
-}
-
 export async function ensureLinkedAccountFixture(options: {
   userId: string;
   provider: "github" | "google" | "oidc";
@@ -207,25 +181,4 @@ export async function ensureLinkedAccountFixture(options: {
     providerAccountId,
     email,
   };
-}
-
-export async function deleteLinkedAccountFixture(options: {
-  userId: string;
-  provider: string;
-}) {
-  await withE2ePrisma(async (prisma) => {
-    await prisma.account.deleteMany({
-      where: {
-        userId: options.userId,
-        provider: options.provider,
-      },
-    });
-
-    await prisma.verifiedEmail.deleteMany({
-      where: {
-        userId: options.userId,
-        provider: options.provider,
-      },
-    });
-  });
 }
