@@ -78,6 +78,7 @@ async function stopWorker(child: ChildProcess, exited: Promise<void>) {
 export const test = base.extend<
   {
     isolatedWorker: IsolatedWorker;
+    workerBindings: Record<string, string>;
     _workerResources: { start: () => Promise<IsolatedWorker> };
   },
   {
@@ -85,6 +86,7 @@ export const test = base.extend<
     _templateResources: OwnedDatabaseTemplate;
   }
 >({
+  workerBindings: {},
   _templateResources: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructured fixture dependencies.
     async ({}, use, workerInfo) => {
@@ -127,7 +129,7 @@ export const test = base.extend<
     { scope: "worker", timeout: 60_000 },
   ],
   _workerResources: [
-    async ({ databaseTemplate, playwright }, use, testInfo) => {
+    async ({ databaseTemplate, playwright, workerBindings }, use, testInfo) => {
       const database = ownIsolatedDatabase(databaseTemplate);
       const abort = new AbortController();
       let starting: Promise<IsolatedWorker> | undefined;
@@ -261,6 +263,12 @@ export const test = base.extend<
             config: resolve("wrangler.e2e.jsonc"),
             entrypoint: resolve("tests/ci/fixtures/e2e-storage-worker.ts"),
             envFiles: [],
+            bindings: Object.fromEntries(
+              Object.entries(workerBindings).map(([name, value]) => [
+                name,
+                { type: "plain_text" as const, value },
+              ]),
+            ),
             dev: {
               remote: false,
               server: { hostname: "127.0.0.1", port: 0 },
