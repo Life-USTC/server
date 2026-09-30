@@ -59,22 +59,26 @@ export function buildBetterAuthPlugins(input: {
       metadataProfile: "mcp-2026-07-28",
     }),
     genericOAuth({
-      config: [
-        {
-          providerId: "oidc",
-          ...ustcOidcEndpoints,
-          clientId: input.authEnv.AUTH_OIDC_CLIENT_ID ?? "",
-          clientSecret: input.authEnv.AUTH_OIDC_CLIENT_SECRET ?? "",
-          scopes: [OAUTH_OPENID_SCOPE],
-          pkce: true,
-          accountIssuer: input.oidcIssuer,
-          accountSubject: ({ profile }) => getOidcAccountSubject(profile),
-          mapProfileToUser: (profile) => {
-            stageUstcOidcIdentityFromProfile(profile);
-            return mapOidcProfileToUser(profile);
-          },
-        },
-      ],
+      config:
+        input.authEnv.AUTH_OIDC_CLIENT_ID &&
+        input.authEnv.AUTH_OIDC_CLIENT_SECRET
+          ? [
+              {
+                providerId: "oidc",
+                ...ustcOidcEndpoints,
+                clientId: input.authEnv.AUTH_OIDC_CLIENT_ID,
+                clientSecret: input.authEnv.AUTH_OIDC_CLIENT_SECRET,
+                scopes: [OAUTH_OPENID_SCOPE],
+                pkce: true,
+                accountIssuer: input.oidcIssuer,
+                accountSubject: ({ profile }) => getOidcAccountSubject(profile),
+                mapProfileToUser: (profile) => {
+                  stageUstcOidcIdentityFromProfile(profile);
+                  return mapOidcProfileToUser(profile);
+                },
+              },
+            ]
+          : [],
     }),
   ];
 }
