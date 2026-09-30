@@ -2,6 +2,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {
   type APIRequestContext,
+  type APIResponse,
+  type Request as BrowserRequest,
   expect,
   type Page,
   type TestInfo,
@@ -15,6 +17,11 @@ import {
 } from "./calendar-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 import { withSettledPageWrites } from "./settled-page-writes";
+
+export type CalendarBrowserWriteVerifier = (
+  response: APIResponse,
+  request: BrowserRequest,
+) => Promise<void>;
 
 export type CalendarProtocolChecks = {
   verifyTransport: (observation: CalendarProtocolObservation) => Promise<void>;
@@ -54,6 +61,7 @@ export async function withCalendarProtocol(
     createRequest,
     runBody,
     testInfo,
+    verifyBrowserWrite,
   }: {
     page: Page;
     observer: APIRequestContext;
@@ -63,6 +71,7 @@ export async function withCalendarProtocol(
     ) => Promise<APIRequestContext>;
     runBody: (body: () => Promise<void>) => Promise<void>;
     testInfo: TestInfo;
+    verifyBrowserWrite?: CalendarBrowserWriteVerifier;
   },
   work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
 ) {
@@ -241,8 +250,15 @@ export async function withCalendarProtocol(
         }
       },
       async (response, incoming) => {
+        if (new URL(incoming.url()).pathname !== "/oauth/authorize") {
+          if (!verifyBrowserWrite)
+            throw new Error(
+              `Unexpected calendar browser write: ${incoming.method()} ${new URL(incoming.url()).pathname}`,
+            );
+          await verifyBrowserWrite(response, incoming);
+          return;
+        }
         const body = await response.text();
-        expect(new URL(incoming.url()).pathname).toBe("/oauth/authorize");
         expect(incoming.method()).toBe("POST");
         expect(response.status()).toBe(200);
         expect(JSON.parse(body)).toMatchObject({
