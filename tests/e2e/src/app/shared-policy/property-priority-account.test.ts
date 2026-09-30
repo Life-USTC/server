@@ -122,6 +122,12 @@ async function checkAuthorizations(
     "activity.writeCount": text(fact(scope, copy.authorizations.writes), "3"),
     "activity.errorCount": text(fact(scope, copy.authorizations.errors), "2"),
   };
+  // Manual correspondence: docs/features/oauth.yaml and docs/features/user.yaml
+  // describe this same card. Check each rendered value once, using these aliases:
+  // client.{name,uri,disabled,id} = authorization.{clientName,clientUri,disabled,clientId}
+  // consent.{scopes,updatedAt,id} = authorization.{scopes,updatedAt,consentId}
+  // activity.{lastUsedAt,channel,feature,readCount,writeCount,errorCount} =
+  // authorization.usage.{lastUsedAt,lastChannel,lastFeature,readCount,writeCount,errorCount}
   await assertPriorityView({
     scope,
     identity,
@@ -132,34 +138,7 @@ async function checkAuthorizations(
       "consent.id": { value: fixture.authorization.consentId },
     },
   });
-  await assertPriorityView({
-    scope,
-    identity,
-    primary: {
-      "authorization.clientName": primary["client.name"],
-      "authorization.scopes": primary["consent.scopes"],
-    },
-    secondary: Object.fromEntries(
-      Object.entries(secondary).map(([key, value]) => [
-        {
-          "client.uri": "authorization.clientUri",
-          "client.disabled": "authorization.disabled",
-          "consent.updatedAt": "authorization.updatedAt",
-          "activity.lastUsedAt": "authorization.usage.lastUsedAt",
-          "activity.channel": "authorization.usage.lastChannel",
-          "activity.feature": "authorization.usage.lastFeature",
-          "activity.readCount": "authorization.usage.readCount",
-          "activity.writeCount": "authorization.usage.writeCount",
-          "activity.errorCount": "authorization.usage.errorCount",
-        }[key],
-        value,
-      ]),
-    ),
-    tertiary: {
-      "authorization.clientId": { value: fixture.authorization.clientId },
-      "authorization.consentId": { value: fixture.authorization.consentId },
-    },
-  });
+
 }
 
 for (const locale of ["en-us", "zh-cn"] as const)
