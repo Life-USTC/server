@@ -1316,7 +1316,7 @@ requirements:
     - Security repetition badges appear only for groups larger than one and report their actual repeated count.
     test:
       file: tests/e2e/src/app/shared-policy/remaining-count-copy.test.ts
-      name: ui.localized-count-copy-1
+      name: ui.localized-count-copy-1 count=1
 - id: ui.catalog-count-copy
   category: presentation
   topic: localized-count-copy

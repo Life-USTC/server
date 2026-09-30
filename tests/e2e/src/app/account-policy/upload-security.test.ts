@@ -1,83 +1,127 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { type APIRequestContext, expect, test } from "@playwright/test";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import {
+  type APIRequestContext,
+  type APIResponse,
+  expect,
+} from "@playwright/test";
 import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
-import {
-  createOAuthClientFixture,
-  deleteOAuthClientsByName,
-  PLAYWRIGHT_BASE_URL,
-} from "../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
+import {
+  expectOAuthUsage,
+  type OAuthUsageWindow,
+} from "../../../utils/oauth-usage";
+import { createUploadBucket } from "../../../utils/upload-bucket";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
+import { test } from "../api/mcp/_fixture";
 import { parseTextContent } from "../api/mcp/helpers";
 
-async function createActors() {
+type UploadRequest = Pick<
+  APIRequestContext,
+  "get" | "post" | "put" | "patch" | "delete"
+>;
+function uploadRequest(request: APIRequestContext): UploadRequest {
+  const eof = async (operation: Promise<APIResponse>) => {
+    const response = await operation;
+    await response.body();
+    return response;
+  };
+  return {
+    get: (...args) => eof(request.get(...args)),
+    post: (...args) => eof(request.post(...args)),
+    put: (...args) => eof(request.put(...args)),
+    patch: (...args) => eof(request.patch(...args)),
+    delete: (...args) => eof(request.delete(...args)),
+  };
+}
+async function createActors(
+  db: IsolatedWorker["database"]["owner"],
+  origin: string,
+  scopes: string[] = [],
+) {
   const marker = `upload-security-${crypto.randomUUID()}`;
-  return withE2ePrisma(async (db) => {
+  return db.$transaction(async (tx) => {
     const users = [];
-    for (const role of ["owner", "other"]) {
+    for (const role of ["owner", "other"])
       users.push(
-        await db.user.create({
+        await tx.user.create({
           data: {
+            id: crypto.randomUUID(),
             name: `Upload ${role}`,
             username: `us${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
             email: `${marker}-${role}@example.test`,
           },
         }),
       );
-    }
     const [owner, other] = users;
     if (!owner || !other) throw new Error("Missing upload actors");
-    return { owner, other, marker };
+    const clients = [];
+    for (const scope of scopes)
+      clients.push(
+        await tx.oAuthClient.create({
+          data: {
+            name: marker,
+            clientId: crypto.randomUUID(),
+            clientSecret: crypto.randomUUID(),
+            redirectUris: [`${origin}/oauth-e2e/callback`],
+            type: "public",
+            tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+            disabled: false,
+            scopes: [scope],
+            grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
+            responseTypes: ["code"],
+            requirePKCE: true,
+            metadata: { source: "e2e_fixture" },
+          },
+        }),
+      );
+    return { owner, other, marker, clients };
   });
 }
 
-async function cleanupActors(actors: Awaited<ReturnType<typeof createActors>>) {
-  const ids = [actors.owner.id, actors.other.id];
-  await withE2ePrisma(async (db) => {
-    await db.auditLog.deleteMany({
-      where: { OR: [{ userId: { in: ids } }, { subjectUserId: { in: ids } }] },
-    });
-    await db.user.deleteMany({ where: { id: { in: ids } } });
-  });
-}
-
-test("upload.permission-and-quota", async ({ page, browser, request }) => {
-  const actors = await createActors();
-  const otherContext = await browser.newContext({
-    baseURL: PLAYWRIGHT_BASE_URL,
-  });
-  let completedId: string | undefined;
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(actors.owner.id)]);
-    await otherContext.addCookies([
-      await createSignedSessionCookie(actors.other.id),
-    ]);
+test("upload.permission-and-quota", async ({
+  page,
+  request,
+  isolatedWorker,
+  calendarProtocolRun,
+}) => {
+  await calendarProtocolRun(async (io) => {
+    const db = isolatedWorker.database.owner;
+    const actors = await createActors(db, isolatedWorker.origin);
+    const ownerSession = await isolatedWorker.createSession(actors.owner.id);
+    const otherSession = await isolatedWorker.createSession(actors.other.id);
+    const sessions = await db.session.findMany({ orderBy: { id: "asc" } });
+    await page.context().addCookies([ownerSession.cookie]);
+    const sessionRequest = uploadRequest(page.request);
+    await io.observeCalendar(actors.owner, [], { calendar: "absent" });
+    const bucket = createUploadBucket(request, isolatedWorker.origin);
+    let completedId: string;
     const input = {
       filename: "quota-boundary.txt",
       contentType: "text/plain",
       size: 2,
     };
-    const anonymous = await request.post("/api/workspace/uploads", {
-      data: input,
-    });
+    const anonymous = await uploadRequest(io.request).post(
+      "/api/workspace/uploads",
+      {
+        data: input,
+      },
+    );
     expect(anonymous.status()).toBe(401);
-    const initial = await page.request.get("/api/workspace/uploads");
+    const ownerAuthorizationStarted = Date.now();
+    const initial = await sessionRequest.get("/api/workspace/uploads");
     expect(initial.status()).toBe(200);
+    const ownerAuthorizationFinished = Date.now();
     const {
       meta: { quotaBytes, maxFileSizeBytes },
     } = (await initial.json()) as {
       meta: { quotaBytes: number; maxFileSizeBytes: number };
     };
     expect(quotaBytes).toBeGreaterThan(12);
-    await withE2ePrisma(async (db) => {
+    await db.$transaction(async (db) => {
       // Existing completed usage is ledger data. Keep each historical file within
       // the public file limit; the new boundary upload below transfers real bytes.
       let remaining = quotaBytes - 12;
@@ -109,10 +153,11 @@ test("upload.permission-and-quota", async ({ page, browser, request }) => {
         });
       }
     });
-    const usage = await page.request.get("/api/workspace/uploads");
+    const historical = await db.upload.findMany({ orderBy: { id: "asc" } });
+    const usage = await sessionRequest.get("/api/workspace/uploads");
     expect((await usage.json()).meta.usedBytes).toBe(quotaBytes - 2);
     const liveKeys = () =>
-      withE2ePrisma((db) =>
+      db.$transaction((db) =>
         db.uploadPending.findMany({
           where: { userId: actors.owner.id, expiresAt: { gt: new Date() } },
           select: { key: true, size: true },
@@ -120,14 +165,14 @@ test("upload.permission-and-quota", async ({ page, browser, request }) => {
         }),
       );
     const before = await liveKeys();
-    const exceeded = await page.request.post("/api/workspace/uploads", {
+    const exceeded = await sessionRequest.post("/api/workspace/uploads", {
       data: { ...input, size: 3 },
     });
     expect(exceeded.status()).toBe(400);
     expect(await exceeded.json()).toMatchObject({ error: "Quota exceeded" });
     expect(await liveKeys()).toEqual(before);
 
-    const accepted = await page.request.post("/api/workspace/uploads", {
+    const accepted = await sessionRequest.post("/api/workspace/uploads", {
       data: input,
     });
     expect(accepted.status()).toBe(200);
@@ -135,7 +180,7 @@ test("upload.permission-and-quota", async ({ page, browser, request }) => {
     expect(
       (await liveKeys()).reduce((sum, pending) => sum + pending.size, 0),
     ).toBe(12);
-    const full = await page.request.post("/api/workspace/uploads", {
+    const full = await sessionRequest.post("/api/workspace/uploads", {
       data: { ...input, size: 1 },
     });
     expect(full.status()).toBe(400);
@@ -144,12 +189,12 @@ test("upload.permission-and-quota", async ({ page, browser, request }) => {
       (await liveKeys()).reduce((sum, pending) => sum + pending.size, 0),
     ).toBe(12);
 
-    const put = await page.request.put(reservation.url, {
+    const put = await sessionRequest.put(reservation.url, {
       data: Buffer.from("ok"),
       headers: { "content-type": "text/plain" },
     });
     expect(put.status(), await put.text()).toBe(200);
-    const complete = await page.request.post(
+    const complete = await sessionRequest.post(
       "/api/workspace/uploads/complete",
       {
         data: {
@@ -167,86 +212,256 @@ test("upload.permission-and-quota", async ({ page, browser, request }) => {
       quotaBytes,
       upload: { size: 2 },
     });
-    const download = await page.request.get(
+    const download = await sessionRequest.get(
       `/api/workspace/uploads/${completedId}/download`,
     );
     expect(download.status()).toBe(200);
     expect(await download.text()).toBe("ok");
-    const other = await otherContext.request.post("/api/workspace/uploads", {
+    await page.context().addCookies([otherSession.cookie]);
+    const otherAuthorizationStarted = Date.now();
+    const other = await sessionRequest.post("/api/workspace/uploads", {
       data: input,
     });
     expect(other.status()).toBe(200);
     expect((await other.json()).usedBytes).toBe(0);
-  } finally {
-    if (completedId)
-      await page.request.delete(`/api/workspace/uploads/${completedId}`);
-    await otherContext.close();
-    await cleanupActors(actors);
-  }
+    const otherAuthorizationFinished = Date.now();
+    const otherReservation = await other.json();
+    return {
+      async verifyTransport({ effects, sdkRequests }) {
+        expect(sdkRequests).toEqual([]);
+        expect(
+          effects.requests
+            .filter(
+              ({ value }) =>
+                value.path === "/api/workspace/uploads" &&
+                value.method === "POST",
+            )
+            .map(({ result }) => result),
+        ).toEqual([401, 400, 200, 400, 200]);
+        expect(
+          effects.requests
+            .filter(
+              ({ value }) =>
+                value.path === "/api/workspace/uploads/object" &&
+                value.method === "PUT",
+            )
+            .map(({ result }) => result),
+        ).toEqual([200]);
+        expect(
+          effects.requests
+            .filter(
+              ({ value }) =>
+                value.path === "/api/workspace/uploads/complete" &&
+                value.method === "POST",
+            )
+            .map(({ result }) => result),
+        ).toEqual([200]);
+      },
+      async verifyState() {
+        expect(await db.user.findMany({ orderBy: { id: "asc" } })).toEqual(
+          [actors.owner, actors.other].sort((a, b) => a.id.localeCompare(b.id)),
+        );
+        const finalSessions = await db.session.findMany({
+          orderBy: { id: "asc" },
+        });
+        expect(finalSessions).toEqual(
+          sessions.map((session) => ({
+            ...session,
+            expires: expect.any(Date),
+            updatedAt: expect.any(Date),
+          })),
+        );
+        for (const session of finalSessions) {
+          const [start, end] =
+            session.userId === actors.owner.id
+              ? [ownerAuthorizationStarted, ownerAuthorizationFinished]
+              : [otherAuthorizationStarted, otherAuthorizationFinished];
+          const expiryClock = session.expires.getTime() - 30 * 86400_000;
+          for (const time of [expiryClock, session.updatedAt.getTime()]) {
+            expect(time).toBeGreaterThanOrEqual(start);
+            expect(time).toBeLessThanOrEqual(end);
+          }
+          expect(session.updatedAt.getTime()).toBeGreaterThanOrEqual(
+            expiryClock,
+          );
+          const initial = sessions.find((initial) => initial.id === session.id);
+          if (!initial) throw new Error("Unexpected upload session");
+          expect(session.expires.getTime()).toBeGreaterThan(
+            initial.expires.getTime(),
+          );
+        }
+        expect(
+          await db.upload.findMany({
+            where: { id: { not: completedId } },
+            orderBy: { id: "asc" },
+          }),
+        ).toEqual(historical);
+        expect(historical.reduce((sum, upload) => sum + upload.size, 0)).toBe(
+          quotaBytes - 12,
+        );
+        expect(
+          await db.upload.findUniqueOrThrow({ where: { id: completedId } }),
+        ).toMatchObject({
+          userId: actors.owner.id,
+          key: reservation.key,
+          filename: input.filename,
+          contentType: "text/plain",
+          size: 2,
+        });
+        expect(
+          await db.uploadPending.findMany({
+            orderBy: { key: "asc" },
+            select: {
+              userId: true,
+              key: true,
+              filename: true,
+              size: true,
+              phase: true,
+              leaseExpiresAt: true,
+            },
+          }),
+        ).toEqual(
+          [
+            {
+              userId: actors.owner.id,
+              key: `uploads/${actors.owner.id}/${actors.marker}-live`,
+              filename: "pending-file.txt",
+              size: 10,
+              phase: "reserved",
+              leaseExpiresAt: null,
+            },
+            {
+              userId: actors.other.id,
+              key: otherReservation.key,
+              filename: input.filename,
+              size: 2,
+              phase: "reserved",
+              leaseExpiresAt: null,
+            },
+          ].sort((a, b) => a.key.localeCompare(b.key)),
+        );
+        expect(
+          await bucket.list({ prefix: `uploads/${actors.owner.id}/` }),
+        ).toEqual({ objects: [{ key: reservation.key }], truncated: false });
+        expect(await bucket.head(reservation.key)).toMatchObject({
+          size: 2,
+          httpMetadata: { contentType: "text/plain" },
+        });
+        const object = await bucket.get(reservation.key);
+        if (!object) throw new Error("Completed quota object is missing");
+        expect(Buffer.from(object.body).toString()).toBe("ok");
+        expect(
+          await bucket.list({ prefix: `uploads/${actors.other.id}/` }),
+        ).toEqual({ objects: [], truncated: false });
+        expect(await db.auditLog.count()).toBe(0);
+        expect(await db.oAuthClient.count()).toBe(0);
+        expect(await db.oAuthConsent.count()).toBe(0);
+        expect(await db.oAuthAccessToken.count()).toBe(0);
+        expect(await db.oAuthRefreshToken.count()).toBe(0);
+        expect(await db.oAuthGrantUsageDaily.count()).toBe(0);
+        expect(await db.deviceCode.count()).toBe(0);
+      },
+    };
+  });
 });
 
-test("upload.write-auth-unsuspended", async ({ page, browser }) => {
+test("upload.write-auth-unsuspended", async ({
+  page,
+  request,
+  isolatedWorker,
+  calendarProtocolRun,
+}) => {
   test.setTimeout(90_000);
-  const actors = await createActors();
-  const otherContext = await browser.newContext({
-    baseURL: PLAYWRIGHT_BASE_URL,
-  });
-  const mcpClients: Client[] = [];
-  const actualUploadIds: string[] = [];
-  let pendingCleanupKey: string | undefined;
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(actors.owner.id)]);
-    await otherContext.addCookies([
-      await createSignedSessionCookie(actors.other.id),
+  await calendarProtocolRun(async (io) => {
+    const db = isolatedWorker.database.owner;
+    const origin = isolatedWorker.origin;
+    const writeScope = "workspace.upload:write";
+    const readScope = "workspace.upload:read";
+    const actors = await createActors(db, origin, [
+      writeScope,
+      writeScope,
+      writeScope,
+      readScope,
+      readScope,
+      readScope,
+      writeScope,
     ]);
+    const ownerSession = await isolatedWorker.createSession(actors.owner.id);
+    const otherSession = await isolatedWorker.createSession(actors.other.id);
+    await page.context().addCookies([ownerSession.cookie]);
+    const sessionRequest = uploadRequest(page.request);
+    const asOther = async <T>(work: () => Promise<T>) => {
+      await page.context().addCookies([otherSession.cookie]);
+      try {
+        return await work();
+      } finally {
+        await page.context().addCookies([ownerSession.cookie]);
+      }
+    };
+    await io.observeCalendar(actors.owner, [], { calendar: "absent" });
+    const bucket = createUploadBucket(request, origin);
+    const sessions = await db.session.findMany({ orderBy: { id: "asc" } });
+    const authorizationStarted = Date.now();
+    let issued = 0;
     const issueToken = async (
       resource: "/api/auth" | "/api/graphql" | "/api/mcp",
       scope: string,
-      actor = page.request,
     ) => {
-      const client = await createOAuthClientFixture({
-        name: actors.marker,
-        scopes: [scope],
-        grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
-        tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-      });
+      const client = actors.clients[issued++];
       return authorizeDeviceBearer(
-        actor,
-        PLAYWRIGHT_BASE_URL,
+        page.request,
+        origin,
         client.clientId,
         scope,
         resource,
       );
     };
-    const writeScope = "workspace.upload:write";
-    const readScope = "workspace.upload:read";
     const restToken = await issueToken("/api/auth", writeScope);
     const graphqlToken = await issueToken("/api/graphql", writeScope);
     const mcpToken = await issueToken("/api/mcp", writeScope);
     const restRead = await issueToken("/api/auth", readScope);
     const graphqlRead = await issueToken("/api/graphql", readScope);
     const mcpRead = await issueToken("/api/mcp", readScope);
-    const otherMcpToken = await issueToken(
-      "/api/mcp",
-      writeScope,
-      otherContext.request,
+    const otherMcpToken = await asOther(() =>
+      issueToken("/api/mcp", writeScope),
     );
-    const connect = async (token: string) => {
-      const client = new Client({ name: "upload-security", version: "1.0.0" });
-      mcpClients.push(client);
-      await client.connect(
-        new StreamableHTTPClientTransport(
-          new URL(`${PLAYWRIGHT_BASE_URL}/api/mcp`),
-          { requestInit: { headers: { authorization: `Bearer ${token}` } } },
-        ),
+    const authorizationFinished = Date.now();
+    const usages: OAuthUsageWindow[][] = Array.from({ length: 7 }, () => []);
+    const connect = async (
+      token: string,
+      index: number,
+      expectedForbiddenTools: readonly string[] = [],
+    ): Promise<Pick<Client, "callTool">> => {
+      const sdk = await io.mcp(
+        { name: "upload-security", version: "1.0.0" },
+        token,
+        expectedForbiddenTools,
       );
-      return client;
+      return {
+        async callTool(...args) {
+          const start = Date.now();
+          const result = await sdk.callTool(...args);
+          if (index !== 5) {
+            const call = usages[index].length;
+            usages[index].push({
+              start,
+              end: Date.now(),
+              operation: (index === 2 ? call >= 2 && call < 6 : call < 3)
+                ? "write error"
+                : "write",
+            });
+          }
+          return result;
+        },
+      };
     };
-    const mcp = await connect(mcpToken);
-    const readMcp = await connect(mcpRead);
-    const otherMcp = await connect(otherMcpToken);
+    const mcp = await connect(mcpToken, 2);
+    const readMcp = await connect(mcpRead, 5, [
+      "workspace_upload_rename",
+      "workspace_upload_delete",
+    ]);
+    const otherMcp = await connect(otherMcpToken, 6);
+    const actualUploadIds: string[] = [];
     const contents = "original owned object bytes";
     const uploaded = await createUploadedFileViaApi(page.request, {
       filename: "owned.txt",
@@ -258,15 +473,14 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
       contentType: "text/plain",
       size: Buffer.byteLength(contents),
     };
-    const reserved = await page.request.post("/api/workspace/uploads", {
+    const reserved = await sessionRequest.post("/api/workspace/uploads", {
       data: reserveInput,
     });
     expect(reserved.status()).toBe(200);
     const pending = (await reserved.json()) as { key: string; url: string };
-    pendingCleanupKey = pending.key;
     expect(
       (
-        await page.request.put(pending.url, {
+        await sessionRequest.put(pending.url, {
           data: Buffer.from(contents),
           headers: { "content-type": "text/plain" },
         })
@@ -314,11 +528,11 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
     const bearer = (token: string) => ({
       authorization: `Bearer ${token}`,
       cookie: "",
-      origin: PLAYWRIGHT_BASE_URL,
+      origin,
     });
-    const rest = async (
+    const sendRest = async (
       operation: string,
-      actor: APIRequestContext,
+      actor: UploadRequest,
       headers: Record<string, string> = {},
     ) => {
       if (operation === "reserve")
@@ -345,17 +559,41 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
         headers,
       });
     };
-    const graphql = (
+    const rest = async (
+      operation: string,
+      actor: UploadRequest,
+      headers: Record<string, string> = {},
+    ) => {
+      const start = Date.now();
+      const response = await sendRest(operation, actor, headers);
+      if (headers.authorization === `Bearer ${restToken}`)
+        usages[0].push({
+          start,
+          end: Date.now(),
+          operation: usages[0].length === 0 ? "write" : "write error",
+        });
+      return response;
+    };
+    const graphql = async (
       operation: (typeof operations)[number],
-      actor: APIRequestContext,
-      headers: Record<string, string> = { origin: PLAYWRIGHT_BASE_URL },
-    ) =>
-      actor.post("/api/graphql", {
+      actor: UploadRequest,
+      headers: Record<string, string> = { origin },
+    ) => {
+      const start = Date.now();
+      const response = await actor.post("/api/graphql", {
         headers,
         data: { query: operation.query, variables: operation.variables },
       });
+      if (headers.authorization === `Bearer ${graphqlToken}`)
+        usages[1].push({
+          start,
+          end: Date.now(),
+          operation: usages[1].length === 0 ? "write" : "write error",
+        });
+      return response;
+    };
     const registered = (
-      client: Client,
+      client: Pick<Client, "callTool">,
       operation: (typeof operations)[number],
     ) =>
       client.callTool({
@@ -380,13 +618,13 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
       ).toBe(true);
     };
     // Positive controls establish valid first-party, REST, GraphQL and MCP authority.
-    expect((await rest("rename", page.request)).status()).toBe(200);
+    expect((await rest("rename", sessionRequest)).status()).toBe(200);
     expect(
-      (await rest("rename", page.request, bearer(restToken))).status(),
+      (await rest("rename", sessionRequest, bearer(restToken))).status(),
     ).toBe(200);
     const positiveGraphql = await graphql(
       operations[2],
-      page.request,
+      sessionRequest,
       bearer(graphqlToken),
     );
     expect(positiveGraphql.status()).toBe(200);
@@ -403,7 +641,7 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
       ),
     ).toMatchObject({ success: true });
     const snapshot = () =>
-      withE2ePrisma(async (db) => ({
+      db.$transaction(async (db) => ({
         uploads: await db.upload.findMany({
           where: { userId: actors.owner.id },
           orderBy: { id: "asc" },
@@ -417,14 +655,16 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
         }),
       }));
     const before = await snapshot();
+    const readStart = Date.now();
     expect(
       (
-        await page.request.get("/api/workspace/uploads", {
+        await sessionRequest.get("/api/workspace/uploads", {
           headers: bearer(restRead),
         })
       ).status(),
     ).toBe(200);
-    const wrongMcpAudience = await page.request.post("/api/mcp", {
+    usages[3].push({ start: readStart, end: Date.now(), operation: "read" });
+    const wrongMcpAudience = await sessionRequest.post("/api/mcp", {
       headers: {
         ...bearer(restToken),
         accept: "application/json, text/event-stream",
@@ -454,14 +694,14 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
         [bearer(restRead), 401],
         [bearer(graphqlToken), 401],
       ] as const) {
-        const response = await rest(operation, page.request, headers);
+        const response = await rest(operation, sessionRequest, headers);
         expect(
           response.status(),
           `${operation}: ${await response.text()}`,
         ).toBe(status);
       }
       if (operation !== "reserve") {
-        const response = await rest(operation, otherContext.request);
+        const response = await asOther(() => rest(operation, sessionRequest));
         expect(response.status()).toBe(
           operation === "rename" || operation === "delete" ? 404 : 403,
         );
@@ -469,17 +709,17 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
     }
     for (const operation of operations) {
       await assertGraphqlDenied(
-        await graphql(operation, page.request, { cookie: "" }),
+        await graphql(operation, sessionRequest, { cookie: "" }),
         401,
         "UNAUTHENTICATED",
       );
       await assertGraphqlDenied(
-        await graphql(operation, page.request, bearer(restToken)),
+        await graphql(operation, sessionRequest, bearer(restToken)),
         401,
         "UNAUTHENTICATED",
       );
       await assertGraphqlDenied(
-        await graphql(operation, page.request, bearer(graphqlRead)),
+        await graphql(operation, sessionRequest, bearer(graphqlRead)),
         403,
         "FORBIDDEN",
       );
@@ -490,7 +730,7 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
         const expected =
           operation.name === "complete" ? "FORBIDDEN" : "NOT_FOUND";
         await assertGraphqlDenied(
-          await graphql(operation, otherContext.request),
+          await asOther(() => graphql(operation, sessionRequest)),
           expected === "NOT_FOUND" ? 404 : 403,
           expected,
         );
@@ -516,7 +756,7 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
       });
     }
     expect(await snapshot()).toEqual(before);
-    await withE2ePrisma((db) =>
+    await db.$transaction((db) =>
       db.userSuspension.create({
         data: { userId: actors.owner.id, reason: actors.marker },
       }),
@@ -529,7 +769,7 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
       "delete",
     ]) {
       for (const headers of [{}, bearer(restToken)]) {
-        const response = await rest(operation, page.request, headers);
+        const response = await rest(operation, sessionRequest, headers);
         expect(
           response.status(),
           `${operation}: ${await response.text()}`,
@@ -537,12 +777,9 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
       }
     }
     for (const operation of operations) {
-      for (const headers of [
-        { origin: PLAYWRIGHT_BASE_URL },
-        bearer(graphqlToken),
-      ]) {
+      for (const headers of [{ origin: origin }, bearer(graphqlToken)]) {
         await assertGraphqlDenied(
-          await graphql(operation, page.request, headers),
+          await graphql(operation, sessionRequest, headers),
           403,
           "FORBIDDEN",
         );
@@ -560,45 +797,297 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
       ).toMatchObject({ success: false, error: "suspended" });
     }
     expect(await snapshot()).toEqual(before);
-    await withE2ePrisma((db) =>
+    await db.$transaction((db) =>
       db.userSuspension.deleteMany({ where: { userId: actors.owner.id } }),
     );
-    const completed = await page.request.post(
+    const completed = await sessionRequest.post(
       "/api/workspace/uploads/complete",
       { data: completionInput },
     );
     expect(completed.status(), await completed.text()).toBe(200);
     actualUploadIds.push((await completed.json()).upload.id);
     for (const id of actualUploadIds) {
-      const download = await page.request.get(
+      const download = await sessionRequest.get(
         `/api/workspace/uploads/${id}/download`,
       );
       expect(download.status()).toBe(200);
       expect(await download.text()).toBe(contents);
     }
-  } finally {
-    await withE2ePrisma((db) =>
-      db.userSuspension.deleteMany({ where: { userId: actors.owner.id } }),
-    );
-    if (pendingCleanupKey) {
-      const completed = await page.request.post(
-        "/api/workspace/uploads/complete",
-        {
-          data: {
-            key: pendingCleanupKey,
-            filename: "pending.txt",
-            contentType: "text/plain",
-          },
-        },
-      );
-      if (completed.ok())
-        actualUploadIds.push((await completed.json()).upload.id);
-    }
-    for (const id of new Set(actualUploadIds))
-      await page.request.delete(`/api/workspace/uploads/${id}`);
-    for (const client of mcpClients) await client.close();
-    await otherContext.close();
-    await deleteOAuthClientsByName(actors.marker);
-    await cleanupActors(actors);
-  }
+    return {
+      async verifyTransport({ effects, sdkRequests }) {
+        for (const [path, status] of [
+          ["/api/auth/oauth2/device-authorization", 200],
+          ["/oauth/device", 303],
+          ["/api/auth/oauth2/token", 200],
+        ] as const)
+          expect(
+            effects.requests
+              .filter(
+                ({ value }) => value.path === path && value.method === "POST",
+              )
+              .map(({ result }) => result),
+          ).toEqual(Array(7).fill(status));
+        for (const [method, path, statuses] of [
+          [
+            "POST",
+            "/api/workspace/uploads",
+            [200, 200, 401, 401, 401, 401, 403, 403],
+          ],
+          [
+            "PUT",
+            "/api/workspace/uploads/object",
+            [200, 200, 401, 401, 401, 401, 403, 403, 403],
+          ],
+          [
+            "POST",
+            "/api/workspace/uploads/complete",
+            [200, 401, 401, 401, 401, 403, 403, 403, 200],
+          ],
+          [
+            "PATCH",
+            `/api/workspace/uploads/${uploaded.uploadId}`,
+            [200, 200, 401, 401, 401, 401, 404, 403, 403],
+          ],
+          [
+            "DELETE",
+            `/api/workspace/uploads/${uploaded.uploadId}`,
+            [401, 401, 401, 401, 404, 403, 403],
+          ],
+          [
+            "POST",
+            "/api/graphql",
+            [
+              200,
+              401,
+              401,
+              403,
+              401,
+              401,
+              403,
+              403,
+              401,
+              401,
+              403,
+              404,
+              401,
+              401,
+              403,
+              404,
+              ...Array(8).fill(403),
+            ],
+          ],
+          ["GET", "/api/workspace/uploads", [200]],
+          [
+            "GET",
+            `/api/workspace/uploads/${uploaded.uploadId}/download`,
+            [200],
+          ],
+          [
+            "GET",
+            `/api/workspace/uploads/${actualUploadIds[1]}/download`,
+            [200],
+          ],
+        ] as const)
+          expect(
+            effects.requests
+              .filter(
+                ({ value }) => value.method === method && value.path === path,
+              )
+              .map(({ result }) => result),
+          ).toEqual(statuses);
+        expect(
+          sdkRequests.filter(({ rpc }) => rpc === "initialize"),
+        ).toHaveLength(3);
+        expect(
+          sdkRequests.filter(({ rpc }) => rpc === "notifications/initialized"),
+        ).toHaveLength(3);
+        expect(
+          sdkRequests.filter(({ method }) => method === "GET"),
+        ).toHaveLength(3);
+        expect(
+          sdkRequests
+            .filter(({ rpc }) => rpc === "tools/call")
+            .map(({ tool, status }) => [tool, status]),
+        ).toEqual([
+          ["graphql_operation_run", 200],
+          ["workspace_upload_rename", 200],
+          ["graphql_operation_run", 200],
+          ["graphql_operation_run", 200],
+          ["graphql_operation_run", 200],
+          ["graphql_operation_run", 200],
+          ["graphql_operation_run", 200],
+          ["graphql_operation_run", 200],
+          ["graphql_operation_run", 200],
+          ["workspace_upload_rename", 200],
+          ["workspace_upload_rename", 403],
+          ["workspace_upload_delete", 200],
+          ["workspace_upload_delete", 403],
+          ...Array.from({ length: 4 }, () => ["graphql_operation_run", 200]),
+          ["workspace_upload_rename", 200],
+          ["workspace_upload_delete", 200],
+        ]);
+        expect(
+          effects.requests
+            .filter(
+              ({ value }) =>
+                value.path === "/api/mcp" &&
+                value.method === "POST" &&
+                !value.requestId,
+            )
+            .map(({ result }) => result),
+        ).toEqual([401]);
+      },
+      async verifyState() {
+        expect(await db.user.findMany({ orderBy: { id: "asc" } })).toEqual(
+          [actors.owner, actors.other].sort((a, b) => a.id.localeCompare(b.id)),
+        );
+        const finalSessions = await db.session.findMany({
+          orderBy: { id: "asc" },
+        });
+        expect(finalSessions).toEqual(
+          sessions.map((session) => ({
+            ...session,
+            expires: expect.any(Date),
+            updatedAt: expect.any(Date),
+          })),
+        );
+        for (const session of finalSessions) {
+          const expiryClock = session.expires.getTime() - 30 * 86400_000;
+          for (const time of [expiryClock, session.updatedAt.getTime()]) {
+            expect(time).toBeGreaterThanOrEqual(authorizationStarted);
+            expect(time).toBeLessThanOrEqual(authorizationFinished);
+          }
+          expect(session.updatedAt.getTime()).toBeGreaterThanOrEqual(
+            expiryClock,
+          );
+          const initial = sessions.find((initial) => initial.id === session.id);
+          if (!initial) throw new Error("Unexpected upload session");
+          expect(session.expires.getTime()).toBeGreaterThan(
+            initial.expires.getTime(),
+          );
+        }
+        expect(await db.userSuspension.count()).toBe(0);
+        expect(await db.uploadPending.count()).toBe(0);
+        expect(
+          await db.upload.findMany({
+            orderBy: { id: "asc" },
+            select: {
+              id: true,
+              userId: true,
+              key: true,
+              filename: true,
+              contentType: true,
+              size: true,
+            },
+          }),
+        ).toEqual(
+          [
+            {
+              id: uploaded.uploadId,
+              userId: actors.owner.id,
+              key: before.uploads[0].key,
+              filename: "renamed.txt",
+              contentType: "text/plain",
+              size: Buffer.byteLength(contents),
+            },
+            {
+              id: actualUploadIds[1],
+              userId: actors.owner.id,
+              key: pending.key,
+              filename: "pending.txt",
+              contentType: "text/plain",
+              size: Buffer.byteLength(contents),
+            },
+          ].sort((a, b) => a.id.localeCompare(b.id)),
+        );
+        const expectedKeys = [before.uploads[0].key, pending.key].sort();
+        expect(
+          await bucket.list({ prefix: `uploads/${actors.owner.id}/` }),
+        ).toEqual({
+          objects: expectedKeys.map((key) => ({ key })),
+          truncated: false,
+        });
+        for (const key of expectedKeys) {
+          expect(await bucket.head(key)).toMatchObject({
+            size: Buffer.byteLength(contents),
+            httpMetadata: { contentType: "text/plain" },
+          });
+          const object = await bucket.get(key);
+          if (!object) throw new Error("Authorized upload object is missing");
+          expect(Buffer.from(object.body).toString()).toBe(contents);
+        }
+        expect(
+          await bucket.list({ prefix: `uploads/${actors.other.id}/` }),
+        ).toEqual({ objects: [], truncated: false });
+        expect(await db.auditLog.count()).toBe(0);
+        expect(
+          await db.oAuthClient.findMany({ orderBy: { id: "asc" } }),
+        ).toEqual([...actors.clients].sort((a, b) => a.id.localeCompare(b.id)));
+        const grants = await db.oAuthConsent.findMany();
+        expect(grants).toHaveLength(7);
+        const usageRows = await db.oAuthGrantUsageDaily.findMany({
+          orderBy: { day: "asc" },
+        });
+        const counts = [
+          [0, 6, 5],
+          [0, 5, 4],
+          [0, 8, 4],
+          [1, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 5, 3],
+        ] as const;
+        for (const [index, client] of actors.clients.entries()) {
+          const userId = index === 6 ? actors.other.id : actors.owner.id;
+          const resourcePath = [
+            "/api/auth",
+            "/api/graphql",
+            "/api/mcp",
+            "/api/auth",
+            "/api/graphql",
+            "/api/mcp",
+            "/api/mcp",
+          ][index];
+          const grant = grants.find(
+            (grant) => grant.clientId === client.clientId,
+          );
+          if (!grant) throw new Error("Missing upload device grant");
+          expect(grant).toMatchObject({
+            userId,
+            scopes: client.scopes,
+            resources: [origin + resourcePath],
+            requestedUserInfoClaims: [],
+            grantId: expect.any(String),
+          });
+          expectOAuthUsage(
+            usageRows.filter((row) => row.clientId === client.clientId),
+            {
+              dimensions: {
+                userId,
+                clientId: client.clientId,
+                grantId: grant.grantId,
+                feature: "workspace.upload",
+                channel:
+                  index === 0 || index === 3
+                    ? "rest"
+                    : index === 1 || index === 4
+                      ? "graphql"
+                      : "mcp",
+              },
+              counts: counts[index],
+              windows: usages[index],
+            },
+          );
+        }
+        expect(
+          usageRows.every((row) =>
+            actors.clients.some((client) => client.clientId === row.clientId),
+          ),
+        ).toBe(true);
+        expect(await db.oAuthAccessToken.count()).toBe(0);
+        expect(await db.oAuthRefreshToken.count()).toBe(0);
+        expect(await db.deviceCode.count()).toBe(0);
+      },
+    };
+  });
 });

@@ -30,78 +30,90 @@ export function ownHttpMcp({
   const settle = async () => {
     while (pending.size) await Promise.all([...pending]);
   };
-  const sdkFetch: typeof fetch = (input, init) => {
-    const operation = Promise.resolve().then(async () => {
-      if (closed) throw new Error("HTTP MCP transport is closed");
-      const incoming = new Request(input, init);
-      const url = new URL(incoming.url);
-      expect(url.origin).toBe(origin);
-      expect(url.pathname).toBe("/api/mcp");
-      const payload =
-        incoming.method === "POST"
-          ? ((await incoming.clone().json()) as {
-              method: string;
-              params?: { name?: string };
-            })
-          : undefined;
-      expect(
-        incoming.method === "GET" ||
-          (incoming.method === "POST" &&
-            [
-              "initialize",
-              "notifications/initialized",
-              "tools/call",
-              "tools/list",
-            ].includes(payload?.method ?? "")),
-      ).toBe(true);
-      const expectedStatus =
-        incoming.method === "GET"
-          ? 405
-          : payload?.method === "notifications/initialized"
-            ? 202
-            : 200;
-      const requestId = crypto.randomUUID();
-      requests.push({
-        requestId,
-        method: incoming.method,
-        path: url.pathname,
-        rpc: payload?.method,
-        tool: payload?.params?.name,
-        status: expectedStatus,
+  const forbiddenPlans: string[][] = [];
+  const sdkFetch =
+    (forbiddenTools: string[]): typeof fetch =>
+    (input, init) => {
+      const operation = Promise.resolve().then(async () => {
+        if (closed) throw new Error("HTTP MCP transport is closed");
+        const incoming = new Request(input, init);
+        const url = new URL(incoming.url);
+        expect(url.origin).toBe(origin);
+        expect(url.pathname).toBe("/api/mcp");
+        const payload =
+          incoming.method === "POST"
+            ? ((await incoming.clone().json()) as {
+                method: string;
+                params?: { name?: string };
+              })
+            : undefined;
+        expect(
+          incoming.method === "GET" ||
+            (incoming.method === "POST" &&
+              [
+                "initialize",
+                "notifications/initialized",
+                "tools/call",
+                "tools/list",
+              ].includes(payload?.method ?? "")),
+        ).toBe(true);
+        const forbidden =
+          payload?.method === "tools/call" &&
+          forbiddenTools[0] === payload.params?.name;
+        if (forbidden) forbiddenTools.shift();
+        const expectedStatus =
+          incoming.method === "GET"
+            ? 405
+            : payload?.method === "notifications/initialized"
+              ? 202
+              : forbidden
+                ? 403
+                : 200;
+        const requestId = crypto.randomUUID();
+        requests.push({
+          requestId,
+          method: incoming.method,
+          path: url.pathname,
+          rpc: payload?.method,
+          tool: payload?.params?.name,
+          status: expectedStatus,
+        });
+        const tagged = new Headers(incoming.headers);
+        for (const [name, value] of Object.entries(headers))
+          tagged.set(name, value);
+        tagged.set("x-test-community-request", requestId);
+        const response = await fetch(
+          new Request(incoming, {
+            headers: tagged,
+            signal: AbortSignal.any([incoming.signal, abort.signal]),
+          }),
+        );
+        // Read the actual response through EOF before the SDK parses its bytes.
+        const body = response.body ? await response.arrayBuffer() : null;
+        expect(response.status).toBe(expectedStatus);
+        return new Response(body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
       });
-      const tagged = new Headers(incoming.headers);
-      for (const [name, value] of Object.entries(headers))
-        tagged.set(name, value);
-      tagged.set("x-test-community-request", requestId);
-      const response = await fetch(
-        new Request(incoming, {
-          headers: tagged,
-          signal: AbortSignal.any([incoming.signal, abort.signal]),
-        }),
-      );
-      // Read the actual response through EOF before the SDK parses its bytes.
-      const body = response.body ? await response.arrayBuffer() : null;
-      expect(response.status).toBe(expectedStatus);
-      return new Response(body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-      });
-    });
-    // Report errors even if a late SDK callback arrives after close returned.
-    const settled = operation.then(() => undefined, remember);
-    pending.add(settled);
-    void settled.finally(() => pending.delete(settled));
-    return operation;
-  };
+      // Report errors even if a late SDK callback arrives after close returned.
+      const settled = operation.then(() => undefined, remember);
+      pending.add(settled);
+      void settled.finally(() => pending.delete(settled));
+      return operation;
+    };
   return {
     requests,
     settle,
     async connect(
       identity: { name: string; version: string },
       accessToken: string,
+      expectedForbiddenTools: readonly string[] = [],
     ) {
       if (closing) throw new Error("HTTP MCP workflow is closing");
+      const forbiddenTools = [...expectedForbiddenTools];
+      forbiddenPlans.push(forbiddenTools);
       const client = new Client(identity);
       const transport = new StreamableHTTPClientTransport(
         new URL("/api/mcp", origin),
@@ -109,7 +121,7 @@ export function ownHttpMcp({
           requestInit: {
             headers: { Authorization: `Bearer ${accessToken}` },
           },
-          fetch: sdkFetch,
+          fetch: sdkFetch(forbiddenTools),
         },
       );
       let disposed: Promise<void> | undefined;
@@ -124,6 +136,8 @@ export function ownHttpMcp({
         if (completed) {
           try {
             await expect.poll(() => pending.size, { timeout: 15_000 }).toBe(0);
+            for (const remaining of forbiddenPlans)
+              expect(remaining).toEqual([]);
           } catch (error) {
             remember(error);
           }
