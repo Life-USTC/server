@@ -16,7 +16,10 @@
  */
 import { expect, test } from "@playwright/test";
 import type { YoungEvent } from "../../../../../../src/generated/prisma-node/client";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  expectPrivateViewerState,
+  preparePrivateViewer,
+} from "../../../../utils/authenticated-read-fixture";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -194,53 +197,84 @@ for (const width of [1280, 390]) {
 }
 
 for (const status of [200, 401]) {
-  test(`subscription resolves independently of unavailable shell navigation (${status})`, async ({
-    page,
-  }) => {
-    await signInAsDebugUser(page, "/workspace/overview");
-    const session = await (
-      await page.request.get("/api/auth/get-session")
-    ).json();
-    let bootstrapRequests = 0;
-    await page.route("**/_internal/shell-bootstrap", async (route) => {
-      bootstrapRequests++;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ viewer: session.user, navigation: null }),
-      });
-    });
-    await page.route(
-      `**/api/workspace/young-event-subscriptions/${DEV_SEED.youngEvent.youngId}`,
-      async (route) => {
-        await route.fulfill({
-          status,
-          contentType: "application/json",
-          body: JSON.stringify(
-            status === 200
-              ? {
-                  youngId: DEV_SEED.youngEvent.youngId,
-                  subscribed: false,
-                  remindSignup: true,
-                  remindDeadline: true,
-                  remindStart: true,
-                }
-              : { error: "Unauthorized" },
-          ),
+  privateTest(
+    `subscription resolves independently of unavailable shell navigation (${status})`,
+    async ({ page, isolatedWorker, preferenceFlow, run }) => {
+      await run(async () => {
+        const viewer = await preferenceFlow.prepare(() =>
+          preparePrivateViewer(page, isolatedWorker, false),
+        );
+        const db = isolatedWorker.database.owner;
+        const event = await preferenceFlow.prepare(() =>
+          db.youngEvent.create({
+            data: {
+              youngId: DEV_SEED.youngEvent.youngId,
+              name: DEV_SEED.youngEvent.name,
+              isActive: true,
+              requiresSignup: true,
+              rawJson: {},
+            },
+          }),
+        );
+        await preferenceFlow.run(async () => {
+          await gotoAndWaitForReady(page, "/workspace/overview");
+          const session = await (
+            await preferenceFlow.http(() =>
+              page.request.get("/api/auth/get-session"),
+            )
+          ).json();
+          let bootstrapRequests = 0;
+          await preferenceFlow.route(
+            page,
+            "**/_internal/shell-bootstrap",
+            async (route) => {
+              bootstrapRequests++;
+              await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify({
+                  viewer: session.user,
+                  navigation: null,
+                }),
+              });
+            },
+          );
+          await preferenceFlow.route(
+            page,
+            `**/api/workspace/young-event-subscriptions/${DEV_SEED.youngEvent.youngId}`,
+            async (route) => {
+              await route.fulfill({
+                status,
+                contentType: "application/json",
+                body: JSON.stringify(
+                  status === 200
+                    ? {
+                        youngId: DEV_SEED.youngEvent.youngId,
+                        subscribed: false,
+                        remindSignup: true,
+                        remindDeadline: true,
+                        remindStart: true,
+                      }
+                    : { error: "Unauthorized" },
+                ),
+              });
+            },
+          );
+          await gotoAndWaitForReady(page, DETAIL_PATH);
+          await expect(
+            page.getByRole("button", {
+              name:
+                status === 200
+                  ? /^(订阅活动|Subscribe to event)$/
+                  : /^(登录后订阅|Sign in to subscribe)$/,
+            }),
+          ).toBeEnabled();
+          await expect.poll(() => bootstrapRequests).toBe(1);
         });
-      },
-    );
-    await gotoAndWaitForReady(page, DETAIL_PATH);
-    await expect(
-      page.getByRole("button", {
-        name:
-          status === 200
-            ? /^(订阅活动|Subscribe to event)$/
-            : /^(登录后订阅|Sign in to subscribe)$/,
-      }),
-    ).toBeEnabled();
-    await expect.poll(() => bootstrapRequests).toBe(1);
-  });
+        await expectPrivateViewerState(db, viewer, [event]);
+      });
+    },
+  );
 }
 
 test("anonymous subscription state does not request private data", async ({
