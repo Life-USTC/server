@@ -1,13 +1,25 @@
 import { expect } from "@playwright/test";
-import { test } from "../../../utils/community-fixture";
+import {
+  createCommentAudiences,
+  test,
+} from "../../../utils/community-fixture";
 
 test("ui.detail-two-column-stream-6", async ({
   communityFlow,
-  audiences: { users, contexts },
+  account,
+  isolatedWorker,
+  page,
   community: { targets, db },
 }) => {
   await communityFlow.run(async () => {
     test.setTimeout(90_000);
+    const { users, contexts } = await createCommentAudiences({
+      account,
+      db,
+      communityFlow,
+      isolatedWorker,
+      page,
+    });
     const comments: { id: string; body: string; kind: string }[][] = [];
     for (const target of targets) {
       const rows = [];

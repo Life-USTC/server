@@ -1,4 +1,4 @@
-import type { BrowserContext } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import type {
   Comment,
   Semester,
@@ -7,6 +7,7 @@ import type {
 import type { TestPrismaClient } from "../../shared/prisma";
 import { type CommunityFlow, withCommunityFlow } from "./community-flow";
 import { DEV_SEED } from "./dev-seed";
+import type { IsolatedWorker } from "./isolated-worker";
 import { test as accountTest } from "./owned-worker";
 
 type Target = {
@@ -26,24 +27,25 @@ export const supplement = "Independent community supplement";
 export const discussion = "Independent community discussion";
 
 export const test = accountTest.extend<{
+  communityActor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
   account: User;
   communityFlow: CommunityFlow;
   communitySemesters: { current: Semester; previous: Semester };
   community: Catalog;
   presentation: Catalog;
   comment: Comment;
-  audiences: { users: User[]; contexts: BrowserContext[] };
 }>({
-  account: async (
-    { isolatedWorker, page, run, communitySemesters: _semesters },
+  communityActor: async (
+    { isolatedWorker, run, communitySemesters: _semesters },
     use,
   ) => {
-    const actor = await run(() => isolatedWorker.createActor());
-    await page.context().addCookies([actor.cookie]);
+    await use(await run(() => isolatedWorker.createActor()));
+  },
+  account: async ({ isolatedWorker, communityActor, run }, use) => {
     await use(
       await run(() =>
         isolatedWorker.database.owner.user.findUniqueOrThrow({
-          where: { id: actor.id },
+          where: { id: communityActor.id },
         }),
       ),
     );
@@ -77,14 +79,32 @@ export const test = accountTest.extend<{
     );
   },
   communityFlow: async (
-    { page, browser, request: observer, isolatedWorker, account, run },
+    {
+      page,
+      browser,
+      request: observer,
+      isolatedWorker,
+      account,
+      communityActor,
+      run,
+    },
     use,
     testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
         { page, browser, observer, isolatedWorker, account, testInfo },
-        use,
+        async (flow) => {
+          await use({
+            ...flow,
+            run: (work, expected) =>
+              flow.run(async () => {
+                // Authentication belongs to the same actual callback as the UI.
+                await page.context().addCookies([communityActor.cookie]);
+                await work();
+              }, expected),
+          });
+        },
       ),
     );
   },
@@ -195,41 +215,52 @@ export const test = accountTest.extend<{
       ),
     );
   },
-  audiences: async (
-    { account, community, communityFlow, isolatedWorker, page, run },
-    use,
-  ) => {
-    const peers = await run(() =>
-      community.db.$transaction(async (db) => {
-        const users = [];
-        for (const role of ["viewer", "admin"]) {
-          const marker = crypto.randomUUID();
-          users.push(
-            await db.user.create({
-              data: {
-                name: "Private catalog " + role,
-                username: "cp" + marker.replaceAll("-", "").slice(0, 17),
-                email: "community-" + marker + "@example.test",
-                isAdmin: role === "admin",
-              },
-            }),
-          );
-        }
-        return users;
-      }),
-    );
-    const contexts = [page.context()];
-    for (const user of [...peers, null]) {
-      const context = await communityFlow.newContext();
-      contexts.push(context);
-      if (user) {
-        const session = await run(() => isolatedWorker.createSession(user.id));
-        await context.addCookies([session.cookie]);
-      }
-    }
-    await use({ users: [account, ...peers], contexts });
-  },
 });
+
+/** Prepare the four comment audiences inside the caller's communityFlow.run. */
+export async function createCommentAudiences({
+  account,
+  db,
+  communityFlow,
+  isolatedWorker,
+  page,
+}: {
+  account: User;
+  db: TestPrismaClient;
+  communityFlow: Pick<CommunityFlow, "newContext">;
+  isolatedWorker: IsolatedWorker;
+  page: Page;
+}) {
+  const peers = await db.$transaction(async (tx) => {
+    const users = [];
+    for (const role of ["viewer", "admin"]) {
+      const marker = crypto.randomUUID();
+      users.push(
+        await tx.user.create({
+          data: {
+            name: "Private catalog " + role,
+            username: "cp" + marker.replaceAll("-", "").slice(0, 17),
+            email: "community-" + marker + "@example.test",
+            isAdmin: role === "admin",
+          },
+        }),
+      );
+    }
+    return users;
+  });
+  const contexts = [page.context()];
+  for (const user of [...peers, null]) {
+    // A session can finish during interruption; newContext then rejects new
+    // admission before allocating a context for that resumed callback.
+    const session = user
+      ? await isolatedWorker.createSession(user.id)
+      : undefined;
+    const context = await communityFlow.newContext();
+    contexts.push(context);
+    if (session) await context.addCookies([session.cookie]);
+  }
+  return { users: [account, ...peers], contexts };
+}
 
 export function arrangeDescription(
   db: TestPrismaClient,
