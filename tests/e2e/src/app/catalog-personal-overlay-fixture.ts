@@ -1,5 +1,5 @@
 import { createLocalAccountIssuer } from "@better-auth/core/db";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Request } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
 import type { Session } from "../../../../src/generated/prisma-node/client";
 import { readCalendarState } from "../../utils/calendar-read-observation";
@@ -324,7 +324,34 @@ export const test = ownedTest.extend<{
                   baseline = await state(db);
                   expect(await db.session.findMany()).toEqual([]);
                   startedAt = Date.now();
-                  await work(flow);
+                  const sectionDestination = `/catalog/sections/${DEV_SEED.section.jwId}`;
+                  const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
+                  const sectionLogin =
+                    plan.loginRedirect === sectionDestination;
+                  const viewerRequests: Request[] = [];
+                  const observeViewer = (request: Request) => {
+                    if (
+                      request.method() !== "GET" ||
+                      new URL(request.url()).pathname !== viewerPath
+                    )
+                      return;
+                    viewerRequests.push(request);
+                    // Login's shell refresh replaces the first section controller.
+                    if (viewerRequests.length === 1)
+                      flow.expectReadCancellation(page, request);
+                  };
+                  if (sectionLogin) page.on("request", observeViewer);
+                  try {
+                    await work(flow);
+                    if (sectionLogin) {
+                      expect(viewerRequests).toHaveLength(2);
+                      const successor = await viewerRequests[1].response();
+                      expect(successor?.status()).toBe(200);
+                      await successor?.body();
+                    }
+                  } finally {
+                    if (sectionLogin) page.off("request", observeViewer);
+                  }
                 },
                 { auditActions: { account_sign_in: 1 } },
                 {
