@@ -206,7 +206,9 @@ test("administrator homework deletion rebuilds a subscriber calendar once across
         expect(afterText).toContain(
           `SUMMARY:${catalog.courses[0].nameCn} - 作业截止：Recent homework`,
         );
-        expect(afterText).toContain("DTSTART;TZID=Asia/Shanghai:21000101T080000");
+        expect(afterText).toContain(
+          "DTSTART;TZID=Asia/Shanghai:21000101T080000",
+        );
         expect(afterText).not.toContain("Older homework");
         expect(afterText).not.toContain("Deleted homework");
         for (const id of [homeworks[0].id, homeworks[2].id]) {
@@ -283,7 +285,10 @@ test("administrator homework deletion rebuilds a subscriber calendar once across
       );
       // A failed producer read remains a cleanup error; it is never treated as
       // zero messages. Attempt all remaining observations and release anyway.
-      const observations = await Promise.allSettled([readRows(), readCalendar()]);
+      const observations = await Promise.allSettled([
+        readRows(),
+        readCalendar(),
+      ]);
       // Consumer registrations belong to this private Worker/KV and have no
       // DELETE endpoint. Release the producer UUID only after draining it.
       const cleanup = await Promise.allSettled(
@@ -322,6 +327,9 @@ test("administrator homework deletion rebuilds a subscriber calendar once across
     }
     if (failures.length === 1) throw failures[0];
     if (failures.length > 1)
-      throw new AggregateError(failures, "Administrator calendar workflow failed");
+      throw new AggregateError(
+        failures,
+        "Administrator calendar workflow failed",
+      );
   });
 });
