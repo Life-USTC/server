@@ -21,6 +21,9 @@
     "tests/ci/fixtures/shared-cleanup-failure.config.ts",
     "tests/ci/fixtures/shared-cleanup-failure.scenario.ts",
     "tests/ci/fixtures/shared-cleanup-failure-reporter.ts",
+    "tests/fixtures/static-import-contract.ts",
+    "tests/fixtures/static-import-coverage.ts",
+    "tests/fixtures/static-loader-snapshot.ts",
     "tests/e2e/**/*.ts",
     "scripts/specifications/**/*.ts"
   ],
