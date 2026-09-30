@@ -69,7 +69,9 @@ it("section.bounded-related-sections", async ({
       });
       if (offset < 27) expected.push(fixture.base + offset);
     }
-    const result = await request(() => getSectionPage(fixture.sections[0].jwId));
+    const result = await request(() =>
+      getSectionPage(fixture.sections[0].jwId),
+    );
     expect(result?.section.otherCourseSectionCount).toBe(26);
     expect(
       result?.section.otherCourseSections.map((section) => section.jwId),

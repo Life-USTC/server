@@ -58,17 +58,21 @@ it("section.public-detail-cache", async ({
     expect(full?.schedules).toHaveLength(1);
     expect(full?.teacherAssignments).toHaveLength(1);
     expect(
-      (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn")))?.schedules,
+      (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn")))
+        ?.schedules,
     ).toHaveLength(1);
     expect(full?.teachers[0].department?.id).toBe(fixture.departments[0].id);
     expect(
-      (await request(() => findSectionDetailByJwId(b.jwId)))?.course.namePrimary,
+      (await request(() => findSectionDetailByJwId(b.jwId)))?.course
+        .namePrimary,
     ).toBe(courseB.nameCn);
     expect(
       (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn", shape)))
         ?.schedules,
     ).toEqual([]);
-    expect((await request(() => getSectionPage(a.jwId)))?.section.id).toBe(a.id);
+    expect((await request(() => getSectionPage(a.jwId)))?.section.id).toBe(
+      a.id,
+    );
     await db.section.update({
       where: { id: a.id },
       data: { code: "UPDATED-SECTION" },
