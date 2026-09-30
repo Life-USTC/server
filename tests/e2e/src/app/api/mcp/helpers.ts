@@ -83,6 +83,7 @@ async function authorizeAndGetCode(
     },
   );
 
+  await authorizeResponse.body();
   expect(authorizeResponse.status()).toBe(302);
   const consentLocation = authorizeResponse.headers().location;
   expect(typeof consentLocation).toBe("string");
@@ -266,5 +267,6 @@ export async function expectAccessTokenCannotInitializeMcp(
     },
   });
 
+  await response.body();
   expect([401, 403]).toContain(response.status());
 }
