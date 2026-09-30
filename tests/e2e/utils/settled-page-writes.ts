@@ -45,7 +45,14 @@ export async function withSettledPageWrites(
           // from the upstream response can leave the browser body unfinished.
           const body = await response.body();
           const headers = response.headers();
-          delete headers["content-encoding"];
+          // Match APIRequestContext's decoders; other encodings retain their
+          // original bytes and representation header.
+          if (
+            ["gzip", "x-gzip", "br", "deflate"].includes(
+              headers["content-encoding"]?.toLowerCase() ?? "",
+            )
+          )
+            delete headers["content-encoding"];
           delete headers["transfer-encoding"];
           if ([204, 304].includes(response.status()))
             delete headers["content-length"];
