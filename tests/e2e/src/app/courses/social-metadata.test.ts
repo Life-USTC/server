@@ -190,7 +190,7 @@ test("interface-hierarchy.locale-caching-and-seo-3", async ({ page,
   context, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
     await context.clearCookies();
-    await context.setExtraHTTPHeaders({ "accept-language": "*" });
+    await context.setExtraHTTPHeaders({ ...preferenceFlow.headers, "accept-language": "*" });
     for (const path of [
       "/catalog/courses",
       "/catalog/sections",
