@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test as taskFilterTest } from "../../../utils/workspace-task-filters";
@@ -89,108 +90,144 @@ async function assertReadingOrder(page: Page, items: readonly string[]) {
   }
 }
 
-test("ui.detail-two-column-stream-2", async ({ page }) => {
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    await gotoAndWaitForReady(
-      page,
-      `/catalog/sections/${DEV_SEED.section.jwId}`,
+test("ui.detail-two-column-stream-2", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/sections/${DEV_SEED.section.jwId}`,
+      );
+      await assertReadingOrder(page, [
+        "introduction",
+        "calendar",
+        "exams",
+        "homework",
+        "comments",
+      ]);
+    }
+  });
+});
+
+test("ui.detail-two-column-stream-3", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    const pages = (await catalogPages(page)).filter(
+      (p) => p.collection !== "/catalog/sections",
     );
-    await assertReadingOrder(page, [
-      "introduction",
-      "calendar",
-      "exams",
-      "homework",
-      "comments",
-    ]);
-  }
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      for (const { href } of pages) {
+        await gotoAndWaitForReady(page, href);
+        await assertReadingOrder(page, ["introduction", "sections", "comments"]);
+      }
+    }
+  });
 });
 
-test("ui.detail-two-column-stream-3", async ({ page }) => {
-  const pages = (await catalogPages(page)).filter(
-    (p) => p.collection !== "/catalog/sections",
-  );
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    for (const { href } of pages) {
+test("ui.detail-hero-2", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    const pages = await catalogPages(page);
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      for (const { href, collection } of pages) {
+        await gotoAndWaitForReady(page, href);
+        if (viewport.width < 768) await openMobileMenu(page);
+        const navigation = page.locator(
+          `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
+        );
+        const link = navigation.locator(`a[href="${collection}"]`);
+        await expect(link).toBeVisible();
+        await link.click();
+        await expect(page).toHaveURL(new RegExp(`${collection}$`));
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      }
+    }
+  });
+});
+
+test("ui.detail-hero-3", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    const pages = await catalogPages(page);
+    for (const [index, locale] of locales.entries()) {
+      await setLocale(page, locale);
+      for (const { href, collection, names } of pages) {
+        await gotoAndWaitForReady(page, href);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+          locale === "en-us" && collection !== "/catalog/sections"
+            ? `${names[1]} (${names[0]})`
+            : names[index],
+        );
+      }
+    }
+  });
+});
+
+test("ui.layout-principles-1", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    await page.setViewportSize(viewports[0]);
+    for (const { href, collection } of await catalogPages(page)) {
       await gotoAndWaitForReady(page, href);
-      await assertReadingOrder(page, ["introduction", "sections", "comments"]);
+      const column = page.locator("[data-detail-reading-stream]");
+      for (const id of [
+        "introduction",
+        "comments",
+        ...(collection === "/catalog/sections" ? ["homework"] : []),
+      ]) {
+        await expect(column.locator(`#${id}`)).toHaveCount(1);
+        const reading = await column.locator(`#${id}`).boundingBox();
+        const aside = await page
+          .locator("[data-detail-scroll-container] aside")
+          .boundingBox();
+        expect(reading).not.toBeNull();
+        expect(aside).not.toBeNull();
+        if (!reading || !aside)
+          throw new Error("Missing reading/sidebar geometry");
+        expect(reading.x + reading.width).toBeLessThan(aside.x);
+      }
     }
-  }
+  });
 });
 
-test("ui.detail-hero-2", async ({ page }) => {
-  const pages = await catalogPages(page);
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    for (const { href, collection } of pages) {
+test("ui.layout-principles-2", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    await page.setViewportSize(viewports[0]);
+    for (const { href } of await catalogPages(page)) {
       await gotoAndWaitForReady(page, href);
-      if (viewport.width < 768) await openMobileMenu(page);
-      const navigation = page.locator(
-        `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
-      );
-      const link = navigation.locator(`a[href="${collection}"]`);
-      await expect(link).toBeVisible();
-      await link.click();
-      await expect(page).toHaveURL(new RegExp(`${collection}$`));
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const aside = page.locator("[data-detail-scroll-container] aside");
+      await expect(page.locator("#overview")).toBeVisible();
+      await expect(aside.locator("dl, table").first()).toBeVisible();
+      const main = await page.locator("#introduction").boundingBox();
+      const facts = await aside.boundingBox();
+      expect(main).not.toBeNull();
+      expect(facts).not.toBeNull();
+      if (!main || !facts) throw new Error("Missing detail columns");
+      expect(facts.x).toBeGreaterThan(main.x + main.width);
     }
-  }
-});
-
-test("ui.detail-hero-3", async ({ page }) => {
-  const pages = await catalogPages(page);
-  for (const [index, locale] of locales.entries()) {
-    await setLocale(page, locale);
-    for (const { href, collection, names } of pages) {
-      await gotoAndWaitForReady(page, href);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-        locale === "en-us" && collection !== "/catalog/sections"
-          ? `${names[1]} (${names[0]})`
-          : names[index],
-      );
-    }
-  }
-});
-
-test("ui.layout-principles-1", async ({ page }) => {
-  await page.setViewportSize(viewports[0]);
-  for (const { href, collection } of await catalogPages(page)) {
-    await gotoAndWaitForReady(page, href);
-    const column = page.locator("[data-detail-reading-stream]");
-    for (const id of [
-      "introduction",
-      "comments",
-      ...(collection === "/catalog/sections" ? ["homework"] : []),
-    ]) {
-      await expect(column.locator(`#${id}`)).toHaveCount(1);
-      const reading = await column.locator(`#${id}`).boundingBox();
-      const aside = await page
-        .locator("[data-detail-scroll-container] aside")
-        .boundingBox();
-      expect(reading).not.toBeNull();
-      expect(aside).not.toBeNull();
-      if (!reading || !aside)
-        throw new Error("Missing reading/sidebar geometry");
-      expect(reading.x + reading.width).toBeLessThan(aside.x);
-    }
-  }
-});
-
-test("ui.layout-principles-2", async ({ page }) => {
-  await page.setViewportSize(viewports[0]);
-  for (const { href } of await catalogPages(page)) {
-    await gotoAndWaitForReady(page, href);
-    const aside = page.locator("[data-detail-scroll-container] aside");
-    await expect(page.locator("#overview")).toBeVisible();
-    await expect(aside.locator("dl, table").first()).toBeVisible();
-    const main = await page.locator("#introduction").boundingBox();
-    const facts = await aside.boundingBox();
-    expect(main).not.toBeNull();
-    expect(facts).not.toBeNull();
-    if (!main || !facts) throw new Error("Missing detail columns");
-    expect(facts.x).toBeGreaterThan(main.x + main.width);
-  }
+  });
 });
 
 for (const [index, locale] of locales.entries()) {
@@ -255,18 +292,24 @@ for (const [index, locale] of locales.entries()) {
   );
 }
 
-test("ui.navigation-landmarks-1", async ({ page }) => {
-  await page.setViewportSize(viewports[0]);
-  for (const locale of locales) {
-    await setLocale(page, locale);
-    await gotoAndWaitForReady(page, "/catalog/courses");
-    const nav = page.getByRole("navigation", {
-      name: locale === "zh-cn" ? "主导航" : "Primary navigation",
-      exact: true,
-    });
-    await expect(nav).toHaveCount(1);
-    await expect(nav).toBeVisible();
-  }
+test("ui.navigation-landmarks-1", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    await page.setViewportSize(viewports[0]);
+    for (const locale of locales) {
+      await setLocale(page, locale);
+      await gotoAndWaitForReady(page, "/catalog/courses");
+      const nav = page.getByRole("navigation", {
+        name: locale === "zh-cn" ? "主导航" : "Primary navigation",
+        exact: true,
+      });
+      await expect(nav).toHaveCount(1);
+      await expect(nav).toBeVisible();
+    }
+  });
 });
 
 taskFilterTest("ui.navigation-landmarks-2", async ({ page, taskFilterRun }) => {
@@ -330,61 +373,79 @@ taskFilterTest("ui.navigation-landmarks-3", async ({ page, taskFilterRun }) => {
   );
 });
 
-test("ui.footer-navigation-landmark", async ({ page }) => {
-  for (const href of ["/catalog/courses", "/terms", "/privacy"]) {
-    await gotoAndWaitForReady(page, href);
-    const footer = page.locator("footer");
-    await expect(footer).toBeVisible();
-    const navigation = footer.getByRole("navigation");
-    await expect(navigation).toHaveCount(1);
-    await expect(navigation).toHaveAccessibleName(/.+/);
-    expect(await navigation.getByRole("link").count()).toBe(
-      await footer.getByRole("link").count(),
-    );
-  }
-});
-
-test("ui.workspace-footer-policy-1", async ({ page }) => {
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    for (const href of [
-      "/catalog/courses",
-      "/catalog/sections",
-      "/catalog/teachers",
-      "/terms",
-      "/privacy",
-      "/usage/mobile",
-    ]) {
+test("ui.footer-navigation-landmark", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    for (const href of ["/catalog/courses", "/terms", "/privacy"]) {
       await gotoAndWaitForReady(page, href);
       const footer = page.locator("footer");
       await expect(footer).toBeVisible();
-      for (const destination of ["/terms", "/privacy", "/usage/mobile"]) {
-        await expect(footer.locator(`a[href="${destination}"]`)).toBeVisible();
-      }
+      const navigation = footer.getByRole("navigation");
+      await expect(navigation).toHaveCount(1);
+      await expect(navigation).toHaveAccessibleName(/.+/);
+      expect(await navigation.getByRole("link").count()).toBe(
+        await footer.getByRole("link").count(),
+      );
     }
-  }
+  });
 });
 
-test("ui.public-legal-help-navigation", async ({ page }) => {
-  test.setTimeout(60_000);
-  const pages = await catalogPages(page);
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    for (const { href } of pages) {
-      for (const destination of ["/terms", "/privacy", "/usage/mobile"]) {
+test("ui.workspace-footer-policy-1", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      for (const href of [
+        "/catalog/courses",
+        "/catalog/sections",
+        "/catalog/teachers",
+        "/terms",
+        "/privacy",
+        "/usage/mobile",
+      ]) {
         await gotoAndWaitForReady(page, href);
-        if (viewport.width < 768) await openMobileMenu(page);
-        const nav = page.locator(
-          `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
-        );
-        const link = nav.locator(`a[href="${destination}"]`);
-        await expect(link).toBeVisible();
-        await link.click();
-        await expect(page).toHaveURL(new RegExp(`${destination}$`));
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        const footer = page.locator("footer");
+        await expect(footer).toBeVisible();
+        for (const destination of ["/terms", "/privacy", "/usage/mobile"]) {
+          await expect(footer.locator(`a[href="${destination}"]`)).toBeVisible();
+        }
       }
     }
-  }
+  });
+});
+
+test("ui.public-legal-help-navigation", async ({
+  page,
+  preferenceFlow,
+  searchSection: _searchSection,
+}) => {
+  await preferenceFlow.run(async () => {
+    test.setTimeout(60_000);
+    const pages = await catalogPages(page);
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      for (const { href } of pages) {
+        for (const destination of ["/terms", "/privacy", "/usage/mobile"]) {
+          await gotoAndWaitForReady(page, href);
+          if (viewport.width < 768) await openMobileMenu(page);
+          const nav = page.locator(
+            `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
+          );
+          const link = nav.locator(`a[href="${destination}"]`);
+          await expect(link).toBeVisible();
+          await link.click();
+          await expect(page).toHaveURL(new RegExp(`${destination}$`));
+          await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        }
+      }
+    }
+  });
 });
 
 taskFilterTest(

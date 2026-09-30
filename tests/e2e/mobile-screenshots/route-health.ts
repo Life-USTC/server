@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "../utils/page-ready";
 
 export async function expectHealthyMobileRoute(page: Page, path: string) {
@@ -20,10 +20,4 @@ export async function expectHealthyMobileRoute(page: Page, path: string) {
     (await page.title()).trim(),
     `Expected ${path} to have a page title`,
   ).not.toBe("");
-}
-
-export function healthyMobileRoute(name: string, path: string) {
-  test(name, async ({ page }) => {
-    await expectHealthyMobileRoute(page, path);
-  });
 }
