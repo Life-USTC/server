@@ -1,5 +1,8 @@
-import { prepareCalendarRead, readCalendarState } from "../../../../utils/calendar-read-observation";
 import { expect } from "@playwright/test";
+import {
+  prepareCalendarRead,
+  readCalendarState,
+} from "../../../../utils/calendar-read-observation";
 import { test } from "../../../../utils/private-calendar-fixture";
 import { parseTextContent } from "../../api/mcp/helpers";
 
@@ -38,7 +41,10 @@ test("interface-hierarchy.semantic-parity-4", async ({
     const client = await prepareCalendarRead(page, oauthOwner, io, fixture, {
       name: "calendar-time-boundaries",
       scopes: ["workspace.calendar:read"],
-      tools: Array.from({ length: 8 }, () => ["workspace_calendar_event_list", "workspace.calendar"] as const),
+      tools: Array.from(
+        { length: 8 },
+        () => ["workspace_calendar_event_list", "workspace.calendar"] as const,
+      ),
       usage: [["workspace.calendar", 8]],
     });
     await client.authorize();

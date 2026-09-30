@@ -1,5 +1,8 @@
-import { prepareCalendarRead, readCalendarState } from "../../../../utils/calendar-read-observation";
 import { expect } from "@playwright/test";
+import {
+  prepareCalendarRead,
+  readCalendarState,
+} from "../../../../utils/calendar-read-observation";
 import { test } from "../../../../utils/private-calendar-fixture";
 import { parseTextContent } from "../../api/mcp/helpers";
 
@@ -12,55 +15,71 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
 }) => {
   test.setTimeout(120_000);
   await calendarProtocolRun(async (io) => {
-  const db = isolatedWorker.database.owner;
-  const fixture = await createCalendar();
-  const semester = await db.$transaction(async (tx) => {
-    const past = await tx.semester.create({
-      data: {
-        jwId: fixture.section.jwId + 40,
-        nameCn: "历史验证学期",
-        code: `HISTORY-${fixture.course.code}`,
-        startDate: new Date("2025-09-01T00:00:00Z"),
-        endDate: new Date("2026-01-15T00:00:00Z"),
-      },
+    const db = isolatedWorker.database.owner;
+    const fixture = await createCalendar();
+    const semester = await db.$transaction(async (tx) => {
+      const past = await tx.semester.create({
+        data: {
+          jwId: fixture.section.jwId + 40,
+          nameCn: "历史验证学期",
+          code: `HISTORY-${fixture.course.code}`,
+          startDate: new Date("2025-09-01T00:00:00Z"),
+          endDate: new Date("2026-01-15T00:00:00Z"),
+        },
+      });
+      await tx.section.update({
+        where: { id: fixture.section.id },
+        data: { semesterId: past.id },
+      });
+      await tx.schedule.updateMany({
+        where: { sectionId: fixture.section.id },
+        data: { date: new Date("2026-01-07T00:00:00Z") },
+      });
+      await tx.exam.updateMany({
+        where: { sectionId: fixture.section.id },
+        data: { examDate: new Date("2026-01-07T00:00:00Z") },
+      });
+      await tx.homework.update({
+        where: { id: fixture.homework.id },
+        data: { submissionDueAt: new Date("2026-01-07T12:00:00+08:00") },
+      });
+      return past;
     });
-    await tx.section.update({
-      where: { id: fixture.section.id },
-      data: { semesterId: past.id },
+    const expectedState = await readCalendarState(db);
+    await page.context().clearCookies();
+    const client = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+      name: "overview-history",
+      scopes: [
+        "workspace.overview:read",
+        "workspace.subscription:read",
+        "workspace.homework:read",
+        "workspace.schedule:read",
+        "workspace.exam:read",
+      ],
+      tools: [
+        ["workspace_snapshot_get", "workspace.overview"],
+        ["workspace_subscription_list", "workspace.subscription"],
+        ["workspace_homework_list", "workspace.homework"],
+        ["workspace_homework_list", "workspace.homework"],
+        ["workspace_schedule_list", "workspace.schedule"],
+        ["workspace_schedule_list", "workspace.schedule"],
+        ["workspace_exam_list", "workspace.exam"],
+        ["workspace_exam_list", "workspace.exam"],
+      ],
+      usage: [
+        ["workspace.overview", 1],
+        ["workspace.subscription", 1],
+        ["workspace.homework", 2],
+        ["workspace.schedule", 2],
+        ["workspace.exam", 2],
+      ],
+      feedTokenCreated: true,
     });
-    await tx.schedule.updateMany({
-      where: { sectionId: fixture.section.id },
-      data: { date: new Date("2026-01-07T00:00:00Z") },
-    });
-    await tx.exam.updateMany({
-      where: { sectionId: fixture.section.id },
-      data: { examDate: new Date("2026-01-07T00:00:00Z") },
-    });
-    await tx.homework.update({
-      where: { id: fixture.homework.id },
-      data: { submissionDueAt: new Date("2026-01-07T12:00:00+08:00") },
-    });
-    return past;
-  });
-  const expectedState = await readCalendarState(db);
-  await page.context().clearCookies();
-  const client = await prepareCalendarRead(page, oauthOwner, io, fixture, {
-    name: "overview-history",
-    scopes: ["workspace.overview:read", "workspace.subscription:read", "workspace.homework:read", "workspace.schedule:read", "workspace.exam:read"],
-    tools: [
-      ["workspace_snapshot_get", "workspace.overview"],
-      ["workspace_subscription_list", "workspace.subscription"],
-      ["workspace_homework_list", "workspace.homework"],
-      ["workspace_homework_list", "workspace.homework"],
-      ["workspace_schedule_list", "workspace.schedule"],
-      ["workspace_schedule_list", "workspace.schedule"],
-      ["workspace_exam_list", "workspace.exam"],
-      ["workspace_exam_list", "workspace.exam"],
-    ],
-    usage: [["workspace.overview", 1], ["workspace.subscription", 1], ["workspace.homework", 2], ["workspace.schedule", 2], ["workspace.exam", 2]],
-    feedTokenCreated: true,
-  });
-  await page.context().addCookies([{ name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin }]);
+    await page
+      .context()
+      .addCookies([
+        { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
+      ]);
     const overviewUrl =
       "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00";
     for (const width of [1280, 390]) {
@@ -106,14 +125,19 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
             ).toBeVisible();
           } catch (error) {
             try {
-            await page.screenshot({
-              path: test
-                .info()
-                .outputPath(`life-spec-business-history-calendar-${width}.png`),
-              fullPage: true,
-            });
+              await page.screenshot({
+                path: test
+                  .info()
+                  .outputPath(
+                    `life-spec-business-history-calendar-${width}.png`,
+                  ),
+                fullPage: true,
+              });
             } catch (screenshotError) {
-              throw new AggregateError([error, screenshotError], "Historical calendar visibility and screenshot failed");
+              throw new AggregateError(
+                [error, screenshotError],
+                "Historical calendar visibility and screenshot failed",
+              );
             }
             throw error;
           }
