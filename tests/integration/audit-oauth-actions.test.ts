@@ -125,11 +125,15 @@ const it = nodeProtocolTest.extend(
       }
       async function state() {
         return db.$transaction(async (tx) => ({
-          consents: await tx.oAuthConsent.findMany({ where: { clientId, userId } }),
+          consents: await tx.oAuthConsent.findMany({
+            where: { clientId, userId },
+          }),
           codes: await tx.verificationToken.findMany({
             where: { token: { contains: userId } },
           }),
-          access: await tx.oAuthAccessToken.findMany({ where: { clientId, userId } }),
+          access: await tx.oAuthAccessToken.findMany({
+            where: { clientId, userId },
+          }),
           refresh: await tx.oAuthRefreshToken.findMany({
             where: { clientId, userId },
           }),
@@ -137,11 +141,23 @@ const it = nodeProtocolTest.extend(
           audit: await tx.auditLog.findMany({ where: { userId } }),
         }));
       }
-      return { db, userId, clientId, authorize, events, granted, tokenRows, state };
+      return {
+        db,
+        userId,
+        clientId,
+        authorize,
+        events,
+        granted,
+        tokenRows,
+        state,
+      };
     }),
 );
 
-it("audit.action-oauth-authorization-grant", async ({ authorization, protocolRuntime }) => {
+it("audit.action-oauth-authorization-grant", async ({
+  authorization,
+  protocolRuntime,
+}) => {
   await protocolRuntime.run(async () => {
     const { db, userId, clientId, authorize, events, state } = authorization;
     const before = await state();
@@ -183,9 +199,13 @@ it("audit.action-oauth-authorization-grant", async ({ authorization, protocolRun
   });
 });
 
-it("audit.action-oauth-authorization-update", async ({ authorization, protocolRuntime }) => {
+it("audit.action-oauth-authorization-update", async ({
+  authorization,
+  protocolRuntime,
+}) => {
   await protocolRuntime.run(async () => {
-    const { db, userId, clientId, granted, tokenRows, state, events } = authorization;
+    const { db, userId, clientId, granted, tokenRows, state, events } =
+      authorization;
     const consent = await granted();
     await tokenRows(consent.grantId);
     const before = await state();
@@ -198,12 +218,10 @@ it("audit.action-oauth-authorization-update", async ({ authorization, protocolRu
     ).rejects.toThrow();
     expect(await state()).toEqual(before);
     const result = await protocolRuntime.request(() =>
-      updateUserOAuthAuthorizationScopes(
-        userId,
-        consent.id,
-        ["openid"],
-        { channel: "web", requestId: "update-request" },
-      ),
+      updateUserOAuthAuthorizationScopes(userId, consent.id, ["openid"], {
+        channel: "web",
+        requestId: "update-request",
+      }),
     );
     expect(result).toMatchObject({
       ok: true,
@@ -235,9 +253,13 @@ it("audit.action-oauth-authorization-update", async ({ authorization, protocolRu
   });
 });
 
-it("audit.action-oauth-authorization-revoke", async ({ authorization, protocolRuntime }) => {
+it("audit.action-oauth-authorization-revoke", async ({
+  authorization,
+  protocolRuntime,
+}) => {
   await protocolRuntime.run(async () => {
-    const { userId, clientId, granted, tokenRows, state, events } = authorization;
+    const { userId, clientId, granted, tokenRows, state, events } =
+      authorization;
     const consent = await granted();
     await tokenRows(consent.grantId);
     const before = await state();
@@ -255,15 +277,17 @@ it("audit.action-oauth-authorization-revoke", async ({ authorization, protocolRu
       ),
     ).toEqual({
       ok: true,
-      deleted: { accessTokens: 1, refreshTokens: 1, deviceCodes: 1, consents: 1 },
+      deleted: {
+        accessTokens: 1,
+        refreshTokens: 1,
+        deviceCodes: 1,
+        consents: 1,
+      },
     });
     const after = await state();
-    expect([after.consents, after.access, after.refresh, after.device]).toEqual([
-      [],
-      [],
-      [],
-      [],
-    ]);
+    expect([after.consents, after.access, after.refresh, after.device]).toEqual(
+      [[], [], [], []],
+    );
     const audit = await events("oauth_authorization_revoke");
     expect(audit).toHaveLength(1);
     expect(audit[0]).toMatchObject({
