@@ -19,11 +19,11 @@ test.describe("移动端页面健全性", () => {
     }) => {
       await mobileRun(
         async ({ startPage, checkpoint }) => {
+          await startPage();
           for (const path of memberPages.filter((path) =>
             path.startsWith("/account/settings/"),
           )) {
             await test.step(path, async () => {
-              await startPage();
               await expectHealthyMobileRoute(page, path);
               await checkpoint(path, {
                 calendarMessages: [],
@@ -43,13 +43,13 @@ test.describe("移动端页面健全性", () => {
     }) => {
       await mobileRun(
         async ({ headers, startPage, checkpoint }) => {
+          await startPage();
           for (const path of memberPages.filter(
             (path) =>
               !path.startsWith("/account/settings/") &&
               !tokenPages.includes(path),
           )) {
             await test.step(path, async () => {
-              await startPage();
               await expectHealthyMobileRoute(page, path);
               await checkpoint(path, {
                 calendarMessages: [],
@@ -58,7 +58,6 @@ test.describe("移动端页面健全性", () => {
             });
           }
           await test.step("/community/users/[identifier] ID 页面截图", async () => {
-            await startPage();
             const sessionResponse = await page.request.get(
               "/api/auth/get-session",
               { headers },
