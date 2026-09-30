@@ -17,7 +17,7 @@ type CatalogRead = {
 export const catalogReadTest = nodeProtocolTest.extend<{
   catalogRead: CatalogRead;
 }>({
-  catalogRead: async ({ isolatedDatabase, protocolRuntime }, use) => {
+  catalogRead: async ({ isolatedDatabase, protocolRuntime, task }, use) => {
     const db = isolatedDatabase.owner;
     async function commitRevision() {
       const data = {
@@ -37,6 +37,9 @@ export const catalogReadTest = nodeProtocolTest.extend<{
       await commitRevision();
       return createCatalogContractFixture(db);
     });
+    // Vitest can resume a late fixture after its native timeout. Finish the
+    // owned setup, then preserve that original abort before publishing state.
+    task.context.signal.throwIfAborted();
     await use({
       db,
       fixture,

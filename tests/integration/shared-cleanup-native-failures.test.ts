@@ -54,6 +54,7 @@ const expectedMessages: Record<SharedCleanupFailurePhase, string[]> = {
   "metrics-timeout": [timeoutMessage],
   catalog: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   "catalog-timeout": [timeoutMessage],
+  "catalog-setup-timeout": [timeoutMessage],
   discovery: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   oauth: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   cimd: ["SHARED-BODY", "SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
@@ -93,6 +94,7 @@ const expectedNativeErrors: Record<SharedCleanupFailurePhase, ErrorTree[]> = {
   "metrics-timeout": [errorLeaf(timeoutMessage)],
   catalog: [...protocolRuntimeErrors],
   "catalog-timeout": [errorLeaf(timeoutMessage)],
+  "catalog-setup-timeout": [errorLeaf(timeoutMessage)],
   discovery: [...protocolRuntimeErrors],
   oauth: [...protocolRuntimeErrors],
   cimd: [errorLeaf("SHARED-BODY"), ...protocolRuntimeErrors],
@@ -145,6 +147,7 @@ test.for<SharedCleanupFailurePhase>([
   "metrics-timeout",
   "catalog",
   "catalog-timeout",
+  "catalog-setup-timeout",
   "discovery",
   "oauth",
   "cimd",
@@ -308,6 +311,32 @@ test.for<SharedCleanupFailurePhase>([
         ]);
         expect(work.recoveredStatus).toBe(200);
         expect(work.recoveredBody).toContain("# TYPE life_ustc_users gauge\n");
+      } else if (phase === "catalog-setup-timeout") {
+        expect(errors).toEqual([]);
+        expect(names).toEqual([
+          "state-committed",
+          "catalog-setup-entered",
+          "native-test-aborted",
+          "catalog-setup-resumed",
+          "catalog-setup-observed",
+          "database-dispose-start",
+          "database-dispose-finished",
+        ]);
+        expect(names).not.toContain("body-entered");
+        const setup = await load("late-catalog-setup.json");
+        expect(setup.actualInvocations).toBe(1);
+        expect(setup.nativeAborted).toBe(true);
+        expect(setup.revision.snapshotSha256).toMatch(/^[0-9a-f]{64}$/);
+        expect(setup.counts).toEqual({
+          semesters: 1,
+          departments: 2,
+          titles: 2,
+          teachers: 2,
+          courses: 2,
+          sections: 2,
+        });
+        expect(setup.sections).toHaveLength(2);
+        expect(setup.sections).toEqual(setup.expectedSections);
       } else if (phase === "catalog-timeout") {
         expect(errors).toEqual([]);
         expect(names).toEqual([
