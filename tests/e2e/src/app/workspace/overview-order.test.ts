@@ -7,17 +7,17 @@ test("overview.card-order", async ({
   isolatedWorker,
   preferenceFlow,
 }, testInfo) => {
-  await preferenceFlow.run(async () => {
-    const items = [
-      "workspace-overview-focus",
-      "workspace-overview-today-overdue",
-      "workspace-overview-week",
-      "workspace-overview-summaries",
-      "workspace-overview-links",
-    ];
+  const items = [
+    "workspace-overview-focus",
+    "workspace-overview-today-overdue",
+    "workspace-overview-week",
+    "workspace-overview-summaries",
+    "workspace-overview-links",
+  ];
+  const overviewUrl =
+    "/workspace/overview?snapshotAt=2026-09-28T09%3A30%3A00%2B08%3A00";
+  const actor = await preferenceFlow.prepare(async () => {
     const actor = await isolatedWorker.createActor();
-    const overviewUrl =
-      "/workspace/overview?snapshotAt=2026-09-28T09%3A30%3A00%2B08%3A00";
     await isolatedWorker.database.owner.$transaction(async (db) => {
       const section = await db.section.create({
         data: {
@@ -102,6 +102,9 @@ test("overview.card-order", async ({
       });
     });
     await page.context().addCookies([actor.cookie]);
+    return actor;
+  });
+  await preferenceFlow.run(async () => {
     const session = await page.request.get("/api/auth/get-session");
     expect(session.status()).toBe(200);
     expect((await session.json()).user.id).toBe(actor.id);
