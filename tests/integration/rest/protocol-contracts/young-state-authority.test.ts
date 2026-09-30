@@ -14,8 +14,8 @@ import {
 
 const test = protocolTest.extend<{ youngFixture: undefined }>({
   youngFixture: [
-    async ({ h }, use) => {
-      try {
+    async ({ h, run }, use) => {
+      await run(async () => {
         await h.db.youngOrganizer.create({
           data: {
             id: h.organizerId,
@@ -32,18 +32,8 @@ const test = protocolTest.extend<{ youngFixture: undefined }>({
             isActive: true,
           },
         });
-        await use(undefined);
-      } finally {
-        await h.db.userYoungEventSubscription.deleteMany({
-          where: { youngId: h.youngId },
-        });
-        await h.db.userYoungOrganizerSubscription.deleteMany({
-          where: { organizerId: h.organizerId },
-        });
-        await h.db.youngNotification.deleteMany({
-          where: { userId: { in: h.actors.map((a) => a.id) } },
-        });
-      }
+      });
+      await use(undefined);
     },
     { auto: true },
   ],
@@ -185,14 +175,180 @@ function selected(state: Awaited<ReturnType<typeof snapshot>>, target: Target) {
 for (const transport of transports)
   for (const target of ["event", "organizer"] as const) {
     test(`young ${target} updates preserve both owners through ${transport}`, async ({
+      run,
       h,
     }) => {
-      await seedSubscriptions(h, target === "event" ? "organizer" : "event");
-      const ownedNotice = await notice(h, h.actors[0].id, target);
-      const initial = await snapshot(h);
-      for (const actor of h.actors) {
-        const foreign = selected(await snapshot(h), target).filter(
-          (row) => row.userId !== actor.id,
+      await run(async () => {
+        await seedSubscriptions(h, target === "event" ? "organizer" : "event");
+        const ownedNotice = await notice(h, h.actors[0].id, target);
+        const initial = await snapshot(h);
+        for (const actor of h.actors) {
+          const foreign = selected(await snapshot(h), target).filter(
+            (row) => row.userId !== actor.id,
+          );
+          expect(
+            successful(
+              transport,
+              await invoke(
+                h.origin,
+                transport,
+                subscription(h, target, true),
+                actor.tokens[transport],
+              ),
+            ),
+          ).toMatchObject({ subscribed: true });
+          const state = await snapshot(h);
+          expect(
+            selected(state, target).filter((row) => row.userId !== actor.id),
+          ).toEqual(foreign);
+          expect(
+            selected(state, target).filter((row) => row.userId === actor.id),
+          ).toHaveLength(1);
+          expect(state.notices).toEqual([ownedNotice]);
+          expect(
+            selected(state, target === "event" ? "organizer" : "event"),
+          ).toEqual(
+            selected(initial, target === "event" ? "organizer" : "event"),
+          );
+        }
+        const before = await snapshot(h);
+        expect(
+          successful(
+            transport,
+            await invoke(
+              h.origin,
+              transport,
+              subscription(h, target, false),
+              h.actors[1].tokens[transport],
+            ),
+          ),
+        ).toMatchObject({ subscribed: false });
+        const after = await snapshot(h);
+        expect(selected(after, target)).toEqual(
+          selected(before, target).filter((row) => row.userId === h.actors[0].id),
+        );
+        expect(after.notices).toEqual([ownedNotice]);
+        expect(
+          selected(after, target === "event" ? "organizer" : "event"),
+        ).toEqual(selected(initial, target === "event" ? "organizer" : "event"));
+      });
+    });
+    test(`young ${target} authorization rejection preserves state through ${transport}`, async ({
+      run,
+      h,
+    }) => {
+      await run(async () => {
+        await seedSubscriptions(h, target);
+        await notice(h, h.actors[0].id, target);
+        const before = await snapshot(h);
+        for (const reason of ["anonymous", "read_scope"] as const) {
+          unauthorized(
+            transport,
+            await invoke(
+              h.origin,
+              transport,
+              subscription(h, target, true),
+              reason === "anonymous"
+                ? undefined
+                : h.actors[0].readTokens[transport],
+            ),
+            reason,
+          );
+          expect(await snapshot(h)).toEqual(before);
+        }
+      });
+    });
+    test(`young ${target} missing target preserves state through ${transport}`, async ({
+      run,
+      h,
+    }) => {
+      await run(async () => {
+        await seedSubscriptions(h, target);
+        await notice(h, h.actors[0].id, target);
+        const before = await snapshot(h);
+        missingSubscription(
+          transport,
+          await invoke(
+            h.origin,
+            transport,
+            subscription(h, target, true, `${h.marker}-missing`),
+            h.actors[0].tokens[transport],
+          ),
+        );
+        expect(await snapshot(h)).toEqual(before);
+      });
+    });
+    test(`young ${target} remains personal during suspension through ${transport}`, async ({
+      run,
+      h,
+    }) => {
+      await run(async () => {
+        await seedSubscriptions(h, target);
+        const owned = await notice(h, h.actors[0].id, target);
+        const foreign = await notice(h, h.actors[1].id, target);
+        await h.db.userSuspension.create({
+          data: { userId: h.actors[0].id, reason: h.marker },
+        });
+        const before = await snapshot(h);
+        for (const subscribed of [false, true]) {
+          expect(
+            successful(
+              transport,
+              await invoke(
+                h.origin,
+                transport,
+                subscription(h, target, subscribed),
+                h.actors[0].tokens[transport],
+              ),
+            ),
+          ).toMatchObject({ subscribed });
+          const state = await snapshot(h);
+          expect(
+            selected(state, target).some((row) => row.userId === h.actors[0].id),
+          ).toBe(subscribed);
+          expect(
+            selected(state, target).filter(
+              (row) => row.userId !== h.actors[0].id,
+            ),
+          ).toEqual(
+            selected(before, target).filter(
+              (row) => row.userId !== h.actors[0].id,
+            ),
+          );
+          expect(state.notices).toEqual([foreign]);
+          expect(
+            await h.db.youngNotification.findUnique({ where: { id: owned.id } }),
+          ).toBeNull();
+        }
+      });
+    });
+    test(`young ${target} unsubscribe removes only own unread notices through ${transport}`, async ({
+      run,
+      h,
+    }) => {
+      await run(async () => {
+        await seedSubscriptions(h, target);
+        const unread = await notice(h, h.actors[0].id, target);
+        await notice(h, h.actors[0].id, target, true);
+        await notice(h, h.actors[1].id, target);
+        const before = await snapshot(h);
+        expect(
+          successful(
+            transport,
+            await invoke(
+              h.origin,
+              transport,
+              subscription(h, target, false),
+              h.actors[0].tokens[transport],
+            ),
+          ),
+        ).toMatchObject({ subscribed: false });
+        const after = await snapshot(h);
+        expect(after.notices).toEqual(
+          before.notices.filter((row) => row.id !== unread.id),
+        );
+        expect(selected(after, target)).toEqual(
+          selected(before, target).filter((row) => row.userId !== h.actors[0].id),
         );
         expect(
           successful(
@@ -200,51 +356,43 @@ for (const transport of transports)
             await invoke(
               h.origin,
               transport,
-              subscription(h, target, true),
-              actor.tokens[transport],
+              subscription(h, target, false),
+              h.actors[0].tokens[transport],
             ),
           ),
-        ).toMatchObject({ subscribed: true });
-        const state = await snapshot(h);
-        expect(
-          selected(state, target).filter((row) => row.userId !== actor.id),
-        ).toEqual(foreign);
-        expect(
-          selected(state, target).filter((row) => row.userId === actor.id),
-        ).toHaveLength(1);
-        expect(state.notices).toEqual([ownedNotice]);
-        expect(
-          selected(state, target === "event" ? "organizer" : "event"),
-        ).toEqual(
-          selected(initial, target === "event" ? "organizer" : "event"),
-        );
-      }
-      const before = await snapshot(h);
-      expect(
-        successful(
-          transport,
-          await invoke(
-            h.origin,
-            transport,
-            subscription(h, target, false),
-            h.actors[1].tokens[transport],
-          ),
-        ),
-      ).toMatchObject({ subscribed: false });
-      const after = await snapshot(h);
-      expect(selected(after, target)).toEqual(
-        selected(before, target).filter((row) => row.userId === h.actors[0].id),
-      );
-      expect(after.notices).toEqual([ownedNotice]);
-      expect(
-        selected(after, target === "event" ? "organizer" : "event"),
-      ).toEqual(selected(initial, target === "event" ? "organizer" : "event"));
+        ).toMatchObject({ subscribed: false });
+        expect(await snapshot(h)).toEqual(after);
+      });
     });
-    test(`young ${target} authorization rejection preserves state through ${transport}`, async ({
-      h,
-    }) => {
-      await seedSubscriptions(h, target);
-      await notice(h, h.actors[0].id, target);
+  }
+for (const transport of transports) {
+  test(`young notification rejects foreign and missing identifiers through ${transport}`, async ({
+    run,
+    h,
+  }) => {
+    await run(async () => {
+      const owned = await notice(h, h.actors[0].id, "event");
+      await notice(h, h.actors[1].id, "event");
+      const before = await snapshot(h);
+      for (const [id, token] of [
+        [owned.id, h.actors[1].tokens[transport]],
+        [`${h.marker}-missing`, h.actors[0].tokens[transport]],
+      ]) {
+        missingNotification(
+          transport,
+          await invoke(h.origin, transport, readNotice(id), token),
+        );
+        expect(await snapshot(h)).toEqual(before);
+      }
+    });
+  });
+  test(`young notification authorization rejection preserves state through ${transport}`, async ({
+    run,
+    h,
+  }) => {
+    await run(async () => {
+      const owned = await notice(h, h.actors[0].id, "event");
+      await notice(h, h.actors[1].id, "event");
       const before = await snapshot(h);
       for (const reason of ["anonymous", "read_scope"] as const) {
         unauthorized(
@@ -252,7 +400,7 @@ for (const transport of transports)
           await invoke(
             h.origin,
             transport,
-            subscription(h, target, true),
+            readNotice(owned.id),
             reason === "anonymous"
               ? undefined
               : h.actors[0].readTokens[transport],
@@ -262,210 +410,79 @@ for (const transport of transports)
         expect(await snapshot(h)).toEqual(before);
       }
     });
-    test(`young ${target} missing target preserves state through ${transport}`, async ({
-      h,
-    }) => {
-      await seedSubscriptions(h, target);
-      await notice(h, h.actors[0].id, target);
-      const before = await snapshot(h);
-      missingSubscription(
-        transport,
-        await invoke(
-          h.origin,
-          transport,
-          subscription(h, target, true, `${h.marker}-missing`),
-          h.actors[0].tokens[transport],
-        ),
+  });
+  test(`young notification read and replay preserve foreign state through ${transport}`, async ({
+    run,
+    h,
+  }) => {
+    await run(async () => {
+      const notices = await Promise.all(
+        h.actors.map((a) => notice(h, a.id, "event")),
       );
-      expect(await snapshot(h)).toEqual(before);
-    });
-    test(`young ${target} remains personal during suspension through ${transport}`, async ({
-      h,
-    }) => {
-      await seedSubscriptions(h, target);
-      const owned = await notice(h, h.actors[0].id, target);
-      const foreign = await notice(h, h.actors[1].id, target);
-      await h.db.userSuspension.create({
-        data: { userId: h.actors[0].id, reason: h.marker },
-      });
-      const before = await snapshot(h);
-      for (const subscribed of [false, true]) {
+      for (const [index, actor] of h.actors.entries()) {
+        const before = await snapshot(h);
         expect(
           successful(
             transport,
             await invoke(
               h.origin,
               transport,
-              subscription(h, target, subscribed),
-              h.actors[0].tokens[transport],
+              readNotice(notices[index].id),
+              actor.tokens[transport],
             ),
           ),
-        ).toMatchObject({ subscribed });
-        const state = await snapshot(h);
-        expect(
-          selected(state, target).some((row) => row.userId === h.actors[0].id),
-        ).toBe(subscribed);
-        expect(
-          selected(state, target).filter(
-            (row) => row.userId !== h.actors[0].id,
-          ),
-        ).toEqual(
-          selected(before, target).filter(
-            (row) => row.userId !== h.actors[0].id,
-          ),
+        ).toMatchObject({ success: true });
+        const after = await snapshot(h);
+        expect(after.notices.filter((row) => row.userId !== actor.id)).toEqual(
+          before.notices.filter((row) => row.userId !== actor.id),
         );
-        expect(state.notices).toEqual([foreign]);
+        const own = after.notices.find((row) => row.userId === actor.id);
+        expect(own).toEqual({ ...notices[index], readAt: expect.any(Date) });
         expect(
-          await h.db.youngNotification.findUnique({ where: { id: owned.id } }),
-        ).toBeNull();
+          successful(
+            transport,
+            await invoke(
+              h.origin,
+              transport,
+              readNotice(notices[index].id),
+              actor.tokens[transport],
+            ),
+          ),
+        ).toMatchObject({ success: true });
+        expect(await snapshot(h)).toEqual(after);
       }
     });
-    test(`young ${target} unsubscribe removes only own unread notices through ${transport}`, async ({
-      h,
-    }) => {
-      await seedSubscriptions(h, target);
-      const unread = await notice(h, h.actors[0].id, target);
-      await notice(h, h.actors[0].id, target, true);
-      await notice(h, h.actors[1].id, target);
-      const before = await snapshot(h);
-      expect(
-        successful(
-          transport,
-          await invoke(
-            h.origin,
-            transport,
-            subscription(h, target, false),
-            h.actors[0].tokens[transport],
-          ),
-        ),
-      ).toMatchObject({ subscribed: false });
-      const after = await snapshot(h);
-      expect(after.notices).toEqual(
-        before.notices.filter((row) => row.id !== unread.id),
-      );
-      expect(selected(after, target)).toEqual(
-        selected(before, target).filter((row) => row.userId !== h.actors[0].id),
-      );
-      expect(
-        successful(
-          transport,
-          await invoke(
-            h.origin,
-            transport,
-            subscription(h, target, false),
-            h.actors[0].tokens[transport],
-          ),
-        ),
-      ).toMatchObject({ subscribed: false });
-      expect(await snapshot(h)).toEqual(after);
-    });
-  }
-for (const transport of transports) {
-  test(`young notification rejects foreign and missing identifiers through ${transport}`, async ({
-    h,
-  }) => {
-    const owned = await notice(h, h.actors[0].id, "event");
-    await notice(h, h.actors[1].id, "event");
-    const before = await snapshot(h);
-    for (const [id, token] of [
-      [owned.id, h.actors[1].tokens[transport]],
-      [`${h.marker}-missing`, h.actors[0].tokens[transport]],
-    ]) {
-      missingNotification(
-        transport,
-        await invoke(h.origin, transport, readNotice(id), token),
-      );
-      expect(await snapshot(h)).toEqual(before);
-    }
-  });
-  test(`young notification authorization rejection preserves state through ${transport}`, async ({
-    h,
-  }) => {
-    const owned = await notice(h, h.actors[0].id, "event");
-    await notice(h, h.actors[1].id, "event");
-    const before = await snapshot(h);
-    for (const reason of ["anonymous", "read_scope"] as const) {
-      unauthorized(
-        transport,
-        await invoke(
-          h.origin,
-          transport,
-          readNotice(owned.id),
-          reason === "anonymous"
-            ? undefined
-            : h.actors[0].readTokens[transport],
-        ),
-        reason,
-      );
-      expect(await snapshot(h)).toEqual(before);
-    }
-  });
-  test(`young notification read and replay preserve foreign state through ${transport}`, async ({
-    h,
-  }) => {
-    const notices = await Promise.all(
-      h.actors.map((a) => notice(h, a.id, "event")),
-    );
-    for (const [index, actor] of h.actors.entries()) {
-      const before = await snapshot(h);
-      expect(
-        successful(
-          transport,
-          await invoke(
-            h.origin,
-            transport,
-            readNotice(notices[index].id),
-            actor.tokens[transport],
-          ),
-        ),
-      ).toMatchObject({ success: true });
-      const after = await snapshot(h);
-      expect(after.notices.filter((row) => row.userId !== actor.id)).toEqual(
-        before.notices.filter((row) => row.userId !== actor.id),
-      );
-      const own = after.notices.find((row) => row.userId === actor.id);
-      expect(own).toEqual({ ...notices[index], readAt: expect.any(Date) });
-      expect(
-        successful(
-          transport,
-          await invoke(
-            h.origin,
-            transport,
-            readNotice(notices[index].id),
-            actor.tokens[transport],
-          ),
-        ),
-      ).toMatchObject({ success: true });
-      expect(await snapshot(h)).toEqual(after);
-    }
   });
   test(`young notification remains personal during suspension through ${transport}`, async ({
+    run,
     h,
   }) => {
-    const owned = await notice(h, h.actors[0].id, "event");
-    await notice(h, h.actors[1].id, "event");
-    await h.db.userSuspension.create({
-      data: { userId: h.actors[0].id, reason: h.marker },
-    });
-    const before = await snapshot(h);
-    expect(
-      successful(
-        transport,
-        await invoke(
-          h.origin,
+    await run(async () => {
+      const owned = await notice(h, h.actors[0].id, "event");
+      await notice(h, h.actors[1].id, "event");
+      await h.db.userSuspension.create({
+        data: { userId: h.actors[0].id, reason: h.marker },
+      });
+      const before = await snapshot(h);
+      expect(
+        successful(
           transport,
-          readNotice(owned.id),
-          h.actors[0].tokens[transport],
+          await invoke(
+            h.origin,
+            transport,
+            readNotice(owned.id),
+            h.actors[0].tokens[transport],
+          ),
         ),
-      ),
-    ).toMatchObject({ success: true });
-    const after = await snapshot(h);
-    expect(after.notices).toEqual(
-      before.notices.map((row) =>
-        row.id === owned.id ? { ...row, readAt: expect.any(Date) } : row,
-      ),
-    );
-    expect(after.events).toEqual(before.events);
-    expect(after.organizers).toEqual(before.organizers);
+      ).toMatchObject({ success: true });
+      const after = await snapshot(h);
+      expect(after.notices).toEqual(
+        before.notices.map((row) =>
+          row.id === owned.id ? { ...row, readAt: expect.any(Date) } : row,
+        ),
+      );
+      expect(after.events).toEqual(before.events);
+      expect(after.organizers).toEqual(before.organizers);
+    });
   });
 }

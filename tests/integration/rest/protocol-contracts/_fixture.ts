@@ -1,10 +1,8 @@
 import type { APIRequestContext } from "@playwright/test";
 import { symmetricDecrypt } from "better-auth/crypto";
 import { importJWK, SignJWT } from "jose";
-import {
-  test as base,
-  type IsolatedWorker,
-} from "../../../e2e/utils/isolated-worker";
+import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
+import { test as base } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
 
 import { type Tokens, transports } from "./_transport";
