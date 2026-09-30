@@ -6,6 +6,7 @@ async function arrangePresentation(db: TestPrismaClient) {
   return db.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
+        id: crypto.randomUUID(),
         name: "Subscription presentation viewer",
         username: "subscription-presentation",
         email: "subscription-presentation@example.test",
