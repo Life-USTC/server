@@ -39,7 +39,22 @@ describe("Playwright read-only request transport recovery", () => {
     let workflow: Promise<void> | undefined;
     onTestFinished(async () => {
       // Join setup and the full request/assertion callback after cancellation.
-      await Promise.allSettled([workflow]);
+      const interrupted = signal.aborted;
+      const [body] = await Promise.allSettled([workflow]);
+      const failures: unknown[] = [];
+      // Vitest already reports normal failures and its timeout, but ignores
+      // distinct setup/body failures that arrive after the timeout settled.
+      if (
+        interrupted &&
+        body.status === "rejected" &&
+        body.reason !== signal.reason &&
+        !(
+          body.reason instanceof Error &&
+          body.reason.name === "AbortError" &&
+          body.reason.cause === signal.reason
+        )
+      )
+        failures.push(body.reason);
       const results = await Promise.allSettled([
         Promise.resolve().then(() => context?.dispose()),
       ]);
@@ -52,8 +67,10 @@ describe("Playwright read-only request transport recovery", () => {
           }),
         ])),
       );
-      const failures = results.flatMap((result) =>
-        result.status === "rejected" ? [result.reason] : [],
+      failures.push(
+        ...results.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        ),
       );
       if (failures.length)
         throw new AggregateError(failures, "Request recovery cleanup failed");
