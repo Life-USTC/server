@@ -1,24 +1,23 @@
-import { expect, vi } from "vitest";
-import { publicationTest as it } from "../shared/publication-object-fixture";
+import { expect } from "vitest";
+import { publicationFetchTest as it } from "../shared/publication-object-fixture";
 
 // This file deliberately contains one scenario: its controlled fetch boundary
 // belongs to one Vitest-isolated module and cannot race another case's spy.
 
-it("publications.image-origin-policy", async ({ publication }) => {
-  const {
-    db,
-    bucket,
-    marker,
-    fixture,
-    responseStatus,
-    registerImage,
-    imageRead,
-  } = publication;
-  const requested: string[] = [];
-  let redirectTo: string | undefined;
-  const fetchSpy = vi
-    .spyOn(globalThis, "fetch")
-    .mockImplementation(async (input) => {
+it("publications.image-origin-policy", async ({ publication, fetchSpy }) => {
+  await publication.run(async () => {
+    const {
+      db,
+      bucket,
+      marker,
+      fixture,
+      responseStatus,
+      registerImage,
+      imageRead,
+    } = publication;
+    const requested: string[] = [];
+    let redirectTo: string | undefined;
+    fetchSpy.mockImplementation(async (input) => {
       const url = String(input);
       requested.push(url);
       if (redirectTo && url.includes("/start.png"))
@@ -30,7 +29,6 @@ it("publications.image-origin-policy", async ({ publication }) => {
         headers: { "Content-Type": "image/png" },
       });
     });
-  try {
     const rejected = [
       "http://127.0.0.1/a.png",
       "http://[::1]/a.png",
@@ -78,7 +76,5 @@ it("publications.image-origin-policy", async ({ publication }) => {
         expect(response.headers.get("cache-control")).toBe("no-store");
       await response.body?.cancel();
     }
-  } finally {
-    fetchSpy.mockRestore();
-  }
+  });
 });
