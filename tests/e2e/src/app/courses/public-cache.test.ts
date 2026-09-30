@@ -33,7 +33,8 @@ test("signed-in catalog documents remain public while the private shell resolves
           // Context construction installs the flow probe headers on its HTTP
           // client. Complete this anonymous GET before attaching the session.
           const anonymousContext = await flow.newContext();
-          const anonymous = await anonymousContext.request.get("/catalog/courses");
+          const anonymous =
+            await anonymousContext.request.get("/catalog/courses");
           expect(anonymous.status()).toBe(200);
           const anonymousHtml = await anonymous.text();
           expect(anonymousHtml).toContain(course.code);
@@ -47,7 +48,8 @@ test("signed-in catalog documents remain public while the private shell resolves
           const [shellResult, documentResult] = await Promise.allSettled([
             page.waitForResponse(
               (response) =>
-                new URL(response.url()).pathname === "/_internal/shell-bootstrap",
+                new URL(response.url()).pathname ===
+                "/_internal/shell-bootstrap",
             ),
             page.goto("/catalog/courses"),
           ]);
@@ -74,7 +76,9 @@ test("signed-in catalog documents remain public while the private shell resolves
           expect(shell.status()).toBe(200);
           expect(shell.headers()["cache-control"]).toBe("private, no-store");
           expect((await shell.json()).viewer.id).toBe(actor.id);
-          await expect(page.locator("#app-user-menu")).toContainText(viewerName);
+          await expect(page.locator("#app-user-menu")).toContainText(
+            viewerName,
+          );
         });
       },
     );
