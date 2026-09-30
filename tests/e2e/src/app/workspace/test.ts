@@ -25,6 +25,7 @@ import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
 } from "../../../utils/locators";
+import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
@@ -133,17 +134,22 @@ test.describe("仪表盘", () => {
         await gotoAndWaitForReady(page, "/workspace/overview");
         expect(bootstrapRequestCount).toBe(0);
 
-        const bootstrapResponsePromise = page.waitForResponse(
-          (response) =>
-            new URL(response.url()).pathname === "/_internal/shell-bootstrap" &&
-            response.request().method() === "GET",
+        const bootstrapResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname ===
+                  "/_internal/shell-bootstrap" &&
+                response.request().method() === "GET",
+            ),
+          async () => {
+            await gotoAndWaitForReady(
+              page,
+              `/catalog/courses?search=${academic.course.code}`,
+              { testInfo },
+            );
+          },
         );
-        await gotoAndWaitForReady(
-          page,
-          `/catalog/courses?search=${academic.course.code}`,
-          { testInfo },
-        );
-        const bootstrapResponse = await bootstrapResponsePromise;
         expect(bootstrapRequestCount).toBe(1);
         expect(bootstrapResponse.status()).toBe(200);
         expect(bootstrapResponse.headers()["cache-control"]).toBe(

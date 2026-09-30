@@ -5,6 +5,7 @@ import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
+import { observeAction } from "../../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 
 test("活动、主办方订阅和提醒入口可用", async ({
@@ -192,16 +193,19 @@ test("activity detail posts comments to the public youngId and preserves them on
     );
     const composer = await openCommentComposer(page);
     await composer.fill(body);
-    const response = page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/api/community/comments") &&
-        r.request().method() === "POST",
+    const created = await observeAction(
+      () =>
+        page.waitForResponse(
+          (r) =>
+            r.url().endsWith("/api/community/comments") &&
+            r.request().method() === "POST",
+        ),
+      () =>
+        page
+          .locator("#comments")
+          .getByRole("button", { name: /发布评论|Post comment/i })
+          .click(),
     );
-    await page
-      .locator("#comments")
-      .getByRole("button", { name: /发布评论|Post comment/i })
-      .click();
-    const created = await response;
     expect(created.request().postDataJSON()).toMatchObject({
       targetType: "young-event",
       youngId: activity.youngId,

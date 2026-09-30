@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { readTodoCalendar, test } from "../../../../utils/todo-fixture";
@@ -81,17 +82,21 @@ for (const viewport of [
           exact: true,
         });
         await expect(detail).toBeVisible();
-        const completionResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "PATCH" &&
-            response.url().includes(`/api/workspace/todos/${rows[3].id}`),
+        const completionResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "PATCH" &&
+                response.url().includes(`/api/workspace/todos/${rows[3].id}`),
+            ),
+          () =>
+            detail
+              .getByRole("button", { name: /标记为完成|Mark as complete/i })
+              .click(),
         );
-        await detail
-          .getByRole("button", { name: /标记为完成|Mark as complete/i })
-          .click();
-        expect((await completionResponse).ok()).toBe(true);
-        expect((await completionResponse).status()).toBe(200);
-        expect(await (await completionResponse).json()).toMatchObject({
+        expect(completionResponse.ok()).toBe(true);
+        expect(completionResponse.status()).toBe(200);
+        expect(await completionResponse.json()).toMatchObject({
           success: true,
           todo: { id: rows[3].id, title: `${prefix}-near`, completed: true },
         });
@@ -136,18 +141,22 @@ for (const viewport of [
         await detail
           .getByRole("button", { name: /删除待办|Delete todo/i })
           .click();
-        const deletedResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === "DELETE" &&
-            response.url().includes(`/api/workspace/todos/${rows[3].id}`),
+        const deletedResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "DELETE" &&
+                response.url().includes(`/api/workspace/todos/${rows[3].id}`),
+            ),
+          () =>
+            page
+              .getByRole("alertdialog")
+              .getByRole("button", { name: /^(删除|Delete)$/i })
+              .click(),
         );
-        await page
-          .getByRole("alertdialog")
-          .getByRole("button", { name: /^(删除|Delete)$/i })
-          .click();
-        expect((await deletedResponse).ok()).toBe(true);
-        expect((await deletedResponse).status()).toBe(200);
-        expect(await (await deletedResponse).json()).toMatchObject({
+        expect(deletedResponse.ok()).toBe(true);
+        expect(deletedResponse.status()).toBe(200);
+        expect(await deletedResponse.json()).toMatchObject({
           success: true,
         });
         const remaining = await todoState.read();

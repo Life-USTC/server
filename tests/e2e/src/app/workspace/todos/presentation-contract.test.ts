@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import {
@@ -227,16 +228,20 @@ for (const width of widths) {
             width >= 768
               ? list.getByRole("row").filter({ hasText: title })
               : list.locator('[data-slot="item"]').filter({ hasText: title });
-          const completed = page.waitForResponse(
-            (response) =>
-              response.request().method() === "PATCH" &&
-              response.url().includes(`/api/workspace/todos/${id}`),
+          const completed = await observeAction(
+            () =>
+              page.waitForResponse(
+                (response) =>
+                  response.request().method() === "PATCH" &&
+                  response.url().includes(`/api/workspace/todos/${id}`),
+              ),
+            () =>
+              row
+                .getByRole("button", { name: /标记为完成|Mark as complete/i })
+                .click(),
           );
-          await row
-            .getByRole("button", { name: /标记为完成|Mark as complete/i })
-            .click();
-          expect((await completed).status()).toBe(200);
-          expect(await (await completed).json()).toMatchObject({
+          expect(completed.status()).toBe(200);
+          expect(await completed.json()).toMatchObject({
             success: true,
             todo: { id, title, completed: true },
           });
