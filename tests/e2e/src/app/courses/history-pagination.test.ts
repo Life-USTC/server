@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Request } from "@playwright/test";
 import { test } from "../../../utils/catalog-browser-fixture";
 import type { CommunityFlow } from "../../../utils/community-flow";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
@@ -13,7 +13,7 @@ async function verifyHistory(
   page: Page,
   kind: "course" | "teacher",
   worker: IsolatedWorker,
-  flow: Pick<CommunityFlow, "run">,
+  flow: CommunityFlow,
 ) {
   const fixtureId = kind === "course" ? 1900100001 : 1900100101;
   const sectionBase = kind === "course" ? 1900200000 : 1900200100;
@@ -128,20 +128,43 @@ async function verifyHistory(
         expect(response?.status()).toBe(200);
       }
       await gotoAndWaitForReady(page, `${route}?sectionsPage=2#sections`);
-      await page
-        .locator(
-          `#sections a[href="/catalog/sections/${sectionBase + 22}"]:visible`,
+      const viewerPath = `/_internal/catalog/sections/${sectionBase + 22}/viewer`;
+      const viewerRequests: Request[] = [];
+      const observeViewer = (request: Request) => {
+        if (
+          request.method() !== "GET" ||
+          new URL(request.url()).pathname !== viewerPath
         )
-        .first()
-        .click();
-      await expect(page).toHaveURL(
-        new RegExp(`/catalog/sections/${sectionBase + 22}$`),
-      );
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(
-        page.getByTestId("section-mobile-primary-actions"),
-      ).toBeVisible();
-      await waitForUiSettled(page);
+          return;
+        viewerRequests.push(request);
+        // Client navigation refreshes the anonymous shell, replacing the first
+        // section controller. Require its actual abort and a successful successor.
+        if (viewerRequests.length === 1)
+          flow.expectReadCancellation(page, request);
+      };
+      page.on("request", observeViewer);
+      try {
+        await page
+          .locator(
+            `#sections a[href="/catalog/sections/${sectionBase + 22}"]:visible`,
+          )
+          .first()
+          .click();
+        await expect(page).toHaveURL(
+          new RegExp(`/catalog/sections/${sectionBase + 22}$`),
+        );
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        await expect(
+          page.getByTestId("section-mobile-primary-actions"),
+        ).toBeVisible();
+        await waitForUiSettled(page);
+        expect(viewerRequests).toHaveLength(2);
+        const successor = await viewerRequests[1].response();
+        expect(successor?.status()).toBe(200);
+        await successor?.body();
+      } finally {
+        page.off("request", observeViewer);
+      }
     },
     { anonymousCourseCount: 1 },
     {
