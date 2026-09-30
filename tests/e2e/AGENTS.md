@@ -12,10 +12,12 @@ bunx playwright test path/to/test          # uses the already-prepared schema/ro
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
-Each test's native fixture starts a private Worker using `wrangler.e2e.jsonc`,
-a private database clone and separate local R2/KV state. Global setup validates
-the four database connections and production role constraints. The Playwright
-configuration does not start a shared server or provide a default origin.
+Application-page and Worker scenarios use native fixtures that start a private
+Worker with `wrangler.e2e.jsonc`, a private database clone and separate local R2/KV
+state. Harness regressions instead own their local HTTP, process or DOM fixtures.
+Global setup validates the four database connections and production role
+constraints. The Playwright configuration does not start a shared server or
+provide a default origin.
 
 CI uses eight browser shards. The local parallel runner executes the same eight
 partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
