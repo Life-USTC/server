@@ -15,7 +15,11 @@ const it = nodeProtocolTest.extend(
         const users = [crypto.randomUUID(), crypto.randomUUID()];
         const ids = Array.from({ length: 4 }, () => crypto.randomUUID());
         const semester = await tx.semester.create({
-          data: { jwId: 1, code: "ta-homework", nameCn: "TA homework semester" },
+          data: {
+            jwId: 1,
+            code: "ta-homework",
+            nameCn: "TA homework semester",
+          },
         });
         const course = await tx.course.create({
           data: { jwId: 1, code: "TA-HOMEWORK", nameCn: "TA homework course" },
@@ -78,7 +82,10 @@ const it = nodeProtocolTest.extend(
 );
 
 describe("known homework state consumers", () => {
-  it("filters TA deadlines before pagination and excludes undated work from calendar", async ({ homework, protocolRuntime }) => {
+  it("filters TA deadlines before pagination and excludes undated work from calendar", async ({
+    homework,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { users, ids, section, read } = homework;
       const pending = await read(users[0], false, 1);
@@ -98,7 +105,10 @@ describe("known homework state consumers", () => {
     });
   });
 
-  it("shows real TA completion independently of the completion requirement", async ({ homework, protocolRuntime }) => {
+  it("shows real TA completion independently of the completion requirement", async ({
+    homework,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { users, ids, read, expectCompletionPreserved } = homework;
       const all = await read(users[0]);
@@ -125,7 +135,10 @@ describe("known homework state consumers", () => {
     });
   });
 
-  it("keeps a regular subscriber's pending work independent of another owner's completion", async ({ homework, protocolRuntime }) => {
+  it("keeps a regular subscriber's pending work independent of another owner's completion", async ({
+    homework,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { users, ids, read, expectCompletionPreserved } = homework;
       const pending = await read(users[1], false);
@@ -158,7 +171,9 @@ describe("known homework state consumers", () => {
         const expected = include ? [ids[0], ids[1], ids[2]] : [ids[1], ids[2]];
         const pending = await read(users[0], false);
         expect(pending.pagination.total).toBe(expected.length);
-        expect(pending.data.map((row) => row.id).sort()).toEqual(expected.sort());
+        expect(pending.data.map((row) => row.id).sort()).toEqual(
+          expected.sort(),
+        );
         await expectCompletionPreserved();
       });
     },
@@ -186,7 +201,9 @@ it.for([
     await protocolRuntime.run(async () => {
       const { db, users, section, read, expectCompletionPreserved } = homework;
       await db.userSectionSubscription.update({
-        where: { userId_sectionId: { userId: users[0], sectionId: section.id } },
+        where: {
+          userId_sectionId: { userId: users[0], sectionId: section.id },
+        },
         data: { kind: scenario.before },
       });
       expect((await read(users[0], false)).pagination.total).toBe(
