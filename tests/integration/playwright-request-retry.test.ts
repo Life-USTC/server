@@ -1,7 +1,7 @@
 import { once } from "node:events";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { request } from "@playwright/test";
+import { type APIRequestContext, request } from "@playwright/test";
 import { describe, expect, it } from "vitest";
 
 describe("Playwright read-only request transport recovery", () => {
@@ -24,7 +24,7 @@ describe("Playwright read-only request transport recovery", () => {
       status: 500,
       attempts: 1,
     },
-  ])("$name", async ({ resets, status, attempts }) => {
+  ])("$name", async ({ resets, status, attempts }, { signal, onTestFinished }) => {
     let received = 0;
     const server = createServer((incoming, response) => {
       received += 1;
@@ -35,13 +35,40 @@ describe("Playwright read-only request transport recovery", () => {
       response.writeHead(status, { "Content-Type": "text/plain" });
       response.end("response body");
     });
-    server.listen(0, "127.0.0.1");
-    await once(server, "listening");
-    const context = await request.newContext();
-    try {
+    let context: APIRequestContext | undefined;
+    let workflow: Promise<void> | undefined;
+    onTestFinished(async () => {
+      // Join setup and the full request/assertion callback after cancellation.
+      await Promise.allSettled([workflow]);
+      const results = await Promise.allSettled([
+        Promise.resolve().then(() => context?.dispose()),
+      ]);
+      results.push(
+        ...(await Promise.allSettled([
+          new Promise<void>((resolve, reject) => {
+            if (!server.listening) return resolve();
+            server.close((error) => (error ? reject(error) : resolve()));
+            server.closeAllConnections();
+          }),
+        ])),
+      );
+      const failures = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (failures.length)
+        throw new AggregateError(failures, "Request recovery cleanup failed");
+    });
+    workflow = (async () => {
+      const listening = once(server, "listening");
+      server.listen(0, "127.0.0.1");
+      await listening;
+      signal.throwIfAborted();
+      context = await request.newContext();
+      signal.throwIfAborted();
       const { port } = server.address() as AddressInfo;
       const result = context.get(`http://127.0.0.1:${port}/read`, {
         maxRetries: 1,
+        signal,
       });
       if (resets === 2) {
         await expect(result).rejects.toThrow("socket hang up");
@@ -51,12 +78,7 @@ describe("Playwright read-only request transport recovery", () => {
         expect(await response.text()).toBe("response body");
       }
       expect(received).toBe(attempts);
-    } finally {
-      await context.dispose();
-      server.closeAllConnections();
-      await new Promise<void>((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve()));
-      });
-    }
+    })();
+    await workflow;
   });
 });
