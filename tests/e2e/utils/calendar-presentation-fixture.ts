@@ -72,11 +72,12 @@ export const test = workerTest.extend<{
                 account: calendar.users[accountIndex],
                 sectionId: calendar.section.id,
                 testInfo,
+                runBody: workflow.body,
                 calendarTokenCreated,
                 calendarMessages: [],
                 observeReads: true,
               },
-              (effects) => workflow.body(() => work(effects)),
+              work,
             ),
           ),
         );
