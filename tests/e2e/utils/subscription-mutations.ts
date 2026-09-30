@@ -7,7 +7,7 @@ import {
   parseTextContent,
   registerPublicClient,
 } from "../src/app/api/mcp/helpers";
-import type { createCalendarContractFixture } from "./calendar-contract";
+import type { PrivateCalendar } from "./private-calendar-fixture";
 
 export const subscriptionTransports = [
   "REST session",
@@ -25,7 +25,7 @@ export type SubscriptionRelation = {
 
 export async function createSubscriptionMutationFixture(
   owner: OAuthOwner,
-  createCalendar: () => ReturnType<typeof createCalendarContractFixture>,
+  createCalendar: () => Promise<PrivateCalendar>,
   role: "regular" | "suspended admin" = "regular",
 ) {
   const db = owner.worker.database.owner;

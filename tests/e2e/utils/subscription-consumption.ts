@@ -1,11 +1,9 @@
 import { expect, type Page } from "@playwright/test";
-import type { createCalendarContractFixture } from "./calendar-contract";
+import type { PrivateCalendar } from "./private-calendar-fixture";
 import type { IsolatedWorker } from "./isolated-worker";
 import { gotoAndWaitForReady } from "./page-ready";
 
-export type SubscriptionFixture = Awaited<
-  ReturnType<typeof createCalendarContractFixture>
->;
+export type SubscriptionFixture = PrivateCalendar;
 export const subscriptionSnapshotAt = "2026-04-29T09:30:00+08:00";
 export const subscriptionOverviewUrl = `/workspace/overview?snapshotAt=${encodeURIComponent(subscriptionSnapshotAt)}`;
 
