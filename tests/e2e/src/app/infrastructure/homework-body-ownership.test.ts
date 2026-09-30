@@ -212,3 +212,128 @@ for (const observeReads of [false, true]) {
     });
   });
 }
+
+// A failed journey must drain the mutation it submitted, without waiting for a
+// later step it never reached. Both successful and failed bodies still reject
+// effects that were not declared by the scenario.
+for (const outcome of [
+  "failed-partial",
+  "failed-unplanned",
+  "successful-unplanned",
+] as const) {
+  test(`homework calendar finalization: ${outcome}`, async ({
+    bodyOwnershipRun,
+    calendar,
+    isolatedWorker,
+    page,
+  }, testInfo) => {
+    await bodyOwnershipRun(async () => {
+      const account = calendar.users[0];
+      const message = { type: "user" as const, userId: account.id };
+      const declaredMessages =
+        outcome === "failed-partial" ? [message, message] : [];
+      const bodyError = new Error(
+        "Journey stopped after its first subscription mutation",
+      );
+      const cookie = await calendar.createSignedSessionCookie(account.id);
+      let failure: unknown;
+      try {
+        await withHomeworkEffects(
+          {
+            page,
+            isolatedWorker,
+            account,
+            testInfo,
+            calendarMessages: declaredMessages,
+            observeReads: true,
+          },
+          async ({ headers }) => {
+            await page.context().addCookies([cookie]);
+            expect((await page.goto("/api/health"))?.status()).toBe(200);
+            const response = await page.request.delete(
+              "/api/workspace/subscriptions",
+              {
+                headers,
+                data: { sectionIds: [calendar.section.id] },
+              },
+            );
+            expect(response.status()).toBe(200);
+            expect((await response.json()).subscription.sections).toEqual([]);
+            if (outcome !== "successful-unplanned") throw bodyError;
+          },
+        );
+      } catch (error) {
+        failure = error;
+      }
+      const failures = errorsIn(failure);
+      expect(failure).toBeInstanceOf(AggregateError);
+      if (outcome === "failed-partial") expect(failures).toEqual([bodyError]);
+      else {
+        const bodyFailed = outcome === "failed-unplanned";
+        expect(failures).toHaveLength(bodyFailed ? 2 : 1);
+        if (bodyFailed) expect(failures).toContain(bodyError);
+        else expect(failures).not.toContain(bodyError);
+        expect(failures.filter((error) => error !== bodyError)).toEqual([
+          expect.objectContaining({
+            message: expect.stringContaining(
+              bodyFailed ? "unplanned calendar message" : "toEqual",
+            ),
+          }),
+        ]);
+      }
+      expect(page.isClosed()).toBe(true);
+      expect(
+        await isolatedWorker.database.owner.userSectionSubscription.count({
+          where: { userId: account.id },
+        }),
+      ).toBe(0);
+      // An independent native observation verifies consumer completion even
+      // when invalid effects correctly prevent a successful final attachment.
+      const response = await page.request.get(
+        `/__test/calendar-consumer?userId=${account.id}`,
+        {
+          headers: { "x-test-storage-secret": "local-test-storage-observer" },
+        },
+      );
+      expect(response.status()).toBe(200);
+      const consumer = await response.json();
+      expect(consumer.attempts).toHaveLength(1);
+      expect(consumer.attempts[0]).toMatchObject({
+        userId: account.id,
+        attempts: 1,
+        ackCalls: 1,
+        retryCalls: 0,
+        complete: true,
+        errors: [],
+        calendar: expect.any(String),
+      });
+      expect(consumer.calendar).toBe(consumer.attempts[0].calendar);
+      expect(JSON.parse(consumer.calendar)).toMatchObject({
+        version: 2,
+        text: expect.stringContaining("BEGIN:VCALENDAR"),
+      });
+      const attachments = testInfo.attachments.filter(
+        ({ name }) => name === "homework-effects",
+      );
+      expect(attachments).toHaveLength(outcome === "failed-partial" ? 1 : 0);
+      if (outcome === "failed-partial") {
+        const attachment = attachments[0].body;
+        if (!attachment) throw new Error("Missing partial workflow effects");
+        expect(JSON.parse(attachment.toString())).toMatchObject({
+          completed: false,
+          calendarMessages: [message, message],
+          producer: {
+            messages: [{ outcome: "fulfilled", value: message }],
+            backgroundErrors: [],
+          },
+          consumer: {
+            attempts: [
+              expect.objectContaining({ complete: true, ackCalls: 1 }),
+            ],
+          },
+          audits: [],
+        });
+      }
+    });
+  });
+}

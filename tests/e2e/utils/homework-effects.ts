@@ -160,7 +160,9 @@ export async function withHomeworkEffects(
     };
   }
 
-  async function collect(expectedMessages = calendarMessages.length) {
+  async function collect(
+    expectedMessages: number | "submitted" = calendarMessages.length,
+  ) {
     let snapshot:
       | { producer: ProducerObservation; consumer: CalendarObservation }
       | undefined;
@@ -178,9 +180,16 @@ export async function withHomeworkEffects(
           expect(consumerResponse.status()).toBe(200);
           const consumer: CalendarObservation = await consumerResponse.json();
           snapshot = { producer, consumer };
+          const submitted = producer.messages.filter(
+            ({ outcome }) => outcome === "fulfilled",
+          ).length;
+          const required =
+            expectedMessages === "submitted"
+              ? submitted
+              : Math.max(expectedMessages, submitted);
           return (
-            producer.messages.length >= expectedMessages &&
-            consumer.attempts.length >= expectedMessages &&
+            producer.messages.length >= required &&
+            consumer.attempts.length >= required &&
             consumer.attempts.every((attempt) => attempt.complete)
           );
         },
@@ -268,28 +277,49 @@ export async function withHomeworkEffects(
       calendarTokenCreated,
       auditActions,
     },
+    completed = true,
   ) {
     const {
       calendarMessages,
       calendarTokenCreated = false,
       auditActions = {},
     } = expected;
-    const { producer, consumer } = await collect(calendarMessages.length);
+    const { producer, consumer } = await collect(
+      completed ? calendarMessages.length : "submitted",
+    );
     assertServerReads(producer);
     expect(producer.backgroundErrors).toEqual([]);
     expect(
       producer.purges.every((purge) => purge.outcome === "fulfilled"),
     ).toBe(true);
-    expect(
-      producer.messages.map((message) => JSON.stringify(message)).sort(),
-    ).toEqual(
-      calendarMessages
-        .map((value) => JSON.stringify({ outcome: "fulfilled", value }))
-        .sort(),
-    );
-    expect(consumer.attempts).toHaveLength(calendarMessages.length);
+    if (completed) {
+      expect(
+        producer.messages.map((message) => JSON.stringify(message)).sort(),
+      ).toEqual(
+        calendarMessages
+          .map((value) => JSON.stringify({ outcome: "fulfilled", value }))
+          .sort(),
+      );
+    } else {
+      // The original body error remains fatal. A partial workflow drains only
+      // submitted work, but cannot exceed its planned message multiset.
+      const remaining = calendarMessages.map((value) => JSON.stringify(value));
+      for (const { outcome, value } of producer.messages) {
+        expect(outcome).toBe("fulfilled");
+        const index = remaining.indexOf(JSON.stringify(value));
+        expect(
+          index,
+          "Partial workflow submitted an unplanned calendar message",
+        ).toBeGreaterThanOrEqual(0);
+        remaining.splice(index, 1);
+      }
+    }
+    const consumedMessages = completed
+      ? calendarMessages
+      : producer.messages.map(({ value }) => value);
+    expect(consumer.attempts).toHaveLength(consumedMessages.length);
     expect(new Set(consumer.attempts.map((attempt) => attempt.id)).size).toBe(
-      calendarMessages.length,
+      consumedMessages.length,
     );
     expect(
       consumer.attempts
@@ -302,7 +332,7 @@ export async function withHomeworkEffects(
         )
         .sort(),
     ).toEqual(
-      calendarMessages.map((message) => JSON.stringify(message)).sort(),
+      consumedMessages.map((message) => JSON.stringify(message)).sort(),
     );
     for (const attempt of consumer.attempts) {
       expect(attempt).toMatchObject({
@@ -319,7 +349,7 @@ export async function withHomeworkEffects(
       expect(calendar.text).toContain("BEGIN:VCALENDAR");
       expect(calendar.text).toContain("END:VCALENDAR");
     }
-    if (calendarMessages.length)
+    if (consumedMessages.length)
       expect(
         consumer.attempts.some(
           (attempt) => attempt.calendar === consumer.calendar,
@@ -607,7 +637,15 @@ export async function withHomeworkEffects(
     if (registered)
       try {
         await testInfo.attach("homework-effects", {
-          body: JSON.stringify({ ...(await observe()), checkpoints }, null, 2),
+          body: JSON.stringify(
+            {
+              ...(await observe(undefined, bodyResult?.ok !== false)),
+              completed: bodyResult?.ok === true,
+              checkpoints,
+            },
+            null,
+            2,
+          ),
           contentType: "application/json",
         });
       } catch (error) {
