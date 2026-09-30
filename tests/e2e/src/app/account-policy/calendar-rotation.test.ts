@@ -1,58 +1,80 @@
-import { expect, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect } from "@playwright/test";
+import { withBrowserWorkflow } from "../../../utils/browser-workflow";
+import { test as workerTest } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
+import { withSettledPageWrites } from "../../../utils/settled-page-writes";
 
-test("user.calendar-rotation-recent-auth", async ({ page }) => {
-  const oldToken = crypto.randomUUID();
-  const user = await withE2ePrisma((db) =>
-    db.user.create({
+const url = "/account/settings/security";
+const test = workerTest.extend<{
+  calendarRun: (work: () => Promise<void>) => Promise<void>;
+}>({
+  calendarRun: async ({ page, run }, use) => {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use((work) =>
+        workflow.run(() =>
+          run(() =>
+            withSettledPageWrites(
+              page,
+              (target) => target.pathname === url,
+              () => workflow.body(work),
+            ),
+          ),
+        ),
+      );
+    });
+  },
+});
+
+test("user.calendar-rotation-recent-auth", async ({
+  page,
+  isolatedWorker,
+  calendarRun,
+}) => {
+  await calendarRun(async () => {
+    const db = isolatedWorker.database.owner;
+    const oldToken = crypto.randomUUID();
+    const user = await db.user.create({
       data: {
         name: "Calendar owner",
         username: `rot${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
         email: `rotate-${crypto.randomUUID()}@example.test`,
         calendarFeedToken: oldToken,
       },
-    }),
-  );
-  const token = async () =>
-    (
-      await withE2ePrisma((db) =>
-        db.user.findUniqueOrThrow({ where: { id: user.id } }),
-      )
-    ).calendarFeedToken;
-  const url = "/account/settings/security";
-  async function session(
-    age: number,
-    state: "valid" | "expired" | "revoked" = "valid",
-  ) {
-    await page.context().clearCookies();
-    await withE2ePrisma((db) =>
-      db.session.deleteMany({ where: { userId: user.id } }),
-    );
-    const cookie = await createSignedSessionCookie(user.id);
-    await page
-      .context()
-      .addCookies([
-        cookie,
-        { name: "NEXT_LOCALE", value: "en-us", url: cookie.url },
-      ]);
-    await withE2ePrisma(async (db) => {
-      if (state === "revoked")
-        await db.session.deleteMany({ where: { userId: user.id } });
-      else
-        await db.session.updateMany({
-          where: { userId: user.id },
-          data: {
-            createdAt: new Date(Date.now() - age),
-            ...(state === "expired"
-              ? { expires: new Date(Date.now() - 60_000) }
-              : {}),
-          },
-        });
     });
-  }
-  try {
+    const token = async () =>
+      (await db.user.findUniqueOrThrow({ where: { id: user.id } }))
+        .calendarFeedToken;
+    async function session(
+      age: number,
+      state: "valid" | "expired" | "revoked" = "valid",
+    ) {
+      await page.context().clearCookies();
+      const { cookie } = await isolatedWorker.createSession(user.id);
+      const sessionToken = decodeURIComponent(cookie.value).split(".")[0];
+      await db.$transaction(async (tx) => {
+        await tx.session.deleteMany({
+          where: { userId: user.id, sessionToken: { not: sessionToken } },
+        });
+        if (state === "revoked")
+          await tx.session.delete({ where: { sessionToken } });
+        else
+          await tx.session.update({
+            where: { sessionToken },
+            data: {
+              createdAt: new Date(Date.now() - age),
+              ...(state === "expired"
+                ? { expires: new Date(Date.now() - 60_000) }
+                : {}),
+            },
+          });
+      });
+      await page
+        .context()
+        .addCookies([
+          cookie,
+          { name: "NEXT_LOCALE", value: "en-us", url: cookie.url },
+        ]);
+    }
     for (const state of [
       "stale",
       "future",
@@ -116,10 +138,5 @@ test("user.calendar-rotation-recent-auth", async ({ page }) => {
     );
     expect(newFeed.status()).toBe(200);
     expect(await newFeed.text()).toContain("BEGIN:VCALENDAR");
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await db.auditLog.deleteMany({ where: { userId: user.id } });
-      await db.user.delete({ where: { id: user.id } });
-    });
-  }
+  });
 });
