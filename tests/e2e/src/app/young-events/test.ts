@@ -43,9 +43,9 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("SSR 输出包含搜索查询", async ({ request, preferenceFlow, youngPublicState: _youngPublicState }) => {
+  test("SSR 输出包含搜索查询", async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
     await preferenceFlow.run(async () => {
-      const response = await preferenceFlow.http(() => request.get(
+      const response = await preferenceFlow.http(() => page.request.get(
         `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
       ));
       expect(response.status()).toBe(200);
