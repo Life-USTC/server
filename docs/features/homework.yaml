@@ -272,6 +272,9 @@ requirements:
       name: single homework completion preserves timestamps across idempotent writes
 - id: homework.moderation-delete
   category: authorization
+  rationale: Authority cases remain covered by tests/unit/features/homeworks/homework-delete-authority.test.ts.
+    The representative connection scenario additionally observes the real REST producer, local queue
+    consumer and stored subscriber ICS; successful database deletion alone cannot establish calendar freshness.
   applies_to:
   - homework-governance
   expectation:
@@ -308,14 +311,21 @@ requirements:
     - audit
     - calendar
   acceptance:
-    given: Each specified identity attempts to delete an active homework.
-    when: The explicit moderation delete service runs.
+    given: Each specified identity attempts to delete an active homework; an independently prepared
+      subscriber has a stored calendar containing that homework and another active homework.
+    when: The explicit moderation delete service runs, including a real administrator REST deletion
+      followed by replay of the same request.
     then:
     - Only allowed cases change the homework and write the deletion audit.
     - Rejected cases perform none of the specified side effects.
+    - The first allowed deletion records administrator attribution and one deletion audit, enqueues one
+      section rebuild and completes its native consumer without retry or error.
+    - The subscriber's stored ICS loses the deleted homework while retaining the other active homework;
+      no calendar feed read after deletion may rebuild the expected result on demand.
+    - Replay preserves the committed rows, single audit, single rebuild delivery and stored ICS.
     test:
-      file: tests/unit/features/homeworks/homework-delete-authority.test.ts
-      name: "homework deletion authority > moderation deletion > active other admin"
+      file: tests/integration/rest/admin/homeworks/calendar-invalidation.test.ts
+      name: administrator homework deletion rebuilds a subscriber calendar once across replay
 - id: homework.teaching-assistant-pending
   category: consistency
   applies_to:
