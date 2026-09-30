@@ -112,7 +112,16 @@ test.describe("视觉回归基线矩阵", () => {
           baseURL,
           page,
           workspace: _workspace,
-        }) => verify(page, baseURL));
+          pageRun,
+        }) =>
+          pageRun(
+            () => verify(page, baseURL),
+            async (_response, request) => {
+              throw new Error(
+                `Read-only workspace screenshot submitted ${request.method()} ${new URL(request.url()).pathname}`,
+              );
+            },
+          ));
       } else if (screen.id === "catalog-courses") {
         test(`${screen.id} / ${locale}`, async ({
           baseURL,
