@@ -472,7 +472,7 @@ requirements:
       name: user.sign-in-identities-separate
 - id: user.oauth-authorization-management
   category: presentation
-  rule: Authorized application entries display escaped client name, client URI, granted permissions and
+  rule: Authorized application entries belong to the signed-in user and display escaped client name, client URI, granted permissions and
     content-free usage totals for the current grant over the last 30 Shanghai calendar days, plus the
     latest channel and feature. Visible content excludes client secrets, redirect URIs, session credentials,
     internal grant/client identifiers and request metadata.
@@ -480,11 +480,12 @@ requirements:
     by oauth.trusted-clients-admin-backend. These controls apply independently of a client's displayed name or domain.
   acceptance:
     given: An isolated owner's grant has an HTML-like client name, private client metadata, current usage,
-      a row on the inclusive 30-day boundary, an older row and a previous-generation row.
+      a row on the inclusive 30-day boundary, an older row and a previous-generation row. A second user has a separately named application grant.
     when: Desktop and mobile browsers render Authorized apps.
     then:
     - The client name remains escaped text and the URI is displayed.
     - Read, write and error counts include exactly the current grant's 30-day rows; latest channel and feature are labeled.
+    - The second user's authorization does not appear in the list.
     - No private metadata, credential, redirect URI or internal grant/client identifier appears in visible page content.
     test:
       file: tests/e2e/src/app/account-policy/authorization-presentation.test.ts
