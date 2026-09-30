@@ -3,7 +3,6 @@ import {
   createOAuthAccountIssuer,
 } from "@better-auth/core/db";
 import { hashPassword, makeSignature } from "better-auth/crypto";
-import { expect } from "vitest";
 import { unlinkSettingsAccount } from "@/features/settings/server/settings-account-unlink";
 import { removeSignInMethod } from "@/lib/auth/sign-in-methods";
 import { authPrisma } from "@/lib/db/auth-prisma";
@@ -28,8 +27,9 @@ const it = nodeProtocolTest
   })
   .extend(
     "signInMethods",
-    async ({ isolatedDatabase: { owner: fixture }, protocolRuntime }) =>
+    async ({ isolatedDatabase: { owner: fixture }, protocolRuntime, task }) =>
       protocolRuntime.run(async () => {
+        const { expect } = task.context;
         // Configure before constructing Better Auth's singleton for this module.
         // Different configurations still require separate module/process isolation.
         const { getBetterAuthInstance } = await import("@/lib/auth/core");

@@ -1,5 +1,5 @@
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
-import { expect, vi } from "vitest";
+import { vi } from "vitest";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { nodeHttpTest } from "./node-http-contract-fixture";
 
@@ -178,7 +178,9 @@ export const socialLoginTest = nodeHttpTest
       isolatedDatabase,
       protocolRuntime,
       _socialNetwork,
+      task,
     }) => {
+      const { expect } = task.context;
       protocolRuntime.setPublicOrigin(http.origin);
       _socialNetwork.origin = http.origin;
       const { marker, email, oidcSubject } = _socialNetwork;

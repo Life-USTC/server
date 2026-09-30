@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import { moderateDescription } from "@/features/admin/server/admin-api-service";
 import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
@@ -14,8 +13,10 @@ for (const targetType of ["course", "section", "teacher"] as const) {
       descriptionEditor: { user, teacher },
       isolatedDatabase: { owner: db },
       protocolRuntime,
+      task,
     }) =>
       protocolRuntime.run(async () => {
+        const { expect } = task.context;
         let targetId = teacher.id;
         if (targetType !== "teacher") {
           const course = await db.course.create({
