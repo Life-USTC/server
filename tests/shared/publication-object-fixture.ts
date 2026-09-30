@@ -1,14 +1,11 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vitest";
+import { expect, vi } from "vitest";
 import { getPlatformProxy, type PlatformProxy } from "wrangler";
 import { publicationImageR2Key } from "@/features/publications/server/publication-image-service";
 import { ingestPublicationBatch } from "@/features/publications/server/publication-ingestion-service";
-import {
-  type CloudflareR2Bucket,
-  runWithCloudflareRuntimeEnv,
-} from "@/lib/adapters/cloudflare-runtime";
+import type { CloudflareR2Bucket } from "@/lib/adapters/cloudflare-runtime";
 import {
   postPublicationObjectPlanRoute,
   putPublicationObjectRoute,
@@ -19,7 +16,12 @@ import {
 } from "@/lib/api/routes/publication-public-routes";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL as principal } from "@/lib/auth/service-principal";
-import { createFixturePrisma, type TestPrismaClient } from "./prisma";
+import { type IsolatedDatabase, isolatedDatabaseTest } from "./isolated-database";
+import {
+  createNodeProtocolRuntime,
+  type NodeProtocolRuntime,
+} from "./node-protocol-runtime";
+import type { TestPrismaClient } from "./prisma";
 
 type PublicationBucket = CloudflareR2Bucket & {
   list(options?: { cursor?: string }): Promise<{
@@ -29,31 +31,21 @@ type PublicationBucket = CloudflareR2Bucket & {
   }>;
 };
 const origin = "https://life.example";
-function publicationHelpers(db: TestPrismaClient, bucket: PublicationBucket) {
-  const marker = crypto.randomUUID();
-  const secret = `object-contract-${marker}`;
+function publicationHelpers(
+  db: TestPrismaClient,
+  bucket: PublicationBucket,
+  protocolRuntime: NodeProtocolRuntime,
+  marker: string,
+  secret: string,
+) {
   const auth = { "X-Publication-Ingestion-Secret": secret };
-  const sources = new Set<string>();
-  const batches = new Set<string>();
-  const runs = new Set<string>();
-  const hashes = new Set<string>();
-  const imageHashes = new Set<string>();
-  const responses: Response[] = [];
-  if (!process.env.DATABASE_URL)
-    throw new Error(
-      "Publication tests require a restricted runtime database URL",
-    );
-  const appConnection = new URL(process.env.DATABASE_URL);
-  const connectionLabel = `publication-${marker}`;
-  appConnection.searchParams.set("application_name", connectionLabel);
+  const runtime = protocolRuntime.request;
   async function fixture(label: string, contentType = "text/markdown") {
     const bytes = new TextEncoder().encode(`# Publication ${marker} ${label}`);
     const sha256 = Buffer.from(
       await crypto.subtle.digest("SHA-256", bytes),
     ).toString("hex");
-    hashes.add(sha256);
     const sourceId = `obj-${crypto.randomUUID()}`;
-    sources.add(sourceId);
     const batchId = `${marker}-${label}`;
     const object = {
       kind: "body_markdown" as const,
@@ -103,28 +95,7 @@ function publicationHelpers(db: TestPrismaClient, bucket: PublicationBucket) {
   async function ingest(
     payload: ReturnType<typeof publicationIngestionBatchRequestSchema.parse>,
   ) {
-    batches.add(payload.batchId);
-    runs.add(payload.clientRunId);
-    for (const source of payload.sources) sources.add(source.id);
-    for (const item of payload.items) {
-      if (item.tombstone) continue;
-      for (const object of item.objects ?? []) hashes.add(object.sha256);
-      for (const hash of Object.keys(item.imageSources ?? {}))
-        imageHashes.add(hash);
-    }
     return runtime(() => ingestPublicationBatch({ payload, principal }));
-  }
-  async function runtime<T>(callback: () => T | Promise<T>) {
-    const result = await runWithCloudflareRuntimeEnv(
-      {
-        PUBLICATION_INGESTION_SECRET: secret,
-        R2_PUBLICATIONS: bucket,
-        HYPERDRIVE: { connectionString: appConnection.href },
-      },
-      callback,
-    );
-    if (result instanceof Response) responses.push(result);
-    return result;
   }
   async function responseStatus(pending: Promise<Response>) {
     const response = await pending;
@@ -199,7 +170,6 @@ function publicationHelpers(db: TestPrismaClient, bucket: PublicationBucket) {
     const hash = Buffer.from(
       await crypto.subtle.digest("SHA-256", new TextEncoder().encode(url)),
     ).toString("hex");
-    imageHashes.add(hash);
     const item = f.payload.items[0];
     if (item.tombstone) throw new Error("Expected live revision");
     await ingest({
@@ -228,54 +198,12 @@ function publicationHelpers(db: TestPrismaClient, bucket: PublicationBucket) {
     );
   }
 
-  async function cleanup() {
-    const cancelled = await Promise.allSettled(
-      responses.map((response) =>
-        response.body && !response.bodyUsed
-          ? response.body.cancel()
-          : undefined,
-      ),
-    );
-    await db.$transaction(async (tx) => {
-      const publications = await tx.publication.findMany({
-        where: { sourceId: { in: [...sources] } },
-        select: { id: true },
-      });
-      await tx.publicationEventOutbox.deleteMany({
-        where: { aggregateId: { in: publications.map((p) => p.id) } },
-      });
-      await tx.publicationSource.deleteMany({
-        where: { id: { in: [...sources] } },
-      });
-      await tx.ingestionBatch.deleteMany({
-        where: { batchId: { in: [...batches] } },
-      });
-      await tx.ingestionRun.deleteMany({
-        where: { clientRunId: { in: [...runs] } },
-      });
-      await tx.publicationObject.deleteMany({
-        where: { sha256: { in: [...hashes] } },
-      });
-      await tx.publicationImageSource.deleteMany({
-        where: { id: { in: [...imageHashes] } },
-      });
-    });
-    const failures = cancelled.flatMap((result) =>
-      result.status === "rejected" ? [result.reason] : [],
-    );
-    if (failures.length)
-      throw new AggregateError(failures, "Publication response cleanup failed");
-    expect(
-      await db.$queryRaw`SELECT application_name FROM pg_stat_activity WHERE application_name = ${connectionLabel}`,
-    ).toEqual([]);
-  }
   return {
     db,
     bucket,
     marker,
     secret,
     origin,
-    connectionLabel,
     fixture,
     ingest,
     runtime,
@@ -286,22 +214,29 @@ function publicationHelpers(db: TestPrismaClient, bucket: PublicationBucket) {
     objectRow,
     registerImage,
     imageRead,
-    cleanup,
+    run: protocolRuntime.run,
+    closeRuntime: protocolRuntime.close,
   };
 }
 
-export const publicationTest = test.extend<{
-  publication: ReturnType<typeof publicationHelpers>;
-}>({
-  // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
-  publication: async ({}, use) => {
-    const db = createFixturePrisma();
-    let directory: string | undefined;
-    let platform:
-      | PlatformProxy<{ R2_PUBLICATIONS: PublicationBucket }>
-      | undefined;
-    let owned: ReturnType<typeof publicationHelpers> | undefined;
-    try {
+function ownPublicationResources(isolatedDatabase: IsolatedDatabase) {
+  const db = isolatedDatabase.owner;
+  const marker = crypto.randomUUID();
+  const secret = `object-contract-${marker}`;
+  const connectionLabel = `publication-${marker}`;
+  const appConnection = new URL(isolatedDatabase.connections.app);
+  appConnection.searchParams.set("application_name", connectionLabel);
+  const objectBodies = new Set<ReadableStream<Uint8Array>>();
+  let directory: string | undefined;
+  let platform: PlatformProxy<{ R2_PUBLICATIONS: PublicationBucket }> | undefined;
+  let runtime: NodeProtocolRuntime | undefined;
+  let initialization: Promise<ReturnType<typeof publicationHelpers>> | undefined;
+  let closing: Promise<void> | undefined;
+
+  function initialize() {
+    if (closing)
+      return Promise.reject(new Error("Publication resources are closing"));
+    initialization ??= (async () => {
       directory = await mkdtemp(join(tmpdir(), "publication-r2-contract-"));
       const configPath = join(directory, "wrangler.json");
       await writeFile(
@@ -329,7 +264,11 @@ export const publicationTest = test.extend<{
       // performs checksum validation, storage, metadata and reads.
       const bucket: PublicationBucket = {
         delete: (key) => actual.delete(key),
-        get: (key) => actual.get(key),
+        get: async (key) => {
+          const object = await actual.get(key);
+          if (object) objectBodies.add(object.body);
+          return object;
+        },
         head: (key) => actual.head(key),
         list: (options) => actual.list(options),
         put: async (key, value, options) =>
@@ -341,45 +280,134 @@ export const publicationTest = test.extend<{
             options,
           ),
       };
-      owned = publicationHelpers(db, bucket);
-      await use(owned);
-    } finally {
-      // Run every cleanup even if response cancellation or DB cleanup fails.
-      const results = await Promise.allSettled([owned?.cleanup()]);
-      if (platform) {
-        const actual = platform.env.R2_PUBLICATIONS;
-        results.push(
-          ...(await Promise.allSettled([
-            (async () => {
-              let cursor: string | undefined;
-              do {
-                const page = await actual.list({ cursor });
-                await Promise.all(
-                  page.objects.map(({ key }) => actual.delete(key)),
-                );
-                cursor = page.truncated ? page.cursor : undefined;
-              } while (cursor);
-              expect((await actual.list()).objects).toEqual([]);
-            })(),
-          ])),
-        );
+      runtime = createNodeProtocolRuntime({
+        APP_PUBLIC_ORIGIN: origin,
+        PUBLICATION_INGESTION_SECRET: secret,
+        R2_PUBLICATIONS: bucket,
+        HYPERDRIVE: { connectionString: appConnection.href },
+        HYPERDRIVE_AUTH: { connectionString: isolatedDatabase.connections.auth },
+        HYPERDRIVE_MAINTENANCE: {
+          connectionString: isolatedDatabase.connections.maintenance,
+        },
+      });
+      if (closing)
+        throw new Error("Publication resources closed during initialization");
+      return publicationHelpers(db, bucket, runtime, marker, secret);
+    })();
+    return initialization;
+  }
+
+  function close() {
+    closing ??= (async () => {
+      // The dependent fixture reports initialization failure. If it times out,
+      // still join the original promise so a late platform cannot escape disposal.
+      await initialization?.catch(() => undefined);
+      const failures: unknown[] = [];
+      async function attempt(work: () => unknown | Promise<unknown>) {
+        try {
+          await work();
+        } catch (error) {
+          failures.push(error);
+        }
       }
-      results.push(
-        ...(await Promise.allSettled([
-          platform?.dispose(),
-          db.$disconnect(),
-          ...(directory
-            ? [rm(directory, { recursive: true, force: true })]
-            : []),
-        ])),
-      );
-      await Promise.all(
-        results.map((result) =>
-          result.status === "rejected"
-            ? Promise.reject(result.reason)
-            : undefined,
+      // Keep R2 and the DB alive until admitted workflows, route responses and
+      // their background cleanup finish, including a timed-out test body.
+      await attempt(() => runtime?.close());
+      // Direct fixture observations also borrow real R2 bodies. Cancel bodies
+      // left unread by an assertion failure after the complete workflow stops.
+      const cancelled = await Promise.allSettled(
+        [...objectBodies].map(async (body) =>
+          body.locked ? undefined : body.cancel(),
         ),
       );
+      failures.push(
+        ...cancelled.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        ),
+      );
+      objectBodies.clear();
+      await attempt(async () => {
+        expect(
+          await db.$queryRaw`SELECT application_name FROM pg_stat_activity WHERE application_name = ${connectionLabel}`,
+        ).toEqual([]);
+      });
+      if (platform) {
+        const actual = platform.env.R2_PUBLICATIONS;
+        await attempt(async () => {
+          let cursor: string | undefined;
+          do {
+            const page = await actual.list({ cursor });
+            const deleted = await Promise.allSettled(
+              page.objects.map(async ({ key }) => actual.delete(key)),
+            );
+            failures.push(
+              ...deleted.flatMap((result) =>
+                result.status === "rejected" ? [result.reason] : [],
+              ),
+            );
+            cursor = page.truncated ? page.cursor : undefined;
+          } while (cursor);
+        });
+        await attempt(async () => {
+          expect((await actual.list()).objects).toEqual([]);
+        });
+        await attempt(() => platform?.dispose());
+      }
+      // Directory removal follows platform disposal; neither races active R2 IO.
+      const ownedDirectory = directory;
+      if (ownedDirectory)
+        await attempt(() => rm(ownedDirectory, { recursive: true, force: true }));
+      if (failures.length)
+        throw new AggregateError(failures, "Publication resources failed to close");
+    })();
+    return closing;
+  }
+  return { initialize, close };
+}
+
+export const publicationTest = isolatedDatabaseTest.extend<{
+  _publicationResources: ReturnType<typeof ownPublicationResources>;
+  publication: ReturnType<typeof publicationHelpers>;
+}>({
+  _publicationResources: async ({ isolatedDatabase, onTestFinished }, use) => {
+    const resources = ownPublicationResources(isolatedDatabase);
+    try {
+      // Register ownership before a dependent fixture starts async platform IO.
+      await use(resources);
+    } finally {
+      try {
+        await resources.close();
+      } catch (error) {
+        // Finish dependency/database cleanup before reporting all original errors.
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
+  publication: async ({ _publicationResources }, use) => {
+    await use(await _publicationResources.initialize());
+  },
 });
+
+// Each image consumer retains one case per isolated runner file. A global fetch
+// spy is not safe for arbitrary concurrent cases in the same module environment.
+export const publicationFetchTest = publicationTest.extend(
+  "fetchSpy",
+  async ({ publication, onTestFinished }, { onCleanup }) => {
+    const spy = vi.spyOn(globalThis, "fetch");
+    onCleanup(async () => {
+      // The resource owner reports the cached close failure after cleanup.
+      // Keep the controlled fetch boundary until every admitted request drains.
+      await Promise.allSettled([publication.closeRuntime()]);
+      try {
+        spy.mockRestore();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
+    });
+    return spy;
+  },
+);

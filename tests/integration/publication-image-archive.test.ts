@@ -1,27 +1,25 @@
-import { expect, vi } from "vitest";
-import { publicationTest as it } from "../shared/publication-object-fixture";
+import { expect } from "vitest";
+import { publicationFetchTest as it } from "../shared/publication-object-fixture";
 
 // This file deliberately contains one scenario: its controlled fetch boundary
 // belongs to one Vitest-isolated module and cannot race another case's spy.
 
-it("publications.image-archive", async ({ publication }) => {
-  const { bucket, marker, fixture, responseStatus, registerImage, imageRead } =
-    publication;
-  const f = await fixture("image-archive");
-  const img = await registerImage(
-    f,
-    `https://cdn.example/${marker}/archive.png`,
-  );
-  let succeed = false;
-  const bytes = new Uint8Array([137, 80, 78, 71]);
-  const fetchSpy = vi
-    .spyOn(globalThis, "fetch")
-    .mockImplementation(async () =>
+it("publications.image-archive", async ({ publication, fetchSpy }) => {
+  await publication.run(async () => {
+    const { bucket, marker, fixture, responseStatus, registerImage, imageRead } =
+      publication;
+    const f = await fixture("image-archive");
+    const img = await registerImage(
+      f,
+      `https://cdn.example/${marker}/archive.png`,
+    );
+    let succeed = false;
+    const bytes = new Uint8Array([137, 80, 78, 71]);
+    fetchSpy.mockImplementation(async () =>
       succeed
         ? new Response(bytes, { headers: { "Content-Type": "image/png" } })
         : new Response("unavailable", { status: 503 }),
     );
-  try {
     expect(await responseStatus(imageRead(img.hash))).toBe(502);
     expect(await bucket.head(img.key)).toBeNull();
     succeed = true;
@@ -49,7 +47,5 @@ it("publications.image-archive", async ({ publication }) => {
       ),
     ).toBe(304);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
-  } finally {
-    fetchSpy.mockRestore();
-  }
+  });
 });

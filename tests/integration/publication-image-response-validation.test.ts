@@ -1,16 +1,14 @@
-import { expect, vi } from "vitest";
-import { publicationTest as it } from "../shared/publication-object-fixture";
+import { expect } from "vitest";
+import { publicationFetchTest as it } from "../shared/publication-object-fixture";
 
 // This file deliberately contains one scenario: its controlled fetch boundary
 // belongs to one Vitest-isolated module and cannot race another case's spy.
 
-it("publications.image-response-validation", async ({ publication }) => {
-  const { bucket, marker, fixture, registerImage, imageRead } = publication;
-  let responseFactory: () => Response;
-  const fetchSpy = vi
-    .spyOn(globalThis, "fetch")
-    .mockImplementation(async () => responseFactory());
-  try {
+it("publications.image-response-validation", async ({ publication, fetchSpy }) => {
+  await publication.run(async () => {
+    const { bucket, marker, fixture, registerImage, imageRead } = publication;
+    let responseFactory: () => Response;
+    fetchSpy.mockImplementation(async () => responseFactory());
     const limit = 10 * 1024 * 1024;
     let cancelled = false;
     let streamed = 0;
@@ -75,7 +73,5 @@ it("publications.image-response-validation", async ({ publication }) => {
     expect(response.status).toBe(200);
     expect((await response.arrayBuffer()).byteLength).toBe(limit);
     expect((await bucket.head(img.key))?.size).toBe(limit);
-  } finally {
-    fetchSpy.mockRestore();
-  }
+  });
 });
