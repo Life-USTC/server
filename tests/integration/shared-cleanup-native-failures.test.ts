@@ -52,6 +52,8 @@ const expectedMessages: Record<SharedCleanupFailurePhase, string[]> = {
   "http-timeout": [timeoutMessage],
   metrics: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   "metrics-timeout": [timeoutMessage],
+  catalog: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
+  "catalog-timeout": [timeoutMessage],
   discovery: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   oauth: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
   cimd: ["SHARED-BODY", "SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
@@ -89,6 +91,8 @@ const expectedNativeErrors: Record<SharedCleanupFailurePhase, ErrorTree[]> = {
   "http-timeout": [errorLeaf(timeoutMessage)],
   metrics: [...protocolRuntimeErrors],
   "metrics-timeout": [errorLeaf(timeoutMessage)],
+  catalog: [...protocolRuntimeErrors],
+  "catalog-timeout": [errorLeaf(timeoutMessage)],
   discovery: [...protocolRuntimeErrors],
   oauth: [...protocolRuntimeErrors],
   cimd: [errorLeaf("SHARED-BODY"), ...protocolRuntimeErrors],
@@ -139,6 +143,8 @@ test.for<SharedCleanupFailurePhase>([
   "http-timeout",
   "metrics",
   "metrics-timeout",
+  "catalog",
+  "catalog-timeout",
   "discovery",
   "oauth",
   "cimd",
@@ -302,7 +308,36 @@ test.for<SharedCleanupFailurePhase>([
         ]);
         expect(work.recoveredStatus).toBe(200);
         expect(work.recoveredBody).toContain("# TYPE life_ustc_users gauge\n");
-      } else if (phase === "metrics") {
+      } else if (phase === "catalog-timeout") {
+        expect(errors).toEqual([]);
+        expect(names).toEqual([
+          "state-committed",
+          "body-entered",
+          "catalog-mutation-finished",
+          "native-test-aborted",
+          "catalog-late-write-finished",
+          "catalog-revision-finished",
+          "catalog-late-read-finished",
+          "catalog-workflow-finally",
+          "database-dispose-start",
+          "database-dispose-finished",
+        ]);
+        const work = await load("late-catalog-work.json");
+        expect(work.nativeAborted).toBe(true);
+        expect(work.beforeName).toBe(work.originalName);
+        expect(work.originalName).toEqual(expect.any(String));
+        expect(work.updatedName).toBe("Catalog updated before native timeout");
+        expect(work.createdName).toBe("Catalog created after native timeout");
+        expect(work.created).toEqual({
+          id: expect.any(Number),
+          jwId: expect.any(Number),
+          nameCn: "Catalog created after native timeout",
+        });
+        expect(work.persisted).toEqual(work.created);
+        expect(work.revisionBefore).toMatch(/^[0-9a-f]{64}$/);
+        expect(work.revisionAfter).toMatch(/^[0-9a-f]{64}$/);
+        expect(work.revisionAfter).not.toBe(work.revisionBefore);
+      } else if (phase === "metrics" || phase === "catalog") {
         expect(errors.map((event) => event.error)).toEqual(
           protocolRuntimeErrors,
         );
