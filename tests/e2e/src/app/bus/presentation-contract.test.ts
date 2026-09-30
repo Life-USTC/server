@@ -1,17 +1,24 @@
 import { expect, type Page, test } from "@playwright/test";
 import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { expectNoPageHorizontalOverflow } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
+import {
+  busContractState,
+  expectBusContractEffectsEmpty,
+  expectBusContractGraph,
+  test as privateTest,
+} from "./bus-contract-fixture";
 
-async function openPlanner(page: Page, width: number, locale = "en-us") {
+async function openPlanner(
+  page: Page,
+  width: number,
+  locale = "en-us",
+  origin = PLAYWRIGHT_BASE_URL,
+) {
   await page.setViewportSize({ width, height: 1000 });
   await page.clock.setFixedTime(new Date("2026-04-22T03:00:00Z"));
   await page
     .context()
-    .addCookies([
-      { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-    ]);
+    .addCookies([{ name: "NEXT_LOCALE", value: locale, url: origin }]);
   await page.goto("/catalog/bus");
   await expect(
     page
@@ -78,52 +85,52 @@ test("bus.core-filters-only", async ({ page }) => {
   }
 });
 
-test("bus.merged-table-grouped-by-route", async ({ page }) => {
-  const marker = crypto.randomUUID().slice(0, 8);
-  const user = await withE2ePrisma((db) =>
-    db.user.create({
-      data: {
-        name: `bus-tables-${marker}`,
-        username: `bus-tables-${marker}`,
-        email: `bus-tables-${marker}@example.test`,
-        emailVerified: true,
-      },
-    }),
-  );
-  try {
-    for (const signedIn of [false, true]) {
-      await page.context().clearCookies();
-      if (signedIn)
-        await page
-          .context()
-          .addCookies([await createSignedSessionCookie(user.id)]);
-      for (const width of [1280, 390]) {
-        await openPlanner(page, width);
-        const routes = page.getByTestId("bus-route-section");
-        expect(await routes.count()).toBeGreaterThanOrEqual(2);
-        await page.screenshot({
-          path: test
-            .info()
-            .outputPath(
-              `life-spec-business-bus-merged-${signedIn}-${width}.png`,
-            ),
-          fullPage: true,
-        });
-        await expect
-          .soft(page.locator("table").filter({ visible: true }))
-          .toHaveCount(1);
-        for (const route of await routes.all()) {
-          await expect(route.getByRole("heading", { level: 3 })).toBeVisible();
-          expect(await route.locator("tbody tr, tr").count()).toBeGreaterThan(
-            0,
-          );
+privateTest(
+  "bus.merged-table-grouped-by-route",
+  async (
+    { page, isolatedWorker, preferenceFlow, busOwner: owner, run },
+    testInfo,
+  ) => {
+    await run(async () => {
+      const db = isolatedWorker.database.owner;
+      const baseline = await busContractState(db);
+      expectBusContractGraph(baseline, owner.id);
+      expect(await db.busUserPreference.findMany()).toEqual([]);
+      await expectBusContractEffectsEmpty(db);
+      await preferenceFlow.run(async () => {
+        for (const signedIn of [false, true]) {
+          await page.context().clearCookies();
+          if (signedIn) await page.context().addCookies([owner.cookie]);
+          for (const width of [1280, 390]) {
+            await openPlanner(page, width, "en-us", isolatedWorker.origin);
+            const routes = page.getByTestId("bus-route-section");
+            expect(await routes.count()).toBeGreaterThanOrEqual(2);
+            await page.screenshot({
+              path: testInfo.outputPath(
+                `life-spec-business-bus-merged-${signedIn}-${width}.png`,
+              ),
+              fullPage: true,
+            });
+            await expect
+              .soft(page.locator("table").filter({ visible: true }))
+              .toHaveCount(1);
+            for (const route of await routes.all()) {
+              await expect(
+                route.getByRole("heading", { level: 3 }),
+              ).toBeVisible();
+              expect(
+                await route.locator("tbody tr, tr").count(),
+              ).toBeGreaterThan(0);
+            }
+          }
         }
-      }
-    }
-  } finally {
-    await withE2ePrisma((db) => db.user.delete({ where: { id: user.id } }));
-  }
-});
+      });
+      expect(await busContractState(db)).toEqual(baseline);
+      expect(await db.busUserPreference.findMany()).toEqual([]);
+      await expectBusContractEffectsEmpty(db);
+    });
+  },
+);
 
 test("bus.mobile-next-departures", async ({ page }) => {
   for (const width of [280, 390]) {
