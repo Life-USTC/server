@@ -1,6 +1,5 @@
 import type { Prisma } from "../../../src/generated/prisma-node/client";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "./dev-seed";
-import { withE2ePrisma } from "./e2e-db/prisma";
 
 type CalendarDatabase = {
   $transaction<T>(
@@ -12,7 +11,7 @@ type WithCalendarDatabase = <T>(
 ) => Promise<T>;
 
 export async function createCalendarContractFixture(
-  withDatabase: WithCalendarDatabase = withE2ePrisma,
+  withDatabase: WithCalendarDatabase,
 ) {
   const marker = crypto.randomUUID().slice(0, 8);
   const date = DEV_SEED_ANCHOR.date;
