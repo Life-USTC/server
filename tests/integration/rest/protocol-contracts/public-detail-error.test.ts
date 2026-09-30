@@ -173,83 +173,89 @@ const cases = [
 
 for (const entry of cases) {
   test(`interface-hierarchy.public-detail-not-found-parity.${entry.field}`, async ({
+    run,
     h,
   }) => {
-    if (entry.field === "youngEvent" || entry.field === "youngOrganizer") {
-      await h.db.youngOrganizer.create({
-        data: {
-          id: h.organizerId,
-          name: h.organizerId,
-          normalizedName: h.organizerId,
-        },
-      });
-    }
-    if (entry.field === "youngEvent") {
-      await h.db.youngEvent.create({
-        data: {
-          youngId: h.youngId,
-          name: h.youngId,
-          organizerId: h.organizerId,
-          rawJson: {},
-          isActive: true,
-        },
-      });
-    }
-    const before = await snapshot(h);
-    for (const exists of [true, false]) {
-      const id = exists ? entry.present(h) : entry.missing(h);
-      const response = await fetch(`${h.origin}/api/${entry.rest}/${id}`);
-      expect(response.status, entry.field).toBe(exists ? 200 : 404);
-      const rest = await response.json();
-      const field = entry.field === "youngEvent" ? "youngId" : "id";
-      const graph = await graphql(
-        h,
-        `query($id:${entry.type}) { ${entry.root} { ${entry.field}(${entry.key}:$id) { ${field} } } }`,
-        { id },
-      );
-      const tool = await native(
-        h,
-        entry.tool,
-        { [entry.key]: id },
-        entry.root === "community",
-      );
-      if (exists) {
-        expect(graph[entry.root][entry.field], entry.field).not.toBeNull();
-        expect(tool.success, entry.field).toBe(true);
-      } else {
-        expect(rest, entry.field).toEqual({
-          error: expect.stringMatching(/not found/i),
+    await run(async () => {
+      if (entry.field === "youngEvent" || entry.field === "youngOrganizer") {
+        await h.db.youngOrganizer.create({
+          data: {
+            id: h.organizerId,
+            name: h.organizerId,
+            normalizedName: h.organizerId,
+          },
         });
-        expect(graph[entry.root][entry.field], entry.field).toBeNull();
-        expect(tool, entry.field).toMatchObject({
-          success: false,
-          error: "not_found",
-        });
-        if ("found" in tool) expect(tool.found).toBe(false);
       }
-    }
+      if (entry.field === "youngEvent") {
+        await h.db.youngEvent.create({
+          data: {
+            youngId: h.youngId,
+            name: h.youngId,
+            organizerId: h.organizerId,
+            rawJson: {},
+            isActive: true,
+          },
+        });
+      }
+      const before = await snapshot(h);
+      for (const exists of [true, false]) {
+        const id = exists ? entry.present(h) : entry.missing(h);
+        const response = await fetch(`${h.origin}/api/${entry.rest}/${id}`);
+        expect(response.status, entry.field).toBe(exists ? 200 : 404);
+        const rest = await response.json();
+        const field = entry.field === "youngEvent" ? "youngId" : "id";
+        const graph = await graphql(
+          h,
+          `query($id:${entry.type}) { ${entry.root} { ${entry.field}(${entry.key}:$id) { ${field} } } }`,
+          { id },
+        );
+        const tool = await native(
+          h,
+          entry.tool,
+          { [entry.key]: id },
+          entry.root === "community",
+        );
+        if (exists) {
+          expect(graph[entry.root][entry.field], entry.field).not.toBeNull();
+          expect(tool.success, entry.field).toBe(true);
+        } else {
+          expect(rest, entry.field).toEqual({
+            error: expect.stringMatching(/not found/i),
+          });
+          expect(graph[entry.root][entry.field], entry.field).toBeNull();
+          expect(tool, entry.field).toMatchObject({
+            success: false,
+            error: "not_found",
+          });
+          if ("found" in tool) expect(tool.found).toBe(false);
+        }
+      }
 
-    expect(await snapshot(h)).toEqual(before);
+      expect(await snapshot(h)).toEqual(before);
+    });
   });
 }
 
 test("interface-hierarchy.public-detail-not-found-parity.bus", async ({
+  run,
   h,
 }) => {
-  const before = await snapshot(h);
-  // Bus route detail has GraphQL/native counterparts; REST exposes a complete
-  // timetable, so no fictitious per-route REST request participates here.
-  expect(
-    (
-      await graphql(
-        h,
-        "query($id:Int!) { catalog { busTimetable(routeId:$id) { route { id } } } }",
-        { id: 2147483647 },
-      )
-    ).catalog.busTimetable,
-  ).toBeNull();
-  expect(
-    await native(h, "catalog_bus_route_get", { routeId: 2147483647 }),
-  ).toMatchObject({ success: false, error: "not_found", hasData: false });
-  expect(await snapshot(h)).toEqual(before);
+  await run(async () => {
+    const before = await snapshot(h);
+    // Bus route detail has GraphQL/native counterparts; REST exposes a complete
+    // timetable, so no fictitious per-route REST request participates here.
+    expect(
+      (
+        await graphql(
+          h,
+          "query($id:Int!) { catalog { busTimetable(routeId:$id) { route { id } } } }",
+          { id: 2147483647 },
+        )
+      ).catalog.busTimetable,
+    ).toBeNull();
+    expect(
+      await native(h, "catalog_bus_route_get", { routeId: 2147483647 }),
+    ).toMatchObject({ success: false, error: "not_found", hasData: false });
+    expect(await snapshot(h)).toEqual(before);
+  });
 });

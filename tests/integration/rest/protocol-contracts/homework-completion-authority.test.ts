@@ -141,93 +141,108 @@ async function update(
 }
 for (const transport of transports) {
   test(`homework completion updates preserve both owners and shared entity through ${transport}`, async ({
+    run,
     h,
   }) => {
-    const { homework } = await prepare(h);
-    const original = await shared(h);
-    for (const actor of h.actors) {
-      const foreign = (await rows(h)).filter((row) => row.userId !== actor.id);
-      for (const completed of [false, true]) {
-        await update(h, transport, actor, homework.id, completed);
-        expect(
-          (await rows(h)).filter((row) => row.userId !== actor.id),
-        ).toEqual(foreign);
-        expect(await shared(h)).toEqual(original);
+    await run(async () => {
+      const { homework } = await prepare(h);
+      const original = await shared(h);
+      for (const actor of h.actors) {
+        const foreign = (await rows(h)).filter((row) => row.userId !== actor.id);
+        for (const completed of [false, true]) {
+          await update(h, transport, actor, homework.id, completed);
+          expect(
+            (await rows(h)).filter((row) => row.userId !== actor.id),
+          ).toEqual(foreign);
+          expect(await shared(h)).toEqual(original);
+        }
       }
-    }
+    });
   });
   test(`homework completion authorization rejection preserves state through ${transport}`, async ({
+    run,
     h,
   }) => {
-    const { homework } = await prepare(h);
-    const before = { entities: await shared(h), completions: await rows(h) };
-    for (const reason of ["anonymous", "read_scope"] as const) {
-      unauthorized(
-        transport,
-        await invoke(
-          h.origin,
-          transport,
-          completion(homework.id, false),
-          reason === "anonymous"
-            ? undefined
-            : h.actors[0].readTokens[transport],
-        ),
-        reason,
-      );
-      expect({ entities: await shared(h), completions: await rows(h) }).toEqual(
-        before,
-      );
-    }
-  });
-  test(`homework completion rejects deleted and missing targets without effects through ${transport}`, async ({
-    h,
-  }) => {
-    const { deleted } = await prepare(h);
-    const before = { entities: await shared(h), completions: await rows(h) };
-    for (const id of [deleted.id, `${h.marker}-missing`])
-      for (const completed of [true, false]) {
-        notFound(
+    await run(async () => {
+      const { homework } = await prepare(h);
+      const before = { entities: await shared(h), completions: await rows(h) };
+      for (const reason of ["anonymous", "read_scope"] as const) {
+        unauthorized(
           transport,
           await invoke(
             h.origin,
             transport,
-            completion(id, completed),
-            h.actors[0].tokens[transport],
+            completion(homework.id, false),
+            reason === "anonymous"
+              ? undefined
+              : h.actors[0].readTokens[transport],
           ),
+          reason,
         );
-        expect({
-          entities: await shared(h),
-          completions: await rows(h),
-        }).toEqual(before);
+        expect({ entities: await shared(h), completions: await rows(h) }).toEqual(
+          before,
+        );
       }
+    });
+  });
+  test(`homework completion rejects deleted and missing targets without effects through ${transport}`, async ({
+    run,
+    h,
+  }) => {
+    await run(async () => {
+      const { deleted } = await prepare(h);
+      const before = { entities: await shared(h), completions: await rows(h) };
+      for (const id of [deleted.id, `${h.marker}-missing`])
+        for (const completed of [true, false]) {
+          notFound(
+            transport,
+            await invoke(
+              h.origin,
+              transport,
+              completion(id, completed),
+              h.actors[0].tokens[transport],
+            ),
+          );
+          expect({
+            entities: await shared(h),
+            completions: await rows(h),
+          }).toEqual(before);
+        }
+    });
   });
   test(`homework completion remains personal during suspension through ${transport}`, async ({
+    run,
     h,
   }) => {
-    const { homework } = await prepare(h);
-    await h.db.userSuspension.create({
-      data: { userId: h.actors[0].id, reason: h.marker },
+    await run(async () => {
+      const { homework } = await prepare(h);
+      await h.db.userSuspension.create({
+        data: { userId: h.actors[0].id, reason: h.marker },
+      });
+      const original = await shared(h);
+      const foreign = (await rows(h)).filter(
+        (row) => row.userId !== h.actors[0].id,
+      );
+      for (const completed of [false, true]) {
+        await update(h, transport, h.actors[0], homework.id, completed);
+        expect(
+          (await rows(h)).filter((row) => row.userId !== h.actors[0].id),
+        ).toEqual(foreign);
+        expect(await shared(h)).toEqual(original);
+      }
     });
-    const original = await shared(h);
-    const foreign = (await rows(h)).filter(
-      (row) => row.userId !== h.actors[0].id,
-    );
-    for (const completed of [false, true]) {
-      await update(h, transport, h.actors[0], homework.id, completed);
-      expect(
-        (await rows(h)).filter((row) => row.userId !== h.actors[0].id),
-      ).toEqual(foreign);
-      expect(await shared(h)).toEqual(original);
-    }
   });
   test(`homework completion replay preserves its original completion timestamp through ${transport}`, async ({
+    run,
     h,
   }) => {
-    const { homework } = await prepare(h);
-    const before = { entities: await shared(h), completions: await rows(h) };
-    await update(h, transport, h.actors[0], homework.id, true);
-    expect({ entities: await shared(h), completions: await rows(h) }).toEqual(
-      before,
-    );
+    await run(async () => {
+      const { homework } = await prepare(h);
+      const before = { entities: await shared(h), completions: await rows(h) };
+      await update(h, transport, h.actors[0], homework.id, true);
+      expect({ entities: await shared(h), completions: await rows(h) }).toEqual(
+        before,
+      );
+    });
   });
 }
