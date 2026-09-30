@@ -1,8 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { prepareCalendarRead, readCalendarState } from "../../../../utils/calendar-read-observation";
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/private-calendar-fixture";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
+import { parseTextContent } from "../../api/mcp/helpers";
 
 type Event = { type: string; at: string; endsAt: string | null };
 const instants = (events: Event[]) =>
@@ -18,15 +17,14 @@ const instants = (events: Event[]) =>
 
 test("interface-hierarchy.semantic-parity-4", async ({
   page,
-  request,
+  calendarProtocolRun,
   isolatedWorker,
   createCalendar,
   oauthOwner,
 }) => {
-  const db = isolatedWorker.database.owner;
-  const fixture = await createCalendar();
-  const client = new Client({ name: "calendar-time-boundaries", version: "1" });
-  try {
+  await calendarProtocolRun(async (io) => {
+    const db = isolatedWorker.database.owner;
+    const fixture = await createCalendar();
     const first = Date.parse(`${fixture.date}T00:00:00+08:00`);
     const last = Date.parse(`${fixture.activityDate}T23:59:59.999+08:00`);
     await db.todo.createMany({
@@ -36,26 +34,14 @@ test("interface-hierarchy.semantic-parity-4", async ({
         dueAt: new Date(dueAt),
       })),
     });
-    await page
-      .context()
-      .addCookies([
-        (await isolatedWorker.createSession(fixture.users[0].id)).cookie,
-      ]);
-    const scope = "workspace.calendar:read";
-    const resource = `${isolatedWorker.origin}/api/mcp`;
-    const token = await issueAccessToken(page, request, {
-      owner: oauthOwner,
-      scope,
-      clientScopes: [scope],
-      resource,
+    const expectedState = await readCalendarState(db);
+    const client = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+      name: "calendar-time-boundaries",
+      scopes: ["workspace.calendar:read"],
+      tools: Array.from({ length: 8 }, () => ["workspace_calendar_event_list", "workspace.calendar"] as const),
+      usage: [["workspace.calendar", 8]],
     });
-    await client.connect(
-      new StreamableHTTPClientTransport(new URL(resource), {
-        requestInit: {
-          headers: { Authorization: `Bearer ${token.accessToken}` },
-        },
-      }),
-    );
+    await client.authorize();
     const expected = [
       { type: "todo_due", at: first, endsAt: null },
       {
@@ -126,7 +112,6 @@ test("interface-hierarchy.semantic-parity-4", async ({
         ).toEqual(expected);
       }
     }
-  } finally {
-    await client.close();
-  }
+    return client.checks(expectedState);
+  });
 });

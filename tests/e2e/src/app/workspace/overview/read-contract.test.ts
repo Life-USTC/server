@@ -1,65 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect } from "@playwright/test";
-import { test as calendarTest } from "../../../../utils/private-calendar-fixture";
-import {
-  issueAccessTokenForClient,
-  parseTextContent,
-  registerPublicClient,
-} from "../../api/mcp/helpers";
+import { prepareCalendarRead, readCalendarState } from "../../../../utils/calendar-read-observation";
+import { test } from "../../../../utils/private-calendar-fixture";
 
-type CallTool = <Result>(
-  name: string,
-  args?: Record<string, unknown>,
-) => Promise<Result>;
-const test = calendarTest.extend<{ call: CallTool }>({
-  call: async (
-    { page, request, calendar, isolatedWorker, oauthOwner },
-    use,
-  ) => {
-    await page
-      .context()
-      .addCookies([
-        (await isolatedWorker.createSession(calendar.users[0].id)).cookie,
-      ]);
-    const scope = "workspace.overview:read workspace.schedule:read";
-    const resource = `${isolatedWorker.origin}/api/mcp`;
-    const clientId = await registerPublicClient(request, scope, oauthOwner);
-    const client = new Client({ name: "overview-contract", version: "1" });
-    try {
-      const { response, tokenBody } = await issueAccessTokenForClient(
-        page,
-        request,
-        {
-          clientId,
-          owner: oauthOwner,
-          scope,
-          resource,
-        },
-      );
-      expect(response.status()).toBe(200);
-      expect(typeof tokenBody.access_token).toBe("string");
-      await client.connect(
-        new StreamableHTTPClientTransport(new URL(resource), {
-          requestInit: {
-            headers: { Authorization: `Bearer ${tokenBody.access_token}` },
-          },
-        }),
-      );
-      const call: CallTool = async <Result>(
-        name: string,
-        args: Record<string, unknown> = {},
-      ) => {
-        const response = await client.callTool({ name, arguments: args });
-        expect(response.isError).not.toBe(true);
-        return parseTextContent(response) as Result;
-      };
-      await use(call);
-    } finally {
-      await client.close();
-    }
-  },
-});
 type CalendarEvent = { payload: { id: string | number } };
 type SnapshotResult = {
   nextClass: unknown;
@@ -73,11 +15,22 @@ type OverviewResult = {
 };
 test("overview.upcoming-exam-counts", async ({
   page,
-  calendar: fixture,
-  call,
+  createCalendar,
+  calendarProtocolRun,
+  oauthOwner,
   isolatedWorker,
 }) => {
+  await calendarProtocolRun(async (io) => {
   const db = isolatedWorker.database.owner;
+  const fixture = await createCalendar();
+  const reader = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+    name: "overview-contract",
+    scopes: ["workspace.overview:read", "workspace.schedule:read"],
+    tools: [["workspace_overview_get", "workspace.overview"]],
+    usage: [["workspace.overview", 1]],
+  });
+  await reader.authorize();
+  const { call } = reader;
   const now = new Date();
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Shanghai",
@@ -86,8 +39,8 @@ test("overview.upcoming-exam-counts", async ({
     day: "2-digit",
   }).format(now);
   const todayDate = new Date(`${today}T00:00:00Z`);
-  const exams = await (async () => {
-    await db.exam.deleteMany({ where: { sectionId: fixture.section.id } });
+  const exams = await db.$transaction(async (tx) => {
+    await tx.exam.deleteMany({ where: { sectionId: fixture.section.id } });
     const records = [];
     for (const [index, values] of [
       {
@@ -106,7 +59,7 @@ test("overview.upcoming-exam-counts", async ({
       },
     ].entries()) {
       records.push(
-        await db.exam.create({
+        await tx.exam.create({
           data: {
             sectionId: fixture.section.id,
             jwId: fixture.section.jwId + index + 200,
@@ -117,7 +70,11 @@ test("overview.upcoming-exam-counts", async ({
       );
     }
     return records;
-  })();
+  });
+  const expectedState = await readCalendarState(db);
+  // Shell bootstrap accepts no request time and uses the actual Worker clock.
+  // Crossing Shanghai midnight here remains a limit of this current-day case;
+  // the shell's original four-exam assertion must still hold.
   const shell = await page.request.get("/_internal/shell-bootstrap");
   expect(shell.status()).toBe(200);
   expect((await shell.json()).navigation.examsCount).toBe(4);
@@ -160,18 +117,24 @@ test("overview.upcoming-exam-counts", async ({
   const graph = await gql.json();
   expect(graph.errors).toBeUndefined();
   expect(graph.data.workspace.overview.upcomingExams).toBe(4);
+  return reader.checks(expectedState);
+  });
 });
 
 test("overview.focused-extracts-share-window", async ({
-  calendar: fixture,
-  call,
+  page,
+  createCalendar,
+  calendarProtocolRun,
+  oauthOwner,
   isolatedWorker,
 }) => {
+  await calendarProtocolRun(async (io) => {
   const db = isolatedWorker.database.owner;
+  const fixture = await createCalendar();
   const atTime = "2026-04-29T08:00:00+08:00";
   const start = new Date(atTime).getTime();
   const day = 86400000;
-  const edgeTodos = await (async () => {
+  const edgeTodos = await db.$transaction(async (tx) => {
     const created = [];
     for (const [label, offset] of [
       ["before", -1],
@@ -181,7 +144,7 @@ test("overview.focused-extracts-share-window", async ({
       ["outside", 8 * day],
     ] as const) {
       created.push(
-        await db.todo.create({
+        await tx.todo.create({
           data: {
             userId: fixture.users[0].id,
             title: `Window ${label}`,
@@ -191,7 +154,25 @@ test("overview.focused-extracts-share-window", async ({
       );
     }
     return created;
-  })();
+  });
+  const expectedState = await readCalendarState(db);
+  expectedState.schedules = expectedState.schedules.map((schedule) => ({
+    ...schedule, date: new Date("2026-05-06T00:00:00Z"),
+  }));
+  const reader = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+    name: "overview-contract",
+    scopes: ["workspace.overview:read", "workspace.schedule:read"],
+    tools: [
+      "workspace_snapshot_get", "workspace_schedule_next",
+      "workspace_snapshot_get", "workspace_schedule_next",
+      "workspace_snapshot_get", "workspace_deadline_list",
+      "workspace_deadline_list", "workspace_deadline_list",
+      "workspace_snapshot_get", "workspace_snapshot_get", "workspace_schedule_next",
+    ].map((name) => [name, "workspace.overview"] as const),
+    usage: [["workspace.overview", 11]],
+  });
+  await reader.authorize();
+  const { call } = reader;
   for (const mode of ["default", "full"]) {
     const snapshot = await call<SnapshotResult>("workspace_snapshot_get", {
       atTime,
@@ -264,13 +245,27 @@ test("overview.focused-extracts-share-window", async ({
       mode: "full",
     }),
   ).toMatchObject({ found: false, nextClass: null });
+  return reader.checks(expectedState);
+  });
 });
 
 test("overview.compact-operational-fields", async ({
   page,
-  calendar: fixture,
-  call,
+  createCalendar,
+  calendarProtocolRun,
+  oauthOwner,
 }) => {
+  await calendarProtocolRun(async (io) => {
+  const fixture = await createCalendar();
+  const expectedState = await readCalendarState(oauthOwner.worker.database.owner);
+  const reader = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+    name: "overview-contract",
+    scopes: ["workspace.overview:read", "workspace.schedule:read"],
+    tools: [["workspace_overview_get", "workspace.overview"]],
+    usage: [["workspace.overview", 1]],
+  });
+  await reader.authorize();
+  const { call } = reader;
   const result = await call<{
     overview: unknown;
     samples: {
@@ -336,4 +331,6 @@ test("overview.compact-operational-fields", async ({
       /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
     );
   }
+  return reader.checks(expectedState);
+  });
 });
