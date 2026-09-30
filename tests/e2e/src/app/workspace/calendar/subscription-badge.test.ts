@@ -1,26 +1,38 @@
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
+import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { createSignedSessionCookie } from "../../../../utils/signed-session-cookie";
+import {
+  prepareSemesterObservation,
+  test,
+} from "../../account-policy/semester-presentation-fixture";
 
-test("calendar.subscription-badges", async ({ page }, testInfo) => {
+test("calendar.subscription-badges", async ({
+  page,
+  calendar: fixture,
+  isolatedWorker,
+  calendarProtocolRun,
+}, testInfo) => {
   // Two locales × three subscription kinds × four viewport/view combinations.
   // Each case loads and hydrates the calendar; keep individual waits unchanged.
   test.setTimeout(60_000);
-  const fixture = await createCalendarContractFixture();
-  try {
+  await calendarProtocolRun(async (io) => {
     await page.context().clearCookies();
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
+    const observation = await prepareSemesterObservation(
+      page,
+      isolatedWorker,
+      io,
+      fixture.users[0].id,
+      Array.from({ length: 6 }, () => ({
+        type: "user",
+        userId: fixture.users[0].id,
+      })),
+    );
     for (const locale of ["zh-CN", "en-US"]) {
       await page.context().addCookies([
         {
           name: "NEXT_LOCALE",
           value: locale.toLowerCase(),
-          url: PLAYWRIGHT_BASE_URL,
+          url: isolatedWorker.origin,
         },
       ]);
       const endpoint = `/api/workspace/subscriptions/${fixture.section.jwId}`;
@@ -34,6 +46,23 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
           data: { kind },
         });
         expect(response.status()).toBe(200);
+        expect(await response.json()).toEqual({
+          sectionJwId: fixture.section.jwId,
+          kind,
+        });
+        expect(
+          await isolatedWorker.database.owner.userSectionSubscription.findUnique(
+            {
+              where: {
+                userId_sectionId: {
+                  userId: fixture.users[0].id,
+                  sectionId: fixture.section.id,
+                },
+              },
+              select: { kind: true },
+            },
+          ),
+        ).toEqual({ kind });
         for (const [mobile, view] of [
           [false, "week"],
           [true, "week"],
@@ -92,7 +121,16 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
         }
       }
     }
-  } finally {
-    await fixture.cleanup();
-  }
+    return observation.checks({
+      feedTokenCreated: true,
+      requests: [
+        [
+          "PATCH",
+          `/api/workspace/subscriptions/${fixture.section.jwId}`,
+          [200, 200, 200, 200, 200, 200],
+        ],
+      ],
+      subscriptionKind: { sectionId: fixture.section.id, kind: "auditor" },
+    });
+  });
 });

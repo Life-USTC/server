@@ -1,74 +1,91 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { openCatalogFilterSheet } from "../../../utils/catalog-filter-sheet";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/signed-session-cookie";
+import {
+  createSemesterTerms,
+  prepareSemesterObservation,
+  test,
+} from "./semester-presentation-fixture";
 
-test("semester.semester-visible-in-filters", async ({ page }, testInfo) => {
+test("semester.semester-visible-in-filters", async ({
+  page,
+  isolatedWorker,
+  calendarProtocolRun,
+}, testInfo) => {
   test.setTimeout(120_000);
-  const marker = `sem-label-${crypto.randomUUID().slice(0, 8)}`;
-  const base = 1_600_000_000 + Math.floor(Math.random() * 100_000_000);
-  const f = await withE2ePrisma(async (db) => {
-    const user = await db.user.create({
-      data: { name: marker, username: marker, email: `${marker}@example.test` },
-    });
-    const course = await db.course.create({
-      data: { jwId: base, code: marker, nameCn: marker },
-    });
-    const teacher = await db.teacher.create({
-      data: { jwId: base, nameCn: marker },
-    });
-    const unusualTerm = await db.semester.create({
-      data: {
-        jwId: base,
-        code: marker,
-        nameCn: "专项短学期 α",
-        startDate: new Date("2024-07-01"),
-        endDate: new Date("2024-07-15"),
-      },
-    });
-    const terms = [];
-    for (const [index, jwId] of [
-      DEV_SEED.semesterJwId,
-      DEV_SEED.previousSemesterJwId,
-      unusualTerm.jwId,
-    ].entries()) {
-      const term = await db.semester.findUniqueOrThrow({ where: { jwId } });
-      const section = await db.section.create({
+  await calendarProtocolRun(async (io) => {
+    const marker = `sem-label-${crypto.randomUUID().slice(0, 8)}`;
+    const base = 1_600_000_000 + Math.floor(Math.random() * 100_000_000);
+    const f = await isolatedWorker.database.owner.$transaction(async (db) => {
+      await createSemesterTerms(db);
+      const user = await db.user.create({
         data: {
-          jwId: base + index + 1,
-          code: `${marker}.${index}`,
-          courseId: course.id,
-          semesterId: term.id,
-          teachers: { connect: { id: teacher.id } },
+          id: crypto.randomUUID(),
+          name: marker,
+          username: marker,
+          email: `${marker}@example.test`,
         },
       });
-      await db.userSectionSubscription.create({
-        data: { userId: user.id, sectionId: section.id },
+      const course = await db.course.create({
+        data: { jwId: base, code: marker, nameCn: marker },
       });
-      await db.exam.create({
+      const teacher = await db.teacher.create({
+        data: { jwId: base, nameCn: marker },
+      });
+      const unusualTerm = await db.semester.create({
         data: {
-          jwId: base + index + 3,
-          sectionId: section.id,
-          examMode: "Written",
+          jwId: base,
+          code: marker,
+          nameCn: "专项短学期 α",
+          startDate: new Date("2024-07-01"),
+          endDate: new Date("2024-07-15"),
         },
       });
-      await db.homework.create({
-        data: {
-          sectionId: section.id,
-          createdById: user.id,
-          title: `${marker} task ${index}`,
-        },
-      });
-      terms.push({ term, section });
-    }
-    return { user, course, teacher, terms, unusualTerm };
-  });
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(f.user.id)]);
+      const terms = [];
+      for (const [index, jwId] of [
+        DEV_SEED.semesterJwId,
+        DEV_SEED.previousSemesterJwId,
+        unusualTerm.jwId,
+      ].entries()) {
+        const term = await db.semester.findUniqueOrThrow({ where: { jwId } });
+        const section = await db.section.create({
+          data: {
+            jwId: base + index + 1,
+            code: `${marker}.${index}`,
+            courseId: course.id,
+            semesterId: term.id,
+            teachers: { connect: { id: teacher.id } },
+          },
+        });
+        await db.userSectionSubscription.create({
+          data: { userId: user.id, sectionId: section.id },
+        });
+        await db.exam.create({
+          data: {
+            jwId: base + index + 3,
+            sectionId: section.id,
+            examMode: "Written",
+          },
+        });
+        await db.homework.create({
+          data: {
+            sectionId: section.id,
+            createdById: user.id,
+            title: `${marker} task ${index}`,
+          },
+        });
+        terms.push({ term, section });
+      }
+      return { user, course, teacher, terms, unusualTerm };
+    });
+    const observation = await prepareSemesterObservation(
+      page,
+      isolatedWorker,
+      io,
+      f.user.id,
+      [],
+    );
     for (const locale of ["en-us", "zh-cn"] as const) {
       expect(
         (
@@ -172,14 +189,9 @@ test("semester.semester-visible-in-filters", async ({ page }, testInfo) => {
           }
       }
     }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await db.homework.deleteMany({ where: { createdById: f.user.id } });
-      await db.section.deleteMany({ where: { courseId: f.course.id } });
-      await db.course.delete({ where: { id: f.course.id } });
-      await db.teacher.delete({ where: { id: f.teacher.id } });
-      await db.semester.delete({ where: { id: f.unusualTerm.id } });
-      await db.user.delete({ where: { id: f.user.id } });
+    return observation.checks({
+      feedTokenCreated: true,
+      requests: [["POST", "/api/account/preferences", [200, 200]]],
     });
-  }
+  });
 });
