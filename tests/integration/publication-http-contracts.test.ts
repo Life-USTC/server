@@ -170,10 +170,22 @@ it("publications.public-list-filters", async ({ http }) => {
       (row: { publicationId: string }) => row.publicationId,
     );
     const base = `${origin}/api/publications?query=${marker}&source=${payload.sources[0].id},${collegeId}`;
-    const pageOne = await (await http.fetch(`${base}&page=1&pageSize=1`)).json();
-    const pageTwo = await (await http.fetch(`${base}&page=2&pageSize=1`)).json();
-    expect(pageOne.pagination).toMatchObject({ page: 1, pageSize: 1, total: 2 });
-    expect(pageTwo.pagination).toMatchObject({ page: 2, pageSize: 1, total: 2 });
+    const pageOne = await (
+      await http.fetch(`${base}&page=1&pageSize=1`)
+    ).json();
+    const pageTwo = await (
+      await http.fetch(`${base}&page=2&pageSize=1`)
+    ).json();
+    expect(pageOne.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+    });
+    expect(pageTwo.pagination).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+    });
     expect(
       new Set(
         [...pageOne.data, ...pageTwo.data].map((row: { id: string }) => row.id),
@@ -258,9 +270,9 @@ it("publications.read-transport-boundary", async ({
       `${origin}/api/publications?source=${payload.sources[0].id}`,
     );
     expect(list.status).toBe(200);
-    expect((await list.json()).data.map((row: { id: string }) => row.id)).toEqual(
-      [publicationId],
-    );
+    expect(
+      (await list.json()).data.map((row: { id: string }) => row.id),
+    ).toEqual([publicationId]);
     const detail = await http.fetch(
       `${origin}/api/publications/${publicationId}`,
     );
@@ -268,7 +280,9 @@ it("publications.read-transport-boundary", async ({
     expect(await detail.json()).toMatchObject({ id: publicationId });
     const sources = await http.fetch(`${origin}/api/publications/sources`);
     expect(sources.status).toBe(200);
-    expect(JSON.stringify(await sources.json())).toContain(payload.sources[0].id);
+    expect(JSON.stringify(await sources.json())).toContain(
+      payload.sources[0].id,
+    );
     expect(
       Object.keys(graphqlSchema.getTypeMap()).filter((name) =>
         /publication/i.test(name),
@@ -314,7 +328,9 @@ it("publications.public-cache", async ({ http }) => {
     ]) {
       const response = await http.fetch(`${origin}${path}`);
       expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("application/json");
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
       expect(response.headers.get("cache-control")).toBe(
         "public, max-age=0, s-maxage=120, stale-while-revalidate=300",
       );
