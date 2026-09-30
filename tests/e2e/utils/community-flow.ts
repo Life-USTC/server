@@ -81,6 +81,7 @@ export async function withCommunityFlow(
   const writes: { path: string; status: number }[] = [];
   let closing = false;
   let registered = false;
+  let preparation: Promise<void> | undefined;
   let operation: Promise<void> | undefined;
   let actualBody: Promise<void> | undefined;
   let completed = false;
@@ -93,6 +94,24 @@ export async function withCommunityFlow(
   const open = () => {
     if (closing) throw new Error("Community workflow is closing");
   };
+  function prepare() {
+    open();
+    // Record the promise before any asynchronous registration/header work starts.
+    // run() or newContext() owns its caller, including before-run fixture setup.
+    preparation ??= Promise.resolve().then(async () => {
+      open();
+      const registration = await observer.post(probePath, { headers: secret });
+      registered = registration.status() === 201;
+      expect(registration.status()).toBe(201);
+      await registration.body();
+      open();
+      await page.context().setExtraHTTPHeaders(headers);
+      open();
+    });
+    // Native use can end before its caller observes the preparation failure.
+    void preparation.catch(remember);
+    return preparation;
+  }
   function observePage(current: Page) {
     if (reads.has(current)) return;
     const reader = ownBrowserReads(current, origin, () => !closing, {
@@ -371,6 +390,13 @@ export async function withCommunityFlow(
         reader.stop();
         errors.push(...reader.errors);
       }
+      // A pre-run context request can have started probe registration. Join it
+      // before deciding whether the probe exists and can be drained/deleted.
+      try {
+        await preparation;
+      } catch (error) {
+        remember(error);
+      }
       if (registered) {
         try {
           const producer = await readProducer();
@@ -479,11 +505,7 @@ export async function withCommunityFlow(
   };
   page.context().on("page", onPage);
   try {
-    expect((await observer.post(probePath, { headers: secret })).status()).toBe(
-      201,
-    );
-    registered = true;
-    await page.context().setExtraHTTPHeaders(headers);
+    // Establish native fixture use before run/newContext can start preparation.
     await withBrowserWorkflow(page, async (workflow) => {
       try {
         await use({
@@ -543,22 +565,24 @@ export async function withCommunityFlow(
           },
           newContext(options = {}) {
             open();
-            const creation = (async () => {
+            const creation = Promise.resolve().then(async () => {
+              await prepare();
+              open();
               const context = await browser.newContext({
                 ...options,
                 baseURL: origin,
                 extraHTTPHeaders: { ...options.extraHTTPHeaders, ...headers },
               });
               contexts.push(context);
-              if (options.javaScriptEnabled === false)
-                disabledScriptContexts.add(context);
-              context.on("page", onPage);
               if (closing) {
                 await context.close();
                 open();
               }
+              if (options.javaScriptEnabled === false)
+                disabledScriptContexts.add(context);
+              context.on("page", onPage);
               return context;
-            })();
+            });
             // Context acquisition can outlive a dependent fixture's setup timeout.
             // Register it before yielding, even when run() has not started.
             const settled = creation.then(
@@ -579,6 +603,7 @@ export async function withCommunityFlow(
             expected = wanted;
             operation = workflow.run(async () => {
               try {
+                await prepare();
                 await withSettledPageWrites(
                   page,
                   (url) => url.origin === origin,
@@ -600,6 +625,20 @@ export async function withCommunityFlow(
               } catch (error) {
                 remember(error);
               }
+              // Preparation can fail before the write wrapper owns page closure.
+              // Keep its failure path in the same close → callback → effects order.
+              if (!page.isClosed()) {
+                try {
+                  await stopAdmission();
+                } catch (error) {
+                  remember(error);
+                }
+                try {
+                  await page.close();
+                } catch (error) {
+                  remember(error);
+                }
+              }
               await finalize();
             });
             return operation;
@@ -619,11 +658,23 @@ export async function withCommunityFlow(
   } catch (error) {
     remember(error);
   } finally {
+    closing = true;
+    // In a before-run setup timeout there is no workflow operation to join it.
+    // Retain the page and request client until registration/header work settles.
+    try {
+      await preparation;
+    } catch (error) {
+      remember(error);
+    }
     page.context().off("page", onPage);
     for (const context of contexts) context.off("page", onPage);
     if (!operation) {
       try {
         await stopAdmission();
+      } catch (error) {
+        remember(error);
+      }
+      try {
         await page.close();
       } catch (error) {
         remember(error);
