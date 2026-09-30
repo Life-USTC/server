@@ -119,6 +119,7 @@ type Effects = {
   backgroundErrors: string[];
 };
 type Community = {
+  run: (work: () => Promise<void>) => Promise<void>;
   call: (
     transport: Transport,
     operation: Operation,
@@ -162,7 +163,7 @@ export const test = protocolTest.extend<{
         () => pending.delete(task),
         (error) => {
           pending.delete(task);
-          operationErrors.push(error);
+          if (!operationErrors.includes(error)) operationErrors.push(error);
         },
       );
       return task;
@@ -270,6 +271,9 @@ export const test = protocolTest.extend<{
     };
     try {
       await use({
+        // Register the entire scenario, including raw DB preparation and
+        // independent observations, in the same owner as its native requests.
+        run: own,
         call: (...args) => own(() => call(...args)),
         effects: () => own(effects),
         cookie: (transport, operation, actor) =>
@@ -323,10 +327,11 @@ export const test = protocolTest.extend<{
     } finally {
       closing = true;
       abort.abort(new Error("Community fixture resources disposed"));
-      // Settle full requests (including their bodies), session acquisition and
-      // R2 writes before observing producers/deleting objects or releasing h.
+      // The admitted scenario is part of pending too. Even after request
+      // cancellation, join its real callback and finally work before observing
+      // producers, deleting objects/probes or releasing its private database.
       // Probe drain covers producer waitUntil/send/purge, not queue consumption.
-      await Promise.allSettled([...pending]);
+      while (pending.size) await Promise.allSettled([...pending]);
       await cleanup();
     }
   },
