@@ -1,145 +1,161 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { makeSignature } from "better-auth/crypto";
+import { describe } from "vitest";
 import { authPostRoute } from "@/lib/api/routes/auth";
-import { authPrisma } from "@/lib/db/auth-prisma";
-import { createFixturePrisma } from "../shared/prisma";
+import { getBetterAuthInstance } from "@/lib/auth/core";
+import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
 const authOrigin = "http://localhost:3000";
-const encoder = new TextEncoder();
-const createdUserIds: string[] = [];
-const adminPrisma = createFixturePrisma();
 
-function base64(bytes: Uint8Array) {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-async function createSessionCookie(userId: string) {
-  const token = crypto.randomUUID();
-  await adminPrisma.session.create({
-    data: {
-      expires: new Date(Date.now() + 60 * 60 * 1000),
-      sessionToken: token,
-      userId,
+describe("Better Auth update-user field security", () => {
+  for (const { name, sessionAge } of [
+    {
+      name: "rejects self-promotion while preserving legitimate profile updates",
+      sessionAge: 60_000,
     },
-  });
-  const { getBetterAuthInstance } = await import("@/lib/auth/core");
-  const context = await getBetterAuthInstance().$context;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(context.secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(token),
-  );
-  const value = encodeURIComponent(
-    `${token}.${base64(new Uint8Array(signature))}`,
-  );
-  return `${context.authCookies.sessionToken.name}=${value}`;
-}
+    {
+      name: "valid older sessions retain the same profile field and ownership boundaries",
+      sessionAge: 1_800_000,
+    },
+  ]) {
+    it(
+      name,
+      async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
+        await protocolRuntime.run(async () => {
+          const updateUserRequest = (
+            cookie: string,
+            body: Record<string, unknown>,
+          ) =>
+            protocolRuntime.request(() =>
+              authPostRoute(
+                new Request(`${authOrigin}/api/auth/update-user`, {
+                  method: "POST",
+                  headers: {
+                    "content-type": "application/json",
+                    cookie,
+                    origin: authOrigin,
+                  },
+                  body: JSON.stringify(body),
+                }),
+              ),
+            );
+          const marker = crypto.randomUUID();
+          const usernameSuffix = marker.slice(0, 8);
+          const token = crypto.randomUUID();
+          const { user, otherUser } = await db.$transaction(async (tx) => {
+            const user = await tx.user.create({
+              data: {
+                email: `better-auth-update-${marker}@example.test`,
+                name: "Original Name",
+              },
+            });
+            const otherUser = await tx.user.create({
+              data: {
+                email: `better-auth-other-${marker}@example.test`,
+                name: "Other User",
+              },
+            });
+            await tx.session.create({
+              data: {
+                createdAt: new Date(Date.now() - sessionAge),
+                expires: new Date(Date.now() + 60 * 60 * 1000),
+                sessionToken: token,
+                userId: user.id,
+              },
+            });
+            return { user, otherUser };
+          });
+          expect(user).toMatchObject({
+            isAdmin: false,
+            name: "Original Name",
+            profilePictures: [],
+            username: null,
+          });
+          const readUser = (id: string) =>
+            db.user.findUniqueOrThrow({ where: { id } });
+          const context = await getBetterAuthInstance().$context;
+          const cookie = `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${await makeSignature(token, context.secret)}`)}`;
 
-function updateUserRequest(cookie: string, body: Record<string, unknown>) {
-  return authPostRoute(
-    new Request(`${authOrigin}/api/auth/update-user`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie,
-        origin: authOrigin,
+          const anonymousResponse = await updateUserRequest("", {
+            id: user.id,
+            userId: user.id,
+            name: "Anonymous mutation",
+          });
+          expect(anonymousResponse.status, await anonymousResponse.text()).toBe(
+            401,
+          );
+          await expect(readUser(user.id)).resolves.toEqual(user);
+          await expect(readUser(otherUser.id)).resolves.toEqual(otherUser);
+
+          for (const { body, message } of [
+            {
+              body: { isAdmin: true },
+              message: "isAdmin is not allowed to be set",
+            },
+            {
+              body: {
+                profilePictures: ["https://attacker.example/avatar.svg"],
+              },
+              message: "profilePictures is not allowed to be set",
+            },
+            { body: { username: "id" }, message: "Invalid username" },
+            {
+              body: { name: "Rejected partial name", isAdmin: true },
+              message: "isAdmin is not allowed to be set",
+            },
+            {
+              body: {
+                name: "Rejected partial name",
+                profilePictures: ["https://attacker.example/avatar.svg"],
+              },
+              message: "profilePictures is not allowed to be set",
+            },
+            {
+              body: { name: "Rejected partial name", username: "id" },
+              message: "Invalid username",
+            },
+          ]) {
+            const response = await updateUserRequest(cookie, body);
+            expect(response.status, JSON.stringify(body)).toBe(400);
+            await expect(response.json()).resolves.toMatchObject({ message });
+            await expect(readUser(user.id)).resolves.toEqual(user);
+            await expect(readUser(otherUser.id)).resolves.toEqual(otherUser);
+          }
+
+          const updatedName = "Updated Name";
+          const updatedUsername = `after-${usernameSuffix}`;
+          const profileResponse = await updateUserRequest(cookie, {
+            name: updatedName,
+            username: updatedUsername,
+          });
+          expect(profileResponse.status).toBe(200);
+          await expect(profileResponse.json()).resolves.toEqual({
+            status: true,
+          });
+          await expect(readUser(user.id)).resolves.toEqual({
+            ...user,
+            name: updatedName,
+            username: updatedUsername,
+            updatedAt: expect.any(Date),
+          });
+
+          const targetedResponse = await updateUserRequest(cookie, {
+            id: otherUser.id,
+            userId: otherUser.id,
+            name: "Owner only",
+          });
+          expect(targetedResponse.status).toBe(200);
+          await expect(targetedResponse.json()).resolves.toEqual({
+            status: true,
+          });
+          await expect(readUser(user.id)).resolves.toEqual({
+            ...user,
+            name: "Owner only",
+            username: updatedUsername,
+            updatedAt: expect.any(Date),
+          });
+          await expect(readUser(otherUser.id)).resolves.toEqual(otherUser);
+        });
       },
-      body: JSON.stringify(body),
-    }),
-  );
-}
-
-describe("Better Auth update-user field security", {
-  concurrent: false,
-}, () => {
-  afterAll(async () => {
-    if (createdUserIds.length > 0) {
-      await adminPrisma.user.deleteMany({
-        where: { id: { in: createdUserIds } },
-      });
-    }
-    await Promise.all([authPrisma.$disconnect(), adminPrisma.$disconnect()]);
-  });
-
-  it("rejects self-promotion while preserving legitimate profile updates", async () => {
-    const marker = crypto.randomUUID();
-    const usernameSuffix = marker.slice(0, 8);
-    const originalPictures: string[] = [];
-    const user = await adminPrisma.user.create({
-      data: {
-        email: `better-auth-update-${marker}@example.test`,
-        name: "Original Name",
-      },
-      select: { id: true },
-    });
-    createdUserIds.push(user.id);
-    const cookie = await createSessionCookie(user.id);
-
-    const escalationResponse = await updateUserRequest(cookie, {
-      isAdmin: true,
-    });
-
-    expect(escalationResponse.status).toBe(400);
-    await expect(escalationResponse.json()).resolves.toMatchObject({
-      message: "isAdmin is not allowed to be set",
-    });
-    await expect(
-      adminPrisma.user.findUniqueOrThrow({
-        where: { id: user.id },
-        select: { isAdmin: true, profilePictures: true },
-      }),
-    ).resolves.toEqual({
-      isAdmin: false,
-      profilePictures: originalPictures,
-    });
-
-    const pictureInjectionResponse = await updateUserRequest(cookie, {
-      profilePictures: ["https://attacker.example/avatar.svg"],
-    });
-
-    expect(pictureInjectionResponse.status).toBe(400);
-    await expect(pictureInjectionResponse.json()).resolves.toMatchObject({
-      message: "profilePictures is not allowed to be set",
-    });
-    await expect(
-      adminPrisma.user.findUniqueOrThrow({
-        where: { id: user.id },
-        select: { profilePictures: true },
-      }),
-    ).resolves.toEqual({ profilePictures: originalPictures });
-
-    const invalidUsernameResponse = await updateUserRequest(cookie, {
-      username: "id",
-    });
-
-    expect(invalidUsernameResponse.status).toBe(400);
-    await expect(invalidUsernameResponse.json()).resolves.toMatchObject({
-      message: "Invalid username",
-    });
-
-    const updatedName = "Updated Name";
-    const updatedUsername = `after-${usernameSuffix}`;
-    const profileResponse = await updateUserRequest(cookie, {
-      name: updatedName,
-      username: updatedUsername,
-    });
-
-    expect(profileResponse.status).toBe(200);
-    await expect(
-      adminPrisma.user.findUniqueOrThrow({
-        where: { id: user.id },
-        select: { isAdmin: true, name: true, username: true },
-      }),
-    ).resolves.toEqual({
-      isAdmin: false,
-      name: updatedName,
-      username: updatedUsername,
-    });
-  });
+    );
+  }
 });

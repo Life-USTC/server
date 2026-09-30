@@ -16,7 +16,7 @@ export function ownProtocolRoute<Args extends unknown[], Result>(
 // The HTTP listener is lazy: only fixtures that request http start it.
 export const mcpProtocolTest = nodeHttpTest.extend(
   "mcpSessions",
-  async ({ protocolRuntime }, { onCleanup }) => {
+  async ({ protocolRuntime, onTestFinished }, { onCleanup }) => {
     const clients: { close(): Promise<void> }[] = [];
     let closed = false;
     function ownClient<T extends { close(): Promise<void> }>(client: T): T {
@@ -30,12 +30,21 @@ export const mcpProtocolTest = nodeHttpTest.extend(
       const results = await Promise.allSettled(
         clients.map((client) => client.close()),
       );
-      results.push(...(await Promise.allSettled([protocolRuntime.drain()])));
+      // Await borrowed workflow cleanup; its cached failure belongs to the
+      // enclosing protocolRuntime fixture, which reports it after all cleanup.
+      await Promise.allSettled([protocolRuntime.drain()]);
       const failures = results.flatMap((result) =>
         result.status === "rejected" ? [result.reason] : [],
       );
-      if (failures.length)
-        throw new AggregateError(failures, "MCP protocol cleanup failed");
+      if (failures.length) {
+        const error = new AggregateError(
+          failures,
+          "MCP protocol cleanup failed",
+        );
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     });
     async function createMcpHarness(
       userId: string,

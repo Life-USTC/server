@@ -123,7 +123,7 @@ export const graphqlMutationTest = nodeProtocolTest.extend<{
   protocolBindings: async ({ mutationBucket }, use) => {
     await use({ R2_UPLOADS: mutationBucket });
   },
-  mutationMcp: async ({ protocolRuntime }, use) => {
+  mutationMcp: async ({ protocolRuntime, onTestFinished }, use) => {
     const userId = `graphql-owner-${crypto.randomUUID()}`;
     const owned = ownMcpHarness(userId, undefined, {
       run: protocolRuntime.request,
@@ -138,16 +138,24 @@ export const graphqlMutationTest = nodeProtocolTest.extend<{
       // Closing the SDK transport rejects pending initialization/client calls;
       // its owner also waits for real server handlers and their background work.
       const results = await Promise.allSettled([owned.client.close()]);
-      results.push(...(await Promise.allSettled([protocolRuntime.drain()])));
+      // The runtime owner reports its original cached rejection once.
+      // Keep waiting here so no admitted workflow outlives this boundary.
+      await Promise.allSettled([protocolRuntime.drain()]);
       failures.push(
         ...results.flatMap((result) =>
           result.status === "rejected" ? [result.reason] : [],
         ),
       );
     }
-    if (failures.length === 1) throw failures[0];
-    if (failures.length)
-      throw new AggregateError(failures, "GraphQL MCP lifecycle failed");
+    if (failures.length) {
+      const error =
+        failures.length === 1
+          ? failures[0]
+          : new AggregateError(failures, "GraphQL MCP lifecycle failed");
+      onTestFinished(() => {
+        throw error;
+      });
+    }
   },
   graphql: async (
     {

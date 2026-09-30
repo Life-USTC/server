@@ -505,7 +505,7 @@ requirements:
 - id: oauth.authorization-management.recent-auth-for-consent
   category: authorization
   rule: Approving a new grant or expanding an existing grant requires an authoritative server-side session
-    created within the last 15 minutes. A stale attempt records a denied audit event and returns sign-in
+    created at least zero and strictly less than 15 minutes ago. A stale attempt records a denied audit event and returns sign-in
     guidance without issuing a code.
   applies_to:
   - authorization-management

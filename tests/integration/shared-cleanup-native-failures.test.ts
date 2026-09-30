@@ -1,0 +1,422 @@
+import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { createConnection } from "node:net";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { promisify } from "node:util";
+import { test } from "vitest";
+import type { SharedCleanupFailurePhase } from "../ci/fixtures/shared-cleanup-failure-reporter";
+import { createTestPrisma } from "../shared/prisma";
+
+const execute = promisify(execFile);
+const require = createRequire(import.meta.url);
+const timeoutMessage =
+  'Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".';
+const expectedMessages: Record<SharedCleanupFailurePhase, string[]> = {
+  node: ["SHARED-NODE-CANCEL"],
+  domain: ["SHARED-DOMAIN-CANCEL"],
+  http: [
+    "SHARED-WORKFLOW-CANCEL",
+    "SHARED-REQUEST-CANCEL",
+    "SHARED-HTTP-CLOSE",
+  ],
+  mcp: [
+    "SHARED-BODY",
+    "SHARED-WORKFLOW-CANCEL",
+    "SHARED-REQUEST-CANCEL",
+    "SHARED-FIRST-CLOSE",
+    "SHARED-SECOND-CLOSE",
+  ],
+  graphql: [
+    "SHARED-WORKFLOW-CANCEL",
+    "SHARED-REQUEST-CANCEL",
+    "SHARED-GRAPHQL-CLOSE",
+  ],
+  comment: [
+    "SHARED-WORKFLOW-CANCEL",
+    "SHARED-REQUEST-CANCEL",
+    "SHARED-COMMENT-CLOSE",
+  ],
+  public: [
+    "SHARED-WORKFLOW-CANCEL",
+    "SHARED-REQUEST-CANCEL",
+    "SHARED-PUBLIC-CLOSE",
+  ],
+  subscription: [
+    "SHARED-WORKFLOW-CANCEL",
+    "SHARED-REQUEST-CANCEL",
+    "SHARED-SUBSCRIPTION-CLOSE",
+  ],
+  "http-timeout": [timeoutMessage],
+};
+type ErrorTree = { name: string; message: string; errors?: ErrorTree[] };
+const errorLeaf = (message: string): ErrorTree => ({ name: "Error", message });
+const nodeCleanupError = (message: string): ErrorTree => ({
+  name: "AggregateError",
+  message: "Node runtime cleanup failed",
+  errors: [errorLeaf(message)],
+});
+const protocolRuntimeErrors = [
+  nodeCleanupError("SHARED-WORKFLOW-CANCEL"),
+  nodeCleanupError("SHARED-REQUEST-CANCEL"),
+];
+// Vitest flattens only the aggregate passed directly to failTask. Nested
+// Node runtime aggregates retain their original name, message and children.
+const expectedNativeErrors: Record<SharedCleanupFailurePhase, ErrorTree[]> = {
+  node: [errorLeaf("SHARED-NODE-CANCEL")],
+  domain: [nodeCleanupError("SHARED-DOMAIN-CANCEL")],
+  http: [...protocolRuntimeErrors, errorLeaf("SHARED-HTTP-CLOSE")],
+  mcp: [
+    errorLeaf("SHARED-BODY"),
+    ...protocolRuntimeErrors,
+    errorLeaf("SHARED-FIRST-CLOSE"),
+    errorLeaf("SHARED-SECOND-CLOSE"),
+  ],
+  graphql: [...protocolRuntimeErrors, errorLeaf("SHARED-GRAPHQL-CLOSE")],
+  comment: [...protocolRuntimeErrors, errorLeaf("SHARED-COMMENT-CLOSE")],
+  public: [...protocolRuntimeErrors, errorLeaf("SHARED-PUBLIC-CLOSE")],
+  subscription: [
+    ...protocolRuntimeErrors,
+    errorLeaf("SHARED-SUBSCRIPTION-CLOSE"),
+  ],
+  "http-timeout": [errorLeaf(timeoutMessage)],
+};
+function errorLeaves(error: ErrorTree): ErrorTree[] {
+  return error.errors ? error.errors.flatMap(errorLeaves) : [error];
+}
+
+type Event = {
+  event: string;
+  at: number;
+  sequence: number;
+  runtime?: number;
+  errorId?: number;
+  error?: ErrorTree;
+};
+async function refused(origin: string) {
+  const url = new URL(origin);
+  return new Promise<string>((resolve, reject) => {
+    const socket = createConnection({
+      host: url.hostname,
+      port: Number(url.port),
+    });
+    socket.once("connect", () => {
+      socket.destroy();
+      reject(new Error("Owned HTTP listener is still accepting connections"));
+    });
+    socket.once("error", (error: NodeJS.ErrnoException) => {
+      socket.destroy();
+      resolve(error.code ?? "");
+    });
+    socket.setTimeout(1_000, () => {
+      socket.destroy();
+      reject(new Error("HTTP listener absence check timed out"));
+    });
+  });
+}
+
+test.for<SharedCleanupFailurePhase>([
+  "node",
+  "domain",
+  "http",
+  "mcp",
+  "graphql",
+  "comment",
+  "public",
+  "subscription",
+  "http-timeout",
+])(
+  "native %s cleanup reports each original error once and releases owned resources",
+  async (phase, { expect, annotate }) => {
+    const output = await mkdtemp(join(tmpdir(), "life-ustc-shared-cleanup-"));
+    let passed = false;
+    try {
+      let exitCode = 0;
+      try {
+        const result = await execute(
+          process.execPath,
+          [
+            join(require.resolve("vitest/package.json"), "..", "vitest.mjs"),
+            "run",
+            "--config",
+            "tests/ci/fixtures/shared-cleanup-failure.config.ts",
+          ],
+          {
+            cwd: resolve("."),
+            env: {
+              ...process.env,
+              SHARED_CLEANUP_PROBE_PHASE: phase,
+              SHARED_CLEANUP_PROBE_OUTPUT: output,
+            },
+            timeout: 25_000,
+            maxBuffer: 4 * 1024 * 1024,
+          },
+        );
+        await writeFile(
+          join(output, "runner.log"),
+          result.stdout + result.stderr,
+        );
+      } catch (error) {
+        const result = error as {
+          code?: number;
+          stdout?: string;
+          stderr?: string;
+        };
+        exitCode = result.code ?? -1;
+        await writeFile(
+          join(output, "runner.log"),
+          (result.stdout ?? "") + (result.stderr ?? ""),
+        );
+      }
+      const load = async (file: string) =>
+        JSON.parse(await readFile(join(output, file), "utf8"));
+      const report = await load("report.json");
+      const native = await load("native-result.json");
+      const resources = (await load("resources.json")) as {
+        template: string;
+        database: string;
+        directory: string;
+        processes: number[];
+        childPid: number;
+        todo: { id: string; userId: string; title: string };
+      };
+      const parseEvents = async (file: string) =>
+        (await readFile(join(output, file), "utf8"))
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line) as Event);
+      const events = await parseEvents("phases.jsonl");
+      const runtime = await parseEvents("runtime.jsonl");
+      const names = events.map((e) => e.event);
+      expect(exitCode).toBe(1);
+      expect(report).toMatchObject({
+        success: false,
+        numTotalTests: 1,
+        numFailedTests: 1,
+        numPassedTests: 0,
+        numPendingTests: 0,
+      });
+      expect(report.testResults).toHaveLength(1);
+      expect(report.testResults[0].message).toBe("");
+      expect(report.testResults[0].assertionResults).toHaveLength(1);
+      expect(await load("native-run-errors.json")).toEqual([]);
+      expect(native).toMatchObject({
+        title:
+          "native shared cleanup preserves failures and releases owned state",
+        state: "failed",
+      });
+      expect(native.errors).toEqual(expectedNativeErrors[phase]);
+      const leaves = (native.errors as ErrorTree[]).flatMap(errorLeaves);
+      expect(leaves).toEqual(expectedMessages[phase].map(errorLeaf));
+      for (const message of expectedMessages[phase])
+        expect(
+          leaves.filter((error) => error.message === message),
+        ).toHaveLength(1);
+      expect(
+        (await readFile(join(output, "runner.log"), "utf8")).trim(),
+      ).not.toBe("");
+      expect(resources.todo).toEqual({
+        id: expect.any(String),
+        userId: "shared-cleanup-owner",
+        title: "Committed shared cleanup state",
+      });
+      expect(names[0]).toBe("state-committed");
+      expect(
+        names.filter((name) => name === "database-dispose-start"),
+      ).toHaveLength(1);
+      expect(
+        names.filter((name) => name === "database-dispose-finished"),
+      ).toHaveLength(1);
+      expect(names.at(-1)).toBe("database-dispose-finished");
+      const disposal = events.find(
+        (event) => event.event === "database-dispose-start",
+      );
+      if (!disposal) throw new Error("Missing database disposal evidence");
+      expect(events.at(-1)?.at).toBeLessThanOrEqual(native.at);
+      expect(runtime.length).toBeGreaterThan(0);
+      for (const id of new Set(runtime.map((event) => event.runtime))) {
+        const starts = runtime.filter(
+          (event) =>
+            event.runtime === id && event.event === "runtime-close-start",
+        );
+        const finishes = runtime.filter(
+          (event) =>
+            event.runtime === id && event.event === "runtime-close-finished",
+        );
+        expect(starts.length).toBeGreaterThan(0);
+        expect(finishes).toHaveLength(starts.length);
+        for (const event of finishes) {
+          expect(event.at).toBeLessThanOrEqual(disposal.at);
+          expect(event.sequence).toBeLessThan(disposal.sequence);
+        }
+      }
+      const errors = runtime.filter((event) => event.event === "runtime-error");
+      if (phase === "http-timeout") {
+        expect(errors).toEqual([]);
+        expect(
+          names.filter((name) => name === "native-test-aborted"),
+        ).toHaveLength(1);
+        const order = [
+          "body-entered",
+          "native-test-aborted",
+          "late-http-start",
+          "late-http-write-finished",
+          "late-http-consumed",
+          "http-close-finished",
+          "database-dispose-start",
+          "database-dispose-finished",
+        ];
+        for (let i = 1; i < order.length; i++)
+          expect(names.indexOf(order[i])).toBeGreaterThan(
+            names.indexOf(order[i - 1]),
+          );
+        const work = await load("late-http-work.json");
+        expect(work.nativeAborted).toBe(true);
+        expect(work.written).toEqual({
+          id: expect.any(String),
+          userId: "shared-cleanup-owner",
+          title: "Actual HTTP write after native timeout",
+        });
+        expect(work.persisted).toEqual(work.written);
+      } else if (phase === "node" || phase === "domain") {
+        expect(errors).toHaveLength(1);
+        expect(errors[0].error).toEqual({
+          name: "AggregateError",
+          message: "Node runtime cleanup failed",
+          errors: [
+            { name: "Error", message: `SHARED-${phase.toUpperCase()}-CANCEL` },
+          ],
+        });
+        expect(names.filter((name) => name === `${phase}-cancel`)).toHaveLength(
+          1,
+        );
+        expect(
+          names.filter((name) => name === "sibling-cancel-finished"),
+        ).toHaveLength(1);
+        expect(names.indexOf("sibling-cancel-finished")).toBeLessThan(
+          names.indexOf("database-dispose-start"),
+        );
+        const work = await load("sibling-work.json");
+        expect(work.written).toEqual({
+          id: expect.any(String),
+          userId: "shared-cleanup-owner",
+          title: "Sibling cancellation completed",
+        });
+        expect(work.persisted).toEqual(work.written);
+      } else {
+        const workflow = errors.filter(
+          (event) =>
+            event.error?.errors?.[0]?.message === "SHARED-WORKFLOW-CANCEL",
+        );
+        const request = errors.filter(
+          (event) =>
+            event.error?.errors?.[0]?.message === "SHARED-REQUEST-CANCEL",
+        );
+        expect(workflow).toHaveLength(phase === "subscription" ? 3 : 2);
+        expect(new Set(workflow.map((event) => event.errorId)).size).toBe(1);
+        expect(new Set(workflow.map((event) => event.runtime)).size).toBe(1);
+        expect(request).toHaveLength(1);
+        expect(errors).toHaveLength(workflow.length + request.length);
+        for (const [label, group] of [
+          ["WORKFLOW", workflow],
+          ["REQUEST", request],
+        ] as const)
+          for (const event of group)
+            expect(event.error).toEqual({
+              name: "AggregateError",
+              message: "Node runtime cleanup failed",
+              errors: [{ name: "Error", message: `SHARED-${label}-CANCEL` }],
+            });
+        expect(names.filter((name) => name === "workflow-cancel")).toHaveLength(
+          1,
+        );
+        expect(names.filter((name) => name === "request-cancel")).toHaveLength(
+          1,
+        );
+        const clients =
+          phase === "mcp"
+            ? ["first", "second"]
+            : phase === "http"
+              ? []
+              : [phase];
+        for (const client of clients) {
+          expect(
+            names.filter((name) => name === `${client}-close-start`),
+          ).toHaveLength(1);
+          expect(
+            names.filter((name) => name === `${client}-close-finished`),
+          ).toHaveLength(1);
+          expect(names.indexOf(`${client}-close-finished`)).toBeGreaterThan(
+            names.indexOf(`${client}-close-start`),
+          );
+          expect(names.indexOf(`${client}-close-finished`)).toBeLessThan(
+            names.indexOf("database-dispose-start"),
+          );
+          expect(await load(`${client}-error.json`)).toEqual({
+            name: "Error",
+            message: `SHARED-${client.toUpperCase()}-CLOSE`,
+          });
+        }
+      }
+      if (["http", "subscription", "http-timeout"].includes(phase)) {
+        expect(
+          names.filter((name) => name === "http-close-start"),
+        ).toHaveLength(1);
+        expect(
+          names.filter((name) => name === "http-close-finished"),
+        ).toHaveLength(1);
+        expect(names.indexOf("http-close-finished")).toBeLessThan(
+          names.indexOf("database-dispose-start"),
+        );
+        expect(await refused((await load("http.json")).origin)).toBe(
+          "ECONNREFUSED",
+        );
+      }
+      const connection = new URL(process.env.FUNCTION_OWNER_DATABASE_URL ?? "");
+      connection.pathname = "/postgres";
+      const observer = createTestPrisma(connection.href);
+      const databases = [resources.template, resources.database];
+      expect(new Set(databases).size).toBe(2);
+      for (const database of databases)
+        expect(database).toMatch(/^test_isolated_[0-9a-f]{32}$/);
+      try {
+        expect(
+          await observer.$queryRawUnsafe(
+            "SELECT datname FROM pg_database WHERE datname = ANY($1::text[])",
+            databases,
+          ),
+        ).toEqual([]);
+        expect(
+          await observer.$queryRawUnsafe(
+            "SELECT datname FROM pg_stat_activity WHERE datname = ANY($1::text[]) OR application_name = ANY($1::text[])",
+            databases,
+          ),
+        ).toEqual([]);
+      } finally {
+        await observer.$disconnect();
+      }
+      expect(existsSync(resources.directory)).toBe(false);
+      expect(resources.processes.length).toBeGreaterThan(0);
+      for (const pid of [...resources.processes, resources.childPid]) {
+        let code: string | undefined;
+        try {
+          process.kill(pid, 0);
+        } catch (error) {
+          code = (error as NodeJS.ErrnoException).code;
+        }
+        expect(code).toBe("ESRCH");
+      }
+      await annotate("Native shared cleanup ownership verified", {
+        contentType: "application/json",
+        bodyEncoding: "utf-8",
+        body: JSON.stringify({ phase, native, resources, events, runtime }),
+      });
+      passed = true;
+    } finally {
+      if (passed) await rm(output, { recursive: true, force: true });
+      else console.error(`Native shared cleanup failure evidence: ${output}`);
+    }
+  },
+);

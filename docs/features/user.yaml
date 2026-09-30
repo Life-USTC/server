@@ -142,6 +142,43 @@ requirements:
     test:
       file: tests/e2e/src/app/welcome/contracts.test.ts
       name: user.welcome-flow-required
+- id: user.profile-field-write-boundary
+  category: authorization
+  rule: The authenticated profile update endpoint permits nickname (name) and valid ID (username) edits.
+    Administrator status (isAdmin) and provider picture history (profilePictures) are server-controlled
+    and cannot be assigned through this endpoint. A request rejected for forbidden or invalid fields
+    leaves all profile data unchanged, including otherwise valid fields supplied in the same request.
+  rationale: Showing a field in a user projection does not make it client-writable. The displayed avatar
+    field (image) is distinct from provider picture history (profilePictures); ordinary profile edits cannot grant privileges.
+  acceptance:
+    given: Two isolated users exist and one has a valid signed session.
+    when: The actual profile request handler receives self-promotion, picture-history replacement and
+      reserved-username requests, both alone and mixed with a valid nickname edit, then a valid profile update.
+    then:
+    - Each invalid request returns 400 with its field error and preserves both users' complete persisted profiles.
+    - A valid nickname and ID update returns 200 and persists the values without changing administrator status or picture history.
+    test:
+      file: tests/integration/better-auth-update-user-security.test.ts
+      name: rejects self-promotion while preserving legitimate profile updates
+- id: user.profile-update-session-owner
+  category: authorization
+  rule: Ordinary nickname and ID updates require a valid session but do not require recent authentication.
+    The session identifies the profile being updated; client-supplied id or userId fields cannot redirect
+    the update to another user. The same field-write boundary applies to recent and older valid sessions.
+  rationale: Editing display identity does not modify sign-in credentials or grant authority. Sensitive
+    credential changes remain governed by user.sensitive-account-recent-auth.
+  acceptance:
+    given: Two isolated users exist and the owner has a valid session created 30 minutes ago.
+    when: The actual profile request handler processes an anonymous edit carrying a known user's identifiers,
+      then authenticated forbidden fields, legitimate edits and an edit carrying the other user's identifiers.
+    then:
+    - The anonymous edit returns 401 and preserves both profiles.
+    - Forbidden fields and invalid usernames are rejected without partial changes.
+    - Valid edits succeed for the session owner, including when unused id and userId fields name the other user.
+    - The other user's profile remains unchanged.
+    test:
+      file: tests/integration/better-auth-update-user-security.test.ts
+      name: valid older sessions retain the same profile field and ownership boundaries
 - id: user.profile-field-labels
   category: presentation
   rule: Welcome and profile settings label the user-controlled name field 昵称 in Chinese and Nickname in English, and the username field ID in both languages. Required-field indicators may follow these labels; neither field is presented as a legal name.
@@ -392,12 +429,13 @@ requirements:
     Password and email mutation availability remains governed by the configured sign-in policy; freshness
     alone does not enable disabled endpoints. Revocation of application grants is distinct from removing a sign-in credential.
   acceptance:
-    given: An isolated account has a persisted passkey and signed cookies referencing stale, future, expired,
-      revoked and recent sessions.
+    given: An isolated account has a persisted passkey, a linked provider account and signed cookies
+      referencing stale, future, expired, revoked and recent sessions.
     when: Actual authentication HTTP endpoints process each invalid session, then a recent session renames
       the passkey.
     then:
-    - Every invalid-authority request is rejected before changing the user, passkey or linked accounts.
+    - Immediately after every invalid-authority request, the complete persisted user, passkey collection
+      and linked-account collection remain unchanged, including the existing account targeted for unlinking.
     - Missing, expired and revoked sessions return401; stale and future sessions return403 SESSION_NOT_FRESH.
     - A valid recent session successfully renames the persisted passkey.
     test:

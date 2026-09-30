@@ -5,7 +5,7 @@ import { createNodeRuntime } from "./node-runtime";
 export const isolatedNodeTest = isolatedDatabaseTest.extend<{
   nodeRuntime: ReturnType<typeof createNodeRuntime>;
 }>({
-  nodeRuntime: async ({ isolatedDatabase }, use) => {
+  nodeRuntime: async ({ isolatedDatabase, onTestFinished }, use) => {
     const runtime = createNodeRuntime({
       APP_PUBLIC_ORIGIN: "http://localhost:3000",
       HYPERDRIVE: { connectionString: isolatedDatabase.connections.app },
@@ -17,7 +17,14 @@ export const isolatedNodeTest = isolatedDatabaseTest.extend<{
     try {
       await use(runtime);
     } finally {
-      await runtime.close();
+      try {
+        await runtime.close();
+      } catch (error) {
+        // Release outer database owners before reporting this original error.
+        onTestFinished(() => {
+          throw error;
+        });
+      }
     }
   },
 });
