@@ -10,7 +10,7 @@ import { nodeHttpTest } from "../shared/node-http-contract-fixture";
 const test = nodeHttpTest.extend({
   // biome-ignore lint/correctness/noEmptyPattern: Vitest fixture dependency syntax.
   httpHandler: async ({}, use) => {
-    await use((incoming) => {
+    await use((incoming: Request) => {
       const id = Number(incoming.headers.get("x-fixture-record-id"));
       const path = new URL(incoming.url).pathname;
       if (path === "/api/catalog/sections/match-codes") {
@@ -53,12 +53,20 @@ describe("Catalog lookup request-context independence", () => {
           await expect(read(contexts[0])).rejects.toThrow("not found");
           expect(await read(contexts[1])).toEqual(
             name === "section"
-              ? { id: 101, jwId: DEV_SEED.section.jwId, code: DEV_SEED.section.code }
+              ? {
+                  id: 101,
+                  jwId: DEV_SEED.section.jwId,
+                  code: DEV_SEED.section.code,
+                }
               : 101,
           );
           expect(await read(contexts[2])).toEqual(
             name === "section"
-              ? { id: 202, jwId: DEV_SEED.section.jwId, code: DEV_SEED.section.code }
+              ? {
+                  id: 202,
+                  jwId: DEV_SEED.section.jwId,
+                  code: DEV_SEED.section.code,
+                }
               : 202,
           );
         } catch (error) {
@@ -76,7 +84,10 @@ describe("Catalog lookup request-context independence", () => {
         );
         if (failures.length === 1) throw failures[0];
         if (failures.length)
-          throw new AggregateError(failures, "Lookup workflow and cleanup failed");
+          throw new AggregateError(
+            failures,
+            "Lookup workflow and cleanup failed",
+          );
       });
     },
   );

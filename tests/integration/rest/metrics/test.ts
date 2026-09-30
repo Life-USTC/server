@@ -4,7 +4,8 @@ import { test } from "./_fixture";
 const authorization = "Bearer e2e-metrics-secret-not-for-production";
 
 test.describe("GET /metrics", () => {
-  test("rejects missing, query-string, cookie and wrong Bearer credentials", async ({ run,
+  test("rejects missing, query-string, cookie and wrong Bearer credentials", async ({
+    run,
     request,
   }) => {
     return run(async () => {
@@ -28,7 +29,8 @@ test.describe("GET /metrics", () => {
     });
   });
 
-  test("serves valid text metrics with session cookies ignored", async ({ run,
+  test("serves valid text metrics with session cookies ignored", async ({
+    run,
     request,
   }) => {
     return run(async () => {
@@ -68,7 +70,9 @@ test.describe("GET /metrics", () => {
   test("does not accept writes", async ({ run, request }) => {
     return run(async () => {
       expect(
-        (await request.post("/metrics", { headers: { authorization } })).status(),
+        (
+          await request.post("/metrics", { headers: { authorization } })
+        ).status(),
       ).toBe(405);
     });
   });

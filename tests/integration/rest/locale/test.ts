@@ -11,7 +11,10 @@ test("/api/account/preferences 接口契约", async ({ run, request, baseURL }) 
   });
 });
 
-test("/api/account/preferences 非法 locale 返回 400", async ({ run, request }) => {
+test("/api/account/preferences 非法 locale 返回 400", async ({
+  run,
+  request,
+}) => {
   return run(async () => {
     const response = await request.post("/api/account/preferences", {
       data: { locale: "invalid-locale" },

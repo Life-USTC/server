@@ -26,10 +26,10 @@
  * - Results ordered by date asc, then startTime asc
  */
 import { expect } from "@playwright/test";
-import { test } from "../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { resolveSeedSectionId } from "../../../e2e/utils/seed-lookups";
 import { assertApiContract } from "../_shared/api-contract";
+import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/schedules - 排课列表", () => {
   test("契约", async ({ run, request }) => {

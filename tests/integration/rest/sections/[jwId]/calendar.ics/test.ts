@@ -1,9 +1,12 @@
 import { expect } from "@playwright/test";
-import { test } from "../../../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../../../_shared/api-contract";
+import { test } from "../../../_shared/catalog-reader-fixture";
 
-test("/api/catalog/sections/[jwId]/calendar.ics 契约", async ({ run, request }) => {
+test("/api/catalog/sections/[jwId]/calendar.ics 契约", async ({
+  run,
+  request,
+}) => {
   return run(async () => {
     await assertApiContract(request, {
       routePath: "/api/catalog/sections/[jwId]/calendar.ics",
@@ -11,7 +14,8 @@ test("/api/catalog/sections/[jwId]/calendar.ics 契约", async ({ run, request }
   });
 });
 
-test("/api/catalog/sections/[jwId]/calendar.ics 包含 seed 班级代码", async ({ run,
+test("/api/catalog/sections/[jwId]/calendar.ics 包含 seed 班级代码", async ({
+  run,
   request,
 }) => {
   return run(async () => {

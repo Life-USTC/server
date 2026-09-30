@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
-import { test } from "../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
+import { test } from "../_shared/catalog-reader-fixture";
 
 test("/api/catalog/sections", async ({ run, request }) => {
   return run(async () => {
@@ -9,7 +9,10 @@ test("/api/catalog/sections", async ({ run, request }) => {
   });
 });
 
-test("班级列表项包含所有必需的 SectionSummary 字段", async ({ run, request }) => {
+test("班级列表项包含所有必需的 SectionSummary 字段", async ({
+  run,
+  request,
+}) => {
   return run(async () => {
     const response = await request.get(
       `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&pageSize=20`,
@@ -73,7 +76,8 @@ test("pageSize 参数控制班级列表页大小", async ({ run, request }) => {
   });
 });
 
-test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", async ({ run,
+test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", async ({
+  run,
   request,
 }) => {
   return run(async () => {
@@ -100,7 +104,8 @@ test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", async ({ ru
   });
 });
 
-test("/api/catalog/sections 可按高级 search 语法检索 seed 班级", async ({ run,
+test("/api/catalog/sections 可按高级 search 语法检索 seed 班级", async ({
+  run,
   request,
 }) => {
   return run(async () => {
@@ -121,7 +126,8 @@ for (const [label, search] of [
   ["课程名称", DEV_SEED.course.nameCn],
   ["教师名称", DEV_SEED.teacher.nameCn],
 ] as const) {
-  test(`/api/catalog/sections 普通搜索支持${label}并可限定学期`, async ({ run,
+  test(`/api/catalog/sections 普通搜索支持${label}并可限定学期`, async ({
+    run,
     request,
   }) => {
     return run(async () => {
@@ -132,9 +138,9 @@ for (const [label, search] of [
       const body = (await response.json()) as {
         data?: Array<{ jwId?: number }>;
       };
-      expect(body.data?.some((item) => item.jwId === DEV_SEED.section.jwId)).toBe(
-        true,
-      );
+      expect(
+        body.data?.some((item) => item.jwId === DEV_SEED.section.jwId),
+      ).toBe(true);
     });
   });
 }

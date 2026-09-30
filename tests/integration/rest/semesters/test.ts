@@ -19,9 +19,9 @@
  * - pageSize directly controls page size; limit remains a compatible alias
  */
 import { expect } from "@playwright/test";
-import { test } from "../_shared/catalog-reader-fixture";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
+import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/semesters", () => {
   test("契约", async ({ run, request }) => {
