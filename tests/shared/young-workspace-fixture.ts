@@ -13,7 +13,7 @@ type YoungWorkspace = WorkspaceState & {
 export const youngWorkspaceTest = workspaceStateTest.extend<{
   young: YoungWorkspace;
 }>({
-  young: async ({ workspace, workspaceQueue }, use) => {
+  young: async ({ workspace, workspaceQueue, task }, use) => {
     const { db } = workspace;
     const marker = crypto.randomUUID();
     const otherId = `young-other-${marker}`;
@@ -49,6 +49,7 @@ export const youngWorkspaceTest = workspaceStateTest.extend<{
         });
       }),
     );
+    task.context.signal.throwIfAborted();
     await use({
       ...workspace,
       otherId,

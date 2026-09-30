@@ -9,6 +9,7 @@ import { commentReadTest } from "../../shared/comment-read-contract-fixture";
 import { createDeferred } from "../../shared/deferred";
 import { domainStateTest } from "../../shared/domain-state-fixture";
 import { graphqlMutationTest } from "../../shared/graphql-mutation-fixture";
+import { graphqlWorkspaceTest } from "../../shared/graphql-workspace-domain-fixture";
 import type {
   IsolatedDatabase,
   OwnedDatabase,
@@ -41,6 +42,11 @@ const runtimeJournal = await vi.hoisted(async () => {
     signal: undefined as AbortSignal | undefined,
     calls: 0,
   };
+  const graphqlSetup = {
+    gate: createDeferred(),
+    signal: undefined as AbortSignal | undefined,
+    observe: undefined as ((read: () => Promise<unknown>) => Promise<void>) | undefined,
+  };
   const ids = new WeakMap<object, number>();
   let nextError = 0;
   let nextRuntime = 0;
@@ -56,6 +62,7 @@ const runtimeJournal = await vi.hoisted(async () => {
   return {
     metricsGate,
     catalogSetup,
+    graphqlSetup,
     now,
     next: () => ++nextRuntime,
     tick: () => ++sequence,
@@ -97,6 +104,52 @@ vi.mock("../../shared/node-runtime", async (importOriginal) => {
         }
       };
       return runtime;
+    },
+  };
+});
+
+// Keep the actual SDK initialization and close operations. Only the setup probe
+// delays admission; timeout probes journal when the real clients finally close.
+vi.mock("../../integration/mcp/_harness/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../integration/mcp/_harness/client")>();
+  return {
+    ...actual,
+    ownMcpHarness(...args: Parameters<typeof actual.ownMcpHarness>) {
+      const owned = actual.ownMcpHarness(...args);
+      const phase = process.env.SHARED_CLEANUP_PROBE_PHASE;
+      if (!phase?.startsWith("graphql-workspace")) return owned;
+      const label = args[0] === "graphql-domain-owner" ? "workspace-owner" : "workspace-other";
+      if (phase !== "graphql-workspace") {
+        const close = owned.client.close;
+        owned.client.close = async () => {
+          record(`${label}-close-start`);
+          await close();
+          record(`${label}-close-finished`);
+        };
+      }
+      if (phase === "graphql-workspace-setup-timeout") {
+        const initialize = owned.initialize;
+        owned.initialize = async () => {
+          const setup = runtimeJournal.graphqlSetup;
+          if (label === "workspace-owner") {
+            record("graphql-workspace-setup-entered");
+            await setup.gate.promise;
+            record("graphql-workspace-setup-resumed");
+          }
+          await initialize();
+          record(`${label}-initialized`);
+          if (label === "workspace-other") {
+            if (!setup.observe) throw new Error("Missing GraphQL setup observer");
+            await setup.observe(() => owned.client.call("graphql_operation_run", {
+              operationId: "workspace.subscription.list.v1",
+              variables: {},
+              confirmed: true,
+              locale: "en-us",
+            }));
+          }
+        };
+      }
+      return owned;
     },
   };
 });
@@ -205,6 +258,9 @@ if (
     "http",
     "mcp",
     "graphql",
+    "graphql-workspace",
+    "graphql-workspace-timeout",
+    "graphql-workspace-setup-timeout",
     "comment",
     "public",
     "subscription",
@@ -462,6 +518,110 @@ if (phase === "subscription") {
       failClientClose(client, "subscription");
       await prepareProtocolFailures(protocolRuntime);
       record("body-finished");
+    },
+  );
+}
+
+if (phase === "graphql-workspace") {
+  graphqlWorkspaceTest.extend("probe", prepareProbe)(
+    title,
+    async ({ probe: _probe, workspace, graphqlRuntime, protocolRuntime, expect }) => {
+      await graphqlRuntime.run(async () => {
+        const result = await workspace.registered(workspace.owner, "workspace.subscription.list.v1");
+        expect(result).toMatchObject({
+          success: true,
+          data: { workspace: { subscribedSections: { items: [], pageInfo: { total: 0 } } } },
+        });
+      });
+      // The existing helper awaits each real SDK close before throwing its
+      // injected original error; neither failure may prevent database disposal.
+      failClientClose(workspace.owner, "workspace-owner");
+      failClientClose(workspace.other, "workspace-other");
+      await prepareProtocolFailures(protocolRuntime);
+      record("body-finished");
+    },
+  );
+}
+
+if (phase === "graphql-workspace-setup-timeout") {
+  const setupTest = graphqlWorkspaceTest
+    .extend("probe", async ({ isolatedDatabase, _templateResources, _databaseResources, signal }) => {
+      const setup = runtimeJournal.graphqlSetup;
+      setup.signal = signal;
+      setup.observe = async (read) => {
+        const db = isolatedDatabase.owner;
+        save("late-graphql-workspace-setup.json", {
+          nativeAborted: signal.aborted,
+          courses: await db.course.count(),
+          sections: await db.section.count(),
+          homework: await db.homework.count(),
+          users: await db.user.count({ where: { id: { in: ["graphql-domain-owner", "graphql-domain-other"] } } }),
+          result: await read(),
+        });
+        record("graphql-workspace-setup-observed");
+      };
+      const release = () => {
+        record("native-test-aborted");
+        setup.gate.resolve();
+      };
+      signal.addEventListener("abort", release, { once: true });
+      if (signal.aborted) release();
+      return prepareProbe({ isolatedDatabase, _templateResources, _databaseResources });
+    })
+    .extend({
+      // Install the abort gate and disposal observer before actual SDK setup.
+      graphqlLocale: async ({ probe: _probe }, use) => {
+        await use("en-us" as const);
+      },
+    });
+  setupTest(title, { timeout: 5_000 }, async ({ workspace: _workspace }) => {
+    record("body-entered");
+    throw new Error("Timed-out GraphQL setup published its fixture");
+  });
+}
+
+if (phase === "graphql-workspace-timeout") {
+  graphqlWorkspaceTest.extend("probe", prepareProbe)(
+    title,
+    { timeout: 5_000 },
+    async ({ probe: _probe, workspace, graphqlRuntime, signal }) => {
+      const gate = createDeferred();
+      signal.addEventListener("abort", () => {
+        record("native-test-aborted");
+        gate.resolve();
+      }, { once: true });
+      await graphqlRuntime.run(async () => {
+        record("body-entered");
+        const { db, userId, section, owner, registered } = workspace;
+        await db.userSectionSubscription.create({
+          data: { userId, sectionId: section.id, kind: "regular" },
+        });
+        const before = await registered(owner, "workspace.subscription.list.v1");
+        record("graphql-workspace-before-read");
+        try {
+          await gate.promise;
+          const changed = await registered(owner, "workspace.subscription.kind.update.v1", {
+            jwId: section.jwId,
+            kind: "auditor",
+          });
+          record("graphql-workspace-late-write-finished");
+          const after = await registered(owner, "workspace.subscription.list.v1");
+          const persisted = await db.userSectionSubscription.findMany({
+            where: { userId },
+            select: { userId: true, kind: true },
+          });
+          save("late-graphql-workspace-work.json", {
+            nativeAborted: signal.aborted,
+            before,
+            changed,
+            after,
+            persisted,
+          });
+          record("graphql-workspace-late-read-finished");
+        } finally {
+          record("graphql-workspace-body-finally");
+        }
+      });
     },
   );
 }
