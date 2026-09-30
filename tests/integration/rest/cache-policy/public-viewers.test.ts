@@ -5,10 +5,10 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { restReadScope } from "@/lib/oauth/scope-registry";
-import { arrangeBusTimetable } from "../../../../shared/bus-timetable";
-import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
-import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
-import { test } from "../../../utils/owned-worker";
+import { authorizeDeviceBearer } from "../../../e2e/utils/oauth-device-bearer";
+import { test } from "../../../e2e/utils/owned-worker";
+import { arrangeBusTimetable } from "../../../shared/bus-timetable";
+import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
