@@ -39,10 +39,12 @@ test("subscription.subscription-language", async ({
       calendarTokenCreated: true,
     },
     async (effects) => {
-      await page.context().addCookies([
-        (await isolatedWorker.createSession(user.id)).cookie,
-        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-      ]);
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
       const db = isolatedWorker.database.owner;
       for (const locale of ["zh-cn", "en-us"]) {
         await setLocale(page, locale, effects.headers);
@@ -76,7 +78,9 @@ test("subscription.subscription-language", async ({
             .getByRole("button", { name: /确认取消订阅|Unsubscribe|Confirm/i })
             .click();
         await expect(
-          page.getByRole("button", { name: /^(订阅教学班|Subscribe to section)$/ }),
+          page.getByRole("button", {
+            name: /^(订阅教学班|Subscribe to section)$/,
+          }),
         ).toBeVisible();
         await expect(
           page.getByRole("button", {
@@ -90,10 +94,13 @@ test("subscription.subscription-language", async ({
             },
           }),
         ).toBeNull();
-        const response = await page.request.patch("/api/workspace/subscriptions", {
-          headers: effects.headers,
-          data: { sectionIds: [sections[0].id] },
-        });
+        const response = await page.request.patch(
+          "/api/workspace/subscriptions",
+          {
+            headers: effects.headers,
+            data: { sectionIds: [sections[0].id] },
+          },
+        );
         expect(response.status()).toBe(200);
         expect(await response.json()).toMatchObject({
           addedCount: 1,
@@ -122,10 +129,12 @@ test("subscription.quick-add-result-bound", async ({
     user,
     { calendarMessages: [], calendarTokenCreated: true },
     async (effects) => {
-      await page.context().addCookies([
-        (await isolatedWorker.createSession(user.id)).cookie,
-        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-      ]);
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
       const db = isolatedWorker.database.owner;
       await db.section.createMany({
         data: Array.from({ length: 21 }, (_, index) => ({
@@ -183,10 +192,12 @@ test("subscription.kind-web-editor-location", async ({
       calendarTokenCreated: true,
     },
     async (effects) => {
-      await page.context().addCookies([
-        (await isolatedWorker.createSession(user.id)).cookie,
-        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-      ]);
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
       const db = isolatedWorker.database.owner;
       for (const locale of ["zh-cn", "en-us"]) {
         await setLocale(page, locale, effects.headers);
@@ -249,10 +260,12 @@ test("subscribed-sections.grouped-by-semester", async ({
     user,
     { calendarMessages: [], calendarTokenCreated: true },
     async () => {
-      await page.context().addCookies([
-        (await isolatedWorker.createSession(user.id)).cookie,
-        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-      ]);
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
       for (const width of widths) {
         await open(page, width);
         const groups = page
@@ -271,7 +284,9 @@ test("subscribed-sections.grouped-by-semester", async ({
             ({ semesterId }) => semesterId === semester.id,
           );
           await expect(
-            group.getByTestId("subscription-course-link").filter({ visible: true }),
+            group
+              .getByTestId("subscription-course-link")
+              .filter({ visible: true }),
           ).toHaveCount(expected.length);
           await expect(group).toContainText(`${expected.length} 个班级`);
           for (const section of expected)
@@ -305,10 +320,12 @@ test("subscribed-sections.section-codes-promoted", async ({
     user,
     { calendarMessages: [], calendarTokenCreated: true },
     async () => {
-      await page.context().addCookies([
-        (await isolatedWorker.createSession(user.id)).cookie,
-        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-      ]);
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
       for (const width of widths) {
         await open(page, width);
         await page.screenshot({
@@ -329,7 +346,9 @@ test("subscribed-sections.section-codes-promoted", async ({
           );
           await expect(link).toContainText(course.nameCn);
           await expect(item).toContainText(teacher.nameCn);
-          await expect(item.getByText(section.code, { exact: true })).toBeVisible();
+          await expect(
+            item.getByText(section.code, { exact: true }),
+          ).toBeVisible();
           expect(
             await item
               .getByText(section.code, { exact: true })
@@ -357,10 +376,12 @@ test("subscribed-sections.sidebar-summary-only", async ({
     user,
     { calendarMessages: [], calendarTokenCreated: true },
     async () => {
-      await page.context().addCookies([
-        (await isolatedWorker.createSession(user.id)).cookie,
-        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-      ]);
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
       for (const width of widths) {
         await open(page, width);
         if (width < 768)
@@ -370,13 +391,15 @@ test("subscribed-sections.sidebar-summary-only", async ({
             ? page.getByRole("dialog", { name: "Sidebar", exact: true })
             : page.getByTestId("app-sidebar");
         await expect(sidebar).toBeVisible();
-        const destination = sidebar.locator('a[href="/workspace/subscriptions"]');
+        const destination = sidebar.locator(
+          'a[href="/workspace/subscriptions"]',
+        );
         await expect(destination).toHaveCount(1);
         await expect(destination).toContainText("教学班订阅");
         await expect(destination).toHaveAttribute("aria-current", "page");
-        await expect(sidebar.locator('a[href^="/catalog/sections/"]')).toHaveCount(
-          0,
-        );
+        await expect(
+          sidebar.locator('a[href^="/catalog/sections/"]'),
+        ).toHaveCount(0);
         for (const section of sections)
           await expect(sidebar).not.toContainText(section.code);
         if (width < 768) await page.keyboard.press("Escape");

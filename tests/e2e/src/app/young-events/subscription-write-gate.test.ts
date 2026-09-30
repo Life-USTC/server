@@ -192,7 +192,8 @@ test("young-event.subscription-write-gate", async ({
         return operation;
       };
       try {
-        if (page.isClosed()) throw new Error("Young subscription page is closed");
+        if (page.isClosed())
+          throw new Error("Young subscription page is closed");
         await page.route(routePattern, handler);
         await page.goto(path);
         await entered;
