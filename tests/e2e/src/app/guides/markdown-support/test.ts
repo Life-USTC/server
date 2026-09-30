@@ -4,11 +4,11 @@
  * Static documentation page showcasing Markdown features supported in comments.
  */
 import { expect } from "@playwright/test";
-import { test } from "../../../../utils/public-worker";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
+import { test } from "../../../../utils/public-worker";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -38,7 +38,10 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     });
   });
 
-  test("桌面和移动端共享段落间距与首行缩进，图片和列表不缩进", async ({ page, publicFlow }) => {
+  test("桌面和移动端共享段落间距与首行缩进，图片和列表不缩进", async ({
+    page,
+    publicFlow,
+  }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(page, "/guides/markdown-support");
 
@@ -116,7 +119,9 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
               for (const match of source.matchAll(
                 /url\(["']?([^"')]+)["']?\)/g,
               )) {
-                sources.push(new URL(match[1], sheet.href ?? location.href).href);
+                sources.push(
+                  new URL(match[1], sheet.href ?? location.href).href,
+                );
               }
             }
           }

@@ -56,7 +56,9 @@ test.describe("/api/docs 页面", () => {
 
       await expect(mobileTrigger).toHaveAccessibleName("浏览 API 接口");
       await expect(mobileTrigger).toBeVisible();
-      await expect(page.getByTestId("api-docs-desktop-navigation")).toBeHidden();
+      await expect(
+        page.getByTestId("api-docs-desktop-navigation"),
+      ).toBeHidden();
 
       const initialMetrics = await reference.evaluate((element) => ({
         documentY: element.getBoundingClientRect().top + window.scrollY,

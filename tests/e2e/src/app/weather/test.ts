@@ -7,11 +7,11 @@
  */
 
 import { expect } from "@playwright/test";
-import { test } from "../../../utils/personal-preferences-fixture";
 import {
   formatShanghaiDate,
   formatShanghaiTime,
 } from "@/lib/time/shanghai-format";
+import { test } from "../../../utils/personal-preferences-fixture";
 import { arrangeWeatherCache } from "../../../utils/weather-cache-fixture";
 import { showWeatherFixture } from "../../../utils/weather-fixture";
 import { assertPageContract } from "../_shared/page-contract";
@@ -67,7 +67,10 @@ test.describe("/catalog/weather", () => {
 });
 
 for (const width of [1280, 390]) {
-  test(`逐小时预报支持边缘悬停和键盘浏览 ${width}`, async ({ page, preferenceFlow }) => {
+  test(`逐小时预报支持边缘悬停和键盘浏览 ${width}`, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width, height: 900 });
       const snapshot = await showWeatherFixture(page);
@@ -80,9 +83,9 @@ for (const width of [1280, 390]) {
       const tooltip = chart.getByRole("tooltip");
       await expect(slider).toHaveAttribute("aria-valuemax", "23");
       await expect(tooltip).toHaveCount(0);
-      await expect(page.getByTestId("weather-hourly-scroll-region")).toHaveCount(
-        0,
-      );
+      await expect(
+        page.getByTestId("weather-hourly-scroll-region"),
+      ).toHaveCount(0);
       const box = await slider.boundingBox();
       if (!box) throw new Error("Expected chart bounds");
       for (const position of [0, 1]) {
@@ -136,6 +139,8 @@ test("weather.missing-current-display", async ({
       path: testInfo.outputPath("weather-missing-current.png"),
       fullPage: true,
     });
-    await expect(page.getByTestId("weather-temperature").first()).toHaveText("—");
+    await expect(page.getByTestId("weather-temperature").first()).toHaveText(
+      "—",
+    );
   });
 });

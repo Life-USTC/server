@@ -84,7 +84,9 @@ test("usage pages expose their primary handoff", async ({
       }),
     ).toBeVisible();
 
-    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
     await gotoAndWaitForReady(page, "/usage/mcp", { testInfo });
     const mcpEndpointButton = page
       .getByRole("button", { name: /复制 MCP 端点|Copy MCP endpoint/i })
@@ -121,7 +123,9 @@ test("usage pages expose their primary handoff", async ({
         )
         .last(),
     ).toBeVisible();
-    await expect(page.getByText(/截图语言|Screenshot language/i)).toHaveCount(0);
+    await expect(page.getByText(/截图语言|Screenshot language/i)).toHaveCount(
+      0,
+    );
     const chatgptNameValue = page.getByRole("button", {
       name: /^(?:复制|Copy): (?:名称|Name)$/i,
     });

@@ -4,11 +4,11 @@
  * Static legal page rendering the terms of service from i18n keys.
  */
 import { expect } from "@playwright/test";
-import { test } from "../../../utils/public-worker";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../utils/page-ready";
+import { test } from "../../../utils/public-worker";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/terms", () => {
