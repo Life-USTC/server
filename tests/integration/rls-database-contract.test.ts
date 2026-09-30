@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
-import { runWithUserRlsContext } from "@/lib/db/rls-context";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { isolatedNodeTest as it } from "../shared/isolated-node-fixture";
 import type { TestPrismaClient } from "../shared/prisma";
 
@@ -202,7 +202,9 @@ async function readScopedRows(
   };
 
   if (userId === undefined) return read(prisma);
-  return runWithUserRlsContext(prisma, userId, read);
+  // The enclosing nodeRuntime.run binds the production wrapper to this case's
+  // app connection and owns its request-local client through workflow completion.
+  return withUserDbContext(userId, read);
 }
 
 function expectedScopedRows(userId: string, auditId: string, usageId: string) {
