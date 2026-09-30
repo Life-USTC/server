@@ -76,6 +76,7 @@ async function prepareCommentSecurity(
       mcp: await create("mcp"),
     };
   });
+  const deviceAuthorizationStarted = Date.now();
   const token = await authorizeDeviceBearer(
     page.request,
     origin,
@@ -96,6 +97,7 @@ async function prepareCommentSecurity(
     scope,
     "/api/graphql",
   );
+  const deviceAuthorizationFinished = Date.now();
   const mcp = await flow.mcp(
     { name: "comment-security", version: "1.0.0" },
     mcpToken,
@@ -165,7 +167,38 @@ async function prepareCommentSecurity(
       ).toEqual(["community_comment_create", "community_comment_create"]);
     },
     async verifyState() {
-      expect(await stable()).toEqual(baseline);
+      const current = await stable();
+      expect(current.sessions).toHaveLength(1);
+      const session = current.sessions[0];
+      // The private actor starts with a one-hour session. Genuine device
+      // approval refreshes that same session to the configured 30-day lifetime.
+      // Preserve every other field from before authorization, including its ID,
+      // token, actor and original creation time.
+      expect(current).toEqual({
+        ...baseline,
+        sessions: [
+          {
+            ...baseline.sessions[0],
+            expires: expect.any(Date),
+            updatedAt: expect.any(Date),
+          },
+        ],
+      });
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      const expiryRefreshTime = session.expires.getTime() - thirtyDays;
+      const updatedTime = session.updatedAt.getTime();
+      for (const time of [expiryRefreshTime, updatedTime]) {
+        expect(time).toBeGreaterThanOrEqual(deviceAuthorizationStarted);
+        expect(time).toBeLessThanOrEqual(deviceAuthorizationFinished);
+      }
+      // Better Auth assigns expiry and updatedAt with successive clock reads.
+      expect(updatedTime).toBeGreaterThanOrEqual(expiryRefreshTime);
+      expect(session.expires.getTime()).toBeGreaterThan(
+        baseline.sessions[0].expires.getTime(),
+      );
+      expect(updatedTime).toBeGreaterThanOrEqual(
+        baseline.sessions[0].updatedAt.getTime(),
+      );
       expect(await db.userSuspension.findMany()).toEqual([suspension]);
       expect(suspension).toMatchObject({
         userId,
