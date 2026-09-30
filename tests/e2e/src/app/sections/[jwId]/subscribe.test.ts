@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { observeAction } from "../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -119,7 +120,23 @@ test("已订阅用户仍可取消订阅已退役教学班", async ({
       await expect(
         page.getByRole("button", { name: subscribeName }),
       ).toHaveCount(0);
-      await unsubscribe.first().click();
+      // Retired sections have no subscribe button to signal that the enhanced
+      // action's viewer refresh has completed before leaving this document.
+      const refreshedViewer = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.request().method() === "GET" &&
+              new URL(response.url()).pathname ===
+                `/_internal/catalog/sections/${section.jwId}/viewer` &&
+              response.status() === 200,
+          ),
+        () => unsubscribe.first().click(),
+      );
+      expect((await refreshedViewer.json()).viewer).toEqual({
+        signedIn: true,
+        isSubscribed: false,
+      });
       await expect
         .poll(() => getUserSubscribedSectionIds(db, section.userId))
         .toEqual([]);
