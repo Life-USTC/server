@@ -514,7 +514,9 @@ export async function withHomeworkEffects(
           activeReads: browserReads.activeReads,
           expectReadCancellation(current, request) {
             if (!accepting || !observeReads || current !== page)
-              throw new Error("Cancellation requires this active workflow page");
+              throw new Error(
+                "Cancellation requires this active workflow page",
+              );
             browserReads.expectCancellation(request);
             expectedReadCancellations.add(request);
           },
