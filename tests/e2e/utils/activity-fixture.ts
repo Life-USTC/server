@@ -320,8 +320,7 @@ export const test = workerTest.extend<{
                         expect(JSON.parse(text)).toEqual({
                           youngId: activity.youngId,
                           subscribed: input.subscribed,
-                          remindSignup:
-                            input.subscribed && input.remindSignup,
+                          remindSignup: input.subscribed && input.remindSignup,
                           remindDeadline:
                             input.subscribed && input.remindDeadline,
                           remindStart: input.subscribed && input.remindStart,
@@ -462,7 +461,9 @@ export const test = workerTest.extend<{
               await workflow.body(() =>
                 work(async () => {
                   if (!accepting)
-                    throw new Error("Activity effects requested during teardown");
+                    throw new Error(
+                      "Activity effects requested during teardown",
+                    );
                   // Explicit checkpoints preserve each mutation's projection
                   // without holding its successful HTTP response for the queue.
                   const completion = settleEffects().then(() => undefined);
