@@ -568,9 +568,10 @@ requirements:
   rule: Completed homework in a personal section view retains due datetime, completion state and non-default
     major/team badges while hiding the deadline reminder; reopening restores the reminder.
   acceptance:
-    given: A personal section view contains an incomplete, dated major homework requiring a team.
-    when: On desktop and mobile the owner completes it in the detail dialog, closes/reopens the detail
-      and marks it incomplete.
+    given: A personal section view has independently prepared incomplete and completed dated major
+      homework requiring a team.
+    when: Desktop and mobile consumers open and reopen each known detail state; separate owner mutation
+      cases complete an incomplete homework and reopen a pre-completed homework through the actual dialog.
     then:
     - Completion preserves the due datetime, completion status and major/team details while removing the
       deadline reminder.
