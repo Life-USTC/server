@@ -374,25 +374,27 @@ describe("GraphQL authenticated mutations", () => {
         marker,
         userAId,
         sectionJwId,
+        sectionId,
       } = mutations;
-      const [todoToken, commentToken, section] = await Promise.all([
+      const [todoToken, commentToken] = await Promise.all([
         signToken(userAId, [restWriteScope("workspace.todo")]),
         signToken(userAId, [restWriteScope("community.comment")]),
-        fixturePrisma.section.findUniqueOrThrow({
-          where: { jwId: sectionJwId },
-          select: { id: true },
-        }),
       ]);
       const [todo, comment] = await Promise.all([
         fixturePrisma.todo.create({
-          data: { userId: userAId, title: `${marker} null guard todo` },
+          data: {
+            userId: userAId,
+            title: `${marker} null guard todo`,
+            priority: "medium",
+            completed: false,
+          },
           select: { id: true },
         }),
         fixturePrisma.comment.create({
           data: {
             body: `${marker} null guard comment`,
             isAnonymous: false,
-            sectionId: section.id,
+            sectionId,
             status: "active",
             userId: userAId,
             visibility: "public",
@@ -489,37 +491,6 @@ describe("GraphQL authenticated mutations", () => {
         expect(await readComments(fixturePrisma)).toEqual(beforeComments);
         expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
       }
-
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: todo.id },
-          select: { completed: true, priority: true, title: true },
-        }),
-      ).resolves.toEqual({
-        completed: false,
-        priority: "medium",
-        title: `${marker} null guard todo`,
-      });
-      await expect(
-        fixturePrisma.comment.findUniqueOrThrow({
-          where: { id: comment.id },
-          select: { body: true, isAnonymous: true, visibility: true },
-        }),
-      ).resolves.toEqual({
-        body: `${marker} null guard comment`,
-        isAnonymous: false,
-        visibility: "public",
-      });
-      await expect(
-        fixturePrisma.todo.count({
-          where: { userId: userAId, title: `${marker} invalid create` },
-        }),
-      ).resolves.toBe(0);
-      await expect(
-        fixturePrisma.comment.count({
-          where: { body: `${marker} invalid comment create`, userId: userAId },
-        }),
-      ).resolves.toBe(0);
     });
   });
 
@@ -528,20 +499,10 @@ describe("GraphQL authenticated mutations", () => {
     mutations,
   }) => {
     await graphqlRuntime.run(async () => {
-      const {
-        fixturePrisma,
-        execute,
-        signToken,
-        marker,
-        userAId,
-        sectionJwId,
-      } = mutations;
-      const [token, section] = await Promise.all([
-        signToken(userAId, [restWriteScope("community.comment")]),
-        fixturePrisma.section.findUniqueOrThrow({
-          where: { jwId: sectionJwId },
-          select: { id: true },
-        }),
+      const { fixturePrisma, execute, signToken, marker, userAId, sectionId } =
+        mutations;
+      const token = await signToken(userAId, [
+        restWriteScope("community.comment"),
       ]);
       const mutation =
         "mutation($input: CreateCommentInput!) { commentCreate(input: $input) { id } }";
@@ -553,18 +514,16 @@ describe("GraphQL authenticated mutations", () => {
         { field: "sectionTeacherId", value: 0 },
         { field: "sectionTeacherId", value: -1 },
       ] as const;
-      const bodies: string[] = [];
 
       for (const { field, value } of invalidSelectors) {
         const body = `${marker} invalid ${field} ${value}`;
-        bodies.push(body);
         const result = await execute(
           {
             query: mutation,
             variables: {
               input: {
                 body,
-                targetId: String(section.id),
+                targetId: String(sectionId),
                 targetType: "SECTION",
                 [field]: value,
               },
@@ -580,12 +539,6 @@ describe("GraphQL authenticated mutations", () => {
         expect(await fixturePrisma.comment.findMany()).toEqual([]);
         expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
       }
-
-      await expect(
-        fixturePrisma.comment.count({
-          where: { body: { in: bodies }, userId: userAId },
-        }),
-      ).resolves.toBe(0);
     });
   });
 

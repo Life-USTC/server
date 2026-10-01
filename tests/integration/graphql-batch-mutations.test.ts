@@ -57,13 +57,25 @@ const it = isolatedGraphqlTest.extend(
       const [ownedCompletionTodo, ownedDeleteTodo, otherTodo, active, deleted] =
         await Promise.all([
           fixturePrisma.todo.create({
-            data: { userId: userAId, title: `${marker} completion` },
+            data: {
+              userId: userAId,
+              title: `${marker} completion`,
+              completed: false,
+            },
           }),
           fixturePrisma.todo.create({
-            data: { userId: userAId, title: `${marker} delete` },
+            data: {
+              userId: userAId,
+              title: `${marker} delete`,
+              completed: false,
+            },
           }),
           fixturePrisma.todo.create({
-            data: { userId: userBId, title: `${marker} other` },
+            data: {
+              userId: userBId,
+              title: `${marker} other`,
+              completed: false,
+            },
           }),
           fixturePrisma.homework.create({
             data: {
@@ -158,12 +170,6 @@ describe("GraphQL batch mutations", () => {
       expect(result.payload.errors?.[0]?.extensions?.requiredScopes).toEqual([
         "workspace.todo:write",
       ]);
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: ownedCompletionTodoId },
-          select: { completed: true },
-        }),
-      ).resolves.toEqual({ completed: false });
       expect(
         await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
       ).toEqual(before);
@@ -375,13 +381,6 @@ describe("GraphQL batch mutations", () => {
         ).toEqual(before);
         expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
       }
-
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: ownedCompletionTodoId },
-          select: { completed: true },
-        }),
-      ).resolves.toEqual({ completed: false });
     });
   });
 
