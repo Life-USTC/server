@@ -104,7 +104,7 @@ export const test = workerTest.extend<{
                       ).toEqual(expect.any(String));
                       expect(
                         await getUserSubscribedSectionIds(db, calendar.userId),
-                      ).toEqual([]);
+                      ).toEqual(plan.writes.at(-1)?.subscribedIds);
                     }
                     // Visiting /workspace/subscriptions mints exactly one feed token;
                     // await its real audit consumer independently of request completion.

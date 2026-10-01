@@ -59,7 +59,7 @@ async function prepare(
   };
 }
 
-test("subscription.bounded-batch-input REST query append remove", async ({
+test("subscription.bounded-batch-input REST query", async ({
   page,
   oauthOwner,
   calendarProtocolRun,
@@ -72,9 +72,8 @@ test("subscription.bounded-batch-input REST query append remove", async ({
       oauthOwner,
       io,
       calendarSemester,
-      2,
+      0,
     );
-    const oversizeIds = [...ids, ids[0]];
     for (const field of ["sectionIds", "codes"] as const) {
       const values = field === "sectionIds" ? ids : codes;
       const query = await page.request.post(
@@ -95,44 +94,15 @@ test("subscription.bounded-batch-input REST query append remove", async ({
       await oversized.body();
       expect(oversized.status()).toBe(400);
     }
-    expect(await memberships(db, userId)).toHaveLength(0);
-    const appended = await page.request.patch("/api/workspace/subscriptions", {
-      data: { sectionIds: ids },
-    });
-    expect(appended.status()).toBe(200);
-    expect((await appended.json()).addedCount).toBe(500);
-    const baseline = await memberships(db, userId);
-    expect(baseline).toHaveLength(500);
-    for (const method of ["patch", "delete"] as const) {
-      const oversized = await page.request[method](
-        "/api/workspace/subscriptions",
-        {
-          data: { sectionIds: oversizeIds },
-        },
-      );
-      await oversized.body();
-      expect(oversized.status()).toBe(400);
-      expect(await memberships(db, userId)).toEqual(baseline);
-    }
-    const removed = await page.request.delete("/api/workspace/subscriptions", {
-      data: { sectionIds: ids },
-    });
-    await removed.body();
-    expect(removed.status()).toBe(200);
-    expect(await memberships(db, userId)).toHaveLength(0);
-
+    expect(await memberships(db, userId)).toEqual([]);
     return contract.checks(
       [],
-      [
-        ["POST", "/api/workspace/subscriptions/query", [200, 400, 200, 400]],
-        ["PATCH", "/api/workspace/subscriptions", [200, 400]],
-        ["DELETE", "/api/workspace/subscriptions", [400, 200]],
-      ],
+      [["POST", "/api/workspace/subscriptions/query", [200, 400, 200, 400]]],
     );
   });
 });
 
-test("subscription.bounded-batch-input REST batch", async ({
+test("subscription.bounded-batch-input REST append", async ({
   page,
   oauthOwner,
   calendarProtocolRun,
@@ -140,55 +110,184 @@ test("subscription.bounded-batch-input REST batch", async ({
 }) => {
   test.setTimeout(180_000);
   await calendarProtocolRun(async (io) => {
-    const { db, fixture, userId, contract, ids, codes } = await prepare(
+    const { db, userId, contract, ids } = await prepare(
       page,
       oauthOwner,
       io,
       calendarSemester,
-      4,
+      1,
     );
-    for (const field of ["sectionIds", "codes"] as const) {
-      const values = field === "sectionIds" ? ids : codes;
-      for (const action of ["add", "remove"]) {
-        const result = await page.request.post(
-          "/api/workspace/subscriptions/batch",
-          { data: { action, [field]: values, semesterId: fixture.semesterId } },
-        );
-        expect(result.status()).toBe(200);
-        expect(
-          (await result.json())[
-            action === "add" ? "addedCount" : "removedCount"
-          ],
-        ).toBe(500);
-        const beforeOversize = await memberships(db, userId);
-        const oversized = await page.request.post(
-          "/api/workspace/subscriptions/batch",
-          {
-            data: {
-              action,
-              [field]: [...values, values[0]],
-              semesterId: fixture.semesterId,
-            },
-          },
-        );
-        await oversized.body();
-        expect(oversized.status()).toBe(400);
-        expect(await memberships(db, userId)).toEqual(beforeOversize);
-      }
-    }
+    expect(await memberships(db, userId)).toEqual([]);
+    const appended = await page.request.patch("/api/workspace/subscriptions", {
+      data: { sectionIds: ids },
+    });
+    expect(appended.status()).toBe(200);
+    expect((await appended.json()).addedCount).toBe(500);
+    const baseline = await memberships(db, userId);
+    expect(baseline).toHaveLength(500);
+    const oversized = await page.request.patch("/api/workspace/subscriptions", {
+      data: { sectionIds: [...ids, ids[0]] },
+    });
+    await oversized.body();
+    expect(oversized.status()).toBe(400);
+    expect(await memberships(db, userId)).toEqual(baseline);
+
+    return contract.checks(ids, [
+      ["PATCH", "/api/workspace/subscriptions", [200, 400]],
+    ]);
+  });
+});
+
+test("subscription.bounded-batch-input REST remove", async ({
+  page,
+  oauthOwner,
+  calendarProtocolRun,
+  calendarSemester,
+}) => {
+  test.setTimeout(180_000);
+  await calendarProtocolRun(async (io) => {
+    const { db, userId, contract, ids } = await prepare(
+      page,
+      oauthOwner,
+      io,
+      calendarSemester,
+      1,
+    );
+    await db.userSectionSubscription.createMany({
+      data: ids.map((sectionId) => ({ userId, sectionId })),
+    });
+    const baseline = await memberships(db, userId);
+    expect(baseline).toHaveLength(500);
+    const oversized = await page.request.delete(
+      "/api/workspace/subscriptions",
+      {
+        data: { sectionIds: [...ids, ids[0]] },
+      },
+    );
+    await oversized.body();
+    expect(oversized.status()).toBe(400);
+    expect(await memberships(db, userId)).toEqual(baseline);
+    const removed = await page.request.delete("/api/workspace/subscriptions", {
+      data: { sectionIds: ids },
+    });
+    await removed.body();
+    expect(removed.status()).toBe(200);
+    expect(await memberships(db, userId)).toEqual([]);
 
     return contract.checks(
       [],
-      [
-        [
-          "POST",
-          "/api/workspace/subscriptions/batch",
-          [200, 400, 200, 400, 200, 400, 200, 400],
-        ],
-      ],
+      [["DELETE", "/api/workspace/subscriptions", [400, 200]]],
     );
   });
 });
+
+for (const field of ["sectionIds", "codes"] as const) {
+  test(`subscription.bounded-batch-input REST batch add ${field}`, async ({
+    page,
+    oauthOwner,
+    calendarProtocolRun,
+    calendarSemester,
+  }) => {
+    test.setTimeout(180_000);
+    await calendarProtocolRun(async (io) => {
+      const { db, fixture, userId, contract, ids, codes } = await prepare(
+        page,
+        oauthOwner,
+        io,
+        calendarSemester,
+        1,
+      );
+      const values = field === "sectionIds" ? ids : codes;
+      expect(await memberships(db, userId)).toEqual([]);
+      const added = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "add",
+            [field]: values,
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      expect(added.status()).toBe(200);
+      expect((await added.json()).addedCount).toBe(500);
+      const baseline = await memberships(db, userId);
+      expect(baseline).toHaveLength(500);
+      const oversized = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "add",
+            [field]: [...values, values[0]],
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      await oversized.body();
+      expect(oversized.status()).toBe(400);
+      expect(await memberships(db, userId)).toEqual(baseline);
+
+      return contract.checks(ids, [
+        ["POST", "/api/workspace/subscriptions/batch", [200, 400]],
+      ]);
+    });
+  });
+
+  test(`subscription.bounded-batch-input REST batch remove ${field}`, async ({
+    page,
+    oauthOwner,
+    calendarProtocolRun,
+    calendarSemester,
+  }) => {
+    test.setTimeout(180_000);
+    await calendarProtocolRun(async (io) => {
+      const { db, fixture, userId, contract, ids, codes } = await prepare(
+        page,
+        oauthOwner,
+        io,
+        calendarSemester,
+        1,
+      );
+      await db.userSectionSubscription.createMany({
+        data: ids.map((sectionId) => ({ userId, sectionId })),
+      });
+      const baseline = await memberships(db, userId);
+      expect(baseline).toHaveLength(500);
+      const values = field === "sectionIds" ? ids : codes;
+      const oversized = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "remove",
+            [field]: [...values, values[0]],
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      await oversized.body();
+      expect(oversized.status()).toBe(400);
+      expect(await memberships(db, userId)).toEqual(baseline);
+      const removed = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "remove",
+            [field]: values,
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      expect(removed.status()).toBe(200);
+      expect((await removed.json()).removedCount).toBe(500);
+      expect(await memberships(db, userId)).toEqual([]);
+
+      return contract.checks(
+        [],
+        [["POST", "/api/workspace/subscriptions/batch", [400, 200]]],
+      );
+    });
+  });
+}
 
 test("subscription.bounded-batch-input REST import", async ({
   page,
