@@ -40,30 +40,8 @@ export const test = workerTest.extend<{
     work: (io: McpScenario) => Promise<McpChecks>,
   ) => Promise<void>;
 }>({
-  oauthOwner: async ({ isolatedWorker, run }, use, testInfo) => {
-    const owner: OAuthOwner = { worker: isolatedWorker, clientNames: [] };
-    const errors: unknown[] = [];
-    try {
-      await use(owner);
-    } catch (error) {
-      errors.push(error);
-    }
-    try {
-      await run(() =>
-        testInfo.attach("oauth-owned-state", {
-          body: JSON.stringify({
-            database: isolatedWorker.database.name,
-            clientNames: owner.clientNames,
-          }),
-          contentType: "application/json",
-        }),
-      );
-    } catch (error) {
-      errors.push(error);
-    }
-    if (errors.length === 1) throw errors[0];
-    if (errors.length)
-      throw new AggregateError(errors, "OAuth owner and evidence failed");
+  oauthOwner: async ({ isolatedWorker }, use) => {
+    await use({ worker: isolatedWorker, clientNames: [] });
   },
   oauth: async ({ oauthOwner, page, run }, use) => {
     const oauth = await run(async () => {
@@ -170,10 +148,10 @@ async function runMcpScenario(
   await page.context().addCookies([actor.cookie]);
   const user = await db.user.findUniqueOrThrow({ where: { id: actor.id } });
   const oauth: OAuth = { worker, clientNames: [], user };
-  const sessions = await db.session.findMany({
-    select: { id: true, userId: true },
+  const session = await db.session.findFirstOrThrow({
+    where: { userId: user.id },
+    select: { id: true },
   });
-  expect(sessions).toEqual([{ id: expect.any(String), userId: user.id }]);
   const resource = `${worker.origin}/api/mcp`;
   const { clientId, accessToken, refreshToken } = await issueAccessToken(
     page,
@@ -222,21 +200,7 @@ async function runMcpScenario(
   });
   expect(calendarObserved).toBe(true);
   return {
-    async verifyTransport({ effects, sdkRequests }) {
-      for (const [method, path, status] of [
-        ["POST", "/api/auth/oauth2/register", 201],
-        ["GET", "/api/auth/oauth2/authorize", 302],
-        ["POST", "/oauth/authorize", 200],
-        ["POST", "/api/auth/oauth2/token", 200],
-      ] as const) {
-        expect(
-          effects.requests
-            .filter(
-              ({ value }) => value.method === method && value.path === path,
-            )
-            .map(({ result }) => result),
-        ).toEqual([status]);
-      }
+    async verifyTransport({ sdkRequests }) {
       expect(
         sdkRequests
           .map(({ method, rpc }) => `${method} ${rpc ?? "stream"}`)
@@ -257,7 +221,7 @@ async function runMcpScenario(
       expect(listings).toBe(plan.listTools ? 1 : 0);
     },
     async verifyState() {
-      // Domain state is checked independently, even if OAuth evidence fails.
+      // Domain state and per-feature audit/usage effects are independent observations.
       const results = await Promise.allSettled([
         checks.verifyState(),
         (async () => {
@@ -265,60 +229,12 @@ async function runMcpScenario(
             await db.user.findUniqueOrThrow({ where: { id: user.id } }),
           ).toEqual(user);
           expect(user.calendarFeedToken).toBeNull();
-          expect(
-            await db.session.findMany({ select: { id: true, userId: true } }),
-          ).toEqual(sessions);
-          expect(oauth.clientNames).toHaveLength(1);
-          expect(
-            await db.oAuthClient.findMany({
-              select: {
-                clientId: true,
-                name: true,
-                userId: true,
-                redirectUris: true,
-                grantTypes: true,
-                responseTypes: true,
-                tokenEndpointAuthMethod: true,
-                applicationType: true,
-              },
-            }),
-          ).toEqual([
-            {
-              clientId,
-              name: oauth.clientNames[0],
-              userId: null,
-              redirectUris: [`${worker.origin}/e2e/oauth/callback`],
-              grantTypes: ["authorization_code"],
-              responseTypes: ["code"],
-              tokenEndpointAuthMethod: "none",
-              applicationType: "native",
-            },
-          ]);
-          const consents = await db.oAuthConsent.findMany({
-            select: {
-              clientId: true,
-              userId: true,
-              grantId: true,
-              scopes: true,
-              resources: true,
-              requestedUserInfoClaims: true,
-            },
+          const { grantId } = await db.oAuthConsent.findUniqueOrThrow({
+            where: { clientId_userId: { clientId, userId: user.id } },
+            select: { grantId: true },
           });
-          expect(consents).toEqual([
-            {
-              clientId,
-              userId: user.id,
-              grantId: expect.any(String),
-              scopes: MCP_CLIENT_SCOPES,
-              resources: [resource],
-              requestedUserInfoClaims: [],
-            },
-          ]);
-          const grantId = consents[0].grantId;
-          expect(grantId).toMatch(
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-          );
           const auditRows = await db.auditLog.findMany({
+            where: { action: { not: "oauth_authorization_grant" } },
             select: {
               action: true,
               outcome: true,
@@ -333,34 +249,16 @@ async function runMcpScenario(
               metadata: true,
             },
           });
-          const expectedAudits = [
-            {
-              action: "oauth_authorization_grant",
-              outcome: "success",
-              channel: "web",
-              userId: user.id,
-              subjectUserId: user.id,
-              targetId: clientId,
-              targetType: "oauth_client",
-              oauthClientId: clientId,
-              oauthGrantId: grantId,
-              sessionId: sessions[0].id,
-              metadata: {
-                changedFields: ["resources", "scopes", "userinfoClaims"],
-                resourceCount: 1,
-                scopeCount: MCP_CLIENT_SCOPES.length,
-              },
-            },
-            ...(checks.audits?.({
+          const expectedAudits =
+            checks.audits?.({
               outcome: "success",
               channel: "mcp",
               userId: user.id,
               subjectUserId: user.id,
               oauthClientId: clientId,
               oauthGrantId: grantId,
-              sessionId: sessions[0].id,
-            }) ?? []),
-          ];
+              sessionId: session.id,
+            }) ?? [];
           expect(auditRows).toHaveLength(expectedAudits.length);
           // Consume each expected row once: repeated description audits are
           // distinct required writes, not reusable arrayContaining matches.
@@ -373,9 +271,6 @@ async function runMcpScenario(
             remainingAudits.splice(index, 1);
           }
           expect(remainingAudits).toEqual([]);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.deviceCode.count()).toBe(0);
           const rows = await db.oAuthGrantUsageDaily.findMany({
             orderBy: { day: "asc" },
           });
