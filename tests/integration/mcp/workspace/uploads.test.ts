@@ -1,120 +1,140 @@
 import { describe } from "vitest";
+import type { TestPrismaClient } from "../../../shared/prisma";
 import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 
+function seedUpload(db: TestPrismaClient, userId: string) {
+  return db.upload.create({
+    data: {
+      userId,
+      key: `integration-test/${userId}.txt`,
+      filename: "original.txt",
+      contentType: "text/plain",
+      size: 321,
+    },
+  });
+}
+
 describe("MCP upload metadata mutations", () => {
-  toolTest(
-    "上传元数据工具列出、重命名并在存储删除失败时保留重试状态",
-    async ({
-      mcpWorkflow,
-      mcpActor: isolated,
-      expect,
-      isolatedDatabase: { owner: db },
-    }) =>
-      mcpWorkflow.run(async () => {
-        const filename = `mcp-upload-${Date.now()}.txt`;
-        const upload = await db.upload.create({
-          data: {
-            userId: isolated.userId,
-            key: `integration-test/${filename}`,
-            filename,
-            contentType: "text/plain",
-            size: 321,
-          },
-          select: { id: true, key: true, size: true },
-        });
-        const renamedFilename = `renamed-${filename}`;
+  for (const operation of ["list", "rename", "storage failure"] as const) {
+    toolTest(
+      `上传元数据工具独立验证 ${operation}`,
+      async ({
+        mcpWorkflow,
+        mcpActor: isolated,
+        mcpOtherActor,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          const upload = await seedUpload(db, isolated.userId);
+          const foreign = await seedUpload(db, mcpOtherActor.userId);
+          const before = await db.upload.findMany({ orderBy: { id: "asc" } });
+          if (operation === "list") {
+            const result = await isolated.client.call<{
+              data?: Array<{ filename?: string; id?: string; size?: number }>;
+              meta?: {
+                maxFileSizeBytes?: number;
+                quotaBytes?: number;
+                usedBytes?: number;
+              };
+              pagination?: { page?: number; pageSize?: number; total?: number };
+            }>("workspace_upload_list", { mode: "full" });
+            expect(typeof result.meta?.maxFileSizeBytes).toBe("number");
+            expect(typeof result.meta?.quotaBytes).toBe("number");
+            expect(result.meta?.usedBytes).toBe(upload.size);
+            expect(result.pagination).toMatchObject({
+              page: 1,
+              pageSize: 20,
+              total: 1,
+            });
+            expect(result.data).toEqual([
+              expect.objectContaining({
+                id: upload.id,
+                filename: upload.filename,
+                size: upload.size,
+              }),
+            ]);
+          } else if (operation === "rename") {
+            const result = await isolated.client.call(
+              "workspace_upload_rename",
+              { id: upload.id, filename: "renamed.txt" },
+            );
+            expect(result).toMatchObject({
+              success: true,
+              upload: { id: upload.id, filename: "renamed.txt" },
+            });
+          } else {
+            const result = await isolated.client.call(
+              "workspace_upload_delete",
+              { id: upload.id },
+            );
+            expect(result).toMatchObject({
+              success: false,
+              error: "storage_delete_failed",
+              message: "Failed to delete upload object",
+            });
+          }
+          expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(
+            before.map((row) =>
+              row.id === upload.id && operation === "rename"
+                ? {
+                    ...row,
+                    filename: "renamed.txt",
+                    updatedAt: expect.any(Date),
+                  }
+                : row,
+            ),
+          );
+          expect(
+            await db.upload.findUniqueOrThrow({ where: { id: foreign.id } }),
+          ).toEqual(foreign);
+          expect(await db.auditLog.findMany()).toEqual([]);
+        }),
+    );
+  }
 
-        const listBefore = await isolated.client.call<{
-          data?: Array<{ filename?: string; id?: string; size?: number }>;
-          meta?: {
-            maxFileSizeBytes?: number;
-            quotaBytes?: number;
-            usedBytes?: number;
-          };
-          pagination?: { page?: number; pageSize?: number; total?: number };
-        }>("workspace_upload_list", { mode: "full" });
-        expect(typeof listBefore.meta?.maxFileSizeBytes).toBe("number");
-        expect(typeof listBefore.meta?.quotaBytes).toBe("number");
-        expect(typeof listBefore.meta?.usedBytes).toBe("number");
-        expect(listBefore.pagination).toMatchObject({ page: 1, pageSize: 20 });
-        expect(
-          listBefore.data?.some(
-            (item) =>
-              item.id === upload.id &&
-              item.filename === filename &&
-              item.size === upload.size,
-          ),
-        ).toBe(true);
+  for (const [name, invalidFilename] of [
+    ["embedded", "bad\u0000name.txt"],
+    ["only", "\u0000"],
+  ]) {
+    toolTest(
+      `上传重命名拒绝控制字符文件名且不做清洗 ${name}`,
+      async ({
+        mcpWorkflow,
+        mcpActor: isolated,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          const filename = `mcp-upload-invalid-rename-${Date.now()}.txt`;
+          const upload = await db.upload.create({
+            data: {
+              userId: isolated.userId,
+              key: `integration-test/${filename}`,
+              filename,
+              contentType: "text/plain",
+              size: 321,
+            },
+            select: { id: true },
+          });
 
-        const renamed = await isolated.client.call<{
-          success?: boolean;
-          upload?: { filename?: string; id?: string };
-        }>("workspace_upload_rename", {
-          id: upload.id,
-          filename: renamedFilename,
-        });
-        expect(renamed).toMatchObject({
-          success: true,
-          upload: { id: upload.id, filename: renamedFilename },
-        });
-
-        const deleted = await isolated.client.call<{
-          error?: string;
-          hint?: string;
-          message?: string;
-          success?: boolean;
-        }>("workspace_upload_delete", { id: upload.id });
-        expect(deleted).toMatchObject({
-          success: false,
-          error: "storage_delete_failed",
-          message: "Failed to delete upload object",
-        });
-
-        const retainedUpload = await db.upload.findUnique({
-          where: { id: upload.id },
-          select: { filename: true },
-        });
-        expect(retainedUpload?.filename).toBe(renamedFilename);
-      }),
-  );
-
-  toolTest(
-    "上传重命名拒绝控制字符文件名且不做清洗",
-    async ({
-      mcpWorkflow,
-      mcpActor: isolated,
-      expect,
-      isolatedDatabase: { owner: db },
-    }) =>
-      mcpWorkflow.run(async () => {
-        const filename = `mcp-upload-invalid-rename-${Date.now()}.txt`;
-        const upload = await db.upload.create({
-          data: {
-            userId: isolated.userId,
-            key: `integration-test/${filename}`,
-            filename,
-            contentType: "text/plain",
-            size: 321,
-          },
-          select: { id: true },
-        });
-
-        for (const invalidFilename of ["bad\u0000name.txt", "\u0000"]) {
+          const before = await db.upload.findMany();
           await expect(
             isolated.client.call("workspace_upload_rename", {
               id: upload.id,
               filename: invalidFilename,
             }),
           ).rejects.toThrow();
-        }
+          expect(await db.upload.findMany()).toEqual(before);
 
-        const unchanged = await db.upload.findUnique({
-          where: { id: upload.id },
-          select: { filename: true },
-        });
-        expect(unchanged?.filename).toBe(filename);
-      }),
-  );
+          const unchanged = await db.upload.findUnique({
+            where: { id: upload.id },
+            select: { filename: true },
+          });
+          expect(unchanged?.filename).toBe(filename);
+        }),
+    );
+  }
 
   toolTest(
     "上传元数据工具拒绝非所有者及被禁用户写入",
