@@ -113,6 +113,13 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
             () => connectButton.click(),
           );
           expect(response.status()).toBe(200);
+          // The real provider request has arrived, but its held document cannot
+          // evict the initiating response before Chromium exposes its body.
+          await expect
+            .poll(() => authorizationProvider.requests.length)
+            .toBe(1);
+          expect(new URL(page.url()).origin).toBe(isolatedWorker.origin);
+          expect(new URL(page.url()).pathname).toBe("/account/settings/accounts");
           const result = await response.json();
           expect(result.type).toBe("redirect");
           expect(result.status).toBe(303);
@@ -138,6 +145,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
           expect(parameters.has("client_secret")).toBe(false);
           expect(parameters.has("code_verifier")).toBe(false);
 
+          authorizationProvider.releaseDocument();
           await page.waitForURL(
             (url) =>
               url.origin === authorizationProvider.origin &&
