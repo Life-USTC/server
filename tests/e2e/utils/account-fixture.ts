@@ -4,7 +4,10 @@ import type {
   User,
 } from "../../../src/generated/prisma-node/client";
 import { withBrowserWorkflow } from "./browser-workflow";
-import { withCalendarProtocol } from "./calendar-protocol-lifecycle";
+import {
+  type CalendarBrowserWriteVerifier,
+  withCalendarProtocol,
+} from "./calendar-protocol-lifecycle";
 import { test as workerTest } from "./owned-worker";
 
 type AccountWrite = readonly [
@@ -17,6 +20,7 @@ type AccountStateCheck = () => Promise<void>;
 type AccountPlan = {
   writes: readonly AccountWrite[];
   audits: readonly AuditAction[];
+  verifyWrite?: CalendarBrowserWriteVerifier;
 };
 
 /** A signed-in account exists only for cases requesting it. */
@@ -51,7 +55,7 @@ export const test = workerTest.extend<{
     testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
-      await use(({ writes, audits }, work) => {
+      await use(({ writes, audits, verifyWrite }, work) => {
         const browserWrites = [...writes];
         return workflow.run(() =>
           run(() =>
@@ -92,6 +96,7 @@ export const test = workerTest.extend<{
                       status: 303,
                       location: redirect,
                     });
+                  if (verifyWrite) await verifyWrite(response, incoming);
                 },
               },
               async () => {

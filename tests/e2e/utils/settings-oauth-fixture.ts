@@ -1,6 +1,5 @@
 import { createServer } from "node:http";
 import type { Socket } from "node:net";
-import { createDeferred } from "../../shared/deferred";
 import { test as settingsTest } from "./settings-fixture";
 
 const clientId = "settings-link-contract-client";
@@ -13,7 +12,6 @@ function ownAuthorizationServer() {
   const sockets = new Set<Socket>();
   const responses = new Set<Promise<void>>();
   const errors: unknown[] = [];
-  const documentAllowed = createDeferred();
   let origin = "";
   let initialization: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
@@ -49,26 +47,14 @@ function ownAuthorizationServer() {
         return;
       }
       requests.push(url);
-      // Receive the real browser GET now, but keep its destination document
-      // uncommitted until the initiating browser response has been inspected.
-      const sending = documentAllowed.promise
-        .then(() => {
-          if (response.destroyed) return;
-          response.writeHead(200, {
-            "content-type": "text/html; charset=utf-8",
-            "cache-control": "no-store",
-            connection: "close",
-          });
-          response.end(
-            '<!doctype html><html lang="en"><head><title>Local OAuth provider</title><link rel="icon" href="data:,"></head><body><h1>Authorize account connection</h1></body></html>',
-          );
-        })
-        .catch(() => {
-          errors.push(new Error("Local OAuth authorization response failed"));
-          response.destroy();
-        });
-      responses.add(sending);
-      void sending.finally(() => responses.delete(sending));
+      response.writeHead(200, {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+        connection: "close",
+      });
+      response.end(
+        '<!doctype html><html lang="en"><head><title>Local OAuth provider</title><link rel="icon" href="data:,"></head><body><h1>Authorize account connection</h1></body></html>',
+      );
     } catch {
       // Request targets may contain OAuth state; never retain a parsing error
       // whose message embeds the incoming URL. The response owner settles too.
@@ -101,7 +87,6 @@ function ownAuthorizationServer() {
   }
   function close() {
     closing ??= (async () => {
-      documentAllowed.resolve();
       await initialization?.catch(() => undefined);
       if (server.listening) {
         const closed = new Promise<void>((resolve, reject) => {
@@ -124,7 +109,6 @@ function ownAuthorizationServer() {
   return {
     initialize,
     close,
-    releaseDocument: () => documentAllowed.resolve(),
     requests,
     clientId,
     get origin() {
