@@ -143,57 +143,62 @@ for (const operation of [
   });
 }
 
-test("subscription.duplicate-input-semantics GraphQL", async ({
-  page,
-  oauthOwner,
-  createCalendar,
-  calendarProtocolRun,
-  isolatedWorker,
-}) => {
-  await calendarProtocolRun(async (io) => {
-    const { fixture, db, contract } = await prepare(
-      page,
-      oauthOwner,
-      io,
-      createCalendar,
-      2,
-    );
-    const code = fixture.section.code;
-    const gql = async (codes: string[], action = "ADD", status = 200) => {
-      const response = await page.request.post("/api/graphql", {
-        headers: { origin: isolatedWorker.origin },
-        data: {
-          query:
-            "mutation($input: UpdateSectionSubscriptionsInput!) { subscriptionsImport(input: $input) { addedCount removedCount } }",
-          variables: {
-            input: { action, codes, semesterId: fixture.section.semesterId },
+for (const action of ["ADD", "REMOVE"] as const) {
+  test(`subscription.duplicate-input-semantics GraphQL ${action}`, async ({
+    page,
+    oauthOwner,
+    createCalendar,
+    calendarProtocolRun,
+    isolatedWorker,
+  }) => {
+    await calendarProtocolRun(async (io) => {
+      const { fixture, db, contract } = await prepare(
+        page,
+        oauthOwner,
+        io,
+        createCalendar,
+        1,
+      );
+      const code = fixture.section.code;
+      const userId = fixture.users[0].id;
+      if (action === "REMOVE")
+        await db.userSectionSubscription.create({
+          data: { userId, sectionId: fixture.section.id },
+        });
+      const gql = async (codes: string[], status: number) => {
+        const response = await page.request.post("/api/graphql", {
+          headers: { origin: isolatedWorker.origin },
+          data: {
+            query:
+              "mutation($input: UpdateSectionSubscriptionsInput!) { subscriptionsImport(input: $input) { addedCount removedCount } }",
+            variables: {
+              input: { action, codes, semesterId: fixture.section.semesterId },
+            },
           },
-        },
+        });
+        expect(response.status()).toBe(status);
+        return response.json();
+      };
+      const before = await memberships(db, userId);
+      expect(
+        (await gql([code, code.toLowerCase(), ` ${code} `], 400)).errors[0]
+          .extensions.code,
+      ).toBe("BAD_USER_INPUT");
+      expect(await memberships(db, userId)).toEqual(before);
+      const single = await gql([code], 200);
+      expect(single.errors).toBeUndefined();
+      expect(single.data.subscriptionsImport).toEqual({
+        addedCount: action === "ADD" ? 1 : 0,
+        removedCount: action === "REMOVE" ? 1 : 0,
       });
-      expect(response.status()).toBe(status);
-      return response.json();
-    };
-    const before = await memberships(db, fixture.users[0].id);
-    expect(
-      (await gql([code, code.toLowerCase(), ` ${code} `], "ADD", 400)).errors[0]
-        .extensions.code,
-    ).toBe("BAD_USER_INPUT");
-    expect(await memberships(db, fixture.users[0].id)).toEqual(before);
-    const single = await gql([code]);
-    expect(single.errors).toBeUndefined();
-    expect(single.data.subscriptionsImport.addedCount).toBe(1);
-    expect(
-      (await memberships(db, fixture.users[0].id)).map(
-        ({ sectionId }) => sectionId,
-      ),
-    ).toEqual([fixture.section.id]);
-    expect(
-      (await gql([code], "REMOVE")).data.subscriptionsImport.removedCount,
-    ).toBe(1);
-    expect(await memberships(db, fixture.users[0].id)).toEqual([]);
-    return contract.checks([], [["POST", "/api/graphql", [400, 200, 200]]]);
+      const expected = action === "ADD" ? [fixture.section.id] : [];
+      expect(
+        (await memberships(db, userId)).map(({ sectionId }) => sectionId),
+      ).toEqual(expected);
+      return contract.checks(expected, [["POST", "/api/graphql", [400, 200]]]);
+    });
   });
-});
+}
 
 test("subscription.duplicate-input-semantics MCP", async ({
   page,
