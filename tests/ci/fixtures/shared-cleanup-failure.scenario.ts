@@ -375,6 +375,16 @@ function cancellation(label: string, observe?: () => void) {
     }),
   );
 }
+function releaseOnNativeAbort(signal: AbortSignal, release: () => void) {
+  signal.addEventListener(
+    "abort",
+    () => {
+      record("native-test-aborted");
+      release();
+    },
+    { once: true },
+  );
+}
 async function prepareProtocolFailures(runtime: NodeProtocolRuntime) {
   await runtime.run(() => cancellation("workflow"));
   await runtime.request(() => cancellation("request"));
@@ -626,14 +636,7 @@ if (phase === "graphql-workspace-timeout") {
     { timeout: 5_000 },
     async ({ probe: _probe, workspace, graphqlRuntime, signal }) => {
       const gate = createDeferred();
-      signal.addEventListener(
-        "abort",
-        () => {
-          record("native-test-aborted");
-          gate.resolve();
-        },
-        { once: true },
-      );
+      releaseOnNativeAbort(signal, gate.resolve);
       await graphqlRuntime.run(async () => {
         record("body-entered");
         const { db, userId, section, owner, registered } = workspace;
@@ -753,14 +756,7 @@ if (phase === "catalog-timeout") {
     { timeout: 5_000 },
     async ({ probe: _probe, catalogRead, signal }) => {
       const gate = createDeferred();
-      signal.addEventListener(
-        "abort",
-        () => {
-          record("native-test-aborted");
-          gate.resolve();
-        },
-        { once: true },
-      );
+      releaseOnNativeAbort(signal, gate.resolve);
       await catalogRead.run(async () => {
         record("body-entered");
         const { db, fixture, request, commitRevision } = catalogRead;
@@ -852,14 +848,7 @@ if (phase === "metrics-timeout") {
     title,
     { timeout: 5_000 },
     async ({ probe, metrics, signal }) => {
-      signal.addEventListener(
-        "abort",
-        () => {
-          record("native-test-aborted");
-          runtimeJournal.metricsGate.resolve();
-        },
-        { once: true },
-      );
+      releaseOnNativeAbort(signal, runtimeJournal.metricsGate.resolve);
       await metrics.run(async () => {
         record("body-entered");
         const locked = createDeferred();
@@ -953,14 +942,7 @@ if (phase === "http-timeout") {
     async ({ probe, protocolRuntime, http, signal }) => {
       observeHttp(http, false);
       const gate = createDeferred();
-      signal.addEventListener(
-        "abort",
-        () => {
-          record("native-test-aborted");
-          gate.resolve();
-        },
-        { once: true },
-      );
+      releaseOnNativeAbort(signal, gate.resolve);
       await protocolRuntime.run(async () => {
         record("body-entered");
         await gate.promise;
