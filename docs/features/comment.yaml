@@ -84,8 +84,10 @@ requirements:
   category: presentation
   rule: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
   acceptance:
-    given: A real comment contains bold Markdown, an emoji, a math formula and a table.
-    when: Create it through REST, reply and react as another user, then fetch the focused thread.
+    given: A directly prepared comment contains bold Markdown, an emoji, a math formula and a table,
+      with a known reply and reaction from another user.
+    when: Fetch its focused thread through REST; separately create rich text through REST and observe
+      the persisted Markdown source.
     then:
     - The server preserves Markdown source and produces bold, emoji, KaTeX and table HTML.
     - The thread contains the real reply and reaction count.
