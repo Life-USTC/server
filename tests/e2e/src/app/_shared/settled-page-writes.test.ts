@@ -325,7 +325,8 @@ test("normal browser workflow keeps its original body and write order", async ({
             workflow.body(async () => {
               await openWriter(page, endpoint, "POST", "/write-gzip");
               const response = page.waitForResponse(
-                (response) => new URL(response.url()).pathname === "/write-gzip",
+                (response) =>
+                  new URL(response.url()).pathname === "/write-gzip",
               );
               browserReads.push(response);
               void response.catch(() => undefined);
