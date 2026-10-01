@@ -125,8 +125,7 @@ export const test = navigationTest.extend<{ _networkDiagnostic: undefined }>({
             const original = nativeFetch.apply(this, args);
             const [input, init] = args;
             const method =
-              init?.method ??
-              (input instanceof Request ? input.method : "GET");
+              init?.method ?? (input instanceof Request ? input.method : "GET");
             if (method.toUpperCase() !== "POST") return original;
             const url = new URL(
               input instanceof Request ? input.url : String(input),
