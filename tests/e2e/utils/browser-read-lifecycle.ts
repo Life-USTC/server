@@ -134,7 +134,8 @@ export function ownBrowserReads(
       departingReads = [...ownedReads.entries()]
         .filter(
           ([request, owned]) =>
-            owned.mainFrame && !request.isNavigationRequest(),
+            owned.mainFrame &&
+            (!request.isNavigationRequest() || owned.order < order),
         )
         .map(([, owned]) => owned);
     };
