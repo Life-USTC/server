@@ -3,7 +3,7 @@ import { catalogMcpTest as toolTest } from "../_harness/catalog-fixture";
 
 describe("课程与班级查找", () => {
   toolTest(
-    "catalog_course_search 返回 REST 等价分页课程层级",
+    "interface-hierarchy.catalog-mcp-relationship-projections",
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -12,113 +12,233 @@ describe("课程与班级查找", () => {
       expect,
     }) =>
       mcpWorkflow.run(async () => {
-        const seedCourseFilters =
-          await isolatedDatabase.owner.course.findUnique({
-            where: { jwId: mcpCatalog.course.jwId },
-            select: {
-              categoryId: true,
-              classTypeId: true,
-              educationLevelId: true,
-            },
-          });
-        expect(seedCourseFilters).toBeTruthy();
-
-        const args: Record<string, unknown> = {
-          limit: 10,
-          locale: "zh-cn",
-          mode: "full",
-          page: 1,
+        const expectedCourse = {
+          id: mcpCatalog.course.id,
+          jwId: mcpCatalog.course.jwId,
+          code: mcpCatalog.course.code,
         };
-        for (const [key, value] of Object.entries(seedCourseFilters ?? {})) {
-          if (value != null) args[key] = value;
-        }
-
-        const result = await context.client.call<{
-          data?: Array<{
-            jwId?: number;
-            code?: string | null;
-            nameCn?: string | null;
-            educationLevel?: { nameCn?: string | null } | null;
-            category?: { nameCn?: string | null } | null;
-            classType?: { nameCn?: string | null } | null;
-          }>;
-          pagination?: {
-            page?: number;
-            pageSize?: number;
-            total?: number;
-            totalPages?: number;
-          };
-        }>("catalog_course_search", args);
-
-        expect(result.pagination?.page).toBe(1);
-        expect(result.pagination?.pageSize).toBe(10);
-        expect(result.pagination?.total).toBeGreaterThan(0);
-        expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
-
-        const course = result.data?.find(
-          (item) => item.jwId === mcpCatalog.course.jwId,
-        );
-        expect(course?.code).toBe(mcpCatalog.course.code);
-        expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
-        expect(course?.educationLevel?.nameCn).toBe(
-          mcpCatalog.educationLevel.nameCn,
-        );
-        expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
-        expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
-      }),
-  );
-
-  toolTest(
-    "catalog_section_get 返回与 REST 班级详情相同的层级",
-    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
-      mcpWorkflow.run(async () => {
-        const result = await context.client.call<{
-          found?: boolean;
-          section?: {
-            code?: string;
-            schedules?: Array<{
-              endTime?: unknown;
-              startTime?: unknown;
-            }>;
-            teacherAssignments?: Array<Record<string, unknown>>;
-            scheduleGroups?: unknown[];
-            exams?: unknown[];
-            roomType?: unknown;
-          };
-        }>("catalog_section_get", {
+        const expectedSection = {
+          id: mcpCatalog.section.id,
           jwId: mcpCatalog.section.jwId,
-          locale: "zh-cn",
-          mode: "full",
-        });
+          courseId: mcpCatalog.course.id,
+        };
+        const expectedTeacher = {
+          id: mcpCatalog.teacher.id,
+          code: mcpCatalog.teacher.code,
+        };
+        const expectedSectionIds = [
+          mcpCatalog.section.id,
+          mcpCatalog.previousSection.id,
+        ];
+        expect(mcpCatalog.course.id).not.toBe(mcpCatalog.course.jwId);
+        expect(mcpCatalog.section.id).not.toBe(mcpCatalog.section.jwId);
+        expect(mcpCatalog.teacher.id).not.toBe(mcpCatalog.teacher.jwId);
 
-        expect(result.found).toBe(true);
-        expect(result.section?.code).toBe(mcpCatalog.section.code);
-        expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
-        expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
-        expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(
-          true,
-        );
-        for (const assignment of result.section?.teacherAssignments ?? []) {
-          expect(assignment).not.toHaveProperty("teacher");
-        }
-        expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
-        expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
-        expect(result.section?.exams).toContainEqual(
-          expect.objectContaining({
-            id: mcpCatalog.exam.id,
-            monitors: [
-              {
-                jwId: 1001,
-                nameCn: "测试监考教师",
-                nameEn: "Test exam monitor",
+        // catalog_course_search
+        {
+          const seedCourseFilters =
+            await isolatedDatabase.owner.course.findUnique({
+              where: { jwId: mcpCatalog.course.jwId },
+              select: {
+                categoryId: true,
+                classTypeId: true,
+                educationLevelId: true,
               },
-            ],
-            examRooms: [
-              expect.objectContaining({ room: "Catalog exam room", count: 30 }),
-            ],
-          }),
-        );
-        expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
+            });
+          expect(seedCourseFilters).toBeTruthy();
+
+          const args: Record<string, unknown> = {
+            limit: 10,
+            locale: "zh-cn",
+            mode: "full",
+            page: 1,
+          };
+          for (const [key, value] of Object.entries(seedCourseFilters ?? {})) {
+            if (value != null) args[key] = value;
+          }
+
+          const result = await context.client.call<{
+            data?: Array<{
+              jwId?: number;
+              code?: string | null;
+              nameCn?: string | null;
+              educationLevel?: { nameCn?: string | null } | null;
+              category?: { nameCn?: string | null } | null;
+              classType?: { nameCn?: string | null } | null;
+            }>;
+            pagination?: {
+              page?: number;
+              pageSize?: number;
+              total?: number;
+              totalPages?: number;
+            };
+          }>("catalog_course_search", args);
+
+          expect(result.pagination?.page).toBe(1);
+          expect(result.pagination?.pageSize).toBe(10);
+          expect(result.pagination?.total).toBeGreaterThan(0);
+          expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+
+          const course = result.data?.find(
+            (item) => item.jwId === mcpCatalog.course.jwId,
+          );
+          expect(course?.code).toBe(mcpCatalog.course.code);
+          expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
+          expect(course?.educationLevel?.nameCn).toBe(
+            mcpCatalog.educationLevel.nameCn,
+          );
+          expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
+          expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
+
+          expect(course).toMatchObject(expectedCourse);
+        }
+
+        // catalog_section_search
+        {
+          const result = await context.client.call<SearchSectionsResult>(
+            "catalog_section_search",
+            {
+              courseJwId: mcpCatalog.course.jwId,
+              page: 1,
+              limit: 10,
+              locale: "zh-cn",
+              mode: "full",
+            },
+          );
+
+          expect(result.pagination?.page).toBe(1);
+          expect(result.pagination?.pageSize).toBe(10);
+          expect((result.pagination?.total ?? 0) > 0).toBe(true);
+          expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
+
+          const section = result.data?.find(
+            (item) => item.jwId === mcpCatalog.section.jwId,
+          );
+          expect(section).toBeDefined();
+          expect(section?.code).toBe(mcpCatalog.section.code);
+          expect(section?.course?.jwId).toBe(mcpCatalog.course.jwId);
+          expect(section?.course?.nameCn).toBe(mcpCatalog.course.nameCn);
+          expect(section?.course?.nameEn).toBe(mcpCatalog.course.nameEn);
+          expect(section?.semester?.jwId).toBe(mcpCatalog.semester.jwId);
+          expect(
+            section?.teachers?.some(
+              (teacher) => teacher.code === mcpCatalog.teacher.code,
+            ),
+          ).toBe(true);
+
+          expect(section).toMatchObject({
+            ...expectedSection,
+            course: expectedCourse,
+            teachers: [expect.objectContaining(expectedTeacher)],
+          });
+          expect(result.data?.map((item) => item.id)).toEqual(
+            expect.arrayContaining(expectedSectionIds),
+          );
+          expect(result.data).toHaveLength(expectedSectionIds.length);
+        }
+
+        // catalog_course_get
+        {
+          const result = await context.client.call<GetCourseResult>(
+            "catalog_course_get",
+            {
+              jwId: mcpCatalog.course.jwId,
+              locale: "zh-cn",
+              mode: "full",
+            },
+          );
+
+          expect(result.found).toBe(true);
+          const course = result.course;
+          expect(course).not.toBeNull();
+          expect(course?.jwId).toBe(mcpCatalog.course.jwId);
+          expect(course?.code).toBe(mcpCatalog.course.code);
+          expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
+          expect(course?.nameEn).toBe(mcpCatalog.course.nameEn);
+          expect(course?.educationLevel?.nameCn).toBe(
+            mcpCatalog.educationLevel.nameCn,
+          );
+          expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
+          expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
+          expect(course?.sections?.length ?? 0).toBeLessThanOrEqual(20);
+          expect(course?._count?.sections ?? 0).toBeGreaterThanOrEqual(
+            course?.sections?.length ?? 0,
+          );
+
+          const seedSection = course?.sections?.find(
+            (section) => section.jwId === mcpCatalog.section.jwId,
+          );
+          expect(seedSection).toBeDefined();
+          expect(seedSection?.code).toBe(mcpCatalog.section.code);
+          expect(seedSection?.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
+
+          expect(course).toMatchObject(expectedCourse);
+          expect(seedSection).toMatchObject({
+            ...expectedSection,
+            teachers: [expect.objectContaining(expectedTeacher)],
+          });
+          expect(course?.sections?.map((item) => item.id)).toEqual(
+            expect.arrayContaining(expectedSectionIds),
+          );
+          expect(course?.sections).toHaveLength(expectedSectionIds.length);
+        }
+
+        // catalog_section_get
+        {
+          const result = await context.client.call<{
+            found?: boolean;
+            section?: {
+              code?: string;
+              schedules?: Array<{
+                endTime?: unknown;
+                startTime?: unknown;
+              }>;
+              teacherAssignments?: Array<Record<string, unknown>>;
+              scheduleGroups?: unknown[];
+              exams?: unknown[];
+              roomType?: unknown;
+            };
+          }>("catalog_section_get", {
+            jwId: mcpCatalog.section.jwId,
+            locale: "zh-cn",
+            mode: "full",
+          });
+
+          expect(result.found).toBe(true);
+          expect(result.section?.code).toBe(mcpCatalog.section.code);
+          expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
+          expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
+          expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(
+            true,
+          );
+          for (const assignment of result.section?.teacherAssignments ?? []) {
+            expect(assignment).not.toHaveProperty("teacher");
+          }
+          expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
+          expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
+          expect(result.section?.exams).toContainEqual(
+            expect.objectContaining({
+              id: mcpCatalog.exam.id,
+              monitors: [
+                {
+                  jwId: 1001,
+                  nameCn: "测试监考教师",
+                  nameEn: "Test exam monitor",
+                },
+              ],
+              examRooms: [
+                expect.objectContaining({ room: "Catalog exam room", count: 30 }),
+              ],
+            }),
+          );
+          expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
+
+          expect(result.section).toMatchObject({
+            ...expectedSection,
+            course: expectedCourse,
+            teachers: [expect.objectContaining(expectedTeacher)],
+          });
+        }
       }),
   );
 
@@ -405,43 +525,6 @@ type GetCourseResult = {
 
 describe("班级搜索工具 catalog_section_search", () => {
   toolTest(
-    "按课程 jwId 返回分页的班级摘要",
-    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
-      mcpWorkflow.run(async () => {
-        const result = await context.client.call<SearchSectionsResult>(
-          "catalog_section_search",
-          {
-            courseJwId: mcpCatalog.course.jwId,
-            page: 1,
-            limit: 10,
-            locale: "zh-cn",
-            mode: "full",
-          },
-        );
-
-        expect(result.pagination?.page).toBe(1);
-        expect(result.pagination?.pageSize).toBe(10);
-        expect((result.pagination?.total ?? 0) > 0).toBe(true);
-        expect((result.pagination?.totalPages ?? 0) >= 1).toBe(true);
-
-        const section = result.data?.find(
-          (item) => item.jwId === mcpCatalog.section.jwId,
-        );
-        expect(section).toBeDefined();
-        expect(section?.code).toBe(mcpCatalog.section.code);
-        expect(section?.course?.jwId).toBe(mcpCatalog.course.jwId);
-        expect(section?.course?.nameCn).toBe(mcpCatalog.course.nameCn);
-        expect(section?.course?.nameEn).toBe(mcpCatalog.course.nameEn);
-        expect(section?.semester?.jwId).toBe(mcpCatalog.semester.jwId);
-        expect(
-          section?.teachers?.some(
-            (teacher) => teacher.code === mcpCatalog.teacher.code,
-          ),
-        ).toBe(true);
-      }),
-  );
-
-  toolTest(
     "按教师工号过滤班级",
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
@@ -526,45 +609,6 @@ describe("班级搜索工具 catalog_section_search", () => {
 });
 
 describe("课程详情工具 catalog_course_get", () => {
-  toolTest(
-    "按 jwId 返回课程详情及班级列表",
-    async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
-      mcpWorkflow.run(async () => {
-        const result = await context.client.call<GetCourseResult>(
-          "catalog_course_get",
-          {
-            jwId: mcpCatalog.course.jwId,
-            locale: "zh-cn",
-            mode: "full",
-          },
-        );
-
-        expect(result.found).toBe(true);
-        const course = result.course;
-        expect(course).not.toBeNull();
-        expect(course?.jwId).toBe(mcpCatalog.course.jwId);
-        expect(course?.code).toBe(mcpCatalog.course.code);
-        expect(course?.nameCn).toBe(mcpCatalog.course.nameCn);
-        expect(course?.nameEn).toBe(mcpCatalog.course.nameEn);
-        expect(course?.educationLevel?.nameCn).toBe(
-          mcpCatalog.educationLevel.nameCn,
-        );
-        expect(course?.category?.nameCn).toBe(mcpCatalog.category.nameCn);
-        expect(course?.classType?.nameCn).toBe(mcpCatalog.classType.nameCn);
-        expect(course?.sections?.length ?? 0).toBeLessThanOrEqual(20);
-        expect(course?._count?.sections ?? 0).toBeGreaterThanOrEqual(
-          course?.sections?.length ?? 0,
-        );
-
-        const seedSection = course?.sections?.find(
-          (section) => section.jwId === mcpCatalog.section.jwId,
-        );
-        expect(seedSection).toBeDefined();
-        expect(seedSection?.code).toBe(mcpCatalog.section.code);
-        expect(seedSection?.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
-      }),
-  );
-
   toolTest(
     "缺失课程返回 found false",
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
