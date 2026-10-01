@@ -5,6 +5,7 @@ import {
   type GraphqlPayload,
   isolatedGraphqlTest,
 } from "../shared/isolated-graphql-fixture";
+import type { TestPrismaClient } from "../shared/prisma";
 
 const mutationScopes = [
   restReadScope("workspace.todo"),
@@ -25,8 +26,6 @@ const it = isolatedGraphqlTest
       const oauthClientId = `graphql-mutations-${crypto.randomUUID()}`;
       const sectionJwId = 1;
       const youngId = "graphql-mutations-event";
-      const originCampusId = 1;
-      const destinationCampusId = 2;
       const course = await fixturePrisma.course.create({
         data: {
           jwId: 1,
@@ -57,30 +56,7 @@ const it = isolatedGraphqlTest
       ]);
       const userAId = userA.id;
       const userBId = userB.id;
-      const homework = await fixturePrisma.homework.create({
-        data: {
-          sectionId: section.id,
-          title: "GraphQL mutation homework",
-          createdById: userAId,
-        },
-      });
-      await fixturePrisma.busCampus.createMany({
-        data: [
-          {
-            id: originCampusId,
-            nameCn: "始发校区",
-            latitude: 31.8,
-            longitude: 117.2,
-          },
-          {
-            id: destinationCampusId,
-            nameCn: "目的校区",
-            latitude: 31.9,
-            longitude: 117.3,
-          },
-        ],
-      });
-      await fixturePrisma.youngEvent.create({
+      const youngEvent = await fixturePrisma.youngEvent.create({
         data: {
           youngId,
           name: "GraphQL mutation event",
@@ -108,9 +84,8 @@ const it = isolatedGraphqlTest
         userBId,
         sectionJwId,
         youngId,
-        originCampusId,
-        destinationCampusId,
-        homeworkId: homework.id,
+        sectionId: section.id,
+        youngEventId: youngEvent.id,
         execute: graphqlRuntime.execute,
         signToken: (userId: string, scopes: string[]) =>
           graphqlRuntime.signToken(userId, oauthClientId, scopes),
@@ -125,75 +100,103 @@ function expectErrorCode(payload: GraphqlPayload, code: string) {
   expect(payload.errors?.[0]?.extensions?.code).toBe(code);
 }
 
-describe("GraphQL authenticated mutations", () => {
-  it("rejects anonymous and insufficient-scope writes before service execution", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
-    await graphqlRuntime.run(async () => {
-      const { fixturePrisma, execute, signToken, userAId } = mutations;
-      const anonymous = await execute({
-        query: 'mutation { todoCreate(input: { title: "anonymous" }) { id } }',
-      });
-      expect(anonymous.response.headers.get("cache-control")).toBe("no-store");
-      expectErrorCode(anonymous.payload, "UNAUTHENTICATED");
-
-      const readToken = await signToken(userAId, [
-        restReadScope("workspace.todo"),
-      ]);
-      const missingScope = await execute(
-        {
-          query:
-            'mutation { todoCreate(input: { title: "read only" }) { id } }',
-        },
-        readToken,
-      );
-      expectErrorCode(missingScope.payload, "FORBIDDEN");
-      expect(
-        missingScope.payload.errors?.[0]?.extensions?.requiredScopes,
-      ).toEqual(["workspace.todo:write"]);
-
-      await expect(
-        fixturePrisma.todo.count({
-          where: { userId: userAId, title: { in: ["anonymous", "read only"] } },
-        }),
-      ).resolves.toBe(0);
-    });
+function seedTodo(db: TestPrismaClient, userId: string, title: string) {
+  return db.todo.create({
+    data: {
+      userId,
+      title,
+      content: "initial",
+      priority: "high",
+      dueAt: new Date("2026-08-01T01:00:00.000Z"),
+    },
   });
+}
+function seedComment(
+  db: TestPrismaClient,
+  userId: string,
+  sectionId: number,
+  body: string,
+) {
+  return db.comment.create({ data: { userId, sectionId, body } });
+}
+function readComments(db: TestPrismaClient) {
+  return db.comment.findMany({
+    orderBy: { id: "asc" },
+    include: {
+      attachments: { orderBy: { id: "asc" } },
+      reactions: { orderBy: { id: "asc" } },
+    },
+  });
+}
 
-  it("supports bearer todo CRUD while preserving owner isolation and null updates", async ({
+describe("GraphQL authenticated mutations", () => {
+  for (const authority of ["anonymous", "read-only"] as const) {
+    it(`rejects ${authority} todo creation before service execution`, async ({
+      graphqlRuntime,
+      mutations,
+    }) => {
+      await graphqlRuntime.run(async () => {
+        const {
+          fixturePrisma: db,
+          execute,
+          signToken,
+          userAId,
+          userBId,
+        } = mutations;
+        const foreign = await seedTodo(db, userBId, "Foreign todo");
+        const token =
+          authority === "anonymous"
+            ? undefined
+            : await signToken(userAId, [restReadScope("workspace.todo")]);
+        const result = await execute(
+          {
+            query:
+              'mutation { todoCreate(input: { title: "rejected create" }) { id } }',
+          },
+          token,
+        );
+        expect(result.response.headers.get("cache-control")).toBe("no-store");
+        expectErrorCode(
+          result.payload,
+          authority === "anonymous" ? "UNAUTHENTICATED" : "FORBIDDEN",
+        );
+        if (authority === "read-only")
+          expect(
+            result.payload.errors?.[0]?.extensions?.requiredScopes,
+          ).toEqual(["workspace.todo:write"]);
+        expect(await db.todo.findMany()).toEqual([foreign]);
+        expect(await db.auditLog.findMany()).toEqual([]);
+      });
+    });
+  }
+
+  it("creates a bearer todo with normalized fields and a zoned due date", async ({
     graphqlRuntime,
     mutations,
   }) => {
     await graphqlRuntime.run(async () => {
-      const { fixturePrisma, execute, signToken, marker, userAId, userBId } =
-        mutations;
-      const [tokenA, tokenB] = await Promise.all([
-        signToken(userAId, [
-          restReadScope("workspace.todo"),
-          restWriteScope("workspace.todo"),
-        ]),
-        signToken(userBId, [restWriteScope("workspace.todo")]),
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        userBId,
+      } = mutations;
+      const foreign = await seedTodo(db, userBId, "Foreign todo");
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
       ]);
       const created = await execute(
         {
           query: /* GraphQL */ `
           mutation CreateTodo($dueAt: DateTime!) {
-            todoCreate(
-              input: {
-                title: "  ${marker} todo  "
-                content: "  initial  "
-                priority: HIGH
-                dueAt: $dueAt
-              }
-            ) {
-              id
-            }
+            todoCreate(input: { title: "  ${marker} todo  ", content: "  initial  ", priority: HIGH, dueAt: $dueAt }) { id }
           }
         `,
           variables: { dueAt: "2026-08-01T09:00:00+08:00" },
         },
-        tokenA,
+        token,
       );
       expect(created.response.headers.get("cache-control")).toBe("no-store");
       expect(created.payload.errors).toBeUndefined();
@@ -201,98 +204,161 @@ describe("GraphQL authenticated mutations", () => {
         created.payload.data?.todoCreate as { id?: string } | undefined
       )?.id;
       expect(todoId).toEqual(expect.any(String));
+      expect(await db.todo.findMany({ where: { userId: userAId } })).toEqual([
+        {
+          id: todoId,
+          userId: userAId,
+          title: `${marker} todo`,
+          content: "initial",
+          priority: "high",
+          completed: false,
+          dueAt: new Date("2026-08-01T01:00:00.000Z"),
+          createdAt: expect.any(Date),
+          updatedAt: expect.any(Date),
+        },
+      ]);
+      expect(
+        await db.todo.findUniqueOrThrow({ where: { id: foreign.id } }),
+      ).toEqual(foreign);
+    });
+  });
 
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: todoId },
-          select: { content: true, dueAt: true, priority: true, title: true },
-        }),
-      ).resolves.toMatchObject({
-        content: "initial",
-        dueAt: new Date("2026-08-01T01:00:00.000Z"),
-        priority: "high",
-        title: `${marker} todo`,
+  it("reads the GraphQL priority enum from independently seeded todos", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+      } = mutations;
+      const todo = await seedTodo(db, userAId, "High-priority todo");
+      await seedTodo(db, userBId, "Foreign high-priority todo");
+      await db.todo.create({
+        data: { userId: userAId, title: "Low-priority todo", priority: "low" },
       });
-
-      const roundTrip = await execute(
+      const before = await db.todo.findMany({ orderBy: { id: "asc" } });
+      const token = await signToken(userAId, [restReadScope("workspace.todo")]);
+      const result = await execute(
         {
           query: /* GraphQL */ `
-          query TodoPriorityRoundTrip {
-            viewer: workspace {
-              todos(filter: { priority: HIGH }, page: { pageSize: 100 }) {
-                items {
-                  id
-                  priority
-                }
-              }
-            }
-          }
-        `,
+        query TodoPriority {
+          viewer: workspace { todos(filter: { priority: HIGH }, page: { pageSize: 100 }) { items { id priority } } }
+        }
+      `,
         },
-        tokenA,
+        token,
       );
-      expect(roundTrip.payload.errors).toBeUndefined();
-      const viewer = roundTrip.payload.data?.viewer as {
-        todos: { items: Array<{ id: string; priority: string }> };
-      };
-      expect(viewer.todos.items).toContainEqual({
-        id: todoId,
-        priority: "HIGH",
+      expect(result.payload.errors).toBeUndefined();
+      expect(result.payload.data).toEqual({
+        viewer: { todos: { items: [{ id: todo.id, priority: "HIGH" }] } },
       });
+      expect(await db.todo.findMany({ orderBy: { id: "asc" } })).toEqual(
+        before,
+      );
+    });
+  });
 
-      const cleared = await execute(
+  it("clears todo content without changing omitted fields or another owner", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+      } = mutations;
+      const todo = await seedTodo(db, userAId, "Clear content");
+      const foreign = await seedTodo(db, userBId, "Foreign todo");
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const result = await execute(
         {
-          query: /* GraphQL */ `
-          mutation ClearContent($id: ID!) {
-            todoUpdate(id: $id, input: { content: null }) {
-              id
-            }
-          }
-        `,
-          variables: { id: todoId },
+          query:
+            "mutation ClearContent($id: ID!) { todoUpdate(id: $id, input: { content: null }) { id } }",
+          variables: { id: todo.id },
         },
-        tokenA,
+        token,
       );
-      expect(cleared.payload).toEqual({
-        data: { todoUpdate: { id: todoId } },
-      });
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: todoId },
-          select: { content: true, dueAt: true },
-        }),
-      ).resolves.toEqual({
-        content: null,
-        dueAt: new Date("2026-08-01T01:00:00.000Z"),
-      });
+      expect(result.payload).toEqual({ data: { todoUpdate: { id: todo.id } } });
+      expect(
+        await db.todo.findUniqueOrThrow({ where: { id: todo.id } }),
+      ).toEqual({ ...todo, content: null, updatedAt: expect.any(Date) });
+      expect(
+        await db.todo.findUniqueOrThrow({ where: { id: foreign.id } }),
+      ).toEqual(foreign);
+    });
+  });
 
-      const otherUser = await execute(
+  it("rejects updating a foreign todo without changing either owner", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+      } = mutations;
+      const foreign = await seedTodo(db, userAId, "Foreign todo");
+      await seedTodo(db, userBId, "Own todo");
+      const before = await db.todo.findMany({ orderBy: { id: "asc" } });
+      const token = await signToken(userBId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const result = await execute(
         {
           query:
             "mutation UpdateOther($id: ID!) { todoUpdate(id: $id, input: { completed: true }) { id } }",
-          variables: { id: todoId },
+          variables: { id: foreign.id },
         },
-        tokenB,
+        token,
       );
-      expectErrorCode(otherUser.payload, "NOT_FOUND");
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: todoId },
-          select: { completed: true, userId: true },
-        }),
-      ).resolves.toEqual({ completed: false, userId: userAId });
+      expectErrorCode(result.payload, "NOT_FOUND");
+      expect(await db.todo.findMany({ orderBy: { id: "asc" } })).toEqual(
+        before,
+      );
+    });
+  });
 
-      const deleted = await execute(
+  it("deletes only the independently seeded owned todo", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+      } = mutations;
+      const todo = await seedTodo(db, userAId, "Delete todo");
+      const foreign = await seedTodo(db, userBId, "Foreign todo");
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const result = await execute(
         {
           query:
             "mutation DeleteTodo($id: ID!) { todoDelete(id: $id) { id success } }",
-          variables: { id: todoId },
+          variables: { id: todo.id },
         },
-        tokenA,
+        token,
       );
-      expect(deleted.payload).toEqual({
-        data: { todoDelete: { id: todoId, success: true } },
+      expect(result.payload).toEqual({
+        data: { todoDelete: { id: todo.id, success: true } },
       });
+      expect(await db.todo.findMany()).toEqual([foreign]);
     });
   });
 
@@ -404,6 +470,10 @@ describe("GraphQL authenticated mutations", () => {
         ),
       ];
 
+      const beforeTodos = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
+      const beforeComments = await readComments(fixturePrisma);
       for (const testCase of invalidMutations) {
         const result = await execute(
           { query: testCase.query, variables: testCase.variables },
@@ -413,6 +483,11 @@ describe("GraphQL authenticated mutations", () => {
         expect(result.payload.errors?.[0]?.message).toBe(
           `${testCase.expectedField} must not be null.`,
         );
+        expect(
+          await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+        ).toEqual(beforeTodos);
+        expect(await readComments(fixturePrisma)).toEqual(beforeComments);
+        expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
       }
 
       await expect(
@@ -502,6 +577,8 @@ describe("GraphQL authenticated mutations", () => {
         expect(result.payload.errors?.[0]?.message).toBe(
           `${field} must be a positive integer.`,
         );
+        expect(await fixturePrisma.comment.findMany()).toEqual([]);
+        expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
       }
 
       await expect(
@@ -512,320 +589,760 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("reuses personal write services and executes top-level mutations serially", async ({
+  it("executes top-level subscription mutations serially", async ({
     graphqlRuntime,
     mutations,
   }) => {
     await graphqlRuntime.run(async () => {
       const {
-        fixturePrisma,
+        fixturePrisma: db,
         execute,
         signToken,
         userAId,
-        homeworkId,
-        originCampusId,
-        destinationCampusId,
+        userBId,
+        sectionId,
         sectionJwId,
       } = mutations;
+      const foreign = await db.userSectionSubscription.create({
+        data: { userId: userBId, sectionId },
+      });
       const token = await signToken(userAId, [
-        restWriteScope("workspace.bus-preferences"),
-        restWriteScope("workspace.link-pin"),
-        restWriteScope("workspace.homework"),
         restWriteScope("workspace.subscription"),
       ]);
-      const slug = USTC_CATALOG_LINKS[0].slug;
       const result = await execute(
         {
           query: /* GraphQL */ `
-          mutation PersonalWrites(
-            $homeworkId: ID!
-            $sectionJwId: Int!
-            $slug: String!
-            $origin: Int!
-            $destination: Int!
-          ) {
-            completion: homeworkCompletionSet(
-              homeworkId: $homeworkId
-              completed: true
-            ) {
-              homeworkId
-              completed
-            }
-            subscribed: subscriptionAdd(jwId: $sectionJwId) {
-              sectionJwId
-              subscribed
-            }
-            unsubscribed: subscriptionRemove(jwId: $sectionJwId) {
-              sectionJwId
-              subscribed
-            }
-            pinned: linkPinSet(slug: $slug, pinned: true) {
-              slug
-              pinned
-            }
-            unpinned: linkPinSet(slug: $slug, pinned: false) {
-              slug
-              pinned
-            }
-            savedBus: busPreferencesSet(
-              input: {
-                preferredOriginCampusId: $origin
-                preferredDestinationCampusId: $destination
-                showDepartedTrips: true
-              }
-            ) {
-              preferredOriginCampusId
-              preferredDestinationCampusId
-              showDepartedTrips
-            }
+          mutation SerialSubscriptions($sectionJwId: Int!) {
+            subscribed: subscriptionAdd(jwId: $sectionJwId) { sectionJwId subscribed }
+            unsubscribed: subscriptionRemove(jwId: $sectionJwId) { sectionJwId subscribed }
           }
         `,
-          variables: {
-            homeworkId,
-            sectionJwId: sectionJwId,
-            slug,
-            origin: originCampusId,
-            destination: destinationCampusId,
-          },
+          variables: { sectionJwId },
         },
         token,
       );
-
-      expect(result.payload.errors).toBeUndefined();
-      expect(result.payload.data).toMatchObject({
-        completion: { homeworkId, completed: true },
-        subscribed: {
-          sectionJwId: sectionJwId,
-          subscribed: true,
-        },
-        unsubscribed: {
-          sectionJwId: sectionJwId,
-          subscribed: false,
-        },
-        pinned: { slug, pinned: true },
-        unpinned: { slug, pinned: false },
-        savedBus: {
-          preferredOriginCampusId: originCampusId,
-          preferredDestinationCampusId: destinationCampusId,
-          showDepartedTrips: true,
+      expect(result.payload).toEqual({
+        data: {
+          subscribed: { sectionJwId, subscribed: true },
+          unsubscribed: { sectionJwId, subscribed: false },
         },
       });
-      await expect(
-        fixturePrisma.user.findUniqueOrThrow({
+      expect(await db.userSectionSubscription.findMany()).toEqual([foreign]);
+      expect(
+        await db.user.findUniqueOrThrow({
           where: { id: userAId },
           select: {
             calendarFeedToken: true,
-            sectionSubscriptions: {
-              where: { section: { jwId: sectionJwId } },
-              select: { sectionId: true },
-            },
+            sectionSubscriptions: { select: { sectionId: true } },
           },
         }),
-      ).resolves.toEqual({
-        calendarFeedToken: null,
-        sectionSubscriptions: [],
-      });
-      await expect(
-        fixturePrisma.workspaceLinkPin.count({
-          where: { userId: userAId, slug },
-        }),
-      ).resolves.toBe(0);
+      ).toEqual({ calendarFeedToken: null, sectionSubscriptions: [] });
     });
   });
 
-  it("retains comment suspension, ownership, lock, reaction, and audit rules", async ({
+  it("executes top-level link pin mutations serially", async ({
     graphqlRuntime,
     mutations,
   }) => {
     await graphqlRuntime.run(async () => {
       const {
-        fixturePrisma,
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+      } = mutations;
+      const slug = USTC_CATALOG_LINKS[0].slug;
+      const foreign = await db.workspaceLinkPin.create({
+        data: { userId: userBId, slug },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.link-pin"),
+      ]);
+      const result = await execute(
+        {
+          query: /* GraphQL */ `
+          mutation SerialPins($slug: String!) {
+            pinned: linkPinSet(slug: $slug, pinned: true) { slug pinned }
+            unpinned: linkPinSet(slug: $slug, pinned: false) { slug pinned }
+          }
+        `,
+          variables: { slug },
+        },
+        token,
+      );
+      expect(result.payload).toEqual({
+        data: {
+          pinned: { slug, pinned: true },
+          unpinned: { slug, pinned: false },
+        },
+      });
+      expect(await db.workspaceLinkPin.findMany()).toEqual([foreign]);
+    });
+  });
+
+  it("persists valid bus campus preferences through GraphQL", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+      } = mutations;
+      await db.busCampus.createMany({
+        data: [
+          { id: 1, nameCn: "始发校区", latitude: 31.8, longitude: 117.2 },
+          { id: 2, nameCn: "目的校区", latitude: 31.9, longitude: 117.3 },
+        ],
+      });
+      const foreign = await db.busUserPreference.create({
+        data: { userId: userBId, showDepartedTrips: false },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.bus-preferences"),
+      ]);
+      const result = await execute(
+        {
+          query: /* GraphQL */ `
+        mutation SaveBus {
+          busPreferencesSet(input: { preferredOriginCampusId: 1, preferredDestinationCampusId: 2, showDepartedTrips: true }) {
+            preferredOriginCampusId preferredDestinationCampusId showDepartedTrips
+          }
+        }
+      `,
+        },
+        token,
+      );
+      const expected = {
+        preferredOriginCampusId: 1,
+        preferredDestinationCampusId: 2,
+        showDepartedTrips: true,
+      };
+      expect(result.payload).toEqual({ data: { busPreferencesSet: expected } });
+      expect(
+        await db.busUserPreference.findUniqueOrThrow({
+          where: { userId: userAId },
+        }),
+      ).toEqual({
+        userId: userAId,
+        ...expected,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      });
+      expect(
+        await db.busUserPreference.findUniqueOrThrow({
+          where: { userId: userBId },
+        }),
+      ).toEqual(foreign);
+    });
+  });
+
+  it("completes seeded homework without changing another owner's completion", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+        sectionId,
+      } = mutations;
+      const homework = await db.homework.create({
+        data: {
+          sectionId,
+          title: "GraphQL completion target",
+          createdById: userAId,
+        },
+      });
+      const foreign = await db.homeworkCompletion.create({
+        data: { userId: userBId, homeworkId: homework.id },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.homework"),
+      ]);
+      const result = await execute(
+        {
+          query:
+            "mutation CompleteHomework($id: ID!) { homeworkCompletionSet(homeworkId: $id, completed: true) { homeworkId completed } }",
+          variables: { id: homework.id },
+        },
+        token,
+      );
+      expect(result.payload).toEqual({
+        data: {
+          homeworkCompletionSet: { homeworkId: homework.id, completed: true },
+        },
+      });
+      expect(
+        await db.homeworkCompletion.findUniqueOrThrow({
+          where: {
+            userId_homeworkId: { userId: userAId, homeworkId: homework.id },
+          },
+        }),
+      ).toEqual({
+        userId: userAId,
+        homeworkId: homework.id,
+        completedAt: expect.any(Date),
+      });
+      expect(
+        await db.homeworkCompletion.findUniqueOrThrow({
+          where: {
+            userId_homeworkId: { userId: userBId, homeworkId: homework.id },
+          },
+        }),
+      ).toEqual(foreign);
+      expect(
+        await db.homework.findUniqueOrThrow({ where: { id: homework.id } }),
+      ).toEqual(homework);
+    });
+  });
+
+  it("creates a section comment with GraphQL request audit attribution", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
         execute,
         signToken,
         marker,
         userAId,
         userBId,
+        sectionId,
         sectionJwId,
-        youngId,
       } = mutations;
-      const [tokenA, tokenB] = await Promise.all([
-        signToken(userAId, [restWriteScope("community.comment")]),
-        signToken(userBId, [
-          restWriteScope("community.comment"),
-          restWriteScope("workspace.todo"),
-        ]),
+      await seedComment(db, userBId, sectionId, "Foreign comment");
+      const before = await readComments(db);
+      const token = await signToken(userAId, [
+        restWriteScope("community.comment"),
       ]);
-      const created = await execute(
+      const result = await execute(
         {
           query: /* GraphQL */ `
           mutation CreateComment($sectionJwId: Int!) {
-            commentCreate(
-              input: {
-                targetType: SECTION
-                sectionJwId: $sectionJwId
-                body: "  ${marker} comment  "
-              }
-            ) {
-              id
-            }
+            commentCreate(input: { targetType: SECTION, sectionJwId: $sectionJwId, body: "  ${marker} comment  " }) { id }
           }
         `,
-          variables: { sectionJwId: sectionJwId },
+          variables: { sectionJwId },
         },
-        tokenA,
+        token,
         {
           "user-agent": "graphql-integration-agent",
           "cf-connecting-ip": "192.0.2.10",
         },
       );
+      expect(result.payload.errors).toBeUndefined();
       const commentId = (
-        created.payload.data?.commentCreate as { id?: string } | undefined
+        result.payload.data?.commentCreate as { id?: string } | undefined
       )?.id;
       expect(commentId).toEqual(expect.any(String));
+      const after = await readComments(db);
+      expect(after.filter(({ id }) => id !== commentId)).toEqual(before);
+      expect(after.filter(({ id }) => id === commentId)).toMatchObject([
+        {
+          id: commentId,
+          userId: userAId,
+          body: `${marker} comment`,
+          sectionId,
+          youngEventId: null,
+          visibility: "public",
+          status: "active",
+          isAnonymous: false,
+          reactions: [],
+          attachments: [],
+        },
+      ]);
+      expect(
+        await db.auditLog.findMany({
+          select: {
+            action: true,
+            targetId: true,
+            userId: true,
+            ipAddress: true,
+            metadata: true,
+            userAgent: true,
+          },
+        }),
+      ).toEqual([
+        {
+          action: "comment_create",
+          targetId: commentId,
+          userId: userAId,
+          ipAddress: "192.0.2.10",
+          metadata: { source: "graphql" },
+          userAgent: "graphql-integration-agent",
+        },
+      ]);
+    });
+  });
 
-      const youngEventComment = await execute(
+  it("creates a Young event comment from its public identifier", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        userBId,
+        sectionId,
+        youngId,
+        youngEventId,
+      } = mutations;
+      await seedComment(db, userBId, sectionId, "Foreign section comment");
+      const before = await readComments(db);
+      const token = await signToken(userAId, [
+        restWriteScope("community.comment"),
+      ]);
+      const result = await execute(
         {
           query: /* GraphQL */ `
           mutation CreateYoungEventComment($youngId: String!) {
-            commentCreate(
-              input: {
-                targetType: YOUNG_EVENT
-                youngId: $youngId
-                body: "${marker} young event comment"
-              }
-            ) {
-              id
-            }
+            commentCreate(input: { targetType: YOUNG_EVENT, youngId: $youngId, body: "${marker} young event comment" }) { id }
           }
         `,
-          variables: { youngId: youngId },
+          variables: { youngId },
         },
-        tokenA,
+        token,
       );
-      const youngEventCommentId = (
-        youngEventComment.payload.data?.commentCreate as
-          | { id?: string }
-          | undefined
+      expect(result.payload.errors).toBeUndefined();
+      const commentId = (
+        result.payload.data?.commentCreate as { id?: string } | undefined
       )?.id;
-      expect(youngEventCommentId).toEqual(expect.any(String));
-      await expect(
-        fixturePrisma.comment.findUniqueOrThrow({
-          where: { id: youngEventCommentId },
-          select: { youngEventId: true },
-        }),
-      ).resolves.toMatchObject({ youngEventId: expect.any(Number) });
-
-      await expect(
-        fixturePrisma.auditLog.findFirstOrThrow({
-          where: { action: "comment_create", targetId: commentId },
-          select: { ipAddress: true, metadata: true, userAgent: true },
-        }),
-      ).resolves.toMatchObject({
-        ipAddress: "192.0.2.10",
-        metadata: { source: "graphql" },
-        userAgent: "graphql-integration-agent",
-      });
-
-      const changed = await execute(
+      expect(commentId).toEqual(expect.any(String));
+      const after = await readComments(db);
+      expect(after.filter(({ id }) => id !== commentId)).toEqual(before);
+      expect(after.filter(({ id }) => id === commentId)).toMatchObject([
         {
-          query: /* GraphQL */ `
-          mutation CommentChanges($id: ID!) {
-            commentUpdate(id: $id, input: { body: "${marker} edited" }) {
-              id
-            }
-            added: commentReactionAdd(commentId: $id, type: HEART) {
-              active
-              changed
-            }
-            removed: commentReactionRemove(commentId: $id, type: HEART) {
-              active
-              changed
-            }
-          }
-        `,
-          variables: { id: commentId },
+          id: commentId,
+          userId: userAId,
+          body: `${marker} young event comment`,
+          sectionId: null,
+          youngEventId,
+          visibility: "public",
+          status: "active",
+          isAnonymous: false,
+          reactions: [],
+          attachments: [],
         },
-        tokenA,
-      );
-      expect(changed.payload.data).toMatchObject({
-        commentUpdate: { id: commentId },
-        added: { active: true, changed: true },
-        removed: { active: false, changed: true },
-      });
+      ]);
+      expect(
+        await db.auditLog.findMany({
+          select: {
+            action: true,
+            targetId: true,
+            userId: true,
+            metadata: true,
+          },
+        }),
+      ).toEqual([
+        {
+          action: "comment_create",
+          targetId: commentId,
+          userId: userAId,
+          metadata: { source: "graphql" },
+        },
+      ]);
+    });
+  });
 
-      const otherOwner = await execute(
+  it("edits a seeded comment while preserving omitted fields and foreign comments", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        userBId,
+        sectionId,
+      } = mutations;
+      const comment = await seedComment(
+        db,
+        userAId,
+        sectionId,
+        "Original comment",
+      );
+      await seedComment(db, userBId, sectionId, "Foreign comment");
+      const before = await readComments(db);
+      const token = await signToken(userAId, [
+        restWriteScope("community.comment"),
+      ]);
+      const result = await execute(
+        {
+          query:
+            "mutation EditComment($id: ID!, $body: String!) { commentUpdate(id: $id, input: { body: $body }) { id } }",
+          variables: { id: comment.id, body: `${marker} edited` },
+        },
+        token,
+      );
+      expect(result.payload).toEqual({
+        data: { commentUpdate: { id: comment.id } },
+      });
+      expect(await readComments(db)).toEqual(
+        before.map((row) =>
+          row.id === comment.id
+            ? { ...row, body: `${marker} edited`, updatedAt: expect.any(Date) }
+            : row,
+        ),
+      );
+      expect(
+        await db.auditLog.findMany({
+          select: {
+            action: true,
+            targetId: true,
+            userId: true,
+            metadata: true,
+          },
+        }),
+      ).toEqual([
+        {
+          action: "comment_edit",
+          targetId: comment.id,
+          userId: userAId,
+          metadata: { source: "graphql" },
+        },
+      ]);
+    });
+  });
+
+  for (const operation of ["add", "remove"] as const) {
+    it(`comment reaction ${operation} changes only the seeded owner's reaction`, async ({
+      graphqlRuntime,
+      mutations,
+    }) => {
+      await graphqlRuntime.run(async () => {
+        const {
+          fixturePrisma: db,
+          execute,
+          signToken,
+          userAId,
+          userBId,
+          sectionId,
+        } = mutations;
+        const comment = await seedComment(
+          db,
+          userAId,
+          sectionId,
+          "Reaction target",
+        );
+        const foreign = await db.commentReaction.create({
+          data: { commentId: comment.id, userId: userBId, type: "heart" },
+        });
+        if (operation === "remove")
+          await db.commentReaction.create({
+            data: { commentId: comment.id, userId: userAId, type: "heart" },
+          });
+        const token = await signToken(userAId, [
+          restWriteScope("community.comment"),
+        ]);
+        const field =
+          operation === "add" ? "commentReactionAdd" : "commentReactionRemove";
+        const result = await execute(
+          {
+            query: `mutation Reaction($id: ID!) { ${field}(commentId: $id, type: HEART) { active changed } }`,
+            variables: { id: comment.id },
+          },
+          token,
+        );
+        expect(result.payload).toEqual({
+          data: { [field]: { active: operation === "add", changed: true } },
+        });
+        const expected =
+          operation === "add"
+            ? [
+                foreign,
+                {
+                  id: expect.any(String),
+                  commentId: comment.id,
+                  userId: userAId,
+                  type: "heart",
+                  createdAt: expect.any(Date),
+                },
+              ]
+            : [foreign];
+        expect(
+          await db.commentReaction.findMany({ orderBy: { userId: "asc" } }),
+        ).toEqual(expected.sort((a, b) => a.userId.localeCompare(b.userId)));
+        expect(await db.comment.findMany()).toEqual([comment]);
+        expect(
+          await db.auditLog.findMany({
+            select: {
+              action: true,
+              targetId: true,
+              userId: true,
+              metadata: true,
+            },
+          }),
+        ).toEqual([
+          {
+            action: "comment_react",
+            targetId: comment.id,
+            userId: userAId,
+            metadata: { source: "graphql", operation, type: "heart" },
+          },
+        ]);
+      });
+    });
+  }
+
+  it("rejects deletion of a seeded foreign comment without changing rows or audits", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+        sectionId,
+      } = mutations;
+      const foreign = await seedComment(
+        db,
+        userAId,
+        sectionId,
+        "Foreign comment",
+      );
+      await seedComment(db, userBId, sectionId, "Own comment");
+      const before = await readComments(db);
+      const token = await signToken(userBId, [
+        restWriteScope("community.comment"),
+      ]);
+      const result = await execute(
         {
           query:
             "mutation DeleteOther($id: ID!) { commentDelete(id: $id) { success } }",
-          variables: { id: commentId },
+          variables: { id: foreign.id },
         },
-        tokenB,
+        token,
       );
-      expectErrorCode(otherOwner.payload, "FORBIDDEN");
+      expectErrorCode(result.payload, "FORBIDDEN");
+      expect(await readComments(db)).toEqual(before);
+      expect(await db.auditLog.findMany()).toEqual([]);
+    });
+  });
 
-      const deleted = await execute(
+  it("soft-deletes a seeded owned comment and records its audit", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+        sectionId,
+      } = mutations;
+      const comment = await seedComment(
+        db,
+        userAId,
+        sectionId,
+        "Delete own comment",
+      );
+      await seedComment(db, userBId, sectionId, "Foreign comment");
+      const before = await readComments(db);
+      const token = await signToken(userAId, [
+        restWriteScope("community.comment"),
+      ]);
+      const result = await execute(
         {
           query:
             "mutation DeleteOwn($id: ID!) { commentDelete(id: $id) { success } }",
-          variables: { id: commentId },
+          variables: { id: comment.id },
         },
-        tokenA,
+        token,
       );
-      expect(deleted.payload.data).toEqual({
-        commentDelete: { success: true },
+      expect(result.payload).toEqual({
+        data: { commentDelete: { success: true } },
       });
+      expect(await readComments(db)).toEqual(
+        before.map((row) =>
+          row.id === comment.id
+            ? {
+                ...row,
+                status: "deleted",
+                deletedAt: expect.any(Date),
+                updatedAt: expect.any(Date),
+              }
+            : row,
+        ),
+      );
+      expect(
+        await db.auditLog.findMany({
+          select: {
+            action: true,
+            targetId: true,
+            userId: true,
+            metadata: true,
+          },
+        }),
+      ).toEqual([
+        {
+          action: "comment_delete",
+          targetId: comment.id,
+          userId: userAId,
+          metadata: { source: "graphql" },
+        },
+      ]);
+    });
+  });
 
-      const locked = await execute(
+  it("rejects a reaction to an independently seeded deleted comment", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+        sectionId,
+      } = mutations;
+      const comment = await db.comment.create({
+        data: {
+          userId: userAId,
+          sectionId,
+          body: "Deleted comment",
+          status: "deleted",
+          deletedAt: new Date("2026-07-20T00:00:00.000Z"),
+        },
+      });
+      await db.commentReaction.create({
+        data: { userId: userBId, commentId: comment.id, type: "heart" },
+      });
+      const before = await readComments(db);
+      const token = await signToken(userAId, [
+        restWriteScope("community.comment"),
+      ]);
+      const result = await execute(
         {
           query:
             "mutation ReactLocked($id: ID!) { commentReactionAdd(commentId: $id, type: HEART) { changed } }",
-          variables: { id: commentId },
+          variables: { id: comment.id },
         },
-        tokenA,
+        token,
       );
-      expectErrorCode(locked.payload, "FORBIDDEN");
-      expect(locked.payload.errors?.[0]?.message).toBe("Comment is locked.");
+      expectErrorCode(result.payload, "FORBIDDEN");
+      expect(result.payload.errors?.[0]?.message).toBe("Comment is locked.");
+      expect(await readComments(db)).toEqual(before);
+      expect(await db.auditLog.findMany()).toEqual([]);
+    });
+  });
 
-      await fixturePrisma.userSuspension.create({
+  it("permits personal todo creation for an independently suspended actor", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        userBId,
+      } = mutations;
+      const foreign = await seedTodo(db, userAId, "Foreign todo");
+      const suspension = await db.userSuspension.create({
         data: { userId: userBId, reason: marker },
       });
-      const personalWrite = await execute(
+      const token = await signToken(userBId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const result = await execute(
         {
           query: /* GraphQL */ `
-          mutation SuspendedPersonalWrite {
-            todoCreate(input: { title: "${marker} suspended personal" }) {
-              id
-            }
-          }
-        `,
+        mutation SuspendedPersonalWrite { todoCreate(input: { title: "${marker} suspended personal" }) { id } }
+      `,
         },
-        tokenB,
+        token,
       );
-      expect(personalWrite.payload.errors).toBeUndefined();
+      expect(result.payload.errors).toBeUndefined();
+      const todoId = (
+        result.payload.data?.todoCreate as { id?: string } | undefined
+      )?.id;
+      expect(todoId).toEqual(expect.any(String));
+      expect(
+        await db.todo.findMany({ where: { userId: userBId } }),
+      ).toMatchObject([
+        {
+          id: todoId,
+          userId: userBId,
+          title: `${marker} suspended personal`,
+          content: null,
+          dueAt: null,
+          completed: false,
+          priority: "medium",
+        },
+      ]);
+      expect(
+        await db.todo.findUniqueOrThrow({ where: { id: foreign.id } }),
+      ).toEqual(foreign);
+      expect(await db.userSuspension.findMany()).toEqual([suspension]);
+    });
+  });
 
-      const suspendedComment = await execute(
+  it("rejects comment creation for an independently suspended actor without changing rows or audits", async ({
+    graphqlRuntime,
+    mutations,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        userBId,
+        sectionId,
+        sectionJwId,
+      } = mutations;
+      await seedComment(db, userAId, sectionId, "Foreign comment");
+      const suspension = await db.userSuspension.create({
+        data: { userId: userBId, reason: marker },
+      });
+      const before = await readComments(db);
+      const token = await signToken(userBId, [
+        restWriteScope("community.comment"),
+      ]);
+      const result = await execute(
         {
           query: /* GraphQL */ `
           mutation SuspendedComment($sectionJwId: Int!) {
-            commentCreate(
-              input: {
-                targetType: SECTION
-                sectionJwId: $sectionJwId
-                body: "${marker} blocked"
-              }
-            ) {
-              id
-            }
+            commentCreate(input: { targetType: SECTION, sectionJwId: $sectionJwId, body: "${marker} blocked" }) { id }
           }
         `,
-          variables: { sectionJwId: sectionJwId },
+          variables: { sectionJwId },
         },
-        tokenB,
+        token,
       );
-      expectErrorCode(suspendedComment.payload, "FORBIDDEN");
-      expect(suspendedComment.payload.errors?.[0]?.message).toBe(
+      expectErrorCode(result.payload, "FORBIDDEN");
+      expect(result.payload.errors?.[0]?.message).toBe(
         "Comment writes are suspended.",
       );
+      expect(await readComments(db)).toEqual(before);
+      expect(await db.auditLog.findMany()).toEqual([]);
+      expect(await db.userSuspension.findMany()).toEqual([suspension]);
     });
   });
 });
