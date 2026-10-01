@@ -7,7 +7,7 @@ import type { PreferenceFlow } from "./preference-flow";
  * caller arranges a section without comments, so its empty panel is required. */
 export function observeSectionDetailNavigation(
   page: Page,
-  preferenceFlow: PreferenceFlow,
+  owner: Pick<PreferenceFlow, "expectReadCancellation" | "onClosing">,
   sectionJwId: number,
 ) {
   const viewerPath = `/_internal/catalog/sections/${sectionJwId}/viewer`;
@@ -22,10 +22,10 @@ export function observeSectionDetailNavigation(
     // Shell refresh replaces the first detail controller during SPA navigation.
     // The reader requires this exact request's native abort terminal.
     if (viewerRequests.length === 1)
-      preferenceFlow.expectReadCancellation(page, request);
+      owner.expectReadCancellation(page, request);
   };
   page.on("request", observeViewer);
-  preferenceFlow.onClosing(() => page.off("request", observeViewer));
+  owner.onClosing(() => page.off("request", observeViewer));
 
   return async function expectSectionDetailReady() {
     try {
