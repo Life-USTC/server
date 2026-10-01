@@ -14,59 +14,6 @@ const execute = promisify(execFile);
 const require = createRequire(import.meta.url);
 const timeoutMessage =
   'Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".';
-const expectedMessages: Record<SharedCleanupFailurePhase, string[]> = {
-  node: ["SHARED-NODE-CANCEL"],
-  domain: ["SHARED-DOMAIN-CANCEL"],
-  http: [
-    "SHARED-WORKFLOW-CANCEL",
-    "SHARED-REQUEST-CANCEL",
-    "SHARED-HTTP-CLOSE",
-  ],
-  mcp: [
-    "SHARED-BODY",
-    "SHARED-WORKFLOW-CANCEL",
-    "SHARED-REQUEST-CANCEL",
-    "SHARED-FIRST-CLOSE",
-    "SHARED-SECOND-CLOSE",
-  ],
-  "graphql-workspace": [
-    "SHARED-WORKFLOW-CANCEL",
-    "SHARED-REQUEST-CANCEL",
-    "SHARED-WORKSPACE-OWNER-CLOSE",
-    "SHARED-WORKSPACE-OTHER-CLOSE",
-  ],
-  "graphql-workspace-timeout": [timeoutMessage],
-  "graphql-workspace-setup-timeout": [timeoutMessage],
-  graphql: [
-    "SHARED-WORKFLOW-CANCEL",
-    "SHARED-REQUEST-CANCEL",
-    "SHARED-GRAPHQL-CLOSE",
-  ],
-  comment: [
-    "SHARED-WORKFLOW-CANCEL",
-    "SHARED-REQUEST-CANCEL",
-    "SHARED-COMMENT-CLOSE",
-  ],
-  public: [
-    "SHARED-WORKFLOW-CANCEL",
-    "SHARED-REQUEST-CANCEL",
-    "SHARED-PUBLIC-CLOSE",
-  ],
-  subscription: [
-    "SHARED-WORKFLOW-CANCEL",
-    "SHARED-REQUEST-CANCEL",
-    "SHARED-SUBSCRIPTION-CLOSE",
-  ],
-  "http-timeout": [timeoutMessage],
-  metrics: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
-  "metrics-timeout": [timeoutMessage],
-  catalog: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
-  "catalog-timeout": [timeoutMessage],
-  "catalog-setup-timeout": [timeoutMessage],
-  discovery: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
-  oauth: ["SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
-  cimd: ["SHARED-BODY", "SHARED-WORKFLOW-CANCEL", "SHARED-REQUEST-CANCEL"],
-};
 type ErrorTree = { name: string; message: string; errors?: ErrorTree[] };
 const errorLeaf = (message: string): ErrorTree => ({ name: "Error", message });
 const nodeCleanupError = (message: string): ErrorTree => ({
@@ -214,6 +161,15 @@ test.for<SharedCleanupFailurePhase>([
       }
       const load = async (file: string) =>
         JSON.parse(await readFile(join(output, file), "utf8"));
+      async function assertSiblingCancellation() {
+        const work = await load("sibling-work.json");
+        expect(work.written).toEqual({
+          id: expect.any(String),
+          userId: "shared-cleanup-owner",
+          title: "Sibling cancellation completed",
+        });
+        expect(work.persisted).toEqual(work.written);
+      }
       const report = await load("report.json");
       const native = await load("native-result.json");
       const resources = (await load("resources.json")) as {
@@ -251,8 +207,9 @@ test.for<SharedCleanupFailurePhase>([
       });
       expect(native.errors).toEqual(expectedNativeErrors[phase]);
       const leaves = (native.errors as ErrorTree[]).flatMap(errorLeaves);
-      expect(leaves).toEqual(expectedMessages[phase].map(errorLeaf));
-      for (const message of expectedMessages[phase])
+      const expectedLeaves = expectedNativeErrors[phase].flatMap(errorLeaves);
+      expect(leaves).toEqual(expectedLeaves);
+      for (const { message } of expectedLeaves)
         expect(
           leaves.filter((error) => error.message === message),
         ).toHaveLength(1);
@@ -505,13 +462,7 @@ test.for<SharedCleanupFailurePhase>([
           "database-dispose-start",
           "database-dispose-finished",
         ]);
-        const work = await load("sibling-work.json");
-        expect(work.written).toEqual({
-          id: expect.any(String),
-          userId: "shared-cleanup-owner",
-          title: "Sibling cancellation completed",
-        });
-        expect(work.persisted).toEqual(work.written);
+        await assertSiblingCancellation();
       } else if (phase === "http-timeout") {
         expect(errors).toEqual([]);
         expect(
@@ -557,13 +508,7 @@ test.for<SharedCleanupFailurePhase>([
         expect(names.indexOf("sibling-cancel-finished")).toBeLessThan(
           names.indexOf("database-dispose-start"),
         );
-        const work = await load("sibling-work.json");
-        expect(work.written).toEqual({
-          id: expect.any(String),
-          userId: "shared-cleanup-owner",
-          title: "Sibling cancellation completed",
-        });
-        expect(work.persisted).toEqual(work.written);
+        await assertSiblingCancellation();
       } else if (["discovery", "oauth", "cimd"].includes(phase)) {
         expect(errors.map((event) => event.error)).toEqual(
           protocolRuntimeErrors,
@@ -601,13 +546,7 @@ test.for<SharedCleanupFailurePhase>([
           fetch: true,
           caches: true,
         });
-        const work = await load("sibling-work.json");
-        expect(work.written).toEqual({
-          id: expect.any(String),
-          userId: "shared-cleanup-owner",
-          title: "Sibling cancellation completed",
-        });
-        expect(work.persisted).toEqual(work.written);
+        await assertSiblingCancellation();
       } else {
         const workflow = errors.filter(
           (event) =>
