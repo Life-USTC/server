@@ -4,6 +4,7 @@ import {
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/private-calendar-fixture";
+import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   expectMcpToolCalls,
   expectSubscriptionState,
@@ -184,7 +185,7 @@ for (const role of ["regular", "suspended admin"] as const) {
       calendarProtocolRun,
       oauthOwner,
       createCalendar,
-    }) => {
+    }, testInfo) => {
       let sectionJwId = 0;
       const writes: string[] = [];
       await calendarProtocolRun(
@@ -214,18 +215,31 @@ for (const role of ["regular", "suspended admin"] as const) {
             action === "add"
               ? "Subscribe to section"
               : "Unsubscribe from section";
-          await page
-            .getByRole("button", { name: operation, exact: true })
-            .click();
-          if (action === "add")
-            await page
-              .getByRole("dialog", { name: operation })
-              .getByRole("button", { name: operation, exact: true })
-              .click();
           const nextAction =
             action === "add"
               ? "Unsubscribe from section"
               : "Subscribe to section";
+          const actionButton = page.getByRole("button", {
+            name: operation,
+            exact: true,
+          });
+          await expect(actionButton).toBeVisible();
+          await expect(
+            page.getByRole("button", { name: nextAction, exact: true }),
+          ).toHaveCount(0);
+          await actionButton.click();
+          if (action === "add") {
+            const dialog = page.getByRole("dialog", { name: operation });
+            await expect(dialog).toBeVisible();
+            await expect(
+              dialog
+                .getByText(/非官方|非正式|not.*official|not.*enrollment/i)
+                .first(),
+            ).toBeVisible();
+            await dialog
+              .getByRole("button", { name: operation, exact: true })
+              .click();
+          }
           await expect(
             page.getByRole("button", { name: nextAction, exact: true }),
           ).toBeVisible();
@@ -234,6 +248,17 @@ for (const role of ["regular", "suspended admin"] as const) {
             ...(action === "add" ? [membership] : []),
           ];
           await expectSubscriptionRelations(fixture, expected);
+          if (action === "add") {
+            await page.keyboard.press("Escape");
+            await expect(
+              page.getByRole("dialog", { name: operation }),
+            ).toBeHidden();
+          }
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            action === "add" ? "section/subscribed" : "section/unsubscribed",
+          );
           await page.reload();
           await waitForUiSettled(page);
           await expect(
