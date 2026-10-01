@@ -7,6 +7,22 @@ import type { TestPrismaClient } from "../../../../shared/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 
+async function expectEventReadState(
+  db: TestPrismaClient,
+  events: YoungEvent[],
+) {
+  expect(await db.youngEvent.findMany({ orderBy: { id: "asc" } })).toEqual(
+    events,
+  );
+  expect(await db.youngOrganizer.findMany()).toEqual([]);
+  expect(await db.user.findMany()).toEqual([]);
+  expect(await db.session.findMany()).toEqual([]);
+  expect(await db.userYoungEventSubscription.findMany()).toEqual([]);
+  expect(await db.userYoungOrganizerSubscription.findMany()).toEqual([]);
+  expect(await db.youngNotification.findMany()).toEqual([]);
+  expect(await db.auditLog.findMany()).toEqual([]);
+}
+
 async function withEvent(
   page: Page,
   db: TestPrismaClient,
@@ -65,16 +81,7 @@ test("young-event.display-known-values", async ({
         },
       );
     });
-    expect(await db.youngEvent.findMany({ orderBy: { id: "asc" } })).toEqual(
-      events,
-    );
-    expect(await db.youngOrganizer.findMany()).toEqual([]);
-    expect(await db.user.findMany()).toEqual([]);
-    expect(await db.session.findMany()).toEqual([]);
-    expect(await db.userYoungEventSubscription.findMany()).toEqual([]);
-    expect(await db.userYoungOrganizerSubscription.findMany()).toEqual([]);
-    expect(await db.youngNotification.findMany()).toEqual([]);
-    expect(await db.auditLog.findMany()).toEqual([]);
+    await expectEventReadState(db, events);
   });
 });
 
@@ -101,16 +108,7 @@ test("young-event.online-option-uncertainty", async ({
         });
       }
     });
-    expect(await db.youngEvent.findMany({ orderBy: { id: "asc" } })).toEqual(
-      events,
-    );
-    expect(await db.youngOrganizer.findMany()).toEqual([]);
-    expect(await db.user.findMany()).toEqual([]);
-    expect(await db.session.findMany()).toEqual([]);
-    expect(await db.userYoungEventSubscription.findMany()).toEqual([]);
-    expect(await db.userYoungOrganizerSubscription.findMany()).toEqual([]);
-    expect(await db.youngNotification.findMany()).toEqual([]);
-    expect(await db.auditLog.findMany()).toEqual([]);
+    await expectEventReadState(db, events);
   });
 });
 
@@ -152,16 +150,7 @@ test("young-event.scope-uncertainty", async ({
         },
       );
     });
-    expect(await db.youngEvent.findMany({ orderBy: { id: "asc" } })).toEqual(
-      events,
-    );
-    expect(await db.youngOrganizer.findMany()).toEqual([]);
-    expect(await db.user.findMany()).toEqual([]);
-    expect(await db.session.findMany()).toEqual([]);
-    expect(await db.userYoungEventSubscription.findMany()).toEqual([]);
-    expect(await db.userYoungOrganizerSubscription.findMany()).toEqual([]);
-    expect(await db.youngNotification.findMany()).toEqual([]);
-    expect(await db.auditLog.findMany()).toEqual([]);
+    await expectEventReadState(db, events);
   });
 });
 
@@ -193,16 +182,7 @@ test("young-event.partial-time-uncertainty", async ({
         );
       }
     });
-    expect(await db.youngEvent.findMany({ orderBy: { id: "asc" } })).toEqual(
-      events,
-    );
-    expect(await db.youngOrganizer.findMany()).toEqual([]);
-    expect(await db.user.findMany()).toEqual([]);
-    expect(await db.session.findMany()).toEqual([]);
-    expect(await db.userYoungEventSubscription.findMany()).toEqual([]);
-    expect(await db.userYoungOrganizerSubscription.findMany()).toEqual([]);
-    expect(await db.youngNotification.findMany()).toEqual([]);
-    expect(await db.auditLog.findMany()).toEqual([]);
+    await expectEventReadState(db, events);
   });
 });
 
@@ -246,15 +226,6 @@ test("young-event.occupancy-uncertainty", async ({
         );
       }
     });
-    expect(await db.youngEvent.findMany({ orderBy: { id: "asc" } })).toEqual(
-      events,
-    );
-    expect(await db.youngOrganizer.findMany()).toEqual([]);
-    expect(await db.user.findMany()).toEqual([]);
-    expect(await db.session.findMany()).toEqual([]);
-    expect(await db.userYoungEventSubscription.findMany()).toEqual([]);
-    expect(await db.userYoungOrganizerSubscription.findMany()).toEqual([]);
-    expect(await db.youngNotification.findMany()).toEqual([]);
-    expect(await db.auditLog.findMany()).toEqual([]);
+    await expectEventReadState(db, events);
   });
 });
