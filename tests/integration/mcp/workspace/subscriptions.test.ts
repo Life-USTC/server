@@ -1,8 +1,4 @@
 import { describe } from "vitest";
-import {
-  assertSubscriptionAction,
-  assertSubscriptionBrief,
-} from "../../../shared/scenarios/subscriptions";
 import { isolatedMcpTest } from "../_harness/isolated-context";
 
 const toolTest = isolatedMcpTest
@@ -52,7 +48,7 @@ const toolTest = isolatedMcpTest
 
 describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
   toolTest(
-    "订阅返回 action=subscribed 或 action=already_subscribed",
+    "首次订阅返回 action=subscribed 与精简计数",
     async ({
       mcpWorkflow,
       mcpActor: subscriber,
@@ -68,47 +64,85 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
           sectionJwId?: number;
           subscription?: {
             sectionCount?: number;
-            currentSemesterSections?: unknown;
-            sections?: unknown;
+            currentSemesterSectionCount?: number;
           } | null;
         }>("workspace_subscription_add", {
           jwId: section.jwId,
           locale: "zh-cn",
         });
 
-        assertSubscriptionAction(result, section.jwId, [
-          "subscribed",
-          "already_subscribed",
-        ]);
-        assertSubscriptionBrief(result.subscription);
-
-        expect(result.action).toBe("subscribed");
-        expect(result.subscription?.sectionCount).toBe(1);
+        expect(result).toMatchObject({
+          success: true,
+          action: "subscribed",
+          sectionJwId: section.jwId,
+          subscription: {
+            sectionCount: 1,
+            currentSemesterSectionCount: 1,
+          },
+        });
+        expect(result.subscription).not.toHaveProperty("sections");
+        expect(result.subscription).not.toHaveProperty(
+          "currentSemesterSections",
+        );
         expect(
           await db.userSectionSubscription.findMany({
             where: { userId: subscriber.userId },
             select: { sectionId: true, kind: true },
           }),
         ).toEqual([{ sectionId: section.id, kind: "regular" }]);
-        const repeated = await subscriber.client.call<{
+      }),
+  );
+
+  toolTest(
+    "已有订阅返回 action=already_subscribed 且保留原始记录",
+    async ({
+      mcpWorkflow,
+      mcpActor: subscriber,
+      section,
+      isolatedDatabase,
+      expect,
+    }) =>
+      mcpWorkflow.run(async () => {
+        const db = isolatedDatabase.owner;
+        const existing = await db.userSectionSubscription.create({
+          data: {
+            userId: subscriber.userId,
+            sectionId: section.id,
+            kind: "regular",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          },
+        });
+        const result = await subscriber.client.call<{
           success?: boolean;
           action?: string;
           sectionJwId?: number;
+          subscription?: {
+            sectionCount?: number;
+            currentSemesterSectionCount?: number;
+          } | null;
         }>("workspace_subscription_add", {
           jwId: section.jwId,
           locale: "zh-cn",
         });
-        expect(repeated).toMatchObject({
+
+        expect(result).toMatchObject({
           success: true,
           action: "already_subscribed",
           sectionJwId: section.jwId,
+          subscription: {
+            sectionCount: 1,
+            currentSemesterSectionCount: 1,
+          },
         });
+        expect(result.subscription).not.toHaveProperty("sections");
+        expect(result.subscription).not.toHaveProperty(
+          "currentSemesterSections",
+        );
         expect(
           await db.userSectionSubscription.findMany({
             where: { userId: subscriber.userId },
-            select: { sectionId: true, kind: true },
           }),
-        ).toEqual([{ sectionId: section.id, kind: "regular" }]);
+        ).toEqual([existing]);
       }),
   );
 
@@ -205,175 +239,270 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
   );
 
   rlsTest(
-    "runs subscribe/list/remove/list under RLS and preserves other owners",
+    "adds an active membership under RLS and preserves the other owner",
     async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
-        const {
-          client,
-          userId,
-          otherUserId,
-          activeSectionId,
-          activeSectionJwId,
-          retiredSectionId,
-          retiredSectionJwId,
-        } = state;
-        if (!client) throw new Error("MCP fixture is not ready");
-
-        const add = await client.call<{
+        const foreignBefore = await db.userSectionSubscription.findMany({
+          where: { userId: state.otherUserId },
+        });
+        const result = await state.client.call<{
+          success?: boolean;
           action?: string;
           sectionJwId?: number;
-          success?: boolean;
-          subscription?: {
-            sections?: Array<{ jwId?: number; kind?: string }>;
-          } | null;
+          subscription?: { sections?: Array<{ jwId: number; kind: string }> };
         }>("workspace_subscription_add", {
-          jwId: activeSectionJwId,
+          jwId: state.activeSectionJwId,
           locale: "zh-cn",
           mode: "full",
         });
-        expect(add).toMatchObject({
-          action: "subscribed",
-          sectionJwId: activeSectionJwId,
+
+        expect(result).toMatchObject({
           success: true,
+          action: "subscribed",
+          sectionJwId: state.activeSectionJwId,
           subscription: {
             sections: [
               expect.objectContaining({
-                jwId: activeSectionJwId,
+                jwId: state.activeSectionJwId,
                 kind: "regular",
               }),
             ],
           },
         });
-
         expect(
           await db.userSectionSubscription.findMany({
-            where: { userId },
+            where: { userId: state.userId },
             select: { sectionId: true, kind: true },
           }),
-        ).toEqual([{ sectionId: activeSectionId, kind: "regular" }]);
+        ).toEqual([{ sectionId: state.activeSectionId, kind: "regular" }]);
         expect(
           await db.userSectionSubscription.findMany({
-            where: { userId: otherUserId },
-            select: { sectionId: true, kind: true },
+            where: { userId: state.otherUserId },
           }),
-        ).toEqual([{ sectionId: activeSectionId, kind: "teaching_assistant" }]);
+        ).toEqual(foreignBefore);
+      }),
+  );
 
-        await db.userSectionSubscription.create({
-          data: {
-            userId,
-            sectionId: retiredSectionId,
-            kind: "teaching_assistant",
-          },
+  rlsTest(
+    "removes an active membership under RLS and preserves retired and foreign rows",
+    async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
+      mcpWorkflow.run(async () => {
+        const db = isolatedDatabase.owner;
+        await db.userSectionSubscription.createMany({
+          data: [
+            {
+              userId: state.userId,
+              sectionId: state.activeSectionId,
+              kind: "regular",
+            },
+            {
+              userId: state.userId,
+              sectionId: state.retiredSectionId,
+              kind: "teaching_assistant",
+            },
+          ],
+        });
+        const before = await db.userSectionSubscription.findMany({
+          orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
         });
 
-        const listBeforeRemove = await client.call<{
-          sections?: Array<{ jwId?: number; kind?: string }>;
+        const result = await state.client.call<{
           success?: boolean;
-        }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
-        expect(listBeforeRemove.success).toBe(true);
-        expect(
-          listBeforeRemove.sections
-            ?.map(({ jwId, kind }) => ({ jwId, kind }))
-            .sort((left, right) => (left.jwId ?? 0) - (right.jwId ?? 0)),
-        ).toEqual([
-          { jwId: activeSectionJwId, kind: "regular" },
-          { jwId: retiredSectionJwId, kind: "teaching_assistant" },
-        ]);
-
-        const removeActive = await client.call<{
           action?: string;
           sectionJwId?: number;
-          success?: boolean;
-          subscription?: {
-            sections?: Array<{ jwId?: number; kind?: string }>;
-          } | null;
+          subscription?: { sections?: Array<{ jwId: number; kind: string }> };
         }>("workspace_subscription_remove", {
-          jwId: activeSectionJwId,
+          jwId: state.activeSectionJwId,
           locale: "zh-cn",
           mode: "full",
         });
-        expect(removeActive).toMatchObject({
-          action: "unsubscribed",
-          sectionJwId: activeSectionJwId,
+        expect(result).toMatchObject({
           success: true,
+          action: "unsubscribed",
+          sectionJwId: state.activeSectionJwId,
           subscription: {
             sections: [
               expect.objectContaining({
-                jwId: retiredSectionJwId,
+                jwId: state.retiredSectionJwId,
                 kind: "teaching_assistant",
               }),
             ],
           },
         });
-
         expect(
           await db.userSectionSubscription.findMany({
-            where: { userId },
-            select: { sectionId: true, kind: true },
+            orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
           }),
-        ).toEqual([
-          { sectionId: retiredSectionId, kind: "teaching_assistant" },
-        ]);
+        ).toEqual(
+          before.filter(
+            (row) =>
+              row.userId !== state.userId ||
+              row.sectionId !== state.activeSectionId,
+          ),
+        );
+      }),
+  );
 
-        const repeatedRemove = await client.call<{
+  rlsTest(
+    "removes a retired membership under RLS and preserves the other owner",
+    async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
+      mcpWorkflow.run(async () => {
+        const db = isolatedDatabase.owner;
+        await db.userSectionSubscription.create({
+          data: {
+            userId: state.userId,
+            sectionId: state.retiredSectionId,
+            kind: "teaching_assistant",
+          },
+        });
+        const before = await db.userSectionSubscription.findMany({
+          orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+        });
+
+        const result = await state.client.call<{
+          success?: boolean;
           action?: string;
           sectionJwId?: number;
-          success?: boolean;
+          subscription?: { sections?: Array<{ jwId: number; kind: string }> };
         }>("workspace_subscription_remove", {
-          jwId: activeSectionJwId,
+          jwId: state.retiredSectionJwId,
           locale: "zh-cn",
           mode: "full",
         });
-        expect(repeatedRemove).toMatchObject({
-          action: "not_subscribed",
-          sectionJwId: activeSectionJwId,
+        expect(result).toMatchObject({
           success: true,
-        });
-
-        const listAfterActiveRemove = await client.call<{
-          sections?: Array<{ jwId?: number; kind?: string }>;
-        }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
-        expect(
-          listAfterActiveRemove.sections?.map(({ jwId, kind }) => ({
-            jwId,
-            kind,
-          })),
-        ).toEqual([{ jwId: retiredSectionJwId, kind: "teaching_assistant" }]);
-
-        const removeRetired = await client.call<{
-          action?: string;
-          sectionJwId?: number;
-          success?: boolean;
-        }>("workspace_subscription_remove", {
-          jwId: retiredSectionJwId,
-          locale: "zh-cn",
-          mode: "full",
-        });
-        expect(removeRetired).toMatchObject({
           action: "unsubscribed",
-          sectionJwId: retiredSectionJwId,
-          success: true,
+          sectionJwId: state.retiredSectionJwId,
+          subscription: {
+            sections: [],
+          },
+        });
+        expect(
+          await db.userSectionSubscription.findMany({
+            orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+          }),
+        ).toEqual(
+          before.filter(
+            (row) =>
+              row.userId !== state.userId ||
+              row.sectionId !== state.retiredSectionId,
+          ),
+        );
+      }),
+  );
+
+  rlsTest(
+    "returns not_subscribed for an absent active membership and preserves every row",
+    async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
+      mcpWorkflow.run(async () => {
+        const db = isolatedDatabase.owner;
+        await db.userSectionSubscription.create({
+          data: {
+            userId: state.userId,
+            sectionId: state.retiredSectionId,
+            kind: "teaching_assistant",
+          },
+        });
+        const before = await db.userSectionSubscription.findMany({
+          orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
         });
 
-        const listAfterAllRemoves = await client.call<{
-          sections?: unknown[];
-        }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
-        expect(listAfterAllRemoves.sections).toEqual([]);
+        const result = await state.client.call<{
+          success?: boolean;
+          action?: string;
+          sectionJwId?: number;
+          subscription?: { sections?: Array<{ jwId: number; kind: string }> };
+        }>("workspace_subscription_remove", {
+          jwId: state.activeSectionJwId,
+          locale: "zh-cn",
+          mode: "full",
+        });
+        expect(result).toMatchObject({
+          success: true,
+          action: "not_subscribed",
+          sectionJwId: state.activeSectionJwId,
+          subscription: {
+            sections: [
+              expect.objectContaining({
+                jwId: state.retiredSectionJwId,
+                kind: "teaching_assistant",
+              }),
+            ],
+          },
+        });
+        expect(
+          await db.userSectionSubscription.findMany({
+            orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+          }),
+        ).toEqual(before);
+      }),
+  );
 
-        await expect(
-          db.userSectionSubscription.findMany({
-            where: { userId },
-          }),
-        ).resolves.toEqual([]);
-        await expect(
-          db.userSectionSubscription.findMany({
-            where: { userId: otherUserId },
-            select: { sectionId: true, kind: true },
-          }),
-        ).resolves.toEqual([
-          { sectionId: activeSectionId, kind: "teaching_assistant" },
+  rlsTest(
+    "lists known active and retired memberships without exposing the other owner",
+    async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
+      mcpWorkflow.run(async () => {
+        const db = isolatedDatabase.owner;
+        await db.userSectionSubscription.createMany({
+          data: [
+            {
+              userId: state.userId,
+              sectionId: state.activeSectionId,
+              kind: "regular",
+            },
+            {
+              userId: state.userId,
+              sectionId: state.retiredSectionId,
+              kind: "teaching_assistant",
+            },
+          ],
+        });
+        const before = await db.userSectionSubscription.findMany({
+          orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+        });
+
+        const result = await state.client.call<{
+          success?: boolean;
+          sections?: Array<{ jwId: number; kind: string }>;
+        }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
+        expect(result.success).toBe(true);
+        expect(
+          result.sections
+            ?.map(({ jwId, kind }) => ({ jwId, kind }))
+            .sort((left, right) => left.jwId - right.jwId),
+        ).toEqual([
+          { jwId: state.activeSectionJwId, kind: "regular" },
+          { jwId: state.retiredSectionJwId, kind: "teaching_assistant" },
         ]);
+        expect(
+          await db.userSectionSubscription.findMany({
+            orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+          }),
+        ).toEqual(before);
+      }),
+  );
+
+  rlsTest(
+    "lists no memberships when only the other owner is subscribed",
+    async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
+      mcpWorkflow.run(async () => {
+        const db = isolatedDatabase.owner;
+        const before = await db.userSectionSubscription.findMany({
+          orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+        });
+
+        const result = await state.client.call<{
+          success?: boolean;
+          sections?: Array<{ jwId: number; kind: string }>;
+        }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
+        expect(result.success).toBe(true);
+        expect(result.sections).toEqual([]);
+        expect(
+          await db.userSectionSubscription.findMany({
+            orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+          }),
+        ).toEqual(before);
       }),
   );
 });
@@ -394,7 +523,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
             userId?: string;
             sectionCount?: number;
             currentSemesterSectionCount?: number;
-            currentSemesterSections?: unknown[];
+            currentSemesterSections?: Array<{ jwId: number }>;
             sections?: Array<{
               jwId?: number | null;
               code?: string | null;
@@ -410,18 +539,9 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
         expect(result.success).toBe(true);
         expect(result.subscription?.userId).toBe(context.userId);
-        expect(typeof result.subscription?.sectionCount).toBe("number");
-        expect(typeof result.subscription?.currentSemesterSectionCount).toBe(
-          "number",
-        );
         expect(
-          Array.isArray(result.subscription?.currentSemesterSections),
-        ).toBe(true);
-        expect(
-          result.subscription?.sections?.some(
-            (section) => section.jwId === context.sectionJwId,
-          ),
-        ).toBe(true);
+          result.subscription?.currentSemesterSections?.map((row) => row.jwId),
+        ).toEqual([context.sectionJwId]);
         expect(result.subscription?.calendarPath).toBeUndefined();
         expect(result.subscription?.calendarUrl).toBeUndefined();
         expect(result.subscription?.note).toContain("not official");
@@ -441,7 +561,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
   );
 
   toolTest(
-    "workspace_calendar_feed_get summary 兼容输入返回 default 结构",
+    "workspace_calendar_feed_get default 返回当前学期订阅摘要",
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -457,7 +577,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
             currentSemesterSectionCount?: number;
             calendarPath?: never;
             calendarUrl?: never;
-            currentSemesterSections?: unknown[];
+            currentSemesterSections?: Array<{ jwId: number }>;
           };
         }>("workspace_calendar_feed_get", {
           locale: "zh-cn",
@@ -465,15 +585,11 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         });
 
         expect(result.success).toBe(true);
-        expect(typeof result.subscription?.sectionCount).toBe("number");
-        expect(typeof result.subscription?.currentSemesterSectionCount).toBe(
-          "number",
-        );
         expect(result.subscription?.calendarPath).toBeUndefined();
         expect(result.subscription?.calendarUrl).toBeUndefined();
         expect(
-          Array.isArray(result.subscription?.currentSemesterSections),
-        ).toBe(true);
+          result.subscription?.currentSemesterSections?.map((row) => row.jwId),
+        ).toEqual([context.sectionJwId]);
 
         expect(result.subscription?.sectionCount).toBe(1);
         expect(result.subscription?.currentSemesterSectionCount).toBe(1);
@@ -509,11 +625,6 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         });
 
         expect(result.success).toBe(true);
-        expect(
-          result.sections?.some(
-            (section) => section.jwId === context.sectionJwId,
-          ),
-        ).toBe(true);
         expect(result.note).toContain("not official");
 
         expect(
@@ -552,7 +663,6 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         expect(result.calendarPath).toBe(
           `/api/catalog/sections/${context.sectionJwId}/calendar.ics`,
         );
-        expect(result.calendarUrl).toContain(result.calendarPath ?? "");
 
         expect(result.calendarUrl).toBe(
           `https://life.example/api/catalog/sections/${context.sectionJwId}/calendar.ics`,
@@ -628,15 +738,10 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         });
 
         expect(result.success).toBe(true);
-        expect(result.matchedCodes).toContain(context.sectionCode);
         expect(result.unmatchedCodes).toEqual([]);
-        expect(result.addedCount).toBeGreaterThanOrEqual(1);
         expect(result.alreadySubscribedCount).toBe(0);
-        expect(
-          (result.subscription?.sections?.length ??
-            result.subscription?.sectionCount ??
-            0) > 0,
-        ).toBe(true);
+        expect(result.subscription?.sections).toHaveLength(1);
+        expect(result.subscription?.sectionCount).toBe(1);
 
         expect(result.semester?.id).toBe(context.semesterId);
         expect(result.matchedCodes).toEqual([context.sectionCode]);
@@ -671,10 +776,8 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         });
 
         expect(result.success).toBe(true);
-        expect(result.matchedCodes).toContain(context.sectionCode);
+        expect(result.matchedCodes).toEqual([context.sectionCode]);
         expect(result.addedCount).toBe(0);
-        expect(result.alreadySubscribedCount).toBeGreaterThanOrEqual(1);
-
         expect(result.alreadySubscribedCount).toBe(1);
         expect(result.unmatchedCodes).toEqual([]);
         expect(
