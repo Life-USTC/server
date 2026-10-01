@@ -120,7 +120,9 @@ function consentRow(overrides: Record<string, unknown> = {}) {
 function refreshRow(overrides: Record<string, unknown> = {}) {
   return {
     clientId: CLIENT_ID,
-    expiresAt: new Date("2026-10-01T00:00:00.000Z"),
+    // Far enough out that a live-token fixture cannot expire with the wall
+    // clock. Tests that assert expiry pass an explicit past `expiresAt`.
+    expiresAt: new Date("2099-01-01T00:00:00.000Z"),
     grantId: "grant-1",
     id: "refresh-1",
     referenceId: null,
