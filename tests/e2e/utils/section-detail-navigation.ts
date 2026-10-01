@@ -35,10 +35,9 @@ export function observeSectionDetailNavigation(
       await successor?.body();
       // URL and SSR shell precede lazy detail panels. Keep admission open until
       // the final panel and its independently arranged empty state are visible.
-      await expect(page.locator("[data-detail-scroll-container]")).toHaveAttribute(
-        "aria-busy",
-        "false",
-      );
+      await expect(
+        page.locator("[data-detail-scroll-container]"),
+      ).toHaveAttribute("aria-busy", "false");
       await expect(
         page.locator('#comments [data-slot="empty-description"]'),
       ).toBeVisible();

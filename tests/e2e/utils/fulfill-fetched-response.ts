@@ -1,7 +1,10 @@
 import type { APIResponse, Route } from "@playwright/test";
 
 /** Fulfill a real fetched response with framing that matches its exposed bytes. */
-export async function fulfillFetchedResponse(route: Route, response: APIResponse) {
+export async function fulfillFetchedResponse(
+  route: Route,
+  response: APIResponse,
+) {
   const body = await response.body();
   const headers = response.headers();
   const status = response.status();

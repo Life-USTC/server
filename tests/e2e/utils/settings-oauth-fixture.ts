@@ -21,7 +21,9 @@ function ownAuthorizationServer() {
       response.once("error", reject);
       response.once("close", () => {
         if (!response.writableFinished)
-          reject(new Error("OAuth authorization response closed before finish"));
+          reject(
+            new Error("OAuth authorization response closed before finish"),
+          );
       });
     });
     responses.add(finished);

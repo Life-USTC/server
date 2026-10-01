@@ -68,105 +68,113 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     });
   });
 
-  oauthTest("连接按钮启动账号关联 OAuth 流程", async ({
-    accountRun,
-    page,
-    account,
-    isolatedWorker,
-    authorizationProvider,
-  }, testInfo) => {
-    await accountRun(
-      {
-        writes: [["/account/settings/accounts", 200, "linkAccount"]],
-        audits: [],
-      },
-      async () => {
-        await gotoAndWaitForReady(page, "/account/settings/accounts");
+  oauthTest(
+    "连接按钮启动账号关联 OAuth 流程",
+    async (
+      { accountRun, page, account, isolatedWorker, authorizationProvider },
+      testInfo,
+    ) => {
+      await accountRun(
+        {
+          writes: [["/account/settings/accounts", 200, "linkAccount"]],
+          audits: [],
+        },
+        async () => {
+          await gotoAndWaitForReady(page, "/account/settings/accounts");
 
-        const providerCard = page
-          .locator("#main-content .rounded-lg.border")
-          .filter({ has: page.getByText("USTC", { exact: true }) })
-          .first();
-        const connectButton = providerCard.getByRole("button", {
-          name: /连接|Connect/i,
-        });
-        await expect(providerCard).toBeVisible();
-        await expect(connectButton).toBeVisible();
+          const providerCard = page
+            .locator("#main-content .rounded-lg.border")
+            .filter({ has: page.getByText("USTC", { exact: true }) })
+            .first();
+          const connectButton = providerCard.getByRole("button", {
+            name: /连接|Connect/i,
+          });
+          await expect(providerCard).toBeVisible();
+          await expect(connectButton).toBeVisible();
 
-        await waitForUiSettled(page);
-        await expect(connectButton).toBeEnabled();
+          await waitForUiSettled(page);
+          await expect(connectButton).toBeEnabled();
 
-        const response = await observeAction(
-          () =>
-            page.waitForResponse(
-              (response) => {
-                const request = response.request();
-                const url = new URL(request.url());
-                return (
-                  request.method() === "POST" &&
-                  url.origin === isolatedWorker.origin &&
-                  url.pathname === "/account/settings/accounts" &&
-                  url.search === "?/linkAccount"
-                );
-              },
-              { timeout: 15_000 },
-            ),
-          () => connectButton.click(),
-        );
-        expect(response.status()).toBe(200);
-        const result = await response.json();
-        expect(result.type).toBe("redirect");
-        expect(result.status).toBe(303);
-        const authorization = new URL(result.location);
-        expect(authorization.origin).toBe(authorizationProvider.origin);
-        expect(authorization.pathname).toBe("/authorize/");
-        const parameters = authorization.searchParams;
-        expect(parameters.get("client_id")).toBe(authorizationProvider.clientId);
-        expect(parameters.get("redirect_uri")).toBe(
-          `${isolatedWorker.origin}/api/auth/callback/oidc`,
-        );
-        expect(parameters.get("response_type")).toBe("code");
-        expect(parameters.get("scope")?.split(" ").sort()).toEqual(["openid"]);
-        expect(Boolean(parameters.get("state"))).toBe(true);
-        expect(parameters.get("code_challenge_method")).toBe("S256");
-        expect(
-          /^[A-Za-z0-9_-]{43}$/.test(parameters.get("code_challenge") ?? ""),
-        ).toBe(true);
-        expect(parameters.has("client_secret")).toBe(false);
-        expect(parameters.has("code_verifier")).toBe(false);
-
-        await page.waitForURL(
-          (url) =>
-            url.origin === authorizationProvider.origin &&
-            url.pathname === "/authorize/",
-        );
-        await expect(
-          page.getByRole("heading", {
-            name: "Authorize account connection",
-            exact: true,
-          }),
-        ).toBeVisible();
-        expect(authorizationProvider.requests.length).toBe(1);
-        // Compare opaque state only in memory; do not print it in diagnostics.
-        expect(
-          authorizationProvider.requests[0].href === authorization.href,
-        ).toBe(true);
-        await captureStepScreenshot(page, testInfo, "settings-accounts-oauth");
-        return async () => {
+          const response = await observeAction(
+            () =>
+              page.waitForResponse(
+                (response) => {
+                  const request = response.request();
+                  const url = new URL(request.url());
+                  return (
+                    request.method() === "POST" &&
+                    url.origin === isolatedWorker.origin &&
+                    url.pathname === "/account/settings/accounts" &&
+                    url.search === "?/linkAccount"
+                  );
+                },
+                { timeout: 15_000 },
+              ),
+            () => connectButton.click(),
+          );
+          expect(response.status()).toBe(200);
+          const result = await response.json();
+          expect(result.type).toBe("redirect");
+          expect(result.status).toBe(303);
+          const authorization = new URL(result.location);
+          expect(authorization.origin).toBe(authorizationProvider.origin);
+          expect(authorization.pathname).toBe("/authorize/");
+          const parameters = authorization.searchParams;
+          expect(parameters.get("client_id")).toBe(
+            authorizationProvider.clientId,
+          );
+          expect(parameters.get("redirect_uri")).toBe(
+            `${isolatedWorker.origin}/api/auth/callback/oidc`,
+          );
+          expect(parameters.get("response_type")).toBe("code");
+          expect(parameters.get("scope")?.split(" ").sort()).toEqual([
+            "openid",
+          ]);
+          expect(Boolean(parameters.get("state"))).toBe(true);
+          expect(parameters.get("code_challenge_method")).toBe("S256");
           expect(
-            await isolatedWorker.database.owner.account.count({
-              where: { userId: account.id },
+            /^[A-Za-z0-9_-]{43}$/.test(parameters.get("code_challenge") ?? ""),
+          ).toBe(true);
+          expect(parameters.has("client_secret")).toBe(false);
+          expect(parameters.has("code_verifier")).toBe(false);
+
+          await page.waitForURL(
+            (url) =>
+              url.origin === authorizationProvider.origin &&
+              url.pathname === "/authorize/",
+          );
+          await expect(
+            page.getByRole("heading", {
+              name: "Authorize account connection",
+              exact: true,
             }),
-          ).toBe(0);
+          ).toBeVisible();
+          expect(authorizationProvider.requests.length).toBe(1);
+          // Compare opaque state only in memory; do not print it in diagnostics.
           expect(
-            await isolatedWorker.database.owner.user.findMany({
-              orderBy: { id: "asc" },
-            }),
-          ).toEqual([account]);
-        };
-      },
-    );
-  });
+            authorizationProvider.requests[0].href === authorization.href,
+          ).toBe(true);
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "settings-accounts-oauth",
+          );
+          return async () => {
+            expect(
+              await isolatedWorker.database.owner.account.count({
+                where: { userId: account.id },
+              }),
+            ).toBe(0);
+            expect(
+              await isolatedWorker.database.owner.user.findMany({
+                orderBy: { id: "asc" },
+              }),
+            ).toEqual([account]);
+          };
+        },
+      );
+    },
+  );
 
   test("仅关联一个账号时断开连接被禁用", async ({
     accountRun,
