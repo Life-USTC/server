@@ -8,6 +8,7 @@ import type {
 import type { PrivateCalendar } from "./private-calendar-fixture";
 import {
   authorizeSubscription,
+  expectSubscriptionProtocol,
   expectSubscriptionState,
   signInSubscriptionOwner,
 } from "./subscription-consumption";
@@ -203,12 +204,8 @@ export async function runSubscriptionScenario(
       fixture,
     );
     return {
-      async verifyTransport({ sdkRequests }) {
-        expect(
-          sdkRequests
-            .filter(({ rpc }) => rpc === "tools/call")
-            .map(({ tool }) => tool),
-        ).toEqual(sdkTools);
+      async verifyTransport(observation) {
+        expectSubscriptionProtocol(observation, sdkTools);
       },
       async verifyState() {
         await expectSubscriptionRelations(fixture, expected);
@@ -347,13 +344,14 @@ export async function expectMissingSubscriptionKind(
     await response.body();
     expect(response.status()).toBe(404);
   } else if (transport.startsWith("GraphQL")) {
-    const { body } = await subscriptionGraphql(
+    const { response, body } = await subscriptionGraphql(
       request,
       origin,
       "mutation($jwId: Int!) { subscriptionKindUpdate(jwId: $jwId, kind: auditor) { kind } }",
       { jwId },
       headers,
     );
+    expect(response.status()).toBe(200);
     expect(body.errors).toHaveLength(1);
     expect(body.errors[0].extensions.code).toBe("NOT_FOUND");
     expect(body.data).toBeNull();
