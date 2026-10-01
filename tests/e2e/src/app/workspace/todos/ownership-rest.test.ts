@@ -49,7 +49,7 @@ for (const role of roles)
         },
       );
       modeTest(
-        "owner CRUD ignores forged creation owner",
+        "owner create ignores forged ownership",
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -58,31 +58,86 @@ for (const role of roles)
                 data: { title: "REST owned", userId: f.other.id },
               });
               expect(created.status()).toBe(201);
-              const { id } = await created.json();
-              expect(await f.stored(id)).toMatchObject({
+              const body = await created.json();
+              expect(body).toEqual({ id: expect.any(String) });
+              expect(created.headers().location).toBe(
+                `/api/workspace/todos/${body.id}`,
+              );
+              expect(await f.stored(body.id)).toEqual({
+                id: body.id,
                 userId: f.actor.id,
                 title: "REST owned",
+                content: null,
                 completed: false,
+                priority: "medium",
+                dueAt: null,
+                createdAt: expect.any(Date),
+                updatedAt: expect.any(Date),
               });
-              expect(
-                (
-                  await request.patch(`/api/workspace/todos/${id}`, {
-                    data: { title: "REST edited", completed: true },
-                  })
-                ).status(),
-              ).toBe(200);
-              expect(await f.stored(id)).toMatchObject({
-                userId: f.actor.id,
+              await f.unchanged([body.id]);
+            },
+            { calendarRebuilds: 1 },
+          );
+        },
+      );
+      modeTest(
+        "owner update preserves authenticated ownership",
+        async ({ ownership: f }) => {
+          await f.run(
+            async () => {
+              const todo = await f.seedTodo({
+                title: "REST original",
+                content: "Retained REST content",
+                priority: "high",
+                dueAt: new Date("2026-10-05T12:00:00+08:00"),
+              });
+              const request = await f.request(mode, "rest");
+              const updated = await request.patch(
+                `/api/workspace/todos/${todo.id}`,
+                {
+                  data: {
+                    title: "REST edited",
+                    completed: true,
+                    userId: f.other.id,
+                  },
+                },
+              );
+              expect(updated.status()).toBe(200);
+              expect(await updated.json()).toMatchObject({
+                success: true,
+                todo: { id: todo.id, title: "REST edited", completed: true },
+              });
+              expect(await f.stored(todo.id)).toEqual({
+                ...todo,
                 title: "REST edited",
                 completed: true,
+                updatedAt: expect.any(Date),
               });
-              expect(
-                (await request.delete(`/api/workspace/todos/${id}`)).status(),
-              ).toBe(200);
-              expect(await f.stored(id)).toBeNull();
+              await f.unchanged([todo.id]);
+            },
+            { calendarRebuilds: 1 },
+          );
+        },
+      );
+      modeTest(
+        "owner delete removes an independently prepared todo",
+        async ({ ownership: f }) => {
+          await f.run(
+            async () => {
+              const todo = await f.seedTodo({
+                title: "REST removable",
+                content: "Private deletion target",
+              });
+              const request = await f.request(mode, "rest");
+              const deleted = await request.delete(
+                `/api/workspace/todos/${todo.id}`,
+              );
+              expect(deleted.status()).toBe(200);
+              expect(await deleted.json()).toEqual({ success: true });
+              expect(await f.stored(todo.id)).toBeNull();
               await f.unchanged();
             },
-            { calendarRebuilds: 3 },
+            { calendarRebuilds: 1 },
           );
         },
       );
@@ -91,7 +146,11 @@ for (const role of roles)
         async ({ ownership: f }) => {
           await f.run(
             async () => {
-              const id = await f.seedCompleted();
+              const todo = await f.seedTodo({
+                title: "Batch owned",
+                completed: true,
+              });
+              const id = todo.id;
               const request = await f.request(mode, "rest");
               const response = await request.patch(
                 "/api/workspace/todos/batch",
@@ -113,10 +172,10 @@ for (const role of roles)
                   error: { code: "not_found" },
                 },
               ]);
-              expect(await f.stored(id)).toMatchObject({
-                userId: f.actor.id,
-                title: "Batch owned",
+              expect(await f.stored(id)).toEqual({
+                ...todo,
                 completed: false,
+                updatedAt: expect.any(Date),
               });
               await f.unchanged([id]);
             },
@@ -129,7 +188,10 @@ for (const role of roles)
         async ({ ownership: f }) => {
           await f.run(
             async () => {
-              const id = await f.seedCompleted();
+              const { id } = await f.seedTodo({
+                title: "Batch owned",
+                completed: true,
+              });
               const request = await f.request(mode, "rest");
               const response = await request.delete(
                 "/api/workspace/todos/batch",
