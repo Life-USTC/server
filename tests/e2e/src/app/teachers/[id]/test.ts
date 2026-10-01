@@ -187,71 +187,150 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("班级表格显示学期、课程名、代码与学分", async ({
+  test("catalog.consume-course-teacher-section-identity", async ({
     page,
     preferenceFlow,
-    detailCatalog: _detailCatalog,
+    detailCatalog,
+    isolatedWorker,
+    run,
   }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      await navigateToSeedTeacher(page);
-      await jumpToTeacherSection(
-        page,
-        /授课班级|Teaching Sections/i,
-        "#sections",
-      );
+    await run(async () => {
+      const db = isolatedWorker.database.owner;
+      const { course, teacher, section, semester, campus } = detailCatalog;
+      const sectionPath = `/catalog/sections/${section.jwId}`;
+      const assignments = await db.sectionTeacher.findMany();
+      expect(assignments).toEqual([
+        expect.objectContaining({ sectionId: section.id, teacherId: teacher.id }),
+      ]);
+      await preferenceFlow.run(async () => {
+        await test.step("Course to section", async () => {
+          await gotoAndWaitForReady(page, `/catalog/courses/${course.jwId}`);
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/courses/${course.jwId}#sections`,
+          );
+          await expect(page.locator("#sections")).toBeVisible();
 
-      const locale = await page.locator("html").getAttribute("lang");
-      await expect(
-        visibleText(
-          page,
-          locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
-        ),
-      ).toBeVisible();
-      // section.course.namePrimary (locale-dependent)
-      await expect(
-        page
-          .getByText(DEV_SEED.course.nameCn)
-          .or(page.getByText(DEV_SEED.course.nameEn))
-          .filter({ visible: true })
-          .first(),
-      ).toBeVisible();
-      // section.code (plain monospace text)
-      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
-      // section.credits
-      await expect(
-        visibleText(page, String(DEV_SEED.section.credits)),
-      ).toBeVisible();
+          // The upstream Chinese term name is localized for the active page locale.
+          const locale = await page.locator("html").getAttribute("lang");
+          await expect(
+            visibleText(
+              page,
+              locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
+            ),
+          ).toBeVisible();
+          // section.code (plain monospace text)
+          await expect(
+            page
+              .locator('table:visible [data-slot="catalog-code"]')
+              .filter({ hasText: DEV_SEED.section.code })
+              .first(),
+          ).toBeVisible();
+          // section.teachers[].namePrimary (locale-dependent)
+          await expect(
+            page
+              .getByText(DEV_SEED.teacher.nameCn)
+              .or(page.getByText(DEV_SEED.teacher.nameEn))
+              .filter({ visible: true })
+              .first(),
+          ).toBeVisible();
+          // section.campus.namePrimary (locale-dependent)
+          await expect(
+            page
+              .getByText(DEV_SEED.campus.nameCn)
+              .or(page.getByText(DEV_SEED.campus.nameEn))
+              .filter({ visible: true })
+              .first(),
+          ).toBeVisible();
+          // section.stdCount / section.limitCount
+          await expect(
+            visibleText(
+              page,
+              `${DEV_SEED.section.stdCount} / ${DEV_SEED.section.limitCount}`,
+            ),
+          ).toBeVisible();
 
-      await captureStepScreenshot(page, testInfo, "teacher/sections-table");
-    });
-  });
+          await captureStepScreenshot(page, testInfo, "course/sections-table");
+          const sectionLink = page
+            .locator(
+              `a[href="/catalog/sections/${DEV_SEED.section.jwId}"]:visible`,
+            )
+            .or(page.locator("tbody a[href^='/catalog/sections/']:visible"))
+            .first();
+          await expect(sectionLink).toBeVisible();
+          const expectSectionDetailReady = observeSectionDetailNavigation(
+            page,
+            preferenceFlow,
+            DEV_SEED.section.jwId,
+          );
+          await sectionLink.click();
+          await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
+          await expectSectionDetailReady();
+          expect(new URL(page.url()).pathname).toBe(sectionPath);
+          await captureStepScreenshot(page, testInfo, "course/section-link");
+        });
+        await test.step("Teacher to section", async () => {
+          await navigateToSeedTeacher(page);
+          await jumpToTeacherSection(
+            page,
+            /授课班级|Teaching Sections/i,
+            "#sections",
+          );
 
-  test("班级链接导航到班级详情", async ({
-    page,
-    preferenceFlow,
-    detailCatalog: _detailCatalog,
-  }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      await navigateToSeedTeacher(page);
-      await jumpToTeacherSection(
-        page,
-        /授课班级|Teaching Sections/i,
-        "#sections",
-      );
+          const locale = await page.locator("html").getAttribute("lang");
+          await expect(
+            visibleText(
+              page,
+              locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
+            ),
+          ).toBeVisible();
+          // section.course.namePrimary (locale-dependent)
+          await expect(
+            page
+              .getByText(DEV_SEED.course.nameCn)
+              .or(page.getByText(DEV_SEED.course.nameEn))
+              .filter({ visible: true })
+              .first(),
+          ).toBeVisible();
+          // section.code (plain monospace text)
+          await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
+          // section.credits
+          await expect(
+            visibleText(page, String(DEV_SEED.section.credits)),
+          ).toBeVisible();
 
-      const sectionLink = page
-        .locator("tbody a[href^='/catalog/sections/']:visible")
-        .first();
-      await expect(sectionLink).toBeVisible();
-      const expectSectionDetailReady = observeSectionDetailNavigation(
-        page,
-        preferenceFlow,
-        DEV_SEED.section.jwId,
-      );
-      await sectionLink.click();
-      await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
-      await expectSectionDetailReady();
-      await captureStepScreenshot(page, testInfo, "teacher/section-link");
+          await captureStepScreenshot(page, testInfo, "teacher/sections-table");
+          const sectionLink = page
+            .locator("tbody a[href^='/catalog/sections/']:visible")
+            .first();
+          await expect(sectionLink).toBeVisible();
+          const expectSectionDetailReady = observeSectionDetailNavigation(
+            page,
+            preferenceFlow,
+            DEV_SEED.section.jwId,
+          );
+          await sectionLink.click();
+          await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
+          await expectSectionDetailReady();
+          expect(new URL(page.url()).pathname).toBe(sectionPath);
+          await captureStepScreenshot(page, testInfo, "teacher/section-link");
+        });
+      });
+      // run owns these observations after preferenceFlow drains native reads.
+      expect(await db.course.findMany()).toEqual([course]);
+      expect(await db.teacher.findMany()).toEqual([teacher]);
+      expect(await db.semester.findMany()).toEqual([semester]);
+      expect(await db.campus.findMany()).toEqual([campus]);
+      expect(
+        await db.section.findMany({
+          include: { teachers: { select: { id: true } } },
+        }),
+      ).toEqual([{ ...section, teachers: [{ id: teacher.id }] }]);
+      expect(await db.sectionTeacher.findMany()).toEqual(assignments);
+      expect(await db.user.findMany()).toEqual([]);
+      expect(await db.session.findMany()).toEqual([]);
+      expect(await db.userSectionSubscription.findMany()).toEqual([]);
+      expect(await db.auditLog.findMany()).toEqual([]);
     });
   });
 
