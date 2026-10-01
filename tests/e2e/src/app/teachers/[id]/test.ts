@@ -558,6 +558,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
             .getByRole("button", { name: /更多操作|More actions/i })
             .first()
             .click();
+          await expect(page.getByRole("menu")).toBeVisible();
           await expect(
             page.getByRole("menuitem", { name: /举报|Report/i }),
           ).toHaveCount(0);
