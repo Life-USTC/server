@@ -1409,14 +1409,19 @@ requirements:
   category: presentation
   topic: navigation-landmarks
   rule: Public notices and private activity reminders are separate navigation destinations. A user's reminder
-    badge counts only unread, unexpired notifications belonging to that user.
+    badge counts only unread, unexpired notifications belonging to that user. Marking a notice read refreshes
+    the page only after consuming a valid JSON acknowledgement with the requested ID and success true;
+    HTTP failure or an invalid acknowledgement shows a localized error and allows retry.
   acceptance:
     given: Two isolated users, with and without academic subscriptions, have different unread, read and expired activity notices.
     when: Each signed-in browser opens desktop/mobile navigation, visits activity reminders and marks one owned notice read.
+      Localized reminder flows also encounter failed or invalid acknowledgements before retrying the action.
     then:
     - Public News & Notices and Activity reminders have distinct links; only private reminders display the exact owner count.
     - Reminder lists exclude expired and foreign-owner notices while retaining the owner's read history.
-    - Marking a notice read updates the badge and removes the badge at zero.
+    - A complete acknowledgement for the requested notice updates the badge and removes the badge at zero.
+    - HTTP failure, malformed JSON, a different notice ID or success false leaves the current reminder visible,
+      shows a fresh localized error and re-enables the action; a subsequent confirmed write updates the read state.
     test:
       file: tests/e2e/src/app/shared-policy/navigation-context.test.ts
       name: ui.navigation-landmarks-6

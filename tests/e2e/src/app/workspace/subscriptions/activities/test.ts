@@ -6,7 +6,10 @@ import {
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
 import { observeAction } from "../../../../../utils/observed-action";
-import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../../utils/page-ready";
 
 test("活动、主办方订阅和提醒入口可用", async ({
   page,
@@ -310,17 +313,43 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         card.getByRole("link", { name: /^(查看活动|View activity)$/ }),
       ).toHaveAttribute("href", `/catalog/young-events/${marker}`);
       const read = card.getByRole("button", { name: /^(标记已读|Mark read)$/ });
-      await page.route(
-        `**/api/workspace/young-notifications/${marker}/read`,
-        (route) => route.fulfill({ status: 503, body: "unavailable" }),
-        { times: 1 },
+      const failureNotice = page.getByText(
+        /操作失败，请重试|Could not complete the request/,
       );
-      await read.click();
-      await expect(
-        page.getByText(/操作失败，请重试|Could not complete the request/),
-      ).toBeVisible();
-      await expect(card).toBeVisible();
-      expect(await notifications()).toEqual(before);
+      const failures = [
+        { status: 503, body: "unavailable" },
+        { status: 200, contentType: "application/json", body: "{" },
+        {
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ id: `${marker}-other`, success: true }),
+        },
+        {
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ id: marker, success: false }),
+        },
+      ];
+      for (const [index, failure] of failures.entries()) {
+        // A stale toast must not satisfy the next failed acknowledgement.
+        if (index > 0) {
+          await page.reload();
+          await waitForUiSettled(page);
+        }
+        await expect(failureNotice).toHaveCount(0);
+        await expect(card).toBeVisible();
+        await expect(read).toBeEnabled();
+        await page.route(
+          `**/api/workspace/young-notifications/${marker}/read`,
+          (route) => route.fulfill(failure),
+          { times: 1 },
+        );
+        await read.click();
+        await expect(failureNotice).toBeVisible();
+        await expect(read).toBeEnabled();
+        await expect(card).toBeVisible();
+        expect(await notifications()).toEqual(before);
+      }
       await read.click();
       await expect(card).toHaveCount(0);
       await page
