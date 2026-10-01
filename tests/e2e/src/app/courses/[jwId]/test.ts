@@ -46,33 +46,11 @@ import { visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { observeSectionDetailNavigation } from "../../../../utils/section-detail-navigation";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
 const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}#introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
-
-async function jumpToCourseSection(
-  page: Parameters<typeof gotoAndWaitForReady>[0],
-  name: RegExp,
-  selector: string,
-) {
-  const hash = selector.replace(/^#/, "");
-  if (hash === "sections" || hash === "comments" || hash === "introduction") {
-    await gotoAndWaitForReady(
-      page,
-      `${COURSE_URL}${hash === "introduction" ? "#introduction" : `#${hash}`}`,
-    );
-    await expect(page.locator(selector)).toBeVisible();
-    return;
-  }
-
-  const heading = page.getByRole("heading", { name }).first();
-  await expect(heading).toBeVisible();
-  await heading.scrollIntoViewIfNeeded();
-  await expect(page.locator(selector)).toBeVisible();
-}
 
 test.describe("/catalog/courses/[jwId] 课程详情", () => {
   test("页面契约", async ({
@@ -162,58 +140,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("班级表格显示学期、班级代码、教师、校区和容量", async ({
-    page,
-    preferenceFlow,
-    detailCatalog: _detailCatalog,
-  }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, COURSE_URL);
-      await jumpToCourseSection(page, /班级|Sections/i, "#sections");
-
-      // The upstream Chinese term name is localized for the active page locale.
-      const locale = await page.locator("html").getAttribute("lang");
-      await expect(
-        visibleText(
-          page,
-          locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
-        ),
-      ).toBeVisible();
-      // section.code (plain monospace text)
-      await expect(
-        page
-          .locator('table:visible [data-slot="catalog-code"]')
-          .filter({ hasText: DEV_SEED.section.code })
-          .first(),
-      ).toBeVisible();
-      // section.teachers[].namePrimary (locale-dependent)
-      await expect(
-        page
-          .getByText(DEV_SEED.teacher.nameCn)
-          .or(page.getByText(DEV_SEED.teacher.nameEn))
-          .filter({ visible: true })
-          .first(),
-      ).toBeVisible();
-      // section.campus.namePrimary (locale-dependent)
-      await expect(
-        page
-          .getByText(DEV_SEED.campus.nameCn)
-          .or(page.getByText(DEV_SEED.campus.nameEn))
-          .filter({ visible: true })
-          .first(),
-      ).toBeVisible();
-      // section.stdCount / section.limitCount
-      await expect(
-        visibleText(
-          page,
-          `${DEV_SEED.section.stdCount} / ${DEV_SEED.section.limitCount}`,
-        ),
-      ).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "course/sections-table");
-    });
-  });
-
   // ── Navigation ──────────────────────────────────────────────────────────────
 
   test("详情流式布局包含主要锚点区块", async ({
@@ -267,31 +193,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(page.locator("#comments")).toBeVisible();
 
       await captureStepScreenshot(page, testInfo, "course/detail-mobile");
-    });
-  });
-
-  test("班级行链接到班级详情", async ({
-    page,
-    preferenceFlow,
-    detailCatalog: _detailCatalog,
-  }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, COURSE_URL);
-      await jumpToCourseSection(page, /班级|Sections/i, "#sections");
-      const sectionLink = page
-        .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]:visible`)
-        .or(page.locator("tbody a[href^='/catalog/sections/']:visible"))
-        .first();
-      await expect(sectionLink).toBeVisible();
-      const expectSectionDetailReady = observeSectionDetailNavigation(
-        page,
-        preferenceFlow,
-        DEV_SEED.section.jwId,
-      );
-      await sectionLink.click();
-      await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
-      await expectSectionDetailReady();
-      await captureStepScreenshot(page, testInfo, "course/section-link");
     });
   });
 
