@@ -615,6 +615,10 @@ test.describe("仪表盘待办", () => {
           "line-through",
         );
         await page.keyboard.press("Escape");
+        await expect(dialog).toBeHidden();
+        await expect(
+          page.getByRole("button", { name: todo.title, exact: true }),
+        ).toHaveCount(0);
         const stored = await todoState.read();
         expect(stored).toHaveLength(4);
         expect(stored).toEqual(
