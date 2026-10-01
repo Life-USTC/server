@@ -487,6 +487,13 @@ capabilities:
         rest_equivalent: POST /api/workspace/young-notifications/[id]/read
     requirement_refs:
     - young-event.snapshot-authoritative
+    - ui.navigation-landmarks-6
 rationale:
+- The web notification read acknowledgement and badge behavior are owned by ui.navigation-landmarks-6.
+  Its navigation scenario verifies real owner writes and badge updates; the supporting cases
+  "activity reminders filter, localize and persist read state in zh-cn" and
+  "activity reminders filter, localize and persist read state in en-us" in
+  tests/e2e/src/app/workspace/subscriptions/activities/test.ts verify HTTP and malformed/mismatched
+  acknowledgement failures, unchanged stored state, retry and read-history persistence.
 - Organizer-only digest behavior and exclusion from individual event subscriptions are canonically owned
   by young-workspace.digest; the removed organizer-digest-only rule was a strict duplicate.
