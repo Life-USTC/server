@@ -239,14 +239,15 @@ requirements:
   rule: A completed upload can be attached to at most one comment. Reusing an upload id across comments
     is rejected instead of treated as implicit file sharing.
   acceptance:
-    given: A user owns one completed unattached upload.
-    when: The user attaches it to one comment and then reuses it in another create and edit.
+    given: A user owns an available upload and a separate upload directly attached to another comment.
+    when: Independently prepared create and edit cases reject the occupied upload and accept the available
+      or already retained owned upload.
     then:
-    - The first attachment succeeds; both reuse attempts reject without changing comments.
+    - Valid attachment creation succeeds; both occupied-upload attempts reject without changing comments.
     - Exactly one attachment references the upload.
     test:
       file: tests/integration/comment-write-contracts.test.ts
-      name: upload.one-upload-one-comment
+      name: comment attachments retain rejects invalid references and preserves occupied uploads
 - id: upload.mcp-transfer-boundary
   category: privacy
   rule: MCP registered GraphQL operations may reserve quota, return the on-site authenticated PUT workflow

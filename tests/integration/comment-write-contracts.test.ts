@@ -76,6 +76,16 @@ function commentHelpers(state: DomainState, teacherId: number) {
     upload,
   };
 }
+function readCommentState(db: DomainState["db"]) {
+  return db.comment.findMany({
+    orderBy: { id: "asc" },
+    include: {
+      attachments: { orderBy: { id: "asc" } },
+      reactions: { orderBy: { id: "asc" } },
+    },
+  });
+}
+
 const it = domainStateTest.extend<{
   comment: ReturnType<typeof commentHelpers>;
 }>({
@@ -88,75 +98,110 @@ const it = domainStateTest.extend<{
   },
 });
 
-it("comment.attachment-ownership", async ({ comment }) => {
-  const { db, marker, other, request, createInput, seed, upload } = comment;
-  await comment.runtime(async () => {
-    const own = await upload();
-    const otherUpload = await upload(other);
-    const occupied = await upload();
-    const existing = await seed();
-    await db.commentAttachment.create({
-      data: { commentId: existing, uploadId: occupied },
-    });
-    const invalidIds = [`missing-${marker}`, otherUpload, occupied];
-    for (const id of invalidIds) {
-      const response = await postCommentRoute(
-        request(createInput({ attachmentIds: [id] })),
+for (const operation of ["create", "retain"] as const) {
+  it(`comment attachments ${operation} rejects invalid references and preserves occupied uploads`, async ({
+    comment,
+  }) => {
+    const { db, marker, owner, other, request, createInput, seed, upload } =
+      comment;
+    await comment.runtime(async () => {
+      const own = await upload();
+      const foreign = await upload(other);
+      const occupied = await upload();
+      const occupiedComment = await seed();
+      await db.commentAttachment.create({
+        data: { commentId: occupiedComment, uploadId: occupied },
+      });
+      const target = operation === "retain" ? await seed() : null;
+      if (target)
+        await db.commentAttachment.create({
+          data: { commentId: target, uploadId: own },
+        });
+      const before = await readCommentState(db);
+      const uploads = await db.upload.findMany({ orderBy: { id: "asc" } });
+      for (const attachmentId of [`missing-${marker}`, foreign, occupied]) {
+        const response = target
+          ? await patchCommentRoute(
+              request(
+                { body: "must not persist", attachmentIds: [attachmentId] },
+                "PATCH",
+              ),
+              { id: target },
+            )
+          : await postCommentRoute(
+              request(createInput({ attachmentIds: [attachmentId] })),
+            );
+        expect(response.status).toBe(400);
+        expect(await response.json()).toEqual({ error: "Invalid attachments" });
+        expect(await readCommentState(db)).toEqual(before);
+        expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(
+          uploads,
+        );
+        expect(await db.auditLog.findMany()).toEqual([]);
+      }
+      const response = target
+        ? await patchCommentRoute(
+            request({ body: "edited", attachmentIds: [own] }, "PATCH"),
+            { id: target },
+          )
+        : await postCommentRoute(
+            request(createInput({ attachmentIds: [own] })),
+          );
+      expect(response.status).toBe(target ? 200 : 201);
+      const payload = await response.json();
+      const id = target ?? payload.id;
+      expect(id).toEqual(expect.any(String));
+      const after = await readCommentState(db);
+      expect(after.filter((row) => row.id !== id)).toEqual(
+        before.filter((row) => row.id !== id),
       );
-      expect(response.status).toBe(400);
-      expect(await response.json()).toEqual({ error: "Invalid attachments" });
-    }
-    const created = await postCommentRoute(
-      request(createInput({ attachmentIds: [own] })),
-    );
-    expect(created.status).toBe(201);
-    const { id } = await created.json();
-    expect(
-      await db.commentAttachment.findMany({
-        where: { commentId: id },
-        select: { uploadId: true },
-      }),
-    ).toEqual([{ uploadId: own }]);
-    const retained = await patchCommentRoute(
-      request({ body: "edited", attachmentIds: [own] }, "PATCH"),
+      expect(after.find((row) => row.id === id)).toMatchObject({
+        id,
+        userId: owner,
+        body: target ? "edited" : marker,
+        attachments: [expect.objectContaining({ uploadId: own })],
+      });
+      expect(
+        await db.commentAttachment.findMany({
+          where: { uploadId: occupied },
+          select: { commentId: true },
+        }),
+      ).toEqual([{ commentId: occupiedComment }]);
+      expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(
+        uploads,
+      );
+    });
+  });
+}
+
+it("comment attachment replacement starts from a seeded owned link", async ({
+  comment,
+}) => {
+  const { db, request, seed, upload } = comment;
+  await comment.runtime(async () => {
+    const id = await seed();
+    const own = await upload();
+    const second = await upload();
+    await db.commentAttachment.create({
+      data: { commentId: id, uploadId: own },
+    });
+    const uploads = await db.upload.findMany({ orderBy: { id: "asc" } });
+    const response = await patchCommentRoute(
+      request({ body: "new attachment", attachmentIds: [second] }, "PATCH"),
       { id },
     );
-    expect(retained.status).toBe(200);
-    for (const invalid of invalidIds) {
-      const response = await patchCommentRoute(
-        request(
-          { body: "must not persist", attachmentIds: [invalid] },
-          "PATCH",
-        ),
-        { id },
-      );
-      expect(response.status).toBe(400);
-      expect(await response.json()).toEqual({ error: "Invalid attachments" });
-    }
+    expect(response.status).toBe(200);
     expect(await db.comment.findUnique({ where: { id } })).toMatchObject({
-      body: "edited",
+      body: "new attachment",
     });
     expect(
       await db.commentAttachment.findMany({
-        where: { commentId: id },
-        select: { uploadId: true },
+        select: { commentId: true, uploadId: true },
       }),
-    ).toEqual([{ uploadId: own }]);
-    const second = await upload();
-    expect(
-      (
-        await patchCommentRoute(
-          request({ body: "new attachment", attachmentIds: [second] }, "PATCH"),
-          { id },
-        )
-      ).status,
-    ).toBe(200);
-    expect(
-      await db.commentAttachment.findMany({
-        where: { commentId: id },
-        select: { uploadId: true },
-      }),
-    ).toEqual([{ uploadId: second }]);
+    ).toEqual([{ commentId: id, uploadId: second }]);
+    expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(
+      uploads,
+    );
   });
 });
 
@@ -311,8 +356,7 @@ it("comment.batch-delete-shared-policy", async ({ comment }) => {
 });
 
 it("comment.interaction-gate", async ({ comment }) => {
-  const { db, owner, other, admin, suspended, request, createInput, seed } =
-    comment;
+  const { db, owner, suspended, request, createInput, seed } = comment;
   await comment.runtime(async () => {
     expect(
       await db.user.findUniqueOrThrow({ where: { id: suspended } }),
@@ -320,99 +364,163 @@ it("comment.interaction-gate", async ({ comment }) => {
     const active = await seed();
     for (const viewer of [null, suspended]) {
       const expected = viewer ? 403 : 401;
-      const outcomes = [
-        await postCommentRoute(request(createInput(), "POST", viewer)),
-        await patchCommentRoute(request({ body: "blocked" }, "PATCH", viewer), {
-          id: active,
-        }),
-        await deleteCommentRoute(request(undefined, "DELETE", viewer), {
-          id: active,
-        }),
-        await postCommentRoute(
-          request(createInput({ parentId: active }), "POST", viewer),
-        ),
-        await postCommentReactionRoute(
-          request({ type: "heart" }, "POST", viewer),
-          { id: active },
-        ),
-        await deleteCommentReactionRoute(request(undefined, "DELETE", viewer), {
-          id: active,
-        }),
-      ];
-      for (const response of outcomes)
-        expect(response.status, await response.clone().text()).toBe(expected);
-    }
-    expect(
-      (
-        await postCommentRoute(
-          request(createInput({ parentId: active }), "POST", other),
-        )
-      ).status,
-    ).toBe(201);
-    expect(
-      (
-        await postCommentReactionRoute(
-          request({ type: "heart" }, "POST", other),
-          { id: active },
-        )
-      ).status,
-    ).toBe(200);
-    expect(
-      (
-        await patchCommentRoute(
-          request({ body: "not owned" }, "PATCH", other),
-          {
+      for (const invoke of [
+        () => postCommentRoute(request(createInput(), "POST", viewer)),
+        () =>
+          patchCommentRoute(request({ body: "blocked" }, "PATCH", viewer), {
             id: active,
-          },
-        )
-      ).status,
-    ).toBe(403);
-    expect(
-      (
-        await deleteCommentRoute(request(undefined, "DELETE", other), {
-          id: active,
-        })
-      ).status,
-    ).toBe(403);
+          }),
+        () =>
+          deleteCommentRoute(request(undefined, "DELETE", viewer), {
+            id: active,
+          }),
+        () =>
+          postCommentRoute(
+            request(createInput({ parentId: active }), "POST", viewer),
+          ),
+        () =>
+          postCommentReactionRoute(request({ type: "heart" }, "POST", viewer), {
+            id: active,
+          }),
+        () =>
+          deleteCommentReactionRoute(request(undefined, "DELETE", viewer), {
+            id: active,
+          }),
+      ]) {
+        const before = await readCommentState(db);
+        const response = await invoke();
+        expect(response.status, await response.clone().text()).toBe(expected);
+        expect(await readCommentState(db)).toEqual(before);
+        expect(await db.auditLog.findMany()).toEqual([]);
+      }
+    }
     for (const status of ["softbanned", "deleted"] as const) {
       const id = await seed(owner, status);
-      for (const response of [
-        await patchCommentRoute(request({ body: "blocked" }, "PATCH"), { id }),
-        await deleteCommentRoute(request(undefined, "DELETE"), { id }),
-        await postCommentRoute(request(createInput({ parentId: id }))),
-        await postCommentReactionRoute(request({ type: "heart" }), { id }),
-        await deleteCommentReactionRoute(request(undefined, "DELETE"), { id }),
-      ])
+      for (const invoke of [
+        () => patchCommentRoute(request({ body: "blocked" }, "PATCH"), { id }),
+        () => deleteCommentRoute(request(undefined, "DELETE"), { id }),
+        () => postCommentRoute(request(createInput({ parentId: id }))),
+        () => postCommentReactionRoute(request({ type: "heart" }), { id }),
+        () => deleteCommentReactionRoute(request(undefined, "DELETE"), { id }),
+      ]) {
+        const before = await readCommentState(db);
+        const response = await invoke();
         expect(response.status, await response.clone().text()).toBe(403);
+        expect(await readCommentState(db)).toEqual(before);
+        expect(await db.auditLog.findMany()).toEqual([]);
+      }
     }
-    expect(
-      (
-        await patchCommentRoute(request({ body: "owner edit" }, "PATCH"), {
-          id: active,
-        })
-      ).status,
-    ).toBe(200);
-    for (const viewer of [owner, suspended])
+  });
+});
+
+for (const operation of ["reply", "reaction"] as const) {
+  it(`comment ${operation} succeeds without granting ownership of its seeded parent`, async ({
+    comment,
+  }) => {
+    const { db, other, request, createInput, seed } = comment;
+    await comment.runtime(async () => {
+      const id = await seed();
+      const parent = await db.comment.findUniqueOrThrow({ where: { id } });
+      const response =
+        operation === "reply"
+          ? await postCommentRoute(
+              request(createInput({ parentId: id }), "POST", other),
+            )
+          : await postCommentReactionRoute(
+              request({ type: "heart" }, "POST", other),
+              { id },
+            );
+      expect(response.status).toBe(operation === "reply" ? 201 : 200);
+      expect(await db.comment.findUniqueOrThrow({ where: { id } })).toEqual(
+        parent,
+      );
+      if (operation === "reply") {
+        expect(await db.comment.findMany({ where: { parentId: id } })).toEqual([
+          expect.objectContaining({
+            userId: other,
+            parentId: id,
+            rootId: id,
+            body: parent.body,
+          }),
+        ]);
+      } else {
+        expect(
+          await db.commentReaction.findMany({
+            select: { commentId: true, userId: true, type: true },
+          }),
+        ).toEqual([{ commentId: id, userId: other, type: "heart" }]);
+      }
+      const before = await readCommentState(db);
+      const audits = await db.auditLog.findMany({ orderBy: { id: "asc" } });
+      // Participation must not confer ownership of the parent.
+      for (const invoke of [
+        () =>
+          patchCommentRoute(request({ body: "not owned" }, "PATCH", other), {
+            id,
+          }),
+        () => deleteCommentRoute(request(undefined, "DELETE", other), { id }),
+      ]) {
+        expect((await invoke()).status).toBe(403);
+        expect(await readCommentState(db)).toEqual(before);
+        expect(await db.auditLog.findMany({ orderBy: { id: "asc" } })).toEqual(
+          audits,
+        );
+      }
+    });
+  });
+}
+
+it("comment owner edits an independently seeded active comment", async ({
+  comment,
+}) => {
+  const { db, request, seed } = comment;
+  await comment.runtime(async () => {
+    const id = await seed();
+    const before = await db.comment.findUniqueOrThrow({ where: { id } });
+    const response = await patchCommentRoute(
+      request({ body: "owner edit" }, "PATCH"),
+      { id },
+    );
+    expect(response.status).toBe(200);
+    expect(await db.comment.findUniqueOrThrow({ where: { id } })).toEqual({
+      ...before,
+      body: "owner edit",
+      updatedAt: expect.any(Date),
+    });
+  });
+});
+
+it("comment moderation authorizes its actor against a seeded active comment", async ({
+  comment,
+}) => {
+  const { db, owner, admin, suspended, request, seed } = comment;
+  await comment.runtime(async () => {
+    const id = await seed();
+    const before = await db.comment.findUniqueOrThrow({ where: { id } });
+    for (const viewer of [owner, suspended]) {
       expect(
         (
           await patchAdminCommentRoute(
             request({ status: "softbanned" }, "PATCH", viewer),
-            { id: active },
+            { id },
           )
         ).status,
       ).toBe(viewer === suspended ? 403 : 401);
+      expect(await db.comment.findUniqueOrThrow({ where: { id } })).toEqual(
+        before,
+      );
+      expect(await db.auditLog.findMany()).toEqual([]);
+    }
     expect(
       (
         await patchAdminCommentRoute(
           request({ status: "softbanned" }, "PATCH", admin),
-          { id: active },
+          { id },
         )
       ).status,
     ).toBe(200);
-    expect(
-      await db.comment.findUnique({ where: { id: active } }),
-    ).toMatchObject({
-      body: "owner edit",
+    expect(await db.comment.findUnique({ where: { id } })).toMatchObject({
+      body: before.body,
       status: "softbanned",
       moderatedById: admin,
     });
@@ -553,45 +661,64 @@ it("comment.reply-moderation-lock", { timeout: 30000 }, async ({ comment }) => {
   });
 });
 
-it("comment.rich-content", async ({ comment }) => {
-  const { other, request, createInput } = comment;
+const richCommentMarkdown =
+  "**Bold content** 😀\n\n$x^2$\n\n| Header | Value |\n| --- | --- |\n| Row | Cell |";
+
+it("comment rich-content creation preserves Markdown source", async ({
+  comment,
+}) => {
+  const { db, owner, teacherId, request, createInput } = comment;
   await comment.runtime(async () => {
-    const markdown =
-      "**Bold content** 😀\n\n$x^2$\n\n| Header | Value |\n| --- | --- |\n| Row | Cell |";
-    const created = await postCommentRoute(
-      request(createInput({ body: markdown })),
+    const response = await postCommentRoute(
+      request(createInput({ body: richCommentMarkdown })),
     );
-    expect(created.status).toBe(201);
-    const { id } = await created.json();
-    expect(
-      (
-        await postCommentRoute(
-          request(
-            createInput({ parentId: id, body: "A reply" }),
-            "POST",
-            other,
-          ),
-        )
-      ).status,
-    ).toBe(201);
-    expect(
-      (
-        await postCommentReactionRoute(
-          request({ type: "heart" }, "POST", other),
-          { id },
-        )
-      ).status,
-    ).toBe(200);
-    const response = await getCommentRoute(request(undefined, "GET"), { id });
+    expect(response.status).toBe(201);
+    const { id } = await response.json();
+    expect(id).toEqual(expect.any(String));
+    expect(await db.comment.findMany()).toEqual([
+      expect.objectContaining({
+        id,
+        userId: owner,
+        teacherId,
+        body: richCommentMarkdown,
+      }),
+    ]);
+  });
+});
+
+it("comment.rich-content", async ({ comment }) => {
+  const { db, owner, other, teacherId, request } = comment;
+  await comment.runtime(async () => {
+    const root = await db.comment.create({
+      data: { userId: owner, teacherId, body: richCommentMarkdown },
+    });
+    const reply = await db.comment.create({
+      data: {
+        userId: other,
+        teacherId,
+        parentId: root.id,
+        rootId: root.id,
+        body: "A reply",
+      },
+    });
+    await db.commentReaction.create({
+      data: { userId: other, commentId: root.id, type: "heart" },
+    });
+    const response = await getCommentRoute(request(undefined, "GET"), {
+      id: root.id,
+    });
     expect(response.status).toBe(200);
     const { thread } = await response.json();
-    expect(thread[0].body).toBe(markdown);
+    expect(thread).toHaveLength(1);
+    expect(thread[0].id).toBe(root.id);
+    expect(thread[0].body).toBe(richCommentMarkdown);
     expect(thread[0].renderedBody).toContain("<strong>Bold content</strong>");
     expect(thread[0].renderedBody).toContain("😀");
     expect(thread[0].renderedBody).toContain('class="katex"');
     expect(thread[0].renderedBody).toContain("<table>");
     expect(thread[0].replies).toEqual([
       expect.objectContaining({
+        id: reply.id,
         body: "A reply",
         renderedBody: "<p>A reply</p>",
       }),
@@ -602,120 +729,129 @@ it("comment.rich-content", async ({ comment }) => {
   });
 });
 
-it("description.editor-authorization", async ({ comment }) => {
-  const { db, owner, other, admin, suspended, teacherId, request } = comment;
-  await comment.runtime(async () => {
-    const body = {
-      targetType: "teacher",
-      teacherId,
-      content: "Collaborative supplement",
-    };
-    expect(
-      (await postDescriptionRoute(request(body, "POST", null))).status,
-    ).toBe(401);
-    expect(
-      (await postDescriptionRoute(request(body, "POST", suspended))).status,
-    ).toBe(403);
-    const created = await postDescriptionRoute(request(body));
-    expect(created.status, await created.clone().text()).toBe(200);
-    const { id } = await created.json();
-    const changed = await postDescriptionRoute(
-      request({ ...body, content: "Another editor" }, "POST", other),
-    );
-    expect(changed.status).toBe(200);
-    expect(await db.description.findUnique({ where: { id } })).toMatchObject({
-      content: "Another editor",
-      lastEditedById: other,
-    });
-    for (const [viewer, expected] of [
-      [owner, 401],
-      [suspended, 403],
-    ] as const) {
+for (const operation of ["create", "edit", "moderate"] as const) {
+  it(`description ${operation} authorizes its actor and records only its own edit`, async ({
+    comment,
+  }) => {
+    const { db, owner, other, admin, suspended, teacherId, request } = comment;
+    await comment.runtime(async () => {
+      const content =
+        operation === "create"
+          ? "Collaborative supplement"
+          : operation === "edit"
+            ? "Another editor"
+            : "Moderated";
+      const actor =
+        operation === "create" ? owner : operation === "edit" ? other : admin;
+      const initial =
+        operation === "create"
+          ? null
+          : await db.description.create({
+              data: {
+                teacherId,
+                content: "Collaborative supplement",
+                lastEditedById: owner,
+                edits: {
+                  create: {
+                    editorId: owner,
+                    previousContent: null,
+                    nextContent: "Collaborative supplement",
+                    createdAt: new Date("2026-01-01T00:00:00Z"),
+                  },
+                },
+              },
+            });
+      if (initial)
+        await db.auditLog.create({
+          data: {
+            action: "description_edit",
+            userId: owner,
+            targetId: initial.id,
+            targetType: "description",
+            createdAt: new Date("2026-01-01T00:00:00Z"),
+          },
+        });
+      const descriptions = await db.description.findMany();
+      const history = await db.descriptionEdit.findMany({
+        orderBy: { createdAt: "asc" },
+      });
+      const audits = await db.auditLog.findMany({
+        orderBy: { createdAt: "asc" },
+      });
+      const body = { targetType: "teacher", teacherId, content };
+      for (const [viewer, status] of [
+        [operation === "moderate" ? owner : null, 401],
+        [suspended, 403],
+      ] as const) {
+        const denied =
+          operation === "moderate" && initial
+            ? await patchAdminDescriptionRoute(
+                request({ content: "Blocked" }, "PATCH", viewer),
+                { id: initial.id },
+              )
+            : await postDescriptionRoute(request(body, "POST", viewer));
+        expect(denied.status).toBe(status);
+        expect(await db.description.findMany()).toEqual(descriptions);
+        expect(
+          await db.descriptionEdit.findMany({ orderBy: { createdAt: "asc" } }),
+        ).toEqual(history);
+        expect(
+          await db.auditLog.findMany({ orderBy: { createdAt: "asc" } }),
+        ).toEqual(audits);
+      }
+      const response =
+        operation === "moderate" && initial
+          ? await patchAdminDescriptionRoute(
+              request({ content }, "PATCH", actor),
+              { id: initial.id },
+            )
+          : await postDescriptionRoute(request(body, "POST", actor));
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      const id = initial?.id ?? payload.id;
+      expect(id).toEqual(expect.any(String));
+      if (operation === "moderate")
+        expect(payload.description).toMatchObject({ id, content });
+      else expect(payload).toEqual({ id, updated: true });
+      expect(await db.description.findMany()).toEqual([
+        expect.objectContaining({
+          id,
+          teacherId,
+          content,
+          lastEditedById: actor,
+        }),
+      ]);
       expect(
-        (
-          await patchAdminDescriptionRoute(
-            request({ content: "Blocked" }, "PATCH", viewer),
-            { id },
-          )
-        ).status,
-      ).toBe(expected);
-    }
-    expect(
-      (
-        await patchAdminDescriptionRoute(
-          request({ content: "Moderated" }, "PATCH", admin),
-          { id },
-        )
-      ).status,
-    ).toBe(200);
-    expect(await db.description.findUnique({ where: { id } })).toMatchObject({
-      content: "Moderated",
-      lastEditedById: admin,
-    });
-    expect(
-      await db.auditLog.count({
-        where: { targetId: id, action: "description_edit" },
-      }),
-    ).toBe(2);
-    expect(
-      await db.auditLog.count({
-        where: {
+        await db.descriptionEdit.findMany({
+          orderBy: { createdAt: "asc" },
+        }),
+      ).toEqual([
+        ...history,
+        expect.objectContaining({
+          descriptionId: id,
+          editorId: actor,
+          previousContent: initial?.content ?? null,
+          nextContent: content,
+        }),
+      ]);
+      expect(
+        await db.auditLog.findMany({
+          orderBy: { createdAt: "asc" },
+        }),
+      ).toEqual([
+        ...audits,
+        expect.objectContaining({
+          action:
+            operation === "moderate"
+              ? "admin_description_moderate"
+              : "description_edit",
           targetId: id,
-          action: "admin_description_moderate",
-          userId: admin,
-        },
-      }),
-    ).toBe(1);
-  });
-});
-
-it("upload.one-upload-one-comment", async ({ comment }) => {
-  const { db, marker, teacherId, request, createInput, seed, upload } = comment;
-  await comment.runtime(async () => {
-    const attachment = await upload();
-    const first = await postCommentRoute(
-      request(
-        createInput({
-          body: "first attachment owner",
-          attachmentIds: [attachment],
+          userId: actor,
         }),
-      ),
-    );
-    expect(first.status).toBe(201);
-    const { id: firstId } = await first.json();
-    const countBefore = await db.comment.count({ where: { teacherId } });
-    const second = await postCommentRoute(
-      request(
-        createInput({
-          body: "rejected attachment reuse",
-          attachmentIds: [attachment],
-        }),
-      ),
-    );
-    expect(second.status).toBe(400);
-    expect(await second.json()).toEqual({ error: "Invalid attachments" });
-    expect(await db.comment.count({ where: { teacherId } })).toBe(countBefore);
-    const otherId = await seed();
-    const edited = await patchCommentRoute(
-      request(
-        { body: "rejected attachment edit", attachmentIds: [attachment] },
-        "PATCH",
-      ),
-      { id: otherId },
-    );
-    expect(edited.status).toBe(400);
-    expect(
-      (await db.comment.findUniqueOrThrow({ where: { id: otherId } })).body,
-    ).toBe(marker);
-    expect(
-      await db.commentAttachment.findMany({
-        where: { uploadId: attachment },
-        select: { commentId: true },
-      }),
-    ).toEqual([{ commentId: firstId }]);
-    expect(await db.upload.count({ where: { id: attachment } })).toBe(1);
+      ]);
+    });
   });
-});
+}
 
 it("audit.writer-2", async ({ comment }) => {
   const { db, owner, seed } = comment;

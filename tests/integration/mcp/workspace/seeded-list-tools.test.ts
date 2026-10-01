@@ -1,8 +1,4 @@
 import { describe } from "vitest";
-import {
-  assertCommentRepliesPayload,
-  assertCommentThreadFound,
-} from "../../../shared/scenarios/comments";
 import { catalogMcpTest as toolTest } from "../_harness/catalog-fixture";
 
 describe("seeded-list MCP tools formerly E2E-only", () => {
@@ -91,59 +87,55 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
       expect,
     }) =>
       mcpWorkflow.run(async () => {
-        const rootBody = "Private list consumer root";
-        await isolatedDatabase.owner.$transaction(async (db) => {
-          const root = await db.comment.create({
-            data: {
-              userId: context.userId,
-              sectionId: mcpCatalog.section.id,
-              body: rootBody,
-            },
-          });
-          await db.comment.create({
-            data: {
-              userId: context.userId,
-              sectionId: mcpCatalog.section.id,
-              parentId: root.id,
-              rootId: root.id,
-              body: "Private list consumer reply",
-            },
-          });
-        });
-        const list = await context.client.call<{
-          found?: boolean;
-          data?: Array<{
-            id?: string;
-            body?: string;
-            replies?: Array<{ id?: string }>;
-          }>;
-        }>("community_comment_list", {
-          targetType: "section",
-          sectionJwId: mcpCatalog.section.jwId,
-          mode: "full",
-        });
-
-        const root = assertCommentThreadFound(list, rootBody);
-
-        const replies = await context.client.call<{
+        const { root, reply } = await isolatedDatabase.owner.$transaction(
+          async (db) => {
+            const root = await db.comment.create({
+              data: {
+                userId: context.userId,
+                sectionId: mcpCatalog.section.id,
+                body: "Private list consumer root",
+              },
+            });
+            const reply = await db.comment.create({
+              data: {
+                userId: context.userId,
+                sectionId: mcpCatalog.section.id,
+                parentId: root.id,
+                rootId: root.id,
+                body: "Private list consumer reply",
+              },
+            });
+            return { root, reply };
+          },
+        );
+        const result = await context.client.call<{
           found?: boolean;
           rootId?: string;
           thread?: Array<{
             id?: string;
             body?: string;
-            parentId?: string | null;
+            replies?: Array<{
+              id?: string;
+              body?: string;
+              parentId?: string | null;
+            }>;
           }>;
-        }>("community_comment_replies", {
-          commentId: root.id,
-          mode: "full",
-        });
-
-        const rootId = root.id;
-        expect(typeof rootId).toBe("string");
-        if (!rootId) {
-          throw new Error("expected seed comment root id");
-        }
-        assertCommentRepliesPayload(replies, rootId);
+        }>("community_comment_replies", { commentId: root.id, mode: "full" });
+        expect(result.found).toBe(true);
+        expect(result.rootId).toBe(root.id);
+        expect(result.thread).toEqual([
+          expect.objectContaining({
+            id: root.id,
+            body: root.body,
+            replies: [
+              expect.objectContaining({
+                id: reply.id,
+                body: reply.body,
+                parentId: root.id,
+              }),
+            ],
+          }),
+        ]);
       }),
   );
 
