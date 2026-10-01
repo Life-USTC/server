@@ -3,6 +3,7 @@ import { toast } from "svelte-sonner";
 import YoungSubscriptionControl from "@/features/young/components/YoungSubscriptionControl.svelte";
 import { youngDateTime } from "@/features/young/lib/young-event-display";
 import { youngNotificationDescription } from "@/features/young/lib/young-notification-display";
+import { youngNotificationReadSchema } from "@/lib/api/schemas/young-workspace-schemas";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
 import ListPagination from "$lib/components/ListPagination.svelte";
@@ -62,6 +63,8 @@ async function markRead(id: string) {
       { method: "POST" },
     );
     if (!response.ok) throw new Error();
+    const result = youngNotificationReadSchema.parse(await response.json());
+    if (result.id !== id || result.success !== true) throw new Error();
     await invalidateAll();
   } catch {
     toast.error(copy.failed);
