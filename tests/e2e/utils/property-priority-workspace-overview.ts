@@ -25,7 +25,7 @@ export async function checkWorkspaceOverviewPriorityViews(
   );
   const main = page.locator("#main-content");
   const focus = main.getByTestId("workspace-overview-focus");
-  const identity = focus.getByText(todo.title, { exact: true });
+  const identity = focus.getByTestId("overview-focus-title");
   const today = main
     .locator("section")
     .filter({
@@ -74,16 +74,29 @@ export async function checkWorkspaceOverviewPriorityViews(
     identity,
     primary: {
       "focus.title": field(identity, todo.title),
-      "focus.label": text(focus, locale === "en-us" ? "Todo" : "待办"),
-      "focus.status": text(
-        focus,
+      "focus.label": field(
+        focus.getByTestId("overview-focus-label"),
+        locale === "en-us" ? "To-do" : "待办",
+      ),
+      "focus.status": field(
+        focus.getByTestId("overview-focus-status"),
         locale === "en-us" ? "Needs attention" : "需要关注",
       ),
+      "focus.time": field(focus.getByTestId("overview-focus-time"), "11:45"),
     },
     secondary: {
-      "focus.dateLabel": text(focus, dateLabel),
-      "focus.weekdayLabel": text(focus, weekday),
-      "focus.meta": text(focus, todo.content ?? ""),
+      "focus.dateLabel": field(
+        focus.getByTestId("overview-focus-date"),
+        dateLabel,
+      ),
+      "focus.weekdayLabel": field(
+        focus.getByTestId("overview-focus-weekday"),
+        weekday,
+      ),
+      "focus.detail": field(
+        focus.getByTestId("overview-focus-detail"),
+        todo.content ?? "",
+      ),
       "todaySessions.startTime": text(today, "08:00"),
       "todaySessions.section.course.namePrimary": text(today, courseName),
       "dueTodayHomeworks.title": text(today, homework.title),
