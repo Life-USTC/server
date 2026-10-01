@@ -1,4 +1,5 @@
 import type { APIResponse, Page, Request } from "@playwright/test";
+import { fulfillFetchedResponse } from "./fulfill-fetched-response";
 
 /** Keep owned fixture data alive until real UI writes settle, even after failure. */
 export async function withSettledPageWrites(
@@ -41,7 +42,7 @@ export async function withSettledPageWrites(
           await afterResponse?.(response, route.request());
           if (page.isClosed())
             throw new Error("Page closed before its write settled");
-          await route.fulfill({ response });
+          await fulfillFetchedResponse(route, response);
         } catch (error) {
           errors.push(error);
           // A failed proxy must not leave the original browser write paused:
