@@ -25,6 +25,7 @@ const test = base.extend<{
     cancelSlow: () => Promise<void>;
     armCancellationOnNavigation: () => Promise<void>;
     armSlowOnNavigation: () => Promise<void>;
+    armDestinationRead: () => void;
     slowArrived: Promise<void>;
     release: () => void;
     completed: Promise<void>;
@@ -44,11 +45,16 @@ const test = base.extend<{
     const sockets = new Set<Socket>();
     const operations: Promise<void>[] = [];
     let controller: JSHandle<AbortController> | undefined;
+    let destinationRead = false;
     const admitted: { path: string; requestId: string | undefined }[] = [];
     const html = (response: ServerResponse, status = 200) => {
       response.writeHead(status, { "content-type": "text/html" });
       response.end(
-        "<!doctype html><html><body>Native lifecycle fixture</body></html>",
+        `<!doctype html><html><body>Native lifecycle fixture${
+          destinationRead
+            ? '<script>void fetch("/destination-read").catch(() => {})</script>'
+            : ""
+        }</body></html>`,
       );
     };
     const server = createServer((request, response) => {
@@ -72,7 +78,11 @@ const test = base.extend<{
       } else if (path === "/script.js") {
         response.writeHead(200, { "content-type": "text/javascript" });
         response.end("document.body.dataset.executed = 'yes'");
-      } else if (path === "/slow" || path === "/error") {
+      } else if (
+        path === "/slow" ||
+        path === "/error" ||
+        path === "/destination-read"
+      ) {
         arrived.resolve();
         operations.push(
           release.promise.then(() => {
@@ -165,6 +175,9 @@ const test = base.extend<{
         navigationArrived: navigationArrived.promise,
         releaseNavigation: releaseNavigation.resolve,
         slowArrived: arrived.promise,
+        armDestinationRead() {
+          destinationRead = true;
+        },
         async startCancelableSlow() {
           const requested = page.waitForEvent("request", {
             predicate: (request) => new URL(request.url()).pathname === "/slow",
@@ -400,6 +413,12 @@ for (const [destination, title] of [
     // Arm the old document while its execution context is available. The real
     // server releases this signal only after receiving the root navigation.
     await fixture.armSlowOnNavigation();
+    fixture.armDestinationRead();
+    const destinationRequest = page.waitForEvent("request", {
+      predicate: (request) =>
+        new URL(request.url()).pathname === "/destination-read",
+    });
+    void destinationRequest.catch(() => undefined);
     const navigation = page.goto(`${fixture.origin}${destination}`);
     void navigation.catch(() => undefined);
     try {
@@ -414,8 +433,24 @@ for (const [destination, title] of [
       expect(slow?.order).toBeGreaterThan(
         root?.order ?? Number.POSITIVE_INFINITY,
       );
+      expect(slow?.retiredBy).toBeUndefined();
+      expect(() => fixture.tracking.prepareRetiredClose()).toThrow(
+        "An active document read has no browser terminal",
+      );
       fixture.releaseNavigation();
       await navigation;
+      const activeRequest = await destinationRequest;
+      const active = fixture.tracking.ownedReads.get(activeRequest);
+      expect(active).toBeDefined();
+      expect(active?.retiredBy).toBeUndefined();
+      expect(active?.settled).toBe(false);
+      expect(slow?.retiredBy).toEqual({
+        order: root?.order,
+        url: page.url(),
+      });
+      expect(() => fixture.tracking.prepareRetiredClose()).toThrow(
+        "An active document read has no browser terminal",
+      );
       if (destination === "/held-redirect") {
         const successor = [...fixture.tracking.ownedReads.values()].find(
           (read) => read.path === "/next",
@@ -427,10 +462,14 @@ for (const [destination, title] of [
       const owned = [...fixture.tracking.ownedReads.values()].find(
         (read) => read.path === "/slow",
       );
-      expect(owned?.retiredBy).toBeUndefined();
-      expect(() => fixture.tracking.prepareRetiredClose()).toThrow(
-        "An active document read has no browser terminal",
-      );
+      expect((await activeRequest.response())?.status()).toBe(200);
+      await expect.poll(() => active?.settled).toBe(true);
+      expect(active?.retiredBy).toBeUndefined();
+      expect(owned?.retiredBy).toEqual({
+        order: root?.order,
+        url: page.url(),
+      });
+      fixture.tracking.prepareRetiredClose();
       await page.close();
       while (
         fixture.tracking.pendingReads.size ||
@@ -440,14 +479,21 @@ for (const [destination, title] of [
           ...fixture.tracking.pendingReads,
           ...fixture.tracking.pendingNavigations,
         ]);
-      expect(fixture.tracking.retiredReads).toEqual([]);
-      expect(fixture.tracking.errors).toHaveLength(1);
-      expect(String(fixture.tracking.errors[0])).toContain(
-        "Target page, context or browser has been closed",
-      );
+      expect(fixture.tracking.retiredReads).toEqual([
+        expect.objectContaining({
+          requestId: owned?.requestId,
+          path: "/slow",
+          retiredBy: owned?.retiredBy,
+          outcome: "retired-document/page-close",
+          error:
+            "request.response: Target page, context or browser has been closed",
+        }),
+      ]);
+      expect(fixture.tracking.errors).toEqual([]);
     } finally {
       fixture.releaseNavigation();
-      await Promise.allSettled([navigation]);
+      await page.close();
+      await Promise.allSettled([navigation, destinationRequest]);
     }
   });
 
