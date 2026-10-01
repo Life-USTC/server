@@ -56,7 +56,14 @@ async function createPublicCatalog(db: TestPrismaClient) {
         teachers: { connect: { id: teacher.id } },
       },
     });
-    for (const row of [semester, course, campus, department, teacher, section]) {
+    for (const row of [
+      semester,
+      course,
+      campus,
+      department,
+      teacher,
+      section,
+    ]) {
       expect(row.id).not.toBe(row.jwId);
     }
     return {
