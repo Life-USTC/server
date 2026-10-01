@@ -37,6 +37,7 @@ async function seedSectionComments({
     const other = await tx.user.create({
       data: {
         name: "Other section commenter",
+        username: "other_section_commenter",
         email: `comment-${crypto.randomUUID()}@test.invalid`,
       },
     });
