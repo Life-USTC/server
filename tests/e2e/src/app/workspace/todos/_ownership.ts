@@ -73,7 +73,10 @@ type Ownership = Actors & {
     query: string,
     variables?: object,
   ) => ReturnType<APIResponse["json"]>;
-  seedCompleted: () => Promise<string>;
+  seedTodo: (
+    input: Pick<Todo, "title"> &
+      Partial<Pick<Todo, "content" | "completed" | "priority" | "dueAt">>,
+  ) => Promise<Todo>;
   unchanged: (additionalOwnedIds?: string[]) => Promise<void>;
 };
 type Producer = {
@@ -523,17 +526,11 @@ export const test = workerTest.extend<{
               requireOpen();
               return client;
             },
-            seedCompleted: async () => {
+            seedTodo: async (input) => {
               requireOpen();
-              return (
-                await db.todo.create({
-                  data: {
-                    userId: arranged.actor.id,
-                    title: "Batch owned",
-                    completed: true,
-                  },
-                })
-              ).id;
+              return db.todo.create({
+                data: { ...input, userId: arranged.actor.id },
+              });
             },
             unchanged: async (additionalOwnedIds = []) => {
               const ids = await db.todo.findMany({
