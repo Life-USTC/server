@@ -6,7 +6,7 @@ import {
 } from "../shared/graphql-homework-contract-fixture";
 
 describe("GraphQL homework CRUD mutations", () => {
-  graphqlHomeworkTest.for([false])(
+  graphqlHomeworkTest.for([false, true])(
     "rejects deletion by another owner even when isAdmin=%s",
     async (
       isAdmin,
