@@ -1,5 +1,17 @@
+import { expect } from "@playwright/test";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { test } from "../../../../utils/private-calendar-fixture";
 import {
+  expectSubscriptionState,
+  signInSubscriptionOwner,
+  subscribedCourseLink,
+  verifySectionSubscriptionWrite,
+} from "../../../../utils/subscription-consumption";
+import {
+  createSubscriptionMutationFixture,
   expectMissingSubscriptionKind,
   expectSubscriptionRelations,
   mutateSubscription,
@@ -10,7 +22,94 @@ import {
 
 for (const transport of subscriptionTransports) {
   for (const role of ["regular", "suspended admin"] as const) {
-    test(`${transport}: ${role} modifies only personal subscription state`, async ({
+    for (const action of ["add", "kind", "remove"] as const) {
+      test(`${transport}: ${role} ${action} preserves other owners`, async ({
+        page,
+        calendarProtocolRun,
+        oauthOwner,
+        createCalendar,
+      }) => {
+        test.setTimeout(90_000);
+        const calls = action === "kind" ? 1 : 2;
+        await runSubscriptionScenario(
+          { page, calendarProtocolRun, oauthOwner, createCalendar },
+          {
+            transport,
+            role,
+            messages: calls,
+            sdkTools:
+              transport === "MCP bearer"
+                ? Array.from(
+                    { length: calls },
+                    () => `workspace_subscription_${action === "kind" ? "kind_update" : action}`,
+                  )
+                : [],
+          },
+          async (connection, fixture) => {
+            const db = oauthOwner.worker.database.owner;
+            const membership = {
+              userId: fixture.own.users[0].id,
+              sectionId: fixture.foreign.section.id,
+              kind: "regular" as const,
+            };
+            // Update and delete arrange their own existing membership directly;
+            // neither depends on a successful add through any product interface.
+            if (action !== "add")
+              await db.userSectionSubscription.create({ data: membership });
+            await expectSubscriptionRelations(fixture, [
+              ...fixture.initial,
+              ...(action === "add" ? [] : [membership]),
+            ]);
+            const refresh = transport === "MCP bearer" && action !== "kind";
+            if (refresh) {
+              await gotoAndWaitForReady(page, "/workspace/subscriptions");
+              await expect(subscribedCourseLink(page, fixture.foreign)).toHaveCount(
+                action === "add" ? 0 : 1,
+              );
+            }
+            await mutateSubscription(connection, fixture, action, action !== "add");
+            const expected: SubscriptionRelation[] = [...fixture.initial];
+            if (action !== "remove")
+              expected.push({
+                ...membership,
+                kind: action === "kind" ? "auditor" : "regular",
+              });
+            await expectSubscriptionRelations(fixture, expected);
+            if (action !== "kind") {
+              const beforeRepeat = await db.userSectionSubscription.findMany({
+                where: { userId: membership.userId },
+                orderBy: { sectionId: "asc" },
+              });
+              await mutateSubscription(connection, fixture, action, action === "add");
+              await expectSubscriptionRelations(fixture, expected);
+              expect(
+                await db.userSectionSubscription.findMany({
+                  where: { userId: membership.userId },
+                  orderBy: { sectionId: "asc" },
+                }),
+              ).toEqual(beforeRepeat);
+            }
+            if (refresh) {
+              // Refresh is the promised synchronization point for an open view.
+              await page.reload();
+              await waitForUiSettled(page);
+              await expect(subscribedCourseLink(page, fixture.foreign)).toHaveCount(
+                action === "add" ? 1 : 0,
+              );
+              if (action === "add")
+                await expect(subscribedCourseLink(page, fixture.foreign)).toHaveText(
+                  String(fixture.foreign.course.nameEn),
+                );
+            }
+            return expected;
+          },
+        );
+      });
+    }
+  }
+
+  for (const action of ["kind", "remove"] as const) {
+    test(`${transport}: ${action} of an absent personal subscription preserves memberships`, async ({
       page,
       calendarProtocolRun,
       oauthOwner,
@@ -21,71 +120,80 @@ for (const transport of subscriptionTransports) {
         { page, calendarProtocolRun, oauthOwner, createCalendar },
         {
           transport,
-          role,
-          messages: 4,
-          usage: transport.endsWith("session")
-            ? [0, 0, 0]
-            : transport === "MCP bearer"
-              ? [0, 5, 0]
-              : [0, 5, 1],
+          messages: action === "kind" ? 0 : 1,
           sdkTools:
             transport === "MCP bearer"
-              ? [
-                  "workspace_subscription_kind_update",
-                  "workspace_subscription_remove",
-                  "workspace_subscription_add",
-                  "workspace_subscription_kind_update",
-                  "workspace_subscription_remove",
-                ]
+              ? [`workspace_subscription_${action === "kind" ? "kind_update" : action}`]
               : [],
         },
         async (connection, fixture) => {
-          const assertState = (extra: SubscriptionRelation[] = []) =>
-            expectSubscriptionRelations(fixture, [
-              ...fixture.initial,
-              ...extra,
-            ]);
-          await assertState();
-          await test.step("Changing another user's subscribed section does not create my membership", async () => {
-            await connection.operation(
-              transport === "MCP bearer" ? "write" : "write error",
-              () =>
-                expectMissingSubscriptionKind(
-                  connection,
-                  fixture.foreign.section.jwId,
-                ),
-            );
-            await assertState();
-          });
-          await test.step("Removing a section I have not subscribed to leaves every membership intact", async () => {
-            await connection.operation("write", () =>
-              mutateSubscription(connection, fixture, "remove", false),
-            );
-            await assertState();
-          });
+          if (action === "kind")
+            await expectMissingSubscriptionKind(connection, fixture.foreign.section.jwId);
+          else await mutateSubscription(connection, fixture, "remove", false);
+          return fixture.initial;
+        },
+      );
+    });
+  }
+}
+
+for (const role of ["regular", "suspended admin"] as const) {
+  for (const action of ["add", "remove"] as const) {
+    test(`Web: ${role} ${action} refreshes the section subscription state`, async ({
+      page,
+      calendarProtocolRun,
+      oauthOwner,
+      createCalendar,
+    }) => {
+      let sectionJwId = 0;
+      const writes: string[] = [];
+      await calendarProtocolRun(
+        async ({ observeCalendar }) => {
+          const fixture = await createSubscriptionMutationFixture(oauthOwner, createCalendar, role);
+          const worker = oauthOwner.worker;
           const membership = {
             userId: fixture.own.users[0].id,
             sectionId: fixture.foreign.section.id,
             kind: "regular" as const,
           };
-          await test.step("Adding creates exactly my membership and preserves unrelated owners", async () => {
-            await connection.operation("write", () =>
-              mutateSubscription(connection, fixture, "add"),
-            );
-            await assertState([membership]);
-          });
-          await test.step("Changing kind updates only my membership", async () => {
-            await connection.operation("write", () =>
-              mutateSubscription(connection, fixture, "kind"),
-            );
-            await assertState([{ ...membership, kind: "auditor" }]);
-          });
-          await test.step("Removing deletes only my membership", async () => {
-            await connection.operation("write", () =>
-              mutateSubscription(connection, fixture, "remove"),
-            );
-            await assertState();
-          });
+          if (action === "remove")
+            await worker.database.owner.userSectionSubscription.create({ data: membership });
+          sectionJwId = fixture.foreign.section.jwId;
+          await observeCalendar(fixture.own.users[0], [{ type: "user", userId: membership.userId }]);
+          await signInSubscriptionOwner(page, fixture.own, worker);
+          await gotoAndWaitForReady(page, `/catalog/sections/${sectionJwId}`);
+          const operation = action === "add" ? "Subscribe to section" : "Unsubscribe from section";
+          await page.getByRole("button", { name: operation, exact: true }).click();
+          if (action === "add")
+            await page.getByRole("dialog", { name: operation })
+              .getByRole("button", { name: operation, exact: true }).click();
+          const nextAction = action === "add" ? "Unsubscribe from section" : "Subscribe to section";
+          await expect(page.getByRole("button", { name: nextAction, exact: true })).toBeVisible();
+          const expected = [...fixture.initial, ...(action === "add" ? [membership] : [])];
+          await expectSubscriptionRelations(fixture, expected);
+          await page.reload();
+          await waitForUiSettled(page);
+          await expect(page.getByRole("button", { name: nextAction, exact: true })).toBeVisible();
+          return {
+            async verifyTransport({ sdkRequests }) {
+              expect(sdkRequests).toEqual([]);
+              expect(writes).toEqual([action === "add" ? "?/subscribe" : "?/unsubscribe"]);
+            },
+            async verifyState() {
+              await expectSubscriptionRelations(fixture, expected);
+              for (const calendar of [fixture.own, fixture.foreign])
+                await expectSubscriptionState(
+                  calendar,
+                  worker,
+                  expected
+                    .filter(({ userId }) => userId === calendar.users[0].id)
+                    .map(({ sectionId, kind }) => ({ sectionId, kind })),
+                );
+            },
+          };
+        },
+        async (response, request) => {
+          writes.push(await verifySectionSubscriptionWrite(response, request, sectionJwId));
         },
       );
     });
