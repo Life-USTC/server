@@ -150,7 +150,7 @@ test("已订阅用户仍可取消订阅已退役教学班", async ({
   );
 });
 
-test("已登录用户可订阅与取消订阅", async ({
+test("已登录用户订阅后更新详情控件与工作区列表", async ({
   sectionRun,
   page,
   memberSection: section,
@@ -164,14 +164,10 @@ test("已登录用户可订阅与取消订阅", async ({
           userId: section.userId,
           subscribedIds: [section.id],
         },
-        { action: "unsubscribe", userId: section.userId, subscribedIds: [] },
       ],
       calendar: {
         userId: section.userId,
-        messages: [
-          { type: "user", userId: section.userId },
-          { type: "user", userId: section.userId },
-        ],
+        messages: [{ type: "user", userId: section.userId }],
       },
     },
     async () => {
@@ -209,6 +205,44 @@ test("已登录用户可订阅与取消订阅", async ({
       await expect(page).toHaveURL(new RegExp(`${section.path}$`));
       await waitForUiSettled(page);
       await expect(unsubscribe.first()).toBeVisible();
+    },
+  );
+});
+
+test("已订阅用户取消后更新详情控件与工作区列表", async ({
+  sectionRun,
+  page,
+  memberSection: section,
+  isolatedWorker,
+}, testInfo) => {
+  await sectionRun(
+    {
+      writes: [
+        { action: "unsubscribe", userId: section.userId, subscribedIds: [] },
+      ],
+      calendar: {
+        userId: section.userId,
+        messages: [{ type: "user", userId: section.userId }],
+      },
+    },
+    async () => {
+      const db = isolatedWorker.database.owner;
+      await db.userSectionSubscription.create({
+        data: { userId: section.userId, sectionId: section.id },
+      });
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      const workspaceLink = page
+        .getByTestId("subscription-course-link")
+        .and(page.locator(`a[href="${section.path}"]`))
+        .filter({ visible: true });
+      await expect(workspaceLink).toBeVisible();
+      await workspaceLink.click();
+      await expect(page).toHaveURL(new RegExp(`${section.path}$`));
+      await waitForUiSettled(page);
+      const subscribe = page.getByRole("button", { name: subscribeName });
+      const unsubscribe = page.getByRole("button", { name: unsubscribeName });
+      await expect(unsubscribe.first()).toBeVisible();
+      await expect(subscribe).toHaveCount(0);
       await unsubscribe.first().click();
       await expect(subscribe.first()).toBeVisible({ timeout: 15_000 });
       await expect
