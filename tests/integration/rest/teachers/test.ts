@@ -135,5 +135,4 @@ test.describe("GET /api/catalog/teachers", () => {
       expect(body.pagination?.pageSize).toBe(1);
     });
   });
-
 });

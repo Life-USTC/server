@@ -200,7 +200,10 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       const sectionPath = `/catalog/sections/${section.jwId}`;
       const assignments = await db.sectionTeacher.findMany();
       expect(assignments).toEqual([
-        expect.objectContaining({ sectionId: section.id, teacherId: teacher.id }),
+        expect.objectContaining({
+          sectionId: section.id,
+          teacherId: teacher.id,
+        }),
       ]);
       await preferenceFlow.run(async () => {
         await test.step("Course to section", async () => {

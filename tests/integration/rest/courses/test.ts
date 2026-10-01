@@ -180,5 +180,4 @@ test.describe("GET /api/catalog/courses 接口", () => {
       expect(body.pagination?.pageSize).toBe(1);
     });
   });
-
 });
