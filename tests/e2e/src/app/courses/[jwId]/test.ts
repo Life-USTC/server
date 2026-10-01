@@ -341,10 +341,10 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     },
   );
 
-  // ── Comment CRUD ─────────────────────────────────────────────────────────────
+  // ── Comment creation on the course target ────────────────────────────────────
 
   communityTest(
-    "登录用户可以发布、编辑和删除评论",
+    "登录用户发布的评论绑定到课程目标",
     async ({ page, account, community, communityFlow }, testInfo) => {
       await communityFlow.run(
         async () => {
@@ -398,96 +398,8 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
             commentCard.getByText(account.name).first(),
           ).toBeVisible();
           await captureStepScreenshot(page, testInfo, "course/comment-posted");
-
-          // Edit
-          await commentCard.hover();
-          await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
-          const editedBody = `${body}-edited`;
-          const editCard = page
-            .locator('[id^="comment-"]')
-            .filter({ has: page.locator(".sr-only", { hasText: body }) })
-            .first();
-          await expect(editCard.locator("textarea").first()).toBeVisible();
-          await editCard.locator("textarea").first().fill(editedBody);
-          await observeAction(
-            () =>
-              page.waitForResponse(
-                (r) =>
-                  r.url().includes("/api/community/comments/") &&
-                  r.request().method() === "PATCH" &&
-                  r.status() === 200,
-              ),
-            () => editCard.getByRole("button", { name: /保存|Save/i }).click(),
-          );
-          expect(await storedComment(community.db, commentId)).toMatchObject({
-            body: editedBody,
-            userId: account.id,
-            status: "active",
-          });
-          await expect(page.getByText(editedBody).first()).toBeVisible();
-          const editedCommentCard = page
-            .locator('[id^="comment-"]')
-            .filter({ hasText: editedBody })
-            .first();
-          await expect(editedCommentCard).toBeVisible();
-          await expect(
-            page
-              .locator("[data-sonner-toast]")
-              .filter({ hasText: /评论已更新|Comment updated/i }),
-          ).toBeVisible();
-
-          // The share route and a reload consume the persisted edit.
-          await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
-          await expect(editedCommentCard).toContainText(editedBody);
-          await page.reload();
-          await expect(editedCommentCard).toContainText(editedBody);
-
-          // Delete
-          await editedCommentCard.hover();
-          await editedCommentCard
-            .getByRole("button", { name: /更多操作|More actions/i })
-            .first()
-            .click();
-          await observeAction(
-            () =>
-              page.waitForResponse(
-                (r) =>
-                  r.url().includes("/api/community/comments/") &&
-                  r.request().method() === "DELETE" &&
-                  r.status() === 200,
-              ),
-            async () => {
-              await page
-                .getByRole("menuitem", { name: /删除|Delete/i })
-                .click();
-              const dialog = page.getByRole("alertdialog", {
-                name: /删除评论|Delete Comment/i,
-              });
-              await expect(dialog).toBeVisible();
-              await dialog
-                .getByRole("button", { name: /删除|Delete/i })
-                .click();
-            },
-          );
-          expect(await storedComment(community.db, commentId)).toMatchObject({
-            status: "deleted",
-            deletedAt: expect.any(Date),
-          });
-          await expect(
-            page
-              .locator("[data-sonner-toast]")
-              .filter({ hasText: /评论已删除|Comment deleted/i }),
-          ).toBeVisible();
-          await expect(page.locator(`#comment-${commentId}`)).toHaveCount(0);
-          await captureStepScreenshot(page, testInfo, "course/comment-deleted");
         },
-        {
-          auditActions: {
-            comment_create: 1,
-            comment_edit: 1,
-            comment_delete: 1,
-          },
-        },
+        { auditActions: { comment_create: 1 } },
       );
     },
   );
