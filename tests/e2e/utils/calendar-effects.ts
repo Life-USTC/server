@@ -33,6 +33,18 @@ export type ProducerObservation = {
   }[];
 };
 
+function messageKey(message: CalendarMessage) {
+  return message.type === "user"
+    ? `user:${message.userId}`
+    : `section:${message.sectionId}`;
+}
+
+function compareMessages(left: CalendarMessage, right: CalendarMessage) {
+  const leftKey = messageKey(left);
+  const rightKey = messageKey(right);
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+}
+
 /** Observe the real producer and native consumer without owning a page or
  * deriving the scenario's successful message plan from observed work. */
 export function createCalendarEffectObserver({
@@ -115,25 +127,28 @@ export function createCalendarEffectObserver({
       ).toBe(true);
       if (completed) {
         expect(
-          producer.messages.map((message) => JSON.stringify(message)).sort(),
+          [...producer.messages].sort((left, right) =>
+            compareMessages(left.value, right.value),
+          ),
         ).toEqual(
-          calendarMessages
-            .map((value) => JSON.stringify({ outcome: "fulfilled", value }))
-            .sort(),
+          [...calendarMessages]
+            .sort(compareMessages)
+            .map((value) => ({ outcome: "fulfilled", value })),
         );
       } else {
         // The original body error remains fatal. A partial workflow drains only
         // submitted work, but cannot exceed its planned message multiset.
-        const remaining = calendarMessages.map((value) =>
-          JSON.stringify(value),
-        );
+        const remaining = [...calendarMessages];
         for (const { outcome, value } of producer.messages) {
           expect(outcome).toBe("fulfilled");
-          const index = remaining.indexOf(JSON.stringify(value));
+          const index = remaining.findIndex(
+            (planned) => messageKey(planned) === messageKey(value),
+          );
           expect(
             index,
             "Partial workflow submitted an unplanned calendar message",
           ).toBeGreaterThanOrEqual(0);
+          expect(value).toEqual(remaining[index]);
           remaining.splice(index, 1);
         }
       }
@@ -146,17 +161,13 @@ export function createCalendarEffectObserver({
       );
       expect(
         consumer.attempts
-          .map((attempt) =>
-            JSON.stringify(
-              attempt.sectionId === undefined
-                ? { type: "user", userId: attempt.userId }
-                : { type: "section", sectionId: attempt.sectionId },
-            ),
+          .map((attempt): CalendarMessage =>
+            attempt.sectionId === undefined
+              ? { type: "user", userId: attempt.userId }
+              : { type: "section", sectionId: attempt.sectionId },
           )
-          .sort(),
-      ).toEqual(
-        consumedMessages.map((message) => JSON.stringify(message)).sort(),
-      );
+          .sort(compareMessages),
+      ).toEqual([...consumedMessages].sort(compareMessages));
       for (const attempt of consumer.attempts) {
         expect(attempt).toMatchObject({
           attempts: 1,
