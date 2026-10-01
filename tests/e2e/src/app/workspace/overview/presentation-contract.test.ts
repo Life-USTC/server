@@ -3,6 +3,7 @@ import {
   type CalendarFixture,
   test,
 } from "../../../../utils/calendar-presentation-fixture";
+import { assertPriorityView } from "../../../../utils/property-priority";
 import { isStepScreenshotCaptureEnabled } from "../../../../utils/screenshot";
 
 async function signIn(page: Page, fixture: CalendarFixture) {
@@ -121,66 +122,62 @@ test("overview.workspace-card-priority", async ({
             ["overview-focus-weekday", "Wednesday"],
             ["overview-focus-detail", detail],
           ] as const;
-          const fields = [];
-          for (const [id, expected] of [...primaryFields, ...secondaryFields]) {
-            const field = action.getByTestId(id);
-            await expect(field).toHaveCount(1);
-            await expect(field).toHaveText(expected);
-            await expect(field).toBeVisible();
-            await expect(field).toBeInViewport({ ratio: 1 });
-            const measured = await field.evaluate((element) => {
-              const box = element.getBoundingClientRect();
-              const style = getComputedStyle(element);
-              return {
-                top: box.top,
-                bottom: box.bottom,
-                painted: element.checkVisibility({
-                  opacityProperty: true,
-                  visibilityProperty: true,
-                }),
-                size: Number.parseFloat(style.fontSize),
-                weight: Number.parseInt(style.fontWeight, 10),
-                color: style.color,
+          const primary = Object.fromEntries(
+            primaryFields.map(([id, expected]) => [
+              id,
+              { locator: action.getByTestId(id), expected },
+            ]),
+          );
+          const secondary = Object.fromEntries(
+            secondaryFields.map(([id, expected]) => [
+              id,
+              { locator: action.getByTestId(id), expected },
+            ]),
+          );
+          await assertPriorityView({
+            scope: action,
+            identity: action.getByTestId("overview-focus-title"),
+            primary,
+            secondary,
+            tertiary: {},
+          });
+          for (const field of Object.values({ ...primary, ...secondary })) {
+            await expect(field.locator).toHaveCount(1);
+            await expect(field.locator).toHaveText(field.expected);
+            await expect(field.locator).toBeInViewport({ ratio: 1 });
+          }
+          const relationships = await action.evaluate(
+            (link, ids) => {
+              const field = (id: string) => {
+                const element = link.querySelector(`[data-testid="${id}"]`);
+                if (!element) throw new Error(`Missing focus field ${id}`);
+                return element;
               };
-            });
-            expect(measured.painted, `${id} must be painted`).toBe(true);
-            fields.push({ id, ...measured });
-          }
-          const primary = fields.slice(0, primaryFields.length);
-          const secondary = fields.slice(primaryFields.length);
-          for (const leading of primary) {
-            for (const trailing of secondary) {
-              expect(
-                leading.bottom,
-                `${leading.id} must precede ${trailing.id}`,
-              ).toBeLessThanOrEqual(trailing.top);
-              expect(
-                await action.getByTestId(leading.id).evaluate((element, id) => {
-                  const sibling = element
-                    .closest("a")
-                    ?.querySelector(`[data-testid="${id}"]`);
-                  if (!sibling)
-                    throw new Error(`Missing secondary focus field ${id}`);
-                  return Boolean(
-                    element.compareDocumentPosition(sibling) &
-                      Node.DOCUMENT_POSITION_FOLLOWING,
-                  );
-                }, trailing.id),
-                `${leading.id} must precede ${trailing.id} in the DOM`,
-              ).toBe(true);
-            }
-          }
-          const titleField = primary[0];
-          if (!titleField) throw new Error("Missing focus title measurement");
-          for (const field of secondary) {
-            expect(field.size).toBeLessThanOrEqual(titleField.size);
-            expect(field.weight).toBeLessThanOrEqual(titleField.weight);
-            expect(
-              field.size < titleField.size ||
-                field.weight < titleField.weight ||
-                field.color !== titleField.color,
-              `${field.id} must be subordinate to the title`,
-            ).toBe(true);
+              return ids.primary.flatMap((primaryId) =>
+                ids.secondary.map((secondaryId) => {
+                  const leading = field(primaryId);
+                  const trailing = field(secondaryId);
+                  return {
+                    pair: `${primaryId} before ${secondaryId}`,
+                    above:
+                      leading.getBoundingClientRect().bottom <=
+                      trailing.getBoundingClientRect().top,
+                    domOrder: Boolean(
+                      leading.compareDocumentPosition(trailing) &
+                        Node.DOCUMENT_POSITION_FOLLOWING,
+                    ),
+                  };
+                }),
+              );
+            },
+            {
+              primary: Object.keys(primary),
+              secondary: Object.keys(secondary),
+            },
+          );
+          for (const relationship of relationships) {
+            expect(relationship.above, relationship.pair).toBe(true);
+            expect(relationship.domOrder, relationship.pair).toBe(true);
           }
           if (isStepScreenshotCaptureEnabled()) {
             await testInfo.attach(`overview-focus-${width}-${time}`, {
