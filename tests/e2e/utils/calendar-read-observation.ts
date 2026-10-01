@@ -12,7 +12,7 @@ import type {
 } from "./calendar-protocol-lifecycle";
 import { expectOAuthUsage, type OAuthUsageWindow } from "./oauth-usage";
 import type { PrivateCalendar } from "./private-calendar-fixture";
-import { expectSubscriptionProtocol } from "./subscription-consumption";
+import { expectMcpToolCalls } from "./subscription-consumption";
 
 type Database = OAuthOwner["worker"]["database"]["owner"];
 
@@ -134,7 +134,7 @@ export async function prepareCalendarRead(
     ): CalendarProtocolChecks {
       return {
         async verifyTransport(observation) {
-          expectSubscriptionProtocol(
+          expectMcpToolCalls(
             observation,
             tools.map(([name]) => name),
           );
