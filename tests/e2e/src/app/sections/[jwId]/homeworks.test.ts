@@ -1,5 +1,5 @@
 /**
- * E2E: /catalog/sections/[jwId] — Section homework CRUD and homework comment permalinks
+ * E2E: /catalog/sections/[jwId] — Independent section homework operations and known-state consumers
  */
 
 import { expect } from "@playwright/test";
@@ -151,108 +151,94 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     sectionRun,
     page,
     section,
+    account,
+    isolatedWorker,
   }) => {
-    await sectionRun(
-      async ({ headers }) => {
-        test.setTimeout(90_000);
-        await page.setViewportSize({ width: 320, height: 568 });
+    await sectionRun(async () => {
+      test.setTimeout(90_000);
+      await page.setViewportSize({ width: 320, height: 568 });
 
-        const titlePrefix = `e2e-section-hw-mobile-${Date.now()}`;
-        const title = `${titlePrefix}-${"长标题".repeat(32)}`;
-        const description = `${"这是用于验证班级作业详情滚动区域的长说明。 ".repeat(24)}\n\nsection-mobile-content-marker`;
+      const titlePrefix = `e2e-section-hw-mobile-${Date.now()}`;
+      const title = `${titlePrefix}-${"长标题".repeat(32)}`;
+      const description = `${"这是用于验证班级作业详情滚动区域的长说明。 ".repeat(24)}\n\nsection-mobile-content-marker`;
 
-        const createResponse = await page.request.post(
-          "/api/community/section-homeworks",
-          {
-            headers,
-            data: {
-              sectionJwId: section.jwId,
-              submissionDueAt: null,
-              title,
-              description,
-            },
-          },
-        );
-        expect(createResponse.status()).toBe(201);
-        const body = (await createResponse.json()) as { id: string };
-        const homeworkId = body.id;
-        expect(homeworkId).toBeTruthy();
+      const db = isolatedWorker.database.owner;
+      await db.homework.create({
+        data: {
+          sectionId: section.id,
+          createdById: account.id,
+          title,
+          submissionDueAt: null,
+          description: { create: { content: description } },
+        },
+      });
+      const before = await readHomeworks(db, section.id);
 
-        await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
-        const homeworkCard = page
-          .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
-          .first();
-        await expect(homeworkCard).toBeVisible();
-        await homeworkCard.click();
+      await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
+      const homeworkCard = page
+        .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
+        .first();
+      await expect(homeworkCard).toBeVisible();
+      await homeworkCard.click();
 
-        const detailDialog = page
-          .locator('[data-slot="dialog-content"]')
-          .first();
-        await expect(detailDialog).toBeVisible();
-        await expect(
-          detailDialog.locator('[data-slot="dialog-title"]'),
-        ).toHaveText(title);
-        await expect(
-          detailDialog.getByText("section-mobile-content-marker"),
-        ).toBeVisible();
+      const detailDialog = page.locator('[data-slot="dialog-content"]').first();
+      await expect(detailDialog).toBeVisible();
+      await expect(
+        detailDialog.locator('[data-slot="dialog-title"]'),
+      ).toHaveText(title);
+      await expect(
+        detailDialog.getByText("section-mobile-content-marker"),
+      ).toBeVisible();
 
-        const viewportHeight = page.viewportSize()?.height ?? 568;
-        const dialogBox = await detailDialog.boundingBox();
-        const footer = detailDialog.locator('[data-slot="dialog-footer"]');
-        const footerBox = await footer.boundingBox();
-        expect(dialogBox).not.toBeNull();
-        expect(footerBox).not.toBeNull();
-        if (!dialogBox || !footerBox)
-          throw new Error("Expected the mobile section homework dialog bounds");
-        expect(dialogBox.y).toBeGreaterThanOrEqual(0);
-        expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
-          viewportHeight,
-        );
-        expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
-          viewportHeight,
-        );
-        await expect(footer).toBeInViewport();
+      const viewportHeight = page.viewportSize()?.height ?? 568;
+      const dialogBox = await detailDialog.boundingBox();
+      const footer = detailDialog.locator('[data-slot="dialog-footer"]');
+      const footerBox = await footer.boundingBox();
+      expect(dialogBox).not.toBeNull();
+      expect(footerBox).not.toBeNull();
+      if (!dialogBox || !footerBox)
+        throw new Error("Expected the mobile section homework dialog bounds");
+      expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
+        viewportHeight,
+      );
+      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
+        viewportHeight,
+      );
+      await expect(footer).toBeInViewport();
 
-        const completion = footer.getByRole("button", {
-          name: /标记为完成|Mark as complete/i,
-        });
-        const moreActions = footer.getByRole("button", {
-          name: /更多信息|More details/i,
-        });
-        await expect(completion).toBeVisible();
-        await expect(moreActions).toBeVisible();
-        const [completionBox, moreActionsBox] = await Promise.all([
-          completion.boundingBox(),
-          moreActions.boundingBox(),
-        ]);
-        expect(completionBox).not.toBeNull();
-        expect(moreActionsBox).not.toBeNull();
-        expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(200);
-        expect(moreActionsBox?.width ?? 0).toBeGreaterThanOrEqual(44);
-        expect(
-          await page.evaluate(
-            () => document.documentElement.scrollWidth <= window.innerWidth,
-          ),
-        ).toBe(true);
+      const completion = footer.getByRole("button", {
+        name: /标记为完成|Mark as complete/i,
+      });
+      const moreActions = footer.getByRole("button", {
+        name: /更多信息|More details/i,
+      });
+      await expect(completion).toBeVisible();
+      await expect(moreActions).toBeVisible();
+      const [completionBox, moreActionsBox] = await Promise.all([
+        completion.boundingBox(),
+        moreActions.boundingBox(),
+      ]);
+      expect(completionBox).not.toBeNull();
+      expect(moreActionsBox).not.toBeNull();
+      expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(200);
+      expect(moreActionsBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
 
-        await selectHomeworkAction(
-          page,
-          detailDialog,
-          /编辑信息|Edit details/i,
-        );
-        const editForm = detailDialog.locator("form").first();
-        await expect(editForm).toBeVisible();
-        await editForm.getByRole("button", { name: /取消|Cancel/i }).click();
-        await expect(editForm).toHaveCount(0);
+      await selectHomeworkAction(page, detailDialog, /编辑信息|Edit details/i);
+      const editForm = detailDialog.locator("form").first();
+      await expect(editForm).toBeVisible();
+      await editForm.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(editForm).toHaveCount(0);
 
-        await page.keyboard.press("Escape");
-        await expect(detailDialog).toHaveCount(0);
-      },
-      {
-        calendarMessages: [{ type: "section", sectionId: section.id }],
-        auditActions: { homework_create: 1 },
-      },
-    );
+      await page.keyboard.press("Escape");
+      await expect(detailDialog).toHaveCount(0);
+      expect(await readHomeworks(db, section.id)).toEqual(before);
+    });
   });
 
   test("班级作业区块默认以列表展示", async ({
@@ -295,7 +281,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     section,
     homeworks,
-  }) => {
+  }, testInfo) => {
     await sectionRun(async () => {
       await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
 
@@ -310,6 +296,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(dialog).toBeVisible();
       await expectHomeworkDetailOrder(dialog);
       await expectSingleColumnDiscussion(dialog);
+      await expect(dialog.getByText(/评论|Comments/i).first()).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/homework-discuss");
       await expectComfortablePopupWidth(page, dialog);
       await expectIconOnlyCloseButton(dialog);
       await closeDetailDialog(page, dialog);
@@ -342,7 +330,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("已登录用户可创建作业、查看讨论、切换完成状态并删除", async ({
+  test("已登录用户可创建作业并看到默认状态", async ({
     sectionRun,
     page,
     section,
@@ -373,19 +361,19 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           () =>
             page.waitForResponse(
               (r) =>
-                r.url().includes("/api/community/section-homeworks") &&
-                r.request().method() === "POST" &&
-                r.status() === 201,
+                r.url().endsWith("/api/community/section-homeworks") &&
+                r.request().method() === "POST",
             ),
           () =>
             createDialog
               .getByRole("button", { name: /创建作业|Create homework/i })
               .click(),
         );
+        expect(createdHomeworkResponse.status()).toBe(201);
         const createResponseBody = (await createdHomeworkResponse.json()) as {
           id: string;
         };
-        expect(createResponseBody.id).toBeTruthy();
+        expect(createResponseBody.id).toEqual(expect.any(String));
         const homeworkId = createResponseBody.id;
         await expect
           .poll(() => readHomeworks(db, section.id))
@@ -410,19 +398,52 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         // homework.title is displayed
         await expect(hwCard.getByText(title)).toBeVisible();
         await captureStepScreenshot(page, testInfo, "section/homework-created");
-        await hwCard.click();
-        const homeworkPopout = page
-          .locator('[data-slot="dialog-content"]')
+        expect(
+          await readHomeworkCompletion(db, account.id, homeworkId),
+        ).toBeNull();
+      },
+      {
+        calendarMessages: [{ type: "section", sectionId: section.id }],
+        auditActions: { homework_create: 1 },
+      },
+    );
+  });
+
+  test("已登录用户可完成预置作业且刷新后保留完成状态", async ({
+    sectionRun,
+    page,
+    section,
+    account,
+    isolatedWorker,
+  }, testInfo) => {
+    await sectionRun(
+      async () => {
+        const db = isolatedWorker.database.owner;
+        const homework = await db.homework.create({
+          data: {
+            sectionId: section.id,
+            createdById: account.id,
+            title: "Independently completed section homework",
+            isMajor: true,
+            requiresTeam: true,
+            submissionDueAt: new Date("2099-01-03T12:30:00+08:00"),
+          },
+        });
+        const homeworkId = homework.id;
+        const before = await readHomeworks(db, section.id);
+        await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
+        const hwCard = page
+          .getByRole("button", { name: homework.title, exact: true })
           .first();
+        await hwCard.click();
+        const homeworkPopout = detailDialog(page);
         await expect(homeworkPopout).toBeVisible();
-
-        // Homework discussion is embedded in the detail dialog.
-        await expect(
-          homeworkPopout.getByText(/评论|Comments/i).first(),
-        ).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "section/homework-discuss");
-
-        // Toggle completion (section-homework-tab.display.fields: user completion status)
+        const deadline = homeworkPopout.getByTestId(
+          "homework-deadline-summary",
+        );
+        const reminder = deadline.getByText(/还剩|left/i);
+        await expect(reminder).toBeVisible();
+        // The only write is completing the independently prepared homework.
         const completionButton = homeworkPopout
           .getByRole("button", {
             name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
@@ -435,23 +456,43 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         await expect(completionButton).toHaveAccessibleName(
           /标记为完成|Mark as complete/i,
         );
-        await observeAction(
+        const response = await observeAction(
           () =>
             page.waitForResponse(
               (r) =>
-                r.url().includes("/api/workspace/homeworks/") &&
-                r.url().includes("/completion") &&
-                r.request().method() === "PUT" &&
-                r.status() === 200,
+                r
+                  .url()
+                  .endsWith(
+                    `/api/workspace/homeworks/${homeworkId}/completion`,
+                  ) && r.request().method() === "PUT",
             ),
           () => completionButton.click(),
         );
+        expect(response.status()).toBe(200);
+        const completionBody = await response.json();
+        expect(completionBody).toMatchObject({ completed: true });
         await expect
           .poll(() => readHomeworkCompletion(db, account.id, homeworkId))
-          .toMatchObject({ userId: account.id, homeworkId });
+          .toMatchObject({
+            userId: account.id,
+            homeworkId,
+            completedAt: expect.any(Date),
+          });
         await expect(completionButton).toHaveAccessibleName(
           /取消完成|Mark as incomplete/i,
         );
+        await expect(reminder).toHaveCount(0);
+        await expect(deadline).toContainText("12:30");
+        const completed = await db.homeworkCompletion.findUniqueOrThrow({
+          where: { userId_homeworkId: { userId: account.id, homeworkId } },
+        });
+        expect(completed.completedAt.toISOString()).toBe(
+          completionBody.completedAt,
+        );
+        const facts = homeworkPopout.getByTestId("homework-secondary-details");
+        await expect(facts).toContainText(/已完成|Completed/i);
+        await expect(facts).toContainText(/大作业|Major/i);
+        await expect(facts).toContainText(/组队|Team/i);
         await page.reload({ waitUntil: "domcontentloaded" });
         await waitForUiSettled(page);
         await hwCard.click();
@@ -464,43 +505,81 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           "section/homework-completion-toggled",
         );
 
+        await expect(reminder).toHaveCount(0);
+        expect(
+          await readHomeworkCompletion(db, account.id, homeworkId),
+        ).toEqual(completed);
+        expect(await readHomeworks(db, section.id)).toEqual(before);
+      },
+      { calendarMessages: [{ type: "user", userId: account.id }] },
+    );
+  });
+
+  test("已登录用户可删除预置作业且刷新后不再显示", async ({
+    sectionRun,
+    page,
+    section,
+    account,
+    isolatedWorker,
+  }) => {
+    await sectionRun(
+      async () => {
+        const db = isolatedWorker.database.owner;
+        const homework = await db.homework.create({
+          data: {
+            sectionId: section.id,
+            createdById: account.id,
+            title: "Independently deleted section homework",
+          },
+        });
+        const homeworkId = homework.id;
+        await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
+        const hwCard = page
+          .getByRole("button", { name: homework.title, exact: true })
+          .first();
+        await hwCard.click();
+        const homeworkPopout = detailDialog(page);
+        await expect(homeworkPopout).toBeVisible();
         // Delete
         await selectHomeworkAction(page, homeworkPopout, /删除|Delete/i);
         const deleteDialog = page
           .locator('[data-slot="alert-dialog-content"]')
           .last();
         await expect(deleteDialog).toBeVisible();
-        await observeAction(
+        const response = await observeAction(
           () =>
             page.waitForResponse(
               (r) =>
-                r.url().includes("/api/community/section-homeworks/") &&
-                r.request().method() === "DELETE" &&
-                r.status() === 200,
+                r
+                  .url()
+                  .endsWith(`/api/community/section-homeworks/${homeworkId}`) &&
+                r.request().method() === "DELETE",
             ),
           () =>
             deleteDialog.getByRole("button", { name: /删除|Delete/i }).click(),
         );
+        expect(response.status()).toBe(200);
+        expect(await response.json()).toEqual({ success: true });
         await expect(hwCard).toHaveCount(0);
         await expect
           .poll(() => readHomeworks(db, section.id))
           .toMatchObject([
             {
-              id: homeworkId,
+              ...homework,
+              updatedById: account.id,
+              updatedAt: expect.any(Date),
               deletedById: account.id,
               deletedAt: expect.any(Date),
             },
           ]);
         await page.reload({ waitUntil: "domcontentloaded" });
+        await waitForUiSettled(page);
+        await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
         await expect(hwCard).toHaveCount(0);
       },
       {
-        calendarMessages: [
-          { type: "section", sectionId: section.id },
-          { type: "user", userId: account.id },
-          { type: "section", sectionId: section.id },
-        ],
-        auditActions: { homework_create: 1, homework_delete: 1 },
+        calendarMessages: [{ type: "section", sectionId: section.id }],
+        auditActions: { homework_delete: 1 },
       },
     );
   });
@@ -513,26 +592,20 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     isolatedWorker,
   }, testInfo) => {
     await sectionRun(
-      async ({ headers }) => {
+      async () => {
         const db = isolatedWorker.database.owner;
         test.setTimeout(60_000);
 
         const title = `e2e-section-hw-edit-${Date.now()}`;
-        const createResponse = await page.request.post(
-          "/api/community/section-homeworks",
-          {
-            headers,
-            data: {
-              sectionJwId: section.jwId,
-              submissionDueAt: null,
-              title,
-            },
+        const homework = await db.homework.create({
+          data: {
+            sectionId: section.id,
+            createdById: account.id,
+            title,
+            submissionDueAt: null,
           },
-        );
-        expect(createResponse.status()).toBe(201);
-        const createBody = (await createResponse.json()) as { id: string };
-        const homeworkId = createBody.id;
-        expect(homeworkId).toBeTruthy();
+        });
+        const homeworkId = homework.id;
 
         await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
 
@@ -598,6 +671,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
               id: homeworkId,
               title,
               sectionId: section.id,
+              createdById: account.id,
               updatedById: account.id,
               submissionDueAt: new Date("2026-12-31T23:59:00+08:00"),
               isMajor: true,
@@ -645,12 +719,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         await expect(factsTable).toContainText(/Team required|需要组队/i);
       },
       {
-        calendarMessages: [
-          { type: "section", sectionId: section.id },
-          { type: "section", sectionId: section.id },
-        ],
+        calendarMessages: [{ type: "section", sectionId: section.id }],
         auditActions: {
-          homework_create: 1,
           homework_update: 1,
           description_edit: 1,
         },
@@ -662,72 +732,62 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     sectionRun,
     page,
     section,
+    account,
+    isolatedWorker,
   }, testInfo) => {
-    await sectionRun(
-      async ({ headers }) => {
-        test.setTimeout(60_000);
+    await sectionRun(async () => {
+      test.setTimeout(60_000);
 
-        const title = `e2e-homework-permalink-${Date.now()}`;
-        const homeworkResponse = await page.request.post(
-          "/api/community/section-homeworks",
-          {
-            headers,
-            data: {
-              sectionJwId: section.jwId,
-              title,
-            },
+      const db = isolatedWorker.database.owner;
+      const title = "Known homework permalink target";
+      const body = "Known homework permalink comment";
+      const { homework, comment } = await db.$transaction(async (tx) => {
+        const homework = await tx.homework.create({
+          data: { sectionId: section.id, createdById: account.id, title },
+        });
+        const id = crypto.randomUUID();
+        const comment = await tx.comment.create({
+          data: {
+            id,
+            rootId: id,
+            userId: account.id,
+            homeworkId: homework.id,
+            body,
           },
-        );
-        expect(homeworkResponse.status()).toBe(201);
-        const homeworkBody = (await homeworkResponse.json()) as { id: string };
-        const homeworkId = homeworkBody.id;
-        expect(homeworkId).toBeTruthy();
+        });
+        return { homework, comment };
+      });
+      const homeworkId = homework.id;
+      const commentId = comment.id;
+      const before = await readHomeworks(db, section.id);
 
-        const body = `e2e-homework-comment-permalink-${Date.now()}`;
-        const commentResponse = await page.request.post(
-          "/api/community/comments",
-          {
-            headers,
-            data: {
-              body,
-              homeworkId,
-              targetType: "homework",
-            },
-          },
-        );
-        expect(commentResponse.status()).toBe(201);
-        const commentBody = (await commentResponse.json()) as { id?: string };
-        const commentId = commentBody.id;
-        expect(commentId).toBeTruthy();
+      await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
+      await expect(page).toHaveURL(
+        new RegExp(
+          `/catalog/sections/${section.jwId}\\?homeworkId=${escapeForRegExp(homeworkId)}#comment-${escapeForRegExp(commentId)}$`,
+        ),
+      );
 
-        await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
-        await expect(page).toHaveURL(
-          new RegExp(
-            `/catalog/sections/${section.jwId}\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
-          ),
-        );
-
-        const homeworkDialog = page
-          .locator('[data-slot="dialog-content"]')
-          .filter({ hasText: title })
-          .first();
-        await expect(homeworkDialog).toBeVisible();
-        const targetComment = homeworkDialog.locator(
-          `[id="comment-${commentId}"]`,
-        );
-        await expect(targetComment).toBeVisible();
-        await expect(targetComment.getByText(body)).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "section/homework-comment-permalink",
-        );
-      },
-      {
-        calendarMessages: [{ type: "section", sectionId: section.id }],
-        auditActions: { homework_create: 1, comment_create: 1 },
-      },
-    );
+      const homeworkDialog = page
+        .locator('[data-slot="dialog-content"]')
+        .filter({ hasText: title })
+        .first();
+      await expect(homeworkDialog).toBeVisible();
+      const targetComment = homeworkDialog.locator(
+        `[id="comment-${commentId}"]`,
+      );
+      await expect(targetComment).toBeVisible();
+      await expect(targetComment.getByText(body)).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "section/homework-comment-permalink",
+      );
+      expect(await readHomeworks(db, section.id)).toEqual(before);
+      expect(await db.comment.findUnique({ where: { id: commentId } })).toEqual(
+        comment,
+      );
+    });
   });
 });
 
@@ -738,28 +798,37 @@ test("homework.section-completed-deadline-display", async ({
   account,
   isolatedWorker,
 }) => {
-  await sectionRun(
-    async ({ headers }) => {
-      const db = isolatedWorker.database.owner;
-      const title = `section-completion-${crypto.randomUUID()}`;
-      const response = await page.request.post(
-        "/api/community/section-homeworks",
-        {
-          headers,
+  await sectionRun(async () => {
+    const db = isolatedWorker.database.owner;
+    const homeworks = await db.$transaction(async (tx) => {
+      const records = [];
+      for (const completed of [false, true]) {
+        const homework = await tx.homework.create({
           data: {
-            sectionJwId: section.jwId,
-            title,
+            sectionId: section.id,
+            createdById: account.id,
+            title: `Known ${completed ? "completed" : "incomplete"} section homework`,
             isMajor: true,
             requiresTeam: true,
-            submissionDueAt: "2099-01-03T12:30:00+08:00",
+            submissionDueAt: new Date("2099-01-03T12:30:00+08:00"),
           },
-        },
-      );
-      expect(response.status()).toBe(201);
-      const id: string = (await response.json()).id;
-      for (const width of [1280, 390]) {
-        await page.setViewportSize({ width, height: 844 });
+        });
+        if (completed) {
+          await tx.homeworkCompletion.create({
+            data: { userId: account.id, homeworkId: homework.id },
+          });
+        }
+        records.push({ ...homework, completed });
+      }
+      return records;
+    });
+    const before = await readHomeworks(db, section.id);
+    const completionsBefore = await db.homeworkCompletion.findMany();
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const homework of homeworks) {
         await gotoAndWaitForReady(page, `${section.path}#homework`);
+        const { title, completed } = homework;
         const list = page.getByTestId(
           width >= 768 ? "section-homeworks-list" : "section-homeworks-items",
         );
@@ -774,20 +843,17 @@ test("homework.section-completed-deadline-display", async ({
         const dialog = page.getByRole("dialog", { name: title, exact: true });
         const deadline = dialog.getByTestId("homework-deadline-summary");
         const reminder = deadline.getByText(/还剩|left/i);
-        await expect(reminder).toBeVisible();
-        await dialog
-          .getByRole("button", { name: /标记为完成|Mark as complete/i })
-          .click();
-        await expect(
-          dialog.getByRole("button", { name: /取消完成|Mark as incomplete/i }),
-        ).toBeEnabled();
+        if (completed) await expect(reminder).toHaveCount(0);
+        else await expect(reminder).toBeVisible();
+        const completion = dialog.getByRole("button", {
+          name: completed
+            ? /取消完成|Mark as incomplete/i
+            : /标记为完成|Mark as complete/i,
+        });
+        await expect(completion).toBeEnabled();
         await expect(deadline).toContainText("12:30");
-        await expect(reminder).toHaveCount(0);
-        await expect
-          .poll(() => readHomeworkCompletion(db, account.id, id))
-          .toMatchObject({ userId: account.id, homeworkId: id });
         const state = dialog.getByTestId("homework-secondary-details");
-        await expect(state).toContainText(/已完成|Completed/i);
+        if (completed) await expect(state).toContainText(/已完成|Completed/i);
         await expect(state).toContainText(/大作业|Major/i);
         await expect(state).toContainText(/组队|Team/i);
         await page.keyboard.press("Escape");
@@ -795,26 +861,88 @@ test("homework.section-completed-deadline-display", async ({
         await expect(summary).toContainText(/重要|大作业|Major/i);
         await expect(summary).toContainText(/组队|团队|Team/i);
         await summary.getByRole("button", { name: title, exact: true }).click();
-        await expect(reminder).toHaveCount(0);
-        await dialog
-          .getByRole("button", { name: /取消完成|Mark as incomplete/i })
-          .click();
-        await expect(reminder).toBeVisible();
-        await expect
-          .poll(() => readHomeworkCompletion(db, account.id, id))
-          .toBeNull();
+        if (completed) await expect(reminder).toHaveCount(0);
+        else await expect(reminder).toBeVisible();
+        await expect(completion).toBeEnabled();
         await page.keyboard.press("Escape");
       }
+    }
+    expect(await readHomeworks(db, section.id)).toEqual(before);
+    expect(await db.homeworkCompletion.findMany()).toEqual(completionsBefore);
+  });
+});
+
+test("取消预置作业的完成状态会恢复截止提醒", async ({
+  sectionRun,
+  page,
+  section,
+  account,
+  isolatedWorker,
+}) => {
+  await sectionRun(
+    async () => {
+      const db = isolatedWorker.database.owner;
+      const homework = await db.homework.create({
+        data: {
+          sectionId: section.id,
+          createdById: account.id,
+          title: "Independently reopened section homework",
+          isMajor: true,
+          requiresTeam: true,
+          submissionDueAt: new Date("2099-01-03T12:30:00+08:00"),
+          homeworkCompletions: { create: { userId: account.id } },
+        },
+      });
+      const before = await readHomeworks(db, section.id);
+      await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
+      const card = page
+        .getByRole("button", { name: homework.title, exact: true })
+        .first();
+      await card.click();
+      const dialog = detailDialog(page);
+      const deadline = dialog.getByTestId("homework-deadline-summary");
+      const reminder = deadline.getByText(/还剩|left/i);
+      await expect(reminder).toHaveCount(0);
+      const response = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response
+                .url()
+                .endsWith(
+                  `/api/workspace/homeworks/${homework.id}/completion`,
+                ) && response.request().method() === "PUT",
+          ),
+        () =>
+          dialog
+            .getByRole("button", { name: /取消完成|Mark as incomplete/i })
+            .click(),
+      );
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toMatchObject({
+        completed: false,
+        completedAt: null,
+      });
+      await expect(reminder).toBeVisible();
+      await expect(deadline).toContainText("12:30");
+      await expect(
+        dialog.getByRole("button", { name: /标记为完成|Mark as complete/i }),
+      ).toBeEnabled();
+      const state = dialog.getByTestId("homework-secondary-details");
+      await expect(state).toContainText(/大作业|Major/i);
+      await expect(state).toContainText(/组队|Team/i);
+      expect(
+        await readHomeworkCompletion(db, account.id, homework.id),
+      ).toBeNull();
+      expect(await readHomeworks(db, section.id)).toEqual(before);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForUiSettled(page);
+      await card.click();
+      await expect(reminder).toBeVisible();
+      expect(
+        await readHomeworkCompletion(db, account.id, homework.id),
+      ).toBeNull();
     },
-    {
-      calendarMessages: [
-        { type: "section", sectionId: section.id },
-        { type: "user", userId: account.id },
-        { type: "user", userId: account.id },
-        { type: "user", userId: account.id },
-        { type: "user", userId: account.id },
-      ],
-      auditActions: { homework_create: 1 },
-    },
+    { calendarMessages: [{ type: "user", userId: account.id }] },
   );
 });
