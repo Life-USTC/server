@@ -170,14 +170,18 @@ requirements:
   topic: semantic-parity
   rule: Public REST course, Section and Teacher lists and course/Teacher details retain the identities
     and relationships of the persisted catalog graph. Each projection keeps its declared fields and public
-    privacy boundary; consuming it does not change the catalog or create viewer state.
+    privacy boundary. Consumption preserves the scenario's arranged catalog graph and the observed
+    User, Session, UserSectionSubscription and AuditLog state.
   acceptance:
     given: One isolated course has an active Section and its Teacher, with row IDs distinct from upstream JW IDs.
     when: An anonymous HTTP caller reads the course, Section and Teacher lists and the course and Teacher details.
     then:
     - Every projection retains its required fields and identifies the exact persisted course, Section or Teacher.
     - Course and Teacher detail offerings and Section teacher references describe the same persisted relationships.
-    - Catalog rows and relationships, users, sessions, subscriptions and audit state remain unchanged after each consumer stage.
+    - After each consumer stage, the arranged course/Section/Teacher graph remains unchanged, including
+      its campus, building, semester, teaching language, classification, teaching assignments, schedule
+      groups, schedules, exams, Section-teacher links and schedule-teacher participations.
+    - The observed User, Session, UserSectionSubscription and AuditLog tables remain unchanged after each consumer stage.
     test:
       file: tests/integration/rest/catalog/relationship-projections.test.ts
       name: interface-hierarchy.catalog-rest-relationship-projections
