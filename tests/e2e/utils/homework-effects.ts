@@ -36,6 +36,8 @@ export type HomeworkEffectContext = {
   headers: Record<string, string>;
   readHeaders: (incoming: Request) => Record<string, string>;
   activeReads: () => Request[];
+  expectReadCancellation: (page: Page, request: Request) => void;
+  onClosing: (release: () => void) => void;
   duringRemoval: (
     requests: readonly Request[],
     action: () => Promise<void>,
@@ -103,6 +105,9 @@ export async function withHomeworkEffects(
   const consumerPath = `/__test/calendar-consumer?userId=${account.id}${sectionId === undefined ? "" : `&sectionId=${sectionId}`}`;
   const pending = new Set<Promise<void>>();
   const errors: unknown[] = [];
+  const expectedReadCancellations = new Set<Request>();
+  const canceledNativeStatuses = new Map<number, number | null>();
+  const closingReleases: (() => void)[] = [];
   let actualBody:
     | Promise<{ ok: true } | { ok: false; error: unknown }>
     | undefined;
@@ -154,7 +159,7 @@ export async function withHomeworkEffects(
       // The server independently records tagged requests, including redirect
       // successors and handlers that outlive a cancelled browser request.
       const unmatched = [...producer.requests];
-      for (const owned of ownedReads.values()) {
+      for (const [incoming, owned] of ownedReads) {
         const read = reads.find((read) => read.order === owned.order);
         if (workerAsset(owned.path)) {
           if (!read)
@@ -172,11 +177,30 @@ export async function withHomeworkEffects(
             request.value.path === owned.path &&
             (read === undefined || request.result === read.status),
         );
+        const canceled =
+          expectedReadCancellations.has(incoming) &&
+          owned.settled &&
+          !read &&
+          incoming.failure()?.errorText === "net::ERR_ABORTED";
+        // A browser can cancel before its request reaches the Worker. Only the
+        // declared exact Request with a native abort may lack a producer record.
+        // Matching remains by requestId, so it cannot consume its successor.
+        if (canceled && index === -1) {
+          canceledNativeStatuses.set(owned.order, null);
+          continue;
+        }
         expect(
           index,
           `Worker completed ${owned.method} ${owned.path}${read ? ` (${read.status})` : " (no browser response)"}`,
         ).toBeGreaterThanOrEqual(0);
         const [native] = unmatched.splice(index, 1);
+        if (canceled) {
+          expect(
+            native.result,
+            `Canceled consumer ${owned.method} ${owned.path}`,
+          ).toBe(200);
+          canceledNativeStatuses.set(owned.order, native.result);
+        }
         if (removedReads.some((removed) => removed.order === owned.order)) {
           expect(
             native.result,
@@ -200,6 +224,11 @@ export async function withHomeworkEffects(
           retiredNativeStatuses.set(owned.order, native.result);
         }
       }
+      if (expectedReadCancellations.size)
+        expect(
+          unmatched.filter((request) => request.value.requestId),
+          "Every tagged Worker request belongs to an observed browser request",
+        ).toEqual([]);
       for (const cancelled of supersededCalendarReads)
         expect(
           reads.some(
@@ -298,6 +327,22 @@ export async function withHomeworkEffects(
       writes,
       reads,
       supersededCalendarReads,
+      canceledReads: [...expectedReadCancellations]
+        .filter((request) =>
+          canceledNativeStatuses.has(ownedReads.get(request)!.order),
+        )
+        .map((request) => {
+          const owned = ownedReads.get(request)!;
+          return {
+            requestId: owned.requestId,
+            method: owned.method,
+            path: owned.path,
+            order: owned.order,
+            outcome: "expected-request-cancellation",
+            error: request.failure()?.errorText,
+            nativeStatus: canceledNativeStatuses.get(owned.order),
+          };
+        }),
       removedReads: removedReads.map((read) => ({
         ...read,
         nativeStatus: removedNativeStatuses.get(read.order),
@@ -467,6 +512,17 @@ export async function withHomeworkEffects(
           headers,
           readHeaders,
           activeReads: browserReads.activeReads,
+          expectReadCancellation(current, request) {
+            if (!accepting || !observeReads || current !== page)
+              throw new Error("Cancellation requires this active workflow page");
+            browserReads.expectCancellation(request);
+            expectedReadCancellations.add(request);
+          },
+          onClosing(release) {
+            if (!accepting)
+              throw new Error("Closing callback requires an active workflow");
+            closingReleases.push(release);
+          },
           duringRemoval: browserReads.duringRemoval,
         }),
       );
@@ -480,6 +536,13 @@ export async function withHomeworkEffects(
     errors.push(error);
   } finally {
     accepting = false;
+    for (const release of closingReleases.splice(0)) {
+      try {
+        release();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
     try {
       // Preserve native read/redirect completion while the page is open. Full
       // business expectations may depend on a callback released by page.close.
