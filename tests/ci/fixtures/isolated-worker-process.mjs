@@ -67,7 +67,11 @@ async function start(options) {
   try {
     const updated = await Promise.race([
       worker.patchConfig({
-        bindings: { APP_PUBLIC_ORIGIN: { type: "plain_text", value: origin } },
+        // Wrangler patches input fields shallowly, including the bindings map.
+        bindings: {
+          ...options.bindings,
+          APP_PUBLIC_ORIGIN: { type: "plain_text", value: origin },
+        },
       }),
       cancelled,
     ]);
