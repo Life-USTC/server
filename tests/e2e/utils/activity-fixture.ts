@@ -2,27 +2,9 @@ import { expect } from "@playwright/test";
 import type { YoungEvent } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { withBrowserWorkflow } from "./browser-workflow";
+import { createCalendarEffectObserver } from "./calendar-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
-
-type CalendarObservation = {
-  attempts: {
-    id: string;
-    attempts: number;
-    userId: string;
-    ackCalls: number;
-    retryCalls: number;
-    complete: boolean;
-    errors: string[];
-    calendar: string | null;
-  }[];
-  calendar: string | null;
-};
-type Effects = {
-  messages: { outcome: string; value: unknown }[];
-  purges: { outcome: string }[];
-  backgroundErrors: string[];
-};
 
 export const test = workerTest.extend<{
   account: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
@@ -118,6 +100,11 @@ export const test = workerTest.extend<{
             const probeId = crypto.randomUUID();
             const producerPath = `/__test/community-effects?id=${probeId}`;
             const consumerPath = `/__test/calendar-consumer?userId=${account.id}`;
+            const calendarEffects = createCalendarEffectObserver({
+              request,
+              producerPath,
+              account,
+            });
             const pending = new Set<Promise<void>>();
             const errors: unknown[] = [];
             const commentAudits: unknown[] = [];
@@ -147,78 +134,23 @@ export const test = workerTest.extend<{
               null,
             ]);
             const settleEffects = async () => {
-              let snapshot:
-                | { effects: Effects; observed: CalendarObservation }
-                | undefined;
-              await expect
-                .poll(
-                  async () => {
-                    const produced = await request.get(producerPath, {
-                      headers,
-                    });
-                    expect(produced.status()).toBe(200);
-                    const effects: Effects = await produced.json();
-                    const consumed = await request.get(consumerPath, {
-                      headers,
-                    });
-                    expect(consumed.status()).toBe(200);
-                    const observed: CalendarObservation = await consumed.json();
-                    snapshot = { effects, observed };
-                    return (
-                      effects.messages.length >= expectedMessages &&
-                      observed.attempts.length >= expectedMessages &&
-                      observed.attempts.every((attempt) => attempt.complete)
-                    );
-                  },
-                  {
-                    timeout: 15_000,
-                    message: "Real calendar consumers settle",
-                  },
-                )
-                .toBe(true);
-              if (!snapshot) throw new Error("Missing calendar observations");
-              const { effects, observed } = snapshot;
-              expect(effects.backgroundErrors).toEqual([]);
-              for (const purge of effects.purges)
-                expect(purge.outcome).toBe("fulfilled");
-              expect(effects.messages).toEqual(
+              const snapshot = await calendarEffects.collect(expectedMessages);
+              calendarEffects.assert(
+                snapshot,
                 Array.from({ length: expectedMessages }, () => ({
-                  outcome: "fulfilled",
-                  value: { type: "user", userId: account.id },
+                  type: "user" as const,
+                  userId: account.id,
                 })),
               );
-              expect(observed.attempts).toHaveLength(expectedMessages);
-              expect(
-                new Set(observed.attempts.map((attempt) => attempt.id)).size,
-              ).toBe(expectedMessages);
-              for (const attempt of observed.attempts)
-                expect(attempt).toMatchObject({
-                  attempts: 1,
-                  userId: account.id,
-                  ackCalls: 1,
-                  retryCalls: 0,
-                  complete: true,
-                  errors: [],
-                  calendar: expect.any(String),
-                });
+              const { producer: effects, consumer: observed } = snapshot;
               if (!expectedMessages) {
                 expect(observed.calendar).toBeNull();
                 return { expectedMessages, effects, observed };
               }
-              expect(
-                observed.attempts.some(
-                  (attempt) => attempt.calendar === observed.calendar,
-                ),
-              ).toBe(true);
               if (!observed.calendar)
                 throw new Error("Consumer did not persist its calendar");
               const calendar = JSON.parse(observed.calendar);
-              expect(calendar).toMatchObject({
-                version: 2,
-                text: expect.any(String),
-              });
               const text = calendar.text.replace(/\r?\n[ \t]/g, "");
-              expect(text).toContain("BEGIN:VCALENDAR");
               // The source row is independently arranged or verified against the
               // real mutation below. Read KV directly; a feed GET can rebuild it.
               if (await subscription()) {
