@@ -122,23 +122,78 @@ async function locale(
     .addCookies([{ name: "NEXT_LOCALE", value, url: origin }]);
 }
 
-test("catalog-link.pin-limit", async ({ preferenceFlow, linkState, page }) => {
-  await preferenceFlow.run(async () => {
-    const { users, state } = linkState;
-    const foreignBefore = (await state()).pins.filter(
-      (pin) => pin.userId === users[1],
-    );
-    const originalJw = (await state()).pins.find(
-      (pin) => pin.userId === users[0] && pin.slug === "jw",
-    );
-    const apply = async (
-      slug: string,
-      action: "pin" | "unpin",
-      expected: string[],
-    ) => {
+const pinCases = [
+  {
+    name: "fill",
+    initial: ["jw", "mail", "icourse"],
+    slug: "library",
+    action: "pin",
+    expected: ["jw", "mail", "icourse", "library"],
+  },
+  {
+    name: "repeat",
+    initial: ["jw", "mail", "icourse", "library"],
+    slug: "jw",
+    action: "pin",
+    expected: ["jw", "mail", "icourse", "library"],
+  },
+  {
+    name: "overflow",
+    initial: ["jw", "mail", "icourse", "library"],
+    slug: "vlab",
+    action: "pin",
+    expected: ["mail", "icourse", "library", "vlab"],
+  },
+  {
+    name: "remove",
+    initial: ["mail", "icourse", "library", "vlab"],
+    slug: "mail",
+    action: "unpin",
+    expected: ["icourse", "library", "vlab"],
+  },
+  {
+    name: "repin",
+    initial: ["icourse", "library", "vlab"],
+    slug: "jw",
+    action: "pin",
+    expected: ["icourse", "library", "vlab", "jw"],
+  },
+] as const;
+
+async function seedPins(
+  worker: IsolatedWorker,
+  userId: string,
+  slugs: readonly string[],
+) {
+  const db = worker.database.owner;
+  await db.workspaceLinkPin.deleteMany({ where: { userId } });
+  await db.workspaceLinkPin.createMany({
+    data: slugs.map((slug, index) => ({
+      userId,
+      slug,
+      createdAt: new Date(Date.UTC(2020, 0, index + 1)),
+    })),
+  });
+}
+
+for (const scenario of pinCases) {
+  test(`catalog-link.pin-limit ${scenario.name}`, async ({
+    preferenceFlow,
+    linkState,
+    isolatedWorker,
+    page,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const { users, state } = linkState;
+      await seedPins(isolatedWorker, users[0], scenario.initial);
+      const before = await state();
       const response = await preferenceFlow.http(() =>
         page.request.post(pinPath, {
-          form: { slug, action, returnTo: "/catalog/links" },
+          form: {
+            slug: scenario.slug,
+            action: scenario.action,
+            returnTo: "/catalog/links",
+          },
           headers: { ...preferenceFlow.headers, accept: "application/json" },
         }),
       );
@@ -146,32 +201,50 @@ test("catalog-link.pin-limit", async ({ preferenceFlow, linkState, page }) => {
       const body = await response.json();
       expect(body.maxPinnedLinks).toBe(4);
       expect(body.error).toBeNull();
-      expect(body.pinnedSlugs.toSorted()).toEqual(expected.toSorted());
+      expect(body.pinnedSlugs.toSorted()).toEqual(scenario.expected.toSorted());
       const after = await state();
-      expect(
-        after.pins
-          .filter((pin) => pin.userId === users[0])
-          .map((pin) => pin.slug)
-          .toSorted(),
-      ).toEqual(expected.toSorted());
-      expect(after.pins.filter((pin) => pin.userId === users[1])).toEqual(
-        foreignBefore,
+      const own = after.pins.filter((pin) => pin.userId === users[0]);
+      expect(own.map((pin) => pin.slug).toSorted()).toEqual(
+        scenario.expected.toSorted(),
       );
-    };
-    await apply("mail", "pin", ["jw", "mail"]);
-    await apply("icourse", "pin", ["jw", "mail", "icourse"]);
-    await apply("library", "pin", ["jw", "mail", "icourse", "library"]);
-    await apply("jw", "pin", ["jw", "mail", "icourse", "library"]);
-    expect(
-      (await state()).pins.find(
-        (pin) => pin.userId === users[0] && pin.slug === "jw",
-      )?.createdAt,
-    ).toEqual(originalJw?.createdAt);
-    await apply("vlab", "pin", ["mail", "icourse", "library", "vlab"]);
-    await apply("vlab", "pin", ["mail", "icourse", "library", "vlab"]);
-    await apply("mail", "unpin", ["icourse", "library", "vlab"]);
-    await apply("jw", "pin", ["icourse", "library", "vlab", "jw"]);
-    await apply("official", "pin", ["library", "vlab", "jw", "official"]);
+      expect(after.pins.filter((pin) => pin.userId === users[1])).toEqual(
+        before.pins.filter((pin) => pin.userId === users[1]),
+      );
+      expect(after.clicks).toEqual(before.clicks);
+      for (const pin of own) {
+        const previous = before.pins.find(
+          (row) => row.userId === users[0] && row.slug === pin.slug,
+        );
+        if (previous) expect(pin).toEqual(previous);
+        else {
+          expect(pin).toMatchObject({
+            userId: users[0],
+            slug: scenario.slug,
+            createdAt: expect.any(Date),
+          });
+          expect(pin.createdAt.getTime()).toBeGreaterThan(
+            new Date("2020-01-04T00:00:00.000Z").getTime(),
+          );
+        }
+      }
+    }, "pins");
+  });
+}
+
+test("catalog-link.seeded-pin-controls", async ({
+  preferenceFlow,
+  linkState,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    await seedPins(isolatedWorker, linkState.users[0], [
+      "library",
+      "vlab",
+      "jw",
+      "official",
+    ]);
+    const before = await linkState.state();
     await gotoAndWaitForReady(page, "/catalog/links");
     for (const slug of ["library", "vlab", "jw", "official"])
       await expect(
@@ -181,6 +254,7 @@ test("catalog-link.pin-limit", async ({ preferenceFlow, linkState, page }) => {
       await expect(
         form(page, slug).locator('input[name="action"]'),
       ).toHaveValue("pin");
+    expect(await linkState.state()).toEqual(before);
   }, "pins");
 });
 
