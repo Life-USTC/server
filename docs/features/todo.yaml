@@ -91,12 +91,15 @@ requirements:
   rule: The Web todo list orders dated tasks by deadline ascending, followed by undated tasks. This order applies to every completion filter and updates after edits; equal deadlines preserve the existing list order.
   rationale: Earliest deadlines keep overdue work ahead of future work. Undated tasks remain visible after dated tasks. Sorting does not depend on a moving page-reference time and agrees with the server's deadline ordering.
   acceptance:
-    given: The owner has undated, long-overdue, near-past, near-future and next-day todos.
-    when: Desktop and mobile Web lists select every completion filter, complete the fixtures and edit a deadline through the actual form.
+    given: Independent desktop and mobile cases prepare incomplete and completed todos with undated,
+      long-overdue, near-past, near-future, next-day and equal deadlines; creation timestamps specify each tie's initial order.
+    when: Read-only consumers select every completion filter, and separate mutation cases edit a prepared completed todo's deadline through the actual form.
     then:
     - Earlier deadlines appear first and undated tasks appear last.
     - Incomplete, completed and All filters preserve deadline order.
-    - Editing the oldest deadline to a future time moves the task to its new chronological position.
+    - Equal deadlines retain their specified initial order across filter changes.
+    - Independently editing the oldest deadline moves the task to its new chronological position without
+      a page reload while retaining completion state and all unrelated records.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
       name: todo.web-due-order 390
@@ -496,16 +499,18 @@ requirements:
   rule: Successful local todo creates, edits, completion changes and deletes update the list without a
     reload; changing filters does not resurrect stale rows.
   acceptance:
-    given: An authenticated owner opens the todo workspace.
-    when: The owner creates, edits, completes and deletes a todo through the actual Web controls, switching
-      completion filters after changes.
+    given: Independent cases each open the todo workspace with the owned initial state needed for one operation.
+    when: Separate cases create, edit, complete or delete through the actual Web controls, switching completion
+      filters after their operation; editing, completion and deletion start from directly prepared records.
     then:
     - The new and edited titles appear immediately; replaced titles disappear.
     - Completed state appears only in matching filters and deleted rows never reappear when filters change.
-    - A marker on the original document survives the complete flow, proving that no full reload occurred.
+    - A marker on each original document survives its mutation and filter changes, proving that no full reload occurred.
+    - Each case observes its own persisted result and calendar rebuild; completion additionally checks the native
+      calendar export excludes completed and undated tasks while retaining the other dated incomplete task.
     test:
       file: tests/e2e/src/app/workspace/todos/test.ts
-      name: todo.web-local-mutation-state
+      name: todo.web-local-delete
 - id: todo.completed-not-urgent
   category: presentation
   rule: Completed todos do not appear in urgent overview or calendar information.

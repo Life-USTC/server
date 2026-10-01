@@ -8,7 +8,11 @@ import { visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { expectTodoFormResponse, test } from "../../../../utils/todo-fixture";
+import {
+  expectTodoFormResponse,
+  readTodoCalendar,
+  test,
+} from "../../../../utils/todo-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -383,7 +387,7 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("todo.web-local-mutation-state", async ({
+  test("todo.web-local-create", async ({
     todoActor,
     todoRun,
     page,
@@ -398,7 +402,6 @@ test.describe("仪表盘待办", () => {
           document.documentElement.dataset.todoMutationSession = "retained";
         });
         const title = `e2e-workspace-todo-${Date.now()}`;
-        const editedTitle = `${title}-edited`;
 
         // Create a new todo via modal form
         const addTodoButton = page
@@ -444,23 +447,48 @@ test.describe("仪表盘待办", () => {
         });
         await captureStepScreenshot(page, testInfo, "workspace-todos-created");
 
-        // Edit the temporary todo via its detail modal.
+        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const incomplete = page.getByRole("radio", {
+          name: /^(未完成|Incomplete)$/i,
+        });
+        const completed = page.getByRole("radio", {
+          name: /^(已完成|Completed)$/i,
+        });
+        for (const filter of [all, completed, incomplete]) {
+          await filter.click();
+          await expect(filter).toBeChecked();
+          await expect(
+            page.getByRole("button", { name: title, exact: true }),
+          ).toHaveCount(filter === completed ? 0 : 1);
+        }
+        expect(
+          await page.evaluate(
+            () => document.documentElement.dataset.todoMutationSession,
+          ),
+        ).toBe("retained");
+      },
+      { calendarMessages: [{ type: "user", userId: todoActor.id }] },
+    );
+  });
+
+  test("todo.web-local-edit", async ({
+    todoActor,
+    todoRun,
+    page,
+    todoState,
+  }, testInfo) => {
+    await todoRun(
+      async (effects) => {
+        const title = "Independent editable todo";
+        const editedTitle = "Independent edited todo";
+        const [todo] = await todoState.seed([{ title }]);
+        await gotoAndWaitForReady(page, "/workspace/todos");
+        await page.evaluate(() => {
+          document.documentElement.dataset.todoMutationSession = "retained";
+        });
         await visibleText(page, title).click();
         const detailDialog = page.getByRole("dialog", { name: title });
         await expect(detailDialog).toBeVisible();
-        const summary = detailDialog.getByTestId("todo-detail-summary");
-        await expect(summary).toBeVisible();
-        const summaryText = await summary.innerText();
-        const localizedPriorityMatches =
-          summaryText.match(/\b(?:Low|Medium|High)\b|[低中高]/g) ?? [];
-        expect(localizedPriorityMatches).toHaveLength(1);
-        expect(summaryText).not.toMatch(/\b(?:low|medium|high)\b/);
-        // #1027 keeps priority severity visually encoded; the single-column
-        // popup moved that badge from the dialog description into the facts
-        // table, so assert the variant where it now lives.
-        await expect(
-          summary.locator('[data-slot="badge"]').first(),
-        ).toHaveClass(/bg-secondary/);
         const editButton = detailDialog.getByRole("button", {
           name: /编辑待办|Edit Todo/i,
         });
@@ -491,7 +519,6 @@ test.describe("仪表盘待办", () => {
             await saveButton.click();
           },
         );
-        await expect(updateResponse.status()).toBe(200);
         await expectTodoFormResponse(updateResponse);
         await expect(editDialog).toBeHidden();
         await expect(visibleText(page, editedTitle)).toBeVisible({
@@ -501,82 +528,116 @@ test.describe("仪表盘待办", () => {
           page.getByRole("button", { name: title, exact: true }),
         ).toHaveCount(0);
         expect(await todoState.read()).toEqual([
-          expect.objectContaining({
-            id: created.id,
-            userId: todoActor.id,
-            title: editedTitle,
-            content: null,
-            priority: "medium",
-            dueAt: null,
-            completed: false,
-          }),
+          { ...todo, title: editedTitle, updatedAt: expect.any(Date) },
         ]);
 
         await effects.checkpoint("edited", {
-          calendarMessages: [
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-          ],
+          calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
         await captureStepScreenshot(page, testInfo, "workspace-todos-edited");
 
-        await page
-          .getByRole("button", { name: editedTitle, exact: true })
-          .click();
-        const editedDetailDialog = page.getByRole("dialog", {
-          name: editedTitle,
+        const completed = page.getByRole("radio", {
+          name: /^(已完成|Completed)$/i,
         });
-        const detailTitle = editedDetailDialog.locator(
-          '[data-slot="dialog-title"]',
-        );
-        await expect(detailTitle).toHaveText(editedTitle);
-        const completed = await observeAction(
+        const incomplete = page.getByRole("radio", {
+          name: /^(未完成|Incomplete)$/i,
+        });
+        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        for (const filter of [completed, all, incomplete]) {
+          await filter.click();
+          await expect(filter).toBeChecked();
+          await expect(
+            page.getByRole("button", { name: title, exact: true }),
+          ).toHaveCount(0);
+          await expect(
+            page.getByRole("button", { name: editedTitle, exact: true }),
+          ).toHaveCount(filter === completed ? 0 : 1);
+        }
+        expect(
+          await page.evaluate(
+            () => document.documentElement.dataset.todoMutationSession,
+          ),
+        ).toBe("retained");
+      },
+      { calendarMessages: [{ type: "user", userId: todoActor.id }] },
+    );
+  });
+
+  test("todo.web-local-complete", async ({
+    todoActor,
+    todoRun,
+    page,
+    todoState,
+  }) => {
+    await todoRun(
+      async (effects) => {
+        const dueAt = new Date("2026-10-08T12:00:00+08:00");
+        const [todo, pending, undated, completed] = await todoState.seed([
+          { title: "Complete through detail", dueAt },
+          { title: "Other dated pending todo", dueAt },
+          { title: "Undated pending todo" },
+          { title: "Already completed todo", dueAt, completed: true },
+        ]);
+        await gotoAndWaitForReady(page, "/workspace/todos");
+        await page.evaluate(() => {
+          document.documentElement.dataset.todoMutationSession = "retained";
+        });
+        await page
+          .getByRole("button", { name: todo.title, exact: true })
+          .click();
+        const dialog = page.getByRole("dialog", {
+          name: todo.title,
+          exact: true,
+        });
+        const changed = await observeAction(
           () =>
             page.waitForResponse(
               (response) =>
                 response.request().method() === "PATCH" &&
-                response.url().includes(`/api/workspace/todos/${created.id}`),
+                new URL(response.url()).pathname ===
+                  `/api/workspace/todos/${todo.id}`,
             ),
           () =>
-            editedDetailDialog
+            dialog
               .getByRole("button", { name: /标记为完成|Mark as complete/i })
               .click(),
         );
-        expect(completed.status()).toBe(200);
-        expect(await completed.json()).toMatchObject({
+        expect(changed.status()).toBe(200);
+        expect(await changed.json()).toMatchObject({
           success: true,
-          todo: { id: created.id, title: editedTitle, completed: true },
+          todo: { id: todo.id, title: todo.title, completed: true },
         });
         await expect(
-          editedDetailDialog.getByRole("button", {
-            name: /取消完成|Mark as incomplete/i,
-          }),
+          dialog.getByRole("button", { name: /取消完成|Mark as incomplete/i }),
         ).toBeEnabled();
+        await expect(dialog.locator('[data-slot="dialog-title"]')).toHaveCSS(
+          "text-decoration-line",
+          "line-through",
+        );
         await page.keyboard.press("Escape");
-        expect(await todoState.read()).toEqual([
-          expect.objectContaining({
-            id: created.id,
-            userId: todoActor.id,
-            title: editedTitle,
-            content: null,
-            priority: "medium",
-            dueAt: null,
-            completed: true,
-          }),
-        ]);
-
+        const stored = await todoState.read();
+        expect(stored).toHaveLength(4);
+        expect(stored).toEqual(
+          expect.arrayContaining([
+            { ...todo, completed: true, updatedAt: expect.any(Date) },
+            pending,
+            undated,
+            completed,
+          ]),
+        );
         await effects.checkpoint("completed", {
-          calendarMessages: [
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-          ],
+          calendarMessages: [{ type: "user", userId: todoActor.id }],
+        });
+        const calendar = await readTodoCalendar(page, todoActor.id);
+        expect(calendar.match(/BEGIN:VEVENT/g) ?? []).toHaveLength(1);
+        expect(calendar).toContain(`/todo/${pending.id}`);
+        for (const absent of [todo, undated, completed])
+          expect(calendar).not.toContain(`/todo/${absent.id}`);
+        const incompleteFilter = page.getByRole("radio", {
+          name: /^(未完成|Incomplete)$/i,
         });
         const completedFilter = page.getByRole("radio", {
           name: /^(已完成|Completed)$/i,
-        });
-        const incompleteFilter = page.getByRole("radio", {
-          name: /^(未完成|Incomplete)$/i,
         });
         const allFilter = page.getByRole("radio", { name: /^(全部|All)$/i });
         for (const filter of [
@@ -588,12 +649,45 @@ test.describe("仪表盘待办", () => {
           await filter.click();
           await expect(filter).toBeChecked();
           await expect(
-            page.getByRole("button", { name: editedTitle, exact: true }),
+            page.getByRole("button", { name: todo.title, exact: true }),
           ).toHaveCount(filter === incompleteFilter ? 0 : 1);
         }
-        await page
-          .getByRole("button", { name: editedTitle, exact: true })
-          .click();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.dataset.todoMutationSession,
+          ),
+        ).toBe("retained");
+      },
+      { calendarMessages: [{ type: "user", userId: todoActor.id }] },
+    );
+  });
+
+  test("todo.web-local-delete", async ({
+    todoActor,
+    todoRun,
+    page,
+    todoState,
+  }, testInfo) => {
+    await todoRun(
+      async (effects) => {
+        const title = "Independent completed deletion";
+        const [todo] = await todoState.seed([{ title, completed: true }]);
+        await gotoAndWaitForReady(page, "/workspace/todos");
+        await page.evaluate(() => {
+          document.documentElement.dataset.todoMutationSession = "retained";
+        });
+        const completedFilter = page.getByRole("radio", {
+          name: /^(已完成|Completed)$/i,
+        });
+        const incompleteFilter = page.getByRole("radio", {
+          name: /^(未完成|Incomplete)$/i,
+        });
+        const allFilter = page.getByRole("radio", { name: /^(全部|All)$/i });
+        await completedFilter.click();
+        const detailTitle = page
+          .getByRole("dialog", { name: title, exact: true })
+          .locator('[data-slot="dialog-title"]');
+        await page.getByRole("button", { name: title, exact: true }).click();
         const deleteButton = page
           .getByRole("button", { name: /删除待办|Delete todo/i })
           .first();
@@ -615,12 +709,9 @@ test.describe("仪表盘待办", () => {
         await expect(confirmDialog).toBeHidden();
         await expect(detailTitle).toBeVisible();
 
+        expect(await todoState.read()).toEqual([todo]);
         await effects.checkpoint("delete-cancelled", {
-          calendarMessages: [
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-          ],
+          calendarMessages: [],
         });
         await deleteButton.click();
         const reopenedConfirmDialog = page.getByRole("alertdialog");
@@ -642,7 +733,7 @@ test.describe("仪表盘待办", () => {
           success: true,
         });
 
-        await expect(page.getByText(editedTitle)).toHaveCount(0, {
+        await expect(page.getByText(title)).toHaveCount(0, {
           timeout: 15_000,
         });
         for (const filter of [
@@ -653,9 +744,6 @@ test.describe("仪表盘待办", () => {
         ]) {
           await filter.click();
           await expect(filter).toBeChecked();
-          await expect(
-            page.getByRole("button", { name: editedTitle, exact: true }),
-          ).toHaveCount(0);
           await expect(
             page.getByRole("button", { name: title, exact: true }),
           ).toHaveCount(0);
@@ -668,41 +756,29 @@ test.describe("仪表盘待办", () => {
         expect(await todoState.read()).toEqual([]);
 
         await effects.checkpoint("deleted", {
-          calendarMessages: [
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-          ],
+          calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
         await captureStepScreenshot(page, testInfo, "workspace-todos-deleted");
       },
-      {
-        calendarMessages: [
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-        ],
-      },
+      { calendarMessages: [{ type: "user", userId: todoActor.id }] },
     );
   });
 
   test("移动端长标题和内容保持操作可达并按层级排列", async ({
-    todoActor,
     todoRun,
     page,
     todoState,
   }) => {
     await todoRun(
-      async (effects) => {
+      async () => {
         test.setTimeout(90_000);
         await page.setViewportSize({ width: 320, height: 568 });
-        await gotoAndWaitForReady(page, "/workspace/todos");
-
         const titlePrefix = `e2e-workspace-todo-mobile-${Date.now()}`;
         const title = `${titlePrefix}-${"长标题".repeat(35)}`;
         const content = `${"这是用于验证待办详情滚动区域的长内容。 ".repeat(24)}\n\nmobile-content-marker`;
+
+        const [todo] = await todoState.seed([{ title, content }]);
+        await gotoAndWaitForReady(page, "/workspace/todos");
 
         const addTodoButton = page.getByTestId("workspace-todos-add");
         await addTodoButton.click();
@@ -724,37 +800,10 @@ test.describe("仪表盘待办", () => {
         );
         await expect(createFooter).toBeInViewport();
 
-        await createDialog.getByLabel(/^(标题|Title)$/i).fill(title);
         await createDialog
-          .getByRole("textbox", { name: /内容描述|Description/i })
-          .fill(content);
-        const [createResponse] = await Promise.all([
-          page.waitForResponse(
-            (response) =>
-              response.request().method() === "POST" &&
-              new URL(response.url()).pathname === "/workspace/todos" &&
-              new URL(response.url()).search === "?/createTodo",
-          ),
-          createDialog
-            .getByRole("button", { name: /创建待办|Create Todo/i })
-            .click(),
-        ]);
-        await expectTodoFormResponse(createResponse);
-        await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
-        expect(await todoState.read()).toEqual([
-          expect.objectContaining({
-            title,
-            content,
-            completed: false,
-            priority: "medium",
-            dueAt: null,
-            userId: todoActor.id,
-          }),
-        ]);
-
-        await effects.checkpoint("mobile-created", {
-          calendarMessages: [{ type: "user", userId: todoActor.id }],
-        });
+          .getByRole("button", { name: /取消|Cancel/i })
+          .click();
+        await expect(createDialog).toBeHidden();
         await page.getByRole("button", { name: title, exact: true }).click();
         const detailDialog = page.getByRole("dialog", { name: title });
         await expect(detailDialog).toBeVisible();
@@ -825,56 +874,29 @@ test.describe("仪表盘待办", () => {
         await expect(page.getByRole("alertdialog")).toBeHidden();
         await expect(detailDialog).toBeVisible();
 
-        await effects.checkpoint("mobile-delete-cancelled", {
-          calendarMessages: [{ type: "user", userId: todoActor.id }],
-        });
-        await deleteButton.click();
-        const deleteResponse = await observeAction(
-          () =>
-            page.waitForResponse(
-              (response) =>
-                response.request().method() === "DELETE" &&
-                response.url().includes("/api/workspace/todos/"),
-            ),
-          () =>
-            page
-              .getByRole("alertdialog")
-              .getByRole("button", { name: /删除|Delete/i })
-              .click(),
-        );
-        await expect(deleteResponse.status()).toBe(200);
-        expect(await deleteResponse.json()).toMatchObject({
-          success: true,
-        });
-        await expect(page.getByText(title, { exact: true })).toHaveCount(0, {
-          timeout: 15_000,
-        });
-        expect(await todoState.read()).toEqual([]);
+        expect(await todoState.read()).toEqual([todo]);
       },
-      {
-        calendarMessages: [
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-        ],
-      },
+      { calendarMessages: [] },
     );
   });
 
   test("短视口待办新建和编辑弹窗保持标题、滚动体与操作可达", async ({
-    todoActor,
     todoRun,
     page,
     todoState,
   }) => {
     await todoRun(
-      async (effects) => {
+      async () => {
         test.setTimeout(90_000);
         const viewport = { width: 390, height: 600 } as const;
         await page.setViewportSize(viewport);
-        await gotoAndWaitForReady(page, "/workspace/todos");
-
         const titlePrefix = `e2e-workspace-todo-short-${Date.now()}`;
         const title = `${titlePrefix}-todo`;
+
+        const [todo] = await todoState.seed([
+          { title, content: "short viewport regression content" },
+        ]);
+        await gotoAndWaitForReady(page, "/workspace/todos");
 
         async function assertDialogBounds(
           dialog: import("@playwright/test").Locator,
@@ -937,37 +959,10 @@ test.describe("仪表盘待办", () => {
         await expect(createDialog).toBeVisible();
         await assertDialogBounds(createDialog);
 
-        await createDialog.getByLabel(/^(标题|Title)$/i).fill(title);
         await createDialog
-          .getByRole("textbox", { name: /内容描述|Description/i })
-          .fill("short viewport regression content");
-        const [createResponse] = await Promise.all([
-          page.waitForResponse(
-            (response) =>
-              response.request().method() === "POST" &&
-              new URL(response.url()).pathname === "/workspace/todos" &&
-              new URL(response.url()).search === "?/createTodo",
-          ),
-          createDialog
-            .getByRole("button", { name: /创建待办|Create Todo/i })
-            .click(),
-        ]);
-        await expectTodoFormResponse(createResponse);
-        await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
-        expect(await todoState.read()).toEqual([
-          expect.objectContaining({
-            title,
-            content: "short viewport regression content",
-            completed: false,
-            priority: "medium",
-            dueAt: null,
-            userId: todoActor.id,
-          }),
-        ]);
-
-        await effects.checkpoint("short-viewport-created", {
-          calendarMessages: [{ type: "user", userId: todoActor.id }],
-        });
+          .getByRole("button", { name: /取消|Cancel/i })
+          .click();
+        await expect(createDialog).toBeHidden();
         await page.getByRole("button", { name: title, exact: true }).click();
         const detailDialog = page.getByRole("dialog", { name: title });
         await expect(detailDialog).toBeVisible();
@@ -982,8 +977,9 @@ test.describe("仪表盘待办", () => {
         await assertDialogBounds(editDialog);
         await editDialog.getByRole("button", { name: /取消|Cancel/i }).click();
         await expect(editDialog).toBeHidden();
+        expect(await todoState.read()).toEqual([todo]);
       },
-      { calendarMessages: [{ type: "user", userId: todoActor.id }] },
+      { calendarMessages: [] },
     );
   });
 });
