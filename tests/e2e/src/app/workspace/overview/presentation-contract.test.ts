@@ -3,6 +3,7 @@ import {
   type CalendarFixture,
   test,
 } from "../../../../utils/calendar-presentation-fixture";
+import { isStepScreenshotCaptureEnabled } from "../../../../utils/screenshot";
 
 async function signIn(page: Page, fixture: CalendarFixture) {
   await page.context().clearCookies();
@@ -53,38 +54,140 @@ test("overview.decision-page", async ({ page, calendarRun }) => {
 test("overview.workspace-card-priority", async ({
   page,
   calendar: fixture,
+  calendarDb,
   calendarRun,
-}) => {
+}, testInfo) => {
+  // Fixed visible values make the four focus-card captures comparable while
+  // users, records and resources still belong to this test's private fixture.
+  const [course, homework] = await calendarDb((db) =>
+    db.$transaction([
+      db.course.update({
+        where: { id: fixture.course.id },
+        data: { nameEn: "Calendar focus course" },
+      }),
+      db.homework.update({
+        where: { id: fixture.homework.id },
+        data: {
+          title: "Calendar focus homework",
+          description: {
+            create: { content: "Submit the weekly problem set." },
+          },
+        },
+      }),
+      db.section.update({
+        where: { id: fixture.section.id },
+        data: { code: "CALFOCUS.01" },
+      }),
+    ]),
+  );
   await calendarRun(
     async () => {
       await signIn(page, fixture);
       for (const width of [1280, 390]) {
         await page.setViewportSize({ width, height: 1000 });
-        for (const [time, title, href] of [
+        for (const [time, title, href, label, status, eventTime, detail] of [
           [
             "09:30",
-            String(fixture.course.nameEn),
+            String(course.nameEn),
             `/catalog/sections/${fixture.section.jwId}`,
+            "Courses",
+            "Happening now",
+            "09:00-10:00",
+            "CALFOCUS.01 · Calendar teaching room · —",
           ],
           [
             "11:30",
-            fixture.homework.title,
+            homework.title,
             `/catalog/sections/${fixture.section.jwId}?homeworkId=${fixture.homework.id}#homework`,
+            "Homework",
+            "Up next",
+            "12:00",
+            "Submit the weekly problem set.",
           ],
         ] as const) {
           await page.goto(overviewUrl(time));
           const focus = page.getByTestId("workspace-overview-focus");
           const action = focus.getByRole("link");
-          await expect(action).toContainText(title);
+          await expect(action).toHaveCount(1);
           await expect(action).toHaveAttribute("href", href);
-          await expect(action).toContainText(
-            time === "09:30" ? "09:00-10:00" : "12:00",
-          );
-          const titleBox = await action
-            .getByText(title, { exact: true })
-            .boundingBox();
-          const secondary = await action.locator("p").boundingBox();
-          expect(titleBox?.y).toBeLessThan(secondary?.y ?? 0);
+          const primaryFields = [
+            ["overview-focus-title", title],
+            ["overview-focus-label", label],
+            ["overview-focus-status", status],
+            ["overview-focus-time", eventTime],
+          ] as const;
+          const secondaryFields = [
+            ["overview-focus-date", "Apr 29"],
+            ["overview-focus-weekday", "Wednesday"],
+            ["overview-focus-detail", detail],
+          ] as const;
+          const fields = [];
+          for (const [id, expected] of [...primaryFields, ...secondaryFields]) {
+            const field = action.getByTestId(id);
+            await expect(field).toHaveCount(1);
+            await expect(field).toHaveText(expected);
+            await expect(field).toBeVisible();
+            await expect(field).toBeInViewport({ ratio: 1 });
+            const measured = await field.evaluate((element) => {
+              const box = element.getBoundingClientRect();
+              const style = getComputedStyle(element);
+              return {
+                top: box.top,
+                bottom: box.bottom,
+                painted: element.checkVisibility({
+                  opacityProperty: true,
+                  visibilityProperty: true,
+                }),
+                size: Number.parseFloat(style.fontSize),
+                weight: Number.parseInt(style.fontWeight, 10),
+                color: style.color,
+              };
+            });
+            expect(measured.painted, `${id} must be painted`).toBe(true);
+            fields.push({ id, ...measured });
+          }
+          const primary = fields.slice(0, primaryFields.length);
+          const secondary = fields.slice(primaryFields.length);
+          for (const leading of primary) {
+            for (const trailing of secondary) {
+              expect(
+                leading.bottom,
+                `${leading.id} must precede ${trailing.id}`,
+              ).toBeLessThanOrEqual(trailing.top);
+              expect(
+                await action.getByTestId(leading.id).evaluate((element, id) => {
+                  const sibling = element
+                    .closest("a")
+                    ?.querySelector(`[data-testid="${id}"]`);
+                  if (!sibling)
+                    throw new Error(`Missing secondary focus field ${id}`);
+                  return Boolean(
+                    element.compareDocumentPosition(sibling) &
+                      Node.DOCUMENT_POSITION_FOLLOWING,
+                  );
+                }, trailing.id),
+                `${leading.id} must precede ${trailing.id} in the DOM`,
+              ).toBe(true);
+            }
+          }
+          const titleField = primary[0];
+          if (!titleField) throw new Error("Missing focus title measurement");
+          for (const field of secondary) {
+            expect(field.size).toBeLessThanOrEqual(titleField.size);
+            expect(field.weight).toBeLessThanOrEqual(titleField.weight);
+            expect(
+              field.size < titleField.size ||
+                field.weight < titleField.weight ||
+                field.color !== titleField.color,
+              `${field.id} must be subordinate to the title`,
+            ).toBe(true);
+          }
+          if (isStepScreenshotCaptureEnabled()) {
+            await testInfo.attach(`overview-focus-${width}-${time}`, {
+              body: await focus.screenshot(),
+              contentType: "image/png",
+            });
+          }
           await action.click();
           await expect(page).toHaveURL(
             new URL(href, fixture.origin).toString(),
@@ -111,7 +214,9 @@ test("overview.personal-next-action-page", async ({
         await expect(focus.getByRole("link")).toContainText(
           String(fixture.course.nameEn),
         );
-        await expect(focus).toContainText("Now");
+        const status = focus.getByTestId("overview-focus-status");
+        await expect(status).toBeVisible();
+        await expect(status).toHaveText("Happening now");
         const focusBox = await focus.boundingBox();
         for (const id of [
           "workspace-overview-today-overdue",

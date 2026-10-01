@@ -1,10 +1,11 @@
 import type { calendarEventsForDay } from "./calendar";
 import {
   buildCalendarTimelineItemsForDay,
+  type CalendarEventChipFields,
   type CalendarEvents,
-  calendarExamDetail,
-  calendarHomeworkDetail,
-  calendarSessionDetail,
+  calendarExamChipFields,
+  calendarHomeworkChipFields,
+  calendarSessionTimelineFields,
 } from "./calendar-display";
 import type {
   CalendarData,
@@ -32,7 +33,7 @@ export function buildWorkspaceCalendarTimelineItems({
   noCompletionRequired,
   sessionHref,
   tabHref,
-  todoDetail,
+  todoFields,
   todoLabel,
 }: {
   commonCourseLabel: string;
@@ -43,7 +44,9 @@ export function buildWorkspaceCalendarTimelineItems({
   noCompletionRequired: string;
   sessionHref: (session: { sectionJwId: number | null }) => string;
   tabHref: WorkspaceTabHref;
-  todoDetail: (todo: CalendarData["semesterTodos"][number]) => string;
+  todoFields: (
+    todo: CalendarData["semesterTodos"][number],
+  ) => CalendarEventChipFields;
   todoLabel: string;
 }) {
   return buildCalendarTimelineItemsForDay(
@@ -55,16 +58,16 @@ export function buildWorkspaceCalendarTimelineItems({
     >,
     {
       courseLabel: commonCourseLabel,
-      examDetail: calendarExamDetail,
+      examFields: calendarExamChipFields,
       examLabel,
       examsHref: tabHref("exams"),
-      homeworkDetail: (homework) =>
-        calendarHomeworkDetail(homework, noCompletionRequired),
+      homeworkFields: (homework) =>
+        calendarHomeworkChipFields(homework, noCompletionRequired),
       homeworkHref,
       homeworkLabel,
-      sessionDetail: calendarSessionDetail,
+      sessionFields: calendarSessionTimelineFields,
       sessionHref,
-      todoDetail,
+      todoFields,
       todoLabel,
       todosHref: tabHref("todos"),
     },

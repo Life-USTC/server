@@ -6,6 +6,7 @@ import type {
   CalendarSessionEvent,
   CalendarTodoEvent,
 } from "@/features/workspace/lib/calendar-display-types";
+import type { CalendarEventChipFields } from "./calendar-display-details";
 
 type TimelineOptions<
   Session extends CalendarSessionEvent,
@@ -21,10 +22,10 @@ type TimelineOptions<
   todosHref: string;
   sessionHref: (session: Session) => string;
   homeworkHref: (homework: Homework) => string;
-  examDetail: (exam: Exam) => string;
-  homeworkDetail: (homework: Homework) => string;
-  sessionDetail: (session: Session) => string;
-  todoDetail: (todo: Todo) => string;
+  examFields: (exam: Exam) => CalendarEventChipFields;
+  homeworkFields: (homework: Homework) => CalendarEventChipFields;
+  sessionFields: (session: Session) => CalendarEventChipFields;
+  todoFields: (todo: Todo) => CalendarEventChipFields;
 };
 
 export function buildCalendarTimelineItemsForDay<
@@ -41,7 +42,7 @@ export function buildCalendarTimelineItemsForDay<
       key: `session-${session.id}`,
       href: options.sessionHref(session),
       label: options.courseLabel,
-      meta: options.sessionDetail(session),
+      ...options.sessionFields(session),
       sort: session.startTime ?? 2400,
       title: session.courseName,
       badge: session.badge,
@@ -51,7 +52,7 @@ export function buildCalendarTimelineItemsForDay<
       key: `exam-${exam.id}`,
       href: options.examsHref,
       label: options.examLabel,
-      meta: options.examDetail(exam),
+      ...options.examFields(exam),
       sort: exam.startTime ?? 2400,
       title: exam.courseName,
       tone: "error" as const,
@@ -63,7 +64,7 @@ export function buildCalendarTimelineItemsForDay<
       key: `homework-${homework.id}`,
       href: options.homeworkHref(homework),
       label: options.homeworkLabel,
-      meta: options.homeworkDetail(homework),
+      ...options.homeworkFields(homework),
       sort: timeSortValue(homework.submissionDueAt),
       title: homework.title,
       tone: "warning" as const,
@@ -73,7 +74,7 @@ export function buildCalendarTimelineItemsForDay<
       key: `todo-${todo.id}`,
       href: options.todosHref,
       label: options.todoLabel,
-      meta: options.todoDetail(todo),
+      ...options.todoFields(todo),
       sort: timeSortValue(todo.dueAt),
       title: todo.title,
       tone: "success" as const,

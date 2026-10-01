@@ -69,13 +69,17 @@ export function calendarSessionChipFields(
   };
 }
 
-export function calendarSessionDetail(session: CalendarSessionEvent) {
-  return calendarEventParts([
-    calendarTimeRange(session.startTime, session.endTime),
-    session.sectionCode,
-    session.location,
-    session.teacherDisplay,
-  ]);
+export function calendarSessionTimelineFields(
+  session: CalendarSessionEvent,
+): CalendarEventChipFields {
+  return {
+    meta: calendarTimeRange(session.startTime, session.endTime),
+    detail: calendarEventParts([
+      session.sectionCode,
+      session.location,
+      session.teacherDisplay,
+    ]),
+  };
 }
 
 export function calendarExamChipFields(
@@ -108,17 +112,6 @@ export function calendarHomeworkChipFields(
   };
 }
 
-export function calendarHomeworkDetail(
-  homework: CalendarHomeworkEvent,
-  noCompletionRequired?: string,
-) {
-  const { meta, detail } = calendarHomeworkChipFields(
-    homework,
-    noCompletionRequired,
-  );
-  return calendarEventParts([meta, detail]);
-}
-
 export function calendarTodoChipFields(
   todo: CalendarTodoEvent,
   priorityLabel: string,
@@ -128,12 +121,4 @@ export function calendarTodoChipFields(
     meta: dueTime,
     detail: calendarEventParts([priorityLabel, compactDetail(todo.content)]),
   };
-}
-
-export function calendarTodoDetail(
-  todo: CalendarTodoEvent,
-  priorityLabel: string,
-) {
-  const { meta, detail } = calendarTodoChipFields(todo, priorityLabel);
-  return calendarEventParts([meta, detail]);
 }
