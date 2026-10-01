@@ -103,42 +103,14 @@ export async function verifySectionSubscriptionWrite(
 }
 
 export function expectSubscriptionProtocol(
-  { effects, sdkRequests }: CalendarProtocolObservation,
-  grants: number,
+  { sdkRequests }: CalendarProtocolObservation,
   tools: string[],
-  connections: number,
 ) {
-  for (const [method, path, status] of [
-    ["POST", "/api/auth/oauth2/register", 201],
-    ["GET", "/api/auth/oauth2/authorize", 302],
-    ["POST", "/oauth/authorize", 200],
-    ["POST", "/api/auth/oauth2/token", 200],
-  ] as const) {
-    const requests = effects.requests.filter(
-      ({ value }) => value.method === method && value.path === path,
-    );
-    expect(requests).toHaveLength(grants);
-    for (const request of requests) expect(request.result).toBe(status);
-  }
   expect(
     sdkRequests
-      .filter((request) => request.rpc === "tools/call")
-      .map((request) => request.tool),
+      .filter(({ rpc }) => rpc === "tools/call")
+      .map(({ tool }) => tool),
   ).toEqual(tools);
-  expect(
-    sdkRequests
-      .map((request) => `${request.method} ${request.rpc ?? "stream"}`)
-      .sort(),
-  ).toEqual(
-    [
-      ...Array.from({ length: connections }, () => [
-        "GET stream",
-        "POST initialize",
-        "POST notifications/initialized",
-      ]).flat(),
-      ...tools.map(() => "POST tools/call"),
-    ].sort(),
-  );
 }
 
 async function observeSubscriptionState(

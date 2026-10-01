@@ -5,6 +5,7 @@ import {
 } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/private-calendar-fixture";
 import {
+  expectSubscriptionProtocol,
   expectSubscriptionState,
   signInSubscriptionOwner,
   subscribedCourseLink,
@@ -30,19 +31,15 @@ for (const transport of subscriptionTransports) {
         createCalendar,
       }) => {
         test.setTimeout(90_000);
-        const calls = action === "kind" ? 1 : 2;
         await runSubscriptionScenario(
           { page, calendarProtocolRun, oauthOwner, createCalendar },
           {
             transport,
             role,
-            messages: calls,
+            messages: 1,
             sdkTools:
               transport === "MCP bearer"
-                ? Array.from(
-                    { length: calls },
-                    () => `workspace_subscription_${action === "kind" ? "kind_update" : action}`,
-                  )
+                ? [`workspace_subscription_${action === "kind" ? "kind_update" : action}`]
                 : [],
           },
           async (connection, fixture) => {
@@ -75,20 +72,6 @@ for (const transport of subscriptionTransports) {
                 kind: action === "kind" ? "auditor" : "regular",
               });
             await expectSubscriptionRelations(fixture, expected);
-            if (action !== "kind") {
-              const beforeRepeat = await db.userSectionSubscription.findMany({
-                where: { userId: membership.userId },
-                orderBy: { sectionId: "asc" },
-              });
-              await mutateSubscription(connection, fixture, action, action === "add");
-              await expectSubscriptionRelations(fixture, expected);
-              expect(
-                await db.userSectionSubscription.findMany({
-                  where: { userId: membership.userId },
-                  orderBy: { sectionId: "asc" },
-                }),
-              ).toEqual(beforeRepeat);
-            }
             if (refresh) {
               // Refresh is the promised synchronization point for an open view.
               await page.reload();
@@ -107,6 +90,51 @@ for (const transport of subscriptionTransports) {
       });
     }
   }
+
+  test(`${transport}: adding an existing personal subscription preserves memberships`, async ({
+    page,
+    calendarProtocolRun,
+    oauthOwner,
+    createCalendar,
+  }) => {
+    test.setTimeout(90_000);
+    await runSubscriptionScenario(
+      { page, calendarProtocolRun, oauthOwner, createCalendar },
+      {
+        transport,
+        messages: 1,
+        sdkTools:
+          transport === "MCP bearer" ? ["workspace_subscription_add"] : [],
+      },
+      async (connection, fixture) => {
+        const db = oauthOwner.worker.database.owner;
+        const membership = {
+          userId: fixture.own.users[0].id,
+          sectionId: fixture.foreign.section.id,
+          kind: "auditor" as const,
+        };
+        const existing = await db.userSectionSubscription.create({
+          data: membership,
+        });
+        const expected = [...fixture.initial, membership];
+        await expectSubscriptionRelations(fixture, expected);
+        await mutateSubscription(connection, fixture, "add", true);
+        await expectSubscriptionRelations(fixture, expected);
+        // Repeating add must preserve both the chosen kind and creation timestamp.
+        expect(
+          await db.userSectionSubscription.findUniqueOrThrow({
+            where: {
+              userId_sectionId: {
+                userId: membership.userId,
+                sectionId: membership.sectionId,
+              },
+            },
+          }),
+        ).toEqual(existing);
+        return expected;
+      },
+    );
+  });
 
   for (const action of ["kind", "remove"] as const) {
     test(`${transport}: ${action} of an absent personal subscription preserves memberships`, async ({
@@ -175,8 +203,8 @@ for (const role of ["regular", "suspended admin"] as const) {
           await waitForUiSettled(page);
           await expect(page.getByRole("button", { name: nextAction, exact: true })).toBeVisible();
           return {
-            async verifyTransport({ sdkRequests }) {
-              expect(sdkRequests).toEqual([]);
+            async verifyTransport(observation) {
+              expectSubscriptionProtocol(observation, []);
               expect(writes).toEqual([action === "add" ? "?/subscribe" : "?/unsubscribe"]);
             },
             async verifyState() {

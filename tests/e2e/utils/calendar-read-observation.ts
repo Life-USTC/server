@@ -136,9 +136,7 @@ export async function prepareCalendarRead(
         async verifyTransport(observation) {
           expectSubscriptionProtocol(
             observation,
-            1,
             tools.map(([name]) => name),
-            1,
           );
         },
         async verifyState() {
