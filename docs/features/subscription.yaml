@@ -175,7 +175,7 @@ requirements:
     - GraphQL rejects duplicates without a membership change and accepts unique add and remove requests.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/mutation-contract.test.ts
-      name: subscription.duplicate-input-semantics REST batch
+      name: subscription.duplicate-input-semantics REST batch present
 - id: subscription.membership-atomicity
   category: consistency
   rule: Each subscription membership mutation commits all of its matched additions or removals in one
