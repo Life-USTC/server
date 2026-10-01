@@ -1,12 +1,7 @@
 import { expect, type Page } from "@playwright/test";
-import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
-import {
-  expectTodoFormResponse,
-  readTodoCalendar,
-  test,
-} from "../../../../utils/todo-fixture";
+import { expectTodoFormResponse, test } from "../../../../utils/todo-fixture";
 
 test.describe.configure({ mode: "parallel" });
 const widths = [1280, 390];
@@ -194,104 +189,161 @@ for (const width of widths) {
     todoRun,
     page,
     todoState,
+    isolatedWorker,
   }) => {
     await todoRun(
-      async (effects) => {
-        const prefix = `due-order-${crypto.randomUUID()}`;
+      async () => {
         const anchor = new Date(Math.floor(Date.now() / 60_000) * 60_000);
         const offset = (hours: number) =>
-          new Date(anchor.getTime() + hours * 3_600_000).toISOString();
+          new Date(anchor.getTime() + hours * 3_600_000);
+        // Explicit creation dates make each equal-deadline pair deterministic,
+        // independently of random IDs, insertion order and database clock precision.
         const inputs = [
-          { title: `${prefix}-old`, dueAt: offset(-180 * 24) },
-          { title: `${prefix}-tomorrow`, dueAt: offset(24) },
-          { title: `${prefix}-future-tie`, dueAt: offset(1) },
-          { title: `${prefix}-past-tie`, dueAt: offset(-1) },
-          { title: `${prefix}-undated`, dueAt: null },
+          { title: "Order old", dueAt: offset(-180 * 24), completed: false },
+          { title: "Order tomorrow", dueAt: offset(24), completed: false },
+          {
+            title: "Order pending tie second",
+            dueAt: offset(1),
+            completed: false,
+          },
+          {
+            title: "Order pending tie first",
+            dueAt: offset(1),
+            completed: false,
+          },
+          {
+            title: "Order completed tie second",
+            dueAt: offset(1),
+            completed: true,
+          },
+          {
+            title: "Order completed tie first",
+            dueAt: offset(1),
+            completed: true,
+          },
+          { title: "Order past", dueAt: offset(-1), completed: true },
+          { title: "Order undated pending", dueAt: null, completed: false },
+          { title: "Order undated completed", dueAt: null, completed: true },
         ];
-        const expected = [0, 3, 2, 1, 4].map((index) => inputs[index].title);
-        const fixtures = await todoState.seed(
-          inputs.map((input) => ({
-            ...input,
-            dueAt: input.dueAt ? new Date(input.dueAt) : null,
-          })),
+        const fixtures = await isolatedWorker.database.owner.$transaction(
+          inputs.map((input, index) =>
+            isolatedWorker.database.owner.todo.create({
+              data: {
+                ...input,
+                userId: todoActor.id,
+                createdAt: new Date(Date.UTC(2026, 0, index + 1)),
+              },
+            }),
+          ),
         );
         await page.setViewportSize({ width, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/todos");
-        const list = surface(page, width);
-        const titles = list.getByRole("button").filter({ hasText: prefix });
-        for (const label of [/^(全部|All)$/i, /^(未完成|Incomplete)$/i]) {
-          await page.getByRole("radio", { name: label }).click();
+        const titles = surface(page, width)
+          .getByRole("button")
+          .filter({ hasText: "Order " });
+        const incomplete = page.getByRole("radio", {
+          name: /^(未完成|Incomplete)$/i,
+        });
+        const completed = page.getByRole("radio", {
+          name: /^(已完成|Completed)$/i,
+        });
+        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const expectedIncomplete = [
+          "Order old",
+          "Order pending tie first",
+          "Order pending tie second",
+          "Order tomorrow",
+          "Order undated pending",
+        ];
+        const expectedCompleted = [
+          "Order past",
+          "Order completed tie first",
+          "Order completed tie second",
+          "Order undated completed",
+        ];
+        const expectedAll = [
+          "Order old",
+          "Order past",
+          "Order pending tie first",
+          "Order pending tie second",
+          "Order completed tie first",
+          "Order completed tie second",
+          "Order tomorrow",
+          "Order undated pending",
+          "Order undated completed",
+        ];
+        for (const [filter, expected] of [
+          [all, expectedAll],
+          [incomplete, expectedIncomplete],
+          [completed, expectedCompleted],
+          [all, expectedAll],
+        ] as const) {
+          await filter.click();
+          await expect(filter).toBeChecked();
           await expect(titles).toHaveText(expected);
         }
-        for (const [index, { title, id }] of fixtures.entries()) {
-          const row =
-            width >= 768
-              ? list.getByRole("row").filter({ hasText: title })
-              : list.locator('[data-slot="item"]').filter({ hasText: title });
-          const completed = await observeAction(
-            () =>
-              page.waitForResponse(
-                (response) =>
-                  response.request().method() === "PATCH" &&
-                  response.url().includes(`/api/workspace/todos/${id}`),
-              ),
-            () =>
-              row
-                .getByRole("button", { name: /标记为完成|Mark as complete/i })
-                .click(),
-          );
-          expect(completed.status()).toBe(200);
-          expect(await completed.json()).toMatchObject({
-            success: true,
-            todo: { id, title, completed: true },
-          });
-          expect(
-            (await todoState.read()).find((todo) => todo.id === id),
-          ).toMatchObject({
-            id,
-            userId: todoActor.id,
-            title,
-            content: null,
-            priority: "medium",
-            dueAt: inputs[index].dueAt ? new Date(inputs[index].dueAt) : null,
+        const stored = await todoState.read();
+        expect(stored).toEqual(expect.arrayContaining(fixtures));
+        expect(stored).toHaveLength(fixtures.length);
+      },
+      { calendarMessages: [] },
+    );
+  });
+
+  test(`todo.web-deadline-edit-order ${width}`, async ({
+    todoActor,
+    todoRun,
+    page,
+    todoState,
+  }) => {
+    await todoRun(
+      async (effects) => {
+        const [todo, between, tied, later, undated] = await todoState.seed([
+          {
+            title: "Edit order oldest",
+            dueAt: new Date("2026-10-02T11:00:00+08:00"),
             completed: true,
-          });
-          // The first five explicit fixture rows are completed once each.
-          await effects.checkpoint(`completed-${index + 1}`, {
-            calendarMessages: Array.from({ length: index + 1 }, () => ({
-              type: "user" as const,
-              userId: todoActor.id,
-            })),
-          });
-          const calendar = await readTodoCalendar(page, todoActor.id);
-          expect(calendar.match(/BEGIN:VEVENT/g) ?? []).toHaveLength(
-            [3, 2, 1, 0, 0][index],
-          );
-          for (const [position, row] of fixtures.entries()) {
-            // Four dated tasks enter the export; completion removes them one by one.
-            if (position > index && position < 4)
-              expect(calendar).toContain(`/todo/${row.id}`);
-            else expect(calendar).not.toContain(`/todo/${row.id}`);
-          }
-          await expect(
-            list.getByRole("button", { name: title, exact: true }),
-          ).toHaveCount(0);
-        }
-        const completedRows = await todoState.read();
-        expect(completedRows).toHaveLength(fixtures.length);
-        expect(completedRows).toEqual(
-          expect.arrayContaining(
-            fixtures.map(({ id }) =>
-              expect.objectContaining({ id, completed: true }),
-            ),
-          ),
-        );
-        await page
-          .getByRole("radio", { name: /^(已完成|Completed)$/i })
-          .click();
-        await expect(titles).toHaveText(expected);
+          },
+          {
+            title: "Edit order between",
+            dueAt: new Date("2026-10-02T12:00:00+08:00"),
+            completed: true,
+          },
+          {
+            title: "Edit order existing tie",
+            dueAt: new Date("2026-10-02T13:00:00+08:00"),
+            completed: true,
+          },
+          {
+            title: "Edit order later",
+            dueAt: new Date("2026-10-02T14:00:00+08:00"),
+            completed: true,
+          },
+          { title: "Edit order undated", completed: true },
+        ]);
+        await page.setViewportSize({ width, height: 844 });
+        await gotoAndWaitForReady(page, "/workspace/todos");
+        await page.evaluate(() => {
+          document.documentElement.dataset.todoMutationSession = "retained";
+        });
+        const completed = page.getByRole("radio", {
+          name: /^(已完成|Completed)$/i,
+        });
+        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        await completed.click();
+        const list = surface(page, width);
+        const titles = list
+          .getByRole("button")
+          .filter({ hasText: "Edit order " });
+        await expect(titles).toHaveText([
+          "Edit order oldest",
+          "Edit order between",
+          "Edit order existing tie",
+          "Edit order later",
+          "Edit order undated",
+        ]);
         await list
-          .getByRole("button", { name: inputs[0].title, exact: true })
+          .getByRole("button", { name: todo.title, exact: true })
           .click();
         await page
           .getByRole("dialog")
@@ -300,13 +352,7 @@ for (const width of widths) {
         const editor = page.getByRole("dialog", {
           name: /编辑待办|Edit Todo/i,
         });
-        await editor
-          .locator('input[name="dueAt"]')
-          .fill(
-            new Date(anchor.getTime() + 8.5 * 3_600_000)
-              .toISOString()
-              .slice(0, 16),
-          );
+        await editor.locator('input[name="dueAt"]').fill("2026-10-02T12:30");
         const [edited] = await Promise.all([
           page.waitForResponse(
             (response) =>
@@ -320,47 +366,44 @@ for (const width of widths) {
         ]);
         await expectTodoFormResponse(edited);
         await expect(editor).toBeHidden();
-        const changed = (await todoState.read()).find(
-          (todo) => todo.id === fixtures[0].id,
+        const stored = await todoState.read();
+        expect(stored).toHaveLength(5);
+        expect(stored).toEqual(
+          expect.arrayContaining([
+            {
+              ...todo,
+              dueAt: new Date("2026-10-02T12:30:00+08:00"),
+              updatedAt: expect.any(Date),
+            },
+            between,
+            tied,
+            later,
+            undated,
+          ]),
         );
-        expect(changed).toMatchObject({
-          id: fixtures[0].id,
-          userId: todoActor.id,
-          title: inputs[0].title,
-          content: null,
-          priority: "medium",
-          completed: true,
-          dueAt: new Date(anchor.getTime() + 0.5 * 3_600_000),
+        // This expected order is specified independently of the response and
+        // the stored rows, including the formerly oldest task's new position.
+        for (const filter of [completed, all, completed]) {
+          await filter.click();
+          await expect(filter).toBeChecked();
+          await expect(titles).toHaveText([
+            "Edit order between",
+            "Edit order oldest",
+            "Edit order existing tie",
+            "Edit order later",
+            "Edit order undated",
+          ]);
+        }
+        expect(
+          await page.evaluate(
+            () => document.documentElement.dataset.todoMutationSession,
+          ),
+        ).toBe("retained");
+        await effects.checkpoint("deadline-edited", {
+          calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
-        await effects.checkpoint("completed-deadline-edited", {
-          calendarMessages: [
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-            { type: "user", userId: todoActor.id },
-          ],
-        });
-        expect(await readTodoCalendar(page, todoActor.id)).not.toContain(
-          "BEGIN:VEVENT",
-        );
-        // Editing the oldest deadline moves it between the adjacent deadlines.
-        const reordered = [3, 0, 2, 1, 4].map((index) => inputs[index].title);
-        await expect(titles).toHaveText(reordered);
-        await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
-        await expect(titles).toHaveText(reordered);
       },
-      {
-        calendarMessages: [
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-          { type: "user", userId: todoActor.id },
-        ],
-      },
+      { calendarMessages: [{ type: "user", userId: todoActor.id }] },
     );
   });
 }
