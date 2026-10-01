@@ -194,105 +194,106 @@ test("ui.context-tabs-3", async ({ page, isolatedWorker, navigationRun }) => {
   });
 });
 
-diagnosticTest("ui.navigation-landmarks-6", async ({
-  page,
-  isolatedWorker,
-  navigationRun,
-}) => {
-  await navigationRun(async () => {
-    for (const width of [1280, 390]) {
-      const data = await fixture(isolatedWorker.database.owner);
-      await page.setViewportSize({ width, height: 1000 });
-      for (const owner of [0, 1]) {
-        await identify(page, isolatedWorker, data.users[owner].id);
-        await page.goto("/terms");
-        const shell = await sidebar(page, width);
-        const publicNotices = shell.locator('a[href="/news"]');
-        const reminders = shell.locator(
-          'a[href="/workspace/subscriptions/activities?view=notifications"]',
-        );
-        await expect(publicNotices).toBeVisible();
-        await expect(reminders).toBeVisible();
-        await expect(publicNotices).toHaveAccessibleName("News & Notices");
-        await expect(reminders).toHaveAccessibleName("Activity reminders");
-        const badge = reminders
-          .locator("..")
-          .locator('[data-slot="sidebar-menu-badge"]');
-        await expect(badge).toHaveText(String(owner === 0 ? 2 : 1));
-        await expect(
-          publicNotices
-            .locator("..")
-            .locator('[data-slot="sidebar-menu-badge"]'),
-        ).toHaveCount(0);
-        await reminders.click();
-        await expect(page).toHaveURL(
-          /\/workspace\/subscriptions\/activities\?view=notifications$/,
-        );
-        const main = page.locator("#main-content");
-        const own = data.notices.filter(
-          (notice) => notice.userId === data.users[owner].id,
-        );
-        for (const notice of own) {
-          const item = main.getByRole("link", {
-            name: notice.title,
-            exact: true,
-          });
-          if (notice.expiresAt && notice.expiresAt.getTime() < Date.now())
-            await expect(item).toHaveCount(0);
-          else await expect(item).toBeVisible();
-        }
-        for (const notice of data.notices.filter(
-          (notice) => notice.userId !== data.users[owner].id,
-        ))
-          await expect(
-            main.getByRole("link", { name: notice.title, exact: true }),
-          ).toHaveCount(0);
-        const db = isolatedWorker.database.owner;
-        const before = await db.youngNotification.findMany({
-          orderBy: { id: "asc" },
-        });
-        const [marked] = await Promise.all([
-          page.waitForResponse(
-            (response) =>
-              response.request().method() === "POST" &&
-              /^\/api\/workspace\/young-notifications\/[^/]+\/read$/.test(
-                new URL(response.url()).pathname,
-              ),
-          ),
-          main
-            .getByRole("button", { name: "Mark read", exact: true })
-            .first()
-            .click(),
-        ]);
-        expect(marked.status()).toBe(200);
-        const result = await marked.json();
-        expect(result).toEqual({ id: expect.any(String), success: true });
-        expect(before.find((notice) => notice.id === result.id)).toMatchObject({
-          userId: data.users[owner].id,
-          readAt: null,
-        });
-        expect(
-          await db.youngNotification.findMany({ orderBy: { id: "asc" } }),
-        ).toEqual(
-          before.map((notice) =>
-            notice.id === result.id
-              ? { ...notice, readAt: expect.any(Date) }
-              : notice,
-          ),
-        );
-        await expect(
-          main.getByRole("button", { name: "Mark read", exact: true }),
-        ).toHaveCount(owner === 0 ? 1 : 0);
-        const updatedShell = await sidebar(page, width);
-        const updatedBadge = updatedShell
-          .locator(
+diagnosticTest(
+  "ui.navigation-landmarks-6",
+  async ({ page, isolatedWorker, navigationRun }) => {
+    await navigationRun(async () => {
+      for (const width of [1280, 390]) {
+        const data = await fixture(isolatedWorker.database.owner);
+        await page.setViewportSize({ width, height: 1000 });
+        for (const owner of [0, 1]) {
+          await identify(page, isolatedWorker, data.users[owner].id);
+          await page.goto("/terms");
+          const shell = await sidebar(page, width);
+          const publicNotices = shell.locator('a[href="/news"]');
+          const reminders = shell.locator(
             'a[href="/workspace/subscriptions/activities?view=notifications"]',
-          )
-          .locator("..")
-          .locator('[data-slot="sidebar-menu-badge"]');
-        if (owner === 0) await expect(updatedBadge).toHaveText("1");
-        else await expect(updatedBadge).toHaveCount(0);
+          );
+          await expect(publicNotices).toBeVisible();
+          await expect(reminders).toBeVisible();
+          await expect(publicNotices).toHaveAccessibleName("News & Notices");
+          await expect(reminders).toHaveAccessibleName("Activity reminders");
+          const badge = reminders
+            .locator("..")
+            .locator('[data-slot="sidebar-menu-badge"]');
+          await expect(badge).toHaveText(String(owner === 0 ? 2 : 1));
+          await expect(
+            publicNotices
+              .locator("..")
+              .locator('[data-slot="sidebar-menu-badge"]'),
+          ).toHaveCount(0);
+          await reminders.click();
+          await expect(page).toHaveURL(
+            /\/workspace\/subscriptions\/activities\?view=notifications$/,
+          );
+          const main = page.locator("#main-content");
+          const own = data.notices.filter(
+            (notice) => notice.userId === data.users[owner].id,
+          );
+          for (const notice of own) {
+            const item = main.getByRole("link", {
+              name: notice.title,
+              exact: true,
+            });
+            if (notice.expiresAt && notice.expiresAt.getTime() < Date.now())
+              await expect(item).toHaveCount(0);
+            else await expect(item).toBeVisible();
+          }
+          for (const notice of data.notices.filter(
+            (notice) => notice.userId !== data.users[owner].id,
+          ))
+            await expect(
+              main.getByRole("link", { name: notice.title, exact: true }),
+            ).toHaveCount(0);
+          const db = isolatedWorker.database.owner;
+          const before = await db.youngNotification.findMany({
+            orderBy: { id: "asc" },
+          });
+          const [marked] = await Promise.all([
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "POST" &&
+                /^\/api\/workspace\/young-notifications\/[^/]+\/read$/.test(
+                  new URL(response.url()).pathname,
+                ),
+            ),
+            main
+              .getByRole("button", { name: "Mark read", exact: true })
+              .first()
+              .click(),
+          ]);
+          expect(marked.status()).toBe(200);
+          const result = await marked.json();
+          expect(result).toEqual({ id: expect.any(String), success: true });
+          expect(
+            before.find((notice) => notice.id === result.id),
+          ).toMatchObject({
+            userId: data.users[owner].id,
+            readAt: null,
+          });
+          expect(
+            await db.youngNotification.findMany({ orderBy: { id: "asc" } }),
+          ).toEqual(
+            before.map((notice) =>
+              notice.id === result.id
+                ? { ...notice, readAt: expect.any(Date) }
+                : notice,
+            ),
+          );
+          await expect(
+            main.getByRole("button", { name: "Mark read", exact: true }),
+          ).toHaveCount(owner === 0 ? 1 : 0);
+          const updatedShell = await sidebar(page, width);
+          const updatedBadge = updatedShell
+            .locator(
+              'a[href="/workspace/subscriptions/activities?view=notifications"]',
+            )
+            .locator("..")
+            .locator('[data-slot="sidebar-menu-badge"]');
+          if (owner === 0) await expect(updatedBadge).toHaveText("1");
+          else await expect(updatedBadge).toHaveCount(0);
+        }
       }
-    }
-  });
-});
+    });
+  },
+);
