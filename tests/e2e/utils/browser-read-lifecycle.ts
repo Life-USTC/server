@@ -1,4 +1,4 @@
-import type { Page, Request } from "@playwright/test";
+import type { Frame, Page, Request } from "@playwright/test";
 
 /** Own browser observations through full-document replacement and page closure.
  * Server completion remains an independent responsibility of the caller. */
@@ -108,9 +108,9 @@ export function ownBrowserReads(
       error,
       retirementAtFailure: owned.retiredBy,
       // A later navigation cannot retroactively excuse an active-page failure.
-      navigationsAtFailure: [...pendingNavigationOrders]
-        .filter(([order]) => order > owned.order)
-        .map(([order, operation]) => ({ order, operation })),
+      navigationsAtFailure: [...pendingNavigationOrders].map(
+        ([order, operation]) => ({ order, operation }),
+      ),
     });
     const expected = expectedCancellations.get(request);
     if (expected) expected.nativeFailure = error;
@@ -125,6 +125,20 @@ export function ownBrowserReads(
     // Register while the root request is admitted, before its response/commit.
     // A matching URL/framenavigated event alone can also be a same-document
     // navigation after a noncommitting 204/download and is not retirement proof.
+    // Snapshot synchronously at the frame event, before destination scripts can
+    // admit reads. The navigation response below must still verify this root;
+    // the frame event alone never proves that a new document committed.
+    let departingReads: OwnedRead[] | undefined;
+    const captureBoundary = (frame: Frame) => {
+      if (frame !== page.mainFrame() || departingReads) return;
+      departingReads = [...ownedReads.entries()]
+        .filter(
+          ([request, owned]) =>
+            owned.mainFrame && !request.isNavigationRequest(),
+        )
+        .map(([, owned]) => owned);
+    };
+    page.on("framenavigated", captureBoundary);
     const observation = page.waitForNavigation({ waitUntil: "commit" }).then(
       (response) => {
         if (!response) {
@@ -146,12 +160,19 @@ export function ownBrowserReads(
           });
           return;
         }
+        if (!departingReads) {
+          navigationObservations.push({
+            order,
+            outcome: "rejected",
+            error: "Navigation has no captured frame boundary",
+          });
+          return;
+        }
         const committed = { order, url: response.url() };
         navigationCommits.push(committed);
         navigationObservations.push({ ...committed, outcome: "committed" });
-        for (const owned of ownedReads.values())
-          if (owned.mainFrame && owned.order < order && !owned.retiredBy)
-            owned.retiredBy = committed;
+        for (const owned of departingReads)
+          if (!owned.retiredBy) owned.retiredBy = committed;
       },
       (error: unknown) => {
         navigationObservations.push({
@@ -164,6 +185,7 @@ export function ownBrowserReads(
     pendingNavigations.add(observation);
     pendingNavigationOrders.set(order, observation);
     void observation.finally(() => {
+      page.off("framenavigated", captureBoundary);
       pendingNavigations.delete(observation);
       pendingNavigationOrders.delete(order);
     });
@@ -227,7 +249,6 @@ export function ownBrowserReads(
             const retiredBy = owned.retiredBy;
             if (
               retiredBy &&
-              retiredBy.order > owned.order &&
               (failed.retirementAtFailure?.order === retiredBy.order ||
                 failed.navigationsAtFailure.some(
                   ({ order }) => order === retiredBy.order,
