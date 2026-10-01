@@ -185,6 +185,22 @@ requirements:
     test:
       file: tests/integration/rest/catalog/relationship-projections.test.ts
       name: interface-hierarchy.catalog-rest-relationship-projections
+- id: interface-hierarchy.catalog-mcp-relationship-projections
+  category: consistency
+  topic: semantic-parity
+  rule: MCP course and Section search and detail projections preserve the identities and course/Teacher
+    relationships of the same catalog graph.
+  acceptance:
+    given: An isolated MCP actor and one course with current and historical Sections, with one Teacher
+      and schedule and exam records on the current Section. Row IDs differ from upstream JW IDs.
+    when: The real MCP SDK reads course search, Section search by course JW ID, course detail and current Section detail.
+    then:
+    - Course and Section projections identify their persisted records and course relationships; course offerings and course-filtered Sections identify the same two Sections.
+    - Embedded Teacher references on the current Section agree across Section search, course detail and Section detail.
+    - Search results retain pagination and metadata; Section detail retains formatted schedule times, Teacher assignment privacy and published exam room and monitor fields.
+    test:
+      file: tests/integration/mcp/catalog/search.test.ts
+      name: interface-hierarchy.catalog-mcp-relationship-projections
 - id: interface-hierarchy.catalog-explicit-read-parity
   category: consistency
   topic: semantic-parity
@@ -941,6 +957,7 @@ topics:
   title: Semantic Parity
   requirement_refs:
   - interface-hierarchy.catalog-rest-relationship-projections
+  - interface-hierarchy.catalog-mcp-relationship-projections
   - interface-hierarchy.catalog-explicit-read-parity
   - interface-hierarchy.workspace-explicit-read-parity
   - interface-hierarchy.public-schedule-read-parity
