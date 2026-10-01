@@ -13,7 +13,6 @@ import {
   createCalendarEffectObserver,
   type ProducerObservation,
 } from "./calendar-effects";
-import { fulfillFetchedResponse } from "./fulfill-fetched-response";
 import type { IsolatedWorker } from "./isolated-worker";
 
 export type HomeworkEffects = {
@@ -470,7 +469,7 @@ export async function withHomeworkEffects(
             });
             await response.body();
             // Deliver the genuine response before joining native asynchronous effects.
-            await fulfillFetchedResponse(route, response);
+            await route.fulfill({ response });
             fulfilled = true;
             if (["POST", "PUT", "PATCH", "DELETE"].includes(incoming.method()))
               writes.push({
