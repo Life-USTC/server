@@ -8,6 +8,7 @@ import {
   authorizeSubscription,
   expectIndependentCalendarItems,
   expectSubscribedWebProjections,
+  expectSubscriptionProtocol,
   expectSubscriptionState,
   type SubscriptionFixture,
   signInSubscriptionOwner,
@@ -132,8 +133,8 @@ test("subscription.consume-web-known-state", async ({
       ]);
     }
     return {
-      async verifyTransport({ sdkRequests }) {
-        expect(sdkRequests).toEqual([]);
+      async verifyTransport(observation) {
+        expectSubscriptionProtocol(observation, []);
       },
       async verifyState() {
         for (const [index, own] of owners.entries())
@@ -315,12 +316,11 @@ test("subscription.consume-protocols-known-state", async ({
       ]);
     }
     return {
-      async verifyTransport({ sdkRequests }) {
-        expect(
-          sdkRequests
-            .filter(({ rpc }) => rpc === "tools/call")
-            .map(({ tool }) => tool),
-        ).toEqual(["workspace_subscription_list", "workspace_subscription_list"]);
+      async verifyTransport(observation) {
+        expectSubscriptionProtocol(observation, [
+          "workspace_subscription_list",
+          "workspace_subscription_list",
+        ]);
       },
       async verifyState() {
         for (const [index, own] of owners.entries())
@@ -365,8 +365,8 @@ test("subscription.consume-anonymous-denied", async ({
     expect(graph.status()).toBe(200);
     expect((await graph.json()).data.workspace).toBeNull();
     return {
-      async verifyTransport({ sdkRequests }) {
-        expect(sdkRequests).toEqual([]);
+      async verifyTransport(observation) {
+        expectSubscriptionProtocol(observation, []);
       },
       async verifyState() {
         expect(await isolatedWorker.database.owner.userSectionSubscription.count()).toBe(0);
@@ -440,8 +440,8 @@ for (const role of ["regular", "suspended admin"] as const) {
         exact: true,
       })).toBeVisible();
       return {
-        async verifyTransport({ sdkRequests }) {
-          expect(sdkRequests).toEqual([]);
+        async verifyTransport(observation) {
+          expectSubscriptionProtocol(observation, []);
         },
         async verifyState() {
           await expectSubscriptionState(own, isolatedWorker, []);
