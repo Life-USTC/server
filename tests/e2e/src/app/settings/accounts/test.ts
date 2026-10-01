@@ -119,7 +119,9 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
             .poll(() => authorizationProvider.requests.length)
             .toBe(1);
           expect(new URL(page.url()).origin).toBe(isolatedWorker.origin);
-          expect(new URL(page.url()).pathname).toBe("/account/settings/accounts");
+          expect(new URL(page.url()).pathname).toBe(
+            "/account/settings/accounts",
+          );
           const result = await response.json();
           expect(result.type).toBe("redirect");
           expect(result.status).toBe(303);
