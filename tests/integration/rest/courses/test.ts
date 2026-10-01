@@ -155,39 +155,6 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("课程列表项包含所有必填字段", async ({ run, request }) => {
-    return run(async () => {
-      const response = await request.get(
-        `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-      );
-      expect(response.status()).toBe(200);
-      const body = (await response.json()) as {
-        data?: Array<{
-          id?: unknown;
-          jwId?: unknown;
-          code?: unknown;
-          nameCn?: unknown;
-          nameEn?: unknown;
-          educationLevel?: unknown;
-          category?: unknown;
-          classType?: unknown;
-        }>;
-      };
-      const course = body.data?.find(
-        (item) => item.jwId === DEV_SEED.course.jwId,
-      );
-      expect(course).toBeDefined();
-      expect(typeof course?.id).toBe("number");
-      expect(typeof course?.jwId).toBe("number");
-      expect(typeof course?.code).toBe("string");
-      expect(typeof course?.nameCn).toBe("string");
-      expect(typeof course?.nameEn).toBe("string");
-      expect(Object.hasOwn(course as object, "educationLevel")).toBe(true);
-      expect(Object.hasOwn(course as object, "category")).toBe(true);
-      expect(Object.hasOwn(course as object, "classType")).toBe(true);
-    });
-  });
-
   test("page 参数切换结果页", async ({ run, request }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/courses?page=1");
@@ -214,56 +181,4 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("详情路由返回 seed 课程及其开课班", async ({ run, request }) => {
-    return run(async () => {
-      const response = await request.get(
-        `/api/catalog/courses/${DEV_SEED.course.jwId}`,
-      );
-      expect(response.status()).toBe(200);
-      const body = (await response.json()) as {
-        jwId?: number;
-        code?: string;
-        nameCn?: string;
-        _count?: { sections?: number };
-        sections?: Array<{
-          jwId?: number;
-          code?: string;
-          semester?: { nameCn?: string } | null;
-          campus?: { nameCn?: string } | null;
-          teachers?: unknown[];
-          stdCount?: unknown;
-          limitCount?: unknown;
-        }>;
-      };
-      expect(body.jwId).toBe(DEV_SEED.course.jwId);
-      expect(body.code).toBe(DEV_SEED.course.code);
-      expect(body.nameCn).toBe(DEV_SEED.course.nameCn);
-      expect(body.sections?.length ?? 0).toBeLessThanOrEqual(20);
-      expect(body._count?.sections ?? 0).toBeGreaterThanOrEqual(
-        body.sections?.length ?? 0,
-      );
-      expect(
-        body.sections?.some(
-          (section) => section.jwId === DEV_SEED.section.jwId,
-        ),
-      ).toBe(true);
-      const seedSection = body.sections?.find(
-        (s) => s.jwId === DEV_SEED.section.jwId,
-      );
-      expect(seedSection).toBeDefined();
-      expect(Object.hasOwn(seedSection as object, "semester")).toBe(true);
-      expect(Object.hasOwn(seedSection as object, "campus")).toBe(true);
-      expect(Array.isArray(seedSection?.teachers)).toBe(true);
-      for (const teacher of seedSection?.teachers ?? []) {
-        expect(teacher).not.toHaveProperty("age");
-        expect(teacher).not.toHaveProperty("postcode");
-        expect(teacher).not.toHaveProperty("qq");
-        expect(teacher).not.toHaveProperty("wechat");
-        expect(teacher).not.toHaveProperty("email");
-        expect(teacher).not.toHaveProperty("mobile");
-      }
-      expect(typeof seedSection?.stdCount).toBe("number");
-      expect(typeof seedSection?.limitCount).toBe("number");
-    });
-  });
 });

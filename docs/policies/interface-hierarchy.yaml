@@ -165,6 +165,22 @@ requirements:
     test:
       file: tests/integration/graphql-mcp-resources.test.ts
       name: interface-hierarchy.transport-specific-exceptions-11
+- id: interface-hierarchy.catalog-rest-relationship-projections
+  category: consistency
+  topic: semantic-parity
+  rule: Public REST course, Section and Teacher lists and course/Teacher details retain the identities
+    and relationships of the persisted catalog graph. Each projection keeps its declared fields and public
+    privacy boundary; consuming it does not change the catalog or create viewer state.
+  acceptance:
+    given: One isolated course has an active Section and its Teacher, with row IDs distinct from upstream JW IDs.
+    when: An anonymous HTTP caller reads the course, Section and Teacher lists and the course and Teacher details.
+    then:
+    - Every projection retains its required fields and identifies the exact persisted course, Section or Teacher.
+    - Course and Teacher detail offerings and Section teacher references describe the same persisted relationships.
+    - Catalog rows and relationships, users, sessions, subscriptions and audit state remain unchanged after each consumer stage.
+    test:
+      file: tests/integration/rest/catalog/relationship-projections.test.ts
+      name: interface-hierarchy.catalog-rest-relationship-projections
 - id: interface-hierarchy.catalog-explicit-read-parity
   category: consistency
   topic: semantic-parity
@@ -920,6 +936,7 @@ topics:
 - id: semantic-parity
   title: Semantic Parity
   requirement_refs:
+  - interface-hierarchy.catalog-rest-relationship-projections
   - interface-hierarchy.catalog-explicit-read-parity
   - interface-hierarchy.workspace-explicit-read-parity
   - interface-hierarchy.public-schedule-read-parity
