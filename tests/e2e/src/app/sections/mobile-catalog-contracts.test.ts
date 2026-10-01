@@ -3,6 +3,7 @@ import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
+import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
 import { courseNames, teacherNames, test } from "./mobile-catalog-fixture";
 
 async function locale(
@@ -92,10 +93,16 @@ test("course.mobile-detail-hierarchy", async ({
           await page.screenshot({
             path: testInfo.outputPath(`course-${language}-${width}.png`),
           });
+          const expectSectionDetailReady = observeSectionDetailNavigation(
+            page,
+            effects,
+            fixture.sections[0].jwId,
+          );
           await offering.click();
           await expect(page).toHaveURL(
             new RegExp(`/catalog/sections/${fixture.sections[0].jwId}$`),
           );
+          await expectSectionDetailReady();
         }
       }
     },
@@ -151,10 +158,16 @@ test("teacher.mobile-detail-hierarchy", async ({
           await page.screenshot({
             path: testInfo.outputPath(`teacher-${language}-${width}.png`),
           });
+          const expectSectionDetailReady = observeSectionDetailNavigation(
+            page,
+            effects,
+            fixture.sections[0].jwId,
+          );
           await offering.click();
           await expect(page).toHaveURL(
             new RegExp(`/catalog/sections/${fixture.sections[0].jwId}$`),
           );
+          await expectSectionDetailReady();
         }
       }
     },
