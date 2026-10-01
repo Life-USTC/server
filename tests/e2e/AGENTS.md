@@ -141,20 +141,22 @@ soft-pass an expected control with `if (count() === 0) return`; deterministic
 fixtures and `expect(...).toBeVisible()` must make missing UI fail loudly.
 
 
-## State and journey scenarios
+## Independent state scenarios
 
-Apply the mutation/consumer/connection split in `tests/AGENTS.md`. Group checks by
-business state or journey when they share a meaningful scenario; visiting multiple
-pages is useful when checking their projections of the same state. Keep independent
-permission and failure branches separate instead of building one enormous journey.
+Apply the mutation/consumer split in `tests/AGENTS.md`. Each case owns its required
+initial state and can run alone. Updating or removing a record starts with fixture
+preparation, not a successful create step earlier in the test. Reuse fixture and
+observation helpers without sharing mutable records between cases.
 
-A Web mutation test must perform the target operation through the UI. Preparing
-unrelated prerequisites through an isolated fixture adapter is allowed. Consumer
-tests prepare state independently and verify actual rendered results. Include
-explicit visibility, text, typography and relative layout assertions where the
-requirement calls for them; a screenshot or a successful navigation alone is not
-proof. A fresh-load consumer does not replace checks of an already-open page after
-mutation. Restore owned fixtures and keep tests independent across runner projects.
+A Web mutation case performs its target operation through the UI and independently
+checks persisted effects and the UI response. Consumer cases prepare a known state
+and verify actual rendered results; multiple pages may consume that same state.
+Include explicit visibility, text, typography and relative layout assertions where
+the requirement calls for them; a screenshot or successful navigation alone is not
+proof. Verify promised refresh, cache and asynchronous behavior in its owning
+module, including an already-open page when required. Do not repeat the same checks
+in separate cross-entrypoint or complete-journey layers. Release owned fixtures and
+keep tests independent across runner projects.
 
 Generated Playwright tests are ordinary reviewed repository code. Do not derive
 business expectations from the current page, runtime YAML or an agent's success

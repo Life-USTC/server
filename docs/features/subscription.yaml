@@ -76,11 +76,11 @@ requirements:
   rationale: Independent database observations verify committed effects; reading the mutation response
     alone cannot establish that the state was persisted. Native protocol responses remain separately checked.
   acceptance:
-    given: An isolated acting owner and another owner have distinct memberships. The acting owner
-      is checked independently as a regular user and as a suspended administrator.
-    when: Browser journeys add and remove memberships, REST and GraphQL session and OAuth clients
-      and an HTTP MCP client independently add, update and remove memberships, and anonymous and
-      read-only clients attempt writes.
+    given: Each mutation case independently prepares an isolated acting owner, another owner and
+      the memberships required by that operation. The acting owner is checked as a regular user
+      and as a suspended administrator.
+    when: A browser, REST or GraphQL session or OAuth client, or an HTTP MCP client performs one
+      supported add, update or remove operation; separate anonymous and read-only cases attempt writes.
     then:
     - Each successful transition produces the explicitly expected persisted membership and personal kind.
     - The other owner's complete membership records and unrelated own membership remain unchanged.
@@ -88,26 +88,28 @@ requirements:
       preserve state.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/mutation-state.test.ts
-      name: 'REST session: regular modifies only personal subscription state'
+      name: 'REST session: regular add preserves other owners'
 - id: subscription.cross-surface-refresh
   category: consistency
   rule: A successful subscription change is visible after the consumer's supported navigation or
     explicit refresh. Unsubscribing removes academic projections without deleting personal todos or
     independent activity subscriptions; subscribing restores the corresponding academic projections.
-  rationale: Known-state consumer tests do not exercise stale page state or cache invalidation. A small
-    set of cross-entrypoint journeys verifies these connections without repeating every writer-reader pair.
+  rationale: Known-state consumers establish academic projections. Mutation cases additionally own
+    checks of their changed controls and supported refresh behavior, which stored state alone cannot prove.
   acceptance:
-    given: An isolated owner uses a teaching section with a deterministic schedule, homework and exam,
-      and also has an unrelated personal todo and activity subscription.
-    when: The owner subscribes and unsubscribes through the section page, navigates and reloads personal
-      pages, or refreshes an already open subscription page after an HTTP MCP mutation.
+    given: Independent add and remove cases prepare their required section membership. Consumer cases
+      prepare subscribed or unsubscribed owners with a dated schedule, homework, exam, personal todo
+      and independent activity subscription.
+    when: A Web mutation checks the section action after its change and reload, an HTTP MCP mutation
+      refreshes an already open subscription page, and consumers load their independently prepared states.
     then:
-    - The subscription list, calendar and time-appropriate overview agree with the committed membership.
-    - Reload preserves a completed subscription change and removes cancelled academic entries.
-    - The owner's personal todo and independently subscribed activity remain available.
+    - The section action and refreshed subscription list reflect the committed membership.
+    - Known-state calendar and time-appropriate overview contain academic entries only for subscribed
+      sections; personal todos and independently subscribed activities remain available.
+    - Reload preserves the resulting subscription state.
     test:
-      file: tests/e2e/src/app/workspace/subscriptions/subscription-journeys.test.ts
-      name: subscription.journey-web-projections-and-cancellation
+      file: tests/e2e/src/app/workspace/subscriptions/mutation-state.test.ts
+      name: 'Web: regular add refreshes the section subscription state'
 - id: subscription.calendar-export-membership
   category: consistency
   rule: A committed section unsubscribe requests an asynchronous rebuild of the owner's stored iCalendar

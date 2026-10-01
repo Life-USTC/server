@@ -1,6 +1,6 @@
 kind: decision
 id: state-based-acceptance
-title: Separate mutation, consumption and connection acceptance
+title: Independent mutation and consumer acceptance
 date: '2026-09-28'
 status: accepted
 refs:
@@ -13,21 +13,25 @@ context:
 decisions:
 - Maintain requirements and test references manually. Schema validation checks document structure
   and business references; ordinary test execution does not certify semantic requirement coverage.
-- Exercise each supported mutation through its real browser or network entrypoint. Check native
-  protocol outcomes and independently observe committed state and unchanged unrelated state.
+- Prepare each mutation case's precondition independently, then exercise the operation through its
+  real browser or network entrypoint. Update, remove and repeat-operation cases must not depend on
+  an earlier create action, whether in another test or an earlier CRUD step in the same test.
+- Check native protocol outcomes and independently observe committed state and unchanged unrelated
+  state against explicit expected values. Preserve permission and rejected-write assertions.
 - Prepare consumer fixtures independently of the mutation under test. Verify each supported reader's
   permitted projection, filtering and presentation against explicit expected business facts.
 - Keep operation adapters separate from fixture preparation and state observation. Do not call the
   product use-case as the adapter or reuse its projection logic to compute expected results.
-- Use representative cross-entrypoint journeys for navigation, explicit refresh, cache behavior and
-  asynchronous effects. Do not assume a full writer-reader Cartesian product is necessary.
+- Verify promised navigation, refresh, cache and asynchronous effects in the module that owns each
+  behavior. Mutation and consumer cases do not require a separate cross-entrypoint or complete-journey
+  layer that repeats the same obligations.
 - Select meaningful state transitions and invariants, including rejected transitions with no effects.
   Keep transport-specific scope, audience, error and public-field assertions visible.
 - Generated browser tests are reviewable ordinary code. Review requirements and generated assertions;
   do not automatically weaken expectations or skip product failures to heal a test.
 consequences:
-- Subscription acceptance is the first implemented domain. Other domains retain their existing
-  regressions until an equivalent independently verified replacement is delivered.
+- This decision defines the target organization, not a claim that every existing test has migrated.
+  Review each module's independent setup and unique assertions before removing repeated flows.
 - Database observation establishes stored effects, not user-visible freshness, object storage or
   queue completion. Observe each relevant effect at its own boundary.
 - Rendered visibility and geometry checks cover explicit presentation rules, not all occlusion or
