@@ -137,6 +137,7 @@ export async function prepareContract(
     checks(
       sectionIds: number[],
       requests: RequestExpectation[],
+      importCalls = 0,
       usageErrors: 0 | 1 = 0,
     ): CalendarProtocolChecks {
       return {
@@ -175,8 +176,10 @@ export async function prepareContract(
                   "GET stream",
                   "POST initialize",
                   "POST notifications/initialized",
-                  "POST tools/call",
-                  "POST tools/call",
+                  ...Array.from(
+                    { length: importCalls },
+                    () => "POST tools/call",
+                  ),
                 ]
               : [],
           );
@@ -186,10 +189,10 @@ export async function prepareContract(
               .map(({ tool }) => tool),
           ).toEqual(
             clientId
-              ? [
-                  "workspace_subscription_import",
-                  "workspace_subscription_import",
-                ]
+              ? Array.from(
+                  { length: importCalls },
+                  () => "workspace_subscription_import",
+                )
               : [],
           );
         },
@@ -354,7 +357,7 @@ export async function prepareContract(
               feature: "workspace.subscription",
               channel: "mcp",
             },
-            counts: clientId ? [0, 2, usageErrors] : [0, 0, 0],
+            counts: clientId ? [0, importCalls, usageErrors] : [0, 0, 0],
             windows,
           });
         },
