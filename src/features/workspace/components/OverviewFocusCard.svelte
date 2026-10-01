@@ -27,18 +27,26 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
       class="grid gap-2 rounded-lg py-1 transition-colors hover:bg-muted/40 -mx-2 px-2"
       href={focus.href}
     >
-      <div class="flex flex-wrap items-center gap-2">
-        <Badge variant={focus.status === "urgent" ? "destructive" : "secondary"}>
-          {statusLabel(focus.status)}
-        </Badge>
-        <span class="text-muted-foreground text-xs">
-          {focus.weekdayLabel} · {focus.dateLabel}
-        </span>
+      <div class="grid gap-2">
+        <div data-testid="overview-focus-title" class="font-medium text-lg tracking-tight">{focus.title}</div>
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <Badge data-testid="overview-focus-status" variant={focus.status === "urgent" ? "destructive" : "secondary"}>
+            {statusLabel(focus.status)}
+          </Badge>
+          <span data-testid="overview-focus-label">{focus.label}</span>
+          {#if focus.time}
+            <span data-testid="overview-focus-time" class="font-medium tabular-nums">{focus.time}</span>
+          {/if}
+        </div>
       </div>
-      <div class="font-medium text-lg tracking-tight">{focus.title}</div>
-      <p class="text-muted-foreground text-sm">
-        {focus.label}{focus.meta ? ` · ${focus.meta}` : ""}
-      </p>
+      <div class="grid gap-1 text-muted-foreground text-sm">
+        <div class="text-xs">
+          <span data-testid="overview-focus-weekday">{focus.weekdayLabel}</span> · <span data-testid="overview-focus-date">{focus.dateLabel}</span>
+        </div>
+        {#if focus.detail}
+          <p data-testid="overview-focus-detail">{focus.detail}</p>
+        {/if}
+      </div>
     </a>
   {:else if loadingLabel}
     <p role="status" class="py-6 text-muted-foreground text-sm">{loadingLabel}</p>

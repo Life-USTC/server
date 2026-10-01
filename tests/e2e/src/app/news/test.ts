@@ -372,31 +372,68 @@ test.describe("/news 新闻与通知预览", () => {
             .getByRole("heading", { level: 2 })
             .getByRole("link", { name: fixture.title, exact: true }),
         ).toBeVisible();
-        const layout = await rows.evaluateAll((elements) =>
-          elements.map((row) => {
-            const heading = row.querySelector("h2");
-            const title = heading?.querySelector("a");
-            const metadata = heading?.nextElementSibling;
-            if (!heading || !title || !metadata)
-              throw new Error("News row lacks its title or metadata");
-            return {
-              firstTag: row.firstElementChild?.tagName,
-              title: title.textContent?.trim(),
-              destination: title.getAttribute("href"),
-              titleTop: heading.getBoundingClientRect().top,
-              metadataTop: metadata.getBoundingClientRect().top,
-              titleFont: Number.parseFloat(getComputedStyle(heading).fontSize),
-              metadataFont: Number.parseFloat(
-                getComputedStyle(metadata).fontSize,
-              ),
-            };
-          }),
+        const layout = await rows.evaluateAll(
+          (elements, firstTitle) =>
+            elements.map((row) => {
+              const heading = row.querySelector("h2");
+              const title = heading?.querySelector("a");
+              const metadata = heading?.nextElementSibling;
+              const source = metadata?.querySelector("a");
+              // The first fixture publication is at Shanghai midnight; the other
+              // twenty publications are one minute apart on the preceding day.
+              const expectedDate =
+                title?.textContent?.trim() === firstTitle
+                  ? "2026-09-01"
+                  : "2026-08-31";
+              const date = [...(metadata?.querySelectorAll("span") ?? [])].find(
+                (element) => element.textContent?.trim() === expectedDate,
+              );
+              if (!heading || !title || !metadata || !source || !date)
+                throw new Error(
+                  "News row lacks its title, source or publication date",
+                );
+              const titleBox = title.getBoundingClientRect();
+              const sourceBox = source.getBoundingClientRect();
+              const dateBox = date.getBoundingClientRect();
+              return {
+                firstTag: row.firstElementChild?.tagName,
+                title: title.textContent?.trim(),
+                destination: title.getAttribute("href"),
+                titleVisible: title.checkVisibility({
+                  opacityProperty: true,
+                  visibilityProperty: true,
+                }),
+                source: source.textContent?.trim(),
+                sourceVisible: source.checkVisibility({
+                  opacityProperty: true,
+                  visibilityProperty: true,
+                }),
+                dateVisible: date.checkVisibility({
+                  opacityProperty: true,
+                  visibilityProperty: true,
+                }),
+                titleTop: titleBox.top,
+                titleBottom: titleBox.bottom,
+                metadataTop: Math.min(sourceBox.top, dateBox.top),
+                titleFont: Number.parseFloat(getComputedStyle(title).fontSize),
+                metadataFont: Math.max(
+                  Number.parseFloat(getComputedStyle(source).fontSize),
+                  Number.parseFloat(getComputedStyle(date).fontSize),
+                ),
+              };
+            }),
+          fixture.title,
         );
         for (const row of layout) {
           expect(row.firstTag).toBe("H2");
           expect(row.title).toBeTruthy();
           expect(row.destination).toMatch(/^\/news\/[^?]+/);
+          expect(row.titleVisible).toBe(true);
+          expect(row.source).toBe(fixture.sourceName);
+          expect(row.sourceVisible).toBe(true);
+          expect(row.dateVisible).toBe(true);
           expect(row.titleTop).toBeLessThan(row.metadataTop);
+          expect(row.titleBottom).toBeLessThanOrEqual(row.metadataTop);
           expect(row.titleFont).toBeGreaterThan(row.metadataFont);
         }
       }

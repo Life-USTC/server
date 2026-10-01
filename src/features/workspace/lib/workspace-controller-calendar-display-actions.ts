@@ -3,7 +3,6 @@ import {
   calendarHomeworkChipFields as buildCalendarHomeworkChipFields,
   calendarHomeworkHref as buildCalendarHomeworkHref,
   calendarTodoChipFields as buildCalendarTodoChipFields,
-  calendarTodoDetail as buildCalendarTodoDetail,
 } from "./calendar-display";
 import { formatMessage } from "./overview";
 import {
@@ -45,13 +44,6 @@ export function createWorkspaceCalendarDisplayActions(input: {
     return buildCalendarHomeworkHref(homework, input.tabHref("homeworks"));
   }
 
-  function calendarTodoDetail(todo: CalendarData["semesterTodos"][number]) {
-    return buildCalendarTodoDetail(
-      todo,
-      input.getTodoPriorityLabel(todo.priority),
-    );
-  }
-
   function calendarTodoChipFields(todo: CalendarData["semesterTodos"][number]) {
     return buildCalendarTodoChipFields(
       todo,
@@ -72,7 +64,7 @@ export function createWorkspaceCalendarDisplayActions(input: {
       noCompletionRequired: labels.noCompletionRequired,
       sessionHref,
       tabHref: input.tabHref,
-      todoDetail: calendarTodoDetail,
+      todoFields: calendarTodoChipFields,
       todoLabel: labels.todo,
     });
   }
@@ -88,7 +80,6 @@ export function createWorkspaceCalendarDisplayActions(input: {
     calendarHomeworkHref,
     calendarTimelineItemsForDay,
     calendarTodoChipFields,
-    calendarTodoDetail,
     calendarWeekLabel,
     sessionHref,
   };

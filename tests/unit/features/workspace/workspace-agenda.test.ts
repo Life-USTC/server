@@ -16,6 +16,8 @@ function item(
     href: `/workspace/${key}`,
     key,
     label: "Event",
+    meta: "",
+    detail: "",
     sort,
     title: key,
     ...options,
@@ -68,10 +70,19 @@ describe("workspace agenda", () => {
         dateLabel: "Jul 19",
         events: [
           item("session-past", 800),
-          item("homework-urgent", 900),
-          item("session-now", 1000),
+          item("homework-urgent", 900, {
+            meta: "09:00",
+            detail: "Submit the problem set.",
+          }),
+          item("session-now", 1000, {
+            meta: "10:00-10:30",
+            detail: "Room 101 · Teacher A",
+          }),
           item("todo-done", 1030, { done: true }),
-          item("session-next", 1100),
+          item("session-next", 1100, {
+            meta: "11:00-12:00",
+            detail: "Room 202 · Teacher B",
+          }),
         ],
         isToday: true,
         key: "2026-07-19",
@@ -79,7 +90,12 @@ describe("workspace agenda", () => {
       },
       {
         dateLabel: "Jul 20",
-        events: [item("exam-tomorrow", 900)],
+        events: [
+          item("exam-tomorrow", 900, {
+            meta: "09:00-10:00",
+            detail: "Written · A101(30)",
+          }),
+        ],
         isToday: false,
         key: "2026-07-20",
         weekdayLabel: "Monday",
@@ -103,14 +119,24 @@ describe("workspace agenda", () => {
         days,
         todayKey: "2026-07-19",
       }),
-    ).toMatchObject({ key: "session-now", status: "now" });
+    ).toMatchObject({
+      key: "session-now",
+      status: "now",
+      time: "10:00-10:30",
+      detail: "Room 101 · Teacher A",
+    });
     expect(
       workspaceFocusItem({
         currentTime: 1015,
         days,
         todayKey: "2026-07-19",
       }),
-    ).toMatchObject({ key: "homework-urgent", status: "urgent" });
+    ).toMatchObject({
+      key: "homework-urgent",
+      status: "urgent",
+      time: "09:00",
+      detail: "Submit the problem set.",
+    });
 
     const withoutUrgent = [
       {
@@ -127,14 +153,24 @@ describe("workspace agenda", () => {
         days: withoutUrgent,
         todayKey: "2026-07-19",
       }),
-    ).toMatchObject({ key: "session-next", status: "next" });
+    ).toMatchObject({
+      key: "session-next",
+      status: "next",
+      time: "11:00-12:00",
+      detail: "Room 202 · Teacher B",
+    });
     expect(
       workspaceFocusItem({
         currentTime: 2300,
         days: days.map((day) => (day.isToday ? { ...day, events: [] } : day)),
         todayKey: "2026-07-19",
       }),
-    ).toMatchObject({ key: "exam-tomorrow", status: "next" });
+    ).toMatchObject({
+      key: "exam-tomorrow",
+      status: "next",
+      time: "09:00-10:00",
+      detail: "Written · A101(30)",
+    });
     expect(
       workspaceFocusItem({
         currentTime: 1015,
@@ -145,6 +181,45 @@ describe("workspace agenda", () => {
         todayKey: "2026-07-19",
       }),
     ).toBeNull();
+  });
+
+  it("preserves activity context and missing time without promoting the sort sentinel", () => {
+    for (const [sort, meta, expectedTime] of [
+      [1800, "18:00-19:00", "18:00-19:00"],
+      [2400, "", ""],
+    ] as const) {
+      const focus = workspaceFocusItem({
+        currentTime: 1700,
+        days: [
+          {
+            dateLabel: "Jul 19",
+            events: [
+              item("activity-evening", sort, {
+                meta,
+                detail: "East campus hall",
+              }),
+            ],
+            isToday: true,
+            key: "2026-07-19",
+            weekdayLabel: "Sunday",
+          },
+        ],
+        todayKey: "2026-07-19",
+      });
+      expect(focus).toEqual({
+        href: "/workspace/activity-evening",
+        key: "activity-evening",
+        label: "Event",
+        sort,
+        title: "activity-evening",
+        detail: "East campus hall",
+        time: expectedTime,
+        dateKey: "2026-07-19",
+        dateLabel: "Jul 19",
+        status: "next",
+        weekdayLabel: "Sunday",
+      });
+    }
   });
 
   it("falls back to a future day and returns null when nothing is actionable", () => {
