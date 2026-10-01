@@ -1,83 +1,10 @@
-import {
-  type APIResponse,
-  expect,
-  type Page,
-  type Request,
-} from "@playwright/test";
+import { expect } from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
 import { test as workerTest } from "./owned-worker";
+import { withSettledPageWrites } from "./settled-page-writes";
 
 type Run = (work: () => Promise<void>) => Promise<void>;
-
-/** Temporary diagnostic: observe the genuine browser write without proxying it. */
-async function withObservedNavigationWrites(
-  page: Page,
-  origin: string,
-  run: () => Promise<void>,
-  afterResponse: (
-    response: Pick<APIResponse, "status" | "json">,
-    request: Request,
-  ) => Promise<void>,
-) {
-  const pending = new Set<Promise<void>>();
-  const errors: unknown[] = [];
-  let closing = false;
-  const observe = (request: Request) => {
-    if (
-      new URL(request.url()).origin !== origin ||
-      !["POST", "PUT", "PATCH", "DELETE"].includes(request.method())
-    )
-      return;
-    const admitted = !closing;
-    const operation = Promise.resolve()
-      .then(async () => {
-        if (!admitted)
-          throw new Error("Navigation write started during fixture teardown");
-        const response = await request.response();
-        if (!response)
-          throw new Error("Navigation write has no browser response");
-        await afterResponse(response, request);
-      })
-      .catch((error: unknown) => {
-        errors.push(error);
-      });
-    pending.add(operation);
-    void operation.finally(() => pending.delete(operation));
-  };
-  const join = async () => {
-    while (pending.size) await Promise.all(pending);
-  };
-  const close = async () => {
-    try {
-      await page.close();
-    } catch (error) {
-      errors.push(error);
-    }
-  };
-  page.on("request", observe);
-  let failed = false;
-  try {
-    await run();
-  } catch (error) {
-    failed = true;
-    errors.push(error);
-  } finally {
-    closing = true;
-    // A failed browser body wait may require page closure to reject. The outer
-    // producer drain still owns server settlement while the private DB is live.
-    if (failed) await close();
-    await join();
-    if (!failed) await close();
-    await join();
-    page.off("request", observe);
-  }
-  if (errors.length)
-    throw new AggregateError(
-      errors,
-      "Navigation browser write observation failed",
-    );
-}
 
 /** Navigation checks own their page, real writes and deferred Worker reads. */
 export const test = workerTest.extend<{ navigationRun: Run }>({
@@ -118,9 +45,9 @@ export const test = workerTest.extend<{ navigationRun: Run }>({
               await registration.body();
               await page.context().setExtraHTTPHeaders(headers);
               reads.start();
-              await withObservedNavigationWrites(
+              await withSettledPageWrites(
                 page,
-                origin,
+                (url) => url.origin === origin,
                 async () => {
                   try {
                     await workflow.body(() => {
