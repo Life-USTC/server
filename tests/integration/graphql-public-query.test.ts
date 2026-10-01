@@ -9,14 +9,14 @@ import { createPrivateMcpBus } from "./mcp/_harness/bus-fixture";
 async function createPublicCatalog(db: TestPrismaClient) {
   return db.$transaction(async (tx) => {
     const semester = await tx.semester.create({
-      data: { jwId: 1, code: "public-term", nameCn: "公共学期" },
+      data: { jwId: 710001, code: "public-term", nameCn: "公共学期" },
     });
     const category = await tx.courseCategory.create({
       data: { nameCn: "公共类别" },
     });
     const course = await tx.course.create({
       data: {
-        jwId: 1,
+        jwId: 710002,
         code: "GRAPHQL",
         nameCn: "GraphQL 公共课程",
         nameEn: "GraphQL public course",
@@ -24,21 +24,21 @@ async function createPublicCatalog(db: TestPrismaClient) {
       },
     });
     const campus = await tx.campus.create({
-      data: { jwId: 1, code: "PUBLIC", nameCn: "公共校区" },
+      data: { jwId: 710003, code: "PUBLIC", nameCn: "公共校区" },
     });
     const department = await tx.department.create({
-      data: { jwId: 1, code: "PUBLIC", nameCn: "公共院系" },
+      data: { jwId: 710004, code: "PUBLIC", nameCn: "公共院系" },
     });
     const examMode = await tx.examMode.create({ data: { nameCn: "闭卷" } });
     const teachLanguage = await tx.teachLanguage.create({
       data: { nameCn: "中文" },
     });
     const teacher = await tx.teacher.create({
-      data: { jwId: 1, code: "PUBLIC", nameCn: "公共教师" },
+      data: { jwId: 710005, code: "PUBLIC", nameCn: "公共教师" },
     });
     const section = await tx.section.create({
       data: {
-        jwId: 1,
+        jwId: 710006,
         code: "GRAPHQL.01",
         credits: 3,
         period: 48,
@@ -56,7 +56,20 @@ async function createPublicCatalog(db: TestPrismaClient) {
         teachers: { connect: { id: teacher.id } },
       },
     });
-    return { course, section, examMode, teachLanguage };
+    for (const row of [semester, course, campus, department, teacher, section]) {
+      expect(row.id).not.toBe(row.jwId);
+    }
+    return {
+      semester,
+      category,
+      course,
+      campus,
+      department,
+      examMode,
+      teachLanguage,
+      teacher,
+      section,
+    };
   });
 }
 
@@ -258,6 +271,37 @@ describe("GraphQL public Query integration", () => {
         },
         busTimetable: { route: { id: publicBus.routeId } },
       });
+      expect(payload.data?.catalog).toMatchObject({
+        semesters: { items: [{ jwId: publicCatalog.semester.jwId }] },
+        courses: {
+          items: [
+            {
+              jwId: publicCatalog.course.jwId,
+              code: publicCatalog.course.code,
+              nameCn: publicCatalog.course.nameCn,
+            },
+          ],
+        },
+        course: { nameCn: publicCatalog.course.nameCn },
+        teachers: {
+          items: [
+            {
+              id: publicCatalog.teacher.id,
+              code: publicCatalog.teacher.code,
+              nameCn: publicCatalog.teacher.nameCn,
+              sectionCount: 1,
+            },
+          ],
+        },
+        busRoutes: {
+          items: [
+            {
+              id: publicBus.routeId,
+              nameCn: `${publicBus.originCampusName} -> ${publicBus.destinationCampusName}`,
+            },
+          ],
+        },
+      });
     });
   });
 
@@ -297,6 +341,55 @@ describe("GraphQL public Query integration", () => {
         remark: publicCatalog.section.remark,
         examMode: { nameCn: publicCatalog.examMode.nameCn },
         teachLanguage: { nameCn: publicCatalog.teachLanguage.nameCn },
+      });
+      const {
+        section,
+        course,
+        category,
+        semester,
+        campus,
+        department,
+        examMode,
+        teachLanguage,
+      } = publicCatalog;
+      expect(data.section).toEqual({
+        id: section.id,
+        jwId: section.jwId,
+        code: section.code,
+        credits: section.credits,
+        period: section.period,
+        periodsPerWeek: section.periodsPerWeek,
+        timesPerWeek: section.timesPerWeek,
+        stdCount: section.stdCount,
+        limitCount: section.limitCount,
+        remark: section.remark,
+        course: {
+          id: course.id,
+          jwId: course.jwId,
+          code: course.code,
+          nameCn: course.nameCn,
+          nameEn: course.nameEn,
+          category: { id: category.id, nameCn: category.nameCn },
+        },
+        semester: {
+          id: semester.id,
+          jwId: semester.jwId,
+          code: semester.code,
+          nameCn: semester.nameCn,
+        },
+        campus: {
+          id: campus.id,
+          jwId: campus.jwId,
+          code: campus.code,
+          nameCn: campus.nameCn,
+        },
+        openDepartment: {
+          id: department.id,
+          code: department.code,
+          nameCn: department.nameCn,
+        },
+        examMode: { id: examMode.id, nameCn: examMode.nameCn },
+        teachLanguage: { id: teachLanguage.id, nameCn: teachLanguage.nameCn },
       });
     });
   });
