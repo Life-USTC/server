@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { test as diagnosticTest } from "../../../utils/navigation-network-diagnostic";
 import { test } from "../../../utils/navigation-policy-fixture";
 
 async function fixture(db: TestPrismaClient) {
@@ -193,7 +194,7 @@ test("ui.context-tabs-3", async ({ page, isolatedWorker, navigationRun }) => {
   });
 });
 
-test("ui.navigation-landmarks-6", async ({
+diagnosticTest("ui.navigation-landmarks-6", async ({
   page,
   isolatedWorker,
   navigationRun,
