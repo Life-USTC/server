@@ -75,7 +75,7 @@ for (const viewport of [
     activityRun,
     activityDb,
   }) => {
-    await activityRun(async () => {
+    await activityRun(async (settleActivityEffects) => {
       const youngId = activity.youngId;
       const subscriptions = () =>
         activityDb((db) =>
@@ -95,6 +95,7 @@ for (const viewport of [
       page.on("pageerror", (error) => errors.push(error.message));
       await page.setViewportSize(viewport);
       await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
+      await settleActivityEffects();
       await page
         .getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ })
         .click();
@@ -110,6 +111,7 @@ for (const viewport of [
           remindStart: true,
         },
       ]);
+      await settleActivityEffects();
       const reminder = page.getByRole("checkbox", {
         name: /报名截止前|registration closes/i,
       });
@@ -133,6 +135,7 @@ for (const viewport of [
           remindStart: true,
         },
       ]);
+      await settleActivityEffects();
       await page.reload();
       await expect(reminder).toBeHidden();
       await page
@@ -172,6 +175,7 @@ for (const viewport of [
         }),
       ).toHaveCount(0);
       expect(await subscriptions()).toEqual([]);
+      await settleActivityEffects();
       await page.reload();
       await expect(
         page.getByRole("link", { name: activity.name, exact: true }),
