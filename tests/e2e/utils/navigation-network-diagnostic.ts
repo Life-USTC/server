@@ -114,36 +114,6 @@ export const test = navigationTest.extend<{ _networkDiagnostic: undefined }>({
         cdp.on("Network.loadingFailed", loadingFailed);
         listeners.push(() => cdp.off("Network.loadingFailed", loadingFailed));
         await cdp.send("Network.enable");
-        // Diagnostic variable: consume a clone before application invalidation.
-        // Preserve the genuine request, native receiver/arguments and response.
-        await page.addInitScript(() => {
-          const nativeFetch = window.fetch;
-          window.fetch = function (
-            this: Window | undefined,
-            ...args: Parameters<typeof fetch>
-          ) {
-            const original = nativeFetch.apply(this, args);
-            const [input, init] = args;
-            const method =
-              init?.method ?? (input instanceof Request ? input.method : "GET");
-            if (method.toUpperCase() !== "POST") return original;
-            const url = new URL(
-              input instanceof Request ? input.url : String(input),
-              location.href,
-            );
-            if (
-              url.origin !== location.origin ||
-              !/^\/api\/workspace\/young-notifications\/[^/]+\/read$/.test(
-                url.pathname,
-              )
-            )
-              return original;
-            return original.then(async (response) => {
-              await response.clone().arrayBuffer();
-              return response;
-            });
-          };
-        });
         await use(undefined);
       } finally {
         page.off("request", browserRequest);
