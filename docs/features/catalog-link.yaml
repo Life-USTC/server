@@ -46,7 +46,7 @@ requirements:
       preserve both owners' exact rows and retain the current ordered pins in REST and native MCP errors.
     test:
       file: tests/integration/rest/protocol-contracts/personal-setting-authority.test.ts
-      name: "link pins successful updates preserve ownership through graphql"
+      name: "link pins unpin preserves ownership through graphql"
 - id: catalog-link.transport-list-search-parity
   category: consistency
   rule: Public link lists preserve configured slug order and localized title, description and URL.
