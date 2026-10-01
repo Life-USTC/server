@@ -2,6 +2,7 @@ import { type APIRequestContext, expect } from "@playwright/test";
 import type {
   Comment,
   Prisma,
+  Upload,
 } from "../../../../src/generated/prisma-node/client";
 import { test as ownedTest } from "../../../e2e/utils/owned-worker";
 import {
@@ -21,6 +22,10 @@ type CommentState = {
   other: Actor;
   anonymous: APIRequestContext;
   bucket: UploadBucket;
+  knownUpload: (input: {
+    filename: string;
+    contents: string;
+  }) => Promise<Upload>;
   admin: () => Promise<Actor>;
   catalog: CatalogContractFixture;
   section: CatalogContractFixture["sections"][number];
@@ -195,12 +200,28 @@ export const test = ownedTest.extend<{
         },
       });
       const section = catalog.sections[0];
+      const bucket = createUploadBucket(anonymous, isolatedWorker.origin);
       return {
         db,
         owner,
         other,
         anonymous,
-        bucket: createUploadBucket(anonymous, isolatedWorker.origin),
+        bucket,
+        knownUpload: async ({ filename, contents }) => {
+          const key = `uploads/${owner.id}/${crypto.randomUUID()}`;
+          await bucket.put(key, contents, {
+            httpMetadata: { contentType: "text/plain" },
+          });
+          return db.upload.create({
+            data: {
+              userId: owner.id,
+              key,
+              filename,
+              contentType: "text/plain",
+              size: Buffer.byteLength(contents),
+            },
+          });
+        },
         catalog,
         section,
         course: catalog.courses[0],

@@ -1,5 +1,4 @@
 import { expect } from "@playwright/test";
-import { createUploadedFileViaApi } from "../../../../e2e/utils/uploads";
 import { assertApiContract } from "../../_shared/api-contract";
 import { test } from "../_fixture";
 
@@ -159,67 +158,95 @@ test("/api/community/comments/[id] PATCH 拒绝匿名可见性", async ({
   });
 });
 
-test("/api/community/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({
-  run,
-  commentState,
-}) => {
-  await run(async () => {
-    const request = commentState.owner.request;
-
-    // Create a disposable comment to PATCH and DELETE
-    const content = `e2e-editable-comment-${crypto.randomUUID()}`;
-    const { id: commentId } = await commentState.comment({ body: content });
-    const edited = `${content}-edited`;
-    const patchResponse = await request.patch(
-      `/api/community/comments/${commentId}`,
-      {
-        data: {
-          body: edited,
-          visibility: "logged_in_only",
-          isAnonymous: false,
-          attachmentIds: [],
-        },
-      },
-    );
-    expect(patchResponse.status()).toBe(200);
-    const patchBody = (await patchResponse.json()) as {
-      success?: boolean;
-      comment?: { body?: string; visibility?: string };
-    };
-    expect(patchBody.success).toBe(true);
-    expect(patchBody.comment?.body).toBe(edited);
-    expect(patchBody.comment?.visibility).toBe("logged_in_only");
-    expect(
-      await commentState.db.comment.findUnique({
-        where: { id: commentId },
-        select: {
-          body: true,
-          visibility: true,
-          isAnonymous: true,
-          status: true,
-        },
-      }),
-    ).toEqual({
-      body: edited,
-      visibility: "logged_in_only",
-      isAnonymous: false,
-      status: "active",
+for (const method of ["PATCH", "DELETE"] as const) {
+  test(`/api/community/comments/[id] ${method} independently preserves other comments`, async ({
+    run,
+    commentState: { owner, other, db, comment },
+  }) => {
+    await run(async () => {
+      const prepared = await comment({
+        body: "Independently prepared comment",
+      });
+      await comment({
+        userId: other.id,
+        body: "Other author's preserved comment",
+      });
+      const before = await db.comment.findMany({
+        orderBy: { id: "asc" },
+        include: { attachments: true, reactions: true },
+      });
+      const edited = "Independently edited comment";
+      const response =
+        method === "PATCH"
+          ? await owner.request.patch(
+              `/api/community/comments/${prepared.id}`,
+              {
+                data: {
+                  body: edited,
+                  visibility: "logged_in_only",
+                  isAnonymous: false,
+                  attachmentIds: [],
+                },
+              },
+            )
+          : await owner.request.delete(
+              `/api/community/comments/${prepared.id}`,
+            );
+      expect(response.status()).toBe(200);
+      const payload = await response.json();
+      const after = await db.comment.findMany({
+        orderBy: { id: "asc" },
+        include: { attachments: true, reactions: true },
+      });
+      if (method === "PATCH") {
+        expect(payload).toMatchObject({
+          success: true,
+          comment: {
+            id: prepared.id,
+            body: edited,
+            visibility: "logged_in_only",
+            isAnonymous: false,
+          },
+        });
+        expect(typeof payload.comment.updatedAt).toBe("string");
+        expect(after).toEqual(
+          before.map((row) =>
+            row.id === prepared.id
+              ? {
+                  ...row,
+                  body: edited,
+                  visibility: "logged_in_only",
+                  updatedAt: new Date(payload.comment.updatedAt),
+                }
+              : row,
+          ),
+        );
+      } else {
+        expect(payload).toEqual({ success: true });
+        expect(after).toEqual(
+          before.map((row) =>
+            row.id === prepared.id
+              ? {
+                  ...row,
+                  status: "deleted",
+                  deletedAt: expect.any(Date),
+                  updatedAt: expect.any(Date),
+                }
+              : row,
+          ),
+        );
+      }
+      const audits = await db.auditLog.findMany();
+      expect(audits).toHaveLength(1);
+      expect(audits[0]).toMatchObject({
+        action: method === "PATCH" ? "comment_edit" : "comment_delete",
+        targetId: prepared.id,
+        userId: owner.id,
+        outcome: "success",
+      });
     });
-    const deleteResponse = await request.delete(
-      `/api/community/comments/${commentId}`,
-    );
-    expect(deleteResponse.status()).toBe(200);
-    expect((await deleteResponse.json()) as { success?: boolean }).toEqual({
-      success: true,
-    });
-    expect(
-      await commentState.db.comment.findUnique({
-        where: { id: commentId },
-        select: { status: true, deletedAt: true },
-      }),
-    ).toEqual({ status: "deleted", deletedAt: expect.any(Date) });
   });
-});
+}
 
 test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async ({
   run,
@@ -254,14 +281,14 @@ test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文
     const marker = `e2e-upload-edit-reuse-${crypto.randomUUID()}`;
     const firstContent = `${marker}-first`;
     const secondContent = `${marker}-second`;
-    const uploaded = await createUploadedFileViaApi(request, {
+    const uploaded = await commentState.knownUpload({
       filename: `${marker}.txt`,
       contents: "one upload should not move across comments",
     });
 
     await commentState.comment({
       body: firstContent,
-      attachments: { create: { uploadId: uploaded.uploadId } },
+      attachments: { create: { uploadId: uploaded.id } },
     });
     const { id: secondCommentId } = await commentState.comment({
       body: secondContent,
@@ -276,7 +303,7 @@ test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文
       {
         data: {
           body: `${secondContent}-edited`,
-          attachmentIds: [uploaded.uploadId],
+          attachmentIds: [uploaded.id],
         },
       },
     );
@@ -291,6 +318,10 @@ test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文
         include: { attachments: true },
       }),
     ).toEqual(before);
+    expect(
+      await commentState.db.upload.findUnique({ where: { id: uploaded.id } }),
+    ).toEqual(uploaded);
+    expect(await commentState.db.auditLog.count()).toBe(0);
     const object = await commentState.bucket.get(uploaded.key);
     expect(object).not.toBeNull();
     expect(Buffer.from(object?.body ?? []).toString()).toBe(
@@ -328,13 +359,13 @@ for (const status of ["deleted", "softbanned"] as const)
           await expect(response.json()).resolves.toEqual({
             error: "Comment locked",
           });
+          expect(
+            await commentState.db.comment.findUniqueOrThrow({
+              where: { id: root.id },
+            }),
+          ).toEqual(before);
+          expect(await commentState.db.auditLog.count()).toBe(0);
         }
-
-        expect(
-          await commentState.db.comment.findUniqueOrThrow({
-            where: { id: root.id },
-          }),
-        ).toEqual(before);
       });
     });
   });
