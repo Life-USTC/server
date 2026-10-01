@@ -8,6 +8,7 @@ import type {
 } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { withBrowserWorkflow } from "./browser-workflow";
+import { createCalendarEffectObserver } from "./calendar-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
 
@@ -19,25 +20,6 @@ type Catalog = {
   sharedTeacher: Teacher;
   current: Semester;
   previous: Semester;
-};
-
-type CalendarObservation = {
-  attempts: {
-    id: string;
-    attempts: number;
-    userId: string;
-    ackCalls: number;
-    retryCalls: number;
-    complete: boolean;
-    errors: string[];
-    calendar: string | null;
-  }[];
-  calendar: string | null;
-};
-type Effects = {
-  messages: { outcome: string; value: unknown }[];
-  purges: { outcome: string }[];
-  backgroundErrors: string[];
 };
 
 /** Each browser workflow owns its actor, semester catalog and native Worker. */
@@ -200,6 +182,11 @@ export const test = workerTest.extend<{
             const probeId = crypto.randomUUID();
             const producerPath = `/__test/community-effects?id=${probeId}`;
             const consumerPath = `/__test/calendar-consumer?userId=${account.id}`;
+            const calendarEffects = createCalendarEffectObserver({
+              request,
+              producerPath,
+              account,
+            });
             const pending = new Set<Promise<void>>();
             const errors: unknown[] = [];
             const mutations: unknown[] = [];
@@ -212,77 +199,15 @@ export const test = workerTest.extend<{
                 orderBy: { sectionId: "asc" },
               });
             const settleEffects = async () => {
-              let snapshot:
-                | { effects: Effects; observed: CalendarObservation }
-                | undefined;
-              await expect
-                .poll(
-                  async () => {
-                    const producer = await request.get(producerPath, {
-                      headers,
-                    });
-                    expect(producer.status()).toBe(200);
-                    const effects: Effects = await producer.json();
-                    const consumer = await request.get(consumerPath, {
-                      headers,
-                    });
-                    expect(consumer.status()).toBe(200);
-                    const observed: CalendarObservation = await consumer.json();
-                    snapshot = { effects, observed };
-                    return (
-                      effects.messages.length >= expectedMessages &&
-                      observed.attempts.length >= expectedMessages &&
-                      observed.attempts.every((attempt) => attempt.complete)
-                    );
-                  },
-                  {
-                    timeout: 15_000,
-                    message: "Native subscription calendar consumers complete",
-                  },
-                )
-                .toBe(true);
-              if (!snapshot)
-                throw new Error("Missing subscription calendar observations");
-              const { effects, observed } = snapshot;
-              expect(effects.backgroundErrors).toEqual([]);
-              expect(
-                effects.purges.every((purge) => purge.outcome === "fulfilled"),
-              ).toBe(true);
-              expect(effects.messages).toEqual(
+              const snapshot = await calendarEffects.collect(expectedMessages);
+              calendarEffects.assert(
+                snapshot,
                 Array.from({ length: expectedMessages }, () => ({
-                  outcome: "fulfilled",
-                  value: { type: "user", userId: account.id },
+                  type: "user" as const,
+                  userId: account.id,
                 })),
               );
-              expect(observed.attempts).toHaveLength(expectedMessages);
-              expect(
-                new Set(observed.attempts.map((attempt) => attempt.id)).size,
-              ).toBe(expectedMessages);
-              for (const attempt of observed.attempts)
-                expect(attempt).toMatchObject({
-                  attempts: 1,
-                  userId: account.id,
-                  ackCalls: 1,
-                  retryCalls: 0,
-                  complete: true,
-                  errors: [],
-                  calendar: expect.any(String),
-                });
-              if (expectedMessages) {
-                expect(
-                  observed.attempts.some(
-                    (attempt) => attempt.calendar === observed.calendar,
-                  ),
-                ).toBe(true);
-                if (!observed.calendar)
-                  throw new Error("Native consumer did not store its export");
-                const calendar = JSON.parse(observed.calendar);
-                expect(calendar).toMatchObject({
-                  version: 2,
-                  text: expect.any(String),
-                });
-                expect(calendar.text).toContain("BEGIN:VCALENDAR");
-              }
+              const { producer: effects, consumer: observed } = snapshot;
               // Reading the workspace can mint a feed token and asynchronously
               // write its audit. Observe the actual row, not just queue admission.
               const actor = await db.user.findUniqueOrThrow({
