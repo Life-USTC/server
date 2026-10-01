@@ -45,7 +45,7 @@ for (const method of ["POST", "DELETE"] as const) {
   });
 }
 
-test("/api/community/comments/[id]/reactions 登录后可添加并验证再删除", async ({
+test("/api/community/comments/[id]/reactions concurrent duplicates persist one reaction and audit", async ({
   run,
   commentState: { owner, db, comment },
 }) => {
@@ -77,40 +77,87 @@ test("/api/community/comments/[id]/reactions 登录后可添加并验证再删�
       }),
     ).toBe(1);
 
-    const threadResponse = await request.get(
-      `/api/community/comments/${commentId}`,
-    );
-    expect(threadResponse.status()).toBe(200);
-    const threadBody = (await threadResponse.json()) as {
-      thread: Array<{
-        id: string;
-        reactions: Array<{
-          type: string;
-          count: number;
-          viewerHasReacted: boolean;
-        }>;
-      }>;
-    };
-    const focusNode = threadBody.thread.find((node) => node.id === commentId);
-    expect(focusNode).toBeDefined();
-    expect(focusNode?.reactions).toEqual([
-      { type: "rocket", count: 1, viewerHasReacted: true },
-    ]);
-
-    const deleteResponse = await request.delete(
-      `/api/community/comments/${commentId}/reactions?type=rocket`,
-    );
-    expect(deleteResponse.status()).toBe(200);
-    expect(await deleteResponse.json()).toEqual({ success: true });
-    expect(await db.commentReaction.count({ where: { commentId } })).toBe(0);
-    expect(
-      await db.auditLog.count({
-        where: { targetId: commentId, action: "comment_react" },
-      }),
-    ).toBe(2);
     expect(
       await db.comment.findUniqueOrThrow({ where: { id: commentId } }),
     ).toEqual(prepared);
+  });
+});
+
+test("/api/community/comments/[id]/reactions DELETE removes only the seeded own reaction", async ({
+  run,
+  commentState: { owner, other, db, comment },
+}) => {
+  await run(async () => {
+    const prepared = await comment({
+      reactions: {
+        create: [
+          { userId: owner.id, type: "rocket" },
+          { userId: other.id, type: "rocket" },
+        ],
+      },
+    });
+    const before = await db.comment.findUniqueOrThrow({
+      where: { id: prepared.id },
+      include: { reactions: { orderBy: { userId: "asc" } }, attachments: true },
+    });
+    const response = await owner.request.delete(
+      `/api/community/comments/${prepared.id}/reactions?type=rocket`,
+    );
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(
+      await db.comment.findUniqueOrThrow({
+        where: { id: prepared.id },
+        include: {
+          reactions: { orderBy: { userId: "asc" } },
+          attachments: true,
+        },
+      }),
+    ).toEqual({
+      ...before,
+      reactions: before.reactions.filter((row) => row.userId !== owner.id),
+    });
+    const audits = await db.auditLog.findMany({
+      where: { targetId: prepared.id },
+    });
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      action: "comment_react",
+      userId: owner.id,
+      outcome: "success",
+    });
+  });
+});
+
+test("/api/community/comments/[id]/reactions seeded thread exposes count and viewer state", async ({
+  run,
+  commentState: { owner, db, comment },
+}) => {
+  await run(async () => {
+    const prepared = await comment({
+      reactions: { create: { userId: owner.id, type: "rocket" } },
+    });
+    const before = await db.comment.findUniqueOrThrow({
+      where: { id: prepared.id },
+      include: { reactions: true, attachments: true },
+    });
+    const response = await owner.request.get(
+      `/api/community/comments/${prepared.id}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.focusId).toBe(prepared.id);
+    expect(
+      body.thread.find((node: { id: string }) => node.id === prepared.id)
+        ?.reactions,
+    ).toEqual([{ type: "rocket", count: 1, viewerHasReacted: true }]);
+    expect(
+      await db.comment.findUniqueOrThrow({
+        where: { id: prepared.id },
+        include: { reactions: true, attachments: true },
+      }),
+    ).toEqual(before);
+    expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
   });
 });
 
@@ -137,105 +184,48 @@ test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404",
 });
 
 for (const status of ["deleted", "softbanned"] as const) {
-  test(`/api/community/comments/[id]/reactions POST 对失效评论返回 403 (${status})`, async ({
-    run,
-    commentState: { owner, db, section },
-  }) => {
-    await run(async () => {
-      const request = owner.request;
-      const createResponse = await request.post("/api/community/comments", {
-        data: {
-          targetType: "section",
-          targetId: String(section.id),
-          body: "Private inactive reaction target",
-          visibility: "public",
-        },
+  for (const method of ["POST", "DELETE"] as const) {
+    test(`/api/community/comments/[id]/reactions ${method} 对失效评论返回 403 (${status})`, async ({
+      run,
+      commentState: { owner, db, comment },
+    }) => {
+      await run(async () => {
+        const prepared = await comment({
+          status,
+          deletedAt:
+            status === "deleted" ? new Date("2026-01-02T00:00:00Z") : null,
+          ...(method === "DELETE"
+            ? {
+                reactions: {
+                  create: { userId: owner.id, type: "heart" as const },
+                },
+              }
+            : {}),
+        });
+        const before = await db.comment.findUniqueOrThrow({
+          where: { id: prepared.id },
+          include: { reactions: true, attachments: true },
+        });
+        expect(before.reactions).toHaveLength(method === "DELETE" ? 1 : 0);
+        const path = `/api/community/comments/${prepared.id}/reactions`;
+        const response =
+          method === "POST"
+            ? await owner.request.post(path, { data: { type: "heart" } })
+            : await owner.request.delete(`${path}?type=heart`);
+        expect(response.status()).toBe(403);
+        expect(await response.json()).toEqual({ error: "Forbidden" });
+        expect(
+          await db.comment.findUniqueOrThrow({
+            where: { id: prepared.id },
+            include: { reactions: true, attachments: true },
+          }),
+        ).toEqual(before);
+        expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(
+          0,
+        );
       });
-      expect(createResponse.status()).toBe(201);
-      const { id: commentId } = (await createResponse.json()) as { id: string };
-      expect(commentId).toBeTruthy();
-      const before = await db.comment.update({
-        where: { id: commentId },
-        data: { status, deletedAt: status === "deleted" ? new Date() : null },
-        include: { reactions: true },
-      });
-      const audits = await db.auditLog.findMany({
-        where: { userId: owner.id },
-        orderBy: { id: "asc" },
-      });
-      const response = await request.post(
-        `/api/community/comments/${commentId}/reactions`,
-        { data: { type: "heart" } },
-      );
-      expect(response.status()).toBe(403);
-      expect(await response.json()).toEqual({ error: "Forbidden" });
-      expect(
-        await db.comment.findUniqueOrThrow({
-          where: { id: commentId },
-          include: { reactions: true },
-        }),
-      ).toEqual(before);
-      expect(
-        await db.auditLog.findMany({
-          where: { userId: owner.id },
-          orderBy: { id: "asc" },
-        }),
-      ).toEqual(audits);
     });
-  });
-
-  test(`/api/community/comments/[id]/reactions DELETE 对失效评论返回 403 (${status})`, async ({
-    run,
-    commentState: { owner, db, section },
-  }) => {
-    await run(async () => {
-      const request = owner.request;
-      const createResponse = await request.post("/api/community/comments", {
-        data: {
-          targetType: "section",
-          targetId: String(section.id),
-          body: "Private inactive reaction deletion target",
-          visibility: "public",
-        },
-      });
-      expect(createResponse.status()).toBe(201);
-      const { id: commentId } = (await createResponse.json()) as { id: string };
-      expect(commentId).toBeTruthy();
-      const reactionResponse = await request.post(
-        `/api/community/comments/${commentId}/reactions`,
-        { data: { type: "heart" } },
-      );
-      expect(reactionResponse.status()).toBe(200);
-      expect(await reactionResponse.json()).toEqual({ success: true });
-      const before = await db.comment.update({
-        where: { id: commentId },
-        data: { status, deletedAt: status === "deleted" ? new Date() : null },
-        include: { reactions: true },
-      });
-      expect(before.reactions).toHaveLength(1);
-      const audits = await db.auditLog.findMany({
-        where: { userId: owner.id },
-        orderBy: { id: "asc" },
-      });
-      const response = await request.delete(
-        `/api/community/comments/${commentId}/reactions?type=heart`,
-      );
-      expect(response.status()).toBe(403);
-      expect(await response.json()).toEqual({ error: "Forbidden" });
-      expect(
-        await db.comment.findUniqueOrThrow({
-          where: { id: commentId },
-          include: { reactions: true },
-        }),
-      ).toEqual(before);
-      expect(
-        await db.auditLog.findMany({
-          where: { userId: owner.id },
-          orderBy: { id: "asc" },
-        }),
-      ).toEqual(audits);
-    });
-  });
+  }
 }
 
 test("/api/community/comments/[id]/reactions suspended actor cannot add or remove reactions", async ({
@@ -312,19 +302,17 @@ test("/api/community/comments/[id]/reactions DELETE absent own reaction is idemp
       where: { id: prepared.id },
       include: { reactions: true },
     });
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const response = await owner.request.delete(
-        `/api/community/comments/${prepared.id}/reactions?type=heart`,
-      );
-      expect(response.status()).toBe(200);
-      expect(await response.json()).toEqual({ success: true });
-      expect(
-        await db.comment.findUniqueOrThrow({
-          where: { id: prepared.id },
-          include: { reactions: true },
-        }),
-      ).toEqual(before);
-      expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
-    }
+    const response = await owner.request.delete(
+      `/api/community/comments/${prepared.id}/reactions?type=heart`,
+    );
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(
+      await db.comment.findUniqueOrThrow({
+        where: { id: prepared.id },
+        include: { reactions: true },
+      }),
+    ).toEqual(before);
+    expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
   });
 });

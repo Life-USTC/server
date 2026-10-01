@@ -587,7 +587,7 @@ requirements:
     - Content is not copied into audit metadata.
     test:
       file: tests/integration/mcp/community/comments.test.ts
-      name: comment.mcp-write-audit-source
+      name: comment.mcp-write-audit-source update
 - id: comment.moderation-default-status
   category: behavior
   rule: An omitted moderation comment status selects the active queue in both REST and the moderation

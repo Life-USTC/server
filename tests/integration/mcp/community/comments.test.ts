@@ -3,9 +3,24 @@ import { loadCommentThread } from "@/features/comments/server/comment-read-model
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
 import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import type { TestPrismaClient } from "../../../shared/prisma";
 import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
-import { findCommentAuditLog } from "../_harness/audit-observer";
 import { isolatedMcpTest } from "../_harness/isolated-context";
+
+// Only persisted observations; expected transitions remain in each operation case.
+function readCommentState(db: TestPrismaClient) {
+  return db.$transaction(async (tx) => ({
+    comments: await tx.comment.findMany({
+      orderBy: { id: "asc" },
+      include: {
+        attachments: { orderBy: { id: "asc" } },
+        reactions: { orderBy: { id: "asc" } },
+      },
+    }),
+    uploads: await tx.upload.findMany({ orderBy: { id: "asc" } }),
+    audits: await tx.auditLog.findMany({ orderBy: { id: "asc" } }),
+  }));
+}
 
 const readerTest = isolatedMcpTest.extend(
   "state",
@@ -23,7 +38,7 @@ const readerTest = isolatedMcpTest.extend(
             body: rootBody,
           },
         });
-        await db.comment.create({
+        const reply = await db.comment.create({
           data: {
             userId: context.userId,
             sectionId: catalog.sections[0].id,
@@ -35,7 +50,7 @@ const readerTest = isolatedMcpTest.extend(
         await db.commentReaction.create({
           data: { userId: context.userId, commentId: root.id, type: "upvote" },
         });
-        return { catalog, rootId: root.id, rootBody };
+        return { catalog, rootId: root.id, rootBody, replyId: reply.id };
       });
     });
     signal.throwIfAborted();
@@ -155,13 +170,19 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
       isolatedDatabase: { owner: db },
     }) =>
       mcpWorkflow.run(async () => {
-        const { catalog, rootId, rootBody } = state;
+        const { catalog, rootId, rootBody, replyId } = state;
 
-        const seedComment = await db.comment.findFirst({
-          where: { id: rootId },
-          select: { id: true },
+        const upload = await db.upload.create({
+          data: {
+            userId: context.userId,
+            key: `mcp-comment-read/${crypto.randomUUID()}`,
+            filename: "Known focused comment attachment.txt",
+            contentType: "text/plain",
+            size: 128,
+            commentAttachments: { create: { commentId: rootId } },
+          },
         });
-        expect(seedComment?.id).toBeTruthy();
+        const before = await readCommentState(db);
 
         type Result = {
           found?: boolean;
@@ -170,7 +191,12 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
             id?: string;
             body?: string;
             renderedBody?: string;
-            replies?: Array<{ body?: string; renderedBody?: string }>;
+            replies?: Array<{
+              id?: string;
+              body?: string;
+              renderedBody?: string;
+            }>;
+            attachments?: Array<{ filename?: string }>;
           }>;
           target?: {
             courseJwId?: number | null;
@@ -183,7 +209,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
           (["default", "full"] as const).map(async (mode) => ({
             mode,
             result: await context.client.call<Result>("community_comment_get", {
-              commentId: seedComment?.id,
+              commentId: replyId,
               mode,
             }),
           })),
@@ -192,10 +218,18 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         if (!result) throw new Error("Missing full-mode comment thread result");
 
         expect(result.found).toBe(true);
-        expect(result.focusId).toBe(seedComment?.id);
-        expect(result.thread?.[0]?.id).toBe(seedComment?.id);
+        expect(result.focusId).toBe(replyId);
+        expect(result.thread?.[0]?.id).toBe(rootId);
         expect(result.thread?.[0]?.body).toContain(rootBody);
-        expect(result.thread?.[0]?.replies?.length).toBeGreaterThan(0);
+        expect(result.thread?.[0]?.replies).toEqual([
+          expect.objectContaining({
+            id: replyId,
+            body: "Owned reply **Markdown**",
+          }),
+        ]);
+        expect(result.thread?.[0]?.attachments).toEqual([
+          expect.objectContaining({ filename: upload.filename }),
+        ]);
         expect(result.target?.sectionJwId).toBe(catalog.sections[0].jwId);
         expect(result.target?.sectionCode).toBe(catalog.sections[0].code);
         expect(result.target?.courseJwId).toBe(catalog.courses[0].jwId);
@@ -212,6 +246,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
             ),
           ).toBe(mode === "full");
         }
+        expect(await readCommentState(db)).toEqual(before);
       }),
   );
 
@@ -542,363 +577,447 @@ describe("评论读取工具 — 隔离目录夹具", () => {
 describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
   const mutationTest = readerTest;
 
+  for (const operation of [
+    "create",
+    "update",
+    "add reaction",
+    "remove reaction",
+    "delete",
+  ] as const) {
+    mutationTest(
+      `comment.mcp-write-audit-source ${operation}`,
+      async ({
+        mcpWorkflow,
+        state,
+        mcpActor: other,
+        mcpOtherActor: actor,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          const marker = `[integration-test] independent MCP ${operation}`;
+          const prepared =
+            operation === "create"
+              ? null
+              : await db.comment.create({
+                  data: {
+                    userId: actor.userId,
+                    sectionId: state.catalog.sections[0].id,
+                    body: `${marker} prepared`,
+                    visibility:
+                      operation === "update" ? "public" : "logged_in_only",
+                    isAnonymous: operation !== "update",
+                    createdAt: new Date("2026-01-01T00:00:00Z"),
+                    updatedAt: new Date("2026-01-01T00:00:00Z"),
+                    ...(operation === "add reaction" ||
+                    operation === "remove reaction"
+                      ? {
+                          reactions: {
+                            create: [
+                              { userId: other.userId, type: "heart" as const },
+                              ...(operation === "remove reaction"
+                                ? [
+                                    {
+                                      userId: actor.userId,
+                                      type: "heart" as const,
+                                    },
+                                  ]
+                                : []),
+                            ],
+                          },
+                        }
+                      : {}),
+                  },
+                });
+          const before = await readCommentState(db);
+          let commentId: string;
+          let action:
+            | "comment_create"
+            | "comment_edit"
+            | "comment_react"
+            | "comment_delete";
+          let metadata: Record<string, unknown> = { source: "mcp" };
+          let editedAt: Date | undefined;
+          if (operation === "create") {
+            const result = await actor.client.call<{
+              success: boolean;
+              id: string;
+            }>("community_comment_create", {
+              targetType: "section",
+              sectionJwId: state.catalog.sections[0].jwId,
+              body: `${marker} created`,
+              visibility: "public",
+              isAnonymous: false,
+            });
+            expect(result.success).toBe(true);
+            expect(result.id).toEqual(expect.any(String));
+            commentId = result.id;
+            action = "comment_create";
+          } else {
+            if (!prepared)
+              throw new Error("Expected independently seeded mutation target");
+            commentId = prepared.id;
+            if (operation === "update") {
+              const result = await actor.client.call<{
+                success: boolean;
+                comment: {
+                  id: string;
+                  body: string;
+                  isAnonymous: boolean;
+                  visibility: string;
+                  canEdit: boolean;
+                  updatedAt: string;
+                };
+              }>("community_comment_update", {
+                commentId,
+                body: `${marker} updated`,
+                visibility: "logged_in_only",
+                isAnonymous: true,
+                mode: "full",
+              });
+              expect(result.success).toBe(true);
+              expect(result.comment).toMatchObject({
+                id: commentId,
+                body: `${marker} updated`,
+                isAnonymous: true,
+                visibility: "logged_in_only",
+                canEdit: true,
+              });
+              editedAt = new Date(result.comment.updatedAt);
+              action = "comment_edit";
+            } else if (operation === "delete") {
+              expect(
+                await actor.client.call("community_comment_delete", {
+                  commentId,
+                }),
+              ).toEqual({ success: true });
+              action = "comment_delete";
+            } else {
+              const removing = operation === "remove reaction";
+              expect(
+                await actor.client.call(
+                  removing
+                    ? "community_comment_reaction_remove"
+                    : "community_comment_reaction_add",
+                  { commentId, type: "heart" },
+                ),
+              ).toEqual({ success: true, changed: true });
+              action = "comment_react";
+              metadata = {
+                operation: removing ? "remove" : "add",
+                source: "mcp",
+                type: "heart",
+              };
+            }
+          }
+          const after = await readCommentState(db);
+          const saved = after.comments.find((row) => row.id === commentId);
+          const prior = before.comments.find((row) => row.id === commentId);
+          expect(after.comments.filter((row) => row.id !== commentId)).toEqual(
+            before.comments.filter((row) => row.id !== commentId),
+          );
+          expect(after.uploads).toEqual(before.uploads);
+          if (operation === "create") {
+            expect(saved).toMatchObject({
+              id: commentId,
+              rootId: commentId,
+              parentId: null,
+              userId: actor.userId,
+              sectionId: state.catalog.sections[0].id,
+              body: `${marker} created`,
+              status: "active",
+              visibility: "public",
+              isAnonymous: false,
+              attachments: [],
+              reactions: [],
+            });
+          } else if (operation === "update") {
+            expect(saved).toEqual({
+              ...prior,
+              body: `${marker} updated`,
+              visibility: "logged_in_only",
+              isAnonymous: true,
+              updatedAt: editedAt,
+            });
+            expect(saved?.updatedAt.getTime()).toBeGreaterThan(
+              new Date("2026-01-01T00:00:00Z").getTime(),
+            );
+          } else if (operation === "delete") {
+            expect(saved).toEqual({
+              ...prior,
+              status: "deleted",
+              deletedAt: expect.any(Date),
+              updatedAt: expect.any(Date),
+            });
+          } else {
+            const reactions =
+              operation === "remove reaction"
+                ? prior?.reactions.filter((row) => row.userId !== actor.userId)
+                : expect.arrayContaining([
+                    ...(prior?.reactions ?? []),
+                    expect.objectContaining({
+                      commentId,
+                      userId: actor.userId,
+                      type: "heart",
+                    }),
+                  ]);
+            expect(saved).toEqual({ ...prior, reactions });
+            expect(saved?.reactions).toHaveLength(
+              operation === "remove reaction" ? 1 : 2,
+            );
+          }
+          expect(after.audits).toHaveLength(before.audits.length + 1);
+          const [audit] = after.audits.filter(
+            (row) => !before.audits.some((old) => old.id === row.id),
+          );
+          expect(audit).toMatchObject({
+            action,
+            targetId: commentId,
+            targetType: "comment",
+            userId: actor.userId,
+            outcome: "success",
+            metadata,
+          });
+          expect(JSON.stringify(audit.metadata)).not.toContain(marker);
+        }),
+    );
+  }
+
   mutationTest(
-    "comment.mcp-write-audit-source",
+    "评论写入工具拒绝不支持的匿名可见性",
     async ({
       mcpWorkflow,
       state,
-      mcpOtherActor: isolated,
+      mcpOtherActor: actor,
       expect,
       isolatedDatabase: { owner: db },
     }) =>
       mcpWorkflow.run(async () => {
-        const { catalog } = state;
-
-        const marker = `[integration-test] mcp-comment-write-${Date.now()}`;
-
-        const created = await isolated.client.call<{
-          success?: boolean;
-          id?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          body: `${marker} created`,
-          visibility: "public",
-          isAnonymous: false,
-        });
-
-        expect(created.success).toBe(true);
-        expect(typeof created.id).toBe("string");
-        const commentId = created.id;
-        if (!commentId) {
-          throw new Error("community_comment_create returned no comment id");
-        }
-
-        const createAudit = await findCommentAuditLog(db, {
-          expect,
-          action: "comment_create",
-          commentId,
-          metadata: { source: "mcp" },
-          userId: isolated.userId,
-        });
-        expect(createAudit?.metadata).toMatchObject({
-          source: "mcp",
-        });
-        expect(JSON.stringify(createAudit?.metadata)).not.toContain(marker);
-
-        const updated = await isolated.client.call<{
-          success?: boolean;
-          comment?: {
-            id?: string;
-            body?: string;
-            isAnonymous?: boolean;
-            visibility?: string;
-            canEdit?: boolean;
-          };
-        }>("community_comment_update", {
-          commentId,
-          body: `${marker} updated`,
-          visibility: "logged_in_only",
-          isAnonymous: true,
-          mode: "full",
-        });
-
-        expect(updated.success).toBe(true);
-        expect(updated.comment).toMatchObject({
-          id: commentId,
-          body: `${marker} updated`,
-          isAnonymous: true,
-          visibility: "logged_in_only",
-          canEdit: true,
-        });
-
-        const editAudit = await findCommentAuditLog(db, {
-          expect,
-          action: "comment_edit",
-          commentId,
-          metadata: { source: "mcp" },
-          userId: isolated.userId,
-        });
-        expect(editAudit?.metadata).toMatchObject({
-          source: "mcp",
-        });
-        expect(JSON.stringify(editAudit?.metadata)).not.toContain(marker);
-
-        const addedReaction = await isolated.client.call<{
-          success?: boolean;
-          changed?: boolean;
-        }>("community_comment_reaction_add", {
-          commentId,
-          type: "heart",
-        });
-
-        expect(addedReaction).toEqual({ success: true, changed: true });
-
-        const addReactionAudit = await findCommentAuditLog(db, {
-          expect,
-          action: "comment_react",
-          commentId,
-          metadata: { operation: "add", source: "mcp", type: "heart" },
-          userId: isolated.userId,
-        });
-        expect(addReactionAudit?.metadata).toMatchObject({
-          operation: "add",
-          source: "mcp",
-          type: "heart",
-        });
-
-        const removedReaction = await isolated.client.call<{
-          success?: boolean;
-          changed?: boolean;
-        }>("community_comment_reaction_remove", {
-          commentId,
-          type: "heart",
-        });
-
-        expect(removedReaction).toEqual({ success: true, changed: true });
-
-        const removeReactionAudit = await findCommentAuditLog(db, {
-          expect,
-          action: "comment_react",
-          commentId,
-          metadata: { operation: "remove", source: "mcp", type: "heart" },
-          userId: isolated.userId,
-        });
-        expect(removeReactionAudit?.metadata).toMatchObject({
-          operation: "remove",
-          source: "mcp",
-          type: "heart",
-        });
-
-        const deleted = await isolated.client.call<{ success?: boolean }>(
-          "community_comment_delete",
-          { commentId },
-        );
-
-        expect(deleted).toEqual({ success: true });
-
-        const deleteAudit = await findCommentAuditLog(db, {
-          expect,
-          action: "comment_delete",
-          commentId,
-          metadata: { source: "mcp" },
-          userId: isolated.userId,
-        });
-        expect(deleteAudit?.metadata).toMatchObject({ source: "mcp" });
-      }),
-  );
-
-  mutationTest(
-    "评论写入工具拒绝不支持的匿名可见性",
-    async ({ mcpWorkflow, state, mcpOtherActor: isolated, expect }) =>
-      mcpWorkflow.run(async () => {
-        const { catalog } = state;
-
+        const before = await readCommentState(db);
         await expect(
-          isolated.client.call("community_comment_create", {
+          actor.client.call("community_comment_create", {
             targetType: "section",
-            sectionJwId: catalog.sections[0].jwId,
-            body: `[integration-test] rejected anonymous visibility ${Date.now()}`,
+            sectionJwId: state.catalog.sections[0].jwId,
+            body: "[integration-test] rejected anonymous visibility",
             visibility: "anonymous",
           }),
         ).rejects.toThrow();
+        expect(await readCommentState(db)).toEqual(before);
       }),
   );
 
   mutationTest(
     "评论写入 community_comment_create 返回序列化的无效目标失败",
-    async ({ mcpWorkflow, mcpOtherActor: isolated, expect }) =>
+    async ({
+      mcpWorkflow,
+      mcpOtherActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
       mcpWorkflow.run(async () => {
-        const result = await isolated.client.call<{
-          success?: boolean;
-          found?: boolean;
-          error?: string;
-          message?: string;
+        const before = await readCommentState(db);
+        const result = await actor.client.call<{
+          success: boolean;
+          found: boolean;
+          error: string;
+          message: string;
         }>("community_comment_create", {
           targetType: "section",
           sectionJwId: 2_147_483_647,
           body: "[integration-test] invalid mcp comment target",
         });
-
-        expect(result.success).toBe(false);
-        expect(result.found).toBe(false);
-        expect(result.error).toBe("target_not_found");
+        expect(result).toMatchObject({
+          success: false,
+          found: false,
+          error: "target_not_found",
+        });
         expect(result.message).toContain("section");
+        expect(await readCommentState(db)).toEqual(before);
       }),
   );
 
   mutationTest(
     "评论写入 community_comment_create 支持通过公共 MCP 接口回复",
-    async ({ mcpWorkflow, state, mcpOtherActor: isolated, expect }) =>
-      mcpWorkflow.run(async () => {
-        const { catalog } = state;
-
-        const marker = `[integration-test] mcp-comment-reply-${Date.now()}`;
-
-        const parent = await isolated.client.call<{
-          success?: boolean;
-          id?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          body: `${marker} parent`,
-        });
-        expect(parent.success).toBe(true);
-        expect(typeof parent.id).toBe("string");
-
-        const reply = await isolated.client.call<{
-          success?: boolean;
-          id?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          parentId: parent.id,
-          body: `${marker} reply`,
-        });
-        expect(reply.success).toBe(true);
-        expect(typeof reply.id).toBe("string");
-
-        const thread = await isolated.client.call<{
-          found?: boolean;
-          focusId?: string;
-          thread?: unknown;
-        }>("community_comment_get", {
-          commentId: reply.id,
-          mode: "full",
-        });
-        expect(thread.found).toBe(true);
-        expect(thread.focusId).toBe(reply.id);
-        expect(JSON.stringify(thread.thread)).toContain(reply.id ?? "");
-      }),
-  );
-
-  mutationTest(
-    "评论写入工具拒绝非所有者编辑和删除尝试",
     async ({
       mcpWorkflow,
       state,
-      mcpOtherActor: isolated,
-      expect,
-      mcpActor: context,
-    }) =>
-      mcpWorkflow.run(async () => {
-        const { catalog } = state;
-
-        const marker = `[integration-test] mcp-comment-non-owner-${Date.now()}`;
-        const otherUser = context;
-
-        const created = await isolated.client.call<{
-          success?: boolean;
-          id?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          body: `${marker} owned`,
-        });
-        expect(created.success).toBe(true);
-        const commentId = created.id;
-        expect(typeof commentId).toBe("string");
-
-        const update = await otherUser.client.call<{
-          success?: boolean;
-          error?: string;
-        }>("community_comment_update", {
-          commentId,
-          body: `${marker} stolen edit`,
-        });
-        expect(update).toMatchObject({
-          success: false,
-          error: "forbidden",
-        });
-
-        const deletion = await otherUser.client.call<{
-          success?: boolean;
-          error?: string;
-        }>("community_comment_delete", { commentId });
-        expect(deletion).toMatchObject({
-          success: false,
-          error: "forbidden",
-        });
-      }),
-  );
-
-  mutationTest(
-    "评论写入工具校验现有上传附件",
-    async ({
-      mcpWorkflow,
-      state,
-      mcpOtherActor: isolated,
+      mcpOtherActor: actor,
       expect,
       isolatedDatabase: { owner: db },
     }) =>
       mcpWorkflow.run(async () => {
-        const { catalog } = state;
+        const before = await readCommentState(db);
+        const body = "[integration-test] reply to independently seeded parent";
+        const reply = await actor.client.call<{ success: boolean; id: string }>(
+          "community_comment_create",
+          {
+            targetType: "section",
+            sectionJwId: state.catalog.sections[0].jwId,
+            parentId: state.rootId,
+            body,
+          },
+        );
+        expect(reply.success).toBe(true);
+        expect(reply.id).toEqual(expect.any(String));
+        const after = await readCommentState(db);
+        expect(after.comments.find((row) => row.id === reply.id)).toMatchObject(
+          {
+            userId: actor.userId,
+            body,
+            sectionId: state.catalog.sections[0].id,
+            parentId: state.rootId,
+            rootId: state.rootId,
+            status: "active",
+            attachments: [],
+            reactions: [],
+          },
+        );
+        expect(after.comments.filter((row) => row.id !== reply.id)).toEqual(
+          before.comments,
+        );
+        expect(after.uploads).toEqual(before.uploads);
+        expect(after.audits).toHaveLength(before.audits.length + 1);
+        expect(
+          after.audits.find((row) => row.targetId === reply.id),
+        ).toMatchObject({ action: "comment_create", userId: actor.userId });
+      }),
+  );
 
-        const marker = `[integration-test] mcp-comment-attachments-${Date.now()}`;
-        const filename = `mcp-comment-attachment-${Date.now()}.txt`;
+  for (const operation of ["update", "delete"] as const) {
+    mutationTest(
+      `评论写入工具拒绝非所有者 ${operation}`,
+      async ({
+        mcpWorkflow,
+        state,
+        mcpOtherActor: actor,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          const before = await readCommentState(db);
+          const result = await actor.client.call(
+            `community_comment_${operation}`,
+            {
+              commentId: state.rootId,
+              ...(operation === "update"
+                ? { body: "[integration-test] stolen edit" }
+                : {}),
+            },
+          );
+          expect(result).toMatchObject({ success: false, error: "forbidden" });
+          expect(await readCommentState(db)).toEqual(before);
+        }),
+    );
+  }
+
+  mutationTest(
+    "评论写入工具创建评论时绑定已有上传附件",
+    async ({
+      mcpWorkflow,
+      state,
+      mcpOtherActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
         const upload = await db.upload.create({
           data: {
-            userId: isolated.userId,
-            key: `integration-test/${filename}`,
-            filename,
+            userId: actor.userId,
+            key: `mcp-comment-create/${crypto.randomUUID()}`,
+            filename: "Owned MCP comment attachment.txt",
             contentType: "text/plain",
             size: 128,
           },
-          select: { id: true, filename: true },
         });
-        const otherUser = await db.user.create({
+        const before = await readCommentState(db);
+        const body = "[integration-test] independent attached comment";
+        const result = await actor.client.call<{
+          success: boolean;
+          id: string;
+        }>("community_comment_create", {
+          targetType: "section",
+          sectionJwId: state.catalog.sections[0].jwId,
+          body,
+          attachmentIds: [upload.id],
+        });
+        expect(result.success).toBe(true);
+        expect(result.id).toEqual(expect.any(String));
+        const after = await readCommentState(db);
+        expect(
+          after.comments.find((row) => row.id === result.id),
+        ).toMatchObject({
+          userId: actor.userId,
+          body,
+          sectionId: state.catalog.sections[0].id,
+          status: "active",
+          attachments: [
+            {
+              id: expect.any(String),
+              commentId: result.id,
+              uploadId: upload.id,
+              createdAt: expect.any(Date),
+            },
+          ],
+        });
+        expect(after.comments.filter((row) => row.id !== result.id)).toEqual(
+          before.comments,
+        );
+        expect(after.uploads).toEqual(before.uploads);
+        expect(after.audits).toHaveLength(before.audits.length + 1);
+        expect(
+          after.audits.find((row) => row.targetId === result.id),
+        ).toMatchObject({
+          action: "comment_create",
+          userId: actor.userId,
+          outcome: "success",
+        });
+      }),
+  );
+
+  mutationTest(
+    "评论写入工具拒绝编辑时绑定其他用户的上传附件",
+    async ({
+      mcpWorkflow,
+      state,
+      mcpActor: actor,
+      mcpOtherActor: other,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const own = await db.upload.create({
           data: {
-            email: "attachment-owner@example.test",
-            name: "MCP Comment Attachment Owner",
+            userId: actor.userId,
+            key: `mcp-comment-own/${crypto.randomUUID()}`,
+            filename: "Owned attached file.txt",
+            contentType: "text/plain",
+            size: 128,
+            commentAttachments: { create: { commentId: state.rootId } },
           },
-          select: { id: true },
         });
-        const otherUpload = await db.upload.create({
+        const foreign = await db.upload.create({
           data: {
-            userId: otherUser.id,
-            key: `integration-test/other-${filename}`,
-            filename: `other-${filename}`,
+            userId: other.userId,
+            key: `mcp-comment-other/${crypto.randomUUID()}`,
+            filename: "Other user's file.txt",
             contentType: "text/plain",
             size: 256,
           },
-          select: { id: true },
         });
-
-        const created = await isolated.client.call<{
-          success?: boolean;
-          id?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          body: `${marker} attached`,
-          attachmentIds: [upload.id],
+        const before = await readCommentState(db);
+        expect(
+          before.comments.find((row) => row.id === state.rootId)?.attachments,
+        ).toEqual([expect.objectContaining({ uploadId: own.id })]);
+        const result = await actor.client.call("community_comment_update", {
+          commentId: state.rootId,
+          body: "[integration-test] rejected foreign attachment",
+          attachmentIds: [foreign.id],
         });
-        expect(created.success).toBe(true);
-        const commentId = created.id;
-        expect(typeof commentId).toBe("string");
-
-        const thread = await isolated.client.call<{
-          found?: boolean;
-          thread?: unknown;
-        }>("community_comment_get", {
-          commentId,
-          mode: "full",
-        });
-        expect(thread.found).toBe(true);
-        expect(JSON.stringify(thread.thread)).toContain(upload.filename);
-
-        const invalidUpdate = await isolated.client.call<{
-          success?: boolean;
-          error?: string;
-        }>("community_comment_update", {
-          commentId,
-          body: `${marker} invalid attachment`,
-          attachmentIds: [otherUpload.id],
-        });
-        expect(invalidUpdate).toMatchObject({
+        expect(result).toMatchObject({
           success: false,
           error: "invalid_attachments",
         });
+        expect(await readCommentState(db)).toEqual(before);
       }),
   );
 
@@ -906,155 +1025,96 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
     "评论写入 community_comment_create 在目标查找前检查封禁状态",
     async ({
       mcpWorkflow,
-      mcpOtherActor: isolated,
+      mcpOtherActor: actor,
       expect,
       isolatedDatabase: { owner: db },
-      mcpSessions,
     }) =>
       mcpWorkflow.run(async () => {
-        const suspendedUser = await db.user.create({
-          data: {
-            email: "suspended@example.test",
-            name: "MCP Comment Suspended",
-          },
-          select: { id: true },
-        });
         await db.userSuspension.create({
-          data: {
-            userId: suspendedUser.id,
-            createdById: isolated.userId,
-            reason: "integration suspended",
-          },
-          select: { id: true },
+          data: { userId: actor.userId, reason: "integration suspended" },
         });
-        const suspendedSession = mcpSessions.own(suspendedUser.id);
-        await suspendedSession.initialize();
-        const suspendedMcp = suspendedSession.client;
-
-        const result = await suspendedMcp.call<{
-          success?: boolean;
-          error?: string;
-          reason?: string | null;
-        }>("community_comment_create", {
+        const before = await readCommentState(db);
+        const result = await actor.client.call("community_comment_create", {
           targetType: "section",
           sectionJwId: 2_147_483_647,
           body: "[integration-test] suspended invalid target",
         });
-
         expect(result).toMatchObject({
           success: false,
           error: "suspended",
           reason: "integration suspended",
         });
+        expect(await readCommentState(db)).toEqual(before);
       }),
   );
 
-  mutationTest(
-    "评论写入工具拒绝已删除评论的回复和反应",
-    async ({ mcpWorkflow, state, mcpOtherActor: isolated, expect }) =>
-      mcpWorkflow.run(async () => {
-        const { catalog } = state;
-
-        const marker = `[integration-test] mcp-comment-locked-${Date.now()}`;
-
-        const created = await isolated.client.call<{
-          success?: boolean;
-          id?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          body: `${marker} deleted`,
-        });
-        expect(created.success).toBe(true);
-        const commentId = created.id;
-        expect(typeof commentId).toBe("string");
-
-        await expect(
-          isolated.client.call<{ success?: boolean }>(
-            "community_comment_delete",
-            {
-              commentId,
+  for (const operation of ["delete", "reply", "reaction"] as const) {
+    mutationTest(
+      `评论写入工具拒绝已删除评论的 ${operation}`,
+      async ({
+        mcpWorkflow,
+        state,
+        mcpActor: actor,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          await db.comment.update({
+            where: { id: state.rootId },
+            data: {
+              status: "deleted",
+              deletedAt: new Date("2026-01-02T00:00:00Z"),
             },
-          ),
-        ).resolves.toEqual({ success: true });
-
-        const repeatedDelete = await isolated.client.call<{
-          success?: boolean;
-          error?: string;
-        }>("community_comment_delete", { commentId });
-        expect(repeatedDelete).toMatchObject({
-          success: false,
-          error: "locked",
-        });
-
-        const reply = await isolated.client.call<{
-          success?: boolean;
-          error?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          parentId: commentId,
-          body: `${marker} rejected reply`,
-        });
-        expect(reply).toMatchObject({ success: false, error: "locked" });
-
-        const reaction = await isolated.client.call<{
-          success?: boolean;
-          error?: string;
-        }>("community_comment_reaction_add", {
-          commentId,
-          type: "heart",
-        });
-        expect(reaction).toMatchObject({ success: false, error: "locked" });
-      }),
-  );
+          });
+          const before = await readCommentState(db);
+          const result =
+            operation === "reply"
+              ? await actor.client.call("community_comment_create", {
+                  targetType: "section",
+                  sectionJwId: state.catalog.sections[0].jwId,
+                  parentId: state.rootId,
+                  body: "[integration-test] rejected reply",
+                })
+              : await actor.client.call(
+                  operation === "delete"
+                    ? "community_comment_delete"
+                    : "community_comment_reaction_add",
+                  {
+                    commentId: state.rootId,
+                    ...(operation === "reaction" ? { type: "heart" } : {}),
+                  },
+                );
+          expect(result).toMatchObject({ success: false, error: "locked" });
+          expect(await readCommentState(db)).toEqual(before);
+        }),
+    );
+  }
 
   mutationTest(
     "评论写入工具拒绝软封禁评论的所有者删除",
     async ({
       mcpWorkflow,
       state,
-      mcpOtherActor: isolated,
+      mcpActor: actor,
       expect,
       isolatedDatabase: { owner: db },
     }) =>
       mcpWorkflow.run(async () => {
-        const { catalog } = state;
-
-        const marker = `[integration-test] mcp-comment-softbanned-delete-${Date.now()}`;
-
-        const created = await isolated.client.call<{
-          success?: boolean;
-          id?: string;
-        }>("community_comment_create", {
-          targetType: "section",
-          sectionJwId: catalog.sections[0].jwId,
-          body: `${marker} locked`,
-        });
-        expect(created.success).toBe(true);
-        const commentId = created.id;
-        expect(typeof commentId).toBe("string");
-
         await db.comment.update({
-          where: { id: commentId },
+          where: { id: state.rootId },
           data: { status: "softbanned" },
         });
-
-        const deletion = await isolated.client.call<{
-          success?: boolean;
-          error?: string;
-          message?: string;
-        }>("community_comment_delete", { commentId });
-
-        expect(deletion).toMatchObject({
+        const before = await readCommentState(db);
+        expect(
+          await actor.client.call("community_comment_delete", {
+            commentId: state.rootId,
+          }),
+        ).toMatchObject({
           success: false,
           error: "locked",
           message: "Comment locked",
         });
+        expect(await readCommentState(db)).toEqual(before);
       }),
   );
 });
-
-// ---------------------------------------------------------------------------
-// Descriptions
-// ---------------------------------------------------------------------------

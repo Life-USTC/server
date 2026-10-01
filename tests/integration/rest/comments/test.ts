@@ -1,5 +1,4 @@
 import { expect } from "@playwright/test";
-import { createUploadedFileViaApi } from "../../../e2e/utils/uploads";
 import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
 import { test } from "./_fixture";
 
@@ -592,14 +591,14 @@ test("/api/community/comments POST 拒绝复用已上传附件", async ({
     const marker = `e2e-upload-reuse-${crypto.randomUUID()}`;
     const firstContent = `${marker}-first`;
     const secondContent = `${marker}-second`;
-    const uploaded = await createUploadedFileViaApi(request, {
+    const uploaded = await commentState.knownUpload({
       filename: `${marker}.txt`,
       contents: "one upload should attach to one comment",
     });
 
     await commentState.comment({
       body: firstContent,
-      attachments: { create: { uploadId: uploaded.uploadId } },
+      attachments: { create: { uploadId: uploaded.id } },
     });
     const before = await commentState.db.comment.findMany({
       where: { sectionId },
@@ -611,7 +610,7 @@ test("/api/community/comments POST 拒绝复用已上传附件", async ({
         targetId: String(sectionId),
         body: secondContent,
         visibility: "public",
-        attachmentIds: [uploaded.uploadId],
+        attachmentIds: [uploaded.id],
       },
     });
     expect(secondResponse.status()).toBe(400);
@@ -624,6 +623,10 @@ test("/api/community/comments POST 拒绝复用已上传附件", async ({
         include: { attachments: true },
       }),
     ).toEqual(before);
+    expect(
+      await commentState.db.upload.findUnique({ where: { id: uploaded.id } }),
+    ).toEqual(uploaded);
+    expect(await commentState.db.auditLog.count()).toBe(0);
     const object = await commentState.bucket.get(uploaded.key);
     expect(object).not.toBeNull();
     expect(Buffer.from(object?.body ?? []).toString()).toBe(
