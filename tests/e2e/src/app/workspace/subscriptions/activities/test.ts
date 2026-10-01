@@ -68,15 +68,42 @@ for (const viewport of [
   { width: 1280, height: 800 },
   { width: 390, height: 844 },
 ]) {
-  test(`activity subscription persists settings and removal at ${viewport.width}px`, async ({
-    page,
-    account,
-    activity,
-    activityRun,
-    activityDb,
-  }) => {
-    await activityRun(async (settleActivityEffects) => {
+  for (const action of ["add", "settings", "remove"] as const) {
+    test(`activity subscription ${action} persists at ${viewport.width}px`, async ({
+      page,
+      account,
+      activity,
+      activityRun,
+      activityDb,
+    }) => {
       const youngId = activity.youngId;
+      const initial = {
+        userId: account.id,
+        youngId,
+        remindSignup: true,
+        remindDeadline: action !== "remove",
+        remindStart: true,
+      };
+      // Settings and removal each start from their own directly seeded membership.
+      if (action !== "add")
+        await activityDb((db) =>
+          db.userYoungEventSubscription.create({
+            data: {
+              ...initial,
+              observedState: JSON.stringify([
+                activity.name,
+                null,
+                null,
+                null,
+                false,
+                activity.startAt?.toISOString(),
+                activity.endAt?.toISOString(),
+                null,
+                null,
+              ]),
+            },
+          }),
+        );
       const subscriptions = () =>
         activityDb((db) =>
           db.userYoungEventSubscription.findMany({
@@ -90,99 +117,108 @@ for (const viewport of [
             },
           }),
         );
-      expect(await subscriptions()).toEqual([]);
-      const errors: string[] = [];
-      page.on("pageerror", (error) => errors.push(error.message));
-      await page.setViewportSize(viewport);
-      await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
-      await settleActivityEffects();
-      await page
-        .getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ })
-        .click();
-      await expect(
-        page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
-      ).toBeVisible();
-      expect(await subscriptions()).toEqual([
-        {
-          userId: account.id,
-          youngId,
-          remindSignup: true,
-          remindDeadline: true,
-          remindStart: true,
-        },
-      ]);
-      await settleActivityEffects();
-      const reminder = page.getByRole("checkbox", {
-        name: /报名截止前|registration closes/i,
-      });
-      await expect(reminder).toBeHidden();
-      await page
-        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
-        .click();
-      await reminder.uncheck();
-      await page
-        .getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ })
-        .click();
-      await expect(
-        page.getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ }),
-      ).toBeEnabled();
-      expect(await subscriptions()).toEqual([
-        {
-          userId: account.id,
-          youngId,
-          remindSignup: true,
-          remindDeadline: false,
-          remindStart: true,
-        },
-      ]);
-      await settleActivityEffects();
-      await page.reload();
-      await expect(reminder).toBeHidden();
-      await page
-        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
-        .click();
-      await expect(reminder).not.toBeChecked();
-      await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
-      await expect(
-        page.getByRole("link", {
-          name: "Browser activity subscription",
+      await activityRun(async (settleActivityEffects) => {
+        expect(await subscriptions()).toEqual(
+          action === "add" ? [] : [initial],
+        );
+        const errors: string[] = [];
+        page.on("pageerror", (error) => errors.push(error.message));
+        await page.setViewportSize(viewport);
+        const reminder = page.getByRole("checkbox", {
+          name: /报名截止前|registration closes/i,
+        });
+        if (action !== "remove") {
+          await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
+          await settleActivityEffects();
+          if (action === "add") {
+            await page
+              .getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ })
+              .click();
+            await expect(
+              page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
+            ).toBeVisible();
+          } else {
+            await expect(reminder).toBeHidden();
+            await page
+              .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+              .click();
+            await reminder.uncheck();
+            await observeAction(
+              () =>
+                page.waitForResponse(
+                  (response) =>
+                    response
+                      .url()
+                      .endsWith(
+                        `/api/workspace/young-event-subscriptions/${youngId}`,
+                      ) && response.request().method() === "PUT",
+                ),
+              () =>
+                page
+                  .getByRole("button", {
+                    name: /^(保存提醒设置|Save reminders)$/,
+                  })
+                  .click(),
+            );
+            await expect(
+              page.getByRole("button", {
+                name: /^(保存提醒设置|Save reminders)$/,
+              }),
+            ).toBeEnabled();
+          }
+          expect(await subscriptions()).toEqual([
+            { ...initial, remindDeadline: action === "add" },
+          ]);
+          await settleActivityEffects();
+          await page.reload();
+          await waitForUiSettled(page);
+          await expect(reminder).toBeHidden();
+          await page
+            .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+            .click();
+          await expect(reminder).toBeChecked({ checked: action === "add" });
+        }
+        await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
+        const link = page.getByRole("link", {
+          name: activity.name,
           exact: true,
-        }),
-      ).toBeVisible();
-      await expect(page.getByRole("checkbox")).toHaveCount(0);
-      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-      ).toBe(true);
-      await expect(
-        page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
-      ).toBeEnabled();
-      await page.screenshot({
-        path: test
-          .info()
-          .outputPath(`young-subscriptions-${viewport.width}.png`),
-        fullPage: true,
+        });
+        await expect(link).toBeVisible();
+        await expect(page.getByRole("checkbox")).toHaveCount(0);
+        await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        ).toBe(true);
+        const remove = page.getByRole("button", {
+          name: /^(取消订阅|Unsubscribe)$/,
+        });
+        await expect(remove).toBeEnabled();
+        await page.screenshot({
+          path: test
+            .info()
+            .outputPath(`young-subscriptions-${action}-${viewport.width}.png`),
+          fullPage: true,
+        });
+        if (action === "remove") {
+          await remove.click();
+          await expect(link).toHaveCount(0);
+          expect(await subscriptions()).toEqual([]);
+          await settleActivityEffects();
+          await page.reload();
+          await waitForUiSettled(page);
+          await expect(link).toHaveCount(0);
+        }
+        expect(await subscriptions()).toEqual(
+          action === "remove"
+            ? []
+            : [{ ...initial, remindDeadline: action === "add" }],
+        );
+        expect(errors).toEqual([]);
       });
-      await page
-        .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ })
-        .click();
-      await expect(
-        page.getByRole("link", {
-          name: "Browser activity subscription",
-          exact: true,
-        }),
-      ).toHaveCount(0);
-      expect(await subscriptions()).toEqual([]);
-      await settleActivityEffects();
-      await page.reload();
-      await expect(
-        page.getByRole("link", { name: activity.name, exact: true }),
-      ).toHaveCount(0);
-      expect(errors).toEqual([]);
     });
-  });
+  }
 }
 
 test("activity detail posts comments to the public youngId and preserves them on reload", async ({
