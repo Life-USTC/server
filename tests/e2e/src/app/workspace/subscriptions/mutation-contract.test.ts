@@ -50,82 +50,84 @@ for (const operation of [
   "batch",
   "import-codes",
 ] as const) {
-  test(`subscription.duplicate-input-semantics REST ${operation}`, async ({
-    page,
-    oauthOwner,
-    createCalendar,
-    calendarProtocolRun,
-  }) => {
-    await calendarProtocolRun(async (io) => {
-      const { fixture, db, contract } = await prepare(
-        page,
-        oauthOwner,
-        io,
-        createCalendar,
-        operation === "query" ? 0 : 2,
-      );
-      const id = fixture.section.id;
-      const code = fixture.section.code;
-      const codes = [code, code.toLowerCase(), ` ${code} `];
-      const userId = fixture.users[0].id;
-      if (operation === "remove")
-        await db.userSectionSubscription.create({
-          data: { userId, sectionId: id },
-        });
-      const send = () => {
-        if (operation === "append")
-          return page.request.patch(base, { data: { sectionIds: [id, id] } });
-        if (operation === "remove")
-          return page.request.delete(base, { data: { sectionIds: [id, id] } });
-        return page.request.post(`${base}/${operation}`, {
-          data: {
-            codes,
-            semesterId: fixture.section.semesterId,
-            ...(operation === "import-codes" ? {} : { sectionIds: [id, id] }),
-            ...(operation === "batch" ? { action: "add" } : {}),
-          },
-        });
-      };
-      const response = await send();
-      expect(response.status()).toBe(200);
-      const body = await response.json();
-      if (operation === "query" || operation === "batch")
-        expect(body).toMatchObject({
-          total: 1,
-          matchedSectionIds: [id],
-          matchedCodes: [code],
-        });
-      if (operation === "import-codes")
-        expect(body).toMatchObject({ addedCount: 1, matchedCodes: [code] });
-      if (operation === "append")
-        expect(body).toMatchObject({
-          addedCount: 1,
-          alreadySubscribedCount: 0,
-        });
-      if (operation === "batch") expect(body.addedCount).toBe(1);
-      const added = await memberships(db, userId);
-      expect(added.map(({ sectionId }) => sectionId)).toEqual(
-        operation === "query" || operation === "remove" ? [] : [id],
-      );
-      const replay = await send();
-      await replay.body();
-      expect(replay.status()).toBe(200);
-      if (operation === "batch")
-        expect(await replay.json()).toMatchObject({
-          addedCount: 0,
-          total: 1,
-          matchedSectionIds: [id],
-          matchedCodes: [code],
-        });
-      if (operation === "append" || operation === "import-codes")
-        expect(await replay.json()).toMatchObject({
-          addedCount: 0,
-          alreadySubscribedCount: 1,
-        });
-      expect(await memberships(db, userId)).toEqual(added);
-      return contract.checks(
-        operation === "query" || operation === "remove" ? [] : [id],
-        [
+  for (const state of operation === "query"
+    ? (["absent"] as const)
+    : (["absent", "present"] as const)) {
+    test(`subscription.duplicate-input-semantics REST ${operation} ${state}`, async ({
+      page,
+      oauthOwner,
+      createCalendar,
+      calendarProtocolRun,
+    }) => {
+      await calendarProtocolRun(async (io) => {
+        const { fixture, db, contract } = await prepare(
+          page,
+          oauthOwner,
+          io,
+          createCalendar,
+          operation === "query" ? 0 : 1,
+        );
+        const id = fixture.section.id;
+        const code = fixture.section.code;
+        const codes = [code, code.toLowerCase(), ` ${code} `];
+        const userId = fixture.users[0].id;
+        if (state === "present")
+          await db.userSectionSubscription.create({
+            data: {
+              userId,
+              sectionId: id,
+              createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            },
+          });
+        const before = await memberships(db, userId);
+        const response =
+          operation === "append"
+            ? await page.request.patch(base, { data: { sectionIds: [id, id] } })
+            : operation === "remove"
+              ? await page.request.delete(base, {
+                  data: { sectionIds: [id, id] },
+                })
+              : await page.request.post(`${base}/${operation}`, {
+                  data: {
+                    codes,
+                    semesterId: fixture.section.semesterId,
+                    ...(operation === "import-codes"
+                      ? {}
+                      : { sectionIds: [id, id] }),
+                    ...(operation === "batch" ? { action: "add" } : {}),
+                  },
+                });
+        expect(response.status()).toBe(200);
+        const body = await response.json();
+        if (operation === "query" || operation === "batch")
+          expect(body).toMatchObject({
+            total: 1,
+            matchedSectionIds: [id],
+            matchedCodes: [code],
+          });
+        if (operation === "import-codes")
+          expect(body.matchedCodes).toEqual([code]);
+        if (operation === "append" || operation === "import-codes")
+          expect(body).toMatchObject({
+            addedCount: state === "absent" ? 1 : 0,
+            alreadySubscribedCount: state === "present" ? 1 : 0,
+          });
+        if (operation === "batch")
+          expect(body).toMatchObject({
+            addedCount: state === "absent" ? 1 : 0,
+            removedCount: 0,
+            unchangedCount: state === "present" ? 1 : 0,
+          });
+        const after = await memberships(db, userId);
+        const expected =
+          operation === "query" || operation === "remove" ? [] : [id];
+        expect(after.map(({ sectionId }) => sectionId)).toEqual(expected);
+        if (
+          operation === "query" ||
+          (state === "present" && operation !== "remove")
+        )
+          expect(after).toEqual(before);
+        return contract.checks(expected, [
           [
             operation === "append"
               ? "PATCH"
@@ -135,12 +137,12 @@ for (const operation of [
             operation === "append" || operation === "remove"
               ? base
               : `${base}/${operation}`,
-            [200, 200],
+            [200],
           ],
-        ],
-      );
+        ]);
+      });
     });
-  });
+  }
 }
 
 for (const action of ["ADD", "REMOVE"] as const) {
@@ -200,50 +202,57 @@ for (const action of ["ADD", "REMOVE"] as const) {
   });
 }
 
-test("subscription.duplicate-input-semantics MCP", async ({
-  page,
-  oauthOwner,
-  createCalendar,
-  calendarProtocolRun,
-}) => {
-  await calendarProtocolRun(async (io) => {
-    const { fixture, db, contract } = await prepare(
-      page,
-      oauthOwner,
-      io,
-      createCalendar,
-      2,
-    );
-    const importCodes = await contract.authorizeImports(
-      "subscription-duplicates",
-    );
-    const code = fixture.section.code;
-    const semesterId = fixture.section.semesterId;
-    if (semesterId === null)
-      throw new Error("Expected the prepared calendar semester");
-    const call = () =>
-      importCodes([code, code.toLowerCase(), ` ${code} `], semesterId);
-    const result = await call();
-    expect(result.isError).not.toBe(true);
-    expect(parseTextContent(result)).toMatchObject({
-      addedCount: 1,
-      alreadySubscribedCount: 0,
-      matchedCodes: [code],
+for (const state of ["absent", "present"] as const) {
+  test(`subscription.duplicate-input-semantics MCP ${state}`, async ({
+    page,
+    oauthOwner,
+    createCalendar,
+    calendarProtocolRun,
+  }) => {
+    await calendarProtocolRun(async (io) => {
+      const { fixture, db, contract } = await prepare(
+        page,
+        oauthOwner,
+        io,
+        createCalendar,
+        1,
+      );
+      const userId = fixture.users[0].id;
+      if (state === "present")
+        await db.userSectionSubscription.create({
+          data: {
+            userId,
+            sectionId: fixture.section.id,
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          },
+        });
+      const before = await memberships(db, userId);
+      const importCodes = await contract.authorizeImports(
+        "subscription-duplicates",
+      );
+      const code = fixture.section.code;
+      const semesterId = fixture.section.semesterId;
+      if (semesterId === null)
+        throw new Error("Expected the prepared calendar semester");
+      const result = await importCodes(
+        [code, code.toLowerCase(), ` ${code} `],
+        semesterId,
+      );
+      expect(result.isError).not.toBe(true);
+      expect(parseTextContent(result)).toMatchObject({
+        addedCount: state === "absent" ? 1 : 0,
+        alreadySubscribedCount: state === "present" ? 1 : 0,
+        matchedCodes: [code],
+      });
+      const after = await memberships(db, userId);
+      expect(after.map(({ sectionId }) => sectionId)).toEqual([
+        fixture.section.id,
+      ]);
+      if (state === "present") expect(after).toEqual(before);
+      return contract.checks([fixture.section.id], [], 1);
     });
-    const baseline = await memberships(db, fixture.users[0].id);
-    expect(baseline.map(({ sectionId }) => sectionId)).toEqual([
-      fixture.section.id,
-    ]);
-    const replay = await call();
-    expect(replay.isError).not.toBe(true);
-    expect(parseTextContent(replay)).toMatchObject({
-      addedCount: 0,
-      alreadySubscribedCount: 1,
-    });
-    expect(await memberships(db, fixture.users[0].id)).toEqual(baseline);
-    return contract.checks([fixture.section.id], []);
   });
-});
+}
 
 for (const operation of [
   "append",

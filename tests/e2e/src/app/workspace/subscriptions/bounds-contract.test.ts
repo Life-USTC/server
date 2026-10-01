@@ -300,6 +300,6 @@ test("subscription.bounded-batch-input MCP import", async ({
     const rejected = await call([...codes, codes[0]], fixture.semesterId, true);
     expect(rejected.isError).toBe(true);
     expect(await memberships(db, userId)).toEqual(mcpState);
-    return contract.checks(ids, [], 1);
+    return contract.checks(ids, [], 2, 1);
   });
 });
