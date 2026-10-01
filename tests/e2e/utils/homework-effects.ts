@@ -193,6 +193,28 @@ export async function withHomeworkEffects(
           `Worker completed ${owned.method} ${owned.path}${read ? ` (${read.status})` : " (no browser response)"}`,
         ).toBeGreaterThanOrEqual(0);
         const [native] = unmatched.splice(index, 1);
+        // A public cache miss renders through a second Worker entrypoint. It
+        // belongs to this exact outer request, not a second browser request.
+        const publicSsr = unmatched.filter(
+          (request) =>
+            request.value.entrypoint === "PublicSsr" &&
+            request.value.requestId === native.value.requestId &&
+            request.value.method === native.value.method &&
+            request.value.path === native.value.path,
+        );
+        expect(
+          publicSsr.length,
+          `At most one PublicSsr render for ${owned.method} ${owned.path}`,
+        ).toBeLessThanOrEqual(1);
+        const [render] = publicSsr;
+        if (render) {
+          expect(render.outcome).toBe("fulfilled");
+          expect(
+            render.result,
+            `PublicSsr preserved ${owned.method} ${owned.path} status`,
+          ).toBe(native.result);
+          unmatched.splice(unmatched.indexOf(render), 1);
+        }
         if (canceled) {
           expect(
             native.result,
