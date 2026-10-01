@@ -161,10 +161,11 @@ export function createCalendarEffectObserver({
       );
       expect(
         consumer.attempts
-          .map((attempt): CalendarMessage =>
-            attempt.sectionId === undefined
-              ? { type: "user", userId: attempt.userId }
-              : { type: "section", sectionId: attempt.sectionId },
+          .map(
+            (attempt): CalendarMessage =>
+              attempt.sectionId === undefined
+                ? { type: "user", userId: attempt.userId }
+                : { type: "section", sectionId: attempt.sectionId },
           )
           .sort(compareMessages),
       ).toEqual([...consumedMessages].sort(compareMessages));
