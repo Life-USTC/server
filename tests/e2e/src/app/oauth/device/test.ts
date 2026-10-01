@@ -61,6 +61,27 @@ const DEVICE_MCP_CLIENT_SCOPES = [
   restWriteScope("workspace.todo"),
   OAUTH_OFFLINE_ACCESS_SCOPE,
 ];
+async function expectNoDeviceGrantEffects(
+  db: IsolatedWorker["database"]["owner"],
+) {
+  expect(
+    await db.oAuthConsent.findMany({
+      select: {
+        clientId: true,
+        userId: true,
+        grantId: true,
+        scopes: true,
+        resources: true,
+        requestedUserInfoClaims: true,
+      },
+    }),
+  ).toEqual([]);
+  expect(await db.oAuthAccessToken.count()).toBe(0);
+  expect(await db.oAuthRefreshToken.count()).toBe(0);
+  expect(await db.auditLog.findMany()).toEqual([]);
+  expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+}
+
 async function registerDeviceClient(
   worker: IsolatedWorker,
   clientName: string,
@@ -363,22 +384,7 @@ isolatedTest(
               scopes: ["openid", "profile"],
             }),
           ]);
-          expect(
-            await db.oAuthConsent.findMany({
-              select: {
-                clientId: true,
-                userId: true,
-                grantId: true,
-                scopes: true,
-                resources: true,
-                requestedUserInfoClaims: true,
-              },
-            }),
-          ).toEqual([]);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.auditLog.findMany()).toEqual([]);
-          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          await expectNoDeviceGrantEffects(db);
         },
       };
     });
@@ -425,22 +431,7 @@ isolatedTest(
             }),
           ).toEqual([{ clientId: clientId, disabled: false }]);
           expect(await db.deviceCode.findMany()).toEqual([]);
-          expect(
-            await db.oAuthConsent.findMany({
-              select: {
-                clientId: true,
-                userId: true,
-                grantId: true,
-                scopes: true,
-                resources: true,
-                requestedUserInfoClaims: true,
-              },
-            }),
-          ).toEqual([]);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.auditLog.findMany()).toEqual([]);
-          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          await expectNoDeviceGrantEffects(db);
         },
       };
     });
@@ -489,22 +480,7 @@ isolatedTest(
             }),
           ).toEqual([{ clientId: clientId, disabled: false }]);
           expect(await db.deviceCode.findMany()).toEqual([]);
-          expect(
-            await db.oAuthConsent.findMany({
-              select: {
-                clientId: true,
-                userId: true,
-                grantId: true,
-                scopes: true,
-                resources: true,
-                requestedUserInfoClaims: true,
-              },
-            }),
-          ).toEqual([]);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.auditLog.findMany()).toEqual([]);
-          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          await expectNoDeviceGrantEffects(db);
         },
       };
     });
@@ -564,22 +540,7 @@ isolatedTest(
               scopes: ["openid", "profile"],
             }),
           ]);
-          expect(
-            await db.oAuthConsent.findMany({
-              select: {
-                clientId: true,
-                userId: true,
-                grantId: true,
-                scopes: true,
-                resources: true,
-                requestedUserInfoClaims: true,
-              },
-            }),
-          ).toEqual([]);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.auditLog.findMany()).toEqual([]);
-          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          await expectNoDeviceGrantEffects(db);
         },
       };
     });
@@ -646,22 +607,7 @@ isolatedTest(
               scopes: ["openid", "profile"],
             }),
           ]);
-          expect(
-            await db.oAuthConsent.findMany({
-              select: {
-                clientId: true,
-                userId: true,
-                grantId: true,
-                scopes: true,
-                resources: true,
-                requestedUserInfoClaims: true,
-              },
-            }),
-          ).toEqual([]);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.auditLog.findMany()).toEqual([]);
-          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          await expectNoDeviceGrantEffects(db);
         },
       };
     });
@@ -1092,22 +1038,7 @@ isolatedTest(
               scopes: ["openid", "profile"],
             }),
           ]);
-          expect(
-            await db.oAuthConsent.findMany({
-              select: {
-                clientId: true,
-                userId: true,
-                grantId: true,
-                scopes: true,
-                resources: true,
-                requestedUserInfoClaims: true,
-              },
-            }),
-          ).toEqual([]);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.auditLog.findMany()).toEqual([]);
-          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          await expectNoDeviceGrantEffects(db);
         },
       };
     });
@@ -1188,22 +1119,7 @@ isolatedTest(
               }),
             ).toEqual([{ clientId: result.clientId, disabled: false }]);
             expect(await db.deviceCode.findMany()).toEqual([polled]);
-            expect(
-              await db.oAuthConsent.findMany({
-                select: {
-                  clientId: true,
-                  userId: true,
-                  grantId: true,
-                  scopes: true,
-                  resources: true,
-                  requestedUserInfoClaims: true,
-                },
-              }),
-            ).toEqual([]);
-            expect(await db.oAuthAccessToken.count()).toBe(0);
-            expect(await db.oAuthRefreshToken.count()).toBe(0);
-            expect(await db.auditLog.findMany()).toEqual([]);
-            expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+            await expectNoDeviceGrantEffects(db);
           },
         };
       },
@@ -1292,22 +1208,7 @@ isolatedTest(
             }),
           ).toEqual([{ clientId: result.clientId, disabled: false }]);
           expect(await db.deviceCode.findMany()).toEqual([expired]);
-          expect(
-            await db.oAuthConsent.findMany({
-              select: {
-                clientId: true,
-                userId: true,
-                grantId: true,
-                scopes: true,
-                resources: true,
-                requestedUserInfoClaims: true,
-              },
-            }),
-          ).toEqual([]);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.auditLog.findMany()).toEqual([]);
-          expect(await db.oAuthGrantUsageDaily.findMany()).toEqual([]);
+          await expectNoDeviceGrantEffects(db);
         },
       };
     });
