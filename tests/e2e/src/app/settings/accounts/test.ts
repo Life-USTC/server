@@ -74,10 +74,40 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
       { accountRun, page, account, isolatedWorker, authorizationProvider },
       testInfo,
     ) => {
+      let authorizationHref: string | undefined;
       await accountRun(
         {
           writes: [["/account/settings/accounts", 200, "linkAccount"]],
           audits: [],
+          async verifyWrite(response) {
+            // Inspect the genuine Worker response before the owned proxy
+            // fulfills it and the browser leaves this document.
+            const result = await response.json();
+            expect(result.type).toBe("redirect");
+            expect(result.status).toBe(303);
+            const authorization = new URL(result.location);
+            expect(authorization.origin).toBe(authorizationProvider.origin);
+            expect(authorization.pathname).toBe("/authorize/");
+            const parameters = authorization.searchParams;
+            expect(parameters.get("client_id")).toBe(
+              authorizationProvider.clientId,
+            );
+            expect(parameters.get("redirect_uri")).toBe(
+              `${isolatedWorker.origin}/api/auth/callback/oidc`,
+            );
+            expect(parameters.get("response_type")).toBe("code");
+            expect(parameters.get("scope")?.split(" ").sort()).toEqual([
+              "openid",
+            ]);
+            expect(Boolean(parameters.get("state"))).toBe(true);
+            expect(parameters.get("code_challenge_method")).toBe("S256");
+            expect(
+              /^[A-Za-z0-9_-]{43}$/.test(parameters.get("code_challenge") ?? ""),
+            ).toBe(true);
+            expect(parameters.has("client_secret")).toBe(false);
+            expect(parameters.has("code_verifier")).toBe(false);
+            authorizationHref = authorization.href;
+          },
         },
         async () => {
           await gotoAndWaitForReady(page, "/account/settings/accounts");
@@ -113,41 +143,6 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
             () => connectButton.click(),
           );
           expect(response.status()).toBe(200);
-          // The real provider request has arrived, but its held document cannot
-          // evict the initiating response before Chromium exposes its body.
-          await expect
-            .poll(() => authorizationProvider.requests.length)
-            .toBe(1);
-          expect(new URL(page.url()).origin).toBe(isolatedWorker.origin);
-          expect(new URL(page.url()).pathname).toBe(
-            "/account/settings/accounts",
-          );
-          const result = await response.json();
-          expect(result.type).toBe("redirect");
-          expect(result.status).toBe(303);
-          const authorization = new URL(result.location);
-          expect(authorization.origin).toBe(authorizationProvider.origin);
-          expect(authorization.pathname).toBe("/authorize/");
-          const parameters = authorization.searchParams;
-          expect(parameters.get("client_id")).toBe(
-            authorizationProvider.clientId,
-          );
-          expect(parameters.get("redirect_uri")).toBe(
-            `${isolatedWorker.origin}/api/auth/callback/oidc`,
-          );
-          expect(parameters.get("response_type")).toBe("code");
-          expect(parameters.get("scope")?.split(" ").sort()).toEqual([
-            "openid",
-          ]);
-          expect(Boolean(parameters.get("state"))).toBe(true);
-          expect(parameters.get("code_challenge_method")).toBe("S256");
-          expect(
-            /^[A-Za-z0-9_-]{43}$/.test(parameters.get("code_challenge") ?? ""),
-          ).toBe(true);
-          expect(parameters.has("client_secret")).toBe(false);
-          expect(parameters.has("code_verifier")).toBe(false);
-
-          authorizationProvider.releaseDocument();
           await page.waitForURL(
             (url) =>
               url.origin === authorizationProvider.origin &&
@@ -162,7 +157,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
           expect(authorizationProvider.requests.length).toBe(1);
           // Compare opaque state only in memory; do not print it in diagnostics.
           expect(
-            authorizationProvider.requests[0].href === authorization.href,
+            authorizationProvider.requests[0].href === authorizationHref,
           ).toBe(true);
           await captureStepScreenshot(
             page,
