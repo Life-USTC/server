@@ -8,7 +8,6 @@ import type {
 } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { withBrowserWorkflow } from "./browser-workflow";
-import { fulfillFetchedResponse } from "./fulfill-fetched-response";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
 
@@ -398,7 +397,7 @@ export const test = workerTest.extend<{
                       const text = await response.text();
                       // Release the real response before asynchronous consumers settle.
                       // The complete workflow still joins observations before page teardown.
-                      await fulfillFetchedResponse(route, response);
+                      await route.fulfill({ response });
                       fulfilled = true;
                       expect([200, 303, 308]).toContain(response.status());
                       if (input) {
