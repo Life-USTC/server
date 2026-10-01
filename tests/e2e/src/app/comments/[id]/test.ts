@@ -73,3 +73,37 @@ test("/community/comments/[id] 公开评论为匿名读者重定向到目标页�
     await captureStepScreenshot(page, testInfo, "comments-id-redirect");
   }, {});
 });
+
+test("/community/comments/[id] 按目标解析到对应详情页锚点", async ({
+  communityFlow,
+  page,
+  account,
+  community,
+}) => {
+  await communityFlow.run(async () => {
+    // Known state: one comment per catalog target, seeded directly. The
+    // canonical address differs per target, so each one is read on its own
+    // detail page instead of through a create flow.
+    const seeded = await community.db.$transaction((tx) =>
+      Promise.all(
+        community.targets.map(async (target) => {
+          const relation = { [`${target.type}Id`]: target.id };
+          const body = `${discussion} ${target.type}`;
+          return {
+            body,
+            target,
+            row: await tx.comment.create({
+              data: { ...relation, userId: account.id, body },
+            }),
+          };
+        }),
+      ),
+    );
+    for (const { body, target, row } of seeded) {
+      await gotoAndWaitForReady(page, `/community/comments/${row.id}`);
+      expect(new URL(page.url()).pathname).toBe(target.path);
+      expect(new URL(page.url()).hash).toBe(`#comment-${row.id}`);
+      await expect(page.locator(`#comment-${row.id}`)).toContainText(body);
+    }
+  }, {});
+});
