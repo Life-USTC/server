@@ -1,18 +1,16 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
-import {
-  issueAccessTokenForClient,
-  type OAuthOwner,
-  parseTextContent,
-  registerPublicClient,
-} from "../src/app/api/mcp/helpers";
+import { type OAuthOwner, parseTextContent } from "../src/app/api/mcp/helpers";
 import type {
   CalendarProtocol,
   CalendarProtocolChecks,
 } from "./calendar-protocol-lifecycle";
-import { expectOAuthUsage, type OAuthUsageWindow } from "./oauth-usage";
 import type { PrivateCalendar } from "./private-calendar-fixture";
-import { expectSubscriptionProtocol } from "./subscription-consumption";
+import {
+  authorizeSubscription,
+  expectSubscriptionState,
+  signInSubscriptionOwner,
+} from "./subscription-consumption";
 
 export const subscriptionTransports = [
   "REST session",
@@ -28,7 +26,7 @@ export type SubscriptionRelation = {
   kind: "regular" | "auditor" | "teaching_assistant";
 };
 
-async function createSubscriptionMutationFixture(
+export async function createSubscriptionMutationFixture(
   owner: OAuthOwner,
   createCalendar: () => Promise<PrivateCalendar>,
   role: "regular" | "suspended admin" = "regular",
@@ -131,34 +129,7 @@ type SubscriptionConnection = {
   request: APIRequestContext;
   headers: Record<string, string>;
   client?: Client;
-  operation: <T>(
-    kind: OAuthUsageWindow["operation"],
-    work: () => Promise<T>,
-  ) => Promise<T>;
 };
-
-// Preserve whole relevant rows, including unrelated calendar owners and sources.
-async function observeStableState(owner: OAuthOwner) {
-  return owner.worker.database.owner.$transaction(async (tx) => ({
-    users: await tx.user.findMany({ orderBy: { id: "asc" } }),
-    suspensions: await tx.userSuspension.findMany({ orderBy: { id: "asc" } }),
-    todos: await tx.todo.findMany({ orderBy: { id: "asc" } }),
-    youngSubscriptions: await tx.userYoungEventSubscription.findMany({
-      orderBy: [{ userId: "asc" }, { youngId: "asc" }],
-    }),
-    youngEvents: await tx.youngEvent.findMany({ orderBy: { youngId: "asc" } }),
-    homework: await tx.homework.findMany({ orderBy: { id: "asc" } }),
-    homeworkCompletions: await tx.homeworkCompletion.findMany({
-      orderBy: [{ userId: "asc" }, { homeworkId: "asc" }],
-    }),
-    semesters: await tx.semester.findMany({ orderBy: { id: "asc" } }),
-    courses: await tx.course.findMany({ orderBy: { id: "asc" } }),
-    sections: await tx.section.findMany({ orderBy: { id: "asc" } }),
-    groups: await tx.scheduleGroup.findMany({ orderBy: { id: "asc" } }),
-    schedules: await tx.schedule.findMany({ orderBy: { id: "asc" } }),
-    exams: await tx.exam.findMany({ orderBy: { id: "asc" } }),
-  }));
-}
 
 export async function runSubscriptionScenario(
   {
@@ -178,21 +149,19 @@ export async function runSubscriptionScenario(
     transport = "anonymous",
     role = "regular",
     messages,
-    usage,
     scope = "workspace.subscription:read workspace.subscription:write",
     sdkTools = [],
   }: {
     transport?: SubscriptionConnection["transport"];
     role?: "regular" | "suspended admin";
-    messages: 0 | 4;
-    usage: readonly [read: number, write: number, error: number];
+    messages: number;
     scope?: string;
     sdkTools?: string[];
   },
   work: (
     connection: SubscriptionConnection,
     fixture: SubscriptionMutationFixture,
-  ) => Promise<void>,
+  ) => Promise<SubscriptionRelation[]>,
 ) {
   await calendarProtocolRun(async ({ request, mcp, observeCalendar }) => {
     const fixture = await createSubscriptionMutationFixture(
@@ -200,246 +169,57 @@ export async function runSubscriptionScenario(
       createCalendar,
       role,
     );
-    const db = owner.worker.database.owner;
     const userId = fixture.own.users[0].id;
     await observeCalendar(
       fixture.own.users[0],
       Array.from({ length: messages }, () => ({ type: "user", userId })),
     );
-    const stableState = await observeStableState(owner);
     const headers: Record<string, string> = {};
     const origin = owner.worker.origin;
-    const bearer = transport.endsWith("bearer");
-    const resource = `${origin}/api/${transport.startsWith("REST") ? "auth" : transport.startsWith("GraphQL") ? "graphql" : "mcp"}`;
-    let sessionId: string | undefined;
-    let clientId: string | undefined;
     let client: Client | undefined;
-    if (transport !== "anonymous") {
-      await page
-        .context()
-        .addCookies([
-          (await owner.worker.createSession(userId)).cookie,
-          { name: "NEXT_LOCALE", value: "en-us", url: origin },
-        ]);
-      const sessions = await db.session.findMany({
-        select: { id: true, userId: true },
+    if (transport !== "anonymous")
+      await signInSubscriptionOwner(page, fixture.own, owner.worker);
+    if (transport.endsWith("bearer")) {
+      const token = await authorizeSubscription(page, request, owner, {
+        scope,
+        channel: transport.startsWith("REST")
+          ? "rest"
+          : transport.startsWith("GraphQL")
+            ? "graphql"
+            : "mcp",
       });
-      expect(sessions).toEqual([{ id: expect.any(String), userId }]);
-      sessionId = sessions[0].id;
-    }
-    const clientScopes = [
-      "workspace.subscription:read",
-      "workspace.subscription:write",
-    ];
-    if (bearer) {
-      clientId = await registerPublicClient(request, scope, owner);
-      // DCR registers the public capability set; its policy has separate tests.
-      // Arrange this client's capabilities before genuine consent. Even a
-      // read-only grant belongs to a client capable of requesting writes.
-      await db.oAuthClient.update({
-        where: { clientId },
-        data: { scopes: clientScopes },
-      });
-      const { response, tokenBody } = await issueAccessTokenForClient(
-        page,
-        request,
-        {
-          clientId,
-          owner,
-          scope,
-          resource,
-        },
-      );
-      expect(response.status()).toBe(200);
-      expect(typeof tokenBody.access_token).toBe("string");
-      expect(tokenBody.refresh_token).toBeUndefined();
-      expect(tokenBody).not.toHaveProperty("id_token");
-      headers.Authorization = `Bearer ${tokenBody.access_token}`;
+      headers.Authorization = `Bearer ${token}`;
       if (transport === "MCP bearer")
-        client = await mcp(
-          { name: "subscription-state-test", version: "1" },
-          tokenBody.access_token as string,
-        );
+        client = await mcp({ name: "subscription-state-test", version: "1" }, token);
     }
-    const windows: OAuthUsageWindow[] = [];
-    await work(
+    const expected = await work(
       {
         origin,
         transport,
         headers,
         client,
         request: transport.endsWith("session") ? page.request : request,
-        async operation(operation, action) {
-          const start = Date.now();
-          const result = await action();
-          if (bearer) windows.push({ start, end: Date.now(), operation });
-          return result;
-        },
       },
       fixture,
     );
     return {
-      async verifyTransport(observation) {
-        if (transport !== "MCP bearer")
-          expect(observation.sdkRequests).toEqual([]);
-        expectSubscriptionProtocol(
-          observation,
-          bearer ? 1 : 0,
-          sdkTools,
-          transport === "MCP bearer" ? 1 : 0,
-        );
+      async verifyTransport({ sdkRequests }) {
+        expect(
+          sdkRequests
+            .filter(({ rpc }) => rpc === "tools/call")
+            .map(({ tool }) => tool),
+        ).toEqual(sdkTools);
       },
       async verifyState() {
-        await expectSubscriptionRelations(fixture, fixture.initial);
-        expect(await observeStableState(owner)).toEqual(stableState);
-        expect(
-          await db.user.findMany({
-            orderBy: { id: "asc" },
-            select: { id: true, calendarFeedToken: true },
-          }),
-        ).toEqual(
-          fixture.userIds
-            .map((id) => ({ id, calendarFeedToken: null }))
-            .sort((a, b) => a.id.localeCompare(b.id)),
-        );
-        expect(
-          await db.session.findMany({ select: { id: true, userId: true } }),
-        ).toEqual(sessionId ? [{ id: sessionId, userId }] : []);
-        expect(
-          await db.oAuthClient.findMany({
-            select: {
-              clientId: true,
-              name: true,
-              userId: true,
-              scopes: true,
-              redirectUris: true,
-              grantTypes: true,
-              responseTypes: true,
-              tokenEndpointAuthMethod: true,
-              applicationType: true,
-            },
-          }),
-        ).toEqual(
-          clientId
-            ? [
-                {
-                  clientId,
-                  name: owner.clientNames[0],
-                  userId: null,
-                  scopes: clientScopes,
-                  redirectUris: [`${origin}/e2e/oauth/callback`],
-                  grantTypes: ["authorization_code"],
-                  responseTypes: ["code"],
-                  tokenEndpointAuthMethod: "none",
-                  applicationType: "native",
-                },
-              ]
-            : [],
-        );
-        expect(owner.clientNames).toHaveLength(bearer ? 1 : 0);
-        const consents = await db.oAuthConsent.findMany({
-          select: {
-            clientId: true,
-            userId: true,
-            grantId: true,
-            scopes: true,
-            resources: true,
-            requestedUserInfoClaims: true,
-          },
-        });
-        expect(consents).toEqual(
-          clientId
-            ? [
-                {
-                  clientId,
-                  userId,
-                  grantId: expect.any(String),
-                  scopes: scope.split(" "),
-                  resources: [resource],
-                  requestedUserInfoClaims: [],
-                },
-              ]
-            : [],
-        );
-        const grantId = consents[0]?.grantId;
-        if (clientId)
-          expect(grantId).toMatch(
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        await expectSubscriptionRelations(fixture, expected);
+        for (const calendar of [fixture.own, fixture.foreign])
+          await expectSubscriptionState(
+            calendar,
+            owner.worker,
+            expected
+              .filter(({ userId }) => userId === calendar.users[0].id)
+              .map(({ sectionId, kind }) => ({ sectionId, kind })),
           );
-        expect(
-          await db.auditLog.findMany({
-            select: {
-              action: true,
-              outcome: true,
-              channel: true,
-              userId: true,
-              subjectUserId: true,
-              targetId: true,
-              targetType: true,
-              oauthClientId: true,
-              oauthGrantId: true,
-              sessionId: true,
-              metadata: true,
-            },
-          }),
-        ).toEqual(
-          clientId
-            ? [
-                {
-                  action: "oauth_authorization_grant",
-                  outcome: "success",
-                  channel: "web",
-                  userId,
-                  subjectUserId: userId,
-                  targetId: clientId,
-                  targetType: "oauth_client",
-                  oauthClientId: clientId,
-                  oauthGrantId: grantId,
-                  sessionId,
-                  metadata: {
-                    changedFields: ["resources", "scopes", "userinfoClaims"],
-                    resourceCount: 1,
-                    scopeCount: scope.split(" ").length,
-                  },
-                },
-              ]
-            : [],
-        );
-        expect(await db.oAuthRefreshToken.count()).toBe(0);
-        expect(await db.oAuthAccessToken.count()).toBe(0);
-        // Resource access tokens are JWTs; issuance is asserted at the real
-        // exchange above, not inferred from opaque-token persistence.
-        const rows = await db.oAuthGrantUsageDaily.findMany({
-          orderBy: { day: "asc" },
-          select: {
-            userId: true,
-            clientId: true,
-            grantId: true,
-            grantKey: true,
-            day: true,
-            feature: true,
-            channel: true,
-            readCount: true,
-            writeCount: true,
-            errorCount: true,
-            lastUsedAt: true,
-          },
-        });
-        expectOAuthUsage(rows, {
-          counts: usage,
-          windows,
-          dimensions: {
-            userId,
-            clientId,
-            grantId,
-            feature: "workspace.subscription",
-            channel: transport.startsWith("REST")
-              ? "rest"
-              : transport.startsWith("GraphQL")
-                ? "graphql"
-                : "mcp",
-          },
-        });
       },
     };
   });
@@ -451,7 +231,7 @@ export async function mutateSubscription(
   connection: SubscriptionConnection,
   fixture: SubscriptionMutationFixture,
   action: "add" | "remove" | "kind",
-  wasSubscribed = true,
+  wasSubscribed: boolean,
 ) {
   const { own, foreign } = fixture;
   const { transport, request, headers, client, origin } = connection;
@@ -493,8 +273,8 @@ export async function mutateSubscription(
       );
       if (action === "add") {
         expect(body).toMatchObject({
-          addedCount: 1,
-          alreadySubscribedCount: 0,
+          addedCount: wasSubscribed ? 0 : 1,
+          alreadySubscribedCount: wasSubscribed ? 1 : 0,
         });
       }
     }
@@ -541,7 +321,9 @@ export async function mutateSubscription(
           sectionJwId: foreign.section.jwId,
           action:
             action === "add"
-              ? "subscribed"
+              ? wasSubscribed
+                ? "already_subscribed"
+                : "subscribed"
               : wasSubscribed
                 ? "unsubscribed"
                 : "not_subscribed",

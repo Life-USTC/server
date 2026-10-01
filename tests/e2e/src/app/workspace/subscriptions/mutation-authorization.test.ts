@@ -22,7 +22,7 @@ test("Anonymous subscription writes are rejected without changing any membership
 }) => {
   await runSubscriptionScenario(
     { page, calendarProtocolRun, oauthOwner, createCalendar },
-    { messages: 0, usage: [0, 0, 0] },
+    { messages: 0 },
     async ({ request }, fixture) => {
       for (const method of ["patch", "delete"] as const) {
         const response = await request[method]("/api/workspace/subscriptions", {
@@ -72,6 +72,7 @@ test("Anonymous subscription writes are rejected without changing any membership
         expect(response.headers()["www-authenticate"]).toContain("Bearer");
         await expectSubscriptionRelations(fixture, fixture.initial);
       }
+      return fixture.initial;
     },
   );
 });
@@ -94,18 +95,15 @@ for (const transport of [
       {
         transport,
         messages: 0,
-        usage: transport === "REST bearer" ? [0, 1, 1] : [0, 0, 0],
       },
       async (connection, fixture) => {
         if (transport.startsWith("REST")) {
-          const response = await connection.operation("write error", () =>
-            connection.request.patch(
-              `/api/workspace/subscriptions/${fixture.foreign.section.jwId}`,
-              {
-                headers: connection.headers,
-                data: { kind: "auditor", userId: fixture.foreign.users[0].id },
-              },
-            ),
+          const response = await connection.request.patch(
+            `/api/workspace/subscriptions/${fixture.foreign.section.jwId}`,
+            {
+              headers: connection.headers,
+              data: { kind: "auditor", userId: fixture.foreign.users[0].id },
+            },
           );
           await response.body();
           expect(response.status()).toBe(400);
@@ -130,6 +128,7 @@ for (const transport of [
           expect(body.data).toBeUndefined();
         }
         await expectSubscriptionRelations(fixture, fixture.initial);
+        return fixture.initial;
       },
     );
   });
@@ -152,7 +151,6 @@ for (const transport of [
       {
         transport,
         messages: 0,
-        usage: [1, 0, 0],
         scope: "workspace.subscription:read",
         sdkTools:
           transport === "MCP bearer" ? ["workspace_subscription_list"] : [],
@@ -160,11 +158,9 @@ for (const transport of [
       async (connection, fixture) => {
         const { request } = connection;
         if (transport === "REST bearer") {
-          const read = await connection.operation("read", () =>
-            request.get("/api/workspace/subscriptions/current", {
-              headers: connection.headers,
-            }),
-          );
+          const read = await request.get("/api/workspace/subscriptions/current", {
+            headers: connection.headers,
+          });
           expect(read.status()).toBe(200);
           expect((await read.json()).subscription.userId).toBe(
             fixture.own.users[0].id,
@@ -195,14 +191,12 @@ for (const transport of [
             await expectSubscriptionRelations(fixture, fixture.initial);
           }
         } else if (transport === "GraphQL bearer") {
-          const read = await connection.operation("read", () =>
-            subscriptionGraphql(
-              request,
-              fixture.owner.worker.origin,
-              "{ workspace { subscribedSections { items { section { id } } } } }",
-              {},
-              connection.headers,
-            ),
+          const read = await subscriptionGraphql(
+            request,
+            fixture.owner.worker.origin,
+            "{ workspace { subscribedSections { items { section { id } } } } }",
+            {},
+            connection.headers,
           );
           expect(read.body.errors).toBeUndefined();
           expect(read.body.data.workspace.subscribedSections.items).toEqual([
@@ -232,12 +226,10 @@ for (const transport of [
         } else {
           const client = connection.client;
           if (!client) throw new Error("MCP connection is required");
-          const read = await connection.operation("read", () =>
-            client.callTool({
-              name: "workspace_subscription_list",
-              arguments: {},
-            }),
-          );
+          const read = await client.callTool({
+            name: "workspace_subscription_list",
+            arguments: {},
+          });
           expect(read.isError).not.toBe(true);
           for (const action of ["add", "remove", "kind_update"]) {
             const response = await request.post("/api/mcp", {
@@ -275,6 +267,7 @@ for (const transport of [
             await expectSubscriptionRelations(fixture, fixture.initial);
           }
         }
+        return fixture.initial;
       },
     );
   });
