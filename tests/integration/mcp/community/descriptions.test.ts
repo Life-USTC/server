@@ -105,125 +105,121 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       }),
   );
 
-  toolTest(
-    "community_description_set 创建、幂等重读、审计并清理",
-    async ({
-      mcpWorkflow,
-      mcpActor: isolated,
-      isolatedDatabase: { owner: db },
-      expect,
-    }) =>
-      mcpWorkflow.run(async () => {
-        const marker = `[integration-test] mcp-description-${Date.now()}`;
-        const teacher = await db.teacher.create({
-          data: {
-            code: marker,
-            jwId: 1,
-            nameCn: marker,
-          },
-          select: { id: true },
-        });
-
-        type Result = {
-          success?: boolean;
-          id?: string;
-          updated?: boolean;
-          description?: {
-            content?: string;
-            id?: string | null;
-            renderedHtml?: string;
-          };
-          target?: { targetId?: number; type?: string };
-        };
-        const results: Array<{
-          mode: "default" | "full";
-          result: Result;
-        }> = [];
-        for (const mode of ["default", "full"] as const) {
-          results.push({
-            mode,
-            result: await isolated.client.call<Result>(
-              "community_description_set",
-              {
-                targetType: "teacher",
-                teacherId: teacher.id,
-                content: ` ${marker} `,
-                mode,
-              },
-            ),
+  for (const operation of ["create", "unchanged"] as const) {
+    toolTest(
+      `community_description_set ${operation} observes independently prepared state`,
+      async ({
+        mcpWorkflow,
+        mcpActor: actor,
+        isolatedDatabase: { owner: db },
+        expect,
+      }) =>
+        mcpWorkflow.run(async () => {
+          const content =
+            "[integration-test] Independently prepared MCP description";
+          const teacher = await db.teacher.create({
+            data: {
+              code: "MCP-DESCRIPTION",
+              jwId: 1,
+              nameCn: "Description teacher",
+            },
           });
-        }
-        const created = results[0]?.result ?? {};
-        const descriptionId = created.id;
-        expect(created.success).toBe(true);
-        expect(created.updated).toBe(true);
-        expect(created.target).toMatchObject({
-          targetId: teacher.id,
-          type: "teacher",
-        });
-        expect(created.description?.id).toBe(descriptionId);
-        expect(created.description?.content).toBe(marker);
-        for (const { mode, result } of results) {
-          expect(result.id).toBe(descriptionId);
-          expect(Object.hasOwn(result.description ?? {}, "renderedHtml")).toBe(
+          const existing =
+            operation === "unchanged"
+              ? await db.description.create({
+                  data: {
+                    teacherId: teacher.id,
+                    content,
+                    lastEditedById: actor.userId,
+                  },
+                })
+              : null;
+          const mode = operation === "create" ? "default" : "full";
+          const result = await actor.client.call<{
+            success: boolean;
+            id: string;
+            updated: boolean;
+            description: { id: string; content: string; renderedHtml?: string };
+            target: { targetId: number; type: string };
+          }>("community_description_set", {
+            targetType: "teacher",
+            teacherId: teacher.id,
+            content: ` ${content} `,
+            mode,
+          });
+          expect(result).toMatchObject({
+            success: true,
+            updated: operation === "create",
+            target: { targetId: teacher.id, type: "teacher" },
+            description: { id: result.id, content },
+          });
+          expect(result.id).toEqual(existing?.id ?? expect.any(String));
+          expect(Object.hasOwn(result.description, "renderedHtml")).toBe(
             mode === "full",
           );
-        }
-        const auditLog = descriptionId
-          ? await db.auditLog.findFirst({
-              where: {
-                action: "description_edit",
-                targetId: descriptionId,
-                targetType: "description",
-                userId: isolated.userId,
+          if (existing) {
+            expect(await db.description.findMany()).toEqual([existing]);
+            expect(await db.descriptionEdit.findMany()).toEqual([]);
+            expect(await db.auditLog.findMany()).toEqual([]);
+          } else {
+            expect(
+              await db.description.findMany({
+                select: {
+                  id: true,
+                  teacherId: true,
+                  content: true,
+                  lastEditedById: true,
+                },
+              }),
+            ).toEqual([
+              {
+                id: result.id,
+                teacherId: teacher.id,
+                content,
+                lastEditedById: actor.userId,
               },
-              select: { id: true, metadata: true },
-            })
-          : null;
-        expect(auditLog).not.toBeNull();
-        expect(auditLog?.metadata).toMatchObject({
-          source: "mcp",
-          targetType: "teacher",
-        });
-        const idempotent = results[1]?.result ?? {};
-        expect(idempotent.success).toBe(true);
-        expect(idempotent.id).toBe(descriptionId);
-        expect(idempotent.updated).toBe(false);
-        expect(idempotent.description?.content).toBe(marker);
-        await expect(
-          db.description.findMany({
-            select: {
-              id: true,
-              teacherId: true,
-              content: true,
-              lastEditedById: true,
-            },
-          }),
-        ).resolves.toEqual([
-          {
-            id: descriptionId,
-            teacherId: teacher.id,
-            content: marker,
-            lastEditedById: isolated.userId,
-          },
-        ]);
-        await expect(
-          db.descriptionEdit.findMany({
-            select: {
-              descriptionId: true,
-              editorId: true,
-              previousContent: true,
-              nextContent: true,
-            },
-          }),
-        ).resolves.toEqual([
-          {
-            descriptionId,
-            editorId: isolated.userId,
-            previousContent: null,
-            nextContent: marker,
-          },
-        ]);
-      }),
-  );
+            ]);
+            expect(
+              await db.descriptionEdit.findMany({
+                select: {
+                  descriptionId: true,
+                  editorId: true,
+                  previousContent: true,
+                  nextContent: true,
+                },
+              }),
+            ).toEqual([
+              {
+                descriptionId: result.id,
+                editorId: actor.userId,
+                previousContent: null,
+                nextContent: content,
+              },
+            ]);
+            expect(
+              await db.auditLog.findMany({
+                select: {
+                  action: true,
+                  targetId: true,
+                  targetType: true,
+                  userId: true,
+                  metadata: true,
+                },
+              }),
+            ).toEqual([
+              {
+                action: "description_edit",
+                targetId: result.id,
+                targetType: "description",
+                userId: actor.userId,
+                metadata: expect.objectContaining({
+                  source: "mcp",
+                  targetType: "teacher",
+                }),
+              },
+            ]);
+          }
+        }),
+    );
+  }
 });
