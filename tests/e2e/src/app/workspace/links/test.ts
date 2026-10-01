@@ -251,97 +251,106 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("可以置顶和取消置顶链接并恢复状态", async ({
-    preferenceFlow,
-    page,
-    account,
-    isolatedWorker,
-  }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      const db = isolatedWorker.database.owner;
-      await setLocale(page, "zh-cn", preferenceFlow);
-      expect(await storedPins(db, account.id)).toEqual([]);
-      await gotoAndWaitForReady(page, "/catalog/links", {
-        testInfo,
-        screenshotLabel: "workspace-links",
-      });
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        PIN_LABEL,
-      );
-      expect((await clickJwPin(page, ["jw"], preferenceFlow)).ok()).toBe(true);
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        UNPIN_LABEL,
-      );
-      await expect.poll(() => storedPins(db, account.id)).toEqual(["jw"]);
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await waitForUiSettled(page);
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        UNPIN_LABEL,
-      );
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-links-toggle-request",
-      );
+  for (const initiallyPinned of [false, true]) {
+    const name = initiallyPinned
+      ? "可以取消已准备链接的置顶并在刷新后保持状态"
+      : "可以置顶链接并在刷新后保持状态";
+    test(
+      name,
+      async ({ preferenceFlow, page, account, isolatedWorker }, testInfo) => {
+        const db = isolatedWorker.database.owner;
+        if (initiallyPinned)
+          await preferenceFlow.prepare(() =>
+            db.workspaceLinkPin.create({
+              data: { userId: account.id, slug: "jw" },
+            }),
+          );
+        await preferenceFlow.run(async () => {
+          await setLocale(page, "zh-cn", preferenceFlow);
+          expect(await storedPins(db, account.id)).toEqual(
+            initiallyPinned ? ["jw"] : [],
+          );
+          await gotoAndWaitForReady(page, "/catalog/links", {
+            testInfo,
+            screenshotLabel: "workspace-links",
+          });
+          await expect(await locateJwPinButton(page)).toHaveAttribute(
+            "aria-label",
+            initiallyPinned ? UNPIN_LABEL : PIN_LABEL,
+          );
+          const expectedPins = initiallyPinned ? [] : ["jw"];
+          expect(
+            (await clickJwPin(page, expectedPins, preferenceFlow)).ok(),
+          ).toBe(true);
+          await expect(await locateJwPinButton(page)).toHaveAttribute(
+            "aria-label",
+            initiallyPinned ? PIN_LABEL : UNPIN_LABEL,
+          );
+          await expect
+            .poll(() => storedPins(db, account.id))
+            .toEqual(expectedPins);
+          await page.reload({ waitUntil: "domcontentloaded" });
+          await waitForUiSettled(page);
+          await expect(await locateJwPinButton(page)).toHaveAttribute(
+            "aria-label",
+            initiallyPinned ? PIN_LABEL : UNPIN_LABEL,
+          );
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "workspace-links-toggle-request",
+          );
+        }, "pins");
+      },
+    );
+  }
 
-      expect((await clickJwPin(page, [], preferenceFlow)).ok()).toBe(true);
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        PIN_LABEL,
-      );
-      await expect.poll(() => storedPins(db, account.id)).toEqual([]);
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await waitForUiSettled(page);
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        PIN_LABEL,
-      );
-    }, "pins");
-  });
-
-  test("搜索重新计算链接时保持置顶状态", async ({
-    preferenceFlow,
-    page,
-    account,
-    isolatedWorker,
-  }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      const db = isolatedWorker.database.owner;
-      await setLocale(page, "zh-cn", preferenceFlow);
-      expect(await storedPins(db, account.id)).toEqual([]);
-      await gotoAndWaitForReady(page, "/catalog/links");
-      const searchInput = page.getByRole("searchbox", {
-        name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
-      });
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        PIN_LABEL,
-      );
-      expect((await clickJwPin(page, ["jw"], preferenceFlow)).ok()).toBe(true);
-      await searchInput.fill("教务");
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        UNPIN_LABEL,
-      );
-      await expect.poll(() => storedPins(db, account.id)).toEqual(["jw"]);
-
-      expect((await clickJwPin(page, [], preferenceFlow)).ok()).toBe(true);
-      await searchInput.fill("教务系统");
-      await expect(await locateJwPinButton(page)).toHaveAttribute(
-        "aria-label",
-        PIN_LABEL,
-      );
-      await expect.poll(() => storedPins(db, account.id)).toEqual([]);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-links-pin-search-stable",
-      );
-    }, "pins");
-  });
+  for (const pinned of [true, false]) {
+    const name = pinned
+      ? "搜索重新计算链接时保持置顶状态"
+      : "搜索重新计算链接时保持未置顶状态";
+    test(
+      name,
+      async ({ preferenceFlow, page, account, isolatedWorker }, testInfo) => {
+        const db = isolatedWorker.database.owner;
+        if (pinned)
+          await preferenceFlow.prepare(() =>
+            db.workspaceLinkPin.create({
+              data: { userId: account.id, slug: "jw" },
+            }),
+          );
+        await preferenceFlow.run(async () => {
+          await setLocale(page, "zh-cn", preferenceFlow);
+          expect(await storedPins(db, account.id)).toEqual(
+            pinned ? ["jw"] : [],
+          );
+          await gotoAndWaitForReady(page, "/catalog/links");
+          const searchInput = page.getByRole("searchbox", {
+            name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
+          });
+          await expect(await locateJwPinButton(page)).toHaveAttribute(
+            "aria-label",
+            pinned ? UNPIN_LABEL : PIN_LABEL,
+          );
+          for (const query of ["教务", "教务系统"]) {
+            await searchInput.fill(query);
+            await expect(await locateJwPinButton(page)).toHaveAttribute(
+              "aria-label",
+              pinned ? UNPIN_LABEL : PIN_LABEL,
+            );
+            expect(await storedPins(db, account.id)).toEqual(
+              pinned ? ["jw"] : [],
+            );
+          }
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            "workspace-links-pin-search-stable",
+          );
+        }, "consume");
+      },
+    );
+  }
 });
 
 test("页面契约", async ({ preferenceFlow, page }, testInfo) => {

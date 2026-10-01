@@ -14,6 +14,7 @@ type UploadManagement = {
   user: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
   db: IsolatedWorker["database"]["owner"];
   sectionJwId: number;
+  sectionId: number;
   quotaLabel: string;
   bucket: ReturnType<typeof createUploadBucket>;
   objects: Map<string, string>;
@@ -65,6 +66,7 @@ const test = workerTest.extend<{
           user,
           db,
           sectionJwId: section.jwId,
+          sectionId: section.id,
           quotaLabel: "",
           bucket,
           objects,
@@ -416,15 +418,13 @@ test("cases.content-security.deletion-confirmation", async ({
 }) => {
   await uploadRun(async () => {
     const id = await owned.upload();
-    const created = await page.request.post("/api/community/comments", {
+    const { id: commentId } = await owned.db.comment.create({
       data: {
-        targetType: "section",
-        sectionJwId: owned.sectionJwId,
+        userId: owned.user.id,
+        sectionId: owned.sectionId,
         body: "Deletion confirmation fixture",
       },
     });
-    expect(created.status()).toBe(201);
-    const { id: commentId } = await created.json();
     const requests: string[] = [];
     page.on("request", (r) => {
       if (r.method() === "DELETE" || r.url().includes("?/deleteAccount"))
