@@ -37,24 +37,15 @@ const FRAME_EXEMPT: Record<string, string> = {
     "Centered sign-in card on its own decorative backdrop; width is the card, not a page frame.",
   "/account/welcome":
     "Focused onboarding shell with no app sidebar; the stepper owns its narrow measure.",
-  "/oauth/authorize":
-    "Centered consent card sized to the consent decision.",
-  "/oauth/device":
-    "Centered device card with a two-column identity panel.",
-  "/error":
-    "Centered error card; no page content to frame.",
-  "/privacy":
-    "Long-form legal prose uses its own reading measure.",
-  "/terms":
-    "Long-form legal prose uses its own reading measure.",
-  "/usage/bot":
-    "Marketing page with a deliberate full-bleed hero.",
-  "/usage/cli":
-    "Marketing page with a deliberate full-bleed hero.",
-  "/usage/mcp":
-    "Marketing page with a deliberate full-bleed hero.",
-  "/usage/mobile":
-    "Marketing page with a deliberate full-bleed hero.",
+  "/oauth/authorize": "Centered consent card sized to the consent decision.",
+  "/oauth/device": "Centered device card with a two-column identity panel.",
+  "/error": "Centered error card; no page content to frame.",
+  "/privacy": "Long-form legal prose uses its own reading measure.",
+  "/terms": "Long-form legal prose uses its own reading measure.",
+  "/usage/bot": "Marketing page with a deliberate full-bleed hero.",
+  "/usage/cli": "Marketing page with a deliberate full-bleed hero.",
+  "/usage/mcp": "Marketing page with a deliberate full-bleed hero.",
+  "/usage/mobile": "Marketing page with a deliberate full-bleed hero.",
   "/": "Anonymous landing page with a deliberate full-bleed hero.",
   "/api/docs/[...path]":
     "Third-party OpenAPI renderer owns its own sidebar grid and media queries.",
@@ -66,7 +57,10 @@ const FRAME_EXEMPT: Record<string, string> = {
     "Test-only callback surface with no user-facing layout.",
 };
 
-function walk(value: unknown, visitor: (node: Record<string, unknown>) => void) {
+function walk(
+  value: unknown,
+  visitor: (node: Record<string, unknown>) => void,
+) {
   if (!value || typeof value !== "object") return;
   if (Array.isArray(value)) {
     for (const child of value) walk(child, visitor);
@@ -112,10 +106,7 @@ async function renderedGraph(root: string) {
         const specifiers =
           (node.specifiers as Array<{ local: { name: string } }>) ?? [];
         for (const specifier of specifiers)
-          imports.set(
-            specifier.local.name,
-            resolveModule(filename, src.value),
-          );
+          imports.set(specifier.local.name, resolveModule(filename, src.value));
       }
       if (node.type === "Component" && typeof node.name === "string")
         rendered.add(node.name.split(".")[0]);
