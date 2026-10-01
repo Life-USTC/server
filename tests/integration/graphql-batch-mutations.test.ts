@@ -130,6 +130,9 @@ describe("GraphQL batch mutations", () => {
         userAId,
         ownedCompletionTodoId,
       } = batch;
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
       const readToken = await signToken(userAId, [
         restReadScope("workspace.todo"),
       ]);
@@ -161,22 +164,29 @@ describe("GraphQL batch mutations", () => {
           select: { completed: true },
         }),
       ).resolves.toEqual({ completed: false });
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before);
+      expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
     });
   });
 
-  it("graphql.todo-batch-results", async ({ graphqlRuntime, batch }) => {
+  it("todo completion batch returns ordered mixed-owner results", async ({
+    graphqlRuntime,
+    batch,
+  }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,
         execute,
         signToken,
-        marker,
         userAId,
-        userBId,
         ownedCompletionTodoId,
-        ownedDeleteTodoId,
         otherTodoId,
       } = batch;
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
       const token = await signToken(userAId, [
         restWriteScope("workspace.todo"),
       ]);
@@ -231,6 +241,38 @@ describe("GraphQL batch mutations", () => {
         ],
       });
 
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(
+        before.map((row) =>
+          row.id === ownedCompletionTodoId
+            ? { ...row, completed: true, updatedAt: expect.any(Date) }
+            : row,
+        ),
+      );
+    });
+  });
+
+  it("todo deletion batch returns ordered owned, missing, and foreign results", async ({
+    graphqlRuntime,
+    batch,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        ownedDeleteTodoId,
+        otherTodoId,
+      } = batch;
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
       const deletion = await execute(
         {
           query: /* GraphQL */ `
@@ -268,21 +310,10 @@ describe("GraphQL batch mutations", () => {
           },
         ],
       });
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: otherTodoId },
-          select: { userId: true, completed: true },
-        }),
-      ).resolves.toEqual({ userId: userBId, completed: false });
-      await expect(
-        fixturePrisma.todo.findUnique({ where: { id: ownedDeleteTodoId } }),
-      ).resolves.toBeNull();
-      await expect(
-        fixturePrisma.todo.findUniqueOrThrow({
-          where: { id: ownedCompletionTodoId },
-          select: { completed: true },
-        }),
-      ).resolves.toEqual({ completed: true });
+
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before.filter(({ id }) => id !== ownedDeleteTodoId));
     });
   });
 
@@ -311,6 +342,9 @@ describe("GraphQL batch mutations", () => {
       }
     `;
 
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
       const duplicate = await execute(
         {
           query,
@@ -324,6 +358,10 @@ describe("GraphQL batch mutations", () => {
         token,
       );
       expectErrorCode(duplicate.payload, "BAD_USER_INPUT");
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before);
+      expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
 
       for (const items of [
         [{ todoId: ownedCompletionTodoId, completed: true, extra: "reject" }],
@@ -332,6 +370,10 @@ describe("GraphQL batch mutations", () => {
         const invalid = await execute({ query, variables: { items } }, token);
         expect(invalid.payload.errors?.length).toBeGreaterThan(0);
         expect(invalid.payload.data).toBeUndefined();
+        expect(
+          await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+        ).toEqual(before);
+        expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
       }
 
       await expect(
@@ -346,6 +388,8 @@ describe("GraphQL batch mutations", () => {
   it("graphql.homework-batch-results", async ({ graphqlRuntime, batch }) => {
     await graphqlRuntime.run(async () => {
       const {
+        fixturePrisma,
+        userBId,
         execute,
         signToken,
         marker,
@@ -353,6 +397,18 @@ describe("GraphQL batch mutations", () => {
         activeHomeworkId,
         deletedHomeworkId,
       } = batch;
+      await fixturePrisma.homeworkCompletion.createMany({
+        data: [
+          { userId: userBId, homeworkId: activeHomeworkId },
+          { userId: userBId, homeworkId: deletedHomeworkId },
+        ],
+      });
+      const foreign = await fixturePrisma.homeworkCompletion.findMany({
+        orderBy: { homeworkId: "asc" },
+      });
+      const homeworks = await fixturePrisma.homework.findMany({
+        orderBy: { id: "asc" },
+      });
       const token = await signToken(userAId, [
         restWriteScope("workspace.homework"),
       ]);
@@ -412,44 +468,64 @@ describe("GraphQL batch mutations", () => {
           },
         ],
       });
+      expect(
+        await fixturePrisma.homeworkCompletion.findMany({
+          where: { userId: userBId },
+          orderBy: { homeworkId: "asc" },
+        }),
+      ).toEqual(foreign);
+      const own = await fixturePrisma.homeworkCompletion.findMany({
+        where: { userId: userAId },
+      });
+      expect(own).toEqual([
+        {
+          userId: userAId,
+          homeworkId: activeHomeworkId,
+          completedAt: expect.any(Date),
+        },
+      ]);
+      const payload = result.payload.data?.homeworkCompletionsSet as {
+        results: Array<{ completedAt: string | null }>;
+      };
+      expect(new Date(payload.results[0].completedAt ?? "").getTime()).toBe(
+        own[0].completedAt.getTime(),
+      );
+      expect(
+        await fixturePrisma.homework.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(homeworks);
+      expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
     });
   });
 
-  it("graphql.subscription-batch-results", async ({
+  it("subscription import adds matched codes without changing foreign membership", async ({
     graphqlRuntime,
     batch,
   }) => {
     await graphqlRuntime.run(async () => {
       const {
-        fixturePrisma,
+        fixturePrisma: db,
         execute,
         signToken,
         marker,
         userAId,
+        userBId,
         sectionId,
         semesterId,
         sectionCode,
       } = batch;
+      const foreign = await db.userSectionSubscription.create({
+        data: { userId: userBId, sectionId },
+      });
       const token = await signToken(userAId, [
         restWriteScope("workspace.subscription"),
       ]);
-      const mutation = /* GraphQL */ `
-      mutation UpdateSubscriptions($input: UpdateSectionSubscriptionsInput!) {
-        subscriptionsImport(input: $input) {
-          action
-          semesterId
-          matchedCodes
-          unmatchedCodes
-          addedCount
-          removedCount
-          unchangedCount
-          total
-        }
-      }
-    `;
-      const added = await execute(
+      const result = await execute(
         {
-          query: mutation,
+          query: /* GraphQL */ `
+          mutation AddSubscriptions($input: UpdateSectionSubscriptionsInput!) {
+            subscriptionsImport(input: $input) { action semesterId matchedCodes unmatchedCodes addedCount removedCount unchangedCount total }
+          }
+        `,
           variables: {
             input: {
               action: "ADD",
@@ -460,8 +536,8 @@ describe("GraphQL batch mutations", () => {
         },
         token,
       );
-      expect(added.payload.errors).toBeUndefined();
-      expect(added.payload.data?.subscriptionsImport).toMatchObject({
+      expect(result.payload.errors).toBeUndefined();
+      expect(result.payload.data?.subscriptionsImport).toMatchObject({
         action: "ADD",
         semesterId,
         matchedCodes: [sectionCode],
@@ -469,33 +545,63 @@ describe("GraphQL batch mutations", () => {
         addedCount: 1,
         removedCount: 0,
       });
-      await expect(
-        fixturePrisma.user.findUniqueOrThrow({
-          where: { id: userAId },
-          select: {
-            sectionSubscriptions: {
-              where: { sectionId },
-              select: { sectionId: true },
-            },
-          },
+      expect(
+        await db.userSectionSubscription.findMany({
+          orderBy: { userId: "asc" },
         }),
-      ).resolves.toEqual({ sectionSubscriptions: [{ sectionId }] });
+      ).toEqual(
+        [
+          foreign,
+          {
+            userId: userAId,
+            sectionId,
+            kind: "regular",
+            createdAt: expect.any(Date),
+          },
+        ].sort((a, b) => a.userId.localeCompare(b.userId)),
+      );
+    });
+  });
 
-      const removed = await execute(
+  it("subscription import removes only the seeded owner's membership", async ({
+    graphqlRuntime,
+    batch,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+        sectionId,
+        semesterId,
+        sectionCode,
+      } = batch;
+      await db.userSectionSubscription.create({
+        data: { userId: userAId, sectionId },
+      });
+      const foreign = await db.userSectionSubscription.create({
+        data: { userId: userBId, sectionId },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.subscription"),
+      ]);
+      const result = await execute(
         {
-          query: mutation,
+          query: /* GraphQL */ `
+          mutation RemoveSubscriptions($input: UpdateSectionSubscriptionsInput!) {
+            subscriptionsImport(input: $input) { action semesterId matchedCodes unmatchedCodes addedCount removedCount unchangedCount total }
+          }
+        `,
           variables: {
-            input: {
-              action: "REMOVE",
-              codes: [sectionCode],
-              semesterId,
-            },
+            input: { action: "REMOVE", codes: [sectionCode], semesterId },
           },
         },
         token,
       );
-      expect(removed.payload.errors).toBeUndefined();
-      expect(removed.payload.data?.subscriptionsImport).toMatchObject({
+      expect(result.payload.errors).toBeUndefined();
+      expect(result.payload.data?.subscriptionsImport).toMatchObject({
         action: "REMOVE",
         semesterId,
         matchedCodes: [sectionCode],
@@ -504,17 +610,7 @@ describe("GraphQL batch mutations", () => {
         removedCount: 1,
         total: 1,
       });
-      await expect(
-        fixturePrisma.user.findUniqueOrThrow({
-          where: { id: userAId },
-          select: {
-            sectionSubscriptions: {
-              where: { section: { semesterId } },
-              select: { sectionId: true },
-            },
-          },
-        }),
-      ).resolves.toEqual({ sectionSubscriptions: [] });
+      expect(await db.userSectionSubscription.findMany()).toEqual([foreign]);
     });
   });
 });
