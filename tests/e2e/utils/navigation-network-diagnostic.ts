@@ -2,7 +2,7 @@ import type { Request } from "@playwright/test";
 import { test as navigationTest } from "./navigation-policy-fixture";
 
 /** Temporary observation only: no Fetch interception or response-body reads. */
-export const test = navigationTest.extend<{ _networkDiagnostic: void }>({
+export const test = navigationTest.extend<{ _networkDiagnostic: undefined }>({
   _networkDiagnostic: [
     async ({ page }, use, testInfo) => {
       const events: Record<string, string | number | boolean>[] = [];
@@ -114,7 +114,7 @@ export const test = navigationTest.extend<{ _networkDiagnostic: void }>({
         cdp.on("Network.loadingFailed", loadingFailed);
         listeners.push(() => cdp.off("Network.loadingFailed", loadingFailed));
         await cdp.send("Network.enable");
-        await use();
+        await use(undefined);
       } finally {
         page.off("request", browserRequest);
         page.off("requestfinished", browserFinished);
