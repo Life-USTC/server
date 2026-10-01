@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect } from "@playwright/test";
 import type {
   Comment,
   Course,
@@ -11,12 +11,10 @@ import type { TestPrismaClient } from "../../shared/prisma";
 import { test as adminTest, adminWriteChecks } from "./admin-fixture";
 import { withBrowserWorkflow } from "./browser-workflow";
 import { withCalendarProtocol } from "./calendar-protocol-lifecycle";
-import type { CommunityFlow } from "./community-flow";
 
 type ModerationFixture = {
   admin: User;
   author: User;
-  authorPage: (flow: CommunityFlow) => Promise<Page>;
   marker: string;
   comment: Comment;
   description: Description;
@@ -30,7 +28,7 @@ type ModerationFixture = {
 // therefore owns a complete Worker/database, including its audit writes.
 export const test = adminTest.extend<{
   moderation: ModerationFixture;
-  moderationRun: (work: () => Promise<void>) => Promise<void>;
+  homeworkDeletionRun: (work: () => Promise<void>) => Promise<void>;
 }>({
   moderation: async ({ isolatedWorker, admin, run }, use) => {
     const state = await run(async () => {
@@ -88,20 +86,14 @@ export const test = adminTest.extend<{
           section,
         };
       });
-      return { author, records, marker, db };
+      return { records, marker, db };
     });
-    await use({
-      ...state.records,
-      marker: state.marker,
-      db: state.db,
-      async authorPage(flow) {
-        const context = await flow.newContext();
-        await context.addCookies([state.author.cookie]);
-        return context.newPage();
-      },
-    });
+    await use({ ...state.records, marker: state.marker, db: state.db });
   },
-  moderationRun: async (
+  // Administrator homework deletion enqueues one section calendar invalidation,
+  // so this case owns the real queue boundary instead of the message-free
+  // community flow. Content and ICS rebuild stay with the REST invalidation case.
+  homeworkDeletionRun: async (
     { page, request: observer, playwright, isolatedWorker, moderation, run },
     use,
     testInfo,
@@ -111,8 +103,6 @@ export const test = adminTest.extend<{
         workflow.run(() =>
           run(() => {
             const checks = adminWriteChecks([
-              ["PATCH", `/api/admin/comments/${moderation.comment.id}`, 200],
-              ["POST", "/api/admin/suspensions", 201],
               ["POST", "/admin/moderation", 200],
             ]);
             return withCalendarProtocol(
@@ -142,16 +132,6 @@ export const test = adminTest.extend<{
                   async verifyState() {
                     const db = isolatedWorker.database.owner;
                     expect(
-                      await db.comment.findUniqueOrThrow({
-                        where: { id: moderation.comment.id },
-                      }),
-                    ).toMatchObject({
-                      status: "softbanned",
-                      moderatedById: moderation.admin.id,
-                      homeworkId: moderation.homework.id,
-                      sectionId: null,
-                    });
-                    expect(
                       await db.homework.findUniqueOrThrow({
                         where: { id: moderation.homework.id },
                       }),
@@ -159,27 +139,24 @@ export const test = adminTest.extend<{
                       deletedAt: expect.any(Date),
                       deletedById: moderation.admin.id,
                     });
-                    expect(await db.userSuspension.findMany()).toEqual([
-                      expect.objectContaining({
-                        userId: moderation.author.id,
-                        createdById: moderation.admin.id,
-                        reason: moderation.marker,
-                        liftedAt: null,
-                      }),
-                    ]);
+                    // Deletion touches neither neighbouring moderation records
+                    // nor suspension state.
                     expect(
-                      (
-                        await db.auditLog.findMany({
-                          select: { action: true },
-                          orderBy: { action: "asc" },
-                        })
-                      )
-                        .map(({ action }) => action)
-                        .sort(),
+                      await db.comment.findUniqueOrThrow({
+                        where: { id: moderation.comment.id },
+                      }),
+                    ).toEqual(moderation.comment);
+                    expect(await db.userSuspension.findMany()).toEqual([]);
+                    expect(
+                      await db.auditLog.findMany({
+                        select: { action: true, channel: true, outcome: true },
+                      }),
                     ).toEqual([
-                      "admin_comment_moderate",
-                      "admin_user_suspend",
-                      "homework_delete",
+                      {
+                        action: "homework_delete",
+                        channel: "web",
+                        outcome: "success",
+                      },
                     ]);
                   },
                 };

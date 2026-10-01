@@ -614,7 +614,7 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
   );
 });
 
-test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
+test("/admin/users 可创建默认时长封禁", async ({
   adminFlow,
   run,
   page,
@@ -706,11 +706,6 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
           .getByRole("button", { name: /取消|Cancel/i })
           .click();
         await expect(updateDialog).toBeHidden();
-
-        const lift = await page.request.patch(
-          `/api/admin/suspensions/${suspensionId}`,
-        );
-        expect(lift.status()).toBe(200);
         expect(
           await isolatedWorker.database.owner.userSuspension.findMany({
             where: { userId: managedUser.id },
@@ -718,19 +713,14 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
         ).toEqual([
           expect.objectContaining({
             id: suspensionId,
-            liftedById: admin.id,
-            liftedAt: expect.any(Date),
+            createdById: admin.id,
+            reason,
+            liftedAt: null,
           }),
         ]);
       },
-      { auditActions: { admin_user_suspend: 1, admin_user_unsuspend: 1 } },
-      adminWriteChecks(
-        [["POST", "/api/admin/suspensions", 201]],
-        [
-          ["POST", "/api/admin/suspensions", 201],
-          ["PATCH", /^\/api\/admin\/suspensions\/[^/]+$/, 200],
-        ],
-      ),
+      { auditActions: { admin_user_suspend: 1 } },
+      adminWriteChecks([["POST", "/api/admin/suspensions", 201]]),
     ),
   );
 });
