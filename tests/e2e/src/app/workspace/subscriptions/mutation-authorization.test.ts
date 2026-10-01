@@ -158,9 +158,12 @@ for (const transport of [
       async (connection, fixture) => {
         const { request } = connection;
         if (transport === "REST bearer") {
-          const read = await request.get("/api/workspace/subscriptions/current", {
-            headers: connection.headers,
-          });
+          const read = await request.get(
+            "/api/workspace/subscriptions/current",
+            {
+              headers: connection.headers,
+            },
+          );
           expect(read.status()).toBe(200);
           expect((await read.json()).subscription.userId).toBe(
             fixture.own.users[0].id,

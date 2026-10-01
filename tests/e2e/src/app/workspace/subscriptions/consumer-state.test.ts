@@ -7,8 +7,8 @@ import { test } from "../../../../utils/private-calendar-fixture";
 import {
   authorizeSubscription,
   expectIndependentCalendarItems,
+  expectMcpToolCalls,
   expectSubscribedWebProjections,
-  expectSubscriptionProtocol,
   expectSubscriptionState,
   type SubscriptionFixture,
   signInSubscriptionOwner,
@@ -121,25 +121,36 @@ test("subscription.consume-web-known-state", async ({
         await expect(focus).toContainText(String(own.course.nameEn));
         await focus.getByRole("link").click();
         await expect(page).toHaveURL(
-          new URL(`/catalog/sections/${own.section.jwId}`, isolatedWorker.origin).toString(),
+          new URL(
+            `/catalog/sections/${own.section.jwId}`,
+            isolatedWorker.origin,
+          ).toString(),
         );
-        await expect(page.getByRole("button", {
-          name: "Unsubscribe from section",
-          exact: true,
-        })).toBeVisible();
+        await expect(
+          page.getByRole("button", {
+            name: "Unsubscribe from section",
+            exact: true,
+          }),
+        ).toBeVisible();
       });
       await expectSubscriptionState(own, isolatedWorker, [
-        { sectionId: own.section.id, kind: index === 0 ? "regular" : "auditor" },
+        {
+          sectionId: own.section.id,
+          kind: index === 0 ? "regular" : "auditor",
+        },
       ]);
     }
     return {
       async verifyTransport(observation) {
-        expectSubscriptionProtocol(observation, []);
+        expectMcpToolCalls(observation, []);
       },
       async verifyState() {
         for (const [index, own] of owners.entries())
           await expectSubscriptionState(own, isolatedWorker, [
-            { sectionId: own.section.id, kind: index === 0 ? "regular" : "auditor" },
+            {
+              sectionId: own.section.id,
+              kind: index === 0 ? "regular" : "auditor",
+            },
           ]);
       },
     };
@@ -257,12 +268,10 @@ test("subscription.consume-protocols-known-state", async ({
       });
       for (const surface of ["rest", "graphql", "mcp"] as const) {
         await test.step(`Owner ${index + 1}: ${surface} bearer reads preserve identity and subscription kind`, async () => {
-          const token = await authorizeSubscription(
-            page,
-            request,
-            oauthOwner,
-            { scope: "workspace.subscription:read", channel: surface },
-          );
+          const token = await authorizeSubscription(page, request, oauthOwner, {
+            scope: "workspace.subscription:read",
+            channel: surface,
+          });
           const headers = { Authorization: `Bearer ${token}` };
           // The bearer owner is deliberately different from the ambient browser session.
           await useSubscriptionSession(page, sessions[1 - index]);
@@ -312,12 +321,15 @@ test("subscription.consume-protocols-known-state", async ({
         });
       }
       await expectSubscriptionState(own, isolatedWorker, [
-        { sectionId: own.section.id, kind: index === 0 ? "regular" : "auditor" },
+        {
+          sectionId: own.section.id,
+          kind: index === 0 ? "regular" : "auditor",
+        },
       ]);
     }
     return {
       async verifyTransport(observation) {
-        expectSubscriptionProtocol(observation, [
+        expectMcpToolCalls(observation, [
           "workspace_subscription_list",
           "workspace_subscription_list",
         ]);
@@ -325,7 +337,10 @@ test("subscription.consume-protocols-known-state", async ({
       async verifyState() {
         for (const [index, own] of owners.entries())
           await expectSubscriptionState(own, isolatedWorker, [
-            { sectionId: own.section.id, kind: index === 0 ? "regular" : "auditor" },
+            {
+              sectionId: own.section.id,
+              kind: index === 0 ? "regular" : "auditor",
+            },
           ]);
       },
     };
@@ -366,10 +381,12 @@ test("subscription.consume-anonymous-denied", async ({
     expect((await graph.json()).data.workspace).toBeNull();
     return {
       async verifyTransport(observation) {
-        expectSubscriptionProtocol(observation, []);
+        expectMcpToolCalls(observation, []);
       },
       async verifyState() {
-        expect(await isolatedWorker.database.owner.userSectionSubscription.count()).toBe(0);
+        expect(
+          await isolatedWorker.database.owner.userSectionSubscription.count(),
+        ).toBe(0);
       },
     };
   });
@@ -389,11 +406,15 @@ for (const role of ["regular", "suspended admin"] as const) {
       const own = owners[index];
       const foreign = owners[1 - index];
       // Consumer absence is arranged directly, independently of unsubscribe.
-      await db.userSectionSubscription.deleteMany({ where: { userId: own.users[0].id } });
+      await db.userSectionSubscription.deleteMany({
+        where: { userId: own.users[0].id },
+      });
       await observeCalendar(own.users[0], []);
       await signInSubscriptionOwner(page, own, isolatedWorker);
       const params = `userId=${foreign.users[0].id}&dateFrom=${own.date}&dateTo=${own.activityDate}`;
-      const current = await page.request.get(`/api/workspace/subscriptions/current?${params}`);
+      const current = await page.request.get(
+        `/api/workspace/subscriptions/current?${params}`,
+      );
       expect(current.status()).toBe(200);
       expect((await current.json()).subscription).toMatchObject({
         userId: own.users[0].id,
@@ -404,21 +425,34 @@ for (const role of ["regular", "suspended admin"] as const) {
         ["exams", "data"],
         ["homeworks", "data"],
       ] as const) {
-        const response = await page.request.get(`/api/workspace/${path}?${params}`);
+        const response = await page.request.get(
+          `/api/workspace/${path}?${params}`,
+        );
         expect(response.status()).toBe(200);
         const body = await response.json();
         expect(body[key]).toEqual([]);
         expect(JSON.stringify(body)).not.toContain(foreign.course.code);
       }
-      const calendar = await page.request.get(`/api/workspace/calendar/events?${params}`);
+      const calendar = await page.request.get(
+        `/api/workspace/calendar/events?${params}`,
+      );
       expect(calendar.status()).toBe(200);
       const body = await calendar.json();
-      expect(body.data.map((event: { type: string }) => event.type).sort())
-        .toEqual(["todo_due", "young_event"]);
-      expect(body.data).toEqual(expect.arrayContaining([
-        expect.objectContaining({ id: `todo-${own.todo.id}`, title: own.todo.title }),
-        expect.objectContaining({ youngId: own.young.youngId, title: own.young.name }),
-      ]));
+      expect(
+        body.data.map((event: { type: string }) => event.type).sort(),
+      ).toEqual(["todo_due", "young_event"]);
+      expect(body.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: `todo-${own.todo.id}`,
+            title: own.todo.title,
+          }),
+          expect.objectContaining({
+            youngId: own.young.youngId,
+            title: own.young.name,
+          }),
+        ]),
+      );
       expect(JSON.stringify(body)).not.toContain(foreign.todo.id);
       expect(JSON.stringify(body)).not.toContain(foreign.young.youngId);
       expect(JSON.stringify(body)).not.toContain(foreign.course.code);
@@ -427,26 +461,44 @@ for (const role of ["regular", "suspended admin"] as const) {
       await expect(subscribedCourseLink(page, foreign)).toHaveCount(0);
       await expectIndependentCalendarItems(page, own);
       await gotoAndWaitForReady(page, subscriptionOverviewUrl);
-      await expect(page.locator("#main-content")).not.toContainText(String(own.course.nameEn));
-      await expect(page.locator("#main-content")).not.toContainText(own.homework.title);
-      await expect(page.getByText(own.todo.title, { exact: true }).filter({ visible: true }).first()).toBeVisible();
+      await expect(page.locator("#main-content")).not.toContainText(
+        String(own.course.nameEn),
+      );
+      await expect(page.locator("#main-content")).not.toContainText(
+        own.homework.title,
+      );
+      await expect(
+        page
+          .getByText(own.todo.title, { exact: true })
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
       await page.reload();
       await waitForUiSettled(page);
-      await expect(page.locator("#main-content")).not.toContainText(String(own.course.nameEn));
+      await expect(page.locator("#main-content")).not.toContainText(
+        String(own.course.nameEn),
+      );
       await gotoAndWaitForReady(page, `/catalog/sections/${own.section.jwId}`);
-      await expect(page.getByRole("heading", { level: 1 })).toContainText(String(own.course.nameEn));
-      await expect(page.getByRole("button", {
-        name: "Subscribe to section",
-        exact: true,
-      })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(
+        String(own.course.nameEn),
+      );
+      await expect(
+        page.getByRole("button", {
+          name: "Subscribe to section",
+          exact: true,
+        }),
+      ).toBeVisible();
       return {
         async verifyTransport(observation) {
-          expectSubscriptionProtocol(observation, []);
+          expectMcpToolCalls(observation, []);
         },
         async verifyState() {
           await expectSubscriptionState(own, isolatedWorker, []);
           await expectSubscriptionState(foreign, isolatedWorker, [
-            { sectionId: foreign.section.id, kind: index === 0 ? "auditor" : "regular" },
+            {
+              sectionId: foreign.section.id,
+              kind: index === 0 ? "auditor" : "regular",
+            },
           ]);
         },
       };

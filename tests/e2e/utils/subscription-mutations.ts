@@ -8,7 +8,7 @@ import type {
 import type { PrivateCalendar } from "./private-calendar-fixture";
 import {
   authorizeSubscription,
-  expectSubscriptionProtocol,
+  expectMcpToolCalls,
   expectSubscriptionState,
   signInSubscriptionOwner,
 } from "./subscription-consumption";
@@ -191,7 +191,10 @@ export async function runSubscriptionScenario(
       });
       headers.Authorization = `Bearer ${token}`;
       if (transport === "MCP bearer")
-        client = await mcp({ name: "subscription-state-test", version: "1" }, token);
+        client = await mcp(
+          { name: "subscription-state-test", version: "1" },
+          token,
+        );
     }
     const expected = await work(
       {
@@ -205,7 +208,7 @@ export async function runSubscriptionScenario(
     );
     return {
       async verifyTransport(observation) {
-        expectSubscriptionProtocol(observation, sdkTools);
+        expectMcpToolCalls(observation, sdkTools);
       },
       async verifyState() {
         await expectSubscriptionRelations(fixture, expected);
@@ -351,7 +354,7 @@ export async function expectMissingSubscriptionKind(
       { jwId },
       headers,
     );
-    expect(response.status()).toBe(200);
+    expect(response.status()).toBe(404);
     expect(body.errors).toHaveLength(1);
     expect(body.errors[0].extensions.code).toBe("NOT_FOUND");
     expect(body.data).toBeNull();

@@ -102,7 +102,7 @@ export async function verifySectionSubscriptionWrite(
   return url.search;
 }
 
-export function expectSubscriptionProtocol(
+export function expectMcpToolCalls(
   { sdkRequests }: CalendarProtocolObservation,
   tools: string[],
 ) {
@@ -148,7 +148,9 @@ export async function expectSubscriptionState(
 ) {
   expect(await observeSubscriptionState(fixture, worker)).toEqual({
     sections: [...sections].sort((a, b) => a.sectionId - b.sectionId),
-    todos: [{ id: fixture.todo.id, title: fixture.todo.title, completed: false }],
+    todos: [
+      { id: fixture.todo.id, title: fixture.todo.title, completed: false },
+    ],
     activities: [{ youngId: fixture.young.youngId }],
   });
 }
