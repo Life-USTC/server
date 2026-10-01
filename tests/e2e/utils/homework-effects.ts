@@ -327,13 +327,13 @@ export async function withHomeworkEffects(
       writes,
       reads,
       supersededCalendarReads,
-      canceledReads: [...expectedReadCancellations]
-        .filter((request) =>
-          canceledNativeStatuses.has(ownedReads.get(request)!.order),
-        )
-        .map((request) => {
-          const owned = ownedReads.get(request)!;
-          return {
+      canceledReads: [...expectedReadCancellations].flatMap((request) => {
+        const owned = ownedReads.get(request);
+        if (!owned)
+          throw new Error("Expected cancellation lost its owned browser read");
+        if (!canceledNativeStatuses.has(owned.order)) return [];
+        return [
+          {
             requestId: owned.requestId,
             method: owned.method,
             path: owned.path,
@@ -341,8 +341,9 @@ export async function withHomeworkEffects(
             outcome: "expected-request-cancellation",
             error: request.failure()?.errorText,
             nativeStatus: canceledNativeStatuses.get(owned.order),
-          };
-        }),
+          },
+        ];
+      }),
       removedReads: removedReads.map((read) => ({
         ...read,
         nativeStatus: removedNativeStatuses.get(read.order),
