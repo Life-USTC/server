@@ -197,7 +197,7 @@ requirements:
     then:
     - Course and Section projections identify their persisted records and course relationships; course offerings and course-filtered Sections identify the same two Sections.
     - Embedded Teacher references on the current Section agree across Section search, course detail and Section detail.
-    - Search results retain pagination and metadata; Section detail retains formatted schedule times, Teacher assignment privacy and published exam room and monitor fields.
+    - Search results retain pagination and metadata; Section detail retains schedule time fields serialized as strings, Teacher assignment privacy and published exam room and monitor fields.
     test:
       file: tests/integration/mcp/catalog/search.test.ts
       name: interface-hierarchy.catalog-mcp-relationship-projections
