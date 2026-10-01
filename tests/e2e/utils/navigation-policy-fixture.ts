@@ -1,4 +1,9 @@
-import { expect, type APIResponse, type Page, type Request } from "@playwright/test";
+import {
+  type APIResponse,
+  expect,
+  type Page,
+  type Request,
+} from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
 import { test as workerTest } from "./owned-worker";
@@ -68,7 +73,10 @@ async function withObservedNavigationWrites(
     page.off("request", observe);
   }
   if (errors.length)
-    throw new AggregateError(errors, "Navigation browser write observation failed");
+    throw new AggregateError(
+      errors,
+      "Navigation browser write observation failed",
+    );
 }
 
 /** Navigation checks own their page, real writes and deferred Worker reads. */
