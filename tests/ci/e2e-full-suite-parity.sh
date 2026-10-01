@@ -18,7 +18,6 @@ if [[ "${ALLOW_TEST_DATABASE_SETUP:-}" != "true" ]]; then
   exit 1
 fi
 
-DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run app:prepare
 DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run build
 
 source tests/ci/setup-runtime-database.sh
