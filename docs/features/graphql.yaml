@@ -38,13 +38,13 @@ requirements:
     isolation.
   acceptance:
     given: An owner and another user have todos, plus a nonexistent target.
-    when: GraphQL performs completion and deletion batches.
+    when: GraphQL performs independently prepared completion and deletion batches.
     then:
     - Owned items change successfully; foreign and missing items return NOT_FOUND, and foreign data remains
       unchanged.
     test:
       file: tests/integration/graphql-batch-mutations.test.ts
-      name: graphql.todo-batch-results
+      name: todo deletion batch returns ordered owned, missing, and foreign results
 - id: graphql.homework-batch-results
   category: behavior
   rule: Homework completion batches retain per-item success, DELETED and NOT_FOUND outcomes.
@@ -62,13 +62,13 @@ requirements:
     code results.
   acceptance:
     given: A signed user and known and unknown section codes.
-    when: GraphQL adds and removes subscriptions.
+    when: GraphQL adds and removes subscriptions in independently prepared cases.
     then:
     - Results report matching codes and affected counts, and the database reflects only the requested
       membership changes.
     test:
       file: tests/integration/graphql-batch-mutations.test.ts
-      name: graphql.subscription-batch-results
+      name: subscription import removes only the seeded owner's membership
 - id: graphql.comment-batch-results
   category: behavior
   rule: Comment deletion batches return ordered success or ownership-failure results independently for
