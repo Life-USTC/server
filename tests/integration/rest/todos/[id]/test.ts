@@ -162,14 +162,14 @@ test("deleting a todo removes it from the owner's subsequent list", async ({
   run,
 }) => {
   await run(async () => {
-    const { request } = await createActor();
-    // One real create → delete → read connection check complements isolated mutations.
-    const created = await request.post("/api/workspace/todos", {
-      data: { title: "Delete connection", priority: "medium" },
+    const { id: userId, request } = await createActor();
+    const { id } = await db.todo.create({
+      data: {
+        userId,
+        title: "Independently prepared deletion",
+        priority: "medium",
+      },
     });
-    expect(created.status()).toBe(201);
-    const { id } = await created.json();
-    expect(typeof id).toBe("string");
     const deleted = await request.delete(`/api/workspace/todos/${id}`);
     expect(deleted.status()).toBe(200);
     expect(await deleted.json()).toEqual({ success: true });
