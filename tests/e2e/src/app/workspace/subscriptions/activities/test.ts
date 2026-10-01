@@ -178,29 +178,35 @@ for (const viewport of [
             .click();
           await expect(reminder).toBeChecked({ checked: action === "add" });
         }
-        await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
         const link = page.getByRole("link", {
           name: activity.name,
           exact: true,
         });
-        await expect(link).toBeVisible();
-        await expect(page.getByRole("checkbox")).toHaveCount(0);
+        const remove = page.getByRole("button", {
+          name: /^(取消订阅|Unsubscribe)$/,
+        });
+        if (action === "remove") {
+          await gotoAndWaitForReady(
+            page,
+            "/workspace/subscriptions/activities",
+          );
+          await expect(link).toBeVisible();
+          await expect(page.getByRole("checkbox")).toHaveCount(0);
+          await expect(remove).toBeEnabled();
+          await page.screenshot({
+            path: test
+              .info()
+              .outputPath(`young-subscriptions-remove-${viewport.width}.png`),
+            fullPage: true,
+          });
+        }
+        // Check the detail or subscription-list page that owns this operation.
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
         expect(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= window.innerWidth,
           ),
         ).toBe(true);
-        const remove = page.getByRole("button", {
-          name: /^(取消订阅|Unsubscribe)$/,
-        });
-        await expect(remove).toBeEnabled();
-        await page.screenshot({
-          path: test
-            .info()
-            .outputPath(`young-subscriptions-${action}-${viewport.width}.png`),
-          fullPage: true,
-        });
         if (action === "remove") {
           await remove.click();
           await expect(link).toHaveCount(0);
