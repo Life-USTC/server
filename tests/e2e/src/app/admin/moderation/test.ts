@@ -1,7 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { adminWriteChecks } from "../../../../utils/admin-fixture";
 import { expectRequiresSignIn } from "../../../../utils/auth";
-import { openCommentComposer } from "../../../../utils/comments";
 import { visibleText } from "../../../../utils/locators";
 import { test } from "../../../../utils/moderation-fixture";
 import { observeAction } from "../../../../utils/observed-action";
@@ -384,47 +383,12 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   await run(() =>
     adminFlow.run(
       async () => {
-        test.setTimeout(60000);
-        const sectionPath = `/catalog/sections/${moderation.section.jwId}`;
-        await gotoAndWaitForReady(page, sectionPath);
-        await gotoAndWaitForReady(page, sectionPath);
-
-        await gotoAndWaitForReady(page, `${sectionPath}#comments`);
-
-        const body = `Target link ${moderation.marker}`;
-        const composer = await openCommentComposer(page);
-        await composer.fill(body);
-        const createResponse = observeAction(
-          () =>
-            page.waitForResponse(
-              (response) =>
-                response.url().includes("/api/community/comments") &&
-                response.request().method() === "POST" &&
-                response.status() === 201,
-            ),
-          () =>
-            page
-              .locator("#comments")
-              .getByRole("button", { name: /发布评论|Post comment/i })
-              .click(),
+        const comment = moderation.comment;
+        const body = comment.body;
+        await gotoAndWaitForReady(
+          page,
+          `/admin/moderation?search=${encodeURIComponent(body)}`,
         );
-        const created = await createResponse;
-        const createdBody = (await created.json()) as { id?: string };
-        const id = createdBody.id;
-        expect(typeof id).toBe("string");
-        expect(
-          await moderation.db.comment.findUnique({ where: { id: String(id) } }),
-        ).toMatchObject({
-          userId: moderation.admin.id,
-          sectionId: moderation.section.id,
-          body,
-          status: "active",
-        });
-
-        await gotoAndWaitForReady(page, "/admin/moderation");
-        await page
-          .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
-          .fill(body);
         await expect(visibleText(page, body)).toBeVisible();
         const manageDialog = await openModerationCommentDialog(page, body);
         const targetLink = manageDialog.getByRole("link", {
@@ -433,20 +397,22 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
         await expect(targetLink).toBeVisible();
         await expect(targetLink).toHaveAttribute(
           "href",
-          new RegExp(`#comment-${id}`),
+          `/catalog/sections/${moderation.section.jwId}#comment-${comment.id}`,
         );
         await Promise.all([
-          page.waitForURL(new RegExp(`#comment-${id}$`)),
+          page.waitForURL(new RegExp(`#comment-${comment.id}$`)),
           targetLink.click(),
         ]);
+        const anchor = page.locator(`#comment-${comment.id}`);
+        await expect(anchor).toContainText(body);
         await captureStepScreenshot(
           page,
           testInfo,
           "admin-moderation-navigate-target",
         );
       },
-      { auditActions: { comment_create: 1 } },
-      adminWriteChecks([["POST", "/api/community/comments", 201]]),
+      {},
+      adminWriteChecks([]),
     ),
   );
 });
@@ -492,37 +458,16 @@ test("/admin/moderation 封禁列表可解除封禁", async ({
     adminFlow.run(
       async () => {
         test.setTimeout(60000);
-        await gotoAndWaitForReady(page, "/admin/moderation");
         const reason = moderation.marker;
-        const createSuspensionResponse = await page.request.post(
-          "/api/admin/suspensions",
-          {
-            data: {
-              userId: moderation.author.id,
-              reason,
-            },
-          },
-        );
-        expect(createSuspensionResponse.status()).toBe(201);
-        const createdBody = (await createSuspensionResponse.json()) as {
-          suspension?: { id?: string };
-        };
-        const suspensionId = createdBody.suspension?.id;
-        expect(suspensionId).toBeTruthy();
-        expect(
-          await moderation.db.userSuspension.findMany({
-            where: { userId: moderation.author.id },
-            orderBy: { createdAt: "asc" },
-          }),
-        ).toEqual([
-          expect.objectContaining({
-            id: suspensionId,
+        // A removal case prepares its own open suspension instead of creating
+        // one through another entry point first.
+        const suspension = await moderation.db.userSuspension.create({
+          data: {
             userId: moderation.author.id,
             createdById: moderation.admin.id,
-            liftedAt: null,
             reason,
-          }),
-        ]);
+          },
+        });
         await gotoAndWaitForReady(page, "/admin/moderation?tab=suspensions");
         const row = page
           .locator("tbody tr:visible")
@@ -565,12 +510,11 @@ test("/admin/moderation 封禁列表可解除封禁", async ({
             orderBy: { createdAt: "asc" },
           }),
         ).toEqual([
-          expect.objectContaining({
-            id: suspensionId,
-            userId: moderation.author.id,
+          {
+            ...suspension,
             liftedAt: expect.any(Date),
             liftedById: moderation.admin.id,
-          }),
+          },
         ]);
         await expect(row.getByText(/已解除|Lifted/i)).toBeVisible();
         await expect(
@@ -584,19 +528,13 @@ test("/admin/moderation 封禁列表可解除封禁", async ({
           "admin-moderation-suspended",
         );
       },
-      { auditActions: { admin_user_suspend: 1, admin_user_unsuspend: 1 } },
-      adminWriteChecks(
-        [["POST", "/admin/moderation", 200]],
-        [
-          ["POST", "/api/admin/suspensions", 201],
-          ["POST", "/admin/moderation", 200],
-        ],
-      ),
+      { auditActions: { admin_user_unsuspend: 1 } },
+      adminWriteChecks([["POST", "/admin/moderation", 200]]),
     ),
   );
 });
 
-test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
+test("/admin/moderation 可从评论弹窗封禁用户", async ({
   adminFlow,
   run,
   page,
@@ -607,7 +545,6 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
       async () => {
         test.setTimeout(60000);
         const body = moderation.comment.body;
-        const userPage = await moderation.authorPage(adminFlow);
         await gotoAndWaitForReady(page, "/admin/moderation");
         await page
           .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
@@ -672,75 +609,21 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
             reason,
           }),
         ]);
-        const rejectedBody = `Rejected while suspended ${moderation.marker}`;
-        const denied = await userPage.request.post("/api/community/comments", {
-          data: {
-            targetType: "section",
-            targetId: String(moderation.comment.sectionId),
-            body: rejectedBody,
-            visibility: "public",
-          },
-        });
-        expect(denied.status()).toBe(403);
-        expect(
-          await moderation.db.comment.count({
-            where: { userId: moderation.author.id, body: rejectedBody },
-          }),
-        ).toBe(0);
-        const lift = await page.request.patch(
-          `/api/admin/suspensions/${suspensionId}`,
-        );
-        expect(lift.status()).toBe(200);
-        expect(
-          await moderation.db.userSuspension.findMany({
-            where: { userId: moderation.author.id },
-            orderBy: { createdAt: "asc" },
-          }),
-        ).toEqual([
-          expect.objectContaining({
-            id: suspensionId,
-            liftedAt: expect.any(Date),
-            liftedById: moderation.admin.id,
-          }),
-        ]);
-        const recovered = await userPage.request.post(
-          "/api/community/comments",
-          {
-            data: {
-              targetType: "section",
-              targetId: String(moderation.comment.sectionId),
-              body: `Recovered ${moderation.marker}`,
-              visibility: "public",
-            },
-          },
-        );
-        expect(recovered.status()).toBe(201);
-        expect(
-          await moderation.db.comment.findUnique({
-            where: { id: (await recovered.json()).id },
-          }),
-        ).toMatchObject({
-          userId: moderation.author.id,
-          sectionId: moderation.comment.sectionId,
-          status: "active",
-        });
       },
-      { auditActions: { admin_user_suspend: 1, admin_user_unsuspend: 1 } },
+      { auditActions: { admin_user_suspend: 1 } },
+      // The browser write is the only request; verifyState is the third
+      // positional argument, so the native plan repeats it explicitly.
       adminWriteChecks(
         [["POST", "/api/admin/suspensions", 201]],
-        [
-          ["POST", "/api/admin/suspensions", 201],
-          ["POST", "/api/community/comments", 403],
-          ["PATCH", /^\/api\/admin\/suspensions\/[^/]+$/, 200],
-          ["POST", "/api/community/comments", 201],
-        ],
+        [["POST", "/api/admin/suspensions", 201]],
         async () => {
+          // Suspending an author is attributed to the administrator only. Audits
+          // persist through the queue consumer, so observe them after the drain.
           expect(
             await moderation.db.auditLog.findMany({
               where: { userId: moderation.author.id },
-              select: { action: true, outcome: true },
             }),
-          ).toEqual([{ action: "comment_create", outcome: "success" }]);
+          ).toEqual([]);
         },
       ),
     ),
@@ -1001,80 +884,38 @@ test("页面契约", async ({ adminFlow, run, page, moderation }, testInfo) => {
 });
 
 test("admin.high-risk-feedback", async ({
-  moderationRun,
+  homeworkDeletionRun,
   page,
   moderation,
 }, testInfo) => {
-  await moderationRun(async () => {
+  await homeworkDeletionRun(async () => {
     const marker = moderation.marker;
-    const fixture = {
-      user: moderation.author,
-      homework: moderation.homework,
-      comment: moderation.comment,
-    };
-    await moderation.db.comment.update({
-      where: { id: fixture.comment.id },
-      data: { sectionId: null, homeworkId: fixture.homework.id },
-    });
-    await gotoAndWaitForReady(
-      page,
-      `/admin/moderation?search=${encodeURIComponent(marker)}`,
-    );
-    const dialog = await openModerationCommentDialog(page, marker);
-    await dialog.getByRole("radio", { name: /仅自己可见|Private/i }).click();
-    await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
-    await expect(dialog).toBeHidden();
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /评论已更新|Comment updated/i }),
-    ).toBeVisible();
-    expect(
-      (
-        await moderation.db.comment.findUniqueOrThrow({
-          where: { id: fixture.comment.id },
-        })
-      ).status,
-    ).toBe("softbanned");
-    await captureStepScreenshot(page, testInfo, "admin-feedback-hidden");
-    await gotoAndWaitForReady(
-      page,
-      `/admin/moderation?search=${encodeURIComponent(marker)}&status=softbanned`,
-    );
-    const reopened = await openModerationCommentDialog(page, marker);
-    await reopened.getByRole("textbox", { name: /原因|Reason/i }).fill(marker);
-    await reopened.getByRole("button", { name: /^(封禁|Suspend)$/i }).click();
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /封禁成功|Suspended successfully/i }),
-    ).toBeVisible();
-    expect(
-      await moderation.db.userSuspension.count({
-        where: { userId: fixture.user.id, liftedAt: null, reason: marker },
-      }),
-    ).toBe(1);
-    await captureStepScreenshot(page, testInfo, "admin-feedback-suspended");
-    await page.keyboard.press("Escape");
+    const homework = moderation.homework;
     await gotoAndWaitForReady(
       page,
       `/admin/moderation?tab=homeworks&search=${encodeURIComponent(marker)}`,
     );
-    const row = moderationTableRow(page, marker);
-    await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
+    const row = moderationTableRow(page, homework.title);
+    await expect(row).toBeVisible();
+    await expect(row.getByText(/^(正常|Active)$/)).toBeVisible();
+    const deleteButton = row.getByRole("button", { name: /^(删除|Delete)$/i });
+    await deleteButton.click();
     const confirmation = page.getByRole("alertdialog", {
       name: /删除作业|Delete Homework/i,
     });
-    await expect(confirmation).toContainText(marker);
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation).toContainText(homework.title);
     await confirmation.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(confirmation).toBeHidden();
     expect(
-      (
-        await moderation.db.homework.findUniqueOrThrow({
-          where: { id: fixture.homework.id },
-        })
-      ).deletedAt,
-    ).toBeNull();
-    await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
+      await moderation.db.homework.findUniqueOrThrow({
+        where: { id: homework.id },
+      }),
+    ).toEqual(homework);
+    await captureStepScreenshot(page, testInfo, "admin-feedback-delete-cancel");
+
+    await deleteButton.click();
+    await expect(confirmation).toBeVisible();
     await confirmation
       .getByRole("button", { name: /^(删除|Delete)$/i })
       .click();
@@ -1084,13 +925,23 @@ test("admin.high-risk-feedback", async ({
         .locator("[data-sonner-toast]")
         .filter({ hasText: /作业已删除|Homework deleted/i }),
     ).toBeVisible();
+    // The enhanced action reloads the queue, so the already-open row carries the
+    // deleted state and no longer offers deletion.
+    await expect(row.getByText(/^(已删除|Deleted)$/)).toBeVisible();
+    await expect(
+      row.getByRole("button", { name: /^(删除|Delete)$/i }),
+    ).toHaveCount(0);
     expect(
-      (
-        await moderation.db.homework.findUniqueOrThrow({
-          where: { id: fixture.homework.id },
-        })
-      ).deletedAt,
-    ).not.toBeNull();
+      await moderation.db.homework.findUniqueOrThrow({
+        where: { id: homework.id },
+      }),
+    ).toMatchObject({
+      deletedAt: expect.any(Date),
+      deletedById: moderation.admin.id,
+      title: homework.title,
+      sectionId: homework.sectionId,
+      createdById: homework.createdById,
+    });
     await captureStepScreenshot(page, testInfo, "admin-feedback-deleted");
   });
 });

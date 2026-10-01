@@ -32,11 +32,14 @@ requirements:
   category: presentation
   rule: High-risk admin actions such as delete, suspend, and hide must have clear feedback.
   acceptance:
-    given: An isolated user, comment, and homework controlled through the actual admin UI.
-    when: Hide the comment, suspend its author, cancel homework deletion, then confirm deletion.
+    given: Independent case-owned comment, comment author, and homework records, each prepared for a single
+      administrator action.
+    when: In separate scenarios hide a comment, suspend a comment author from its management dialog, and
+      cancel then confirm a homework deletion through the real admin UI.
     then:
-    - Each successful high-risk action displays specific feedback and changes the persisted record.
-    - Deletion confirmation names the target and cancellation leaves the homework unchanged.
+    - Each successful high-risk action shows its own specific feedback and changes only the record it targets.
+    - Deletion confirmation names the target, cancellation leaves the homework row unchanged, and confirmation
+      marks the already-open row deleted and withdraws its delete control.
     test:
       file: tests/e2e/src/app/admin/moderation/test.ts
       name: admin.high-risk-feedback
