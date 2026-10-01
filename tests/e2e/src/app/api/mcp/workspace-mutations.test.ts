@@ -1,141 +1,245 @@
 import { expect } from "@playwright/test";
+import type { Prisma } from "../../../../../../src/generated/prisma-node/client";
 import { arrangeHomework, arrangeSection, facts } from "./_data";
 import { test } from "./_fixture";
 import { parseTextContent } from "./helpers";
 
-test("MCP homework completion commits and clears the owned state", async ({
-  mcpRun,
-}) => {
+for (const completed of [true, false]) {
+  test(`MCP homework ${completed ? "completion" : "reopening"} commits independently`, async ({
+    mcpRun,
+  }) => {
+    await mcpRun(
+      {
+        calls: [
+          ["workspace_homework_completion_set", "workspace.homework", "write"],
+        ],
+        usage: [["workspace.homework", 0, 1]],
+      },
+      async ({ mcp, oauth, observeCalendar }) => {
+        const db = oauth.worker.database.owner;
+        const userId = oauth.user.id;
+        const { homework, other, membership, retained } = await db.$transaction(
+          async (tx) => {
+            const section = await arrangeSection(tx);
+            const homework = await arrangeHomework(tx, userId, section.id);
+            const other = await tx.homework.create({
+              data: {
+                sectionId: section.id,
+                createdById: userId,
+                title: "Unchanged homework",
+              },
+            });
+            const membership = await tx.userSectionSubscription.create({
+              data: { userId, sectionId: section.id },
+            });
+            const retained = await tx.homeworkCompletion.create({
+              data: {
+                userId,
+                homeworkId: other.id,
+                completedAt: new Date("2026-04-28T12:00:00+08:00"),
+              },
+            });
+            if (!completed)
+              await tx.homeworkCompletion.create({
+                data: {
+                  userId,
+                  homeworkId: homework.id,
+                  completedAt: new Date("2026-04-29T12:00:00+08:00"),
+                },
+              });
+            return { homework, other, membership, retained };
+          },
+        );
+        await observeCalendar([{ type: "user", userId }]);
+        const startedAt = Date.now();
+        const result = await mcp.callTool({
+          name: "workspace_homework_completion_set",
+          arguments: { homeworkId: homework.id, completed },
+        });
+        const finishedAt = Date.now();
+        expect(result.isError).not.toBe(true);
+        expect(parseTextContent(result)).toMatchObject({
+          success: true,
+          completion: { completed },
+        });
+        return {
+          async verifyState() {
+            const rows = await db.homeworkCompletion.findMany();
+            expect(rows).toHaveLength(completed ? 2 : 1);
+            expect(rows).toEqual(expect.arrayContaining([retained]));
+            if (completed) {
+              const changed = rows.find(
+                (row) => row.homeworkId === homework.id,
+              );
+              expect(changed).toEqual({
+                userId,
+                homeworkId: homework.id,
+                completedAt: expect.any(Date),
+              });
+              expect(changed?.completedAt.getTime()).toBeGreaterThanOrEqual(
+                startedAt,
+              );
+              expect(changed?.completedAt.getTime()).toBeLessThanOrEqual(
+                finishedAt,
+              );
+            } else expect(rows).toEqual([retained]);
+            expect(await db.homework.findMany()).toHaveLength(2);
+            expect(
+              await db.homework.findUniqueOrThrow({
+                where: { id: homework.id },
+              }),
+            ).toEqual(homework);
+            expect(
+              await db.homework.findUniqueOrThrow({ where: { id: other.id } }),
+            ).toEqual(other);
+            expect(await db.userSectionSubscription.findMany()).toEqual([
+              membership,
+            ]);
+          },
+        };
+      },
+    );
+  });
+}
+
+const todoInput = {
+  title: "Private MCP todo",
+  content: "todo created by mcp e2e",
+  priority: "medium" as const,
+  dueAt: "2026-04-29T15:00:00+08:00",
+};
+async function arrangeUntouchedTodo(
+  db: Prisma.TransactionClient,
+  userId: string,
+) {
+  return db.todo.create({
+    data: {
+      userId,
+      title: "Unchanged MCP todo",
+      content: "Unchanged private content",
+    },
+  });
+}
+
+test("MCP todo create commits independently", async ({ mcpRun }) => {
   await mcpRun(
     {
-      calls: [
-        ["workspace_homework_completion_set", "workspace.homework", "write"],
-        ["workspace_homework_completion_set", "workspace.homework", "write"],
-      ],
-      usage: [["workspace.homework", 0, 2]],
+      calls: [["workspace_todo_create", "workspace.todo", "write"]],
+      usage: [["workspace.todo", 0, 1]],
     },
     async ({ mcp, oauth, observeCalendar }) => {
       const db = oauth.worker.database.owner;
       const userId = oauth.user.id;
-      const { homework, membership } = await db.$transaction(async (tx) => {
-        const section = await arrangeSection(tx);
-        const homework = await arrangeHomework(tx, userId, section.id);
-        const membership = await tx.userSectionSubscription.create({
-          data: { userId, sectionId: section.id },
-        });
-        return { homework, membership };
+      const retained = await arrangeUntouchedTodo(db, userId);
+      await observeCalendar([{ type: "user", userId }]);
+      const result = await mcp.callTool({
+        name: "workspace_todo_create",
+        arguments: todoInput,
       });
-      await observeCalendar([
-        { type: "user", userId },
-        { type: "user", userId },
-      ]);
-
-      const complete = await mcp.callTool({
-        name: "workspace_homework_completion_set",
-        arguments: { homeworkId: homework.id, completed: true },
-      });
-      expect(complete.isError).not.toBe(true);
-      expect(parseTextContent(complete)).toMatchObject({
-        success: true,
-        completion: { completed: true },
-      });
-      expect(await db.homeworkCompletion.findMany()).toEqual([
-        { userId, homeworkId: homework.id, completedAt: expect.any(Date) },
-      ]);
-
-      const reopen = await mcp.callTool({
-        name: "workspace_homework_completion_set",
-        arguments: { homeworkId: homework.id, completed: false },
-      });
-      expect(reopen.isError).not.toBe(true);
-      expect(parseTextContent(reopen)).toMatchObject({
-        success: true,
-        completion: { completed: false },
-      });
-      expect(await db.homeworkCompletion.findMany()).toEqual([]);
-      expect(
-        await db.homework.findUniqueOrThrow({ where: { id: homework.id } }),
-      ).toEqual(homework);
+      expect(result.isError).not.toBe(true);
+      const created = parseTextContent(result);
+      expect(created).toMatchObject({ success: true, id: expect.any(String) });
       return {
         async verifyState() {
-          expect(await db.homeworkCompletion.findMany()).toEqual([]);
-          expect(
-            await db.homework.findUniqueOrThrow({ where: { id: homework.id } }),
-          ).toEqual(homework);
-          expect(await db.userSectionSubscription.findMany()).toEqual([
-            membership,
-          ]);
+          const rows = await db.todo.findMany();
+          expect(rows).toHaveLength(2);
+          expect(rows).toEqual(
+            expect.arrayContaining([
+              retained,
+              {
+                ...todoInput,
+                id: created.id,
+                userId,
+                dueAt: new Date(todoInput.dueAt),
+                completed: false,
+                createdAt: expect.any(Date),
+                updatedAt: expect.any(Date),
+              },
+            ]),
+          );
         },
       };
     },
   );
 });
 
-test("MCP todo create update delete commits each transition", async ({
-  mcpRun,
-}) => {
+test("MCP todo update commits independently", async ({ mcpRun }) => {
   await mcpRun(
     {
-      calls: [
-        ["workspace_todo_create", "workspace.todo", "write"],
-        ["workspace_todo_update", "workspace.todo", "write"],
-        ["workspace_todo_delete", "workspace.todo", "write"],
-      ],
-      usage: [["workspace.todo", 0, 3]],
+      calls: [["workspace_todo_update", "workspace.todo", "write"]],
+      usage: [["workspace.todo", 0, 1]],
     },
     async ({ mcp, oauth, observeCalendar }) => {
       const db = oauth.worker.database.owner;
-      await observeCalendar([
-        { type: "user", userId: oauth.user.id },
-        { type: "user", userId: oauth.user.id },
-        { type: "user", userId: oauth.user.id },
-      ]);
-      const input = {
-        title: "Private MCP todo",
-        content: "todo created by mcp e2e",
-        priority: "medium",
-        dueAt: "2026-04-29T15:00:00+08:00",
-      };
-      const create = await mcp.callTool({
-        name: "workspace_todo_create",
-        arguments: input,
-      });
-      expect(create.isError).not.toBe(true);
-      const created = parseTextContent(create);
-      expect(created).toMatchObject({ success: true, id: expect.any(String) });
-      const expected = {
-        ...input,
-        id: created.id,
-        userId: oauth.user.id,
-        dueAt: new Date(input.dueAt),
-        completed: false,
-      };
-      expect(await db.todo.findMany()).toMatchObject([expected]);
-
-      const update = await mcp.callTool({
+      const userId = oauth.user.id;
+      const { target, retained } = await db.$transaction(async (tx) => ({
+        target: await tx.todo.create({
+          data: { ...todoInput, dueAt: new Date(todoInput.dueAt), userId },
+        }),
+        retained: await arrangeUntouchedTodo(tx, userId),
+      }));
+      await observeCalendar([{ type: "user", userId }]);
+      const result = await mcp.callTool({
         name: "workspace_todo_update",
         arguments: {
-          id: created.id,
-          title: `${input.title}-updated`,
+          id: target.id,
+          title: "Private MCP todo-updated",
           completed: true,
         },
       });
-      expect(update.isError).not.toBe(true);
-      expect(parseTextContent(update)).toMatchObject({ success: true });
-      expect(await db.todo.findMany()).toMatchObject([
-        { ...expected, title: `${input.title}-updated`, completed: true },
-      ]);
-
-      const remove = await mcp.callTool({
-        name: "workspace_todo_delete",
-        arguments: { id: created.id },
-      });
-      expect(remove.isError).not.toBe(true);
-      expect(parseTextContent(remove)).toMatchObject({ success: true });
-      expect(await db.todo.findMany()).toEqual([]);
+      expect(result.isError).not.toBe(true);
+      expect(parseTextContent(result)).toMatchObject({ success: true });
       return {
         async verifyState() {
-          expect(await db.todo.findMany()).toEqual([]);
+          const rows = await db.todo.findMany();
+          expect(rows).toHaveLength(2);
+          expect(rows).toEqual(
+            expect.arrayContaining([
+              retained,
+              {
+                ...target,
+                title: "Private MCP todo-updated",
+                completed: true,
+                updatedAt: expect.any(Date),
+              },
+            ]),
+          );
+        },
+      };
+    },
+  );
+});
+
+test("MCP todo delete commits independently", async ({ mcpRun }) => {
+  await mcpRun(
+    {
+      calls: [["workspace_todo_delete", "workspace.todo", "write"]],
+      usage: [["workspace.todo", 0, 1]],
+    },
+    async ({ mcp, oauth, observeCalendar }) => {
+      const db = oauth.worker.database.owner;
+      const userId = oauth.user.id;
+      const { target, retained } = await db.$transaction(async (tx) => ({
+        target: await tx.todo.create({
+          data: {
+            ...todoInput,
+            dueAt: new Date(todoInput.dueAt),
+            userId,
+            completed: true,
+          },
+        }),
+        retained: await arrangeUntouchedTodo(tx, userId),
+      }));
+      await observeCalendar([{ type: "user", userId }]);
+      const result = await mcp.callTool({
+        name: "workspace_todo_delete",
+        arguments: { id: target.id },
+      });
+      expect(result.isError).not.toBe(true);
+      expect(parseTextContent(result)).toMatchObject({ success: true });
+      return {
+        async verifyState() {
+          expect(await db.todo.findMany()).toEqual([retained]);
         },
       };
     },
