@@ -56,8 +56,10 @@ A topic reference does not create another requirement or prove test coverage; av
 duplicating an umbrella requirement when every obligation already has a specific owner.
 
 Feature test files stay in the appropriate runner's directory, grouped by domain.
-Use independent mutation tests, consumer tests and a small set of connection or
-complete-journey tests. See `tests/AGENTS.md` for the isolation and oracle rules.
+Use independent mutation and consumer cases, each with its own prepared state.
+Keep promised refresh, cache and asynchronous checks in their owning modules;
+do not require duplicate cross-entrypoint or complete-journey layers. See
+`tests/AGENTS.md` for the isolation and oracle rules.
 A mocked permission helper does not prove HTTP authentication, database isolation,
 or rendered UI. Source assertions establish architecture constraints, not
 user-visible behavior.
