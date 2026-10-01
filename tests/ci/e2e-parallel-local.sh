@@ -96,7 +96,6 @@ for shard in $(seq 1 "$shard_total"); do
   database_urls+=("postgresql://postgres:postgres@127.0.0.1:${database_port}/life_ustc_dev")
 done
 
-DATABASE_URL="${database_urls[0]}" bun run app:prepare
 DATABASE_URL="${database_urls[0]}" bun run build
 
 failed_shards=()
