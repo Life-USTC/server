@@ -7,6 +7,7 @@ import {
   expectOAuthUsage,
   type OAuthUsageWindow,
 } from "../../../../utils/oauth-usage";
+import { expectMcpToolCalls } from "../../../../utils/subscription-consumption";
 import type { OAuthOwner } from "../../api/mcp/helpers";
 import {
   issueAccessTokenForClient,
@@ -27,7 +28,8 @@ export function memberships(db: Database, userId: string) {
   });
 }
 
-/** B2 owns one subscription writer; other users and calendar sources stay fixed. */
+/** Subscription mutations own their domain state and calendar effects.
+ * OAuth client/consent contracts live in api/mcp/protocol-checks.ts. */
 export async function prepareContract(
   page: Page,
   owner: OAuthOwner,
@@ -82,11 +84,6 @@ export async function prepareContract(
   await page
     .context()
     .addCookies([(await owner.worker.createSession(userId)).cookie]);
-  const sessions = await db.session.findMany({
-    select: { id: true, userId: true },
-  });
-  expect(sessions).toEqual([{ id: expect.any(String), userId }]);
-  const sessionId = sessions[0].id;
   let clientId: string | undefined;
   const scope = "workspace.subscription:write";
   const resource = `${origin}/api/mcp`;
@@ -141,7 +138,8 @@ export async function prepareContract(
       usageErrors: 0 | 1 = 0,
     ): CalendarProtocolChecks {
       return {
-        async verifyTransport({ effects, sdkRequests }) {
+        async verifyTransport(observation) {
+          const { effects } = observation;
           for (const [method, path, statuses] of requests) {
             expect(
               effects.requests
@@ -152,48 +150,12 @@ export async function prepareContract(
                 .sort(),
             ).toEqual([...statuses].sort());
           }
-          for (const [method, path, status] of [
-            ["POST", "/api/auth/oauth2/register", 201],
-            ["GET", "/api/auth/oauth2/authorize", 302],
-            ["POST", "/oauth/authorize", 200],
-            ["POST", "/api/auth/oauth2/token", 200],
-          ] as const) {
-            expect(
-              effects.requests
-                .filter(
-                  ({ value }) => value.method === method && value.path === path,
-                )
-                .map(({ result }) => result),
-            ).toEqual(clientId ? [status] : []);
-          }
-          expect(
-            sdkRequests
-              .map(({ method, rpc }) => `${method} ${rpc ?? "stream"}`)
-              .sort(),
-          ).toEqual(
-            clientId
-              ? [
-                  "GET stream",
-                  "POST initialize",
-                  "POST notifications/initialized",
-                  ...Array.from(
-                    { length: importCalls },
-                    () => "POST tools/call",
-                  ),
-                ]
-              : [],
-          );
-          expect(
-            sdkRequests
-              .filter(({ rpc }) => rpc === "tools/call")
-              .map(({ tool }) => tool),
-          ).toEqual(
-            clientId
-              ? Array.from(
-                  { length: importCalls },
-                  () => "workspace_subscription_import",
-                )
-              : [],
+          expectMcpToolCalls(
+            observation,
+            Array.from(
+              { length: importCalls },
+              () => "workspace_subscription_import",
+            ),
           );
         },
         async verifyState() {
@@ -219,75 +181,17 @@ export async function prepareContract(
                 feedTokenCreated && id === userId ? expect.any(String) : null,
             })),
           );
-          expect(
-            await db.session.findMany({ select: { id: true, userId: true } }),
-          ).toEqual(sessions);
-          expect(owner.clientNames).toHaveLength(clientId ? 1 : 0);
-          expect(
-            await db.oAuthClient.findMany({
-              select: {
-                clientId: true,
-                name: true,
-                userId: true,
-                scopes: true,
-                redirectUris: true,
-                grantTypes: true,
-                responseTypes: true,
-                tokenEndpointAuthMethod: true,
-                applicationType: true,
-              },
-            }),
-          ).toEqual(
-            clientId
-              ? [
-                  {
-                    clientId,
-                    name: owner.clientNames[0],
-                    userId: null,
-                    scopes: [
-                      "workspace.subscription:read",
-                      "workspace.subscription:write",
-                    ],
-                    redirectUris: [`${origin}/e2e/oauth/callback`],
-                    grantTypes: ["authorization_code"],
-                    responseTypes: ["code"],
-                    tokenEndpointAuthMethod: "none",
-                    applicationType: "native",
-                  },
-                ]
-              : [],
-          );
-          const consents = await db.oAuthConsent.findMany({
-            select: {
-              clientId: true,
-              userId: true,
-              grantId: true,
-              scopes: true,
-              resources: true,
-              requestedUserInfoClaims: true,
-            },
-          });
-          expect(consents).toEqual(
-            clientId
-              ? [
-                  {
-                    clientId,
-                    userId,
-                    grantId: expect.any(String),
-                    scopes: [scope],
-                    resources: [resource],
-                    requestedUserInfoClaims: [],
-                  },
-                ]
-              : [],
-          );
-          const grantId = consents[0]?.grantId;
-          if (clientId)
-            expect(grantId).toMatch(
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-            );
+          const grantId = clientId
+            ? (
+                await db.oAuthConsent.findUniqueOrThrow({
+                  where: { clientId_userId: { clientId, userId } },
+                  select: { grantId: true },
+                })
+              ).grantId
+            : undefined;
           const audits = () =>
             db.auditLog.findMany({
+              where: { action: { not: "oauth_authorization_grant" } },
               select: {
                 action: true,
                 outcome: true,
@@ -304,48 +208,26 @@ export async function prepareContract(
             });
           await expect
             .poll(async () => (await audits()).length, { timeout: 15_000 })
-            .toBe(clientId || feedTokenCreated ? 1 : 0);
+            .toBe(feedTokenCreated ? 1 : 0);
           expect(await audits()).toEqual(
-            clientId
+            feedTokenCreated
               ? [
                   {
-                    action: "oauth_authorization_grant",
+                    action: "account_calendar_token_create",
                     outcome: "success",
-                    channel: "web",
+                    channel: "system",
                     userId,
                     subjectUserId: userId,
-                    targetId: clientId,
-                    targetType: "oauth_client",
-                    oauthClientId: clientId,
-                    oauthGrantId: grantId,
-                    sessionId,
-                    metadata: {
-                      changedFields: ["resources", "scopes", "userinfoClaims"],
-                      resourceCount: 1,
-                      scopeCount: 1,
-                    },
+                    targetId: userId,
+                    targetType: "calendar_feed",
+                    oauthClientId: null,
+                    oauthGrantId: null,
+                    sessionId: null,
+                    metadata: null,
                   },
                 ]
-              : feedTokenCreated
-                ? [
-                    {
-                      action: "account_calendar_token_create",
-                      outcome: "success",
-                      channel: "system",
-                      userId,
-                      subjectUserId: userId,
-                      targetId: userId,
-                      targetType: "calendar_feed",
-                      oauthClientId: null,
-                      oauthGrantId: null,
-                      sessionId: null,
-                      metadata: null,
-                    },
-                  ]
-                : [],
+              : [],
           );
-          expect(await db.oAuthRefreshToken.count()).toBe(0);
-          expect(await db.oAuthAccessToken.count()).toBe(0);
           const usage = await db.oAuthGrantUsageDaily.findMany({
             orderBy: { day: "asc" },
           });
