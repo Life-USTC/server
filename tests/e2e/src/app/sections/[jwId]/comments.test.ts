@@ -142,17 +142,23 @@ async function expectAnonymousCard(
 }
 
 /** The known thread renders the same body, reply, reaction and edit timestamp
- * for every reader; only the actions it offers depend on the identity. */
+ * for every reader; only the actions it offers depend on the identity.
+ * `/community/comments/[id]` resolves the canonical target address and redirects
+ * there, so the target page legitimately renders every viewer-visible root of
+ * that section, including the other author's public root. */
 async function expectKnownThread(
   page: Page,
   viewer: "author" | "other" | "anonymous",
   thread: {
     author: string;
+    canonicalUrl: string;
     commentId: string;
-    otherThreadId: string;
+    otherRootBody: string;
+    otherRootId: string;
     replyId: string;
   },
 ) {
+  expect(page.url()).toBe(thread.canonicalUrl);
   const card = page.locator(`#comment-${thread.commentId}`);
   await expect(card).toBeVisible();
   await expect(
@@ -169,7 +175,9 @@ async function expectKnownThread(
     "Known share reply",
   );
   await expect(card.getByRole("button", { name: /👍.*1/ })).toBeVisible();
-  await expect(page.locator(`#comment-${thread.otherThreadId}`)).toHaveCount(0);
+  await expect(page.locator(`#comment-${thread.otherRootId}`)).toContainText(
+    thread.otherRootBody,
+  );
   if (viewer === "author") {
     await expect(
       card.getByRole("button", { name: /编辑|Edit/i }),
@@ -630,8 +638,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       const before = await commentRows(db);
       const thread = {
         author: account.name,
+        canonicalUrl: `${isolatedWorker.origin}/catalog/sections/${community.section.jwId}#comment-${comment.id}`,
         commentId: comment.id,
-        otherThreadId: foreign.id,
+        otherRootBody: foreign.body,
+        otherRootId: foreign.id,
         replyId: reply.id,
       };
 
