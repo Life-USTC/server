@@ -99,79 +99,84 @@ const it = domainStateTest.extend<{
 });
 
 for (const operation of ["create", "retain"] as const) {
-  it(`comment attachments ${operation} rejects invalid references and preserves occupied uploads`, async ({
-    comment,
-  }) => {
-    const { db, marker, owner, other, request, createInput, seed, upload } =
-      comment;
-    await comment.runtime(async () => {
-      const own = await upload();
-      const foreign = await upload(other);
-      const occupied = await upload();
-      const occupiedComment = await seed();
-      await db.commentAttachment.create({
-        data: { commentId: occupiedComment, uploadId: occupied },
-      });
-      const target = operation === "retain" ? await seed() : null;
-      if (target)
+  it(
+    operation === "create"
+      ? "comment.attachment-ownership"
+      : "comment attachments retain rejects invalid references and preserves occupied uploads",
+    async ({ comment }) => {
+      const { db, marker, owner, other, request, createInput, seed, upload } =
+        comment;
+      await comment.runtime(async () => {
+        const own = await upload();
+        const foreign = await upload(other);
+        const occupied = await upload();
+        const occupiedComment = await seed();
         await db.commentAttachment.create({
-          data: { commentId: target, uploadId: own },
+          data: { commentId: occupiedComment, uploadId: occupied },
         });
-      const before = await readCommentState(db);
-      const uploads = await db.upload.findMany({ orderBy: { id: "asc" } });
-      for (const attachmentId of [`missing-${marker}`, foreign, occupied]) {
+        const target = operation === "retain" ? await seed() : null;
+        if (target)
+          await db.commentAttachment.create({
+            data: { commentId: target, uploadId: own },
+          });
+        const before = await readCommentState(db);
+        const uploads = await db.upload.findMany({ orderBy: { id: "asc" } });
+        for (const attachmentId of [`missing-${marker}`, foreign, occupied]) {
+          const response = target
+            ? await patchCommentRoute(
+                request(
+                  { body: "must not persist", attachmentIds: [attachmentId] },
+                  "PATCH",
+                ),
+                { id: target },
+              )
+            : await postCommentRoute(
+                request(createInput({ attachmentIds: [attachmentId] })),
+              );
+          expect(response.status).toBe(400);
+          expect(await response.json()).toEqual({
+            error: "Invalid attachments",
+          });
+          expect(await readCommentState(db)).toEqual(before);
+          expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(
+            uploads,
+          );
+          expect(await db.auditLog.findMany()).toEqual([]);
+        }
         const response = target
           ? await patchCommentRoute(
-              request(
-                { body: "must not persist", attachmentIds: [attachmentId] },
-                "PATCH",
-              ),
+              request({ body: "edited", attachmentIds: [own] }, "PATCH"),
               { id: target },
             )
           : await postCommentRoute(
-              request(createInput({ attachmentIds: [attachmentId] })),
+              request(createInput({ attachmentIds: [own] })),
             );
-        expect(response.status).toBe(400);
-        expect(await response.json()).toEqual({ error: "Invalid attachments" });
-        expect(await readCommentState(db)).toEqual(before);
+        expect(response.status).toBe(target ? 200 : 201);
+        const payload = await response.json();
+        const id = target ?? payload.id;
+        expect(id).toEqual(expect.any(String));
+        const after = await readCommentState(db);
+        expect(after.filter((row) => row.id !== id)).toEqual(
+          before.filter((row) => row.id !== id),
+        );
+        expect(after.find((row) => row.id === id)).toMatchObject({
+          id,
+          userId: owner,
+          body: target ? "edited" : marker,
+          attachments: [expect.objectContaining({ uploadId: own })],
+        });
+        expect(
+          await db.commentAttachment.findMany({
+            where: { uploadId: occupied },
+            select: { commentId: true },
+          }),
+        ).toEqual([{ commentId: occupiedComment }]);
         expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(
           uploads,
         );
-        expect(await db.auditLog.findMany()).toEqual([]);
-      }
-      const response = target
-        ? await patchCommentRoute(
-            request({ body: "edited", attachmentIds: [own] }, "PATCH"),
-            { id: target },
-          )
-        : await postCommentRoute(
-            request(createInput({ attachmentIds: [own] })),
-          );
-      expect(response.status).toBe(target ? 200 : 201);
-      const payload = await response.json();
-      const id = target ?? payload.id;
-      expect(id).toEqual(expect.any(String));
-      const after = await readCommentState(db);
-      expect(after.filter((row) => row.id !== id)).toEqual(
-        before.filter((row) => row.id !== id),
-      );
-      expect(after.find((row) => row.id === id)).toMatchObject({
-        id,
-        userId: owner,
-        body: target ? "edited" : marker,
-        attachments: [expect.objectContaining({ uploadId: own })],
       });
-      expect(
-        await db.commentAttachment.findMany({
-          where: { uploadId: occupied },
-          select: { commentId: true },
-        }),
-      ).toEqual([{ commentId: occupiedComment }]);
-      expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(
-        uploads,
-      );
-    });
-  });
+    },
+  );
 }
 
 it("comment attachment replacement starts from a seeded owned link", async ({
@@ -730,127 +735,133 @@ it("comment.rich-content", async ({ comment }) => {
 });
 
 for (const operation of ["create", "edit", "moderate"] as const) {
-  it(`description ${operation} authorizes its actor and records only its own edit`, async ({
-    comment,
-  }) => {
-    const { db, owner, other, admin, suspended, teacherId, request } = comment;
-    await comment.runtime(async () => {
-      const content =
-        operation === "create"
-          ? "Collaborative supplement"
-          : operation === "edit"
-            ? "Another editor"
-            : "Moderated";
-      const actor =
-        operation === "create" ? owner : operation === "edit" ? other : admin;
-      const initial =
-        operation === "create"
-          ? null
-          : await db.description.create({
-              data: {
-                teacherId,
-                content: "Collaborative supplement",
-                lastEditedById: owner,
-                edits: {
-                  create: {
-                    editorId: owner,
-                    previousContent: null,
-                    nextContent: "Collaborative supplement",
-                    createdAt: new Date("2026-01-01T00:00:00Z"),
+  it(
+    operation === "create"
+      ? "description.editor-authorization"
+      : `description ${operation} authorizes its actor and records only its own edit`,
+    async ({ comment }) => {
+      const { db, owner, other, admin, suspended, teacherId, request } =
+        comment;
+      await comment.runtime(async () => {
+        const content =
+          operation === "create"
+            ? "Collaborative supplement"
+            : operation === "edit"
+              ? "Another editor"
+              : "Moderated";
+        const actor =
+          operation === "create" ? owner : operation === "edit" ? other : admin;
+        const initial =
+          operation === "create"
+            ? null
+            : await db.description.create({
+                data: {
+                  teacherId,
+                  content: "Collaborative supplement",
+                  lastEditedById: owner,
+                  edits: {
+                    create: {
+                      editorId: owner,
+                      previousContent: null,
+                      nextContent: "Collaborative supplement",
+                      createdAt: new Date("2026-01-01T00:00:00Z"),
+                    },
                   },
                 },
-              },
-            });
-      if (initial)
-        await db.auditLog.create({
-          data: {
-            action: "description_edit",
-            userId: owner,
-            targetId: initial.id,
-            targetType: "description",
-            createdAt: new Date("2026-01-01T00:00:00Z"),
-          },
+              });
+        if (initial)
+          await db.auditLog.create({
+            data: {
+              action: "description_edit",
+              userId: owner,
+              targetId: initial.id,
+              targetType: "description",
+              createdAt: new Date("2026-01-01T00:00:00Z"),
+            },
+          });
+        const descriptions = await db.description.findMany();
+        const history = await db.descriptionEdit.findMany({
+          orderBy: { createdAt: "asc" },
         });
-      const descriptions = await db.description.findMany();
-      const history = await db.descriptionEdit.findMany({
-        orderBy: { createdAt: "asc" },
-      });
-      const audits = await db.auditLog.findMany({
-        orderBy: { createdAt: "asc" },
-      });
-      const body = { targetType: "teacher", teacherId, content };
-      for (const [viewer, status] of [
-        [operation === "moderate" ? owner : null, 401],
-        [suspended, 403],
-      ] as const) {
-        const denied =
+        const audits = await db.auditLog.findMany({
+          orderBy: { createdAt: "asc" },
+        });
+        const body = { targetType: "teacher", teacherId, content };
+        for (const [viewer, status] of [
+          [operation === "moderate" ? owner : null, 401],
+          [suspended, 403],
+        ] as const) {
+          const denied =
+            operation === "moderate" && initial
+              ? await patchAdminDescriptionRoute(
+                  request({ content: "Blocked" }, "PATCH", viewer),
+                  { id: initial.id },
+                )
+              : await postDescriptionRoute(request(body, "POST", viewer));
+          expect(denied.status).toBe(status);
+          expect(await db.description.findMany()).toEqual(descriptions);
+          expect(
+            await db.descriptionEdit.findMany({
+              orderBy: { createdAt: "asc" },
+            }),
+          ).toEqual(history);
+          expect(
+            await db.auditLog.findMany({ orderBy: { createdAt: "asc" } }),
+          ).toEqual(audits);
+        }
+        const response =
           operation === "moderate" && initial
             ? await patchAdminDescriptionRoute(
-                request({ content: "Blocked" }, "PATCH", viewer),
+                request({ content }, "PATCH", actor),
                 { id: initial.id },
               )
-            : await postDescriptionRoute(request(body, "POST", viewer));
-        expect(denied.status).toBe(status);
-        expect(await db.description.findMany()).toEqual(descriptions);
+            : await postDescriptionRoute(request(body, "POST", actor));
+        expect(response.status).toBe(200);
+        const payload = await response.json();
+        const id = initial?.id ?? payload.id;
+        expect(id).toEqual(expect.any(String));
+        if (operation === "moderate")
+          expect(payload.description).toMatchObject({ id, content });
+        else expect(payload).toEqual({ id, updated: true });
+        expect(await db.description.findMany()).toEqual([
+          expect.objectContaining({
+            id,
+            teacherId,
+            content,
+            lastEditedById: actor,
+          }),
+        ]);
         expect(
-          await db.descriptionEdit.findMany({ orderBy: { createdAt: "asc" } }),
-        ).toEqual(history);
+          await db.descriptionEdit.findMany({
+            orderBy: { createdAt: "asc" },
+          }),
+        ).toEqual([
+          ...history,
+          expect.objectContaining({
+            descriptionId: id,
+            editorId: actor,
+            previousContent: initial?.content ?? null,
+            nextContent: content,
+          }),
+        ]);
         expect(
-          await db.auditLog.findMany({ orderBy: { createdAt: "asc" } }),
-        ).toEqual(audits);
-      }
-      const response =
-        operation === "moderate" && initial
-          ? await patchAdminDescriptionRoute(
-              request({ content }, "PATCH", actor),
-              { id: initial.id },
-            )
-          : await postDescriptionRoute(request(body, "POST", actor));
-      expect(response.status).toBe(200);
-      const payload = await response.json();
-      const id = initial?.id ?? payload.id;
-      expect(id).toEqual(expect.any(String));
-      if (operation === "moderate")
-        expect(payload.description).toMatchObject({ id, content });
-      else expect(payload).toEqual({ id, updated: true });
-      expect(await db.description.findMany()).toEqual([
-        expect.objectContaining({
-          id,
-          teacherId,
-          content,
-          lastEditedById: actor,
-        }),
-      ]);
-      expect(
-        await db.descriptionEdit.findMany({
-          orderBy: { createdAt: "asc" },
-        }),
-      ).toEqual([
-        ...history,
-        expect.objectContaining({
-          descriptionId: id,
-          editorId: actor,
-          previousContent: initial?.content ?? null,
-          nextContent: content,
-        }),
-      ]);
-      expect(
-        await db.auditLog.findMany({
-          orderBy: { createdAt: "asc" },
-        }),
-      ).toEqual([
-        ...audits,
-        expect.objectContaining({
-          action:
-            operation === "moderate"
-              ? "admin_description_moderate"
-              : "description_edit",
-          targetId: id,
-          userId: actor,
-        }),
-      ]);
-    });
-  });
+          await db.auditLog.findMany({
+            orderBy: { createdAt: "asc" },
+          }),
+        ).toEqual([
+          ...audits,
+          expect.objectContaining({
+            action:
+              operation === "moderate"
+                ? "admin_description_moderate"
+                : "description_edit",
+            targetId: id,
+            userId: actor,
+          }),
+        ]);
+      });
+    },
+  );
 }
 
 it("audit.writer-2", async ({ comment }) => {
