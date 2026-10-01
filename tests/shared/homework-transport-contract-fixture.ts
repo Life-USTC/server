@@ -5,8 +5,6 @@ import {
   putHomeworkCompletionRoute,
   putHomeworkCompletionsRoute,
 } from "@/lib/api/routes/homework-completion";
-import { getHomeworkDetailRoute } from "@/lib/api/routes/homework-detail-read-route";
-import { getHomeworksRoute } from "@/lib/api/routes/homework-list-read-route";
 import {
   deleteHomeworkRoute,
   patchHomeworkRoute,
@@ -18,7 +16,6 @@ import {
   mcpOptionsRoute,
   mcpPostRoute,
 } from "@/lib/api/routes/mcp";
-import { handleMcpRequest } from "@/lib/api/routes/mcp-request-handler";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { createGraphqlYoga } from "@/lib/graphql/server";
 import {
@@ -26,7 +23,6 @@ import {
   getOAuthMcpResourceUrl,
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
-import type { McpHarness } from "../integration/mcp/_harness/client";
 import { mcpProtocolTest, ownProtocolRoute } from "./mcp-protocol-fixture";
 
 export const homeworkTransportTest = mcpProtocolTest
@@ -62,15 +58,13 @@ export const homeworkTransportTest = mcpProtocolTest
       mcpSessions,
     }) => {
       protocolRuntime.setPublicOrigin(http.origin);
-      const users = Array.from({ length: 3 }, () => crypto.randomUUID());
+      const userId = crypto.randomUUID();
       const clientId = `homework-transport-${crypto.randomUUID()}`;
       const communityWrite = "community.section-homework:write";
       const completionWrite = "workspace.homework:write";
       const scopes = [communityWrite, completionWrite];
-      const grants: string[] = [];
-      const clients: McpHarness[] = [];
+      let grantId = "";
       let sectionId = 0;
-      const title = `Public homework ${crypto.randomUUID()}`;
       const gqlDelete =
         "mutation($id: ID!) { homeworkDelete(id: $id) { success id } }";
       const gqlCreate =
@@ -83,23 +77,22 @@ export const homeworkTransportTest = mcpProtocolTest
         "mutation($id: ID!) { homeworkCompletionsSet(items: [{homeworkId: $id, completed: false}]) { results { success completed } } }";
       async function fixtureHomework(title = `Fixture ${crypto.randomUUID()}`) {
         const row = await db.homework.create({
-          data: { sectionId, title, createdById: users[0] },
+          data: { sectionId, title, createdById: userId },
         });
         return row.id;
       }
       async function request(
-        index: number,
         method: string,
-        body?: unknown,
-        allowedScopes = scopes,
+        body: unknown,
+        allowedScopes: string[],
         audience = getOAuthRestAudienceUrls()[0],
       ) {
         return protocolRuntime.request(async () => {
           const issuedAt = Math.floor(Date.now() / 1000);
           const token = await signResourceBoundOAuthAccessToken({
             clientId,
-            userId: users[index],
-            grantId: grants[index],
+            userId,
+            grantId,
             scopes: allowedScopes,
             resources: [audience],
             issuedAt,
@@ -122,16 +115,14 @@ export const homeworkTransportTest = mcpProtocolTest
         });
       }
       async function graphql(
-        index: number,
         query: string,
         variables: Record<string, unknown>,
-        allowedScopes = scopes,
+        allowedScopes: string[],
       ) {
         return protocolRuntime.request(async () => {
           return (
             await createGraphqlYoga(false).fetch(
               await request(
-                index,
                 "POST",
                 { query, variables },
                 allowedScopes,
@@ -144,7 +135,6 @@ export const homeworkTransportTest = mcpProtocolTest
       }
       async function httpMcp(scope: string) {
         const signed = await request(
-          0,
           "POST",
           {},
           [scope],
@@ -185,15 +175,14 @@ export const homeworkTransportTest = mcpProtocolTest
       }
 
       const sectionJwId = 1;
-      const initialized = await protocolRuntime.run(async () => {
-        const publicId = await db.$transaction(async (tx) => {
-          await tx.user.createMany({
-            data: users.map((id, index) => ({
-              id,
-              name: `Homework transport ${index}`,
-              email: `${id}@test.invalid`,
-              isAdmin: index === 2,
-            })),
+      await protocolRuntime.run(async () => {
+        await db.$transaction(async (tx) => {
+          await tx.user.create({
+            data: {
+              id: userId,
+              name: "Homework scope owner",
+              email: `${userId}@test.invalid`,
+            },
           });
           await tx.oAuthClient.create({
             data: {
@@ -203,15 +192,11 @@ export const homeworkTransportTest = mcpProtocolTest
               redirectUris: ["https://client.example/callback"],
             },
           });
-          for (const userId of users) {
-            grants.push(
-              (
-                await tx.oAuthConsent.create({
-                  data: { clientId, userId, scopes },
-                })
-              ).grantId,
-            );
-          }
+          grantId = (
+            await tx.oAuthConsent.create({
+              data: { clientId, userId, scopes },
+            })
+          ).grantId;
           const course = await tx.course.create({
             data: {
               jwId: 1,
@@ -228,38 +213,11 @@ export const homeworkTransportTest = mcpProtocolTest
               },
             })
           ).id;
-          const homework = await tx.homework.create({
-            data: { sectionId, title, createdById: users[0] },
-          });
-          await tx.description.create({
-            data: {
-              homeworkId: homework.id,
-              content: "Public assignment details",
-            },
-          });
-          await tx.homeworkCompletion.create({
-            data: { userId: users[0], homeworkId: homework.id },
-          });
-          return homework.id;
         });
-        for (const userId of users)
-          clients.push(await mcpSessions.createMcpHarness(userId, scopes));
-        const onlyCommunity = await httpMcp(communityWrite);
-        const onlyCompletion = await httpMcp(completionWrite);
-        return { publicId, onlyCommunity, onlyCompletion };
       });
       return {
         db,
         routes: {
-          getHomeworksRoute: ownProtocolRoute(
-            protocolRuntime,
-            getHomeworksRoute,
-          ),
-          getHomeworkDetailRoute: ownProtocolRoute(
-            protocolRuntime,
-            getHomeworkDetailRoute,
-          ),
-          handleMcpRequest: ownProtocolRoute(protocolRuntime, handleMcpRequest),
           postHomeworkRoute: ownProtocolRoute(
             protocolRuntime,
             postHomeworkRoute,
@@ -281,17 +239,11 @@ export const homeworkTransportTest = mcpProtocolTest
             putHomeworkCompletionsRoute,
           ),
         },
-        users,
-        clientId,
+        userId,
         communityWrite,
         completionWrite,
-        scopes,
-        grants,
-        clients,
-        ...initialized,
         sectionId,
         sectionJwId,
-        title,
         gqlDelete,
         gqlCreate,
         gqlUpdate,

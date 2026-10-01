@@ -467,7 +467,8 @@ requirements:
     given: The authenticated owner has a real OAuth client/grant; tokens carry either collaborative-homework
       write or personal-homework completion write permission.
     when: Signed REST, signed GraphQL and a real MCP HTTP SDK client exercise create, update, delete,
-      single completion and available batch completion operations with the wrong and correct feature scope.
+      single completion and available batch completion operations with the wrong feature scope; independent
+      cases prepare each successful operation with only its required feature scope.
     then:
     - A scope for the other feature cannot authorize the mutation, and rejected attempts leave homework/completion
       data unchanged.
@@ -551,15 +552,15 @@ requirements:
   acceptance:
     given: An ordinary user authored homework under an isolated section; another ordinary user and an
       administrator have valid OAuth grants.
-    when: REST, signed GraphQL and registered MCP attempt ordinary deletion as each foreign actor and
-      then as the creator.
+    when: Independently prepared Worker REST, signed GraphQL and native MCP HTTP cases attempt ordinary
+      deletion as each foreign actor and as the creator.
     then:
-    - Foreign users and administrators are rejected through every ordinary delete surface, leaving deletedAt
-      unset.
+    - Foreign users and administrators are rejected through every ordinary delete surface, leaving homework
+      unchanged; the administrator denial produces no deletion audit.
     - The creator succeeds through each surface and the stored deletion attribution names that creator.
     test:
-      file: tests/integration/mcp/community/homework-creator-delete.test.ts
-      name: homework.transport-creator-delete
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
+      name: homework ordinary delete rejects a non-creator admin
 - id: homework.section-completed-deadline-display
   category: presentation
   applies_to:

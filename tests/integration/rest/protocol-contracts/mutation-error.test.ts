@@ -245,6 +245,40 @@ test("interface-hierarchy.shared-delete-error-parity", async ({ h, run }) => {
   });
 });
 
+test("homework ordinary delete rejects a non-creator admin", async ({
+  h,
+  run,
+}) => {
+  await run(async () => {
+    await h.db.user.update({
+      where: { id: h.actors[0].id },
+      data: { isAdmin: true },
+    });
+    const homework = await h.db.homework.create({
+      data: {
+        createdById: h.actors[1].id,
+        sectionId: h.section.id,
+        title: "Foreign homework for admin denial",
+      },
+    });
+    await rejectDelete(
+      h,
+      "homework",
+      homework.id,
+      h.actors[0].tokens,
+      "forbidden",
+    );
+    expect(
+      await h.db.homework.findUnique({ where: { id: homework.id } }),
+    ).toEqual(homework);
+    expect(
+      await h.db.auditLog.count({
+        where: { action: "homework_delete", targetId: homework.id },
+      }),
+    ).toBe(0);
+  });
+});
+
 test("interface-hierarchy.suspended-delete-error-parity", async ({
   h,
   run,
@@ -341,7 +375,7 @@ async function successfulDelete(
     body: JSON.stringify(
       surface === "graphql"
         ? {
-            query: `mutation($id: ID!) { ${binding.field}(id: $id) { success ${domain === "homework" ? "alreadyDeleted" : ""} } }`,
+            query: `mutation($id: ID!) { ${binding.field}(id: $id) { success ${domain === "homework" ? "id alreadyDeleted" : ""} } }`,
             variables: { id },
           }
         : {
@@ -386,6 +420,8 @@ async function successfulDelete(
           ).text,
         );
   expect(body.success).toBe(true);
+  if (domain === "homework")
+    expect(surface === "graphql" ? body.id : body.deletedId).toBe(id);
   return body;
 }
 

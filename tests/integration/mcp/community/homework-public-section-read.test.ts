@@ -1,18 +1,57 @@
+import { getHomeworkDetailRoute } from "@/lib/api/routes/homework-detail-read-route";
+import { getHomeworksRoute } from "@/lib/api/routes/homework-list-read-route";
+import { handleMcpRequest } from "@/lib/api/routes/mcp-request-handler";
 import { getOAuthMcpResourceUrl } from "@/lib/mcp/urls";
-import { homeworkTransportTest as contractTest } from "../../../shared/homework-transport-contract-fixture";
+import { ownProtocolRoute } from "../../../shared/mcp-protocol-fixture";
+import { nodeProtocolTest as contractTest } from "../../../shared/node-protocol-fixture";
 
 contractTest(
   "homework.public-section-read",
-  async ({ state, expect, protocolRuntime }) => {
+  async ({ isolatedDatabase: { owner: db }, expect, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
-      const {
-        db,
-        routes: { getHomeworksRoute, getHomeworkDetailRoute, handleMcpRequest },
-      } = state;
+      const userId = crypto.randomUUID();
+      const sectionJwId = 1;
+      const title = "Public homework";
+      const { homework, completion } = await db.$transaction(async (tx) => {
+        await tx.user.create({
+          data: {
+            id: userId,
+            name: "Completion owner",
+            email: `${userId}@test.invalid`,
+          },
+        });
+        const section = await tx.section.create({
+          data: {
+            jwId: sectionJwId,
+            code: "PUBLIC-HOMEWORK.01",
+            course: {
+              create: {
+                jwId: 1,
+                code: "PUBLIC-HOMEWORK",
+                nameCn: "Public homework course",
+              },
+            },
+          },
+        });
+        const homework = await tx.homework.create({
+          data: {
+            sectionId: section.id,
+            title,
+            createdById: userId,
+            description: { create: { content: "Public assignment details" } },
+          },
+        });
+        const completion = await tx.homeworkCompletion.create({
+          data: { userId, homeworkId: homework.id },
+        });
+        return { homework, completion };
+      });
+      const publicId = homework.id;
 
-      const { sectionJwId, publicId, title } = state;
-
-      const response = await getHomeworksRoute(
+      const response = await ownProtocolRoute(
+        protocolRuntime,
+        getHomeworksRoute,
+      )(
         new Request(
           `https://example.test/api/community/section-homeworks?sectionJwId=${sectionJwId}`,
         ),
@@ -22,7 +61,10 @@ contractTest(
       expect(body.data).toMatchObject([
         { id: publicId, title, completion: null },
       ]);
-      const detail = await getHomeworkDetailRoute(
+      const detail = await ownProtocolRoute(
+        protocolRuntime,
+        getHomeworkDetailRoute,
+      )(
         new Request(
           `https://example.test/api/community/section-homeworks/${publicId}`,
         ),
@@ -37,7 +79,10 @@ contractTest(
           description: { content: "Public assignment details" },
         },
       });
-      const denied = await handleMcpRequest(
+      const denied = await ownProtocolRoute(
+        protocolRuntime,
+        handleMcpRequest,
+      )(
         new Request(getOAuthMcpResourceUrl(), {
           method: "POST",
           headers: {
@@ -57,8 +102,10 @@ contractTest(
       );
       expect(denied.status).toBe(401);
       expect(
-        await db.homeworkCompletion.count({ where: { homeworkId: publicId } }),
-      ).toBe(1);
+        await db.homeworkCompletion.findMany({
+          where: { homeworkId: publicId },
+        }),
+      ).toEqual([completion]);
     });
   },
 );
