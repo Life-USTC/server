@@ -102,7 +102,9 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
             expect(Boolean(parameters.get("state"))).toBe(true);
             expect(parameters.get("code_challenge_method")).toBe("S256");
             expect(
-              /^[A-Za-z0-9_-]{43}$/.test(parameters.get("code_challenge") ?? ""),
+              /^[A-Za-z0-9_-]{43}$/.test(
+                parameters.get("code_challenge") ?? "",
+              ),
             ).toBe(true);
             expect(parameters.has("client_secret")).toBe(false);
             expect(parameters.has("code_verifier")).toBe(false);
