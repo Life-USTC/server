@@ -170,7 +170,9 @@ describe("课程与班级查找", () => {
           );
           expect(seedSection).toBeDefined();
           expect(seedSection?.code).toBe(mcpCatalog.section.code);
-          expect(seedSection?.semester?.nameCn).toBe(mcpCatalog.semester.nameCn);
+          expect(seedSection?.semester?.nameCn).toBe(
+            mcpCatalog.semester.nameCn,
+          );
 
           expect(course).toMatchObject(expectedCourse);
           expect(seedSection).toMatchObject({
@@ -206,7 +208,9 @@ describe("课程与班级查找", () => {
 
           expect(result.found).toBe(true);
           expect(result.section?.code).toBe(mcpCatalog.section.code);
-          expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
+          expect(typeof result.section?.schedules?.[0]?.startTime).toBe(
+            "string",
+          );
           expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
           expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(
             true,
@@ -227,7 +231,10 @@ describe("课程与班级查找", () => {
                 },
               ],
               examRooms: [
-                expect.objectContaining({ room: "Catalog exam room", count: 30 }),
+                expect.objectContaining({
+                  room: "Catalog exam room",
+                  count: 30,
+                }),
               ],
             }),
           );

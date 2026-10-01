@@ -91,44 +91,44 @@ test("interface-hierarchy.catalog-rest-relationship-projections", async ({
       nameCn: teacher.nameCn,
     };
 
-    const courseList = await test.step("课程列表项包含所有必填字段", async () => {
-      const response = await request.get(
-        `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-      );
-      expect(response.status()).toBe(200);
-      const body = (await response.json()) as {
-        data?: Array<{
-          id?: unknown;
-          jwId?: unknown;
-          code?: unknown;
-          nameCn?: unknown;
-          nameEn?: unknown;
-          educationLevel?: unknown;
-          category?: unknown;
-          classType?: unknown;
-        }>;
-      };
-      const course = body.data?.find(
-        (item) => item.jwId === DEV_SEED.course.jwId,
-      );
-      expect(course).toBeDefined();
-      expect(typeof course?.id).toBe("number");
-      expect(typeof course?.jwId).toBe("number");
-      expect(typeof course?.code).toBe("string");
-      expect(typeof course?.nameCn).toBe("string");
-      expect(typeof course?.nameEn).toBe("string");
-      expect(Object.hasOwn(course as object, "educationLevel")).toBe(true);
-      expect(Object.hasOwn(course as object, "category")).toBe(true);
-      expect(Object.hasOwn(course as object, "classType")).toBe(true);
+    const courseList =
+      await test.step("课程列表项包含所有必填字段", async () => {
+        const response = await request.get(
+          `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        );
+        expect(response.status()).toBe(200);
+        const body = (await response.json()) as {
+          data?: Array<{
+            id?: unknown;
+            jwId?: unknown;
+            code?: unknown;
+            nameCn?: unknown;
+            nameEn?: unknown;
+            educationLevel?: unknown;
+            category?: unknown;
+            classType?: unknown;
+          }>;
+        };
+        const course = body.data?.find(
+          (item) => item.jwId === DEV_SEED.course.jwId,
+        );
+        expect(course).toBeDefined();
+        expect(typeof course?.id).toBe("number");
+        expect(typeof course?.jwId).toBe("number");
+        expect(typeof course?.code).toBe("string");
+        expect(typeof course?.nameCn).toBe("string");
+        expect(typeof course?.nameEn).toBe("string");
+        expect(Object.hasOwn(course as object, "educationLevel")).toBe(true);
+        expect(Object.hasOwn(course as object, "category")).toBe(true);
+        expect(Object.hasOwn(course as object, "classType")).toBe(true);
 
-      expect(course).toMatchObject(courseIdentity);
-      expect(await readCatalogState(db)).toEqual(before);
-      return course;
-    });
+        expect(course).toMatchObject(courseIdentity);
+        expect(await readCatalogState(db)).toEqual(before);
+        return course;
+      });
 
-    const teacherList = await test.step(
-      "教师列表项包含所有必需的 TeacherSummary 字段",
-      async () => {
+    const teacherList =
+      await test.step("教师列表项包含所有必需的 TeacherSummary 字段", async () => {
         const response = await request.get(
           `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&pageSize=5`,
         );
@@ -159,12 +159,10 @@ test("interface-hierarchy.catalog-rest-relationship-projections", async ({
         expect(teacher?._count?.sections).toBe(1);
         expect(await readCatalogState(db)).toEqual(before);
         return teacher;
-      },
-    );
+      });
 
-    const sectionList = await test.step(
-      "班级列表项包含所有必需的 SectionSummary 字段",
-      async () => {
+    const sectionList =
+      await test.step("班级列表项包含所有必需的 SectionSummary 字段", async () => {
         const response = await request.get(
           `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&pageSize=20`,
         );
@@ -202,8 +200,7 @@ test("interface-hierarchy.catalog-rest-relationship-projections", async ({
         expect(section?.course).toMatchObject({ id: courseList?.id });
         expect(await readCatalogState(db)).toEqual(before);
         return section;
-      },
-    );
+      });
 
     await test.step("班级列表项包含教师数组", async () => {
       const response = await request.get(
