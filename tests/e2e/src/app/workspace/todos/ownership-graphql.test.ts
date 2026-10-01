@@ -50,41 +50,105 @@ for (const role of roles)
         },
       );
       modeTest(
-        "owner CRUD persists authenticated ownership",
+        "owner create persists authenticated ownership",
         async ({ ownership: f }) => {
           await f.run(
             async () => {
               const request = await f.request(mode, "graphql");
-              const created = await f.graphql(request, createQuery, {
-                input: { title: "GraphQL owned" },
+              const response = await request.post("/api/graphql", {
+                headers: { origin: f.origin },
+                data: {
+                  query: createQuery,
+                  variables: { input: { title: "GraphQL owned" } },
+                },
               });
+              expect(response.status()).toBe(200);
+              const created = await response.json();
               expect(created.errors).toBeUndefined();
-              const id = created.data.todoCreate.id;
-              expect(await f.stored(id)).toMatchObject({
+              expect(created.data.todoCreate).toEqual({
+                id: expect.any(String),
+              });
+              const { id } = created.data.todoCreate;
+              expect(await f.stored(id)).toEqual({
+                id,
                 userId: f.actor.id,
                 title: "GraphQL owned",
+                content: null,
                 completed: false,
+                priority: "medium",
+                dueAt: null,
+                createdAt: expect.any(Date),
+                updatedAt: expect.any(Date),
               });
-              const updated = await f.graphql(request, updateQuery, {
-                id,
-                input: { title: "GraphQL edited", completed: true },
+              await f.unchanged([id]);
+            },
+            { calendarRebuilds: 1 },
+          );
+        },
+      );
+      modeTest(
+        "owner update preserves authenticated ownership",
+        async ({ ownership: f }) => {
+          await f.run(
+            async () => {
+              const todo = await f.seedTodo({
+                title: "GraphQL original",
+                content: "Retained GraphQL content",
+                priority: "high",
+                dueAt: new Date("2026-10-05T12:00:00+08:00"),
               });
+              const request = await f.request(mode, "graphql");
+              const response = await request.post("/api/graphql", {
+                headers: { origin: f.origin },
+                data: {
+                  query: updateQuery,
+                  variables: {
+                    id: todo.id,
+                    input: { title: "GraphQL edited", completed: true },
+                  },
+                },
+              });
+              expect(response.status()).toBe(200);
+              const updated = await response.json();
               expect(updated.errors).toBeUndefined();
-              expect(await f.stored(id)).toMatchObject({
-                userId: f.actor.id,
+              expect(updated.data.todoUpdate).toEqual({ id: todo.id });
+              expect(await f.stored(todo.id)).toEqual({
+                ...todo,
                 title: "GraphQL edited",
                 completed: true,
+                updatedAt: expect.any(Date),
               });
-              const deleted = await f.graphql(request, deleteQuery, { id });
+              await f.unchanged([todo.id]);
+            },
+            { calendarRebuilds: 1 },
+          );
+        },
+      );
+      modeTest(
+        "owner delete removes an independently prepared todo",
+        async ({ ownership: f }) => {
+          await f.run(
+            async () => {
+              const todo = await f.seedTodo({
+                title: "GraphQL removable",
+                content: "Private deletion target",
+              });
+              const request = await f.request(mode, "graphql");
+              const response = await request.post("/api/graphql", {
+                headers: { origin: f.origin },
+                data: { query: deleteQuery, variables: { id: todo.id } },
+              });
+              expect(response.status()).toBe(200);
+              const deleted = await response.json();
               expect(deleted.errors).toBeUndefined();
-              expect(deleted.data.todoDelete).toMatchObject({
-                id,
+              expect(deleted.data.todoDelete).toEqual({
+                id: todo.id,
                 success: true,
               });
-              expect(await f.stored(id)).toBeNull();
+              expect(await f.stored(todo.id)).toBeNull();
               await f.unchanged();
             },
-            { calendarRebuilds: 3 },
+            { calendarRebuilds: 1 },
           );
         },
       );
@@ -93,7 +157,11 @@ for (const role of roles)
         async ({ ownership: f }) => {
           await f.run(
             async () => {
-              const id = await f.seedCompleted();
+              const todo = await f.seedTodo({
+                title: "Batch owned",
+                completed: true,
+              });
+              const id = todo.id;
               const request = await f.request(mode, "graphql");
               const result = await f.graphql(
                 request,
@@ -114,10 +182,10 @@ for (const role of roles)
                   error: { code: "NOT_FOUND" },
                 },
               ]);
-              expect(await f.stored(id)).toMatchObject({
-                userId: f.actor.id,
-                title: "Batch owned",
+              expect(await f.stored(id)).toEqual({
+                ...todo,
                 completed: false,
+                updatedAt: expect.any(Date),
               });
               await f.unchanged([id]);
             },
@@ -130,7 +198,10 @@ for (const role of roles)
         async ({ ownership: f }) => {
           await f.run(
             async () => {
-              const id = await f.seedCompleted();
+              const { id } = await f.seedTodo({
+                title: "Batch owned",
+                completed: true,
+              });
               const request = await f.request(mode, "graphql");
               const result = await f.graphql(
                 request,

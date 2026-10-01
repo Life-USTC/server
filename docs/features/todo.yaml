@@ -59,14 +59,17 @@ requirements:
       independent OAuth clients receive todo read/write grants.
     when: Independently prepared anonymous, Web, cookie and OAuth cases exercise list consumers,
       owned mutations, foreign write rejection and mixed-owner batches through REST, GraphQL and
-      real HTTP MCP. OAuth cases use client registration, browser consent and PKCE code exchange;
-      separate Web journeys create, edit and delete an owned todo.
+      real HTTP MCP. OAuth cases use client registration, browser consent and PKCE code exchange.
+      Every surface has separate create, update and delete cases; updates and deletions start from
+      directly prepared owned records while independent list consumers read their own fixtures.
     then:
     - Anonymous reads and writes never reveal or modify private todos.
     - Each owner, including the suspended administrator and OAuth clients, sees only their own list and
       can manage their own records.
     - Foreign IDs and caller-supplied user IDs cannot redirect ownership; mixed-owner batches mutate only
       the owned item.
+    - Each successful mutation verifies its complete persisted result or absence, preserves both owners'
+      unrelated records, and emits only the acting owner's calendar rebuild.
     - The other owner’s complete stored record remains unchanged after every transport.
     test:
       file: tests/e2e/src/app/workspace/todos/ownership-contract.test.ts

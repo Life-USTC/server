@@ -37,7 +37,7 @@ for (const role of roles)
         },
       );
     browserTest(
-      "mobile owner create edit delete journey",
+      "mobile owner create persists authenticated ownership",
       async ({ ownership: f }) => {
         await f.run(
           async () => {
@@ -73,6 +73,37 @@ for (const role of roles)
             const row = await f.db.todo.findFirstOrThrow({
               where: { userId: f.actor.id, title },
             });
+            expect(row).toEqual({
+              id: expect.any(String),
+              userId: f.actor.id,
+              title,
+              content: null,
+              completed: false,
+              priority: "medium",
+              dueAt: null,
+              createdAt: expect.any(Date),
+              updatedAt: expect.any(Date),
+            });
+            await f.unchanged([row.id]);
+          },
+          { calendarRebuilds: 1 },
+        );
+      },
+    );
+    browserTest(
+      "mobile owner update preserves authenticated ownership",
+      async ({ ownership: f }) => {
+        await f.run(
+          async () => {
+            const title = "Web original";
+            const row = await f.seedTodo({
+              title,
+              content: "Retained Web content",
+              priority: "high",
+              dueAt: new Date("2026-10-05T12:00:00+08:00"),
+            });
+            const page = await f.page();
+            await gotoAndWaitForReady(page, "/workspace/todos");
             await page
               .getByRole("button", { name: title, exact: true })
               .filter({ visible: true })
@@ -108,12 +139,34 @@ for (const role of roles)
                 .getByRole("button", { name: `${title} edited`, exact: true })
                 .filter({ visible: true }),
             ).toBeVisible();
-            expect(await f.stored(row.id)).toMatchObject({
+            expect(await f.stored(row.id)).toEqual({
+              ...row,
               title: `${title} edited`,
-              userId: f.actor.id,
+              updatedAt: expect.any(Date),
             });
+            await expect(
+              page.getByRole("button", { name: title, exact: true }),
+            ).toHaveCount(0);
+            await f.unchanged([row.id]);
+          },
+          { calendarRebuilds: 1 },
+        );
+      },
+    );
+    browserTest(
+      "mobile owner delete removes an independently prepared todo",
+      async ({ ownership: f }) => {
+        await f.run(
+          async () => {
+            const title = "Web removable";
+            const row = await f.seedTodo({
+              title,
+              content: "Private deletion target",
+            });
+            const page = await f.page();
+            await gotoAndWaitForReady(page, "/workspace/todos");
             await page
-              .getByRole("button", { name: `${title} edited`, exact: true })
+              .getByRole("button", { name: title, exact: true })
               .filter({ visible: true })
               .click();
             await page
@@ -125,7 +178,7 @@ for (const role of roles)
                 (response) =>
                   response.request().method() === "DELETE" &&
                   new URL(response.url()).pathname ===
-                    "/api/workspace/todos/" + row.id,
+                    `/api/workspace/todos/${row.id}`,
               ),
               page
                 .getByRole("alertdialog")
@@ -137,13 +190,13 @@ for (const role of roles)
             await expect.poll(() => f.stored(row.id)).toBeNull();
             await expect(
               page.getByRole("button", {
-                name: `${title} edited`,
+                name: title,
                 exact: true,
               }),
             ).toHaveCount(0);
             await f.unchanged();
           },
-          { calendarRebuilds: 3 },
+          { calendarRebuilds: 1 },
         );
       },
     );
