@@ -27,7 +27,9 @@ type Effects = {
 export const test = workerTest.extend<{
   account: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
   activityDb: <T>(work: (db: TestPrismaClient) => Promise<T>) => Promise<T>;
-  activityRun: (work: () => Promise<void>) => Promise<void>;
+  activityRun: (
+    work: (settleActivityEffects: () => Promise<void>) => Promise<void>,
+  ) => Promise<void>;
   activity: YoungEvent;
   activityConsumer: {
     organizerId: string;
@@ -284,151 +286,147 @@ export const test = workerTest.extend<{
                           "x-test-community-probe": probeId,
                         },
                       });
-                      try {
-                        const text = await response.text();
-                        if (incoming.method() === "GET") {
-                          expect([200, 303]).toContain(response.status());
-                          if (refresh && before) {
-                            expect(await subscription()).toMatchObject({
-                              observedState: expectedObservedState,
-                              observedRevision:
-                                before.observedState === "{}"
-                                  ? 1
-                                  : before.observedRevision,
-                            });
-                            if (before.observedState === "{}")
-                              expect(
-                                await db.youngNotification.findUnique({
-                                  where: {
-                                    userId_dedupeKey: {
-                                      userId: account.id,
-                                      dedupeKey: `${before.id}:change:1`,
-                                    },
-                                  },
-                                }),
-                              ).toMatchObject({
-                                youngId: activity.youngId,
-                                kind: "event_changed",
-                                title: activity.name,
-                                readAt: null,
-                              });
-                          }
-                        } else if (writesSubscription) {
-                          expect(response.status()).toBe(200);
-                          const input = incoming.postDataJSON();
-                          expect(JSON.parse(text)).toEqual({
-                            youngId: activity.youngId,
-                            subscribed: input.subscribed,
-                            remindSignup:
-                              input.subscribed && input.remindSignup,
-                            remindDeadline:
-                              input.subscribed && input.remindDeadline,
-                            remindStart: input.subscribed && input.remindStart,
+                      const text = await response.text();
+                      if (incoming.method() === "GET") {
+                        expect([200, 303]).toContain(response.status());
+                        if (refresh && before) {
+                          expect(await subscription()).toMatchObject({
+                            observedState: expectedObservedState,
+                            observedRevision:
+                              before.observedState === "{}"
+                                ? 1
+                                : before.observedRevision,
                           });
-                          const row = await subscription();
-                          if (input.subscribed)
-                            expect(row).toMatchObject({
-                              userId: account.id,
-                              youngId: activity.youngId,
-                              remindSignup: input.remindSignup,
-                              remindDeadline: input.remindDeadline,
-                              remindStart: input.remindStart,
-                              observedState: expectedObservedState,
-                            });
-                          else {
-                            expect(row).toBeNull();
+                          if (before.observedState === "{}")
                             expect(
-                              await db.youngNotification.count({
+                              await db.youngNotification.findUnique({
                                 where: {
-                                  userId: account.id,
-                                  youngId: activity.youngId,
-                                  readAt: null,
+                                  userId_dedupeKey: {
+                                    userId: account.id,
+                                    dedupeKey: `${before.id}:change:1`,
+                                  },
                                 },
                               }),
-                            ).toBe(0);
-                          }
-                        } else if (url.pathname.endsWith("/read")) {
-                          expect(response.status()).toBe(200);
-                          const id = decodeURIComponent(
-                            url.pathname.split("/").at(-2) ?? "",
-                          );
-                          expect(JSON.parse(text)).toEqual({
-                            id,
-                            success: true,
-                          });
-                          expect(
-                            await db.youngNotification.findUnique({
-                              where: { id },
-                            }),
-                          ).toMatchObject({
+                            ).toMatchObject({
+                              youngId: activity.youngId,
+                              kind: "event_changed",
+                              title: activity.name,
+                              readAt: null,
+                            });
+                        }
+                      } else if (writesSubscription) {
+                        expect(response.status()).toBe(200);
+                        const input = incoming.postDataJSON();
+                        expect(JSON.parse(text)).toEqual({
+                          youngId: activity.youngId,
+                          subscribed: input.subscribed,
+                          remindSignup:
+                            input.subscribed && input.remindSignup,
+                          remindDeadline:
+                            input.subscribed && input.remindDeadline,
+                          remindStart: input.subscribed && input.remindStart,
+                        });
+                        const row = await subscription();
+                        if (input.subscribed)
+                          expect(row).toMatchObject({
                             userId: account.id,
-                            readAt: expect.any(Date),
-                          });
-                        } else if (
-                          incoming.method() === "POST" &&
-                          url.pathname === "/api/community/comments"
-                        ) {
-                          expect(response.status()).toBe(201);
-                          const input = incoming.postDataJSON();
-                          expect(input).toMatchObject({
-                            targetType: "young-event",
                             youngId: activity.youngId,
+                            remindSignup: input.remindSignup,
+                            remindDeadline: input.remindDeadline,
+                            remindStart: input.remindStart,
+                            observedState: expectedObservedState,
                           });
-                          const id = JSON.parse(text).id;
+                        else {
+                          expect(row).toBeNull();
                           expect(
-                            await db.comment.findUnique({
-                              where: { id },
+                            await db.youngNotification.count({
+                              where: {
+                                userId: account.id,
+                                youngId: activity.youngId,
+                                readAt: null,
+                              },
                             }),
-                          ).toMatchObject({
+                          ).toBe(0);
+                        }
+                      } else if (url.pathname.endsWith("/read")) {
+                        expect(response.status()).toBe(200);
+                        const id = decodeURIComponent(
+                          url.pathname.split("/").at(-2) ?? "",
+                        );
+                        expect(JSON.parse(text)).toEqual({
+                          id,
+                          success: true,
+                        });
+                        expect(
+                          await db.youngNotification.findUnique({
+                            where: { id },
+                          }),
+                        ).toMatchObject({
+                          userId: account.id,
+                          readAt: expect.any(Date),
+                        });
+                      } else if (
+                        incoming.method() === "POST" &&
+                        url.pathname === "/api/community/comments"
+                      ) {
+                        expect(response.status()).toBe(201);
+                        const input = incoming.postDataJSON();
+                        expect(input).toMatchObject({
+                          targetType: "young-event",
+                          youngId: activity.youngId,
+                        });
+                        const id = JSON.parse(text).id;
+                        expect(
+                          await db.comment.findUnique({
+                            where: { id },
+                          }),
+                        ).toMatchObject({
+                          userId: account.id,
+                          youngEventId: activity.id,
+                          body: input.body,
+                          status: "active",
+                          visibility: "public",
+                        });
+                        // This path writes its audit in the comment transaction.
+                        // Observe the actual stored row, not Worker shutdown.
+                        const session = await db.session.findFirstOrThrow({
+                          where: { userId: account.id },
+                          select: { id: true },
+                        });
+                        const audits = await db.auditLog.findMany({
+                          where: { targetId: id, targetType: "comment" },
+                          select: {
+                            action: true,
+                            channel: true,
+                            outcome: true,
+                            targetId: true,
+                            targetType: true,
+                            userId: true,
+                            subjectUserId: true,
+                            sessionId: true,
+                            oauthClientId: true,
+                            oauthGrantId: true,
+                          },
+                        });
+                        expect(audits).toEqual([
+                          {
+                            action: "comment_create",
+                            channel: "rest",
+                            outcome: "success",
+                            targetId: id,
+                            targetType: "comment",
                             userId: account.id,
-                            youngEventId: activity.id,
-                            body: input.body,
-                            status: "active",
-                            visibility: "public",
-                          });
-                          // This path writes its audit in the comment transaction.
-                          // Observe the actual stored row, not Worker shutdown.
-                          const session = await db.session.findFirstOrThrow({
-                            where: { userId: account.id },
-                            select: { id: true },
-                          });
-                          const audits = await db.auditLog.findMany({
-                            where: { targetId: id, targetType: "comment" },
-                            select: {
-                              action: true,
-                              channel: true,
-                              outcome: true,
-                              targetId: true,
-                              targetType: true,
-                              userId: true,
-                              subjectUserId: true,
-                              sessionId: true,
-                              oauthClientId: true,
-                              oauthGrantId: true,
-                            },
-                          });
-                          expect(audits).toEqual([
-                            {
-                              action: "comment_create",
-                              channel: "rest",
-                              outcome: "success",
-                              targetId: id,
-                              targetType: "comment",
-                              userId: account.id,
-                              subjectUserId: account.id,
-                              sessionId: session.id,
-                              oauthClientId: null,
-                              oauthGrantId: null,
-                            },
-                          ]);
-                          commentAudits.push(...audits);
-                        } else
-                          throw new Error(
-                            `Unexpected activity mutation: ${incoming.method()} ${url.pathname}`,
-                          );
-                      } finally {
-                        await settleEffects();
-                      }
+                            subjectUserId: account.id,
+                            sessionId: session.id,
+                            oauthClientId: null,
+                            oauthGrantId: null,
+                          },
+                        ]);
+                        commentAudits.push(...audits);
+                      } else
+                        throw new Error(
+                          `Unexpected activity mutation: ${incoming.method()} ${url.pathname}`,
+                        );
                       await route.fulfill({ response });
                     } catch (error) {
                       errors.push(error);
@@ -461,7 +459,24 @@ export const test = workerTest.extend<{
                   }),
               );
               await page.context().addCookies([account.cookie]);
-              await workflow.body(work);
+              await workflow.body(() =>
+                work(async () => {
+                  if (!accepting)
+                    throw new Error("Activity effects requested during teardown");
+                  // Explicit checkpoints preserve each mutation's projection
+                  // without holding its successful HTTP response for the queue.
+                  const completion = settleEffects().then(() => undefined);
+                  const owned = completion.catch((error) => {
+                    errors.push(error);
+                  });
+                  pending.add(owned);
+                  try {
+                    await completion;
+                  } finally {
+                    pending.delete(owned);
+                  }
+                }),
+              );
             } catch (error) {
               errors.push(error);
             } finally {
