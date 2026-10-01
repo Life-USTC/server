@@ -470,7 +470,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         );
         expect(response.status()).toBe(200);
         const completionBody = await response.json();
-        expect(completionBody).toMatchObject({ completed: true });
+        expect(completionBody).toMatchObject({
+          completed: true,
+          completedAt: expect.any(String),
+        });
         await expect
           .poll(() => readHomeworkCompletion(db, account.id, homeworkId))
           .toMatchObject({
@@ -486,8 +489,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         const completed = await db.homeworkCompletion.findUniqueOrThrow({
           where: { userId_homeworkId: { userId: account.id, homeworkId } },
         });
-        expect(completed.completedAt.toISOString()).toBe(
-          completionBody.completedAt,
+        expect(new Date(completionBody.completedAt).getTime()).toBe(
+          completed.completedAt.getTime(),
         );
         const facts = homeworkPopout.getByTestId("homework-secondary-details");
         await expect(facts).toContainText(/已完成|Completed/i);
