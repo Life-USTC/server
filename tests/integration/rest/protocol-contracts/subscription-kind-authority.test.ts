@@ -56,37 +56,28 @@ function rows(h: ProtocolFixture) {
 }
 for (const transport of transports) {
   for (const kind of ["regular", "auditor", "teaching_assistant"] as const) {
-    test(`subscription kind ${kind} updates only its owner through ${transport}`, async ({
-      run,
-      h,
-    }) => {
-      await run(async () => {
-        await h.db.userSectionSubscription.createMany({
-          data: h.actors.map((a) => ({
-            userId: a.id,
-            sectionId: h.section.id,
-            kind: "regular",
-          })),
-        });
-        const before = await rows(h);
-        const result = successful(
-          transport,
-          await invoke(
-            h.origin,
-            transport,
-            changeKind(h.section.jwId, kind),
-            h.actors[0].tokens[transport],
-          ),
-        );
-        expect(result).toMatchObject({ sectionJwId: h.section.jwId, kind });
-        expect(await rows(h)).toEqual(
-          before.map((row) =>
-            row.userId === h.actors[0].id ? { ...row, kind } : row,
-          ),
-        );
-        const committed = await rows(h);
-        expect(
-          successful(
+    for (const operation of ["change", "repeat"] as const) {
+      test(`subscription kind ${kind} ${operation} updates only its owner through ${transport}`, async ({
+        run,
+        h,
+      }) => {
+        await run(async () => {
+          const initialKind =
+            operation === "repeat"
+              ? kind
+              : kind === "regular"
+                ? "auditor"
+                : "regular";
+          await h.db.userSectionSubscription.createMany({
+            data: h.actors.map((a) => ({
+              userId: a.id,
+              sectionId: h.section.id,
+              kind: initialKind,
+              createdAt: new Date("2025-01-01T00:00:00.000Z"),
+            })),
+          });
+          const before = await rows(h);
+          const result = successful(
             transport,
             await invoke(
               h.origin,
@@ -94,11 +85,16 @@ for (const transport of transports) {
               changeKind(h.section.jwId, kind),
               h.actors[0].tokens[transport],
             ),
-          ),
-        ).toMatchObject({ sectionJwId: h.section.jwId, kind });
-        expect(await rows(h)).toEqual(committed);
+          );
+          expect(result).toMatchObject({ sectionJwId: h.section.jwId, kind });
+          expect(await rows(h)).toEqual(
+            before.map((row) =>
+              row.userId === h.actors[0].id ? { ...row, kind } : row,
+            ),
+          );
+        });
       });
-    });
+    }
   }
   test(`subscription kind rejects another owner membership through ${transport}`, async ({
     run,
@@ -142,16 +138,19 @@ for (const transport of transports) {
       expect(await rows(h)).toEqual(before);
     });
   });
-  test(`subscription kind authorization rejection preserves state through ${transport}`, async ({
-    run,
-    h,
-  }) => {
-    await run(async () => {
-      await h.db.userSectionSubscription.createMany({
-        data: h.actors.map((a) => ({ userId: a.id, sectionId: h.section.id })),
-      });
-      const before = await rows(h);
-      for (const reason of ["anonymous", "read_scope"] as const) {
+  for (const reason of ["anonymous", "read_scope"] as const) {
+    test(`subscription kind ${reason} rejection preserves state through ${transport}`, async ({
+      run,
+      h,
+    }) => {
+      await run(async () => {
+        await h.db.userSectionSubscription.createMany({
+          data: h.actors.map((a) => ({
+            userId: a.id,
+            sectionId: h.section.id,
+          })),
+        });
+        const before = await rows(h);
         unauthorized(
           transport,
           await invoke(
@@ -165,26 +164,29 @@ for (const transport of transports) {
           reason,
         );
         expect(await rows(h)).toEqual(before);
-      }
+      });
     });
-  });
-  test(`subscription kind remains personal during suspension through ${transport}`, async ({
-    run,
-    h,
-  }) => {
-    await run(async () => {
-      await h.db.userSectionSubscription.createMany({
-        data: h.actors.map((a) => ({
-          userId: a.id,
-          sectionId: h.section.id,
-          kind: "teaching_assistant",
-        })),
-      });
-      await h.db.userSuspension.create({
-        data: { userId: h.actors[0].id, reason: h.marker },
-      });
-      const before = await rows(h);
-      for (const kind of ["regular", "auditor"] as const) {
+  }
+  for (const kind of ["regular", "auditor"] as const) {
+    test(`subscription kind ${kind} remains personal during suspension through ${transport}`, async ({
+      run,
+      h,
+    }) => {
+      await run(async () => {
+        await h.db.$transaction([
+          h.db.userSectionSubscription.createMany({
+            data: h.actors.map((a) => ({
+              userId: a.id,
+              sectionId: h.section.id,
+              kind: "teaching_assistant",
+              createdAt: new Date("2025-01-01T00:00:00.000Z"),
+            })),
+          }),
+          h.db.userSuspension.create({
+            data: { userId: h.actors[0].id, reason: h.marker },
+          }),
+        ]);
+        const before = await rows(h);
         expect(
           successful(
             transport,
@@ -201,7 +203,7 @@ for (const transport of transports) {
             row.userId === h.actors[0].id ? { ...row, kind } : row,
           ),
         );
-      }
+      });
     });
-  });
+  }
 }
