@@ -104,9 +104,9 @@ requirements:
     the earliest pin when full; repeated pin requests preserve the original timestamp and do not displace
     another choice. All responses return the final pin set so clients display the persisted result.
   acceptance:
-    given: An isolated owner starts with one pin and another owner has independent state.
-    when: Real REST writes fill four slots, repeat pins, overflow, remove and repin entries, followed
-      by the actual Web view.
+    given: Each isolated case seeds its required pin count and timestamp order; another owner has independent state.
+    when: Each real REST case performs one fill, repeat, overflow, remove or repin operation; a separate
+      Web consumer starts with directly seeded pins.
     then:
     - At most four pins persist and the fifth displaces the earliest original pin.
     - Repeated pins are idempotent and preserve their original pin timestamp; later eviction follows that
@@ -114,7 +114,7 @@ requirements:
     - Another owner stays unchanged and Web controls reflect the exact persisted final set.
     test:
       file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
-      name: catalog-link.pin-limit
+      name: catalog-link.pin-limit overflow
 - id: catalog-link.pin-error-clear
   category: presentation
   rule: A failed pin/unpin write returns an error and does not report successful state. The Web interface

@@ -62,6 +62,8 @@ for (const role of roles)
           expect(response.isError).not.toBe(true);
           const created = parseTextContent(response);
           expect(created).toEqual({ id: expect.any(String), success: true });
+          if (typeof created.id !== "string")
+            throw new Error("Missing created todo ID");
           expect(await f.stored(created.id)).toEqual({
             id: created.id,
             userId: f.actor.id,
