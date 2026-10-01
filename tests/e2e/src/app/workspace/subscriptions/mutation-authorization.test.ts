@@ -14,6 +14,46 @@ const mutationFields = [
 const mutationQuery = (field: (typeof mutationFields)[number]) =>
   `mutation($jwId: Int!) { ${field}(jwId: $jwId${field === "subscriptionKindUpdate" ? ", kind: auditor" : ""}) { ${field === "subscriptionKindUpdate" ? "kind" : "subscribed"} } }`;
 
+test("invalid subscription kind preserves its independently seeded role", async ({
+  page,
+  calendarProtocolRun,
+  oauthOwner,
+  createCalendar,
+}) => {
+  await runSubscriptionScenario(
+    { page, calendarProtocolRun, oauthOwner, createCalendar },
+    { transport: "REST session", messages: 0 },
+    async (connection, fixture) => {
+      const db = oauthOwner.worker.database.owner;
+      const membership = {
+        userId: fixture.own.users[0].id,
+        sectionId: fixture.foreign.section.id,
+        kind: "teaching_assistant" as const,
+      };
+      const before = await db.userSectionSubscription.create({
+        data: membership,
+      });
+      const response = await connection.request.patch(
+        `/api/workspace/subscriptions/${fixture.foreign.section.jwId}`,
+        { data: { kind: "invalid" } },
+      );
+      expect(response.status()).toBe(400);
+      await response.body();
+      expect(
+        await db.userSectionSubscription.findUniqueOrThrow({
+          where: {
+            userId_sectionId: {
+              userId: membership.userId,
+              sectionId: membership.sectionId,
+            },
+          },
+        }),
+      ).toEqual(before);
+      return [...fixture.initial, membership];
+    },
+  );
+});
+
 test("Anonymous subscription writes are rejected without changing any memberships", async ({
   page,
   calendarProtocolRun,

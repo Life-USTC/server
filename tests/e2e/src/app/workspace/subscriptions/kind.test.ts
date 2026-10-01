@@ -186,37 +186,3 @@ for (const viewport of [
     );
   });
 }
-
-test("invalid subscription kind preserves its independently seeded role", async ({
-  page,
-  academic,
-  account,
-  homeworkRun,
-  academicDb,
-}) => {
-  const where = {
-    userId_sectionId: { userId: account.id, sectionId: academic.section.id },
-  };
-  const before = await academicDb((db) =>
-    db.userSectionSubscription.update({
-      where,
-      data: { kind: "teaching_assistant" },
-    }),
-  );
-  await homeworkRun(
-    async () => {
-      const invalid = await page.request.patch(
-        `/api/workspace/subscriptions/${academic.section.jwId}`,
-        { data: { kind: "invalid" } },
-      );
-      expect(invalid.status()).toBe(400);
-      await invalid.body();
-      expect(
-        await academicDb((db) =>
-          db.userSectionSubscription.findUnique({ where }),
-        ),
-      ).toEqual(before);
-    },
-    { calendarMessages: [] },
-  );
-});
