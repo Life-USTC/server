@@ -282,6 +282,11 @@ export async function withCommunityFlow(
     for (const request of producer.requests) {
       expect(request.outcome).toBe("fulfilled");
       expect(request.result).toEqual(expect.any(Number));
+      if (["GET", "HEAD"].includes(request.value.method))
+        expect(
+          request.result,
+          `Worker read ${request.value.method} ${request.value.path}`,
+        ).toBeLessThan(500);
       if (!account) expect(["GET", "HEAD"]).toContain(request.value.method);
     }
     for (const purge of producer.purges) {
