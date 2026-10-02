@@ -334,17 +334,18 @@ export const test = ownedTest.extend<{
                   // Signing in on the section destination reads its viewer.
                   // Observe that actual read alongside the work and require it
                   // to complete successfully.
-                  const viewerResponse = await observeAction(
-                    () =>
-                      page.waitForResponse(
+                  await observeAction(
+                    async () => {
+                      const response = await page.waitForResponse(
                         (response) =>
                           response.request().method() === "GET" &&
                           new URL(response.url()).pathname === viewerPath,
-                      ),
+                      );
+                      expect(response.status()).toBe(200);
+                      await response.body();
+                    },
                     () => work(flow),
                   );
-                  expect(viewerResponse.status()).toBe(200);
-                  await viewerResponse.body();
                 },
                 { auditActions: { account_sign_in: 1 } },
                 {
