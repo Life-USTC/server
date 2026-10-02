@@ -1,7 +1,10 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../../utils/auth";
 
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
 
@@ -135,6 +138,8 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
           "settings-authorizations-revoked",
         );
         await page.reload({ waitUntil: "domcontentloaded" });
+        await waitForUiSettled(page);
+        await expect(region).toBeVisible();
         await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
         await expect(
           page
