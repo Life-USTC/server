@@ -66,7 +66,7 @@ function descriptionAudit(userId: string, descriptionId: string) {
     oauthClientId: null,
     oauthGrantId: null,
     sessionId: null,
-    action: "description_edit",
+    action: "description_edit" as const,
     targetId: descriptionId,
     targetType: "description",
     metadata: { targetType: "homework", changedFields: ["content"] },
