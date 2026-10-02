@@ -23,11 +23,10 @@ test("calendar cancellation joins the real old-range handler before closing its 
   isolatedWorker,
   page,
   run,
-}, testInfo) => {
+}) => {
   await run(async () => {
     const barrier = await calendarLifecycleBarrier(isolatedWorker.database);
     const finalization = observeCalendarFinalization(page, barrier);
-    const requests: Array<{ url: string; outcome: string }> = [];
     const browserOperations: Promise<unknown>[] = [];
     const own = <T>(operation: Promise<T>) => {
       browserOperations.push(operation);
@@ -43,7 +42,6 @@ test("calendar cancellation joins the real old-range handler before closing its 
           isolatedWorker,
           account: calendar.users[0],
           sectionId: calendar.section.id,
-          testInfo,
           calendarTokenCreated: true,
           calendarMessages: [],
           observeReads: true,
@@ -66,7 +64,6 @@ test("calendar cancellation joins the real old-range handler before closing its 
           const initial = await initialResponse;
           expect(initial.status()).toBe(200);
           await initial.body();
-          requests.push({ url: initial.url(), outcome: "200" });
           const agenda = page
             .getByTestId("calendar-agenda")
             .filter({ visible: true });
@@ -103,12 +100,10 @@ test("calendar cancellation joins the real old-range handler before closing its 
             .click();
           expect((await aborted).failure()?.errorText).toBe("net::ERR_ABORTED");
           expect(await old.response()).toBeNull();
-          requests.push({ url: old.url(), outcome: "net::ERR_ABORTED" });
           const replacement = await replacementResponse;
           expect(replacement.request()).not.toBe(old);
           expect(replacement.status()).toBe(200);
           await replacement.body();
-          requests.push({ url: replacement.url(), outcome: "200" });
           await expect(page).toHaveURL(
             new RegExp(`calendarDay=${calendar.activityDate}`),
           );
@@ -138,12 +133,8 @@ test("calendar cancellation joins the real old-range handler before closing its 
           throw new Error("Workflow finished before native drain entry");
         }),
       ]);
-      const blocked = await finalization.assertPending();
+      await finalization.assertPending();
       expect(settled).toBe(false);
-      await testInfo.attach("calendar-cancellation-pending", {
-        body: JSON.stringify({ ...barrier.identity, blocked, requests }),
-        contentType: "application/json",
-      });
       await barrier.release();
       await workflow;
       const producer = await finalization.result();
@@ -162,10 +153,6 @@ test("calendar cancellation joins the real old-range handler before closing its 
       }
       expect(producer.backgroundErrors).toEqual([]);
       await barrier.assertBackendDisconnected();
-      await testInfo.attach("calendar-cancellation-complete", {
-        body: JSON.stringify({ ...barrier.identity, blocked, requests, reads }),
-        contentType: "application/json",
-      });
     } finally {
       try {
         await barrier.release();

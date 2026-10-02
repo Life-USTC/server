@@ -89,11 +89,10 @@ export const test = accountTest.extend<{
       run,
     },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
-        { page, browser, observer, isolatedWorker, account, testInfo },
+        { page, browser, observer, isolatedWorker, account },
         async (flow) => {
           await use({
             ...flow,

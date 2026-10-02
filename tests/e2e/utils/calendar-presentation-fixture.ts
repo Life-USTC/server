@@ -56,11 +56,7 @@ export const test = workerTest.extend<{
       }),
     );
   },
-  calendarRun: async (
-    { isolatedWorker, calendar, page, run },
-    use,
-    testInfo,
-  ) => {
+  calendarRun: async ({ isolatedWorker, calendar, page, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work, { accountIndex, calendarTokenCreated }) => {
         return workflow.run(() =>
@@ -71,7 +67,6 @@ export const test = workerTest.extend<{
                 isolatedWorker,
                 account: calendar.users[accountIndex],
                 sectionId: calendar.section.id,
-                testInfo,
                 runBody: workflow.body,
                 calendarTokenCreated,
                 calendarMessages: [],

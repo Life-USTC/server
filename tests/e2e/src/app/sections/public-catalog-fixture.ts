@@ -40,13 +40,12 @@ export const test = workerTest.extend<{
   catalogFlow: async (
     { page, browser, request: observer, isolatedWorker, catalog, run },
     use,
-    testInfo,
   ) => {
     await run(async () => {
       const errors: unknown[] = [];
       try {
         await withPreferenceFlow(
-          { page, browser, observer, isolatedWorker, testInfo },
+          { page, browser, observer, isolatedWorker },
           use,
         );
       } catch (error) {

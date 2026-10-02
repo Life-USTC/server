@@ -101,7 +101,6 @@ export const test = workerTest.extend<{
   homeworkRun: async (
     { page, request: observer, playwright, isolatedWorker, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((action, work) =>
@@ -135,7 +134,6 @@ export const test = workerTest.extend<{
                 page,
                 observer,
                 isolatedWorker,
-                testInfo,
                 runBody: workflow.body,
                 createRequest: (headers) =>
                   playwright.request.newContext({

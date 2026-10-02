@@ -58,7 +58,6 @@ export const test = workerTest.extend<{
       run,
     },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work, { calendarTokenCreated }) =>
@@ -69,7 +68,6 @@ export const test = workerTest.extend<{
                 page,
                 isolatedWorker,
                 account: mobileAccount,
-                testInfo,
                 runBody: workflow.body,
                 calendarMessages: [],
                 calendarTokenCreated,

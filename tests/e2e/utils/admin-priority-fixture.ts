@@ -186,7 +186,6 @@ export const test = workerTest.extend<{
       run,
     },
     use,
-    testInfo,
   ) => {
     await run(async () => {
       const requests: {
@@ -214,7 +213,6 @@ export const test = workerTest.extend<{
             observer,
             isolatedWorker,
             account: data.admin,
-            testInfo,
           },
           async (flow) => {
             await use((work) =>

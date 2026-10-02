@@ -83,7 +83,6 @@ export const test = workerTest.extend<{
   auditFlow: async (
     { page, browser, request: observer, isolatedWorker, audit, run },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
@@ -93,7 +92,6 @@ export const test = workerTest.extend<{
           observer,
           isolatedWorker,
           account: audit.admin,
-          testInfo,
         },
         use,
       ),

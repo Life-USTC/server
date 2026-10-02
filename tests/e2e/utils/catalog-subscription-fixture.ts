@@ -15,11 +15,7 @@ export const test = workerTest.extend<{
     work: (effects: HomeworkEffectContext) => Promise<void>,
   ) => Promise<void>;
 }>({
-  catalogSubscriptionRun: async (
-    { page, isolatedWorker, run },
-    use,
-    testInfo,
-  ) => {
+  catalogSubscriptionRun: async ({ page, isolatedWorker, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((account, expected, work) =>
         workflow.run(() =>
@@ -29,7 +25,6 @@ export const test = workerTest.extend<{
                 page,
                 isolatedWorker,
                 account,
-                testInfo,
                 observeReads: true,
                 runBody: workflow.body,
                 ...expected,

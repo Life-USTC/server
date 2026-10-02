@@ -26,7 +26,7 @@ export const test = workerTest.extend<{
   },
   // The existing effect owner joins the complete callback before its final
   // producer/calendar snapshot, including after runner interruption.
-  todoRun: async ({ page, todoActor, isolatedWorker, run }, use, testInfo) => {
+  todoRun: async ({ page, todoActor, isolatedWorker, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work, effects) =>
         workflow.run(() =>
@@ -36,7 +36,6 @@ export const test = workerTest.extend<{
                 page,
                 isolatedWorker,
                 account: todoActor,
-                testInfo,
                 runBody: workflow.body,
                 ...effects,
                 observeReads: true,

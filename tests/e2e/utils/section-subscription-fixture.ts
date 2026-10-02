@@ -25,7 +25,6 @@ export const test = workerTest.extend<{
   sectionRun: async (
     { page, request: observer, playwright, isolatedWorker, section, run },
     use,
-    testInfo,
   ) => {
     const db = isolatedWorker.database.owner;
     await withBrowserWorkflow(page, async (workflow) => {
@@ -44,7 +43,6 @@ export const test = workerTest.extend<{
                     extraHTTPHeaders: headers,
                   }),
                 runBody: workflow.body,
-                testInfo,
                 verifyBrowserWrite: async (response, request) => {
                   const expected = plan.writes[index++];
                   if (!expected)

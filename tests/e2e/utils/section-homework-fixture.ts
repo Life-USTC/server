@@ -69,11 +69,7 @@ export const test = workerTest.extend<{
       path: `/catalog/sections/${academic.section.jwId}`,
     });
   },
-  sectionRun: async (
-    { isolatedWorker, page, actor, academic, run },
-    use,
-    testInfo,
-  ) => {
+  sectionRun: async ({ isolatedWorker, page, actor, academic, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work, effects = { calendarMessages: [] }) => {
         return workflow.run(() =>
@@ -84,7 +80,6 @@ export const test = workerTest.extend<{
                 isolatedWorker,
                 account: actor,
                 sectionId: academic.section.id,
-                testInfo,
                 runBody: workflow.body,
                 ...effects,
               },

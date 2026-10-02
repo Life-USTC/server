@@ -208,7 +208,6 @@ export const test = workerTest.extend<{
   taskFilterRun: async (
     { isolatedWorker, page, taskFilterActor, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work, effects) =>
@@ -219,7 +218,6 @@ export const test = workerTest.extend<{
                 page,
                 isolatedWorker,
                 account: taskFilterActor,
-                testInfo,
                 runBody: workflow.body,
                 ...effects,
                 observeReads: true,
