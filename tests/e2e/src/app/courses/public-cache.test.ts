@@ -8,11 +8,11 @@ test("signed-in catalog documents remain public while the private shell resolves
   request: observer,
   isolatedWorker,
   run,
-}, testInfo) => {
+}) => {
   await run(async () => {
     const actor = await isolatedWorker.createActor();
     await withCommunityFlow(
-      { page, browser, observer, isolatedWorker, account: actor, testInfo },
+      { page, browser, observer, isolatedWorker, account: actor },
       async (flow) => {
         await flow.run(async () => {
           const db = isolatedWorker.database.owner;

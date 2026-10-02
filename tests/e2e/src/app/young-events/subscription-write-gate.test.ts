@@ -53,7 +53,7 @@ const test = workerTest.extend<{
   gate: async ({ isolatedWorker, run }, use) => {
     await use(await run(() => prepareGate(isolatedWorker)));
   },
-  gateRun: async ({ gate, page, isolatedWorker, run }, use, testInfo) => {
+  gateRun: async ({ gate, page, isolatedWorker, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work) =>
         workflow.run(() =>
@@ -63,7 +63,6 @@ const test = workerTest.extend<{
                 page,
                 isolatedWorker,
                 account: gate.fixture.users[0],
-                testInfo,
                 runBody: workflow.body,
                 // The 503 is local; targeted real GET/401 callbacks below are
                 // tagged and joined. Other document GETs are not individually

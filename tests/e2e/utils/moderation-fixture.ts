@@ -96,7 +96,6 @@ export const test = adminTest.extend<{
   homeworkDeletionRun: async (
     { page, request: observer, playwright, isolatedWorker, moderation, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work) =>
@@ -110,7 +109,6 @@ export const test = adminTest.extend<{
                 page,
                 observer,
                 isolatedWorker,
-                testInfo,
                 createRequest: (headers) =>
                   playwright.request.newContext({
                     baseURL: isolatedWorker.origin,

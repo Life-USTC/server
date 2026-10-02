@@ -293,7 +293,6 @@ export const test = ownedTest.extend<{
   overlay: async (
     { isolatedWorker, page, browser, request: observer, run },
     use,
-    testInfo,
   ) => {
     const db = isolatedWorker.database.owner;
     const userId = crypto.randomUUID();
@@ -305,7 +304,6 @@ export const test = ownedTest.extend<{
           observer,
           isolatedWorker,
           account: { id: userId },
-          testInfo,
         },
         async (flow) => {
           await use({

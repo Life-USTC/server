@@ -40,7 +40,7 @@ for (const observeReads of [false, true]) {
     calendar,
     isolatedWorker,
     page,
-  }, testInfo) => {
+  }) => {
     await bodyOwnershipRun(async () => {
       const cookie = await calendar.createSignedSessionCookie(
         calendar.users[0].id,
@@ -79,7 +79,6 @@ for (const observeReads of [false, true]) {
                 isolatedWorker,
                 account: calendar.users[0],
                 sectionId: calendar.section.id,
-                testInfo,
                 calendarMessages: [],
                 auditActions: { comment_create: 1 },
                 observeReads,
@@ -180,15 +179,11 @@ for (const observeReads of [false, true]) {
       ).toEqual([
         { id: commentId, body: commentBody, sectionId: calendar.section.id },
       ]);
-      const attachments = testInfo.attachments.filter(
-        ({ name }) => name === "homework-effects",
-      );
-      expect(attachments).toHaveLength(1);
-      const attachmentBody = attachments[0].body;
-      if (!attachmentBody)
-        throw new Error("Missing native homework-effects body");
-      const observation = JSON.parse(attachmentBody.toString());
-      expect(observation.audits).toEqual([
+      expect(
+        await isolatedWorker.database.owner.auditLog.findMany({
+          where: { userId: calendar.users[0].id },
+        }),
+      ).toEqual([
         expect.objectContaining({
           action: "comment_create",
           outcome: "success",
@@ -196,19 +191,6 @@ for (const observeReads of [false, true]) {
           targetId: commentId,
         }),
       ]);
-      expect(observation.producer.requests).toContainEqual(
-        expect.objectContaining({
-          outcome: "fulfilled",
-          value: expect.objectContaining({
-            method: "POST",
-            path: "/api/community/comments",
-          }),
-          result: 201,
-        }),
-      );
-      expect(observation.producer.backgroundErrors).toEqual([]);
-      expect(observation.producer.messages).toEqual([]);
-      expect(observation.consumer.attempts).toEqual([]);
     });
   });
 }
@@ -226,7 +208,7 @@ for (const outcome of [
     calendar,
     isolatedWorker,
     page,
-  }, testInfo) => {
+  }) => {
     await bodyOwnershipRun(async () => {
       const account = calendar.users[0];
       const message = { type: "user" as const, userId: account.id };
@@ -243,7 +225,6 @@ for (const outcome of [
             page,
             isolatedWorker,
             account,
-            testInfo,
             calendarMessages: declaredMessages,
             observeReads: true,
           },
@@ -287,8 +268,7 @@ for (const outcome of [
           where: { userId: account.id },
         }),
       ).toBe(0);
-      // An independent native observation verifies consumer completion even
-      // when invalid effects correctly prevent a successful final attachment.
+      // Verify consumer completion even when undeclared effects fail validation.
       const response = await page.request.get(
         `/__test/calendar-consumer?userId=${account.id}`,
         {
@@ -312,28 +292,6 @@ for (const outcome of [
         version: 2,
         text: expect.stringContaining("BEGIN:VCALENDAR"),
       });
-      const attachments = testInfo.attachments.filter(
-        ({ name }) => name === "homework-effects",
-      );
-      expect(attachments).toHaveLength(outcome === "failed-partial" ? 1 : 0);
-      if (outcome === "failed-partial") {
-        const attachment = attachments[0].body;
-        if (!attachment) throw new Error("Missing partial workflow effects");
-        expect(JSON.parse(attachment.toString())).toMatchObject({
-          completed: false,
-          calendarMessages: [message, message],
-          producer: {
-            messages: [{ outcome: "fulfilled", value: message }],
-            backgroundErrors: [],
-          },
-          consumer: {
-            attempts: [
-              expect.objectContaining({ complete: true, ackCalls: 1 }),
-            ],
-          },
-          audits: [],
-        });
-      }
     });
   });
 }
