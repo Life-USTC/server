@@ -17,7 +17,7 @@ $: message =
 
 <svelte:head><title>{copy.errorPageTitle} - Life@USTC</title></svelte:head>
 
-<div class="grid min-h-[calc(100vh-8rem)] place-items-center px-4">
+<div class="grid min-h-[calc(100dvh-8rem)] place-items-center">
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
       <Card.Title>
