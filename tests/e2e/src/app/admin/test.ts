@@ -12,7 +12,11 @@ import {
   adminWriteChecks,
 } from "../../../utils/admin-fixture";
 import { expectRequiresSignIn } from "../../../utils/auth";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { observeAction } from "../../../utils/observed-action";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 
 const test = adminTest.extend<{
   records: { user: string; comment: string; oauth: string; bus: string };
@@ -290,13 +294,23 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
     adminFlow.run(
       async () => {
         await page.setViewportSize({ width: 320, height: 568 });
-        await gotoAndWaitForReady(page, "/admin/users");
+        const bootstrap = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname ===
+                "/_internal/shell-bootstrap",
+            ),
+          () => gotoAndWaitForReady(page, "/admin/users"),
+        );
+        expect(bootstrap.status()).toBe(200);
+        await bootstrap.body();
 
         const paths = [
-          { path: "/admin/users", name: /用户管理|User Management/i },
           { path: "/admin/moderation", name: /内容审核|Moderation/i },
           { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
           { path: "/admin/bus", name: /校车管理|Bus Management/i },
+          { path: "/admin/users", name: /用户管理|User Management/i },
         ] as const;
 
         const mobileNavigation = page.getByTestId("admin-mobile-navigation");
@@ -304,13 +318,12 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
         await expect(page.getByTestId("mobile-primary-navigation")).toHaveCount(
           0,
         );
+        const current = mobileNavigation.getByTestId(
+          "admin-mobile-navigation-current",
+        );
+        await expect(current).toContainText(/用户管理|User Management/i);
 
         for (const { path, name } of paths) {
-          await gotoAndWaitForReady(page, path);
-          await expect(
-            mobileNavigation.getByTestId("admin-mobile-navigation-current"),
-          ).toContainText(name);
-
           await mobileNavigation
             .getByTestId("admin-mobile-navigation-trigger")
             .click();
@@ -320,6 +333,9 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
           await expect(panel.getByRole("link", { name: /./ })).toHaveCount(8);
           await panel.getByRole("link", { name }).click();
           await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
+          await waitForUiSettled(page);
+          await expect(panel).toBeHidden();
+          await expect(current).toContainText(name);
         }
       },
       {},

@@ -8,13 +8,21 @@ import * as Item from "$lib/components/ui/item/index.js";
 import * as Sheet from "$lib/components/ui/sheet/index.js";
 import type { LayoutCopy } from "$lib/shell/layout-server-data";
 
-export let copy: LayoutCopy;
-export let links: ShellLink[];
-export let isActiveLink: (link: ShellLink) => boolean;
+let {
+  copy,
+  links,
+  isActiveLink,
+}: {
+  copy: LayoutCopy;
+  links: ShellLink[];
+  isActiveLink: (link: ShellLink) => boolean;
+} = $props();
 
-let open = false;
+let open = $state(false);
 
-$: currentLink = links.find((link) => isActiveLink(link)) ?? links[0];
+const currentLink = $derived(
+  links.find((link) => isActiveLink(link)) ?? links[0],
+);
 </script>
 
 <Sheet.Root bind:open>
