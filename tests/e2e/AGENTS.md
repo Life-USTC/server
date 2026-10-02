@@ -7,7 +7,7 @@ Playwright browser tests against the Cloudflare Worker. Full recipes: root
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
 export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
-bun run e2e:test   # prepares schema/roles once and runs all eight native shards
+bun run e2e:test   # prepares schema/roles once and runs all 24 native shards
 bunx playwright test path/to/test          # uses the already-prepared schema/roles
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
