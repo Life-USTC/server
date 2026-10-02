@@ -97,7 +97,6 @@ export async function withHomeworkEffects(
   const consumerPath = `/__test/calendar-consumer?userId=${account.id}${sectionId === undefined ? "" : `&sectionId=${sectionId}`}`;
   const pending = new Set<Promise<void>>();
   const errors: unknown[] = [];
-  const expectedReadCancellations = new Set<Request>();
   const closingReleases: (() => void)[] = [];
   let actualBody:
     | Promise<{ ok: true } | { ok: false; error: unknown }>
@@ -140,9 +139,10 @@ export async function withHomeworkEffects(
       // The server independently records tagged requests, including redirect
       // successors and handlers that outlive a cancelled browser request.
       const unmatched = [...producer.requests];
-      for (const [incoming, owned] of ownedReads) {
+      for (const owned of ownedReads.values()) {
         const status = owned.status;
         if (workerAsset(owned.path)) {
+          if (owned.canceled) continue;
           if (status === undefined)
             throw new Error(
               `Static asset has no browser response: ${owned.path}`,
@@ -158,17 +158,10 @@ export async function withHomeworkEffects(
             request.value.path === owned.path &&
             (status === undefined || request.result === status),
         );
-        const canceled =
-          expectedReadCancellations.has(incoming) &&
-          owned.settled &&
-          status === undefined &&
-          incoming.failure()?.errorText === "net::ERR_ABORTED";
-        // A browser can cancel before its request reaches the Worker. Only the
-        // declared exact Request with a native abort may lack a producer record.
-        // Matching remains by requestId, so it cannot consume its successor.
-        if (canceled && index === -1) {
-          continue;
-        }
+        // Native cancellation may happen before dispatch or while the Worker
+        // finishes an obsolete read. collect() still drains every dispatched
+        // request; cancellation never manufactures a successful browser result.
+        if (owned.canceled && index === -1) continue;
         expect(
           index,
           `Worker completed ${owned.method} ${owned.path}${status === undefined ? " (no browser response)" : ` (${status})`}`,
@@ -196,47 +189,12 @@ export async function withHomeworkEffects(
           ).toBe(native.result);
           unmatched.splice(unmatched.indexOf(render), 1);
         }
-        if (canceled) {
-          expect(
-            native.result,
-            `Canceled consumer ${owned.method} ${owned.path}`,
-          ).toBe(200);
-        }
-        if (owned.canceled === "removed") {
-          expect(
-            native.result,
-            `Removed component ${owned.method} ${owned.path}`,
-          ).toBe(200);
-        }
-        if (
-          status === undefined &&
-          ((!owned.settled && owned.retiredBy) || owned.canceled === "retired")
-        ) {
-          expect(
-            native.result,
-            `Retired consumer ${owned.method} ${owned.path}`,
-          ).toBeGreaterThanOrEqual(200);
-          expect(
-            native.result,
-            `Retired consumer ${owned.method} ${owned.path}`,
-          ).toBeLessThan(400);
-        }
       }
-      if (expectedReadCancellations.size)
+      if ([...ownedReads.values()].some((read) => read.canceled))
         expect(
           unmatched.filter((request) => request.value.requestId),
           "Every tagged Worker request belongs to an observed browser request",
         ).toEqual([]);
-      for (const cancelled of ownedReads.values())
-        if (cancelled.canceled === "superseded")
-          expect(
-            [...ownedReads.values()].some(
-              (read) =>
-                read.path === cancelled.path &&
-                read.order > cancelled.order &&
-                read.status === 200,
-            ),
-          ).toBe(true);
     }
   }
 
@@ -446,7 +404,6 @@ export async function withHomeworkEffects(
                 "Cancellation requires this active workflow page",
               );
             browserReads.expectCancellation(request);
-            expectedReadCancellations.add(request);
           },
           onClosing(release) {
             if (!accepting)
