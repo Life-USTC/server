@@ -14,18 +14,18 @@ describe("E2E full-suite parity orchestration", () => {
     expect(packageJson.scripts["e2e:test"]).toBe(
       "bash tests/ci/e2e-full-suite-parity.sh",
     );
-    expect(packageJson.scripts["e2e:test:shard8"]).toBe(
-      "bash tests/ci/e2e-run-shard.sh 8/8",
+    expect(packageJson.scripts["e2e:test:shard"]).toBe(
+      "bash tests/ci/e2e-run-shard.sh",
     );
   });
 
-  test("orchestration prepares roles once before all eight native shards", () => {
+  test("orchestration prepares roles once before all 24 native shards", () => {
     const script = readFileSync(
       resolve(repoRoot, "tests/ci/e2e-full-suite-parity.sh"),
       "utf8",
     );
 
-    expect(script).toContain("readonly E2E_SHARD_TOTAL=8");
+    expect(script).toContain("readonly E2E_SHARD_TOTAL=24");
     const setup = "source tests/ci/setup-runtime-database.sh";
     expect(script.split(setup)).toHaveLength(2);
     expect(script.indexOf(setup)).toBeLessThan(script.indexOf("for shard in"));

@@ -21,25 +21,23 @@ test -f "$parallel_shard_script" ||
 test -f "$shard_runner_script" ||
   fail "missing ${shard_runner_script}"
 
-grep -q 'readonly E2E_SHARD_TOTAL=8' "$orchestration_script" ||
-  fail "orchestration script must declare E2E_SHARD_TOTAL=8"
+grep -q 'readonly E2E_SHARD_TOTAL=24' "$orchestration_script" ||
+  fail "orchestration script must declare E2E_SHARD_TOTAL=24"
 
 bun -e '
   import { parse } from "yaml";
   const workflow = parse(await Bun.file(process.argv[1]).text());
   const shards = workflow.jobs["test-e2e"].strategy.matrix.include
-    .map(({ shard }) => shard).sort();
-  const expected = Array.from({ length: 8 }, (_, index) => `${index + 1}/8`);
+    .map(({ shard }) => shard);
+  const expected = Array.from({ length: 24 }, (_, index) => `${index + 1}/24`);
   if (JSON.stringify(shards) !== JSON.stringify(expected)) {
     throw new Error(`Browser CI shards differ from local partitions: ${shards}`);
   }
 ' "${repo_root}/.github/workflows/ci.yml" || fail "browser CI partitions differ"
 
-for shard in 1 2 3 4 5 6 7 8; do
-  grep -q "\"e2e:test:shard${shard}\": \"bash tests/ci/e2e-run-shard.sh ${shard}/8\"" \
-    "${repo_root}/package.json" ||
-    fail "package.json is missing e2e:test:shard${shard}"
-done
+grep -q '"e2e:test:shard": "bash tests/ci/e2e-run-shard.sh"' \
+  "${repo_root}/package.json" ||
+  fail "package.json must expose one parameterized native shard command"
 
 grep -q '"e2e:test": "bash tests/ci/e2e-full-suite-parity.sh"' \
   "${repo_root}/package.json" ||
@@ -75,8 +73,8 @@ grep -q 'E2E_PROCESS_OWNER=' "$parallel_script" ||
   fail "parallel runner must mark owned processes before launching a shard"
 grep -q 'e2e_signal_owned_processes.*KILL' "$parallel_script" ||
   fail "parallel runner must clean up owned processes after shard exit"
-grep -q 'readonly shard_total=8' "$parallel_script" ||
-  fail "parallel runner must execute all eight CI partitions"
+grep -q 'readonly shard_total=24' "$parallel_script" ||
+  fail "parallel runner must execute all 24 CI partitions"
 
 playwright_config="${repo_root}/playwright.config.ts"
 grep -q 'failOnFlakyTests: !!process.env.CI' "$playwright_config" ||

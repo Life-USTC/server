@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Run the complete browser suite with the same eight native partitions as CI.
+# Run the complete browser suite with the same 24 native partitions as CI.
 # Prepare schema and roles once; every case arranges its own empty database clone.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-readonly E2E_SHARD_TOTAL=8
+readonly E2E_SHARD_TOTAL=24
 
 if [[ -z "${FUNCTION_OWNER_DATABASE_URL:-}" ]]; then
   echo "FUNCTION_OWNER_DATABASE_URL must be set for E2E database lifecycle." >&2

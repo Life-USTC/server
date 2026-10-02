@@ -147,17 +147,10 @@ describe("CI server test parallelism", () => {
     );
 
     const e2eEntries = ciJobs["test-e2e"]?.strategy?.matrix?.include ?? [];
-    expect(e2eEntries).toHaveLength(8);
-    expect(e2eEntries.map((entry) => entry.shard)).toEqual([
-      "1/8",
-      "2/8",
-      "3/8",
-      "4/8",
-      "5/8",
-      "6/8",
-      "7/8",
-      "8/8",
-    ]);
+    expect(e2eEntries).toHaveLength(24);
+    expect(e2eEntries.map((entry) => entry.shard)).toEqual(
+      Array.from({ length: 24 }, (_, index) => `${index + 1}/24`),
+    );
   });
 
   it("runs eight REST partitions with separate databases and artifacts", async () => {
