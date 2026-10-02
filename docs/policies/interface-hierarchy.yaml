@@ -411,7 +411,7 @@ requirements:
     - Both date bases retain Shanghai overlap boundaries and missing-date records without guessing times.
     test:
       file: tests/integration/rest/protocol-contracts/young-public-semantic-parity.test.ts
-      name: interface-hierarchy.young-public-read-parity
+      name: Young event search and taxonomy consumers
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity

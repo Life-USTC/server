@@ -73,7 +73,7 @@ function createYoungReaders(origin: string) {
   }
   return { comparePages };
 }
-test("interface-hierarchy.young-public-read-parity", async ({
+test("Young event search and taxonomy consumers", async ({
   isolatedWorker,
   run,
 }) =>
@@ -135,6 +135,19 @@ test("interface-hierarchy.young-public-read-parity", async ({
       { search, category: `${category}-other`, module: "智" },
       [],
     );
+    await comparePages("event", { search: `${search}-missing` }, []);
+  }));
+
+test("Young event date consumers", async ({ isolatedWorker, run }) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const { comparePages } = createYoungReaders(isolatedWorker.origin);
+    const fixture = await createYoungBrowseFixture(db);
+    const { search, eventIds } = fixture;
+    const ids = (...indices: number[]) =>
+      indices.map((index) => eventIds[index]);
+    const ties = [0, 1, 2, 3, 4, 5];
+    const ordered = [9, 10, ...ties, 8, 12, 7, 6, 11];
     await comparePages("event", { search, dateUnknown: true }, ids(7));
     await comparePages(
       "event",
@@ -186,7 +199,17 @@ test("interface-hierarchy.young-public-read-parity", async ({
       [],
       1,
     );
-    await comparePages("event", { search: `${search}-missing` }, []);
+  }));
+
+test("Young organizer search and ordering consumers", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const db = isolatedWorker.database.owner;
+    const { comparePages } = createYoungReaders(isolatedWorker.origin);
+    const fixture = await createYoungBrowseFixture(db);
+    const { organizerIds } = fixture;
     await comparePages(
       "organizer",
       { search: ` ${fixture.marker.toUpperCase()} ` },
