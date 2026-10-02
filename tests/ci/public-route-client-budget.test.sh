@@ -32,8 +32,10 @@ const budgets = {
   // danger) are now drawn in the shell, and the truncated-text touch rules
   // live in the global stylesheet, so those shared chunks are not initial
   // requests. Measured 68 requests and 194,565 gzip bytes. Pin the request
-  // count at 68 so the next split still trips; the gzip cap stays 195,000.
-  "/": { gzipBytes: 195_000, requests: 68 },
+  // count at 68 so the next split still trips. Explicit sign-in identity
+  // invalidation adds 69 B over the previous 194,953 B build, measuring
+  // 195,022 B. Allow 500 B of additional budget for this correctness fix.
+  "/": { gzipBytes: 195_500, requests: 68 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   // The news list shares the collection page, filter toolbar, and pagination

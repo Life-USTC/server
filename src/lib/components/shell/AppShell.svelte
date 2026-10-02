@@ -135,16 +135,7 @@ const shellViewer = writable<ShellViewerState>({
 });
 setContext<ShellViewerContext>(SHELL_VIEWER_CONTEXT, {
   subscribe: shellViewer.subscribe,
-  invalidateIdentity() {
-    cancelShellBootstrap();
-    viewerUser = null;
-    viewerLoading = true;
-    viewerFailed = false;
-    shellResolved = false;
-    workspaceNavigation = null;
-    subscribedSections = [];
-    subscribedSectionsUserId = null;
-  },
+  invalidateIdentity: resetShellIdentity,
 });
 $: shellViewer.set({
   viewer: viewerUser,
@@ -160,14 +151,24 @@ let shellBootstrapGeneration = 0;
 let shellResolved = false;
 let previousServerData: AppShellData | undefined;
 
+function resetShellIdentity() {
+  cancelShellBootstrap();
+  viewerUser = null;
+  viewerLoading = true;
+  viewerFailed = false;
+  shellResolved = false;
+  workspaceNavigation = null;
+  subscribedSections = [];
+  subscribedSectionsUserId = null;
+}
+
 $: if (data !== previousServerData) {
   previousServerData = data;
   // Only new server data may replace an explicitly invalidated identity.
   if (!data.resolveViewerOnClient || data.user) {
     if (viewerUser?.id !== data.user?.id) {
-      cancelShellBootstrap();
-      shellResolved = false;
-      workspaceNavigation = null;
+      resetShellIdentity();
+      // Restore the new server-owned directory after clearing the old identity.
       subscribedSections = data.subscribedSections ?? [];
       subscribedSectionsUserId =
         data.user && data.subscribedSections ? data.user.id : null;
