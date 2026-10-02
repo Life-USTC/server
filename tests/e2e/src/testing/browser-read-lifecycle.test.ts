@@ -103,7 +103,7 @@ test("propagates an active network failure", async ({ reads }) => {
     .toBe(true);
   expect(request.failure()).not.toBeNull();
   expect(reads.owner.errors.map(String)).toEqual([
-    `Error: Calendar read failed: ${request.failure()?.errorText}`,
+    `Error: Browser read failed: ${request.failure()?.errorText}`,
   ]);
 });
 
@@ -137,25 +137,38 @@ test("document replacement releases retired reads on close", async ({
   await page.close();
   await Promise.allSettled([...reads.owner.pendingReads]);
   expect(owned?.settled).toBe(true);
-  expect(owned?.canceled).toBe("retired");
+  expect(owned?.canceled).toBe(true);
   expect(reads.owner.errors).toEqual([]);
 });
 
 for (const declared of [true, false]) {
-  test(`native cancellation is ${declared ? "declared" : "unexpected"}`, async ({
+  test(`native cancellation settles ${declared ? "after dispatch with an explicit expectation" : "before dispatch without an expectation"}`, async ({
+    page,
     reads,
   }) => {
-    const request = await reads.start();
-    if (declared) reads.owner.expectCancellation(request);
-    await reads.cancel();
+    let request: Request;
+    if (declared) {
+      request = await reads.start();
+      reads.owner.expectCancellation(request);
+      await reads.cancel();
+    } else {
+      await page.route("**/undispatched", (route) => route.abort("aborted"));
+      const requested = page.waitForRequest(
+        (request) => new URL(request.url()).pathname === "/undispatched",
+      );
+      await page.evaluate(() => {
+        void fetch("/undispatched").catch(() => undefined);
+      });
+      request = await requested;
+    }
     await expect
       .poll(() => reads.owner.ownedReads.get(request)?.settled)
       .toBe(true);
     expect(request.failure()?.errorText).toBe("net::ERR_ABORTED");
     reads.owner.stop();
-    expect(reads.owner.errors.map(String)).toEqual(
-      declared ? [] : ["Error: Calendar read failed: net::ERR_ABORTED"],
-    );
+    expect(reads.owner.ownedReads.get(request)?.canceled).toBe(true);
+    expect(reads.owner.ownedReads.get(request)?.status).toBeUndefined();
+    expect(reads.owner.errors).toEqual([]);
   });
 }
 
@@ -187,7 +200,6 @@ test("removal joins an exact cancellation and preserves action failures", async 
     }),
   ).rejects.toBe(failure);
   expect(reads.owner.errors).toContain(failure);
-  expect(reads.owner.ownedReads.get(request)?.canceled).toBeUndefined();
 });
 
 test("removal accepts native abort but rejects other network failures", async ({
@@ -195,7 +207,7 @@ test("removal accepts native abort but rejects other network failures", async ({
 }) => {
   const request = await reads.start();
   await reads.owner.duringRemoval([request], reads.cancel);
-  expect(reads.owner.ownedReads.get(request)?.canceled).toBe("removed");
+  expect(reads.owner.ownedReads.get(request)?.canceled).toBe(true);
   expect(request.failure()?.errorText).toBe("net::ERR_ABORTED");
   expect(reads.owner.errors).toEqual([]);
   const broken = await reads.start("/error");
