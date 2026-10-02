@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Run the eight Playwright shards against isolated local services with bounded
+# Run the 24 Playwright shards against isolated local services with bounded
 # local concurrency.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-readonly shard_total=8
+readonly shard_total=24
 readonly e2e_concurrency="${E2E_CONCURRENCY:-2}"
 readonly run_id="$$-$(date +%s%N)"
 readonly process_owner_prefix="life-ustc-e2e-${run_id}"
