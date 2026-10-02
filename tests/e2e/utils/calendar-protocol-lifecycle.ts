@@ -85,7 +85,6 @@ export async function withCalendarProtocol(
         messages: CalendarMessage[];
       }
     | undefined;
-  let registrationAttempted = false;
   let registered = false;
   let accepting = true;
   let completed = false;
@@ -98,7 +97,6 @@ export async function withCalendarProtocol(
   const sdk = ownHttpMcp({ origin, headers, remember });
   const sdkRequests = sdk.requests;
   try {
-    registrationAttempted = true;
     const registration = await observer.post(probePath, { headers: secret });
     registered = registration.status() === 201;
     await registration.body();
@@ -280,17 +278,15 @@ export async function withCalendarProtocol(
         remember(error);
       }
     }
-    if (registrationAttempted) {
-      // DELETE drains again if registration's response or GET/observation failed.
-      // It must finish before independent grant, usage and state observations.
-      try {
-        const response = await observer.delete(probePath, { headers: secret });
-        await response.body();
-        if (registered) expect(response.status()).toBe(204);
-        else expect([204, 404]).toContain(response.status());
-      } catch (error) {
-        remember(error);
-      }
+    // DELETE drains again if registration's response or GET/observation failed.
+    // It must finish before independent grant, usage and state observations.
+    try {
+      const response = await observer.delete(probePath, { headers: secret });
+      await response.body();
+      if (registered) expect(response.status()).toBe(204);
+      else expect([204, 404]).toContain(response.status());
+    } catch (error) {
+      remember(error);
     }
     if (completed && checks) {
       if (observation) {

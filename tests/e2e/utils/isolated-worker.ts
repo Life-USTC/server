@@ -200,8 +200,13 @@ export const test = base.extend<
               silent: true,
             },
           );
-          child.stdout?.pipe(log, { end: false });
-          child.stderr?.pipe(log, { end: false });
+          for (const stream of [child.stdout, child.stderr]) {
+            stream
+              ?.on("error", (error) => failures.push(error))
+              .pipe(log, {
+                end: false,
+              });
+          }
           // close follows actual process exit AND stdio closure. IPC errors
           // are observations, never evidence that a live child has stopped.
           exited = new Promise<void>((resolve) =>
