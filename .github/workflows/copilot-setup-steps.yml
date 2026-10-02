@@ -40,7 +40,7 @@ on:
 jobs:
   # The job name must be exactly `copilot-setup-steps`
   copilot-setup-steps:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 59
     permissions:
       contents: read
@@ -77,8 +77,12 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Select PostgreSQL 16 client
+        shell: bash
+        run: |
+          /usr/lib/postgresql/16/bin/psql --version
+          /usr/lib/postgresql/16/bin/pg_dump --version
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
 
       - name: Prepare database and generated artifacts
         shell: bash

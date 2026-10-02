@@ -72,7 +72,7 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: ${{ inputs.timeout-minutes }}
     permissions:
       contents: read
@@ -121,12 +121,12 @@ jobs:
         with:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
-      - name: Install PostgreSQL client
+      - name: Select PostgreSQL 16 client
         if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:rest' || inputs.job-phase == 'ci:rls' || inputs.job-phase == 'ci:e2e:test' || inputs.job-phase == 'ci:visual-regression' }}
         shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-16
+          /usr/lib/postgresql/16/bin/psql --version
+          /usr/lib/postgresql/16/bin/pg_dump --version
           echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
 
       - name: Download artifact
