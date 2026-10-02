@@ -58,12 +58,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: 1/2
+          - shard: 1/8
             database: life_ustc_rest_1
             artifact: api-1
-          - shard: 2/2
+          - shard: 2/8
             database: life_ustc_rest_2
             artifact: api-2
+          - shard: 3/8
+            database: life_ustc_rest_3
+            artifact: api-3
+          - shard: 4/8
+            database: life_ustc_rest_4
+            artifact: api-4
+          - shard: 5/8
+            database: life_ustc_rest_5
+            artifact: api-5
+          - shard: 6/8
+            database: life_ustc_rest_6
+            artifact: api-6
+          - shard: 7/8
+            database: life_ustc_rest_7
+            artifact: api-7
+          - shard: 8/8
+            database: life_ustc_rest_8
+            artifact: api-8
     needs: build-e2e-artifacts
     permissions:
       contents: read

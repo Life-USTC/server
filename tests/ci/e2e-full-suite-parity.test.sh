@@ -24,11 +24,16 @@ test -f "$shard_runner_script" ||
 grep -q 'readonly E2E_SHARD_TOTAL=8' "$orchestration_script" ||
   fail "orchestration script must declare E2E_SHARD_TOTAL=8"
 
-ci_shard_count="$(
-  grep -cE 'shard: [0-9]+/8' "${repo_root}/.github/workflows/ci.yml" || true
-)"
-[[ "$ci_shard_count" == "8" ]] ||
-  fail "ci.yml defines ${ci_shard_count} E2E shards, expected 8"
+bun -e '
+  import { parse } from "yaml";
+  const workflow = parse(await Bun.file(process.argv[1]).text());
+  const shards = workflow.jobs["test-e2e"].strategy.matrix.include
+    .map(({ shard }) => shard).sort();
+  const expected = Array.from({ length: 8 }, (_, index) => `${index + 1}/8`);
+  if (JSON.stringify(shards) !== JSON.stringify(expected)) {
+    throw new Error(`Browser CI shards differ from local partitions: ${shards}`);
+  }
+' "${repo_root}/.github/workflows/ci.yml" || fail "browser CI partitions differ"
 
 for shard in 1 2 3 4 5 6 7 8; do
   grep -q "\"e2e:test:shard${shard}\": \"bash tests/ci/e2e-run-shard.sh ${shard}/8\"" \
