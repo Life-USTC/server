@@ -16,7 +16,6 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { redirectWithExternalFallback } from "$lib/navigation/redirect";
-import { getShellViewer } from "$lib/shell/shell-viewer";
 
 type PageData = {
   callbackUrl: string;
@@ -57,7 +56,6 @@ type ActionData = {
 
 export let data: PageData;
 export let form: ActionData;
-const shellViewer = getShellViewer();
 
 let pendingProviderId: string | null = null;
 let passkeyError: string | null = null;
@@ -85,7 +83,6 @@ async function signInWithPasskey() {
           : data.copy.passkeyError;
       return;
     }
-    shellViewer.invalidateIdentity();
     await redirectWithExternalFallback(data.callbackUrl);
   } catch {
     passkeyError = data.copy.passkeyError;
@@ -99,7 +96,6 @@ function signInAction(providerId: string): SubmitFunction {
     pendingProviderId = providerId;
     return async ({ result, update }) => {
       if (result.type === "redirect") {
-        shellViewer.invalidateIdentity();
         await redirectWithExternalFallback(result.location);
         return;
       }
