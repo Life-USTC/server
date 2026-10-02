@@ -160,13 +160,22 @@ describe("CI server test parallelism", () => {
     ]);
   });
 
-  it("runs both REST partitions with separate databases and artifacts", async () => {
+  it("runs eight REST partitions with separate databases and artifacts", async () => {
     const { ciJobs, dbBackedRun } = await readWorkflows();
     const rest = ciJobs["test-rest"];
     const entries = rest?.strategy?.matrix?.include ?? [];
-    expect(entries.map((entry) => entry.shard)).toEqual(["1/2", "2/2"]);
-    expect(new Set(entries.map((entry) => entry.database)).size).toBe(2);
-    expect(new Set(entries.map((entry) => entry.artifact)).size).toBe(2);
+    expect(entries.map((entry) => entry.shard)).toEqual([
+      "1/8",
+      "2/8",
+      "3/8",
+      "4/8",
+      "5/8",
+      "6/8",
+      "7/8",
+      "8/8",
+    ]);
+    expect(new Set(entries.map((entry) => entry.database)).size).toBe(8);
+    expect(new Set(entries.map((entry) => entry.artifact)).size).toBe(8);
     expect(rest?.with?.["e2e-shard"]).toBe("${" + "{ matrix.shard }}");
     expect(rest?.with?.["upload-artifact-name"]).toContain("matrix.artifact");
     const source =
