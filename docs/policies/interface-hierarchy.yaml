@@ -210,7 +210,10 @@ requirements:
     are upstream JW IDs; teacher detail keys are database IDs. Only declared shared filters and ordering
     controls participate in this equivalence; transport-specific inputs and defaults remain explicit.
   acceptance:
-    given: The same isolated catalog contains distinct row/JW IDs, multiple courses, sections, teachers and filter relationships.
+    given: Course, section and teacher each have an independent case with a private Worker and database.
+      Every case arranges its own catalog containing distinct row/JW IDs, multiple courses, sections,
+      teachers and filter relationships, and seeds tied rows and dependencies for its resource. No case depends
+      on state prepared by another.
     when: Actual REST, GraphQL and MCP reads apply equivalent explicit common filters, pages and supported Section search ordering.
     then:
     - All three transports return the same ordered IDs and matching total on every page, including empty results and reverse-inserted rows with tied primary sort keys.
