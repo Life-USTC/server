@@ -624,6 +624,9 @@ if (phase === "graphql-workspace-setup-timeout") {
         await use("en-us" as const);
       },
     });
+  // Resolve prerequisites under the existing hook budget; only target setup
+  // belongs inside the intentional five-second test timeout.
+  setupTest.beforeEach(async ({ probe: _probe }) => {});
   setupTest(title, { timeout: 5_000 }, async ({ workspace: _workspace }) => {
     record("body-entered");
     throw new Error("Timed-out GraphQL setup published its fixture");
@@ -740,6 +743,8 @@ if (phase === "catalog-setup-timeout") {
         await use({});
       },
     });
+  // Destructuring resolves and caches the database/probe before timing setup.
+  setupTest.beforeEach(async ({ probe: _probe }) => {});
   setupTest(
     title,
     { timeout: 5_000 },

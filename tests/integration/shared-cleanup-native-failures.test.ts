@@ -172,22 +172,6 @@ test.for<SharedCleanupFailurePhase>([
       }
       const report = await load("report.json");
       const native = await load("native-result.json");
-      const resources = (await load("resources.json")) as {
-        template: string;
-        database: string;
-        directory: string;
-        processes: number[];
-        childPid: number;
-        todo: { id: string; userId: string; title: string };
-      };
-      const parseEvents = async (file: string) =>
-        (await readFile(join(output, file), "utf8"))
-          .trim()
-          .split("\n")
-          .map((line) => JSON.parse(line) as Event);
-      const events = await parseEvents("phases.jsonl");
-      const runtime = await parseEvents("runtime.jsonl");
-      const names = events.map((e) => e.event);
       expect(exitCode).toBe(1);
       expect(report).toMatchObject({
         success: false,
@@ -206,6 +190,22 @@ test.for<SharedCleanupFailurePhase>([
         state: "failed",
       });
       expect(native.errors).toEqual(expectedNativeErrors[phase]);
+      const resources = (await load("resources.json")) as {
+        template: string;
+        database: string;
+        directory: string;
+        processes: number[];
+        childPid: number;
+        todo: { id: string; userId: string; title: string };
+      };
+      const parseEvents = async (file: string) =>
+        (await readFile(join(output, file), "utf8"))
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line) as Event);
+      const events = await parseEvents("phases.jsonl");
+      const runtime = await parseEvents("runtime.jsonl");
+      const names = events.map((e) => e.event);
       const leaves = (native.errors as ErrorTree[]).flatMap(errorLeaves);
       const expectedLeaves = expectedNativeErrors[phase].flatMap(errorLeaves);
       expect(leaves).toEqual(expectedLeaves);
