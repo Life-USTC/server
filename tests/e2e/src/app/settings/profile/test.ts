@@ -26,7 +26,6 @@ import { observeAction } from "../../../../utils/observed-action";
 
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   expectSettingsPage,
   storedProfile,
@@ -36,14 +35,9 @@ import {
 test.describe("/account/settings/profile 个人资料设置", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("需要登录", async ({ accountRun, page }, testInfo) => {
+  test("需要登录", async ({ accountRun, page }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await expectRequiresSignIn(page, "/account/settings/profile");
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings/profile-unauthorized",
-      );
     });
   });
 
@@ -51,7 +45,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     accountRun,
     page,
     profile: account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings/profile");
 
@@ -70,8 +64,6 @@ test.describe("/account/settings/profile 个人资料设置", () => {
       await expect(
         page.getByText(/头像|Avatar|Profile picture/i).first(),
       ).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "settings/profile-fields");
     });
   });
 
@@ -80,7 +72,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     page,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await accountRun(
       {
         writes: [
@@ -130,8 +122,6 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         await expect(page.locator("input#name")).toHaveValue(newName, {
           timeout: 10_000,
         });
-        await captureStepScreenshot(page, testInfo, "settings/profile-saved");
-
         await page.locator("input#name").fill(originalName);
         const rollbackResponse = await observeAction(
           () =>
@@ -168,7 +158,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     page,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings/profile");
 
@@ -190,11 +180,6 @@ test.describe("/account/settings/profile 个人资料设置", () => {
           ),
         )
         .toBeGreaterThan(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings/profile-username-required",
-      );
     });
   });
 
@@ -248,9 +233,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }, testInfo) => {
+test("页面契约", async ({ accountRun, page, account: _account }) => {
   await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/profile", testInfo);
+    await expectSettingsPage(page, "/account/settings/profile");
     await expect(
       page.getByRole("heading", { name: /编辑个人资料|Edit Profile/i }),
     ).toBeVisible();

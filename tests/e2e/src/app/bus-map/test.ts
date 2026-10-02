@@ -20,19 +20,12 @@ import {
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
 import { busTest as test } from "../../../utils/personal-preferences-fixture";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("校车线路图", () => {
-  test("SVG 中渲染校区节点与线路", async ({
-    page,
-    preferenceFlow,
-  }, testInfo) => {
+  test("SVG 中渲染校区节点与线路", async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus/map", {
-        testInfo,
-        screenshotLabel: "bus-map",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus/map");
 
       await expect(page.getByText(/Transit Map|线路图/).first()).toBeVisible();
       await expect(
@@ -56,21 +49,16 @@ test.describe("校车线路图", () => {
       await expect(paths.first()).toBeVisible();
       const pathCount = await paths.count();
       expect(pathCount).toBeGreaterThan(0);
-
-      await captureStepScreenshot(page, testInfo, "bus-map-overview");
     });
   });
 
   test("移动端地图按容器宽度缩放且不造成页面溢出", async ({
     page,
     preferenceFlow,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
-      await gotoAndWaitForReady(page, "/catalog/bus/map", {
-        testInfo,
-        screenshotLabel: "bus-map-mobile",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus/map");
 
       const svg = page.locator('main svg[role="img"][aria-label]').first();
       await expect(svg).toBeVisible();
@@ -158,7 +146,6 @@ test.describe("校车线路图", () => {
       );
 
       await expectNoPageHorizontalOverflow(page);
-      await captureStepScreenshot(page, testInfo, "bus-map-mobile-readable");
     });
   });
 
@@ -176,12 +163,9 @@ test.describe("校车线路图", () => {
     });
   });
 
-  test("刷新按钮存在", async ({ page, preferenceFlow }, testInfo) => {
+  test("刷新按钮存在", async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus/map", {
-        testInfo,
-        screenshotLabel: "bus-map",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus/map");
 
       const refreshBtn = page.getByRole("button", { name: /Refresh|刷新/ });
       await expect(refreshBtn).toBeVisible();
@@ -191,8 +175,8 @@ test.describe("校车线路图", () => {
   });
 });
 
-test("页面契约", async ({ page, preferenceFlow }, testInfo) => {
+test("页面契约", async ({ page, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
-    await assertPageContract(page, { routePath: "/catalog/bus/map", testInfo });
+    await assertPageContract(page, { routePath: "/catalog/bus/map" });
   });
 });

@@ -4,9 +4,9 @@ import { test } from "../../../../utils/publication-fixture";
 import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/news/sources 来源目录", () => {
-  test("页面契约", async ({ browseRun, page }, testInfo) => {
+  test("页面契约", async ({ browseRun, page }) => {
     await browseRun(async () => {
-      await assertPageContract(page, { routePath: "/news/sources", testInfo });
+      await assertPageContract(page, { routePath: "/news/sources" });
     });
   });
 
@@ -14,12 +14,9 @@ test.describe("/news/sources 来源目录", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
-      await gotoAndWaitForReady(page, "/news/sources", {
-        testInfo,
-        screenshotLabel: "news-sources-directory",
-      });
+      await gotoAndWaitForReady(page, "/news/sources");
 
       const universityGroup = page.getByRole("heading", {
         level: 2,
@@ -63,12 +60,9 @@ test.describe("/news/sources 来源目录", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
-      await gotoAndWaitForReady(page, "/news/sources", {
-        testInfo,
-        screenshotLabel: "news-sources-cross-link",
-      });
+      await gotoAndWaitForReady(page, "/news/sources");
 
       const sourceLink = page.getByRole("link", {
         name: fixture.officeSourceName,

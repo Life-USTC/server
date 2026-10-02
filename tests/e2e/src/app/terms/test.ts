@@ -12,18 +12,15 @@ import { test } from "../../../utils/public-worker";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/terms", () => {
-  test("页面契约", async ({ page, publicFlow }, testInfo) => {
+  test("页面契约", async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
-      await assertPageContract(page, { routePath: "/terms", testInfo });
+      await assertPageContract(page, { routePath: "/terms" });
     });
   });
 
-  test("渲染服务条款及分节", async ({ page, publicFlow }, testInfo) => {
+  test("渲染服务条款及分节", async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/terms", {
-        testInfo,
-        screenshotLabel: "terms",
-      });
+      await gotoAndWaitForReady(page, "/terms");
       await waitForUiSettled(page);
 
       await expect(page.locator("#main-content")).toBeVisible();

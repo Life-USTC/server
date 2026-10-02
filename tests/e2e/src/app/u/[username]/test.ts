@@ -31,7 +31,6 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test as privateTest } from "../../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../../utils/request-url";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 import { test } from "./_fixture";
 
@@ -111,11 +110,10 @@ test.describe("/community/users/[identifier]", () => {
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/community/users/[identifier]",
-        testInfo,
       });
     });
   });
@@ -124,7 +122,7 @@ test.describe("/community/users/[identifier]", () => {
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -145,8 +143,6 @@ test.describe("/community/users/[identifier]", () => {
       await expect(
         page.getByText(/加入时间|Joined|joined/i).first(),
       ).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "u-username/profile-fields");
     });
   });
 
@@ -179,7 +175,7 @@ test.describe("/community/users/[identifier]", () => {
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -205,8 +201,6 @@ test.describe("/community/users/[identifier]", () => {
       const body = await response.json();
       expect(body).not.toHaveProperty("sectionCount");
       expect(body.user._count).not.toHaveProperty("subscribedSections");
-
-      await captureStepScreenshot(page, testInfo, "u-username/stats-grid");
       await page.setViewportSize({ width: 390, height: 844 });
       for (const label of [
         /^(评论|Comments)$/,
@@ -218,11 +212,6 @@ test.describe("/community/users/[identifier]", () => {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(390);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "u-username/stats-grid-mobile",
-      );
     });
   });
 
@@ -230,7 +219,7 @@ test.describe("/community/users/[identifier]", () => {
     preferenceFlow,
     publicDebugProfile: _publicDebugProfile,
     page,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -243,12 +232,6 @@ test.describe("/community/users/[identifier]", () => {
       const heatmapCells = page.locator("[data-profile-contribution-cell]");
       expect(await heatmapCells.count()).toBeGreaterThan(350);
       await expect(heatmapCells.first()).toBeVisible();
-
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "u-username/contribution-heatmap",
-      );
     });
   });
 
@@ -270,7 +253,7 @@ test.describe("/community/users/[identifier]", () => {
     });
   });
 
-  test("不存在的用户名返回 404", async ({ preferenceFlow, page }, testInfo) => {
+  test("不存在的用户名返回 404", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -286,7 +269,6 @@ test.describe("/community/users/[identifier]", () => {
       await expect(
         page.getByRole("link", { name: /返回首页|Home/i }),
       ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "u-username/404");
     });
   });
 });
@@ -296,18 +278,17 @@ test.describe("/community/users/[identifier] by ID", () => {
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/community/users/[identifier]",
-        testInfo,
       });
     });
   });
 
   privateTest(
     "内部用户 ID 地址直接解析同一资料页",
-    async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
+    async ({ page, isolatedWorker, preferenceFlow, run }) => {
       await run(async () => {
         const viewer = await preferenceFlow.prepare(() =>
           preparePrivateViewer(page, isolatedWorker, true),
@@ -334,8 +315,6 @@ test.describe("/community/users/[identifier] by ID", () => {
             page.getByText(`@${viewer.user.username}`).first(),
           ).toBeVisible();
           await expect(page.getByText(viewer.user.name).first()).toBeVisible();
-
-          await captureStepScreenshot(page, testInfo, "u-id/profile");
         });
         await expectPrivateViewerState(
           isolatedWorker.database.owner,
@@ -346,7 +325,7 @@ test.describe("/community/users/[identifier] by ID", () => {
     },
   );
 
-  test("不存在的 uid 返回 404", async ({ preferenceFlow, page }, testInfo) => {
+  test("不存在的 uid 返回 404", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -359,7 +338,6 @@ test.describe("/community/users/[identifier] by ID", () => {
       await expect(
         page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
       ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "u-id/404");
     });
   });
 });

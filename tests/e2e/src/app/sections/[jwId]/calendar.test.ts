@@ -8,7 +8,6 @@ import {
 } from "../../../../utils/catalog-detail-fixture";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   test as overlayTest,
   signInPrivateDebugUser,
@@ -99,7 +98,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           path: testInfo.outputPath(`section-schedule-${width}.png`),
         });
       }
-      await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
     });
   });
 
@@ -108,7 +106,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -129,8 +127,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(
         calendar.getByRole("button", { name: /今天|Today/i }),
       ).toHaveCount(0);
-
-      await captureStepScreenshot(page, testInfo, "section/calendar-today");
     });
   });
 
@@ -180,7 +176,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -200,14 +196,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           .first(),
       ).toBeVisible({ timeout: 10_000 });
       await expect(page.locator("#exams")).toContainText(DEV_SEED.room.nameCn);
-
-      await captureStepScreenshot(page, testInfo, "section/exam-calendar");
     });
   });
 
   overlayTest(
     "日历导出弹窗显示公开 iCal URL 且不暴露私人订阅凭据",
-    async ({ page, overlay }, testInfo) => {
+    async ({ page, overlay }) => {
       await overlay.run({ loginRedirect: SECTION_URL }, async () => {
         test.setTimeout(60_000);
         await page
@@ -264,8 +258,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
             name: /查看教学班订阅|View section subscriptions/i,
           }),
         ).toHaveAttribute("href", "/workspace/subscriptions");
-
-        await captureStepScreenshot(page, testInfo, "section/calendar-dialog");
       });
     },
   );

@@ -30,21 +30,15 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
 import { test as oauthTest } from "../../../../utils/settings-oauth-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/accounts 关联账号设置", () => {
-  test("需要登录", async ({ accountRun, page }, testInfo) => {
+  test("需要登录", async ({ accountRun, page }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await expectRequiresSignIn(page, "/account/settings/accounts");
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-accounts-unauthorized",
-      );
     });
   });
 
@@ -52,7 +46,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     accountRun,
     page,
     account: _account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings/accounts");
 
@@ -62,20 +56,18 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
       await expect(
         page.getByText("USTC", { exact: true }).first(),
       ).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-accounts-platforms",
-      );
     });
   });
 
   oauthTest(
     "连接按钮启动账号关联 OAuth 流程",
-    async (
-      { accountRun, page, account, isolatedWorker, authorizationProvider },
-      testInfo,
-    ) => {
+    async ({
+      accountRun,
+      page,
+      account,
+      isolatedWorker,
+      authorizationProvider,
+    }) => {
       let authorizationHref: string | undefined;
       await accountRun(
         {
@@ -163,11 +155,6 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
           expect(
             authorizationProvider.requests[0].href === authorizationHref,
           ).toBe(true);
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "settings-accounts-oauth",
-          );
           return async () => {
             expect(
               await isolatedWorker.database.owner.account.count({
@@ -190,7 +177,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     page,
     account: _account,
     ustcAccount: _ustcAccount,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings/accounts");
       const providerCard = page
@@ -208,11 +195,6 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
           /至少.*登录方式|Keep at least one usable sign-in method/i,
         ),
       ).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-accounts-disconnect-disabled",
-      );
     });
   });
 
@@ -224,7 +206,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     githubAccount: _githubAccount,
     credential: _credential,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     test.setTimeout(60_000);
     await accountRun(
       {
@@ -306,19 +288,14 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
             where: { userId: account.id, provider: "oidc" },
           }),
         ).toBe(1);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "settings-accounts-unlinked",
-        );
       },
     );
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }, testInfo) => {
+test("页面契约", async ({ accountRun, page, account: _account }) => {
   await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/accounts", testInfo);
+    await expectSettingsPage(page, "/account/settings/accounts");
     await expect(
       page.getByRole("region", { name: /关联账户|Linked accounts/i }),
     ).toBeVisible();

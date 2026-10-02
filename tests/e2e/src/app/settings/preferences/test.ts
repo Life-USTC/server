@@ -7,19 +7,13 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { expectSettingsPage } from "../../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/preferences 外观与语言偏好", () => {
-  test("canonical 路径需要登录", async ({ page }, testInfo) => {
+  test("canonical 路径需要登录", async ({ page }) => {
     await expectRequiresSignIn(page, "/account/settings/preferences");
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "settings-preferences-unauthorized",
-    );
   });
 
   test("legacy query 输入规范到语义路径", async ({
@@ -52,7 +46,7 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
     accountRun,
     page,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await run(async () => {
       const actor = await isolatedWorker.createActor();
       await page.context().addCookies([actor.cookie]);
@@ -92,11 +86,6 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
       await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
       await page.emulateMedia({ colorScheme: "light" });
       await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-preferences-mobile",
-      );
     });
   });
 
@@ -105,7 +94,7 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
     accountRun,
     page,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await run(async () => {
       const actor = await isolatedWorker.createActor();
       await page
@@ -148,28 +137,18 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
         await waitForUiSettled(page);
         await page.reload();
         await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "settings-preferences-english",
-        );
       },
     );
   });
 });
 
-test("页面契约", async ({
-  run,
-  accountRun,
-  page,
-  isolatedWorker,
-}, testInfo) => {
+test("页面契约", async ({ run, accountRun, page, isolatedWorker }) => {
   await run(async () => {
     const actor = await isolatedWorker.createActor();
     await page.context().addCookies([actor.cookie]);
   });
   await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/preferences", testInfo);
+    await expectSettingsPage(page, "/account/settings/preferences");
     await expect(page.getByText(/外观|Appearance/i).first()).toBeVisible();
   });
 });

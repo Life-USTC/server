@@ -141,8 +141,8 @@ test("search page matches course and teacher terms in one section", async ({
   });
 });
 
-test("页面契约", async ({ page, searchRun }, testInfo) => {
+test("页面契约", async ({ page, searchRun }) => {
   await searchRun(async () => {
-    await assertPageContract(page, { routePath: "/search", testInfo });
+    await assertPageContract(page, { routePath: "/search" });
   });
 });

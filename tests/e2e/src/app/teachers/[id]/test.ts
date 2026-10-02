@@ -42,7 +42,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { observeSectionDetailNavigation } from "../../../../utils/section-detail-navigation";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -88,16 +87,15 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/teachers/[id]",
-        testInfo,
       });
     });
   });
 
-  test("无效参数返回 404", async ({ page, preferenceFlow }, testInfo) => {
+  test("无效参数返回 404", async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/teachers/999999999", {
         expectMainContent: false,
@@ -106,7 +104,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await expect(
         page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
       ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "teacher/404");
     });
   });
 
@@ -116,7 +113,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
 
@@ -136,8 +133,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           .filter({ visible: true })
           .first(),
       ).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "teacher/heading");
     });
   });
 
@@ -161,7 +156,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
 
@@ -182,8 +177,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       ).toBeVisible();
       // teacher.email (if not null)
       await expect(visibleText(page, DEV_SEED.teacher.email)).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "teacher/basic-info");
     });
   });
 
@@ -193,7 +186,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     detailCatalog,
     isolatedWorker,
     run,
-  }, testInfo) => {
+  }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
       const { course, teacher, section, semester, campus } = detailCatalog;
@@ -252,8 +245,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
               `${DEV_SEED.section.stdCount} / ${DEV_SEED.section.limitCount}`,
             ),
           ).toBeVisible();
-
-          await captureStepScreenshot(page, testInfo, "course/sections-table");
           const sectionLink = page
             .locator(
               `a[href="/catalog/sections/${DEV_SEED.section.jwId}"]:visible`,
@@ -270,7 +261,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
           await expectSectionDetailReady();
           expect(new URL(page.url()).pathname).toBe(sectionPath);
-          await captureStepScreenshot(page, testInfo, "course/section-link");
         });
         await test.step("Teacher to section", async () => {
           await navigateToSeedTeacher(page);
@@ -301,8 +291,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expect(
             visibleText(page, String(DEV_SEED.section.credits)),
           ).toBeVisible();
-
-          await captureStepScreenshot(page, testInfo, "teacher/sections-table");
           const sectionLink = page
             .locator("tbody a[href^='/catalog/sections/']:visible")
             .first();
@@ -316,7 +304,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
           await expectSectionDetailReady();
           expect(new URL(page.url()).pathname).toBe(sectionPath);
-          await captureStepScreenshot(page, testInfo, "teacher/section-link");
         });
       });
       // run owns these observations after preferenceFlow drains native reads.
@@ -343,7 +330,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
 
@@ -358,7 +345,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
       await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
       await expect(page.locator("#comments")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
     });
   });
 
@@ -366,7 +352,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await navigateToSeedTeacher(page);
@@ -379,8 +365,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
       await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
       await expect(page.locator("#comments")).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "teacher/detail-mobile");
     });
   });
 
@@ -388,7 +372,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   communityTest(
     "已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）",
-    async ({ page, account, community, communityFlow }, testInfo) => {
+    async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
           const description = await arrangeDescription(
@@ -440,12 +424,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           ).toBeVisible();
           // description.lastEditedAt — some date/time text present near description
           await expect(introduction.getByText(/\d{4}/).first()).toBeVisible();
-
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "teacher/description-updated",
-          );
           const persisted = await storedDescription(
             community.db,
             description.id,
@@ -487,7 +465,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   communityTest(
     "已登录用户发布的评论绑定到教师目标",
-    async ({ page, account, community, communityFlow }, testInfo) => {
+    async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
           await gotoAndWaitForReady(
@@ -549,8 +527,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expect(
             commentCard.getByText(/ago|\d{4}|\d+\s*(分钟|小时|天)/i).first(),
           ).toBeVisible();
-          await captureStepScreenshot(page, testInfo, "teacher/comment-posted");
-
           // The shared action menu offers no report entry. Edit and delete are
           // target-independent and belong to the section comment suite.
           await commentCard.hover();
@@ -574,11 +550,10 @@ test("页面契约", async ({
   page,
   preferenceFlow,
   detailCatalog: _detailCatalog,
-}, testInfo) => {
+}) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
       routePath: "/catalog/teachers/[id]/[section]",
-      testInfo,
     });
   });
 });

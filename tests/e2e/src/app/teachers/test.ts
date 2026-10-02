@@ -31,7 +31,6 @@ import {
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/teachers", () => {
@@ -39,11 +38,10 @@ test.describe("/catalog/teachers", () => {
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/teachers",
-        testInfo,
       });
     });
   });
@@ -95,13 +93,12 @@ test.describe("/catalog/teachers", () => {
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(
         page,
         `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
-        { testInfo, screenshotLabel: "teachers-list" },
       );
       await expectNoPageHorizontalOverflow(page);
       await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
@@ -117,12 +114,10 @@ test.describe("/catalog/teachers", () => {
       const box = await detailLink.boundingBox();
       expect(box?.width ?? 0).toBeGreaterThan(250);
       expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
-      await captureStepScreenshot(page, testInfo, "teachers-mobile-list");
       await detailLink.click();
 
       await expect(page).toHaveURL(/\/catalog\/teachers\/\d+(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
     });
   });
 
@@ -130,7 +125,7 @@ test.describe("/catalog/teachers", () => {
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       for (const width of [280, 320, 375, 1024, 1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
@@ -138,11 +133,6 @@ test.describe("/catalog/teachers", () => {
         await expectCatalogFilterSheet(page, [/院系|Department/i]);
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
         if (width === 280 || width === 375) {
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            `teachers-filter-sheet-${width}`,
-          );
         }
       }
     });
@@ -152,12 +142,9 @@ test.describe("/catalog/teachers", () => {
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/teachers", {
-        testInfo,
-        screenshotLabel: "teachers",
-      });
+      await gotoAndWaitForReady(page, "/catalog/teachers");
 
       const searchbox = page.getByRole("searchbox").first();
       await expect(searchbox).toBeVisible();
@@ -179,8 +166,6 @@ test.describe("/catalog/teachers", () => {
       await expect
         .poll(() => new URL(page.url()).searchParams.get("search"))
         .toBe(DEV_SEED.teacher.nameCn);
-
-      await captureStepScreenshot(page, testInfo, "teachers-search-clear");
     });
   });
 
@@ -188,7 +173,7 @@ test.describe("/catalog/teachers", () => {
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       const filter = {
         departmentId: _searchTeacher.department.id,
@@ -200,10 +185,7 @@ test.describe("/catalog/teachers", () => {
         );
       }
 
-      await gotoAndWaitForReady(page, "/catalog/teachers", {
-        testInfo,
-        screenshotLabel: "teachers-department",
-      });
+      await gotoAndWaitForReady(page, "/catalog/teachers");
       await page.getByRole("searchbox").fill(DEV_SEED.teacher.nameCn);
       const filterDialog = await openCatalogFilterSheet(page);
       await filterDialog
@@ -221,7 +203,6 @@ test.describe("/catalog/teachers", () => {
         .poll(() => new URL(page.url()).searchParams.get("search"))
         .toBe(DEV_SEED.teacher.nameCn);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "teachers-filter-department");
     });
   });
 });

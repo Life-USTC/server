@@ -13,7 +13,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { openCommentDeleteDialog } from "./_helpers";
 
 const seededAt = new Date("2026-02-04T02:23:00.000Z");
@@ -204,7 +203,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     account,
     community,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await commentRun(
       { writes: ["create"], auditActions: { comment_create: 1 } },
       async () => {
@@ -250,7 +249,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         ).toBeVisible();
         await expect(card.getByText(body, { exact: true })).toBeVisible();
         await expectToast(page, /评论已发布|Comment posted/i);
-        await captureStepScreenshot(page, testInfo, "section/comment-posted");
       },
     );
   });
@@ -261,7 +259,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     account,
     community,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await commentRun(
       { writes: ["reaction"], auditActions: { comment_react: 1 } },
       async () => {
@@ -311,7 +309,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         await expect(card.getByRole("button", { name: /👍.*1/ })).toBeVisible();
         await expectToast(page, /表情已更新|Reaction updated/i);
         await expectNoOwnershipActions(page, card);
-        await captureStepScreenshot(page, testInfo, "section/comment-upvoted");
       },
     );
   });
@@ -322,7 +319,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     account,
     community,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await commentRun(
       { writes: ["edit"], auditActions: { comment_edit: 1 } },
       async () => {
@@ -397,7 +394,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           card.locator(`a[href="#comment-${comment.id}"]`),
         ).toHaveText("Feb 4, 2026, 10:23 AM");
         await expectToast(page, /评论已更新|Comment updated/i);
-        await captureStepScreenshot(page, testInfo, "section/comment-edited");
       },
     );
   });
@@ -408,7 +404,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     account,
     community,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await commentRun(
       { writes: ["create"], auditActions: { comment_create: 1 } },
       async () => {
@@ -456,7 +452,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         ).toBeVisible();
         await expectToast(page, /回复已发布|Reply posted/i);
         await expectNoOwnershipActions(page, card);
-        await captureStepScreenshot(page, testInfo, "section/comment-replied");
       },
     );
   });
@@ -468,7 +463,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     account,
     community,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await commentRun(
       { writes: ["delete"], auditActions: { comment_delete: 1 } },
       async () => {
@@ -579,11 +574,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           await expect(
             page.getByText(comment.body, { exact: true }),
           ).toHaveCount(0);
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "section/comment-deleted",
-          );
         } finally {
           release();
           await commentFlow.clearRoutes(page);
@@ -678,7 +668,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     account,
     community,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await commentRun(
       { writes: ["create"], auditActions: { comment_create: 1 } },
       async () => {
@@ -726,11 +716,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           account.name,
           body,
         );
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "section/comment-anonymous-author",
-        );
       },
     );
   });
@@ -741,7 +726,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     account,
     community,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await commentRun({ writes: [], auditActions: {} }, async () => {
       const { db, comment } = await seedSectionComments({
         account,
@@ -765,28 +750,20 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         comment.body,
       );
       expect(await commentRows(db)).toEqual(before);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/comment-anonymous-masked",
-      );
     });
   });
 
   uploadTest(
     "upload.three-step-upload",
-    async (
-      {
-        page,
-        account,
-        community,
-        upload,
-        isolatedWorker,
-        commentRun,
-        commentFlow,
-      },
-      testInfo,
-    ) => {
+    async ({
+      page,
+      account,
+      community,
+      upload,
+      isolatedWorker,
+      commentRun,
+      commentFlow,
+    }) => {
       await commentRun(
         {
           writes: [
@@ -992,12 +969,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
               .getByRole("link", { name: /打开附件|Open attachment/i })
               .first(),
           ).toBeVisible();
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "section/comment-attachment",
-          );
-
           // Download is served by the authorized on-site R2 streaming route.
           const popup = await observeAction(
             () => page.waitForEvent("popup"),

@@ -1,6 +1,5 @@
 import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   prepareSemesterObservation,
   test,
@@ -11,7 +10,7 @@ test("calendar.subscription-badges", async ({
   calendar: fixture,
   isolatedWorker,
   calendarProtocolRun,
-}, testInfo) => {
+}) => {
   // Two locales × three subscription kinds × four viewport/view combinations.
   // Each case loads and hydrates the calendar; keep individual waits unchanged.
   test.setTimeout(60_000);
@@ -112,11 +111,6 @@ test("calendar.subscription-badges", async ({
             ),
           ).toBe(true);
           if (kind === "teaching_assistant") {
-            await captureStepScreenshot(
-              page,
-              testInfo,
-              `calendar/badge-${view}-${mobile ? "mobile" : "desktop"}`,
-            );
           }
         }
       }

@@ -23,18 +23,14 @@ import {
 } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/public-worker";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘无效标签（comments）", () => {
   test("/workspace/comments 不是仪表盘路由页面", async ({
     publicFlow,
     page,
-  }, testInfo) => {
+  }) => {
     await publicFlow.run(async () => {
-      const response = await gotoAndWaitForReady(page, "/workspace/comments", {
-        testInfo,
-        screenshotLabel: "workspace-invalid-comments-route",
-      });
+      const response = await gotoAndWaitForReady(page, "/workspace/comments");
 
       expect(response?.status()).toBe(404);
       await expect(page.getByText(/not found|找不到/i)).toBeVisible();
@@ -44,12 +40,9 @@ test.describe("仪表盘无效标签（comments）", () => {
   test("未登录 ?tab=comments 保持轻量公共首页", async ({
     publicFlow,
     page,
-  }, testInfo) => {
+  }) => {
     await publicFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/?tab=comments", {
-        testInfo,
-        screenshotLabel: "workspace-invalid-tab",
-      });
+      await gotoAndWaitForReady(page, "/?tab=comments");
 
       // URL retains the invalid tab param
       await expect(page).toHaveURL(/\/\?tab=comments$/);
@@ -62,14 +55,12 @@ test.describe("仪表盘无效标签（comments）", () => {
         }),
       ).toBeVisible();
       await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
-
-      await captureStepScreenshot(page, testInfo, "home-comments-public");
     });
   });
 
   privateTest(
     "登录后 ?tab=comments 回退到总览",
-    async ({ run, accountRun, page, isolatedWorker }, testInfo) => {
+    async ({ run, accountRun, page, isolatedWorker }) => {
       const actor = await run(async () => {
         const actor = await isolatedWorker.createActor();
         await page.context().addCookies([actor.cookie]);
@@ -95,8 +86,6 @@ test.describe("仪表盘无效标签（comments）", () => {
         await expect(
           sidebarNavigationLink(page, /^(今天|Today)$/i),
         ).toHaveAttribute("aria-current", "page");
-
-        await captureStepScreenshot(page, testInfo, "home-comments-seed");
       });
     },
   );
