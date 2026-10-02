@@ -2,7 +2,6 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -13,14 +12,11 @@ test.describe("仪表盘作业", () => {
     account,
     homeworkRun,
     storedHomeworks,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         test.setTimeout(60_000);
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         const addButton = page.getByTestId("workspace-homeworks-add").first();
         const title = `e2e-workspace-homework-${crypto.randomUUID()}`;
@@ -98,7 +94,6 @@ test.describe("仪表盘作业", () => {
           isMajor: false,
           requiresTeam: false,
         });
-        await captureStepScreenshot(page, testInfo, "homeworks/created");
       },
       {
         calendarMessages: [{ type: "section", sectionId: academic.section.id }],
@@ -112,7 +107,7 @@ test.describe("仪表盘作业", () => {
     page,
     academic: _academic,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         const localeResponse = await page.request.post(
@@ -123,10 +118,7 @@ test.describe("仪表盘作业", () => {
         );
         expect(localeResponse.status()).toBe(200);
         await localeResponse.body();
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         await page.getByTestId("workspace-homeworks-add").first().click();
         const createDialog = page
@@ -150,7 +142,6 @@ test.describe("仪表盘作业", () => {
         await expect(
           createDialog.getByTestId("workspace-homework-create"),
         ).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "homeworks/create-desktop");
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -162,14 +153,11 @@ test.describe("仪表盘作业", () => {
     account,
     homeworkRun,
     storedHomeworks,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         test.setTimeout(60_000);
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         const addButton = page.getByTestId("workspace-homeworks-add").first();
         const title = `e2e-workspace-hw-full-${crypto.randomUUID()}`;
@@ -240,12 +228,6 @@ test.describe("仪表盘作业", () => {
             .first();
           await expect(detailDialog).toBeVisible();
           await expect(detailDialog.getByText(description)).toBeVisible();
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "homeworks/created-full-fields",
-          );
-
           const stored = await storedHomeworks(academic.section.id);
           expect(stored).toHaveLength(1);
           expect(stored[0]).toMatchObject({

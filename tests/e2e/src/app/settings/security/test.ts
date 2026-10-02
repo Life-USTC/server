@@ -152,8 +152,8 @@ test.describe("/account/settings/security 安全活动", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }, testInfo) => {
+test("页面契约", async ({ accountRun, page, account: _account }) => {
   await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/security", testInfo);
+    await expectSettingsPage(page, "/account/settings/security");
   });
 });

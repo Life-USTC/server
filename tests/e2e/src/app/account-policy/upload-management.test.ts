@@ -188,7 +188,6 @@ test("upload.web-list", async ({
     expect(response?.headers()["cache-control"]).toContain("private, no-store");
     await assertPageContract(page, {
       routePath: "/workspace/uploads",
-      testInfo,
     });
     await expect(
       page.getByRole("heading", { name: "My Uploads", exact: true }),
@@ -232,7 +231,6 @@ test("upload.web-list", async ({
     await expect(page).toHaveURL(/\/workspace\/uploads$/);
     await assertPageContract(page, {
       routePath: "/workspace/uploads",
-      testInfo,
     });
     await expect(
       page.getByRole("listitem").filter({ hasText: "material-20.txt" }),

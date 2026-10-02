@@ -22,7 +22,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 import {
   test as overlayTest,
@@ -38,7 +37,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -47,12 +46,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/sections/[jwId]",
-        testInfo,
       });
     });
   });
 
-  test("无效参数返回 404", async ({ page, preferenceFlow }, testInfo) => {
+  test("无效参数返回 404", async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/sections/999999999", {
         expectMainContent: false,
@@ -61,7 +59,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(
         page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
       ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "section/404");
     });
   });
 
@@ -70,7 +67,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -102,8 +99,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         sectionCode.locator("xpath=ancestor::*[@data-slot='badge']"),
       ).toHaveCount(0);
       await expect(page.locator("#introduction")).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "section/heading");
     });
   });
 
@@ -112,7 +107,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -149,12 +144,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           .or(page.getByText(DEV_SEED.teacher.nameEn))
           .first(),
       ).toBeVisible();
-
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/semester-campus-teacher",
-      );
     });
   });
 
@@ -163,7 +152,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -200,12 +189,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       // section.remark (whitespace-preserved, language-neutral text)
       await expect(remarkValue).toContainText(DEV_SEED.section.remark);
-
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/credits-exammode-remark",
-      );
     });
   });
 
@@ -214,7 +197,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -241,12 +224,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           .or(page.getByText(DEV_SEED.section.roomTypeNameEn))
           .first(),
       ).toBeVisible();
-
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/teach-lang-roomtype",
-      );
     });
   });
 
@@ -255,7 +232,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -277,8 +254,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           ),
         }),
       ).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "section/admin-classes");
     });
   });
 
@@ -307,7 +282,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     preferenceFlow,
     detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -333,13 +308,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await gotoAndWaitForReady(page, `${SECTION_URL}#homework`);
       await expect(page).toHaveURL(/\/catalog\/sections\/\d+#homework$/);
       await expect(page.locator("#homework")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "section/detail-nav");
     });
   });
 
   overlayTest(
     "移动端标题、流式区块与底部主操作保持可达",
-    async ({ page, overlay }, testInfo) => {
+    async ({ page, overlay }) => {
       await overlay.run({ loginRedirect: SECTION_URL }, async () => {
         const runtimeErrors: string[] = [];
         page.on("console", (message) => {
@@ -447,7 +421,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
               ),
           ),
         ).toEqual([]);
-        await captureStepScreenshot(page, testInfo, "section/detail-mobile");
       });
     },
   );
@@ -569,7 +542,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   communityTest(
     "已登录用户可编辑班级简介",
-    async ({ page, account, community, communityFlow }, testInfo) => {
+    async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
           const description = await arrangeDescription(
@@ -624,11 +597,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
               .getByRole("tabpanel", { name: /简介|Description/i })
               .getByText(content),
           ).toBeVisible();
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "section/description-updated",
-          );
           const persisted = await storedDescription(
             community.db,
             description.id,
@@ -672,7 +640,7 @@ test("页面契约", async ({
   preferenceFlow,
   detailCatalog,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await preferenceFlow.prepare(() =>
     isolatedWorker.database.owner.$transaction((db) =>
       arrangeSectionDetails(db, detailCatalog),
@@ -681,7 +649,6 @@ test("页面契约", async ({
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
       routePath: "/catalog/sections/[jwId]/[section]",
-      testInfo,
     });
   });
 });

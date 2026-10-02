@@ -81,9 +81,9 @@ async function mockRoomMap(page: Page) {
 }
 
 test.describe("/catalog/rooms 教室地图", () => {
-  test("页面契约", async ({ page, preferenceFlow }, testInfo) => {
+  test("页面契约", async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
-      await assertPageContract(page, { routePath: "/catalog/rooms", testInfo });
+      await assertPageContract(page, { routePath: "/catalog/rooms" });
     });
   });
 

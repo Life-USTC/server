@@ -34,7 +34,6 @@ import {
   waitForUiSettled,
 } from "../../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../../utils/request-url";
-import { captureStepScreenshot } from "../../../../../utils/screenshot";
 import { test } from "../../../../../utils/subscription-catalog";
 
 function escapeForRegExp(value: string) {
@@ -119,7 +118,7 @@ test.describe("仪表盘教学班订阅", () => {
     subscriptions: catalog,
     baseURL,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -182,7 +181,6 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(page.getByText(catalog.current.nameCn).first()).toBeVisible({
         timeout: 3000,
       });
-      await captureStepScreenshot(page, testInfo, "subscriptions/seed-fields");
       await page.context().addCookies([
         {
           name: "NEXT_LOCALE",
@@ -201,18 +199,13 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(
         page.getByText("1 sections included", { exact: true }),
       ).toHaveCount(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "subscriptions/single-section-en-us",
-      );
     });
   });
   test("超宽屏按时间倒序分表并渐进增强为瀑布流", async ({
     page,
     subscriptions: catalog,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       await page.setViewportSize({ height: 1000, width: 1700 });
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -237,18 +230,13 @@ test.describe("仪表盘教学班订阅", () => {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-wide-masonry",
-      );
     });
   });
   test("空状态提供发现操作", async ({
     page,
     account: _account,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       test.setTimeout(60000);
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -274,18 +262,13 @@ test.describe("仪表盘教学班订阅", () => {
           })
           .first(),
       ).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-empty-state",
-      );
     });
   });
   test("移动端订阅列表与操作区不产生页面级横向滚动", async ({
     page,
     subscriptions: catalog,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       await page.setViewportSize({ height: 844, width: 390 });
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -315,18 +298,13 @@ test.describe("仪表盘教学班订阅", () => {
           `a[href="/catalog/sections/${catalog.section.jwId}"]`,
         ),
       ).toHaveCount(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-mobile-responsive",
-      );
     });
   });
   test("课程名称链接到教学班主页", async ({
     page,
     subscriptions: catalog,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       const courseLink = page
@@ -342,11 +320,6 @@ test.describe("仪表盘教学班订阅", () => {
         `/catalog/sections/${catalog.section.jwId}`,
       );
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-section-link",
-      );
     });
   });
   test("取消订阅操作确认后移除订阅", async ({
@@ -355,7 +328,7 @@ test.describe("仪表盘教学班订阅", () => {
     account,
     storedSectionSubscriptions,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       const courseLink = page
@@ -416,18 +389,13 @@ test.describe("仪表盘教学班订阅", () => {
             /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
         }),
       ).toHaveCount(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-opt-out-confirmed",
-      );
     });
   });
   test("复制日历链接生成有效的 iCal URL", async ({
     page,
     subscriptions: _catalog,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       await page
         .context()
@@ -454,11 +422,6 @@ test.describe("仪表盘教学班订阅", () => {
       );
       const calendarBody = await calendarResponse.text();
       expect(calendarBody).toContain("BEGIN:VCALENDAR");
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-ical-copied",
-      );
     });
   });
   test("批量导入打开确认对话框并可取消", async ({
@@ -467,7 +430,7 @@ test.describe("仪表盘教学班订阅", () => {
     account,
     storedSectionSubscriptions,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       test.setTimeout(60000);
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -511,11 +474,6 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(matchedSectionCheckbox).not.toBeChecked();
       await matchedSectionCheckbox.click();
       await expect(matchedSectionCheckbox).toBeChecked();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-bulk-import-dialog",
-      );
       await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
       await expect(dialog).not.toBeVisible();
       expect(await storedSectionSubscriptions(account.id)).toEqual([]);
@@ -527,7 +485,7 @@ test.describe("仪表盘教学班订阅", () => {
     account,
     storedSectionSubscriptions,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       test.setTimeout(60000);
       await page.setViewportSize({ height: 844, width: 390 });
@@ -687,11 +645,6 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(sectionCheckbox).not.toBeChecked();
       await sectionCheckbox.click();
       await expect(sectionCheckbox).toBeChecked();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-quick-add-results",
-      );
       await observeAction(
         () =>
           page.waitForResponse(
@@ -746,7 +699,7 @@ test.describe("仪表盘教学班订阅", () => {
       account,
       storedSectionSubscriptions,
       subscriptionRun,
-    }, testInfo) => {
+    }) => {
       await subscriptionRun(async () => {
         await page.setViewportSize({ width, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -793,11 +746,6 @@ test.describe("仪表盘教学班订阅", () => {
         await expect(first).not.toBeChecked();
         await expect(second).not.toBeChecked();
         await expect(submit).toBeDisabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `quick-add-multiple-unselected-${width}`,
-        );
         await first.click();
         await expect(submit).toBeEnabled();
         await search(catalog.section.code);
@@ -838,11 +786,6 @@ test.describe("仪表盘教学班订阅", () => {
         await expect(second).toBeChecked();
         await expect(second).toBeEnabled();
         await expect(submit).toBeEnabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `quick-add-single-selected-${width}`,
-        );
         expect(
           (await storedSectionSubscriptions(account.id)).map(
             (row) => row.sectionId,
@@ -876,7 +819,7 @@ test.describe("仪表盘教学班订阅", () => {
     page,
     account: _account,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       await page.setViewportSize({ height: 844, width: 390 });
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -916,11 +859,6 @@ test.describe("仪表盘教学班订阅", () => {
           name: /搜索课程或教师|Search courses or teachers/i,
         }),
       ).toHaveValue("DEVXX000.99");
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-quick-add-empty",
-      );
     });
   });
   test("批量导入可确认并显示成功", async ({
@@ -929,7 +867,7 @@ test.describe("仪表盘教学班订阅", () => {
     account,
     storedSectionSubscriptions,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       test.setTimeout(60000);
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -956,11 +894,6 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(
         dialog.getByText(catalog.section.code).first(),
       ).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-bulk-import-ready",
-      );
       await dialog
         .getByRole("button", {
           name: /订阅已选的 \d+ 个教学班|订阅已选|Subscribe to \d+ sections|Subscribe/i,
@@ -995,11 +928,6 @@ test.describe("仪表盘教学班订阅", () => {
           .filter({ visible: true })
           .first(),
       ).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "workspace-subscriptions-bulk-import-success",
-      );
     });
   });
 });
@@ -1011,15 +939,13 @@ for (const routePath of [
     page,
     account: _account,
     subscriptionRun,
-  }, testInfo) => {
+  }) => {
     await subscriptionRun(async () => {
       const response = await gotoAndWaitForReady(page, routePath, {
         browserHealth: {},
         expectMeaningfulContent: true,
         expectNoHorizontalOverflow: true,
         uiQuality: {},
-        testInfo,
-        screenshotLabel: "contract",
       });
       expect(response?.ok()).toBe(true);
       await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);

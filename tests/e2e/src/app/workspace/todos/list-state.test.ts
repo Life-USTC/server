@@ -1,7 +1,6 @@
 import { expect } from "@playwright/test";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { readTodoCalendar, test } from "../../../../utils/todo-fixture";
 
 test.describe.configure({ mode: "parallel" });
@@ -16,7 +15,7 @@ for (const viewport of [
       todoRun,
       page,
       todoState,
-    }, testInfo) => {
+    }) => {
       await todoRun(
         async (effects) => {
           test.setTimeout(90_000);
@@ -156,11 +155,6 @@ for (const viewport of [
               "text-decoration-line",
               "line-through",
             );
-            await captureStepScreenshot(
-              page,
-              testInfo,
-              `todo-completed-detail-${viewport.width}`,
-            );
             await detail
               .getByRole("button", { name: "Close", exact: true })
               .click();
@@ -194,11 +188,6 @@ for (const viewport of [
             ),
           ).toBe(true);
           expect(errors).toEqual([]);
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            `todo-filtered-list-${viewport.width}`,
-          );
         },
         { calendarMessages: [{ type: "user", userId: todoActor.id }] },
       );

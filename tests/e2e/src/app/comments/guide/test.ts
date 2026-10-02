@@ -15,11 +15,10 @@ test("/community/comments/guide 重定向到标准 Markdown 指南", async ({
   });
 });
 
-test("页面契约", async ({ page, publicFlow }, testInfo) => {
+test("页面契约", async ({ page, publicFlow }) => {
   await publicFlow.run(async () => {
     await assertPageContract(page, {
       routePath: "/community/comments/guide",
-      testInfo,
     });
   });
 });

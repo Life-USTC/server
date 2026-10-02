@@ -16,18 +16,15 @@ import { test } from "../../../utils/public-worker";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/privacy 隐私政策页", () => {
-  test("页面契约", async ({ publicFlow, page }, testInfo) => {
+  test("页面契约", async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
-      await assertPageContract(page, { routePath: "/privacy", testInfo });
+      await assertPageContract(page, { routePath: "/privacy" });
     });
   });
 
-  test("渲染带章节的隐私政策", async ({ publicFlow, page }, testInfo) => {
+  test("渲染带章节的隐私政策", async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/privacy", {
-        testInfo,
-        screenshotLabel: "privacy",
-      });
+      await gotoAndWaitForReady(page, "/privacy");
       await waitForUiSettled(page);
 
       await expect(page.locator("#main-content")).toBeVisible();
@@ -42,10 +39,10 @@ test.describe("/privacy 隐私政策页", () => {
     });
   });
 
-  test("320px 列表内容完整换行", async ({ publicFlow, page }, testInfo) => {
+  test("320px 列表内容完整换行", async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
       await page.setViewportSize({ width: 320, height: 800 });
-      await gotoAndWaitForReady(page, "/privacy", { testInfo });
+      await gotoAndWaitForReady(page, "/privacy");
 
       const overflow = await page
         .locator('[data-slot="legal-document"] .markdown-preview')

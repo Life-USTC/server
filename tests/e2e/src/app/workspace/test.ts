@@ -27,7 +27,6 @@ import {
 } from "../../../utils/locators";
 import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 
 test.describe("仪表盘", () => {
   test.describe.configure({ mode: "parallel" });
@@ -36,14 +35,11 @@ test.describe("仪表盘", () => {
     page,
     homeworkStates,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         await page.setViewportSize({ width: 1280, height: 720 });
-        await gotoAndWaitForReady(page, "/", {
-          testInfo,
-          screenshotLabel: "workspace",
-        });
+        await gotoAndWaitForReady(page, "/");
 
         await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
         await expect(
@@ -81,8 +77,6 @@ test.describe("仪表盘", () => {
           page.locator('a[href^="/api/catalog/links/resolve?slug="]'),
         ).toHaveCount(DEV_SEED.catalogLinks.overviewLimit);
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-
-        await captureStepScreenshot(page, testInfo, "workspace-home");
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -92,7 +86,7 @@ test.describe("仪表盘", () => {
     page,
     account: _account,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, "/");
@@ -103,11 +97,6 @@ test.describe("仪表盘", () => {
         await homeworksTab.click();
 
         await expect(page).toHaveURL(/\/workspace\/homeworks(?:\?.*)?$/);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "workspace-navigate-homeworks",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -119,7 +108,7 @@ test.describe("仪表盘", () => {
     academic,
     homeworkStates: _homeworkStates,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         await page.setViewportSize({ width: 1280, height: 720 });
@@ -146,7 +135,6 @@ test.describe("仪表盘", () => {
             await gotoAndWaitForReady(
               page,
               `/catalog/courses?search=${academic.course.code}`,
-              { testInfo },
             );
           },
         );
@@ -221,13 +209,10 @@ test.describe("仪表盘", () => {
     page,
     academic: _academic,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/catalog/links", {
-          testInfo,
-          screenshotLabel: "workspace-links-path",
-        });
+        await gotoAndWaitForReady(page, "/catalog/links");
         const linksWorkspaceTab = sidebarNavigationLink(
           page,
           /^(网站|Websites)$/i,
@@ -268,11 +253,6 @@ test.describe("仪表盘", () => {
             )
             .first(),
         ).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "workspace-subscriptions-path",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -282,14 +262,11 @@ test.describe("仪表盘", () => {
     page,
     homeworkStates: _homeworkStates,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         await page.setViewportSize({ height: 844, width: 390 });
-        await gotoAndWaitForReady(page, "/", {
-          testInfo,
-          screenshotLabel: "workspace-mobile-priority",
-        });
+        await gotoAndWaitForReady(page, "/");
 
         const focus = page.getByTestId("workspace-overview-focus");
         const links = page.getByTestId("workspace-overview-links");
@@ -306,12 +283,6 @@ test.describe("仪表盘", () => {
             () => document.documentElement.scrollWidth <= window.innerWidth + 1,
           ),
         ).toBe(true);
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "workspace/mobile-priority",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -321,7 +292,7 @@ test.describe("仪表盘", () => {
     page,
     account: _account,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/overview");
@@ -340,11 +311,6 @@ test.describe("仪表盘", () => {
         await expect(weekCard).toBeVisible();
         await expect(weekCard.getByText("周日", { exact: true })).toBeVisible();
         await expect(weekCard.getByText("Sun", { exact: true })).toHaveCount(0);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "workspace/overview-week-zh-cn",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );

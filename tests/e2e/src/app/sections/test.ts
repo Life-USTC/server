@@ -30,7 +30,6 @@ import {
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -46,11 +45,10 @@ test.describe("/catalog/sections 班级搜索页", () => {
     page,
     preferenceFlow,
     searchSection: _searchSection,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/sections",
-        testInfo,
       });
     });
   });
@@ -102,7 +100,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     page,
     preferenceFlow,
     searchSection: _searchSection,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       const runtimeErrors: string[] = [];
       page.on("console", (message) => {
@@ -115,7 +113,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await gotoAndWaitForReady(
         page,
         `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
-        { testInfo, screenshotLabel: "sections-list" },
       );
       await expectNoPageHorizontalOverflow(page);
       await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
@@ -188,7 +185,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
       const box = await detailLink.boundingBox();
       expect(box?.width ?? 0).toBeGreaterThan(250);
       expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
-      await captureStepScreenshot(page, testInfo, "sections-mobile-list");
       const expectSectionDetailReady = observeSectionDetailNavigation(
         page,
         preferenceFlow,
@@ -201,7 +197,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await expectSectionDetailReady();
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       expect(runtimeErrors).toEqual([]);
-      await captureStepScreenshot(page, testInfo, "sections-navigate-detail");
     });
   });
 
@@ -209,7 +204,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     page,
     preferenceFlow,
     searchSection: _searchSection,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       const runtimeErrors: string[] = [];
       page.on("console", (message) => {
@@ -236,7 +231,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await expect(visibleText(page, DEV_SEED.campus.nameEn)).toBeVisible();
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       expect(runtimeErrors).toEqual([]);
-      await captureStepScreenshot(page, testInfo, "sections-mobile-list-en-us");
     });
   });
 
@@ -244,7 +238,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     page,
     preferenceFlow,
     searchSection: _searchSection,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await useChineseLocale(page);
 
@@ -364,11 +358,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
         expect(sheetGeometry.overflowing).toEqual([]);
 
         if (width === 280 || width === 375) {
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            `sections-filters-${width}`,
-          );
         }
         await page.keyboard.press("Escape");
         await expect(filterSheet).toBeHidden();
@@ -381,7 +370,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     page,
     preferenceFlow,
     searchSection: _searchSection,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       const runtimeErrors: string[] = [];
       page.on("console", (message) => {
@@ -437,11 +426,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
           );
           expect(cardsGeometry.right).toBeLessThanOrEqual(
             cardsGeometry.mainRight,
-          );
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            `sections-responsive-${width}`,
           );
           continue;
         }
@@ -579,11 +563,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
         expect(geometry.resultsOverflowY).toBe("visible");
         expect(geometry.summaryIsDirectChild).toBe(true);
         expect(geometry.overflowingCells).toEqual([]);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `sections-responsive-${width}`,
-        );
       }
 
       expect(runtimeErrors).toEqual([]);
@@ -594,14 +573,11 @@ test.describe("/catalog/sections 班级搜索页", () => {
     page,
     preferenceFlow,
     searchSection: _searchSection,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 320, height: 900 });
       await useChineseLocale(page);
-      await gotoAndWaitForReady(page, "/catalog/sections", {
-        testInfo,
-        screenshotLabel: "sections",
-      });
+      await gotoAndWaitForReady(page, "/catalog/sections");
 
       await page.getByRole("button", { name: /筛选|Filters/i }).click();
       const filterSheet = page.getByRole("dialog");
@@ -609,8 +585,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await filterSheet.getByRole("button", { name: "高级搜索语法" }).click();
       await expect(filterSheet.getByText("teacher:张三")).toBeVisible();
       await expect(page.getByRole("dialog")).toHaveCount(1);
-      await captureStepScreenshot(page, testInfo, "sections-search-help");
-
       await filterSheet.getByLabel("教师").fill(DEV_SEED.teacher.nameCn);
       await filterSheet.getByLabel("课程代码").fill(DEV_SEED.course.code);
       await filterSheet.getByLabel("班级代码").fill(DEV_SEED.section.code);
@@ -635,15 +609,8 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await expect(page.locator('[data-slot="active-filters"]')).toContainText(
         DEV_SEED.teacher.nameCn,
       );
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "sections-structured-results",
-      );
-
       await page.getByRole("link", { name: /^清除$/ }).click();
       await expect(page).toHaveURL(/\/catalog\/sections$/);
-      await captureStepScreenshot(page, testInfo, "sections-clear");
     });
   });
 
@@ -651,7 +618,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     page,
     preferenceFlow,
     searchSection: _searchSection,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       const filter = {
         semesterId: _searchSection.semester.id,
@@ -666,14 +633,12 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await gotoAndWaitForReady(
         page,
         `/catalog/sections?semesterId=${filter.semesterId}`,
-        { testInfo, screenshotLabel: "sections-semester" },
       );
       await expect(page).toHaveURL(
         new RegExp(`semesterId=${filter.semesterId}`),
       );
       await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "sections-filter-semester");
     });
   });
 });

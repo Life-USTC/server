@@ -29,7 +29,6 @@ import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
 
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   expectSettingsPage,
   storedProfile,
@@ -39,14 +38,9 @@ import {
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/danger 危险区设置", () => {
-  test("需要登录", async ({ accountRun, page }, testInfo) => {
+  test("需要登录", async ({ accountRun, page }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await expectRequiresSignIn(page, "/account/settings/danger");
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-danger-unauthorized",
-      );
     });
   });
 
@@ -55,7 +49,7 @@ test.describe("/account/settings/danger 危险区设置", () => {
     page,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/account/settings/danger");
@@ -133,12 +127,6 @@ test.describe("/account/settings/danger 危险区设置", () => {
       await expect(confirmButton).toBeDisabled();
       await narrowInput.fill("DELETE");
       await expect(confirmButton).toBeEnabled();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-danger-confirm-enabled",
-      );
-
       // Cancel closes dialog without action.
       await narrowDialog.getByRole("button", { name: /取消|Cancel/i }).click();
       await expect(narrowDialog).toBeHidden();
@@ -156,7 +144,7 @@ test.describe("/account/settings/danger 危险区设置", () => {
     credentialHash,
     baseURL,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     test.setTimeout(60_000);
     await accountRun(
       {
@@ -192,12 +180,6 @@ test.describe("/account/settings/danger 危险区设置", () => {
 
         await input.fill("DELETE");
         await expect(confirmButton).toBeEnabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "settings-danger-confirm-enabled",
-        );
-
         // Hold the request long enough to assert the pending state keeps the
         // confirmation open and disables both secondary and destructive actions.
         let releaseDeleteRequest!: () => void;
@@ -235,8 +217,6 @@ test.describe("/account/settings/danger 危险区设置", () => {
         await expect(
           page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
         ).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "settings-danger-deleted");
-
         expect(
           await storedProfile(isolatedWorker.database.owner, account.id),
         ).toBeNull();
@@ -304,9 +284,9 @@ test.describe("/account/settings/danger 危险区设置", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }, testInfo) => {
+test("页面契约", async ({ accountRun, page, account: _account }) => {
   await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/danger", testInfo);
+    await expectSettingsPage(page, "/account/settings/danger");
     await expect(
       page.getByRole("region", { name: /删除账户|Delete Account/i }),
     ).toBeVisible();

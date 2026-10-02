@@ -2,7 +2,7 @@ import {
   createLocalAccountIssuer,
   createOAuthAccountIssuer,
 } from "@better-auth/core/db";
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
 import type { User } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
@@ -144,18 +144,12 @@ export const test = accountTest.extend<{
   },
 });
 
-export async function expectSettingsPage(
-  page: Page,
-  path: string,
-  testInfo: TestInfo,
-) {
+export async function expectSettingsPage(page: Page, path: string) {
   const response = await gotoAndWaitForReady(page, path, {
     browserHealth: {},
     expectMeaningfulContent: true,
     expectNoHorizontalOverflow: true,
     uiQuality: {},
-    testInfo,
-    screenshotLabel: "contract",
   });
   expect(response?.ok()).toBe(true);
   await expect(page.locator("#main-content")).toBeVisible();

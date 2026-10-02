@@ -4,33 +4,27 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { test } from "../../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
-test("/account/settings 别名路由需要登录", async ({ page }, testInfo) => {
+test("/account/settings 别名路由需要登录", async ({ page }) => {
   await expectRequiresSignIn(page, "/account/settings/profile");
-  await captureStepScreenshot(page, testInfo, "settings-profile-unauth");
 });
 
 test("/account/settings/profile 别名路由生效", async ({
   accountRun,
   page,
   account: _account,
-}, testInfo) => {
+}) => {
   await accountRun({ writes: [], audits: [] }, async () => {
     await gotoAndWaitForReady(page, "/account/settings/profile");
-    await gotoAndWaitForReady(page, "/account/settings/profile", {
-      testInfo,
-      screenshotLabel: "settings-profile-alias",
-    });
+    await gotoAndWaitForReady(page, "/account/settings/profile");
 
     await expect(page).toHaveURL(
       /\/account\/settings(?:\/profile)?(?:[/?#].*)?$/,
     );
     await expect(page.locator("input#name")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "settings-profile");
   });
 });
 

@@ -17,12 +17,7 @@
  * - Invalid user code → shows error
  * - Expired user code → shows error
  */
-import {
-  type APIRequestContext,
-  expect,
-  type Page,
-  type TestInfo,
-} from "@playwright/test";
+import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
@@ -36,10 +31,6 @@ import { expectOAuthUsage } from "../../../../utils/oauth-usage";
 import { test as requestTest } from "../../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/public-worker";
-import {
-  capturePageScreenshot,
-  captureStepScreenshot,
-} from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 import { test as isolatedTest } from "../../api/mcp/_fixture";
 
@@ -173,10 +164,6 @@ async function approveDeviceCode(
   page: Page,
   result: DeviceAuthorizationResult,
   options: {
-    screenshot?: {
-      label: string;
-      testInfo: TestInfo;
-    };
     visibleResources?: string[];
   } = {},
 ) {
@@ -188,12 +175,6 @@ async function approveDeviceCode(
   );
   for (const resource of options.visibleResources ?? []) {
     await expect(page.getByText(resource, { exact: true })).toBeVisible();
-  }
-  if (options.screenshot) {
-    await capturePageScreenshot(page, options.screenshot.testInfo, {
-      url: page.url(),
-      label: options.screenshot.label,
-    });
   }
   await page.getByRole("button", { name: /允许|Allow|批准|Approve/i }).click();
   await expect(page).toHaveURL(/\/oauth\/device\?result=approved/);
@@ -236,7 +217,7 @@ async function exchangeDeviceToken(
 test("/oauth/device 移动端只呈现一个标题和一个代码输入", async ({
   publicFlow,
   page,
-}, testInfo) => {
+}) => {
   await publicFlow.run(async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/oauth/device");
@@ -286,17 +267,16 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", async 
           document.documentElement.clientWidth,
       ),
     ).toBe(true);
-    await captureStepScreenshot(page, testInfo, "oauth/device/form-mobile");
   });
 });
 test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
   publicFlow,
   page,
-}, testInfo) => {
+}) => {
   await publicFlow.run(async () => {
     for (const width of [320, 375]) {
       await page.setViewportSize({ width, height: 800 });
-      await gotoAndWaitForReady(page, "/oauth/device", { testInfo });
+      await gotoAndWaitForReady(page, "/oauth/device");
       const otp = page.locator('[data-slot="input-otp"]');
       await expect(otp).toBeVisible();
       await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
@@ -321,10 +301,7 @@ test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
     }
   });
 });
-test("/oauth/device 无效用户代码显示公开错误", async ({
-  publicFlow,
-  page,
-}, testInfo) => {
+test("/oauth/device 无效用户代码显示公开错误", async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     await gotoAndWaitForReady(
       page,
@@ -334,7 +311,6 @@ test("/oauth/device 无效用户代码显示公开错误", async ({
       page.getByText(/未找到|not found|No device login request/i).first(),
     ).toBeVisible();
     await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "oauth/device/invalid-code");
   });
 });
 isolatedTest(
@@ -488,7 +464,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 未登录的待批准请求重定向到登录页",
-  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-redirect-${Date.now()}`;
       const result = await requestDeviceCode(
@@ -507,11 +483,6 @@ isolatedTest(
       });
       expect(new URL(page.url()).searchParams.get("callbackUrl")).toBe(
         verificationPath,
-      );
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "oauth/device/redirect-to-signin",
       );
       return {
         async verifyTransport({ effects }) {
@@ -548,7 +519,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 已登录用户看到批准界面",
-  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-approval-${Date.now()}`;
       const result = await requestDeviceCode(
@@ -575,11 +546,6 @@ isolatedTest(
       await expect(
         page.getByRole("button", { name: /允许|Allow|批准|Approve/i }),
       ).toBeVisible({ timeout: 15000 });
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "oauth/device/approval-screen",
-      );
       return {
         async verifyTransport({ effects }) {
           expect(
@@ -615,7 +581,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 资源绑定令牌可访问 REST 与 MCP",
-  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(
       async ({ request }) => {
         const clientName = `device-e2e-resource-token-${Date.now()}`;
@@ -633,7 +599,6 @@ isolatedTest(
           },
         );
         const actor = await approveDeviceCode(isolatedWorker, page, result, {
-          screenshot: { label: "resource-approval", testInfo },
           visibleResources: resources,
         });
         const { accessToken, refreshToken } = await exchangeDeviceToken(
@@ -981,7 +946,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 已禁用客户端代码显示错误而非批准界面",
-  async ({ isolatedWorker, page, calendarProtocolRun }, testInfo) => {
+  async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-disabled-${Date.now()}`;
       const result = await requestDeviceCode(
@@ -1006,11 +971,6 @@ isolatedTest(
       await expect(
         page.getByRole("button", { name: /允许|Allow|批准|Approve/i }),
       ).toHaveCount(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "oauth/device/disabled-client",
-      );
       return {
         async verifyTransport({ effects }) {
           expect(
@@ -1239,8 +1199,8 @@ requestTest(
     });
   },
 );
-test("页面契约", async ({ publicFlow, page }, testInfo) => {
+test("页面契约", async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
-    await assertPageContract(page, { routePath: "/oauth/device", testInfo });
+    await assertPageContract(page, { routePath: "/oauth/device" });
   });
 });

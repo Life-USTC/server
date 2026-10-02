@@ -1,7 +1,6 @@
 import { type APIRequestContext, expect } from "@playwright/test";
 import { sha256Base64Url } from "../../../../../shared/crypto";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 import { test } from "./authorize-fixture";
 
@@ -46,7 +45,7 @@ test("/oauth/authorize 未登录时重定向到登录页", async ({
   page,
   request,
   redirectUri,
-}, testInfo) => {
+}) => {
   await oauthRun(null, async () => {
     const clientId = await registerPublicClient(request, redirectUri);
 
@@ -65,7 +64,6 @@ test("/oauth/authorize 未登录时重定向到登录页", async ({
     );
 
     await expect(page).toHaveURL(/\/account\/sign-in\?/);
-    await captureStepScreenshot(page, testInfo, "oauth-authorize-redirect");
   });
 });
 
@@ -75,7 +73,7 @@ test("/oauth/authorize 登录后恢复原授权请求", async ({
   request,
   redirectUri,
   debugUser,
-}, testInfo) => {
+}) => {
   await oauthRun({ kind: "sign-in", state: "resume-state" }, async () => {
     const clientId = await registerPublicClient(request, redirectUri);
 
@@ -106,7 +104,6 @@ test("/oauth/authorize 登录后恢复原授权请求", async ({
     expect(session.status()).toBe(200);
     expect((await session.json()).user.id).toBe(debugUser);
     expect(new URL(page.url()).searchParams.get("state")).toBe("resume-state");
-    await captureStepScreenshot(page, testInfo, "oauth-authorize-resumed");
   });
 });
 
@@ -115,7 +112,7 @@ test("/oauth/authorize 无效客户端展示错误", async ({
   page,
   actor: _actor,
   redirectUri,
-}, testInfo) => {
+}) => {
   await oauthRun(null, async () => {
     const response = await page.request.get(
       buildAuthorizeApiUrl({
@@ -137,11 +134,6 @@ test("/oauth/authorize 无效客户端展示错误", async ({
     expect(errorUrl.searchParams.get("error")).toBe("invalid_client");
     const errorPage = await page.goto(errorUrl.href);
     expect(errorPage?.status()).toBe(200);
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "oauth-authorize-invalid-client",
-    );
   });
 });
 
@@ -152,7 +144,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({
   isolatedWorker,
   actor: _actor,
   redirectUri,
-}, testInfo) => {
+}) => {
   await oauthRun(
     { kind: "consent", state: "deny-state", decision: "deny", loopback: false },
     async () => {
@@ -192,7 +184,6 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({
       expect(
         await isolatedWorker.database.owner.oAuthRefreshToken.count(),
       ).toBe(0);
-      await captureStepScreenshot(page, testInfo, "oauth-authorize-denied");
     },
   );
 });
@@ -204,7 +195,7 @@ test("oauth.user-consent-framing", async ({
   actor,
   redirectUri,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   let releaseConsentRequest = () => {};
   const consentRequestGate = new Promise<void>((resolve) => {
     releaseConsentRequest = resolve;
@@ -256,8 +247,6 @@ test("oauth.user-consent-framing", async ({
       await emailPermission.uncheck();
       await expect(emailPermission).not.toBeChecked();
       await expect(profilePermission).toBeChecked();
-      await captureStepScreenshot(page, testInfo, "oauth-consent-subset");
-
       const allowButton = page.getByRole("button", { name: /允许|Allow/i });
       const denyButton = page.getByRole("button", { name: /拒绝|Deny/i });
       const allowClick = allowButton.click();
@@ -296,15 +285,14 @@ test("oauth.user-consent-framing", async ({
         "openid",
         "profile",
       ]);
-      await captureStepScreenshot(page, testInfo, "oauth-authorize-allowed");
     },
     { wait: consentRequestGate, release: () => releaseConsentRequest() },
   );
 });
 
-test("页面契约", async ({ oauthRun, page }, testInfo) => {
+test("页面契约", async ({ oauthRun, page }) => {
   await oauthRun(null, async () => {
-    await assertPageContract(page, { routePath: "/oauth/authorize", testInfo });
+    await assertPageContract(page, { routePath: "/oauth/authorize" });
   });
 });
 
@@ -374,7 +362,7 @@ test("oauth.auth-page-clarity", async ({
   page,
   actor: _actor,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await oauthRun(null, async () => {
     const marker = crypto.randomUUID();
     const clientId = `https://client.example/${marker}/metadata.json`;
@@ -461,11 +449,6 @@ test("oauth.auth-page-clarity", async ({
         await expect(
           page.getByRole("button", { name: /Deny|拒绝/i }),
         ).toBeEnabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `oauth-clarity-${locale}-${width}`,
-        );
       }
     }
   });

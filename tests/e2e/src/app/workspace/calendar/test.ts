@@ -24,7 +24,6 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../utils/academic-events";
 import { test as calendarTest } from "../../../../utils/calendar-presentation-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘日历", () => {
   test.describe.configure({ mode: "parallel" });
@@ -33,13 +32,10 @@ test.describe("仪表盘日历", () => {
     page,
     calendarUrl,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, calendarUrl, {
-          testInfo,
-          screenshotLabel: "calendar",
-        });
+        await gotoAndWaitForReady(page, calendarUrl);
 
         await expect(page.locator("#main-content")).toBeVisible();
 
@@ -57,8 +53,6 @@ test.describe("仪表盘日历", () => {
           .filter({ visible: true })
           .first();
         await expect(sectionLink).toBeVisible();
-
-        await captureStepScreenshot(page, testInfo, "calendar/semester-view");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -68,13 +62,10 @@ test.describe("仪表盘日历", () => {
     page,
     calendarUrl,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, calendarUrl, {
-          testInfo,
-          screenshotLabel: "calendar",
-        });
+        await gotoAndWaitForReady(page, calendarUrl);
 
         const sectionLink = page
           .locator('a[href^="/catalog/sections/"]')
@@ -84,29 +75,20 @@ test.describe("仪表盘日历", () => {
         await sectionLink.click();
 
         await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
-        await captureStepScreenshot(page, testInfo, "calendar/section-link");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
   });
 
-  test("考试卡片链接到考试标签", async ({
-    page,
-    calendarUrl,
-    homeworkRun,
-  }, testInfo) => {
+  test("考试卡片链接到考试标签", async ({ page, calendarUrl, homeworkRun }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, calendarUrl, {
-          testInfo,
-          screenshotLabel: "calendar",
-        });
+        await gotoAndWaitForReady(page, calendarUrl);
 
         const examLink = page.locator('a[href="/workspace/exams"]').first();
         await expect(examLink).toBeVisible();
         await examLink.click();
         await expect(page).toHaveURL(/\/workspace\/exams(?:\?.*)?$/);
-        await captureStepScreenshot(page, testInfo, "calendar/exam-link");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -116,13 +98,10 @@ test.describe("仪表盘日历", () => {
     page,
     calendarUrl,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, calendarUrl, {
-          testInfo,
-          screenshotLabel: "calendar",
-        });
+        await gotoAndWaitForReady(page, calendarUrl);
 
         // calendar.yml: Previous/next semester controls
         const previousSemester = page.getByRole("button", {
@@ -144,12 +123,6 @@ test.describe("仪表盘日历", () => {
         await expect(page).toHaveURL(/calendarSemester=\d+/);
         await expect(page).not.toHaveURL(beforeUrl);
         await expect(page.locator("#main-content")).toBeVisible();
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "calendar/semester-navigation",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -159,13 +132,10 @@ test.describe("仪表盘日历", () => {
     page,
     calendarUrl,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, calendarUrl, {
-          testInfo,
-          screenshotLabel: "calendar",
-        });
+        await gotoAndWaitForReady(page, calendarUrl);
 
         // calendar.yml: View tabs
         const calendarTabs = page.getByRole("group", {
@@ -177,15 +147,12 @@ test.describe("仪表盘日历", () => {
         await monthTab.click();
         await expect(page).toHaveURL(/calendarView=month/);
         await expect(monthTab).toHaveAttribute("aria-checked", "true");
-        await captureStepScreenshot(page, testInfo, "calendar/month-view");
-
         const weekTab = calendarTabs.getByRole("radio", {
           name: /本周|This week/i,
         });
         await weekTab.click();
         await expect(page).toHaveURL(/calendarView=week/);
         await expect(weekTab).toHaveAttribute("aria-checked", "true");
-        await captureStepScreenshot(page, testInfo, "calendar/week-view");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -264,7 +231,7 @@ test.describe("仪表盘日历", () => {
 
   calendarTest(
     "calendar.mobile-agenda-first",
-    async ({ page, calendar: fixture, calendarRun }, testInfo) => {
+    async ({ page, calendar: fixture, calendarRun }) => {
       await calendarRun(
         async () => {
           await page
@@ -278,10 +245,7 @@ test.describe("仪表盘日历", () => {
             .addCookies([
               await fixture.createSignedSessionCookie(fixture.users[0].id),
             ]);
-          await gotoAndWaitForReady(page, fixture.academicUrl(), {
-            testInfo,
-            screenshotLabel: "calendar-mobile-agenda",
-          });
+          await gotoAndWaitForReady(page, fixture.academicUrl());
 
           const agenda = page.getByTestId("calendar-agenda");
           await expect(agenda).toBeVisible();
@@ -362,7 +326,6 @@ test.describe("仪表盘日历", () => {
           }
           await page.getByRole("radio", { name: /^(This week|本周)$/ }).click();
           await expect(agenda.locator("section")).toHaveCount(7);
-          await captureStepScreenshot(page, testInfo, "calendar/mobile-agenda");
           await page.setViewportSize({ width: 1280, height: 900 });
           await expect(
             page.getByTestId("workspace-calendar-grid"),

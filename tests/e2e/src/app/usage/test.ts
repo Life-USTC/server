@@ -1,7 +1,6 @@
 import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/public-worker";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 for (const routePath of [
@@ -10,9 +9,9 @@ for (const routePath of [
   "/usage/mcp",
   "/usage/cli",
 ]) {
-  test(`${routePath} page contract`, async ({ page, publicFlow }, testInfo) => {
+  test(`${routePath} page contract`, async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
-      await assertPageContract(page, { routePath, testInfo });
+      await assertPageContract(page, { routePath });
     });
   });
 }
@@ -20,12 +19,9 @@ for (const routePath of [
 test("usage pages expose their primary handoff", async ({
   page,
   publicFlow,
-}, testInfo) => {
+}) => {
   await publicFlow.run(async () => {
-    await gotoAndWaitForReady(page, "/usage/mobile", {
-      testInfo,
-      screenshotLabel: "usage-mobile",
-    });
+    await gotoAndWaitForReady(page, "/usage/mobile");
     await expect(
       page.getByRole("link", { name: /App Store|下载/i }),
     ).toBeVisible();
@@ -33,7 +29,7 @@ test("usage pages expose their primary handoff", async ({
       page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
     ).toBeVisible();
 
-    await gotoAndWaitForReady(page, "/usage/bot", { testInfo });
+    await gotoAndWaitForReady(page, "/usage/bot");
     const prestoPrimaryAction = page.getByRole("link", {
       name: /联系 Presto|Message Presto/i,
     });
@@ -87,7 +83,7 @@ test("usage pages expose their primary handoff", async ({
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
-    await gotoAndWaitForReady(page, "/usage/mcp", { testInfo });
+    await gotoAndWaitForReady(page, "/usage/mcp");
     const mcpEndpointButton = page
       .getByRole("button", { name: /复制 MCP 端点|Copy MCP endpoint/i })
       .first();
@@ -192,7 +188,7 @@ test("usage pages expose their primary handoff", async ({
       ),
     ).toBeVisible();
 
-    await gotoAndWaitForReady(page, "/usage/cli", { testInfo });
+    await gotoAndWaitForReady(page, "/usage/cli");
     await expect(
       page.getByRole("link", { name: /在 GitHub 查看|View on GitHub/i }),
     ).toHaveAttribute("href", "https://github.com/Life-USTC/CLI");
@@ -208,7 +204,5 @@ test("usage pages expose their primary handoff", async ({
       page.getByText(/MATH1004.*线性代数\(A1\)/).first(),
     ).toBeVisible();
     await expect(page.getByText(/07:30 → 07:40/).first()).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "usage-cli");
   });
 });

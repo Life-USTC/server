@@ -2,7 +2,6 @@ import { expect } from "@playwright/test";
 import { discussion, test } from "../../../../utils/community-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test as publicTest } from "../../../../utils/public-worker";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -11,7 +10,7 @@ test("/community/comments/[id] 页面契约", async ({
   page,
   comment,
   community,
-}, testInfo) => {
+}) => {
   await communityFlow.run(async () => {
     const response = await gotoAndWaitForReady(
       page,
@@ -21,8 +20,6 @@ test("/community/comments/[id] 页面契约", async ({
         expectMeaningfulContent: true,
         expectNoHorizontalOverflow: true,
         uiQuality: {},
-        testInfo,
-        screenshotLabel: "comments-id",
       },
     );
     expect(response?.ok()).toBe(true);
@@ -39,7 +36,7 @@ test("/community/comments/[id] 页面契约", async ({
 
 publicTest(
   "/community/comments/[id] 无效参数返回 404",
-  async ({ publicFlow, page }, testInfo) => {
+  async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -47,7 +44,6 @@ publicTest(
         { expectMainContent: false },
       );
       await expect(page.locator("h1")).toHaveText("404");
-      await captureStepScreenshot(page, testInfo, "comments-id-404");
     }, {});
   },
 );
@@ -57,7 +53,7 @@ test("/community/comments/[id] 公开评论为匿名读者重定向到目标页�
   page,
   comment,
   community,
-}, testInfo) => {
+}) => {
   await communityFlow.run(async () => {
     await page.context().clearCookies();
     await gotoAndWaitForReady(page, `/community/comments/${comment.id}`, {
@@ -70,7 +66,6 @@ test("/community/comments/[id] 公开评论为匿名读者重定向到目标页�
     await expect(page.locator(`#comment-${comment.id}`)).toContainText(
       discussion,
     );
-    await captureStepScreenshot(page, testInfo, "comments-id-redirect");
   }, {});
 });
 

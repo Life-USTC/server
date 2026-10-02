@@ -4,7 +4,6 @@ import {
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/private-calendar-fixture";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   expectMcpToolCalls,
   expectSubscriptionState,
@@ -185,7 +184,7 @@ for (const role of ["regular", "suspended admin"] as const) {
       calendarProtocolRun,
       oauthOwner,
       createCalendar,
-    }, testInfo) => {
+    }) => {
       let sectionJwId = 0;
       const writes: string[] = [];
       await calendarProtocolRun(
@@ -254,11 +253,6 @@ for (const role of ["regular", "suspended admin"] as const) {
               page.getByRole("dialog", { name: operation }),
             ).toBeHidden();
           }
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            action === "add" ? "section/subscribed" : "section/unsubscribed",
-          );
           await page.reload();
           await waitForUiSettled(page);
           await expect(

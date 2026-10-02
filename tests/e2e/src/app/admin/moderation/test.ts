@@ -5,7 +5,6 @@ import { visibleText } from "../../../../utils/locators";
 import { test } from "../../../../utils/moderation-fixture";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 function moderationTableRow(page: Page, text: string) {
   return page.locator("tbody tr:visible").filter({ hasText: text }).first();
@@ -67,22 +66,20 @@ async function openModerationDescriptionDialog(
   return dialog;
 }
 
-test("/admin/moderation 未登录重定向到登录页", async ({ page }, testInfo) => {
+test("/admin/moderation 未登录重定向到登录页", async ({ page }) => {
   await expectRequiresSignIn(page, "/admin/moderation");
-  await captureStepScreenshot(page, testInfo, "admin-moderation-unauthorized");
 });
 
 test("/admin/moderation 普通用户访问返回 403", async ({
   pageRun,
   page,
   account: _account,
-}, testInfo) => {
+}) => {
   await pageRun(
     async () => {
       await gotoAndWaitForReady(page, "/admin/moderation");
       await expect(page.getByText("403").first()).toBeVisible();
       await expect(page.getByText("Forbidden").first()).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "admin-moderation-403");
     },
     async () => {
       throw new Error("Read-only authorization case submitted a browser write");
@@ -95,7 +92,7 @@ test("/admin/moderation 管理员访问成功", async ({
   run,
   page,
   moderation: _moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -104,7 +101,6 @@ test("/admin/moderation 管理员访问成功", async ({
         await expect(page.locator("#main-content")).toBeVisible();
         await page.keyboard.press("ControlOrMeta+Shift+K");
         await expect(page.getByRole("searchbox")).toBeFocused();
-        await captureStepScreenshot(page, testInfo, "admin-moderation-home");
       },
       {},
       adminWriteChecks([]),
@@ -179,7 +175,7 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -212,12 +208,6 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
         ).toBeLessThanOrEqual(390);
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation-mobile-workspace",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -312,7 +302,7 @@ test("/admin/moderation 可更新评论状态与备注", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -364,7 +354,6 @@ test("/admin/moderation 可更新评论状态与备注", async ({
             .locator("[data-sonner-toast]")
             .filter({ hasText: /评论已更新|Comment updated/i }),
         ).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "admin-moderation-updated");
       },
       { auditActions: { admin_comment_moderate: 1 } },
       adminWriteChecks([
@@ -379,7 +368,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -405,11 +394,6 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
         ]);
         const anchor = page.locator(`#comment-${comment.id}`);
         await expect(anchor).toContainText(body);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation-navigate-target",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -422,7 +406,7 @@ test("/admin/moderation 可切换状态筛选下拉", async ({
   run,
   page,
   moderation: _moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -436,11 +420,6 @@ test("/admin/moderation 可切换状态筛选下拉", async ({
         await expect(option).toBeAttached();
         await filter.selectOption("deleted");
         await expect(filter).toHaveValue("deleted");
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation-filter-deleted",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -453,7 +432,7 @@ test("/admin/moderation 封禁列表可解除封禁", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -522,11 +501,6 @@ test("/admin/moderation 封禁列表可解除封禁", async ({
             .locator("[data-sonner-toast]")
             .filter({ hasText: /封禁已解除|Suspension lifted/i }),
         ).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation-suspended",
-        );
       },
       { auditActions: { admin_user_unsuspend: 1 } },
       adminWriteChecks([["POST", "/admin/moderation", 200]]),
@@ -539,7 +513,7 @@ test("/admin/moderation 可从评论弹窗封禁用户", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -589,12 +563,6 @@ test("/admin/moderation 可从评论弹窗封禁用户", async ({
         await expect(
           dialog.getByRole("button", { name: /^(封禁|Suspend)$/i }),
         ).toBeEnabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation-suspended-from-dialog",
-        );
-
         expect(
           await moderation.db.userSuspension.findMany({
             where: { userId: moderation.author.id },
@@ -635,7 +603,7 @@ test("admin.moderation-centralized", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -674,11 +642,6 @@ test("admin.moderation-centralized", async ({
             name: /管理课程简介|Manage Description/i,
           }),
         ).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation/description-table",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -691,7 +654,7 @@ test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", as
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -705,11 +668,6 @@ test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", as
           moderation.description.content,
           "keyboard",
         );
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation-description-keyboard-manage",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -722,7 +680,7 @@ test("/admin/moderation 可更新课程简介内容", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -793,11 +751,6 @@ test("/admin/moderation 可更新课程简介内容", async ({
           content: nextContent,
           lastEditedById: moderation.admin.id,
         });
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation-description-updated",
-        );
       },
       { auditActions: { admin_description_moderate: 1 }, catalogPurges: 1 },
       adminWriteChecks([["POST", "/admin/moderation", 200]]),
@@ -812,7 +765,7 @@ test("/admin/moderation 作业治理可访问", async ({
   run,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -841,12 +794,6 @@ test("/admin/moderation 作业治理可访问", async ({
         expect(hwBody.data).toEqual([
           expect.objectContaining({ id: moderation.homework.id }),
         ]);
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-moderation/homework-governance",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -854,7 +801,7 @@ test("/admin/moderation 作业治理可访问", async ({
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, moderation }, testInfo) => {
+test("页面契约", async ({ adminFlow, run, page, moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -866,7 +813,6 @@ test("页面契约", async ({ adminFlow, run, page, moderation }, testInfo) => {
             expectMeaningfulContent: true,
             expectNoHorizontalOverflow: true,
             uiQuality: {},
-            testInfo,
           },
         );
         expect(response?.ok()).toBe(true);
@@ -887,7 +833,7 @@ test("admin.high-risk-feedback", async ({
   homeworkDeletionRun,
   page,
   moderation,
-}, testInfo) => {
+}) => {
   await homeworkDeletionRun(async () => {
     const marker = moderation.marker;
     const homework = moderation.homework;
@@ -912,8 +858,6 @@ test("admin.high-risk-feedback", async ({
         where: { id: homework.id },
       }),
     ).toEqual(homework);
-    await captureStepScreenshot(page, testInfo, "admin-feedback-delete-cancel");
-
     await deleteButton.click();
     await expect(confirmation).toBeVisible();
     await confirmation
@@ -942,6 +886,5 @@ test("admin.high-risk-feedback", async ({
       sectionId: homework.sectionId,
       createdById: homework.createdById,
     });
-    await captureStepScreenshot(page, testInfo, "admin-feedback-deleted");
   });
 });

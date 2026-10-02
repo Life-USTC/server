@@ -8,7 +8,7 @@
  * - Layout requires authentication (`requireSignedInUserId`).
  *
  * ## UI/UX Elements
- * - Settings nav bar with semantic section links
+ * - Settings section links in the level-2 sidebar, with a control that returns home
  * - Page title and description
  * - Default tab is "profile" which shows the profile edit form
  *
@@ -19,22 +19,16 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { expectSettingsPage, test } from "../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings 设置中心", () => {
-  test("需要登录", async ({ page }, testInfo) => {
+  test("需要登录", async ({ page }) => {
     await expectRequiresSignIn(page, "/account/settings");
-    await captureStepScreenshot(page, testInfo, "settings-unauthorized");
   });
 
-  test("ui.settings-navigation-2", async ({
-    accountRun,
-    page,
-    account,
-  }, testInfo) => {
+  test("ui.settings-navigation-2", async ({ accountRun, page, account }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings");
 
@@ -44,7 +38,6 @@ test.describe("/account/settings 设置中心", () => {
         account.username ?? "",
       );
       await expect(page.locator("footer")).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "settings-default-profile");
     });
   });
 
@@ -52,129 +45,71 @@ test.describe("/account/settings 设置中心", () => {
     accountRun,
     page,
     account: _account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
-      await page.setViewportSize({ width: 390, height: 844 });
-      await gotoAndWaitForReady(page, "/account/settings");
-
-      const navigation = page.getByTestId("detail-section-nav");
-      const scrollViewport = navigation.locator('[data-sidebar="content"]');
-      const activePanel = page.locator("[data-settings-active-panel]");
-      const profileLink = navigation.getByRole("link", {
-        name: /个人资料|Profile/i,
-      });
-
-      await expect(profileLink).toHaveAttribute("aria-current", "page");
-      await expect
-        .poll(() =>
-          Promise.all([
-            navigation.getAttribute("data-overflow-left"),
-            navigation.getAttribute("data-overflow-right"),
-          ]),
-        )
-        .toEqual(["false", "true"]);
-      const mobileNavigationBox = await scrollViewport.boundingBox();
-      const mobilePanelBox = await activePanel.boundingBox();
-      expect(mobileNavigationBox?.height).toBeLessThan(80);
-      expect(mobilePanelBox?.y).toBeLessThan(844);
-      await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
-
       await page.setViewportSize({ width: 1280, height: 900 });
       await gotoAndWaitForReady(page, "/account/settings");
-      const desktopNavigationBox = await navigation.boundingBox();
-      const desktopPanelBox = await activePanel.boundingBox();
-      expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
-      expect(desktopNavigationBox?.width).toBe(224);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-responsive-desktop",
-      );
+
+      const sidebar = page.getByTestId("settings-sidebar");
+      const back = page.getByTestId("settings-sidebar-back");
+      const activePanel = page.locator("[data-settings-active-panel]");
+      await expect(
+        sidebar.getByRole("link", { name: /个人资料|Profile/i }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(back).toHaveAttribute("href", "/");
+      await expect(
+        sidebar.getByRole("link", { name: /^(今天|Today)$/i }),
+      ).toHaveCount(0);
+      await expect(page.getByTestId("detail-section-nav")).toHaveCount(0);
+      const sidebarBox = await sidebar.boundingBox();
+      const panelBox = await activePanel.boundingBox();
+      expect(sidebarBox?.x).toBeLessThan(panelBox?.x ?? 0);
+      await back.click();
+      await page.waitForURL(/\/(?:workspace\/overview)?(?:\?.*)?$/);
+      await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
+      await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);
+      await expect(
+        page
+          .getByTestId("app-sidebar")
+          .getByRole("link", { name: /^(今天|Today)$/i }),
+      ).toBeVisible();
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(page, "/account/settings/danger");
+      await page.locator('[data-slot="sidebar-trigger"]').click();
+      const mobileSidebar = page.getByTestId("settings-sidebar");
+      await expect(mobileSidebar).toBeVisible();
+      await expect(page.getByTestId("settings-sidebar-back")).toBeVisible();
+      await expect(
+        mobileSidebar.getByRole("link", { name: /危险操作|Danger zone/i }),
+      ).toHaveAttribute("aria-current", "page");
     });
   });
 
   test("ui.settings-navigation-6", async ({
     accountRun,
+    isolatedWorker,
     page,
     account: _account,
   }) => {
-    await accountRun(
-      { writes: [["/api/account/preferences", 200]], audits: [] },
-      async () => {
-        const localeResponse = await page.request.post(
-          "/api/account/preferences",
-          {
-            data: { locale: "zh-cn" },
-          },
-        );
-        expect(localeResponse.status()).toBe(200);
-        await page.setViewportSize({ width: 375, height: 900 });
-        await gotoAndWaitForReady(page, "/account/settings/danger");
-
-        const navigation = page.getByTestId("detail-section-nav");
-        const scrollViewport = navigation.locator('[data-sidebar="content"]');
-        const activeLink = navigation.locator('a[aria-current="page"]');
-
-        for (const width of [280, 320, 375]) {
-          await page.setViewportSize({ width, height: 900 });
-          await gotoAndWaitForReady(page, "/account/settings/danger");
-          await expect(activeLink).toHaveCount(1);
-          await expect(activeLink).toBeVisible();
-          await expect
-            .poll(() =>
-              scrollViewport.evaluate((nav) => {
-                const link = nav.querySelector<HTMLElement>(
-                  'a[aria-current="page"]',
-                );
-                const wrapper = nav.parentElement;
-                if (!link || !wrapper) return null;
-                const linkBox = link.getBoundingClientRect();
-                const navBox = nav.getBoundingClientRect();
-                const wrapperBox = wrapper.getBoundingClientRect();
-                const leftFade = getComputedStyle(wrapper, "::before");
-                const rightFade = getComputedStyle(wrapper, "::after");
-                const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
-                return {
-                  activeClearOfLeftFade:
-                    linkBox.left >= wrapperBox.left + leftFadeWidth - 1,
-                  activeWithinNavigation:
-                    linkBox.left >= navBox.left - 1 &&
-                    linkBox.right <= navBox.right + 1,
-                  documentFitsViewport:
-                    document.documentElement.scrollWidth <=
-                    document.documentElement.clientWidth,
-                  navigationScrollable: nav.scrollWidth > nav.clientWidth,
-                  navigationScrolled: nav.scrollLeft > 0,
-                  leftFadeVisible:
-                    wrapper.dataset.overflowLeft === "true" &&
-                    leftFade.backgroundImage !== "none",
-                  rightFadeHidden:
-                    wrapper.dataset.overflowRight === "false" &&
-                    rightFade.backgroundImage === "none",
-                  windowScrollX: window.scrollX,
-                };
-              }),
-            )
-            .toEqual({
-              activeClearOfLeftFade: true,
-              activeWithinNavigation: true,
-              documentFitsViewport: true,
-              navigationScrollable: true,
-              navigationScrolled: true,
-              leftFadeVisible: true,
-              rightFadeHidden: true,
-              windowScrollX: 0,
-            });
-        }
-      },
-    );
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
+      await page.setViewportSize({ width: 375, height: 900 });
+      await gotoAndWaitForReady(page, "/account/settings/danger");
+      await page.locator('[data-slot="sidebar-trigger"]').click();
+      const sidebar = page.getByTestId("settings-sidebar");
+      const activeLink = sidebar.locator('a[aria-current="page"]');
+      await expect(activeLink).toHaveCount(1);
+      await expect(activeLink).toBeVisible();
+      await expect(page.getByTestId("detail-section-nav")).toHaveCount(0);
+    });
   });
 
-  test("标签导航切换分区", async ({
-    accountRun,
-    page,
-    account: _account,
-  }, testInfo) => {
+  test("标签导航切换分区", async ({ accountRun, page, account: _account }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings");
 
@@ -186,8 +121,6 @@ test.describe("/account/settings 设置中心", () => {
       await accountsTab.click();
       await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
       await expect(page.getByText("GitHub").first()).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
-
       // Navigate to danger tab
       const dangerTab = page.getByRole("link", {
         name: /危险操作|Danger zone/i,
@@ -202,8 +135,6 @@ test.describe("/account/settings 设置中心", () => {
         page.getByRole("heading", { name: /删除账户|Delete Account/i }),
       ).toBeVisible();
       await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-danger-tab");
-
       // Navigate back to profile tab
       const profileTab = page.getByRole("link", {
         name: /个人资料|Profile/i,
@@ -212,7 +143,6 @@ test.describe("/account/settings 设置中心", () => {
       await profileTab.click();
       await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
       await expect(page.locator("input#name")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-profile-tab");
     });
   });
 
@@ -220,7 +150,7 @@ test.describe("/account/settings 设置中心", () => {
     accountRun,
     page,
     account: _account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings/accounts");
       await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
@@ -233,14 +163,13 @@ test.describe("/account/settings 设置中心", () => {
 
       await gotoAndWaitForReady(page, "/account/settings/profile");
       await expect(page.locator("input#name")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-path-profile");
     });
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }, testInfo) => {
+test("页面契约", async ({ accountRun, page, account: _account }) => {
   await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings", testInfo);
+    await expectSettingsPage(page, "/account/settings");
     for (const name of [
       /个人资料|Profile/i,
       /账号关联|Accounts/i,

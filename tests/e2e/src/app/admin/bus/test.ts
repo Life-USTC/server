@@ -7,22 +7,20 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { test } from "./_fixture";
 
 test.describe.configure({ mode: "parallel" });
 test.use({ locale: "en-US" });
 
-test("/admin/bus 未登录重定向到登录页", async ({ page }, testInfo) => {
+test("/admin/bus 未登录重定向到登录页", async ({ page }) => {
   await expectRequiresSignIn(page, "/admin/bus");
-  await captureStepScreenshot(page, testInfo, "admin-bus/unauthorized");
 });
 
 test("/admin/bus 普通用户访问返回 403", async ({
   pageRun,
   page,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await pageRun(
     async () => {
       const ordinary = await isolatedWorker.createActor();
@@ -31,7 +29,6 @@ test("/admin/bus 普通用户访问返回 403", async ({
       expect(response?.status()).toBe(403);
       await expect(page.getByText("403").first()).toBeVisible();
       await expect(page.getByText("Forbidden").first()).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "admin-bus/403");
     },
     async () => {
       throw new Error("Read-only authorization case submitted a browser write");
@@ -45,7 +42,7 @@ test("/admin/bus 显示所有必需的版本字段", async ({
   page,
   admin,
   busState,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -64,7 +61,6 @@ test("/admin/bus 显示所有必需的版本字段", async ({
           "Jan 1, 2026, 8:00 AM",
         );
         await expect(row.getByRole("cell").nth(5)).toHaveText(/Active|启用/i);
-        await captureStepScreenshot(page, testInfo, "admin-bus/version-fields");
       },
       {},
       adminWriteChecks([]),
@@ -78,7 +74,7 @@ test("/admin/bus 版本表格包含班次数量", async ({
   page,
   admin,
   busState,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -90,7 +86,6 @@ test("/admin/bus 版本表格包含班次数量", async ({
             .filter({ hasText: version.key });
           await expect(row.getByRole("cell").nth(2)).toHaveText("2");
         }
-        await captureStepScreenshot(page, testInfo, "admin-bus/trip-count");
       },
       {},
       adminWriteChecks([]),
@@ -104,7 +99,7 @@ test("/admin/bus 主导航入口可见且可跳转", async ({
   page,
   admin,
   busState,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -118,11 +113,6 @@ test("/admin/bus 主导航入口可见且可跳转", async ({
         await link.click();
         await expect(page).toHaveURL(/\/admin\/bus$/);
         await waitForUiSettled(page);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-bus/navigate-from-sidebar",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -137,7 +127,7 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
   admin,
   busState,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -157,7 +147,6 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
           name: /从 Static 导入|Import from Static/i,
         });
         await expect(dialog).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "admin-bus/import-dialog");
         await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
         await expect(dialog).toBeHidden();
         expect(
@@ -273,7 +262,7 @@ test("/admin/bus 移动端首条版本操作可达", async ({
   page,
   admin,
   busState,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -300,11 +289,6 @@ test("/admin/bus 移动端首条版本操作可达", async ({
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
         ).toBeLessThanOrEqual(390);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-bus/mobile-workspace",
-        );
         await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
         await expect(dialog).toBeHidden();
       },
@@ -314,20 +298,13 @@ test("/admin/bus 移动端首条版本操作可达", async ({
   );
 });
 
-test("页面契约", async ({
-  adminFlow,
-  run,
-  page,
-  admin,
-  busState,
-}, testInfo) => {
+test("页面契约", async ({ adminFlow, run, page, admin, busState }) => {
   await run(() =>
     adminFlow.run(
       async () => {
         void admin;
         void busState;
         const response = await gotoAndWaitForReady(page, "/admin/bus", {
-          testInfo,
           browserHealth: {},
           expectMeaningfulContent: true,
           expectNoHorizontalOverflow: true,
@@ -341,7 +318,6 @@ test("页面契约", async ({
         await expect(
           page.getByRole("button", { name: /导入|Import/i }),
         ).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "admin-bus/contract");
       },
       {},
       adminWriteChecks([]),

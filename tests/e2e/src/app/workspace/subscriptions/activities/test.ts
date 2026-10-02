@@ -16,7 +16,7 @@ test("活动、主办方订阅和提醒入口可用", async ({
   activity,
   activityConsumer,
   activityRun,
-}, testInfo) => {
+}) => {
   await activityRun(async () => {
     const response = await gotoAndWaitForReady(
       page,
@@ -26,7 +26,6 @@ test("活动、主办方订阅和提醒入口可用", async ({
         expectMeaningfulContent: true,
         expectNoHorizontalOverflow: true,
         uiQuality: {},
-        testInfo,
       },
     );
     expect(response?.ok()).toBe(true);

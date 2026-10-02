@@ -10,7 +10,6 @@ import {
   expectPublicIdentityEffectsEmpty,
   publicIdentityState,
 } from "../../../utils/public-identity-state";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 
 const metadataSelectors = {
   canonical: 'link[rel="canonical"]',
@@ -537,13 +536,11 @@ test("分享元数据不改变首页与课程详情可见布局", async ({
   page,
   preferenceFlow,
   detailCatalog: _detailCatalog,
-}, testInfo) => {
+}) => {
   await preferenceFlow.run(async () => {
     await setLocale(page, preferenceFlow, "en-us");
     await gotoAndWaitForReady(page, "/");
     await expect(page.getByRole("main")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "social-metadata/home-desktop");
-
     await page.setViewportSize({ width: 390, height: 844 });
     await setLocale(page, preferenceFlow, "zh-cn");
     await gotoAndWaitForReady(page, `/catalog/courses/${DEV_SEED.course.jwId}`);
@@ -553,10 +550,5 @@ test("分享元数据不改变首页与课程详情可见布局", async ({
         name: DEV_SEED.course.nameCn,
       }),
     ).toBeVisible();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "social-metadata/course-mobile",
-    );
   });
 });

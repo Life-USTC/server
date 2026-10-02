@@ -4,7 +4,6 @@ import {
   test,
 } from "../../../../utils/calendar-presentation-fixture";
 import { assertPriorityView } from "../../../../utils/property-priority";
-import { isStepScreenshotCaptureEnabled } from "../../../../utils/screenshot";
 
 async function signIn(page: Page, fixture: CalendarFixture) {
   await page.context().clearCookies();
@@ -57,7 +56,7 @@ test("overview.workspace-card-priority", async ({
   calendar: fixture,
   calendarDb,
   calendarRun,
-}, testInfo) => {
+}) => {
   // Fixed visible values make the four focus-card captures comparable while
   // users, records and resources still belong to this test's private fixture.
   const [course, homework] = await calendarDb((db) =>
@@ -178,12 +177,6 @@ test("overview.workspace-card-priority", async ({
           for (const relationship of relationships) {
             expect(relationship.above, relationship.pair).toBe(true);
             expect(relationship.domOrder, relationship.pair).toBe(true);
-          }
-          if (isStepScreenshotCaptureEnabled()) {
-            await testInfo.attach(`overview-focus-${width}-${time}`, {
-              body: await focus.screenshot(),
-              contentType: "image/png",
-            });
           }
           await action.click();
           await expect(page).toHaveURL(

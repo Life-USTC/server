@@ -45,7 +45,6 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
@@ -57,16 +56,15 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/courses/[jwId]",
-        testInfo,
       });
     });
   });
 
-  test("无效参数返回 404", async ({ page, preferenceFlow }, testInfo) => {
+  test("无效参数返回 404", async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/courses/999999999", {
         expectMainContent: false,
@@ -75,7 +73,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(
         page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
       ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "course/404");
     });
   });
 
@@ -85,7 +82,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
 
@@ -98,8 +95,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       // The public code belongs to the title region, separate from section codes.
       const courseCode = page.getByTestId("course-public-code");
       await expect(courseCode).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "course/heading-and-code");
     });
   });
 
@@ -107,7 +102,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
 
@@ -135,8 +130,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           .filter({ visible: true })
           .first(),
       ).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "course/basic-info");
     });
   });
 
@@ -146,7 +139,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, COURSE_URL);
 
@@ -161,7 +154,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await gotoAndWaitForReady(page, `${COURSE_URL}#comments`);
       await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
       await expect(page.locator("#comments")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "course/detail-nav");
     });
   });
 
@@ -169,7 +161,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, COURSE_URL);
@@ -191,8 +183,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
       await gotoAndWaitForReady(page, `${COURSE_URL}#comments`);
       await expect(page.locator("#comments")).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "course/detail-mobile");
     });
   });
 
@@ -203,7 +193,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     preferenceFlow,
     detailCatalog: _detailCatalog,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction(arrangeCourseIntroduction),
     );
@@ -223,13 +213,12 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(page).toHaveURL(new RegExp(`${COURSE_URL}$`));
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
       await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "course/same-route-reset");
     });
   });
 
   communityTest(
     "登录用户可以编辑课程简介",
-    async ({ page, account, community, communityFlow }, testInfo) => {
+    async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
           const description = await arrangeDescription(
@@ -299,11 +288,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           await expect(
             historyPanel.getByText(/更新后|Updated/i).first(),
           ).toBeVisible();
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "course/description-updated",
-          );
           const persisted = await storedDescription(
             community.db,
             description.id,
@@ -345,7 +329,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   communityTest(
     "登录用户发布的评论绑定到课程目标",
-    async ({ page, account, community, communityFlow }, testInfo) => {
+    async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
           await gotoAndWaitForReady(
@@ -397,7 +381,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           await expect(
             commentCard.getByText(account.name).first(),
           ).toBeVisible();
-          await captureStepScreenshot(page, testInfo, "course/comment-posted");
         },
         { auditActions: { comment_create: 1 } },
       );
@@ -435,11 +418,10 @@ test("页面契约", async ({
   page,
   preferenceFlow,
   detailCatalog: _detailCatalog,
-}, testInfo) => {
+}) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
       routePath: "/catalog/courses/[jwId]/[section]",
-      testInfo,
     });
   });
 });

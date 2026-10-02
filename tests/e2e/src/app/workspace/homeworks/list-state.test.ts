@@ -1,22 +1,14 @@
 import { expect, type Locator } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("桌面端默认显示作业列表", async ({
-    page,
-    homeworks,
-    homeworkRun,
-  }, testInfo) => {
+  test("桌面端默认显示作业列表", async ({ page, homeworks, homeworkRun }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         await page
           .getByRole("radio", { name: /全部|All/i })
@@ -35,8 +27,6 @@ test.describe("仪表盘作业", () => {
         await expect(
           page.getByRole("row").filter({ hasText: homeworks[0].title }).first(),
         ).toBeVisible();
-
-        await captureStepScreenshot(page, testInfo, "homeworks/list-view");
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -51,7 +41,7 @@ test.describe("仪表盘作业", () => {
         homeworkRun,
         storedHomeworkCompletion,
         academicDb,
-      }, testInfo) => {
+      }) => {
         await homeworkRun(
           async () => {
             const reminder = /已逾期|还剩|Overdue by|left/i;
@@ -154,11 +144,6 @@ test.describe("仪表盘作业", () => {
 
             await expect(locators(surface, false).due_at).toHaveText(
               dueText ?? "",
-            );
-            await captureStepScreenshot(
-              page,
-              testInfo,
-              `homeworks/completed-deadline-${mobile}-${overdue}`,
             );
             {
               await surface

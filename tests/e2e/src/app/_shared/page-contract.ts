@@ -1,4 +1,4 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
@@ -10,13 +10,11 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { resolveSeedTeacherId } from "../../../utils/seed-lookups";
 import type { UiQualityAllowlist } from "../../../utils/ui-quality";
 
 type PageContractCase = {
   routePath: string;
-  testInfo?: TestInfo;
 };
 
 const API_REFERENCE_UI_QUALITY_EXCEPTIONS = {
@@ -74,30 +72,13 @@ function getContractWaitUntil(routePath: string) {
   return "domcontentloaded" as const;
 }
 
-async function maybeCapture(
-  page: Page,
-  testInfo: TestInfo | undefined,
-  name: string,
-) {
-  if (!testInfo) {
-    return;
-  }
-  await captureStepScreenshot(page, testInfo, name);
-}
-
-async function gotoContractPage(
-  page: Page,
-  path: string,
-  testInfo: TestInfo | undefined,
-) {
+async function gotoContractPage(page: Page, path: string) {
   const response = await gotoAndWaitForReady(page, path, {
     browserHealth: {},
     expectMeaningfulContent: true,
     expectNoHorizontalOverflow: true,
     uiQuality: getContractUiQuality(path),
     waitUntil: getContractWaitUntil(path),
-    testInfo,
-    screenshotLabel: "contract",
   });
 
   if (response) {
@@ -116,22 +97,21 @@ async function expectMainContent(page: Page) {
 
 export async function assertPageContract(
   page: Page,
-  { routePath, testInfo }: PageContractCase,
+  { routePath }: PageContractCase,
 ) {
   if (routePath === "/workspace/uploads") {
-    await gotoContractPage(page, routePath, testInfo);
+    await gotoContractPage(page, routePath);
     await expectMainContent(page);
     await expect(
       page.getByRole("heading", { name: /我的上传|My Uploads/i }),
     ).toBeVisible();
-    await maybeCapture(page, testInfo, "workspace-uploads");
     return;
   }
   if (routePath.startsWith("/account/settings/")) {
     if (routePath === "/account/settings") {
       // handled explicitly below for explicitness
     } else {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       const expectedTab = routePath.split("/").pop();
       const tabMarker =
@@ -161,7 +141,7 @@ export async function assertPageContract(
   }
 
   if (routePath === "/workspace/subscriptions/sections") {
-    await gotoContractPage(page, routePath, testInfo);
+    await gotoContractPage(page, routePath);
     await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
     await expectMainContent(page);
     return;
@@ -172,7 +152,7 @@ export async function assertPageContract(
     routePath.startsWith("/workspace/") ||
     routePath === "/workspace"
   ) {
-    await gotoContractPage(page, routePath, testInfo);
+    await gotoContractPage(page, routePath);
     await expectMainContent(page);
     await expandWorkspaceSidebarGroup(page);
     await expect(sidebarNavigationLink(page, /^(今天|Today)$/i)).toBeVisible({
@@ -183,7 +163,7 @@ export async function assertPageContract(
 
   switch (routePath) {
     case "/admin": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
       await expectMainContent(page);
       await expect(
@@ -198,12 +178,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-entry");
       return;
     }
 
     case "/admin/bus": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { name: /校车管理|Bus Management/i }),
@@ -211,12 +190,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("button", { name: /导入|Import/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-bus");
       return;
     }
 
     case "/admin/moderation": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { name: /内容审核|Moderation/i }),
@@ -224,12 +202,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /评论|Comments/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-moderation");
       return;
     }
 
     case "/admin/oauth": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { name: /OAuth|OAuth 客户端/i }),
@@ -238,12 +215,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("button", { name: /创建客户端|Create Client/i }).first(),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-oauth");
       return;
     }
 
     case "/admin/users": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", {
@@ -253,7 +229,6 @@ export async function assertPageContract(
       await expect(
         page.locator("table, [role='table'], [data-slot='table']"),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-users");
       return;
     }
 
@@ -261,7 +236,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/sections/${DEV_SEED.section.jwId}`,
-        testInfo,
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
@@ -270,16 +244,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { name: /日历|Calendar/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "sections-jwId");
       return;
     }
 
     case "/catalog/courses/[jwId]": {
-      await gotoContractPage(
-        page,
-        `/catalog/courses/${DEV_SEED.course.jwId}`,
-        testInfo,
-      );
+      await gotoContractPage(page, `/catalog/courses/${DEV_SEED.course.jwId}`);
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
@@ -287,7 +256,6 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "courses-jwId");
       return;
     }
 
@@ -295,7 +263,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/teachers/${await resolveSeedTeacherId(page)}`,
-        testInfo,
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
@@ -303,7 +270,6 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "teachers-id");
       return;
     }
 
@@ -311,37 +277,33 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/community/users/${DEV_SEED.adminUsername}`,
-        testInfo,
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.adminName)).toBeVisible();
       await expect(
         visibleText(page, `@${DEV_SEED.adminUsername}`),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "u-username");
       return;
     }
 
     case "/community/comments/guide": {
-      await gotoContractPage(page, "/guides/markdown-support", testInfo);
+      await gotoContractPage(page, "/guides/markdown-support");
       await expect(page.locator("#main-content")).toBeVisible();
       await expect(page.locator("pre").first()).toBeVisible();
       await expect(page.locator("table").first()).toBeVisible();
-      await maybeCapture(page, testInfo, "comments-guide");
       return;
     }
 
     case "/account/sign-in": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /GitHub/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /Google/i })).toBeVisible();
-      await maybeCapture(page, testInfo, "signin");
       return;
     }
 
     case "/catalog/bus": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { level: 1, name: /校车|Shuttle Bus/i }),
@@ -353,12 +315,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("button", { name: /Reverse|反向/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "bus");
       return;
     }
 
     case "/catalog/rooms": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", {
@@ -371,7 +332,7 @@ export async function assertPageContract(
     }
 
     case "/catalog/weather": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { level: 1, name: /天气|Weather/i }),
@@ -385,7 +346,6 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { level: 2, name: /高新校区|Gaoxin campus/ }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "weather");
       return;
     }
 
@@ -393,7 +353,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
-        testInfo,
       );
       await expectMainContent(page);
       await expect(
@@ -403,7 +362,6 @@ export async function assertPageContract(
         }),
       ).toBeVisible();
       await expect(visibleText(page, DEV_SEED.youngEvent.name)).toBeVisible();
-      await maybeCapture(page, testInfo, "young-events");
       return;
     }
 
@@ -411,7 +369,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
-        testInfo,
       );
       await expectMainContent(page);
       await expect(
@@ -426,7 +383,6 @@ export async function assertPageContract(
           .getByTestId("young-event-banner")
           .getByText(DEV_SEED.youngEvent.activityLevel),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "young-events-youngId");
       return;
     }
 
@@ -434,7 +390,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         "/catalog/young-events/calendar?view=month&date=2026-05-10",
-        testInfo,
       );
       await expectMainContent(page);
       await expect(
@@ -444,22 +399,16 @@ export async function assertPageContract(
         }),
       ).toBeVisible();
       await expect(page.getByTestId("young-calendar")).toBeVisible();
-      await maybeCapture(page, testInfo, "young-events-calendar");
       return;
     }
 
     case "/catalog/young-events/organizers": {
-      await gotoContractPage(
-        page,
-        "/catalog/young-events/organizers",
-        testInfo,
-      );
+      await gotoContractPage(page, "/catalog/young-events/organizers");
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { level: 1, name: /主办方|Organizers/i }),
       ).toBeVisible();
       await expect(page.getByRole("searchbox")).toBeVisible();
-      await maybeCapture(page, testInfo, "young-events-organizers");
       return;
     }
 
@@ -467,7 +416,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         "/catalog/young-events/organizers/dev-scenario-young-organizer",
-        testInfo,
       );
       await expectMainContent(page);
       await expect(
@@ -476,23 +424,21 @@ export async function assertPageContract(
           name: /学生会|Students'? Union/i,
         }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "young-events-organizer-detail");
       return;
     }
 
     case "/catalog/bus/map": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(page.locator("svg").first()).toBeVisible();
       await expect(
         page.getByRole("button", { name: /Refresh|刷新/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "bus-map");
       return;
     }
 
     case "/catalog/links": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("searchbox", {
@@ -502,23 +448,21 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /教务系统|Academic Affairs/i }).first(),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "links");
       return;
     }
 
     case "/search": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { name: /搜索|Search/i }),
       ).toBeVisible();
       await expect(page.getByRole("combobox")).toBeVisible();
-      await maybeCapture(page, testInfo, "search");
       return;
     }
 
     case "/news": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { level: 1, name: /新闻|News/i }),
@@ -533,7 +477,6 @@ export async function assertPageContract(
         name: /更多筛选|More filters/i,
       });
       await expect(advancedFilters).toHaveAttribute("aria-expanded", "false");
-      await maybeCapture(page, testInfo, "news");
       await advancedFilters.click();
       await expect(
         page.getByRole("dialog", { name: /更多筛选|More filters/i }),
@@ -553,7 +496,7 @@ export async function assertPageContract(
     }
 
     case "/news/sources": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", {
@@ -566,12 +509,11 @@ export async function assertPageContract(
           name: /返回新闻与通知|Back to news and notices/i,
         }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "news-sources");
       return;
     }
 
     case "/news/[id]": {
-      await gotoContractPage(page, "/news", testInfo);
+      await gotoContractPage(page, "/news");
       const detailLink = page
         .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
         .getByRole("heading")
@@ -582,17 +524,15 @@ export async function assertPageContract(
       await expect(page).toHaveURL(/\/news\/[^/?]+(?:\?.*)?$/);
       await expectMainContent(page);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await maybeCapture(page, testInfo, "news-detail");
       return;
     }
 
     case "/api/docs": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expect(page).toHaveURL(
         /\/api\/docs\/tag\/catalog-section(?:\?.*)?$/,
       );
       await expectMainContent(page);
-      await maybeCapture(page, testInfo, "api-docs-redirect");
       return;
     }
 
@@ -600,7 +540,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
-        testInfo,
       );
       await expect(page).toHaveURL(
         new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}#introduction$`),
@@ -613,7 +552,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/sections/${DEV_SEED.section.jwId}/introduction`,
-        testInfo,
       );
       await expect(page).toHaveURL(
         new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#introduction$`),
@@ -627,7 +565,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/teachers/${teacherId}/introduction`,
-        testInfo,
       );
       await expect(page).toHaveURL(
         new RegExp(`/catalog/teachers/${teacherId}#introduction$`),
@@ -640,7 +577,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
-        testInfo,
       );
       await expectMainContent(page);
       // section-list.display.fields: code, course.namePrimary, campus.namePrimary
@@ -659,7 +595,6 @@ export async function assertPageContract(
           .filter({ visible: true })
           .first(),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "sections");
       return;
     }
 
@@ -667,7 +602,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
-        testInfo,
       );
       await expectMainContent(page);
       // teacher-list.display.fields: namePrimary, department, title, email, _count.sections
@@ -685,7 +619,6 @@ export async function assertPageContract(
           .filter({ visible: true })
           .first(),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "teachers");
       return;
     }
 
@@ -693,25 +626,22 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-        testInfo,
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
-      await maybeCapture(page, testInfo, "courses");
       return;
     }
 
     case "/guides/markdown-support": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await waitForUiSettled(page);
       await expect(page.locator("pre").first()).toBeVisible();
       await expect(page.locator("table").first()).toBeVisible();
-      await maybeCapture(page, testInfo, "guides-markdown-support");
       return;
     }
 
     case "/usage/mobile": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("link", { name: /App Store|下载/i }),
@@ -719,22 +649,20 @@ export async function assertPageContract(
       await expect(
         page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "mobile-app");
       return;
     }
 
     case "/usage/bot": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { name: /Presto/i, level: 1 }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "usage-bot");
       return;
     }
 
     case "/usage/mcp": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page
@@ -754,12 +682,11 @@ export async function assertPageContract(
       await expect(
         page.locator('img[src="/images/usage/mcp-use-case.png"]').first(),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "usage-mcp");
       return;
     }
 
     case "/usage/cli": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("link", { name: /在 GitHub 查看|View on GitHub/i }),
@@ -774,42 +701,38 @@ export async function assertPageContract(
           /life-ustc catalog course -s "线性代数" --no-interactive --limit 3/,
         ),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "usage-cli");
       return;
     }
 
     case "/oauth/authorize": {
       // Bare authorize URL (no client_id / PKCE) redirects to sign-in.
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { name: /登录|Sign In/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "oauth-authorize");
       return;
     }
 
     case "/oauth/device": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.locator('input#code, input[type="text"][name="code"]').first(),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "oauth-device");
       return;
     }
 
     case "/privacy": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expect(page.locator("h1")).toBeVisible();
       await expect(page.locator("h2").first()).toBeVisible();
       await expect(page.locator("li").first()).toBeVisible();
-      await maybeCapture(page, testInfo, "privacy");
       return;
     }
 
     case "/account/settings": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", { name: /设置|Settings/i }),
@@ -823,27 +746,24 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /危险区|Danger/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "settings");
       return;
     }
 
     case "/terms": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expect(page.locator("h1")).toBeVisible();
       await expect(page.locator("h2").first()).toBeVisible();
       await expect(page.locator("li").first()).toBeVisible();
-      await maybeCapture(page, testInfo, "terms");
       return;
     }
 
     case "/account/welcome": {
       await expectRequiresSignIn(page, routePath);
-      await maybeCapture(page, testInfo, "welcome");
       return;
     }
 
     case "/": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", {
@@ -857,21 +777,19 @@ export async function assertPageContract(
           .getByRole("link", { name: /^(课程|Courses)$/i }),
       ).toBeVisible();
       await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
-      await maybeCapture(page, testInfo, "home");
       return;
     }
 
     case "/api/docs/tag/catalog-section": {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
       await waitForUiSettled(page);
       await expect(page.locator("#api-reference")).toBeVisible();
-      await maybeCapture(page, testInfo, "api-docs");
       return;
     }
 
     case "/error": {
-      await gotoContractPage(page, "/error?error=consent_failed", testInfo);
+      await gotoContractPage(page, "/error?error=consent_failed");
       await expectMainContent(page);
       await expect(
         page.getByRole("heading", {
@@ -888,7 +806,6 @@ export async function assertPageContract(
       await gotoContractPage(
         page,
         "/e2e/oauth/callback?code=e2e-test-code&state=e2e-test-state",
-        testInfo,
       );
       await expectMainContent(page);
       await expect(
@@ -901,7 +818,7 @@ export async function assertPageContract(
     }
 
     default: {
-      await gotoContractPage(page, routePath, testInfo);
+      await gotoContractPage(page, routePath);
       await expectMainContent(page);
     }
   }

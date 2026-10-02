@@ -22,7 +22,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/academic-events";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘考试", () => {
   test.describe.configure({ mode: "parallel" });
@@ -31,13 +30,10 @@ test.describe("仪表盘考试", () => {
     page,
     pastExam: _pastExam,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/exams", {
-          testInfo,
-          screenshotLabel: "exams",
-        });
+        await gotoAndWaitForReady(page, "/workspace/exams");
 
         await expect(page.locator("#main-content")).toBeVisible();
 
@@ -70,12 +66,6 @@ test.describe("仪表盘考试", () => {
             })
             .first(),
         ).toBeVisible();
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "exams/filter-empty-cleared",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -86,13 +76,10 @@ test.describe("仪表盘考试", () => {
     academic,
     pastExam: _pastExam,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/exams", {
-          testInfo,
-          screenshotLabel: "exams",
-        });
+        await gotoAndWaitForReady(page, "/workspace/exams");
 
         // Switch to "all" to see all exams regardless of completion
         const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
@@ -142,8 +129,6 @@ test.describe("仪表盘考试", () => {
         const roomValue = seedExamRow.getByRole("cell").nth(4);
         await expect(roomValue).toHaveText(/\S/);
         await expect(roomValue).not.toHaveText(/TBD|待定|未定|—/i);
-
-        await captureStepScreenshot(page, testInfo, "exams/list-fields");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -153,13 +138,10 @@ test.describe("仪表盘考试", () => {
     page,
     pastExam: _pastExam,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/exams", {
-          testInfo,
-          screenshotLabel: "exams",
-        });
+        await gotoAndWaitForReady(page, "/workspace/exams");
 
         const allTab = page
           .getByRole("group", { name: /考试|Exams/i })
@@ -176,7 +158,6 @@ test.describe("仪表盘考试", () => {
         await sectionLink.click();
 
         await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
-        await captureStepScreenshot(page, testInfo, "exams/section-link");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );
@@ -186,13 +167,10 @@ test.describe("仪表盘考试", () => {
     page,
     pastExam: _pastExam,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/exams", {
-          testInfo,
-          screenshotLabel: "exams",
-        });
+        await gotoAndWaitForReady(page, "/workspace/exams");
 
         const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
 
@@ -215,8 +193,6 @@ test.describe("仪表盘考试", () => {
             .locator('a[href^="/catalog/sections/"]')
             .first(),
         ).toHaveText(/.+/);
-        await captureStepScreenshot(page, testInfo, "exams/filter-completed");
-
         // Switching back to upcoming retains an empty selection.
         const incompleteTab = filterTabs.getByRole("radio", {
           name: /Upcoming|即将|即将考试|待完成|未结束/i,
@@ -229,7 +205,6 @@ test.describe("仪表盘考试", () => {
             .getByText(/当前筛选下暂无考试|No exams under this filter/i)
             .filter({ visible: true }),
         ).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "exams/filter-incomplete");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );

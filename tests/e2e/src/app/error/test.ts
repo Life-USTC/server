@@ -7,21 +7,15 @@ import { test } from "../../../utils/public-worker";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/error 错误页", () => {
-  test("页面契约", async ({ page, publicFlow }, testInfo) => {
+  test("页面契约", async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
-      await assertPageContract(page, { routePath: "/error", testInfo });
+      await assertPageContract(page, { routePath: "/error" });
     });
   });
 
-  test("授权被拒绝时显示授权错误信息", async ({
-    page,
-    publicFlow,
-  }, testInfo) => {
+  test("授权被拒绝时显示授权错误信息", async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/error?error=consent_failed", {
-        testInfo,
-        screenshotLabel: "error-consent-failed",
-      });
+      await gotoAndWaitForReady(page, "/error?error=consent_failed");
       await expect(
         page.getByRole("heading", { name: /授权错误|Authorization Error/i }),
       ).toBeVisible();

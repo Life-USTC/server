@@ -17,12 +17,11 @@ import { showWeatherFixture } from "../../../utils/weather-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/weather", () => {
-  test("页面契约", async ({ page, preferenceFlow, request }, testInfo) => {
+  test("页面契约", async ({ page, preferenceFlow, request }) => {
     await preferenceFlow.run(async () => {
       await preferenceFlow.prepare(() => arrangeWeatherCache(request));
       await assertPageContract(page, {
         routePath: "/catalog/weather",
-        testInfo,
       });
     });
   });

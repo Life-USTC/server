@@ -4,7 +4,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   getUserSubscribedSectionIds,
   test,
@@ -17,7 +16,7 @@ test("匿名订阅入口说明非选课含义并要求登录", async ({
   sectionRun,
   page,
   section,
-}, testInfo) => {
+}) => {
   await sectionRun({ writes: [], calendar: null }, async () => {
     await gotoAndWaitForReady(page, section.path);
     await expect(
@@ -40,11 +39,6 @@ test("匿名订阅入口说明非选课含义并要求登录", async ({
     await expect(
       dialog.getByRole("link", { name: /登录|Sign in/i }),
     ).toBeVisible();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "section/subscribe-login-required",
-    );
   });
 });
 

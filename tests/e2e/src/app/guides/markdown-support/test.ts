@@ -9,15 +9,13 @@ import {
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/public-worker";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/guides/markdown-support Markdown 支持页", () => {
-  test("页面契约", async ({ page, publicFlow }, testInfo) => {
+  test("页面契约", async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/guides/markdown-support",
-        testInfo,
       });
     });
   });
@@ -72,7 +70,7 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     });
   });
 
-  test("comment.markdown-font-csp", async ({ page, publicFlow }, testInfo) => {
+  test("comment.markdown-font-csp", async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
       const fontConsoleErrors: string[] = [];
       page.on("console", (message) => {
@@ -144,7 +142,6 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
       for (const source of fontAssets.sources)
         expect(new URL(source).origin).toBe(fontAssets.origin);
       expect(fontConsoleErrors).toEqual([]);
-      await captureStepScreenshot(page, testInfo, "katex-size3-font-loaded");
     });
   });
 });

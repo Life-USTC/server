@@ -7,7 +7,6 @@ import {
 import { visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import {
   expectTodoFormResponse,
   readTodoCalendar,
@@ -35,11 +34,7 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("登录后显示独立准备的待办", async ({
-    todoRun,
-    page,
-    todos,
-  }, testInfo) => {
+  test("登录后显示独立准备的待办", async ({ todoRun, page, todos }) => {
     await todoRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
@@ -70,18 +65,12 @@ test.describe("仪表盘待办", () => {
           page.getByRole("dialog", { name: todos.pending.title }),
         ).toBeVisible();
         await page.keyboard.press("Escape");
-
-        await captureStepScreenshot(page, testInfo, "workspace-todos-seed");
       },
       { calendarMessages: [] },
     );
   });
 
-  test("todo.web-create-target", async ({
-    todoRun,
-    page,
-    todos: _todos,
-  }, testInfo) => {
+  test("todo.web-create-target", async ({ todoRun, page, todos: _todos }) => {
     await todoRun(
       async () => {
         await page.addInitScript(() => {
@@ -138,8 +127,6 @@ test.describe("仪表盘待办", () => {
             () => document.documentElement.scrollWidth <= window.innerWidth,
           ),
         ).toBe(true);
-
-        await captureStepScreenshot(page, testInfo, "todos/mobile-toolbar");
       },
       { calendarMessages: [] },
     );
@@ -151,7 +138,7 @@ test.describe("仪表盘待办", () => {
       todoRun,
       page,
       todoState,
-    }, testInfo) => {
+    }) => {
       await todoRun(
         async (effects) => {
           const [todo] = await todoState.seed([
@@ -215,18 +202,13 @@ test.describe("仪表盘待办", () => {
           await destination.click();
           await expect(destination).toBeChecked();
           await expect(visibleText(page, todo.title)).toBeVisible();
-          await captureStepScreenshot(page, testInfo, "workspace-todos-toggle");
         },
         { calendarMessages: [{ type: "user", userId: todoActor.id }] },
       );
     });
   }
 
-  test("todo.web-completed-title", async ({
-    todoRun,
-    page,
-    todos,
-  }, testInfo) => {
+  test("todo.web-completed-title", async ({ todoRun, page, todos }) => {
     await todoRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
@@ -268,22 +250,12 @@ test.describe("仪表盘待办", () => {
             .first(),
         ).toHaveClass(/text-destructive/);
         await page.keyboard.press("Escape");
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "workspace-todos-completed",
-        );
       },
       { calendarMessages: [] },
     );
   });
 
-  test("todo.web-detail-actions", async ({
-    todoRun,
-    page,
-    todos,
-  }, testInfo) => {
+  test("todo.web-detail-actions", async ({ todoRun, page, todos }) => {
     await todoRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
@@ -333,9 +305,6 @@ test.describe("仪表盘待办", () => {
         await expectDialogAction(dialog, /删除待办|Delete todo/i);
         await expectDialogAction(dialog, /编辑待办|Edit Todo/i);
         await expectDialogAction(dialog, /标记为完成|Mark as complete/i);
-
-        await captureStepScreenshot(page, testInfo, "todos/detail-dialog");
-
         await closeDetailDialog(page, dialog);
       },
       { calendarMessages: [] },
@@ -346,7 +315,7 @@ test.describe("仪表盘待办", () => {
     todoRun,
     page,
     todoState,
-  }, testInfo) => {
+  }) => {
     await todoRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
@@ -377,11 +346,6 @@ test.describe("仪表盘待办", () => {
         ).toBeVisible();
 
         expect(await todoState.read()).toEqual([]);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "workspace-todos-action-error",
-        );
       },
       { calendarMessages: [] },
     );
@@ -392,7 +356,7 @@ test.describe("仪表盘待办", () => {
     todoRun,
     page,
     todoState,
-  }, testInfo) => {
+  }) => {
     await todoRun(
       async (effects) => {
         test.setTimeout(90_000);
@@ -445,8 +409,6 @@ test.describe("仪表盘待办", () => {
         await effects.checkpoint("created", {
           calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
-        await captureStepScreenshot(page, testInfo, "workspace-todos-created");
-
         const all = page.getByRole("radio", { name: /^(全部|All)$/i });
         const incomplete = page.getByRole("radio", {
           name: /^(未完成|Incomplete)$/i,
@@ -476,7 +438,7 @@ test.describe("仪表盘待办", () => {
     todoRun,
     page,
     todoState,
-  }, testInfo) => {
+  }) => {
     await todoRun(
       async (effects) => {
         const title = "Independent editable todo";
@@ -534,8 +496,6 @@ test.describe("仪表盘待办", () => {
         await effects.checkpoint("edited", {
           calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
-        await captureStepScreenshot(page, testInfo, "workspace-todos-edited");
-
         const completed = page.getByRole("radio", {
           name: /^(已完成|Completed)$/i,
         });
@@ -671,7 +631,7 @@ test.describe("仪表盘待办", () => {
     todoRun,
     page,
     todoState,
-  }, testInfo) => {
+  }) => {
     await todoRun(
       async (effects) => {
         const title = "Independent completed deletion";
@@ -762,7 +722,6 @@ test.describe("仪表盘待办", () => {
         await effects.checkpoint("deleted", {
           calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
-        await captureStepScreenshot(page, testInfo, "workspace-todos-deleted");
       },
       { calendarMessages: [{ type: "user", userId: todoActor.id }] },
     );
