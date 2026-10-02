@@ -45,7 +45,6 @@ requirements:
     - No page duplicates identity reads through profile or session endpoints.
     - Workspace SSR and subsequent client navigation reuse the existing viewer without another shell-bootstrap request.
     - Navigating from sign-in with a newly established session initializes the viewer and navigation with one bootstrap request and replaces anonymous shell controls.
-    - Public content remains readable while the new login identity is pending; private projections wait for that identity before starting their reads.
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: user.shell-viewer
