@@ -19,7 +19,7 @@ Global setup validates the four database connections and production role
 constraints. The Playwright configuration does not start a shared server or
 provide a default origin.
 
-CI uses eight browser shards. The local parallel runner executes the same eight
+CI uses 24 browser shards. The local parallel runner executes the same 24
 partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
 available memory. Every partition retains its own PostgreSQL service and reports.
 Individual cases own ephemeral Worker ports and persistence directories.

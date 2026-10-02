@@ -4,8 +4,8 @@ import type { PreferenceFlow } from "./preference-flow";
 
 /** Observe the section detail viewer read in the explicit catalog navigation
  * scenarios. Register before clicking; wait after the caller's URL assertions.
- * The destination document always issues that read once, and each caller
- * arranges a section without comments, so its empty panel is required. */
+ * Each caller requires a successful viewer read and arranges a section without
+ * comments, so its empty panel is required. */
 export function observeSectionDetailNavigation(
   page: Page,
   owner: Pick<PreferenceFlow, "onClosing">,
