@@ -403,6 +403,8 @@ requirements:
   acceptance:
     given: An isolated database has events and organizers inserted in reverse order under tied sort keys,
       independent source-active flags, both time bases and missing dates, accessed by the restricted app role.
+      Four independent cases each arrange that complete fixture and own the search/active ordering, taxonomy
+      and organizer filters, date semantics, or organizer reads respectively.
     when: Real REST handlers, the actual Yoga request handler and native MCP JSON-RPC handlers combine
       category, module, level, search, organizer, date and unknown-date filters and exhaust two-item pages.
     then:
