@@ -14,7 +14,7 @@ export default defineConfig({
     retry: 0,
     testTimeout: 30_000,
     hookTimeout: 30_000,
-    reporters: ["json", "./tests/ci/fixtures/mcp-fixture-failure-reporter.ts"],
+    reporters: ["json"],
     outputFile: `${output}/report.json`,
   },
 });
