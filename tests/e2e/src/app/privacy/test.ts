@@ -42,10 +42,7 @@ test.describe("/privacy 隐私政策页", () => {
     });
   });
 
-  test("320px 列表内容完整换行", async ({
-    publicFlow,
-    page,
-  }, testInfo) => {
+  test("320px 列表内容完整换行", async ({ publicFlow, page }, testInfo) => {
     await publicFlow.run(async () => {
       await page.setViewportSize({ width: 320, height: 800 });
       await gotoAndWaitForReady(page, "/privacy", { testInfo });

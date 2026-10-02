@@ -63,7 +63,9 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
       ).toBeVisible();
       await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
       await expect(
-        page.getByRole("button", { name: /更多活动资料|More activity details/ }),
+        page.getByRole("button", {
+          name: /更多活动资料|More activity details/,
+        }),
       ).toHaveCount(0);
       await expect(
         page.getByRole("link", { name: /前往官方平台|official site/i }),
