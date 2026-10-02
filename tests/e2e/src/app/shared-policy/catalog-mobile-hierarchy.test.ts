@@ -1,4 +1,4 @@
-import { expect, type Locator } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
@@ -520,6 +520,25 @@ async function box(locator: Locator) {
   return result;
 }
 
+async function regionBounds(page: Page, selectors: string[]) {
+  return page.evaluate(
+    (selectors) =>
+      selectors.map((selector) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing catalog region: ${selector}`);
+        const { x, y, width, height } = element.getBoundingClientRect();
+        if (
+          width <= 0 ||
+          height <= 0 ||
+          getComputedStyle(element).visibility !== "visible"
+        )
+          throw new Error(`Catalog region is not visible: ${selector}`);
+        return { x, y, width, height };
+      }),
+    selectors,
+  );
+}
+
 test("ui.layout-principles-3", async ({
   preferenceFlow,
   isolatedWorker,
@@ -616,10 +635,14 @@ test("ui.layout-principles-3", async ({
           ];
         });
         expect(order).toEqual([true, true, true]);
-        const hero = await box(page.getByRole("heading", { level: 1 }));
-        const identityBounds = await box(identity);
-        const readingBounds = await box(reading);
-        const secondaryBounds = await box(secondary);
+        // Read one layout so streamed content cannot shift later measurements.
+        const [hero, identityBounds, readingBounds, secondaryBounds] =
+          await regionBounds(page, [
+            "h1",
+            "[data-detail-identity]",
+            "[data-detail-reading-stream]",
+            "[data-detail-scroll-container] aside",
+          ]);
         expect(hero.y + hero.height).toBeLessThanOrEqual(identityBounds.y);
         expect(identityBounds.y + identityBounds.height).toBeLessThanOrEqual(
           readingBounds.y,
@@ -646,25 +669,11 @@ test("ui.layout-principles-3", async ({
         // Resizing animates the sidebar width. Compare regions from one layout
         // observation so a transition cannot move the grid between measurements.
         const [desktopReading, desktopIdentity, desktopSecondary] =
-          await page.evaluate(() =>
-            [
-              "[data-detail-reading-stream]",
-              "[data-detail-identity]",
-              "[data-detail-scroll-container] aside",
-            ].map((selector) => {
-              const element = document.querySelector(selector);
-              if (!element)
-                throw new Error(`Missing catalog region: ${selector}`);
-              const { x, y, width, height } = element.getBoundingClientRect();
-              if (
-                width <= 0 ||
-                height <= 0 ||
-                getComputedStyle(element).visibility !== "visible"
-              )
-                throw new Error(`Catalog region is not visible: ${selector}`);
-              return { x, y, width, height };
-            }),
-          );
+          await regionBounds(page, [
+            "[data-detail-reading-stream]",
+            "[data-detail-identity]",
+            "[data-detail-scroll-container] aside",
+          ]);
         expect(desktopIdentity.x).toBeGreaterThan(
           desktopReading.x + desktopReading.width,
         );
