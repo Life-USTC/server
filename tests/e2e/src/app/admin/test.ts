@@ -253,7 +253,6 @@ test("/admin 主导航可跳转到各管理工具", async ({
           {
             name: /内容审核|Moderation/i,
             url: /\/admin\/moderation(?:\?.*)?$/,
-            shot: "admin/navigate-moderation",
           },
           {
             name: /OAuth|OAuth 客户端/i,
