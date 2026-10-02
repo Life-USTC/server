@@ -10,7 +10,6 @@ source tests/ci/setup-runtime-database.sh
 bun run build
 bun run e2e:test   # runs the complete suite once
 bunx playwright test path/to/test          # uses the already-prepared schema/roles
-CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
 Application-page and Worker scenarios use native fixtures that start a private
@@ -29,6 +28,10 @@ CI and local runners invoke Playwright directly. Assertions and runtime failures
 are not retried. Native HTML reports, per-test Worker logs, resource identities
 and traces remain in `playwright-report/`; CI uploads each job’s output as an
 artifact for failure inspection.
+
+Use native failure screenshots and traces for diagnostics. Capture explicit
+before/after images when delivering visual changes; ordinary business tests do
+not collect optional checkpoint screenshots or custom workflow JSON reports.
 
 The side-effect-free description reads in `description.public-web-personal-overlay`
 use Playwright's per-request `maxRetries: 1`. This recovers one `ECONNRESET` transport
