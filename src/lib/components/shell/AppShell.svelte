@@ -1016,7 +1016,8 @@ async function resolveClientShell(
   const controller = new AbortController();
   shellBootstrapAbortController = controller;
   const generation = shellBootstrapGeneration;
-  if (!viewerUser) viewerLoading = true;
+  // Keep known viewers ready during refresh, including SSR-resolved anonymous users.
+  if (viewerFailed) viewerLoading = true;
 
   try {
     const bootstrap = await getClientShellBootstrap(

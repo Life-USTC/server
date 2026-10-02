@@ -20,7 +20,7 @@ constraints. The Playwright configuration does not start a shared server or
 provide a default origin.
 
 CI distributes browser files across isolated jobs. The local parallel runner uses
-eight partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
+24 partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
 available memory. Every partition retains its own PostgreSQL service and reports.
 Individual cases own ephemeral Worker ports and persistence directories.
 
