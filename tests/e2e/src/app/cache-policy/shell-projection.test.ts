@@ -2,6 +2,7 @@ import {
   type APIResponse,
   test as browserTest,
   expect,
+  type Request,
 } from "@playwright/test";
 import { unflatten } from "devalue";
 import { restReadScope } from "@/lib/oauth/scope-registry";
@@ -640,7 +641,15 @@ test("rendering-and-cache.web-rendering-and-cache-2", async ({
 test("user.shell-viewer", async ({ shell, page, context }) => {
   await shell.run(
     { debug: true, feedToken: true, sessions: [{ user: 0 }] },
-    async ({ users, sessionCookie, teacher, organizer, event, debugUser }) => {
+    async ({
+      users,
+      flow,
+      sessionCookie,
+      teacher,
+      organizer,
+      event,
+      debugUser,
+    }) => {
       await context.addCookies([await sessionCookie(users[0].id)]);
       const identities: string[] = [];
       const identityPaths = new Set([
@@ -748,6 +757,22 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       identities.length = 0;
       const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
       if (!debugUser) throw new Error("Missing debug user fixture");
+      const loginViewerRequests: Request[] = [];
+      const recordLoginViewer = (request: Request) => {
+        if (new URL(request.url()).pathname === viewerPath)
+          loginViewerRequests.push(request);
+      };
+      page.on("request", recordLoginViewer);
+      flow.onClosing(() => page.off("request", recordLoginViewer));
+      await flow.route(page, "**/_internal/shell-bootstrap", async (route) => {
+        const response = await route.fetch();
+        await expect(page).toHaveURL(new RegExp(`${destination}$`));
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        // Public content may render while the new identity is still pending.
+        // Personal reads must wait until this bootstrap response is released.
+        expect(loginViewerRequests).toEqual([]);
+        await route.fulfill({ response });
+      });
       const [signedInBootstrap, signedInViewer] = await observeAction(
         () =>
           Promise.all([
@@ -784,6 +809,8 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       );
       expect(identities).toEqual(["/_internal/shell-bootstrap"]);
       await waitForUiSettled(page);
+      await flow.clearRoutes(page);
+      page.off("request", recordLoginViewer);
     },
   );
 });

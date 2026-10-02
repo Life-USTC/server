@@ -9,7 +9,11 @@ export type ShellViewerState = {
 
 export const SHELL_VIEWER_CONTEXT = Symbol("shell-viewer");
 
+export type ShellViewerContext = Readable<ShellViewerState> & {
+  invalidateIdentity(): void;
+};
+
 /** One root-layout instance owns this state; it is never shared across SSR requests. */
-export function getShellViewer(): Readable<ShellViewerState> {
-  return getContext<Readable<ShellViewerState>>(SHELL_VIEWER_CONTEXT);
+export function getShellViewer(): ShellViewerContext {
+  return getContext<ShellViewerContext>(SHELL_VIEWER_CONTEXT);
 }
