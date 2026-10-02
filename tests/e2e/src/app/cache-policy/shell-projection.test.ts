@@ -750,18 +750,20 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       if (!debugUser) throw new Error("Missing debug user fixture");
       const [signedInBootstrap, signedInViewer] = await observeAction(
         () =>
-          Promise.all([
-            page.waitForResponse(
-              (response) =>
-                new URL(response.url()).pathname ===
-                "/_internal/shell-bootstrap",
-            ),
-            page.waitForResponse(
-              (response) =>
-                response.request().method() === "GET" &&
-                new URL(response.url()).pathname === viewerPath,
-            ),
-          ]),
+          Promise.all(
+            ["/_internal/shell-bootstrap", viewerPath].map(async (path) => {
+              const request = await page.waitForEvent("requestfinished", {
+                predicate: (request) =>
+                  request.method() === "GET" &&
+                  new URL(request.url()).pathname === path,
+              });
+              const response = await request.response();
+              if (!response)
+                throw new Error("Finished request has no response");
+              expect(response.status()).toBe(200);
+              return response.json();
+            }),
+          ),
         () =>
           page
             .getByRole("button", {
@@ -769,15 +771,11 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
             })
             .click(),
       );
-      expect(signedInBootstrap.status()).toBe(200);
-      expect((await signedInBootstrap.json()).viewer).toMatchObject({
+      expect(signedInBootstrap.viewer).toMatchObject({
         id: debugUser.id,
         name: DEV_SEED.debugName,
       });
-      expect(signedInViewer.status()).toBe(200);
-      expect((await signedInViewer.json()).homeworkData.viewer.userId).toBe(
-        debugUser.id,
-      );
+      expect(signedInViewer.homeworkData.viewer.userId).toBe(debugUser.id);
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
       await expect(page.locator("#app-user-menu")).toContainText(
         DEV_SEED.debugName,

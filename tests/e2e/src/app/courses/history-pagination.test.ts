@@ -132,13 +132,18 @@ async function verifyHistory(
       const viewerPath = `/_internal/catalog/sections/${sectionBase + 22}/viewer`;
       // Client navigation reads the destination section viewer. Observe that
       // actual read before clicking and require it to complete successfully.
-      const viewerResponse = await observeAction(
-        () =>
-          page.waitForResponse(
-            (response) =>
-              response.request().method() === "GET" &&
-              new URL(response.url()).pathname === viewerPath,
-          ),
+      await observeAction(
+        async () => {
+          const request = await page.waitForEvent("requestfinished", {
+            predicate: (request) =>
+              request.method() === "GET" &&
+              new URL(request.url()).pathname === viewerPath,
+          });
+          const response = await request.response();
+          if (!response) throw new Error("Finished request has no response");
+          expect(response.status()).toBe(200);
+          await response.body();
+        },
         () =>
           page
             .locator(
@@ -147,8 +152,6 @@ async function verifyHistory(
             .first()
             .click(),
       );
-      expect(viewerResponse.status()).toBe(200);
-      await viewerResponse.body();
       await expect(page).toHaveURL(
         new RegExp(`/catalog/sections/${sectionBase + 22}$`),
       );

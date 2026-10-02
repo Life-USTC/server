@@ -336,11 +336,17 @@ export const test = ownedTest.extend<{
                   // to complete successfully.
                   await observeAction(
                     async () => {
-                      const response = await page.waitForResponse(
-                        (response) =>
-                          response.request().method() === "GET" &&
-                          new URL(response.url()).pathname === viewerPath,
+                      const request = await page.waitForEvent(
+                        "requestfinished",
+                        {
+                          predicate: (request) =>
+                            request.method() === "GET" &&
+                            new URL(request.url()).pathname === viewerPath,
+                        },
                       );
+                      const response = await request.response();
+                      if (!response)
+                        throw new Error("Finished request has no response");
                       expect(response.status()).toBe(200);
                       await response.body();
                     },
