@@ -71,6 +71,7 @@ import {
 } from "$lib/shell/shell-bootstrap";
 import {
   SHELL_VIEWER_CONTEXT,
+  type ShellViewerContext,
   type ShellViewerState,
 } from "$lib/shell/shell-viewer";
 import { cn } from "$lib/utils.js";
@@ -132,7 +133,19 @@ const shellViewer = writable<ShellViewerState>({
   viewer: viewerUser,
   status: viewerLoading ? "loading" : "ready",
 });
-setContext(SHELL_VIEWER_CONTEXT, shellViewer);
+setContext<ShellViewerContext>(SHELL_VIEWER_CONTEXT, {
+  subscribe: shellViewer.subscribe,
+  invalidateIdentity() {
+    cancelShellBootstrap();
+    viewerUser = null;
+    viewerLoading = true;
+    viewerFailed = false;
+    shellResolved = false;
+    workspaceNavigation = null;
+    subscribedSections = [];
+    subscribedSectionsUserId = null;
+  },
+});
 $: shellViewer.set({
   viewer: viewerUser,
   status: viewerLoading ? "loading" : viewerFailed ? "error" : "ready",
@@ -145,19 +158,24 @@ let subscribedSectionsUserId: string | null =
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
 let shellResolved = false;
+let previousServerData: AppShellData | undefined;
 
-$: if (!data.resolveViewerOnClient || data.user) {
-  if (viewerUser?.id !== data.user?.id) {
-    cancelShellBootstrap();
-    shellResolved = false;
-    workspaceNavigation = null;
-    subscribedSections = data.subscribedSections ?? [];
-    subscribedSectionsUserId =
-      data.user && data.subscribedSections ? data.user.id : null;
+$: if (data !== previousServerData) {
+  previousServerData = data;
+  // Only new server data may replace an explicitly invalidated identity.
+  if (!data.resolveViewerOnClient || data.user) {
+    if (viewerUser?.id !== data.user?.id) {
+      cancelShellBootstrap();
+      shellResolved = false;
+      workspaceNavigation = null;
+      subscribedSections = data.subscribedSections ?? [];
+      subscribedSectionsUserId =
+        data.user && data.subscribedSections ? data.user.id : null;
+    }
+    viewerUser = data.user;
+    viewerLoading = false;
+    viewerFailed = false;
   }
-  viewerUser = data.user;
-  viewerLoading = false;
-  viewerFailed = false;
 }
 $: if (
   data.user &&
