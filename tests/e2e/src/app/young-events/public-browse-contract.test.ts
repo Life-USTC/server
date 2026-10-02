@@ -75,6 +75,7 @@ test("young-event.web-browse-context", async ({
         .click();
       sharedContext(page, filters);
       const calendarUrl = new URL(page.url());
+      calendarUrl.pathname = `${root}/calendar`;
       calendarUrl.searchParams.set("date", "2035-09-15");
       calendarUrl.searchParams.set("view", "day");
       await gotoAndWaitForReady(
@@ -102,19 +103,25 @@ test("young-event.web-browse-context", async ({
         const applied = page.getByRole("group", {
           name: /已选条件|Applied filters/,
         });
-        await expect(applied).toContainText(
+        const unknownDateLabel =
           timeBasis === "activity"
             ? /活动时间未知|Unknown activity date/
-            : /报名时间未知|Unknown signup date/,
-        );
-        await expect(
-          eventLink(page, fixture, timeBasis === "activity" ? 7 : 10),
-        ).toBeVisible();
+            : /报名时间未知|Unknown signup date/;
+        const eventIndex = timeBasis === "activity" ? 7 : 10;
+        await expect(applied).toContainText(unknownDateLabel);
+        await expect(eventLink(page, fixture, eventIndex)).toBeVisible();
+        const search = `${fixture.search} ${String(eventIndex).padStart(2, "0")}`;
+        await page.getByRole("searchbox").fill(search);
         await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
         await expect(page).toHaveURL(
-          (url) => url.searchParams.get("dateUnknown") === "true",
+          (url) =>
+            url.searchParams.get("search") === search &&
+            url.searchParams.get("dateUnknown") === "true" &&
+            url.searchParams.get("timeBasis") === timeBasis,
         );
-        sharedContext(page, { dateUnknown: "true", timeBasis });
+        await expect(applied).toContainText(unknownDateLabel);
+        await expect(eventLink(page, fixture, eventIndex)).toBeVisible();
+        sharedContext(page, { search, dateUnknown: "true", timeBasis });
       }
     }
   });
