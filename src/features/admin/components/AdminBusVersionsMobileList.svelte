@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Empty from "$lib/components/ui/empty/index.js";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
@@ -22,11 +22,7 @@ export let versions: AdminBusVersion[];
 </script>
 
 {#if versions.length === 0}
-  <Empty.Root class="min-h-20 border-0 px-2 py-6 xl:hidden">
-    <Empty.Header>
-      <Empty.Description>{copy.noVersions}</Empty.Description>
-    </Empty.Header>
-  </Empty.Root>
+  <CompactEmpty class="xl:hidden" description={copy.noVersions} />
 {:else}
   <AdminListShell class="xl:hidden">
     <Item.Group class="gap-0" data-testid="admin-bus-mobile-list">

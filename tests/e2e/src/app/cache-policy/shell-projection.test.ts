@@ -110,11 +110,15 @@ test("rendering-and-cache.personal-overlays-4", async ({ shell, page }) => {
       expect(await anonymous.json()).toEqual({
         viewer: null,
         navigation: null,
+        subscribedSections: [],
       });
       for (const [index, user] of users.entries()) {
         const context = await flow.newContext();
         try {
-          await context.addCookies([await sessionCookie(user.id)]);
+          await context.addCookies([
+            await sessionCookie(user.id),
+            { name: "NEXT_LOCALE", value: "zh-cn", url: origin },
+          ]);
           const response = await context.request.get(
             "/_internal/shell-bootstrap",
           );
@@ -294,6 +298,7 @@ test("rendering-and-cache.personal-overlays-7", async ({
       expect(await anonymous.json()).toEqual({
         viewer: null,
         navigation: null,
+        subscribedSections: [],
       });
 
       await context.addCookies([await sessionCookie(users[1].id)]);

@@ -6,10 +6,8 @@ import {
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   SectionListCommonLabels,
@@ -266,16 +264,8 @@ function sectionEmptyDescription() {
   />
 {/snippet}
 
-<PageLayout>
-  {#snippet header()}
-    <PageHeader
-      description={sectionLabels.subtitle}
-      title={sectionLabels.title}
-    />
-  {/snippet}
-
-    <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
-      {#snippet header()}
+<CollectionPage description={sectionLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={sectionLabels.title}>
+  {#snippet toolbar()}
         <CatalogFilters
           activeFilters={sectionActiveFilters}
           clearHref="/catalog/sections"
@@ -306,7 +296,7 @@ function sectionEmptyDescription() {
             {semesterOptions}
           />
         </CatalogFilters>
-      {/snippet}
+  {/snippet}
 
       <SectionsResults
         data={sectionResultsData}
@@ -317,5 +307,4 @@ function sectionEmptyDescription() {
         {selectedSemester}
         {totalPages}
       />
-    </Panel>
-</PageLayout>
+</CollectionPage>

@@ -42,7 +42,7 @@ test.describe("/privacy 隐私政策页", () => {
     });
   });
 
-  test("320px 列表内容在 Card 内完整换行", async ({
+  test("320px 列表内容完整换行", async ({
     publicFlow,
     page,
   }, testInfo) => {
@@ -51,7 +51,7 @@ test.describe("/privacy 隐私政策页", () => {
       await gotoAndWaitForReady(page, "/privacy", { testInfo });
 
       const overflow = await page
-        .locator('[data-slot="card"] .markdown-preview')
+        .locator('[data-slot="legal-document"] .markdown-preview')
         .evaluate((markdown) => {
           const elements = [
             markdown,
@@ -69,7 +69,9 @@ test.describe("/privacy 隐私政策页", () => {
         });
 
       expect(overflow).toEqual([]);
-      await expect(page.locator('[data-slot="card"] li').first()).toBeVisible();
+      await expect(
+        page.locator('[data-slot="legal-document"] li').first(),
+      ).toBeVisible();
     });
   });
 

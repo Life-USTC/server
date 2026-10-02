@@ -4,9 +4,9 @@ import {
   catalogLocalizedNames,
 } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
@@ -23,11 +23,7 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
 
 <div class="hidden md:block">
   {#if course.sections.length === 0}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{copy.courseDetail.noSections}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={copy.courseDetail.noSections} />
   {:else}
     <Table.Root class="">
       <Table.Header>

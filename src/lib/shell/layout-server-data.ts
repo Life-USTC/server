@@ -18,6 +18,7 @@ const layoutMessages = {
     theme: enUsMessages.theme,
     weather: enUsMessages.weather,
     youngEvents: enUsMessages.youngEvents,
+    settingsNav: enUsMessages.settings.nav,
   },
   "zh-cn": {
     accessibility: zhCnMessages.accessibility,
@@ -34,6 +35,7 @@ const layoutMessages = {
     theme: zhCnMessages.theme,
     weather: zhCnMessages.weather,
     youngEvents: zhCnMessages.youngEvents,
+    settingsNav: zhCnMessages.settings.nav,
   },
 };
 
@@ -79,6 +81,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       transitMap: messages.metadata.pages.busMap,
       weather: messages.weather.title,
       youngEvents: messages.youngEvents.title,
+      youngActivities: messages.youngEvents.activitiesTitle,
       youngCalendar: messages.youngEvents.calendarTitle,
       youngOrganizers: messages.youngEvents.organizersTitle,
       mobileApp: messages.metadata.pages.mobileApp,
@@ -95,12 +98,26 @@ export function buildLayoutCopy(locale: LayoutLocale) {
         secondary: locale === "zh-cn" ? "次级导航" : "Secondary",
         preferences: locale === "zh-cn" ? "偏好设置" : "Preferences",
       },
+      settingsSections: {
+        accounts: messages.settingsNav.accounts.title,
+        authorizations: messages.settingsNav.authorizations.title,
+        danger: messages.settingsNav.danger.title,
+        preferences: messages.settingsNav.preferences.title,
+        profile: messages.settingsNav.profile.title,
+        security: messages.settingsNav.security.title,
+      },
       admin: {
         title: messages.admin.title,
         moderation: messages.admin.moderationTitle,
         users: messages.admin.usersTitle,
         oauth: messages.admin.oauthTitle,
         bus: messages.admin.busTitle,
+        queues: messages.admin.queues,
+      },
+      activityViews: {
+        events: messages.youngEvents.workspace.events,
+        organizers: messages.youngEvents.workspace.organizers,
+        notifications: messages.youngEvents.workspace.notifications,
       },
     },
     menu: {
@@ -118,6 +135,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       mobileApp: messages.homepage.actions.mobileApp,
     },
     shell: {
+      backToHome: messages.common.backToHome,
       footerNavigation: messages.common.footerNavigation,
       loading: messages.common.loading,
       menu: locale === "zh-cn" ? "菜单" : "Menu",

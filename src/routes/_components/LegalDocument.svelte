@@ -1,6 +1,5 @@
 <script lang="ts">
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
-import * as Card from "$lib/components/ui/card/index.js";
 
 export let content: {
   title: string;
@@ -11,11 +10,9 @@ export let content: {
 
 <svelte:head><title>{content.title} - Life@USTC</title></svelte:head>
 
-<Card.Root class="mx-auto min-w-0 w-full max-w-3xl">
-  <Card.Content class="min-w-0 px-4 sm:px-6 md:px-8">
-    <RenderedMarkdown class="legal-document" html={content.renderedHtml} />
-  </Card.Content>
-</Card.Root>
+<article class="mx-auto min-w-0 w-full max-w-3xl" data-slot="legal-document">
+  <RenderedMarkdown class="legal-document" html={content.renderedHtml} />
+</article>
 
 <style>
   :global(.markdown-preview.legal-document h1) {

@@ -71,7 +71,8 @@ $: currentLink = links.find((link) => isActiveLink(link)) ?? links[0];
 
     <Item.Group class="gap-0 px-4 pb-4">
       {#each links as link, index (link.href)}
-        {@const active = isActiveLink(link)}
+        {@const childCurrent = link.items?.some((child) => isActiveLink(child)) ?? false}
+        {@const active = isActiveLink(link) && !childCurrent}
         {@const Icon = link.icon}
         <Item.Root
           class="px-0 py-1.5"
@@ -91,6 +92,21 @@ $: currentLink = links.find((link) => isActiveLink(link)) ?? links[0];
             <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
           </a>
         </Item.Root>
+        {#if link.items}
+          {#each link.items as child (child.href)}
+            {@const childActive = isActiveLink(child)}
+            <Item.Root class="px-0 py-1" data-active={childActive} variant={childActive ? "muted" : "default"}>
+              <a
+                aria-current={childActive ? "page" : undefined}
+                class="flex min-h-11 min-w-0 flex-1 items-center rounded-md py-2 pr-2 pl-11 text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                href={child.href}
+                onclick={() => (open = false)}
+              >
+                <span class="min-w-0 flex-1 truncate">{child.label}</span>
+              </a>
+            </Item.Root>
+          {/each}
+        {/if}
         {#if index < links.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
     </Item.Group>

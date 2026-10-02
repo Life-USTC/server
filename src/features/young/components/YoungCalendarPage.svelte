@@ -1,4 +1,5 @@
 <script lang="ts">
+import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import YoungCalendar from "@/features/young/components/YoungCalendar.svelte";
 import {
   fetchPersonalCalendar,
@@ -7,29 +8,23 @@ import {
 import { youngCalendarConflicts } from "@/features/young/lib/young-calendar-conflicts";
 import type {
   YoungEventSummary,
-  YoungOrganizerSummary,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { YoungCalendarPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { page } from "$app/stores";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { youngDetailHref } from "../lib/young-navigation";
-import YoungBrowseNav from "./YoungBrowseNav.svelte";
-import YoungEventFilters from "./YoungEventFilters.svelte";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
   anchorDate: string;
-  categories: string[];
   copy: AppPageCopy;
   data: YoungEventSummary[];
   filters: YoungCalendarPageFilters;
   locale: string;
-  organizers: Pick<YoungOrganizerSummary, "id" | "name">[];
   range: { start: string; end: string };
   source: YoungSourceFreshness;
   unknownDateCount: number;
@@ -38,12 +33,10 @@ type Props = {
 
 let {
   anchorDate,
-  categories,
   copy,
   data,
   filters,
   locale,
-  organizers,
   range,
   source,
   unknownDateCount,
@@ -95,10 +88,6 @@ $effect(() => {
   return () => controller.abort();
 });
 
-function formatSourceDate(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
-}
-
 const calendarHref = $derived.by(() => {
   const currentFilters = filters;
   return function calendarHref(
@@ -135,12 +124,19 @@ function unknownDatesHref() {
   return `/catalog/young-events?${params}`;
 }
 
+const summary = $derived(
+  catalogShowingSummary(
+    data.length === 1 ? youngCopy.showingOne : youngCopy.showing,
+    data.length,
+    data.length,
+  ),
+);
 const calendarLabels = $derived({
   agenda: youngCopy.agenda,
   earlierDates: youngCopy.earlierDates,
   day: youngCopy.day,
-  empty: youngCopy.calendarEmpty,
   month: youngCopy.month,
+  moreEvents: youngCopy.moreEvents,
   next: youngCopy.next,
   previous: youngCopy.previous,
   sourceMissing: youngCopy.sourceMissing,
@@ -150,38 +146,17 @@ const calendarLabels = $derived({
 });
 </script>
 
-<PageLayout>
-  {#snippet header()}<PageHeader title={youngCopy.calendarTitle} description={youngCopy.calendarDescription} />{/snippet}
-  <YoungBrowseNav current="calendar" copy={youngCopy} />
-  <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
-    <span class="text-muted-foreground">
-      {#if source.status === "fresh"}
-        {youngCopy.sourceFresh}
-      {:else if source.status === "stale"}
-        {youngCopy.sourceStale}
-      {:else}
-        {youngCopy.sourceUnknown}
-      {/if}
-      {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-    </span>
+{#snippet calendarFooter()}
+  <YoungSourceNote labels={youngCopy} {source} />
+{/snippet}
 
-  </div>
-
-  <Panel>
-    {#snippet header()}
-      <YoungEventFilters {copy} {filters} {organizers} {categories} calendar={{ view, date: anchorDate }} />
-    {/snippet}
-
+<CollectionPage
+  description={youngCopy.calendarDescription}
+  footer={calendarFooter}
+  title={youngCopy.calendarTitle}
+>
     <div class="grid gap-3">
-    <ResultsSummary summary={(data.length === 1 ? youngCopy.showingOne : youngCopy.showing).replace("{count}", String(data.length)).replace("{total}", String(data.length))} />
-    {#if filters.timeBasis === "activity"}
-      <p class="text-sm text-muted-foreground" aria-live="polite" data-testid="young-calendar-conflict-status">
-        {#if conflictStatus === "loading"}{youngCopy.conflictLoading}
-        {:else if conflictStatus === "signin"}<a class="underline" href={`/account/sign-in?callbackUrl=${encodeURIComponent(calendarHref(view, anchorDate))}`}>{youngCopy.conflictSignin}</a>
-        {:else if conflictStatus === "failed"}{youngCopy.conflictUnavailable}
-        {:else}{youngCopy.conflictScope}{/if}
-      </p>
-    {/if}
+    <ResultsSummary {summary} />
     <YoungCalendar
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}
@@ -196,6 +171,13 @@ const calendarLabels = $derived({
       unknownDatesHref={unknownDatesHref()}
       {view}
     />
+    {#if filters.timeBasis === "activity"}
+      <p class="text-right text-xs text-muted-foreground" aria-live="polite" data-testid="young-calendar-conflict-status">
+        {#if conflictStatus === "loading"}{youngCopy.conflictLoading}
+        {:else if conflictStatus === "signin"}<a class="underline" href={`/account/sign-in?callbackUrl=${encodeURIComponent(calendarHref(view, anchorDate))}`}>{youngCopy.conflictSignin}</a>
+        {:else if conflictStatus === "failed"}{youngCopy.conflictUnavailable}
+        {:else}{youngCopy.conflictScope}{/if}
+      </p>
+    {/if}
     </div>
-  </Panel>
-</PageLayout>
+</CollectionPage>

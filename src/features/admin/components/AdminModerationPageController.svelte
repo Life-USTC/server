@@ -16,16 +16,12 @@ import type {
   AdminModerationTab,
 } from "@/features/admin/components/admin-moderation-page-types";
 import { createAdminModerationControllerDefaultState } from "@/features/admin/lib/admin-moderation-controller-default-state";
-import {
-  moderationHref as buildModerationHref,
-  visibleModerationComments,
-} from "@/features/admin/lib/moderation-display";
+import { visibleModerationComments } from "@/features/admin/lib/moderation-display";
 import { createModerationPageActions } from "@/features/admin/lib/moderation-page-actions";
 import {
   buildCommentStatusOptions,
   buildDescriptionContentOptions,
   buildDescriptionTargetOptions,
-  buildModerationTabs,
   buildStatusFilterOptions,
   buildSuspensionDurationOptions,
 } from "@/features/admin/lib/moderation-page-options";
@@ -91,12 +87,6 @@ $: _adminCopy = data.copy.admin;
 $: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
   dateStyle: "medium",
   timeStyle: "short",
-});
-$: _tabs = buildModerationTabs(_copy, {
-  comments: data.comments.length,
-  descriptions: data.descriptions.length,
-  homeworks: data.homeworks.length,
-  suspensions: data.suspensions.length,
 });
 $: _commentStatusOptions = buildCommentStatusOptions(_copy);
 $: statusFilterOptions = buildStatusFilterOptions(_copy);
@@ -207,11 +197,8 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
     <AdminModerationHeader
       adminCopy={_adminCopy}
       copy={_copy}
-      currentTab={data.tab}
       isRefreshing={_isRefreshingQueue}
-      moderationHref={(tab) => buildModerationHref(tab, data.filters)}
       refreshQueue={_refreshQueue}
-      tabs={_tabs}
     />
   {/snippet}
   {#snippet feedback()}

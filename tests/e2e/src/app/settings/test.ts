@@ -8,7 +8,7 @@
  * - Layout requires authentication (`requireSignedInUserId`).
  *
  * ## UI/UX Elements
- * - Settings nav bar with semantic section links
+ * - Settings section links in the level-2 sidebar, with a control that returns home
  * - Page title and description
  * - Default tab is "profile" which shows the profile edit form
  *
@@ -54,120 +54,73 @@ test.describe("/account/settings 设置中心", () => {
     account: _account,
   }, testInfo) => {
     await accountRun({ writes: [], audits: [] }, async () => {
-      await page.setViewportSize({ width: 390, height: 844 });
-      await gotoAndWaitForReady(page, "/account/settings");
-
-      const navigation = page.getByTestId("detail-section-nav");
-      const scrollViewport = navigation.locator('[data-sidebar="content"]');
-      const activePanel = page.locator("[data-settings-active-panel]");
-      const profileLink = navigation.getByRole("link", {
-        name: /个人资料|Profile/i,
-      });
-
-      await expect(profileLink).toHaveAttribute("aria-current", "page");
-      await expect
-        .poll(() =>
-          Promise.all([
-            navigation.getAttribute("data-overflow-left"),
-            navigation.getAttribute("data-overflow-right"),
-          ]),
-        )
-        .toEqual(["false", "true"]);
-      const mobileNavigationBox = await scrollViewport.boundingBox();
-      const mobilePanelBox = await activePanel.boundingBox();
-      expect(mobileNavigationBox?.height).toBeLessThan(80);
-      expect(mobilePanelBox?.y).toBeLessThan(844);
-      await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
-
       await page.setViewportSize({ width: 1280, height: 900 });
       await gotoAndWaitForReady(page, "/account/settings");
-      const desktopNavigationBox = await navigation.boundingBox();
-      const desktopPanelBox = await activePanel.boundingBox();
-      expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
-      expect(desktopNavigationBox?.width).toBe(224);
+
+      const sidebar = page.getByTestId("settings-sidebar");
+      const back = page.getByTestId("settings-sidebar-back");
+      const activePanel = page.locator("[data-settings-active-panel]");
+      await expect(
+        sidebar.getByRole("link", { name: /个人资料|Profile/i }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(back).toHaveAttribute("href", "/");
+      await expect(
+        sidebar.getByRole("link", { name: /^(今天|Today)$/i }),
+      ).toHaveCount(0);
+      await expect(page.getByTestId("detail-section-nav")).toHaveCount(0);
+      const sidebarBox = await sidebar.boundingBox();
+      const panelBox = await activePanel.boundingBox();
+      expect(sidebarBox?.x).toBeLessThan(panelBox?.x ?? 0);
       await captureStepScreenshot(
         page,
         testInfo,
         "settings-responsive-desktop",
       );
+
+      await back.click();
+      await page.waitForURL(/\/(?:workspace\/overview)?(?:\?.*)?$/);
+      await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
+      await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);
+      await expect(
+        page
+          .getByTestId("app-sidebar")
+          .getByRole("link", { name: /^(今天|Today)$/i }),
+      ).toBeVisible();
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(page, "/account/settings/danger");
+      await page.locator('[data-slot="sidebar-trigger"]').click();
+      const mobileSidebar = page.getByTestId("settings-sidebar");
+      await expect(mobileSidebar).toBeVisible();
+      await expect(page.getByTestId("settings-sidebar-back")).toBeVisible();
+      await expect(
+        mobileSidebar.getByRole("link", { name: /危险操作|Danger zone/i }),
+      ).toHaveAttribute("aria-current", "page");
+      await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
     });
   });
 
   test("ui.settings-navigation-6", async ({
     accountRun,
+    isolatedWorker,
     page,
     account: _account,
   }) => {
-    await accountRun(
-      { writes: [["/api/account/preferences", 200]], audits: [] },
-      async () => {
-        const localeResponse = await page.request.post(
-          "/api/account/preferences",
-          {
-            data: { locale: "zh-cn" },
-          },
-        );
-        expect(localeResponse.status()).toBe(200);
-        await page.setViewportSize({ width: 375, height: 900 });
-        await gotoAndWaitForReady(page, "/account/settings/danger");
-
-        const navigation = page.getByTestId("detail-section-nav");
-        const scrollViewport = navigation.locator('[data-sidebar="content"]');
-        const activeLink = navigation.locator('a[aria-current="page"]');
-
-        for (const width of [280, 320, 375]) {
-          await page.setViewportSize({ width, height: 900 });
-          await gotoAndWaitForReady(page, "/account/settings/danger");
-          await expect(activeLink).toHaveCount(1);
-          await expect(activeLink).toBeVisible();
-          await expect
-            .poll(() =>
-              scrollViewport.evaluate((nav) => {
-                const link = nav.querySelector<HTMLElement>(
-                  'a[aria-current="page"]',
-                );
-                const wrapper = nav.parentElement;
-                if (!link || !wrapper) return null;
-                const linkBox = link.getBoundingClientRect();
-                const navBox = nav.getBoundingClientRect();
-                const wrapperBox = wrapper.getBoundingClientRect();
-                const leftFade = getComputedStyle(wrapper, "::before");
-                const rightFade = getComputedStyle(wrapper, "::after");
-                const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
-                return {
-                  activeClearOfLeftFade:
-                    linkBox.left >= wrapperBox.left + leftFadeWidth - 1,
-                  activeWithinNavigation:
-                    linkBox.left >= navBox.left - 1 &&
-                    linkBox.right <= navBox.right + 1,
-                  documentFitsViewport:
-                    document.documentElement.scrollWidth <=
-                    document.documentElement.clientWidth,
-                  navigationScrollable: nav.scrollWidth > nav.clientWidth,
-                  navigationScrolled: nav.scrollLeft > 0,
-                  leftFadeVisible:
-                    wrapper.dataset.overflowLeft === "true" &&
-                    leftFade.backgroundImage !== "none",
-                  rightFadeHidden:
-                    wrapper.dataset.overflowRight === "false" &&
-                    rightFade.backgroundImage === "none",
-                  windowScrollX: window.scrollX,
-                };
-              }),
-            )
-            .toEqual({
-              activeClearOfLeftFade: true,
-              activeWithinNavigation: true,
-              documentFitsViewport: true,
-              navigationScrollable: true,
-              navigationScrolled: true,
-              leftFadeVisible: true,
-              rightFadeHidden: true,
-              windowScrollX: 0,
-            });
-        }
-      },
-    );
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
+      await page.setViewportSize({ width: 375, height: 900 });
+      await gotoAndWaitForReady(page, "/account/settings/danger");
+      await page.locator('[data-slot="sidebar-trigger"]').click();
+      const sidebar = page.getByTestId("settings-sidebar");
+      const activeLink = sidebar.locator('a[aria-current="page"]');
+      await expect(activeLink).toHaveCount(1);
+      await expect(activeLink).toBeVisible();
+      await expect(page.getByTestId("detail-section-nav")).toHaveCount(0);
+    });
   });
 
   test("标签导航切换分区", async ({

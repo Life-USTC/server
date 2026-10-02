@@ -1,8 +1,7 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import PageSectionNav from "$lib/components/PageSectionNav.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
@@ -84,19 +83,16 @@ const levelIndex = $derived(data.directory.groups);
   <title>{copy.sourcesPageTitle} - Life@USTC</title>
 </svelte:head>
 
-<PageLayout>
-  {#snippet header()}
-    <PageHeader
-      title={copy.sourcesPageTitle}
-      description={copy.sourcesPageDescription}
-    >
-      {#snippet actions()}
+<CollectionPage
+  description={copy.sourcesPageDescription}
+  panel={false}
+  title={copy.sourcesPageTitle}
+>
+  {#snippet actions()}
         <Button href="/news" variant="outline">
           <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
           {copy.backToList}
         </Button>
-      {/snippet}
-    </PageHeader>
   {/snippet}
 
   {#if data.directory.groups.length === 0}
@@ -207,4 +203,4 @@ const levelIndex = $derived(data.directory.groups);
       </section>
     {/each}
   {/if}
-</PageLayout>
+</CollectionPage>

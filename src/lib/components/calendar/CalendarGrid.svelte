@@ -11,6 +11,7 @@ export let showWeekLabels = false;
 export let variant: "week" | "month" = "week";
 export let minWidth = "840px";
 export let eventLimit = 5;
+export let density: "cards" | "lines" = "cards";
 export let emptyLabel = "";
 export let framed = true;
 export let moreLabel: (count: number) => string = (count) => `+${count}`;
@@ -54,6 +55,7 @@ function gridColumns() {
         {#each week.days as day, dayIndex}
           <CalendarGridDayCell
             {day}
+            {density}
             {emptyLabel}
             {eventLimit}
             isLastDay={dayIndex === week.days.length - 1}

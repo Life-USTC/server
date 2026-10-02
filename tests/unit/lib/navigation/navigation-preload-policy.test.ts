@@ -8,6 +8,18 @@ const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../../..",
 );
+const sourceRoots = ["src"];
+const hoverLiteralPattern =
+  /data-sveltekit-preload-data\s*=\s*(?:"hover"|'hover'|\{\s*["']hover["']\s*\})/;
+const hoverBooleanAttributePattern =
+  /data-sveltekit-preload-data(?=[\s/>])(?!\s*=)/;
+
+function hasHoverDataPreload(source: string): boolean {
+  return (
+    hoverLiteralPattern.test(source) ||
+    hoverBooleanAttributePattern.test(source)
+  );
+}
 
 type ElementAttributes = {
   element: string;
@@ -99,19 +111,18 @@ describe("navigation preload policy", () => {
     }
   });
 
-  it("disables SvelteKit data preload on detail section nav links", async () => {
-    const filename = "src/lib/components/DetailSectionNav.svelte";
-    const elements = elementAttributes(
-      await readFile(path.join(repoRoot, filename), "utf8"),
-      filename,
-    );
-    const preloadOverrides = elements.filter((element) =>
-      element.attributes.has("data-sveltekit-preload-data"),
-    );
-    expect(preloadOverrides).toHaveLength(1);
-    expect(preloadOverrides[0].element).toBe("a");
-    expect(
-      preloadOverrides[0].attributes.get("data-sveltekit-preload-data"),
-    ).toBe("off");
+  it("does not opt links back into hover data preload", async () => {
+    const violations: string[] = [];
+
+    for (const root of sourceRoots) {
+      const files = await collectSourceFiles(path.join(repoRoot, root));
+      for (const file of files) {
+        const source = await readFile(file, "utf8");
+        if (!hasHoverDataPreload(source)) continue;
+        violations.push(path.relative(repoRoot, file));
+      }
+    }
+
+    expect(violations).toEqual([]);
   });
 });

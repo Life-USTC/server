@@ -30,6 +30,11 @@ export function isDetailWorkspacePath(pathname: string) {
   return /^\/catalog\/(courses|sections|teachers)\/[^/]+/.test(pathname);
 }
 
+export function isYoungEventDetailPath(pathname: string) {
+  const match = pathname.match(/^\/catalog\/young-events\/([^/]+)$/);
+  return match != null && match[1] !== "calendar" && match[1] !== "organizers";
+}
+
 export function isOnboardingPath(pathname: string) {
   return matchesPathRoot(pathname, "/account/welcome");
 }

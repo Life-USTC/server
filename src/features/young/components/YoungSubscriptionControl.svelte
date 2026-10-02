@@ -21,6 +21,7 @@ let {
   kind = "events",
   copy,
   initialState,
+  compact = false,
 }: {
   id: string;
   kind?: "events" | "organizers";
@@ -31,6 +32,7 @@ let {
     remindDeadline?: boolean;
     remindStart?: boolean;
   };
+  compact?: boolean;
 } = $props();
 let subscribed = $state(untrack(() => initialState?.subscribed ?? false));
 let loaded = $state(untrack(() => initialState != null));
@@ -43,6 +45,7 @@ let remindDeadline = $state(
 );
 let remindStart = $state(untrack(() => initialState?.remindStart ?? true));
 let refresh = $state(0);
+let appliedServerState = "";
 const endpoint = $derived(
   `/api/workspace/young-${kind === "events" ? "event" : "organizer"}-subscriptions/${encodeURIComponent(id)}`,
 );
@@ -63,10 +66,21 @@ const reminderSummary = $derived(
 $effect(() => {
   const url = endpoint;
   if (initialState) {
-    subscribed = initialState.subscribed;
-    remindSignup = initialState.remindSignup ?? true;
-    remindDeadline = initialState.remindDeadline ?? true;
-    remindStart = initialState.remindStart ?? true;
+    const serverState = [
+      id,
+      initialState.subscribed,
+      initialState.remindSignup,
+      initialState.remindDeadline,
+      initialState.remindStart,
+    ].join(":");
+    // A fresh object identity from the parent must not wipe an in-progress edit.
+    if (serverState !== appliedServerState) {
+      appliedServerState = serverState;
+      subscribed = initialState.subscribed;
+      remindSignup = initialState.remindSignup ?? true;
+      remindDeadline = initialState.remindDeadline ?? true;
+      remindStart = initialState.remindStart ?? true;
+    }
     loaded = true;
     signedIn = true;
     failed = false;
@@ -97,6 +111,7 @@ $effect(() => {
       });
       if (response.status === 401) {
         signedIn = false;
+        loaded = true;
         return;
       }
       if (!response.ok) throw new Error(copy.failed);
@@ -148,6 +163,7 @@ async function save(next: boolean) {
       }),
     });
     if (!response.ok) throw new Error(copy.failed);
+    await response.json();
     subscribed = next;
     toast.success(copy.saved);
     await invalidateAll();
@@ -159,6 +175,16 @@ async function save(next: boolean) {
 }
 </script>
 
+{#if compact}
+  {#if failed}
+    <span class="sr-only" role="alert">{copy.failed}</span>
+    <Button variant="outline" onclick={retry}>{copy.retry}</Button>
+  {:else}
+    <Button class="shrink-0" disabled={!loaded || busy} onclick={() => save(!subscribed)}>
+      {subscribed && loaded ? copy.unsubscribe : copy.subscribe}
+    </Button>
+  {/if}
+{:else}
 <div class="grid gap-3">
   <div class="flex flex-wrap items-center gap-3">
     {#if failed}
@@ -200,3 +226,4 @@ async function save(next: boolean) {
     </Collapsible.Root>
   {/if}
 </div>
+{/if}

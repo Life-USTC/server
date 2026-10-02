@@ -198,7 +198,10 @@ test("young-event.subscription-write-gate", async ({
         await page.goto(path);
         await entered;
         await expect(
-          page.getByRole("button", { name: "Loading…", exact: true }),
+          page.getByRole("button", {
+            name: kind === "event" ? "Subscribe to event" : "Loading…",
+            exact: true,
+          }),
         ).toBeDisabled();
         expect(writes).toBe(0);
         releaseRead();

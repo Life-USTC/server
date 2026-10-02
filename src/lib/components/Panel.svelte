@@ -1,8 +1,11 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import * as Card from "$lib/components/ui/card/index.js";
 import { cn } from "$lib/utils.js";
 
+/**
+ * Unframed page section. Content pages use CollectionPage. Put Panel inside
+ * that template when one page has several sections.
+ */
 type Props = {
   children: Snippet;
   class?: string;
@@ -13,18 +16,12 @@ type Props = {
 let { children, class: className = "", footer, header }: Props = $props();
 </script>
 
-<Card.Root class={cn("min-w-0", className)}>
+<section class={cn("grid min-w-0 gap-4", className)} data-slot="page-section">
   {#if header}
-    <Card.Header>
-      {@render header()}
-    </Card.Header>
+    <div class="grid min-w-0 gap-3" data-slot="page-section-header">{@render header()}</div>
   {/if}
-  <Card.Content class="min-w-0">
-    {@render children()}
-  </Card.Content>
+  <div class="grid min-w-0 gap-3" data-slot="page-section-body">{@render children()}</div>
   {#if footer}
-    <Card.Footer class="justify-center">
-      {@render footer()}
-    </Card.Footer>
+    <div class="flex justify-center" data-slot="page-section-footer">{@render footer()}</div>
   {/if}
-</Card.Root>
+</section>

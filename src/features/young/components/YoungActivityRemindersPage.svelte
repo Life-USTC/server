@@ -6,11 +6,8 @@ import { youngNotificationDescription } from "@/features/young/lib/young-notific
 import { youngNotificationReadSchema } from "@/lib/api/schemas/young-workspace-schemas";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import PageSectionNav from "$lib/components/PageSectionNav.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Badge } from "$lib/components/ui/badge";
@@ -95,21 +92,11 @@ function pageHref(number: number) {
     {/if}
     {/snippet}
 
-<PageLayout>
-  {#snippet header()}
-    <PageHeader title={copy.manage} {description}>
-      {#snippet actions()}
+<CollectionPage {description} footer={result && result.pagination.totalPages > 1 ? paginationFooter : undefined} title={copy.manage} toolbar={data.events || data.notifications ? filtersHeader : undefined}>
+  {#snippet actions()}
         <Button href="/workspace/subscriptions" variant="ghost" size="sm">{copy.back}</Button>
         <Button href="/workspace/calendar" variant="outline" size="sm">{copy.calendar}</Button>
-      {/snippet}
-    </PageHeader>
   {/snippet}
-  <PageSectionNav ariaLabel={copy.manage} items={[
-    { href: "?view=events", label: copy.events, current: Boolean(data.events) },
-    { href: "?view=organizers", label: copy.organizers, current: Boolean(data.organizers) },
-    { href: "?view=notifications", label: copy.notifications, current: Boolean(data.notifications) },
-  ]} />
-  <Panel header={data.events || data.notifications ? filtersHeader : undefined} footer={result && result.pagination.totalPages > 1 ? paginationFooter : undefined}>
 
     <div class="grid gap-3">
       <ResultsSummary summary={`${viewLabel} · ${result?.pagination.total ?? 0}`} page={result?.pagination.page} totalPages={result?.pagination.totalPages} />
@@ -175,5 +162,4 @@ function pageHref(number: number) {
       </ResultsEmpty>
     {/if}
     </div>
-  </Panel>
-</PageLayout>
+</CollectionPage>

@@ -84,12 +84,6 @@ export type AdminModerationAdminCopy = {
   title: string;
 };
 
-export type AdminModerationHeaderTab = readonly [
-  AdminModerationTab,
-  string,
-  number,
-];
-
 export type AdminModerationDescriptionFilters = {
   descriptionContent?: string | null;
   descriptionTarget?: string | null;

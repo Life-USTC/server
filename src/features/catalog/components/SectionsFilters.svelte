@@ -1,4 +1,9 @@
 <script lang="ts">
+import {
+  toolbarControlClass,
+  toolbarFieldClass,
+  toolbarSelectClass,
+} from "$lib/components/toolbar-control";
 import * as Accordion from "$lib/components/ui/accordion/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
@@ -26,7 +31,7 @@ export let onSubmit: () => void;
 export let sectionLabels: SectionListLabels;
 export let semesterOptions: SectionListOption[];
 
-const controlClass = "w-full";
+const controlClass = `w-full ${toolbarSelectClass}`;
 let selectedSort = filters.sort ?? "";
 
 $: selectedSort = filters.sort ?? "";
@@ -62,6 +67,7 @@ $: selectedSort = filters.sort ?? "";
           <Field.Label for={`${idPrefix}-teacher`}>{sectionLabels.teachers}</Field.Label>
           <Input
             id={`${idPrefix}-teacher`}
+            class={toolbarFieldClass}
             name="teacher"
             value={filters.teacher ?? ""}
           />
@@ -72,6 +78,7 @@ $: selectedSort = filters.sort ?? "";
             <Field.Label for={`${idPrefix}-course-code`}>{sectionLabels.courseCode}</Field.Label>
             <Input
               id={`${idPrefix}-course-code`}
+              class={toolbarFieldClass}
               name="courseCode"
               value={filters.courseCode ?? ""}
             />
@@ -80,6 +87,7 @@ $: selectedSort = filters.sort ?? "";
             <Field.Label for={`${idPrefix}-section-code`}>{sectionLabels.sectionCode}</Field.Label>
             <Input
               id={`${idPrefix}-section-code`}
+              class={toolbarFieldClass}
               name="sectionCode"
               value={filters.sectionCode ?? ""}
             />
@@ -123,6 +131,7 @@ $: selectedSort = filters.sort ?? "";
           <Field.Label for={`${idPrefix}-credits`}>{sectionLabels.credits}</Field.Label>
           <Input
             id={`${idPrefix}-credits`}
+            class={toolbarFieldClass}
             min="0"
             name="credits"
             step="0.5"
@@ -260,14 +269,14 @@ $: selectedSort = filters.sort ?? "";
 
     <ButtonGroup.Root class="w-full" orientation="vertical">
       <Button
-        class="w-full"
+        class="{toolbarControlClass} w-full"
         href={clearHref}
         onclick={onSubmit}
         variant="outline"
       >
         {commonLabels.clear}
       </Button>
-      <Button class="w-full" type="submit">
+      <Button class="{toolbarControlClass} w-full" type="submit">
         {sectionLabels.filters.apply}
       </Button>
     </ButtonGroup.Root>

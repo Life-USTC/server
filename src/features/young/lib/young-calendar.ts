@@ -30,6 +30,28 @@ function eventTimes(event: YoungEventSummary, timeBasis: YoungEventTimeBasis) {
     : { startAt: event.startAt, endAt: event.endAt };
 }
 
+export function youngEventStartsOnDay(
+  event: YoungEventSummary,
+  key: string,
+  timeBasis: YoungEventTimeBasis = "activity",
+) {
+  const start = dayStart(key).toDate().getTime();
+  const end = dayStart(key).endOf("day").toDate().getTime();
+  return startsOnDay(event, start, end, timeBasis);
+}
+
+function startsOnDay(
+  event: YoungEventSummary,
+  dayStartMs: number,
+  dayEnd: number,
+  timeBasis: YoungEventTimeBasis,
+) {
+  const startAt = eventTimes(event, timeBasis).startAt;
+  if (!startAt) return false;
+  const eventStart = new Date(startAt).getTime();
+  return eventStart >= dayStartMs && eventStart <= dayEnd;
+}
+
 function dayKey(input: Date) {
   return formatShanghaiDate(input);
 }
@@ -42,10 +64,9 @@ function addDays(key: string, amount: number) {
   return dayKey(dayStart(key).add(amount, "day").toDate());
 }
 
-function mondayOf(key: string) {
+function sundayOf(key: string) {
   const date = dayStart(key);
-  const offset = (date.day() + 6) % 7;
-  return dayKey(date.subtract(offset, "day").toDate());
+  return dayKey(date.subtract(date.day(), "day").toDate());
 }
 
 export function normalizeYoungCalendarDate(value: string | null | undefined) {
@@ -63,15 +84,15 @@ export function youngCalendarRange(
   const anchor = normalizeYoungCalendarDate(anchorDate);
   if (view === "day") return { start: anchor, end: anchor };
   if (view === "week") {
-    const start = mondayOf(anchor);
+    const start = sundayOf(anchor);
     return { start, end: addDays(start, 6) };
   }
 
   const month = dayStart(anchor).startOf("month");
   const first = dayKey(month.toDate());
-  const gridStart = mondayOf(first);
+  const gridStart = sundayOf(first);
   const last = dayKey(month.endOf("month").toDate());
-  const gridEnd = addDays(mondayOf(last), 6);
+  const gridEnd = addDays(sundayOf(last), 6);
   return { start: gridStart, end: gridEnd };
 }
 
@@ -112,12 +133,20 @@ export function youngCalendarDays(
             (eventStart === eventEnd && eventStart === dayStartMs))
         );
       })
-      .sort(
-        (left, right) =>
+      .sort((left, right) => {
+        const leftStarts = startsOnDay(left, dayStartMs, dayEnd, timeBasis)
+          ? 0
+          : 1;
+        const rightStarts = startsOnDay(right, dayStartMs, dayEnd, timeBasis)
+          ? 0
+          : 1;
+        if (leftStarts !== rightStarts) return leftStarts - rightStarts;
+        return (
           (eventTimes(left, timeBasis).startAt ?? "").localeCompare(
             eventTimes(right, timeBasis).startAt ?? "",
-          ) || left.youngId.localeCompare(right.youngId),
-      );
+          ) || left.youngId.localeCompare(right.youngId)
+        );
+      });
     days.push({
       key,
       date,

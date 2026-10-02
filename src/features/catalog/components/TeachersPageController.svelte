@@ -6,10 +6,8 @@ import {
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   TeacherListCommonLabels,
@@ -114,16 +112,8 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
   />
 {/snippet}
 
-<PageLayout>
-  {#snippet header()}
-    <PageHeader
-      description={teacherLabels.subtitle}
-      title={teacherLabels.title}
-    />
-  {/snippet}
-
-    <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
-      {#snippet header()}
+<CollectionPage description={teacherLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={teacherLabels.title}>
+  {#snippet toolbar()}
         <CatalogFilters
           activeFilters={teacherActiveFilters}
           clearHref="/catalog/teachers"
@@ -145,7 +135,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
             {teacherSearch}
           />
         </CatalogFilters>
-      {/snippet}
+  {/snippet}
 
       <TeachersResults
         {commonLabels}
@@ -158,5 +148,4 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
         total={data.pagination.total}
         {totalPages}
       />
-    </Panel>
-</PageLayout>
+</CollectionPage>

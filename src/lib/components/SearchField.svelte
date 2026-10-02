@@ -36,7 +36,7 @@ onMount(() => (shortcut ? mountPageSearchShortcut(() => ref) : undefined));
 
 <div class="min-w-0 flex-1" data-slot="search-field">
   <label class="sr-only" for={id}>{label}</label>
-  <InputGroupRoot class="h-11">
+  <InputGroupRoot>
     <InputGroupAddon><SearchIcon aria-hidden="true" /></InputGroupAddon>
     <InputGroupInput {id} {name} {placeholder} {maxlength} {disabled} {oninput} bind:ref bind:value type="search" />
     {#if shortcut}<InputGroupAddon align="inline-end"><PageSearchShortcutHint /></InputGroupAddon>{/if}

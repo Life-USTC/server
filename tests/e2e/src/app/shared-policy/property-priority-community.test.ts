@@ -346,7 +346,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           `/community/users/${f.author.username}`,
         );
         const profile = page.locator("main");
-        const summary = profile.locator('[data-slot="card"]').first();
+        const summary = profile.locator('[data-slot="page-section"]').first();
         const cell = profile.locator(
           `[data-profile-contribution-cell][data-date="${f.homework.createdAt.toISOString().slice(0, 10)}"]`,
         );

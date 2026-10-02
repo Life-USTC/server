@@ -49,7 +49,7 @@ test("ui.navigation-landmarks-7", async ({
     for (const item of cases) {
       await gotoAndWaitForReady(page, item.url.toString());
       const expected = destination(item.url.toString());
-      const nav = page.getByTestId("young-browse-nav");
+      const nav = page.getByTestId("young-sidebar");
       const active = nav.locator('[aria-current="page"]');
       await expect(active).toHaveCount(1);
       expect(destination(await active.getAttribute("href")).path).toBe(
@@ -80,15 +80,12 @@ test("ui.navigation-landmarks-7", async ({
       await expect(page.getByRole("heading", { level: 1 })).toContainText(
         fixture.marker,
       );
-      const back = page.getByRole("link", {
-        name:
-          item.view === "calendar"
-            ? "Back to activity calendar"
-            : "Back to all events",
-        exact: true,
-      });
-      expect(destination(await back.getAttribute("href"))).toEqual(expected);
-      await back.click();
+      await expect(
+        page.getByRole("link", {
+          name: /Back to all events|Back to activity calendar|返回活动列表|返回日历/,
+        }),
+      ).toHaveCount(0);
+      await page.goBack();
       await expect.poll(() => destination(page.url())).toEqual(expected);
       await waitForUiSettled(page);
       await expect(

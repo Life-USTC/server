@@ -3,6 +3,11 @@ import { sharedAlias } from "./vitest.base";
 
 export default defineConfig({
   test: {
+    // Console intercept forwards logs over the worker RPC. A log still in
+    // flight when the worker closes exits the run with EnvironmentTeardownError
+    // after every test has passed, and that failed outcome fails the
+    // specification evidence gate.
+    disableConsoleIntercept: true,
     // Type-graph and compiler audits share the coverage runner with ordinary
     // unit tests; bound CI concurrency to avoid CPU/heap contention.
     maxWorkers: process.env.CI ? 2 : undefined,

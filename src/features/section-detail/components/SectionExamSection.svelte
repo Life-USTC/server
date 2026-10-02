@@ -6,7 +6,7 @@ import {
   calendarEventLocation,
   calendarEventTime,
 } from "@/features/section-detail/lib/section-calendar-display";
-import * as Empty from "$lib/components/ui/empty/index.js";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
 import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
@@ -83,9 +83,5 @@ export let sectionCopy: SectionExamCopy;
     </Table.Root>
   </div>
 {:else}
-  <Empty.Root class="min-h-20 border-0 px-2 py-6">
-    <Empty.Header>
-      <Empty.Description>{sectionCopy.calendarEmpty}</Empty.Description>
-    </Empty.Header>
-  </Empty.Root>
+  <CompactEmpty description={sectionCopy.calendarEmpty} />
 {/if}

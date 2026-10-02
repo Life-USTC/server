@@ -1,7 +1,8 @@
 <script lang="ts">
+import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import type {
@@ -17,11 +18,7 @@ export let teacher: TeacherDetailTeacher;
 
 {#if teacher.sections.length === 0}
   <div class="md:hidden">
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{copy.teacherDetail.noSections}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={copy.teacherDetail.noSections} />
   </div>
 {:else}
   <Item.Group class="md:hidden">

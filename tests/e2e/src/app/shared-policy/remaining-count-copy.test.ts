@@ -149,7 +149,9 @@ for (const count of [0, 1, 2]) {
               "source-total",
             );
             await check(
-              page.locator('[data-slot="card-header"] span.text-sm').first(),
+              page
+                .locator('[data-slot="page-section-header"] span.text-sm')
+                .first(),
               en
                 ? `${count} ${count === 1 ? "source" : "sources"} · ${count} ${count === 1 ? "publication" : "publications"}`
                 : `${count} 个来源 · ${count} 篇内容`,

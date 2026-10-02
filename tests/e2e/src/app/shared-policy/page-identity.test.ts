@@ -96,11 +96,12 @@ test("ui.settings-navigation-7", async ({
           await expect(
             page.getByRole("button", { name: deleteLabel, exact: true }),
           ).toHaveCount(1);
-          await expect(
-            page.locator(
-              'a[href="/account/settings/danger"][aria-current="page"]',
-            ),
-          ).toHaveCount(1);
+          const dangerLink = page.locator(
+            'a[href="/account/settings/danger"][aria-current="page"]',
+          );
+          if ((await dangerLink.count()) === 0)
+            await page.locator('[data-slot="sidebar-trigger"]').click();
+          await expect(dangerLink).toHaveCount(1);
         } else {
           await expect(danger).toHaveCount(0);
           await expect(

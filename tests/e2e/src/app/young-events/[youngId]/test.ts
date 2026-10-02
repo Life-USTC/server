@@ -51,30 +51,45 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, DETAIL_PATH);
 
+      const banner = page.getByTestId("young-event-banner");
       await expect(
-        page.getByRole("heading", { level: 1, name: DEV_SEED.youngEvent.name }),
+        banner.getByRole("heading", {
+          level: 1,
+          name: DEV_SEED.youngEvent.name,
+        }),
       ).toBeVisible();
       await expect(
-        visibleText(page, DEV_SEED.youngEvent.location),
+        banner.getByText(DEV_SEED.youngEvent.activityLevel),
       ).toBeVisible();
+      await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
       await expect(
-        visibleText(page, DEV_SEED.youngEvent.organizer),
-      ).toBeVisible();
+        page.getByRole("button", { name: /更多活动资料|More activity details/ }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("link", { name: /前往官方平台|official site/i }),
+      ).toHaveCount(0);
 
-      const signupLink = page.getByRole("link", {
-        name: /前往官方平台|official site/i,
-      });
-      await expect(signupLink).toBeVisible();
-      await expect(signupLink).toHaveAttribute(
-        "href",
-        "https://young.ustc.edu.cn",
-      );
+      const youngNav = page.getByTestId("young-sidebar");
+      await expect(youngNav).toBeVisible();
+      await expect(
+        youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
+      ).not.toHaveAttribute("aria-current", "page");
+      await expect(
+        youngNav.getByRole("link", { name: DEV_SEED.youngEvent.name }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(
+        page.getByRole("navigation", { name: /面包屑|Breadcrumb/ }),
+      ).toHaveCount(0);
 
-      const backLink = page.getByRole("link", {
-        name: /返回活动列表|Back to all events/i,
-      });
-      await expect(backLink).toBeVisible();
-      await backLink.click();
+      await expect(
+        page.getByRole("link", { name: /返回活动列表|Back to all events/i }),
+      ).toHaveCount(0);
+      await expect(
+        banner.getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ }),
+      ).toBeVisible();
+      await youngNav
+        .getByRole("link", { name: /^(?:活动列表|Activity list)$/ })
+        .click();
       await page.waitForURL(/\/catalog\/young-events$/);
       await expect(
         page.getByRole("heading", {
@@ -129,28 +144,31 @@ for (const width of [1280, 390]) {
           await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
           await expect(
             page.getByText("800-414-186", { exact: true }),
-          ).toBeVisible();
+          ).toHaveCount(0);
           await expect(
             page.getByText("PDF, DOCX", { exact: true }),
-          ).toBeVisible();
-          await expect(
-            page.getByText(/提供线上会议|Online meeting available/, {
-              exact: true,
-            }),
-          ).toBeVisible();
-          await expect(
-            page
-              .getByTestId("young-event-overview")
-              .getByText("东区学生活动中心", { exact: true }),
-          ).toBeVisible();
+          ).toHaveCount(0);
           await expect(
             page.getByText("校外合作机构", { exact: true }),
-          ).toBeVisible();
+          ).toHaveCount(0);
           await expect(
             page.getByText(
               /报名时需填写补充信息|Additional information required at registration/,
             ),
+          ).toHaveCount(0);
+          await expect(
+            page.getByRole("heading", {
+              name: /^(?:时间与报名|报名与参与|组织与联系|场地安排|活动概览|Time and registration|Registration and participation|Organization and contact|Venues|Activity at a glance)$/,
+            }),
+          ).toHaveCount(0);
+          await expect(
+            page
+              .getByTestId("young-event-banner")
+              .getByText(/提供线上会议|Online meeting available/, {
+                exact: true,
+              }),
           ).toBeVisible();
+          await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
           await expect(
             page.getByText("opaque-department-id", { exact: true }),
           ).toHaveCount(0);
@@ -170,12 +188,6 @@ for (const width of [1280, 390]) {
             `/catalog/young-events?search=${encodeURIComponent("线上学术交流 · 参与信息测试")}`,
           );
           await expect(visibleText(page, /东区学生活动中心/)).toBeVisible();
-          if (width >= 1280)
-            await expect(
-              page.getByRole("cell", {
-                name: /未提供 \/ 20|Not provided \/ 20/,
-              }),
-            ).toBeVisible();
           // Imported public facts are cached by snapshot revision. Use a second
           // fixture for the false state rather than mutating an already-read row.
           const offline = await db.youngEvent.create({
@@ -279,11 +291,8 @@ for (const status of [200, 401]) {
           );
           await gotoAndWaitForReady(page, DETAIL_PATH);
           await expect(
-            page.getByRole("button", {
-              name:
-                status === 200
-                  ? /^(订阅活动|Subscribe to event)$/
-                  : /^(登录后订阅|Sign in to subscribe)$/,
+            page.getByTestId("young-event-banner").getByRole("button", {
+              name: /^(订阅活动|Subscribe to event)$/,
             }),
           ).toBeEnabled();
           await expect.poll(() => bootstrapRequests).toBe(1);
@@ -294,7 +303,7 @@ for (const status of [200, 401]) {
   );
 }
 
-test("anonymous subscription state does not request private data", async ({
+test("未登录时标题右侧显示订阅活动，且不请求私人订阅数据", async ({
   page,
   preferenceFlow,
   youngPublicState: _youngPublicState,
@@ -311,8 +320,10 @@ test("anonymous subscription state does not request private data", async ({
     });
     await gotoAndWaitForReady(page, DETAIL_PATH, { browserHealth: {} });
     await expect(
-      page.getByRole("button", { name: /^(登录后订阅|Sign in to subscribe)$/ }),
-    ).toBeEnabled();
+      page.getByTestId("young-event-banner").getByRole("button", {
+        name: /^(订阅活动|Subscribe to event)$/,
+      }),
+    ).toBeVisible();
     expect(privateRequests).toBe(0);
   });
 });

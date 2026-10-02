@@ -67,13 +67,14 @@ test("young-event.private-client-overlays", async ({
       const signIn = () =>
         surface === "detail"
           ? page.getByRole("button", {
-              name: "Sign in to subscribe",
+              name: "Subscribe to event",
               exact: true,
             })
           : page.getByTestId("young-calendar-conflict-status");
       await identify(page, fixture.origin);
       await page.goto(target);
-      await expect(signIn()).toContainText(/Sign in/);
+      if (surface === "detail") await expect(signIn()).toBeEnabled();
+      else await expect(signIn()).toContainText(/Sign in/);
       expect(await page.evaluate(() => window.youngContractFetches)).toEqual(
         [],
       );
@@ -107,7 +108,8 @@ test("young-event.private-client-overlays", async ({
         }),
       );
       await page.goto(target);
-      await expect(signIn()).toContainText(/Sign in/);
+      if (surface === "detail") await expect(signIn()).toBeEnabled();
+      else await expect(signIn()).toContainText(/Sign in/);
       expect(rejectedReads).toBeGreaterThan(0);
       expect(
         (await page.evaluate(() => window.youngContractFetches)).every(
@@ -199,7 +201,7 @@ test("young-event.web-detail-priority", async ({
     await identify(page, fixture.origin);
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 1000 });
-      // Register immediately: the collapsed poster can load during navigation.
+      // Register immediately: the banner poster loads during navigation.
       const observedPoster = page.waitForResponse(
         (response) =>
           new URL(response.url()).pathname ===
@@ -207,45 +209,37 @@ test("young-event.web-detail-priority", async ({
       );
       const posterResponse = observation.ownBrowser(() => observedPoster);
       await page.goto(`/catalog/young-events/${fixture.young.youngId}`);
-      const summary = page.getByTestId("young-event-overview");
-      await expect(summary).toContainText("2026-04-30 16:00");
-      await expect(summary).toContainText("Calendar activity room");
-      await expect(summary).toContainText("2.5");
-      await expect(summary).toContainText("2026-04-29 20:00");
-      const official = page.locator(
-        '#main-content a[href="https://young.ustc.edu.cn"]',
+      const banner = page.getByTestId("young-event-banner");
+      await expect(
+        banner.getByRole("heading", { level: 1, name: fixture.young.name }),
+      ).toBeVisible();
+      await expect(
+        banner.getByRole("button", { name: "Subscribe to event", exact: true }),
+      ).toBeVisible();
+      await expect(banner.getByTestId("young-event-badges")).toBeVisible();
+      await expect(banner.locator("img")).toHaveAttribute(
+        "src",
+        "/api/catalog/young-events/images/group1/contract/poster.jpg",
       );
-      await expect(official).toBeVisible();
-      await expect(official).toHaveAttribute("target", "_blank");
-      const poster = page.getByRole("button", {
-        name: "Activity poster",
-        exact: true,
-      });
-      const details = page.getByRole("button", {
-        name: "More activity details",
-        exact: true,
-      });
-      await expect(poster).toHaveAttribute("aria-expanded", "false");
-      await expect(details).toHaveAttribute("aria-expanded", "false");
+      await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
+      await expect(
+        page.getByRole("link", { name: /Back to all events|返回活动列表/ }),
+      ).toHaveCount(0);
+      await expect(
+        page.locator('#main-content a[href="https://young.ustc.edu.cn"]'),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", {
+          name: "More activity details",
+          exact: true,
+        }),
+      ).toHaveCount(0);
       await expect(
         page.getByRole("heading", {
           name: "Attendance and hours",
           exact: true,
         }),
-      ).toBeHidden();
-      await expect(
-        page.getByRole("heading", { name: "Record information", exact: true }),
-      ).toBeHidden();
-      expect((await summary.boundingBox())?.y).toBeLessThan(
-        (await poster.boundingBox())?.y ?? 0,
-      );
-      await poster.click();
-      await expect(
-        page.getByRole("img", { name: fixture.young.name, exact: true }),
-      ).toHaveAttribute(
-        "src",
-        "/api/catalog/young-events/images/group1/contract/poster.jpg",
-      );
+      ).toHaveCount(0);
       const actualPoster = await posterResponse;
       expect(actualPoster.status()).toBe(200);
       expect(actualPoster.headers()["content-type"]).toBe("image/png");
@@ -264,22 +258,6 @@ test("young-event.web-detail-priority", async ({
               (node as HTMLImageElement).naturalHeight > 0,
           ),
       ).toBe(true);
-      await details.click();
-      await expect(
-        page.getByRole("heading", {
-          name: "Attendance and hours",
-          exact: true,
-        }),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Total attendances", { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "Record information", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText("2026-04-01 12:00", { exact: true }),
-      ).toBeVisible();
     }
   });
 });
@@ -316,7 +294,7 @@ publicTest(
       await expect(page.locator("#young-agenda-2035-10-01")).toHaveCount(0);
       for (const [label, value, heading] of [
         ["Day", "day", "Tuesday, September 25, 2035"],
-        ["Week", "week", /Sep 24\s*–\s*30, 2035/],
+        ["Week", "week", /Sep 23\s*–\s*29, 2035/],
         ["Month", "month", "September 2035"],
       ] as const) {
         await calendar.getByRole("link", { name: label, exact: true }).click();

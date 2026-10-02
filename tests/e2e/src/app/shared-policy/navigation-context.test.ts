@@ -122,9 +122,11 @@ test("ui.context-tabs-3", async ({ page, isolatedWorker, navigationRun }) => {
     for (const width of [1280, 390, 280]) {
       await page.setViewportSize({ width, height: 950 });
       await page.goto(paths.at(-1) ?? "");
-      const nav = page.getByTestId("detail-section-nav");
+      if (width < 768)
+        await page.locator('[data-slot="sidebar-trigger"]').click();
+      const nav = page.getByTestId("settings-sidebar");
       const viewport = nav.locator('[data-slot="sidebar-content"]');
-      const links = nav.getByRole("link");
+      const links = nav.locator('a[href^="/account/settings/"]');
       await expect(links).toHaveCount(paths.length);
       await expect(nav.locator('[aria-current="page"]')).toHaveAttribute(
         "href",
@@ -145,34 +147,21 @@ test("ui.context-tabs-3", async ({ page, isolatedWorker, navigationRun }) => {
           return { x: box.x, y: box.y };
         }),
       );
-      if (width < 1024) {
-        expect(
-          Math.max(...boxes.map((box) => box.y)) -
-            Math.min(...boxes.map((box) => box.y)),
-        ).toBeLessThan(2);
-        expect(
-          await viewport.evaluate(
-            (node) => node.scrollWidth - node.clientWidth,
-          ),
-        ).toBeGreaterThan(100);
-        expect(
-          await viewport.evaluate((node) => node.scrollLeft),
-        ).toBeGreaterThan(0);
-      } else {
-        expect(
-          Math.max(...boxes.map((box) => box.x)) -
-            Math.min(...boxes.map((box) => box.x)),
-        ).toBeLessThan(2);
-        expect(
-          Math.max(...boxes.map((box) => box.y)) -
-            Math.min(...boxes.map((box) => box.y)),
-        ).toBeGreaterThan(100);
-      }
+      expect(
+        Math.max(...boxes.map((box) => box.x)) -
+          Math.min(...boxes.map((box) => box.x)),
+      ).toBeLessThan(2);
+      expect(
+        Math.max(...boxes.map((box) => box.y)) -
+          Math.min(...boxes.map((box) => box.y)),
+      ).toBeGreaterThan(100);
       await links.first().focus();
       await insideHorizontalViewport(links.first(), viewport);
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(new RegExp(`${paths[0]}$`));
       for (let index = 0; index < paths.length; index++) {
+        if (width < 768 && !(await nav.isVisible()))
+          await page.locator('[data-slot="sidebar-trigger"]').click();
         const active = nav.locator('[aria-current="page"]');
         await expect(active).toHaveCount(1);
         await expect(active).toHaveAttribute("href", paths[index]);

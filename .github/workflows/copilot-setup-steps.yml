@@ -78,7 +78,11 @@ jobs:
         uses: ./.github/actions/setup-bun-env
 
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
 
       - name: Prepare database and generated artifacts
         shell: bash

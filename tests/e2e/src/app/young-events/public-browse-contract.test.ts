@@ -21,6 +21,8 @@ function eventLink(page: Page, fixture: YoungBrowseFixture, index: number) {
     .locator(`a[href^="${root}/${fixture.eventIds[index]}?"]:visible`)
     .first();
 }
+// Browse links still carry their return context; the detail page no longer
+// renders an in-page back link, so the browser history returns to the list.
 async function returnFromDetail(
   page: Page,
   fixture: YoungBrowseFixture,
@@ -34,12 +36,20 @@ async function returnFromDetail(
   expect(new URL(page.url()).searchParams.get("returnTo")).toBe(
     new URL(origin).pathname + new URL(origin).search,
   );
-  await page
-    .getByRole("link", {
+  await expect(
+    page.getByRole("link", {
       name: /返回活动列表|Back to all events|返回日历|Back to calendar|返回主办方|Back to organizers/,
-    })
-    .click();
+    }),
+  ).toHaveCount(0);
+  await page.goBack();
   await expect(page).toHaveURL(origin);
+}
+async function openYoungSidebar(page: Page) {
+  const sidebar = page.getByTestId("young-sidebar");
+  if (!(await sidebar.isVisible()))
+    await page.locator('[data-slot="sidebar-trigger"]').click();
+  await expect(sidebar).toBeVisible();
+  return sidebar;
 }
 function sharedContext(page: Page, expected: Record<string, string>) {
   expect(Object.fromEntries(new URL(page.url()).searchParams)).toMatchObject(
@@ -69,11 +79,11 @@ test("young-event.web-browse-context", async ({
         `${root}?${new URLSearchParams(filters)}`,
       );
       await returnFromDetail(page, fixture, 0);
-      await page
-        .getByTestId("young-browse-nav")
-        .getByRole("link", { name: /^(日历|Calendar)$/ })
-        .click();
       sharedContext(page, filters);
+      await expect(
+        page.locator("#main-content").getByRole("searchbox"),
+      ).toBeVisible();
+      await expect(eventLink(page, fixture, 0)).toBeVisible();
       const calendarUrl = new URL(page.url());
       calendarUrl.searchParams.set("date", "2035-09-15");
       calendarUrl.searchParams.set("view", "day");
@@ -82,18 +92,31 @@ test("young-event.web-browse-context", async ({
         calendarUrl.pathname + calendarUrl.search,
       );
       await returnFromDetail(page, fixture, 0);
-      await page
-        .getByTestId("young-browse-nav")
-        .getByRole("link", {
-          name: /^(活动名称|Event name|活动|Events|Event)$/,
-        })
-        .click();
-      sharedContext(page, filters);
       await gotoAndWaitForReady(
         page,
         `${root}/organizers/${fixture.organizerIds[0]}?page=1`,
       );
       await returnFromDetail(page, fixture, 0);
+      await gotoAndWaitForReady(
+        page,
+        `${root}?${new URLSearchParams(filters)}`,
+      );
+      const sidebar = await openYoungSidebar(page);
+      await sidebar
+        .getByRole("link", { name: /^(活动日历|Event calendar)$/ })
+        .click();
+      await expect(page).toHaveURL(/\/catalog\/young-events\/calendar$/);
+      await expect(
+        page.locator("#main-content").getByRole("searchbox"),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: /更多筛选|More filters/ }),
+      ).toHaveCount(0);
+      const listNav = await openYoungSidebar(page);
+      await listNav
+        .getByRole("link", { name: /^(活动列表|Activity list)$/ })
+        .click();
+      await expect(page).toHaveURL(/\/catalog\/young-events$/);
       for (const timeBasis of ["activity", "registration"]) {
         await gotoAndWaitForReady(
           page,
@@ -180,14 +203,27 @@ test("young-event.fixed-browse-filter-options", async ({
     );
     await expect(eventLink(page, fixture, 7)).toContainText("未知模块");
     await expect(eventLink(page, fixture, 7)).toContainText("未知级别");
-    for (const view of ["events", "calendar"]) {
-      const prefix = view === "events" ? "young-event" : "young-calendar";
-      const path = view === "events" ? root : `${root}/calendar`;
+    // The calendar consumes the same filters from the URL but owns no filter UI.
+    await gotoAndWaitForReady(
+      page,
+      `${root}/calendar?${new URLSearchParams({
+        search: fixture.search,
+        module: "未知模块",
+        activityLevel: "未知级别",
+        date: "2035-09-15",
+        view: "day",
+      })}`,
+    );
+    await expect(
+      page.getByRole("button", { name: /更多筛选|More filters/ }),
+    ).toHaveCount(0);
+    {
+      const prefix = "young-event";
+      const path = root;
       const context = {
         search: fixture.search,
         module: "未知模块",
         activityLevel: "未知级别",
-        ...(view === "calendar" ? { date: "2035-09-15", view: "day" } : {}),
       };
       await gotoAndWaitForReady(
         page,
@@ -203,7 +239,7 @@ test("young-event.fixed-browse-filter-options", async ({
       const module = dialog.locator(`#${prefix}-module`);
       const level = dialog.locator(`#${prefix}-activity-level`);
       await page.screenshot({
-        path: testInfo.outputPath(`unknown-filter-context-${view}.png`),
+        path: testInfo.outputPath("unknown-filter-context-events.png"),
       });
       expect(
         await module

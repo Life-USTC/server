@@ -39,7 +39,13 @@ async function renderedPrimitives(root: string) {
     visited.add(filename);
     // Shared components are leaves: a feature must actually render the imported
     // primitive, not merely import another component that happens to import it.
-    if (!filename.endsWith(".svelte") || filename.startsWith("src/lib/"))
+    // CollectionPage is the shared skeleton that renders PageLayout, PageHeader,
+    // Panel, and DetailPageLayout. Follow it so owners are credited for those primitives.
+    if (
+      !filename.endsWith(".svelte") ||
+      (filename.startsWith("src/lib/") &&
+        filename !== "src/lib/components/CollectionPage.svelte")
+    )
       continue;
     const ast = parse(await readFile(filename, "utf8"), {
       filename,
@@ -74,7 +80,6 @@ it("ui.layout-principles-4", async () => {
     "catalog/links",
     "catalog/young-events",
     "catalog/young-events/calendar",
-    "catalog/young-events/[youngId]",
     "catalog/young-events/organizers",
     "catalog/young-events/organizers/[organizerId]",
     "news",
@@ -95,7 +100,6 @@ it("ui.layout-principles-4", async () => {
     "catalog/sections",
     "catalog/young-events",
     "catalog/young-events/calendar",
-    "catalog/young-events/[youngId]",
     "catalog/young-events/organizers",
     "catalog/young-events/organizers/[organizerId]",
     "news",
@@ -133,9 +137,14 @@ it("ui.layout-principles-4", async () => {
     ).toContain("src/lib/components/PageHeader.svelte");
   expect(
     await renderedPrimitives(
+      "src/routes/catalog/young-events/[youngId]/+page.svelte",
+    ),
+  ).toContain("src/lib/components/Panel.svelte");
+  expect(
+    await renderedPrimitives(
       "src/routes/community/users/[identifier]/+page.svelte",
     ),
-  ).toContain("src/lib/components/ui/card");
+  ).toContain("src/lib/components/Panel.svelte");
   for (const root of [
     "homeworks/components/HomeworkDetailDialog",
     "workspace/components/TodoDetailDialog",
@@ -144,20 +153,26 @@ it("ui.layout-principles-4", async () => {
       await renderedPrimitives(`src/features/${root}.svelte`),
       root,
     ).toContain("src/lib/components/ui/dialog");
-  for (const root of [
-    "young/components/YoungBrowseNav",
-    "admin/components/AdminModerationPageController",
-    "publications/components/PublicationSourceDirectoryPage",
-  ])
-    expect(
-      await renderedPrimitives(`src/features/${root}.svelte`),
-      root,
-    ).toContain("src/lib/components/PageSectionNav.svelte");
   expect(
     await renderedPrimitives(
-      "src/features/settings/components/SettingsPageController.svelte",
+      "src/features/publications/components/PublicationSourceDirectoryPage.svelte",
     ),
-  ).toContain("src/lib/components/DetailSectionNav.svelte");
+  ).toContain("src/lib/components/PageSectionNav.svelte");
+  for (const root of [
+    "young/components/YoungEventsPage",
+    "young/components/YoungCalendarPage",
+    "young/components/YoungOrganizersPage",
+    "admin/components/AdminModerationPageController",
+    "settings/components/SettingsPageController",
+  ]) {
+    const primitives = await renderedPrimitives(`src/features/${root}.svelte`);
+    expect(primitives, root).not.toContain(
+      "src/lib/components/PageSectionNav.svelte",
+    );
+    expect(primitives, root).not.toContain(
+      "src/lib/components/DetailSectionNav.svelte",
+    );
+  }
   for (const root of [
     "catalog/components/CoursesFilters",
     "catalog/components/TeachersFilters",
@@ -180,7 +195,6 @@ it("ui.feature-interaction-ownership", async () => {
     "DetailPageLayout",
     "Panel",
     "PageSectionNav",
-    "DetailSectionNav",
     "SearchField",
     "FilterToolbar",
     "ResponsiveCollection",
