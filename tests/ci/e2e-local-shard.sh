@@ -10,6 +10,6 @@ export FUNCTION_OWNER_DATABASE_URL="$database_url"
 export ALLOW_TEST_DATABASE_SETUP=true
 export E2E_REPORT_ROOT="playwright-report/local-parallel/shard-${shard}"
 source tests/ci/setup-runtime-database.sh
-bash tests/ci/e2e-run-shard.sh "${shard}/${shard_total}" \
+exec bunx playwright test --shard="${shard}/${shard_total}" \
   --pass-with-no-tests \
   "$@"

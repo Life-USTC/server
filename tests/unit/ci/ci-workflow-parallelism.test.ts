@@ -145,19 +145,6 @@ describe("CI server test parallelism", () => {
     expect(integrationPhase).toContain(
       "source tests/ci/setup-runtime-database.sh",
     );
-
-    const e2eEntries = ciJobs["test-e2e"]?.strategy?.matrix?.include ?? [];
-    expect(e2eEntries).toHaveLength(8);
-    expect(e2eEntries.map((entry) => entry.shard)).toEqual([
-      "1/8",
-      "2/8",
-      "3/8",
-      "4/8",
-      "5/8",
-      "6/8",
-      "7/8",
-      "8/8",
-    ]);
   });
 
   it("runs eight REST partitions with separate databases and artifacts", async () => {
@@ -186,7 +173,7 @@ describe("CI server test parallelism", () => {
       source.indexOf("ci:rls)"),
     );
     expect(phase).toContain(
-      'bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts',
+      'bunx playwright test --shard="$E2E_SHARD" --config playwright.api.config.ts',
     );
   });
 

@@ -1,14 +1,6 @@
-import {
-  defineConfig,
-  devices,
-  type ReporterDescription,
-} from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 const reportRoot = process.env.E2E_REPORT_ROOT ?? "playwright-report";
-
-const reporters: ReporterDescription[] = process.env.CI
-  ? [["list"], ["blob", { outputDir: `${reportRoot}/blob` }]]
-  : [["list"], ["html", { open: "never", outputFolder: `${reportRoot}/html` }]];
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -26,7 +18,10 @@ export default defineConfig({
   retries: 0,
   // Bound local resource use independently of test-state isolation.
   workers: 1,
-  reporter: reporters,
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: `${reportRoot}/html` }],
+  ],
   snapshotPathTemplate:
     "{testDir}/visual-matrix/snapshots/{arg}{-projectName}{ext}",
   expect: {

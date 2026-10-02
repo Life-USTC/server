@@ -21,7 +21,7 @@ if ! [[ "$e2e_concurrency" =~ ^[1-8]$ ]]; then
   exit 1
 fi
 
-for command in docker bun psql setsid ps; do
+for command in docker bun bunx psql setsid ps; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "$command is required for parallel E2E tests." >&2
     exit 1

@@ -94,7 +94,7 @@ if [[ "${E2E_FIXTURE_MODE}" == early-exit ]]; then
 fi
 EOF
 
-  cat >"$fixture_root/tests/ci/e2e-run-shard.sh" <<'EOF'
+  cat >"$fixture_root/bin/bunx" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 trap 'exit 143' INT TERM
