@@ -1,7 +1,10 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../../utils/auth";
 
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
@@ -124,6 +127,8 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
         ).toHaveCount(0);
         await expect(region.getByText(name, { exact: true })).toHaveCount(0);
         await page.reload({ waitUntil: "domcontentloaded" });
+        await waitForUiSettled(page);
+        await expect(region).toBeVisible();
         await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
         await expect(
           page
