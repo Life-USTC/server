@@ -232,9 +232,12 @@ requirements:
     filters and schedule semester filters are shared only by GraphQL and MCP. The native todo MCP
     includeCompleted flag maps to all versus incomplete records, not a completed-only filter.
   acceptance:
-    given: Three isolated owners, resource-bound OAuth credentials, a restricted database role,
-      overlapping and distinct subscriptions, differing homework completion and an empty workspace.
-    when: Real loopback REST, GraphQL and MCP HTTP requests read each collection with supported
+    given: Each resource has an independent test with a private Worker and database, three isolated
+      owners, resource-bound OAuth credentials and a restricted database role. Catalog-backed
+      resources have overlapping and distinct subscriptions; homework has differing owner completion.
+      Every resource includes an empty workspace.
+    when: The referenced test group runs separate todo, homework, schedule and exam prepared-state
+      consumer cases. Real loopback REST, GraphQL and MCP requests read each collection with supported
       common filters, two-item pages or limits and a limit large enough for the complete fixture.
     then:
     - Ordered identities equal the independently arranged fixture for each owner and filter, including reverse-inserted rows with tied primary sort keys.

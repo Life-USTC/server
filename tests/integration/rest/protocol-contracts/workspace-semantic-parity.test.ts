@@ -1,6 +1,5 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
-import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
 import { createParityTokenSigner } from "./_parity-auth";
 import { nativeEnvelope } from "./_transport";
 
@@ -97,7 +96,12 @@ function createWorkspaceReaders(origin: string) {
     tokens: Tokens,
     filter: Filter,
     expected: Id[],
-    options: { rest?: boolean; mcp?: boolean; completedIds?: string[] } = {},
+    options: {
+      rest?: boolean;
+      mcp?: boolean;
+      completedIds?: string[];
+      todoCounts?: { incomplete: number; completed: number; overdue: number };
+    } = {},
   ) {
     const pageSize = 2;
     const pagedRest = kind === "homework" || kind === "exam";
@@ -115,12 +119,13 @@ function createWorkspaceReaders(origin: string) {
         ids(result.items),
         `${kind} GraphQL page ${page} ${JSON.stringify(filter)}`,
       ).toEqual(expectedPage);
-      expect(result.pageInfo).toEqual({
+      const expectedPageInfo = {
         page,
         pageSize,
         total: expected.length,
         totalPages: pages,
-      });
+      };
+      expect(result.pageInfo).toEqual(expectedPageInfo);
       graphRows.push(...result.items);
       if (useRest && pagedRest) {
         const resultRest = await rest(kind, tokens.rest, {
@@ -129,7 +134,7 @@ function createWorkspaceReaders(origin: string) {
           pageSize,
         });
         expect(ids(resultRest.data)).toEqual(expectedPage);
-        expect(resultRest.pagination).toEqual(result.pageInfo);
+        expect(resultRest.pagination).toEqual(expectedPageInfo);
         if (options.completedIds)
           expect(
             resultRest.data
@@ -155,8 +160,11 @@ function createWorkspaceReaders(origin: string) {
         useRest && !pagedRest
           ? await rest(kind, tokens.rest, { ...filter, limit })
           : undefined;
-      if (resultRest)
+      if (resultRest) {
         expect(ids(resultRest[paths[kind]])).toEqual(expectedPrefix);
+        if (options.todoCounts)
+          expect(resultRest.counts).toEqual(options.todoCounts);
+      }
       if (useMcp) {
         const mcpFilter =
           kind === "todo"
@@ -168,8 +176,8 @@ function createWorkspaceReaders(origin: string) {
           `${kind} MCP ${JSON.stringify(filter)}`,
         ).toEqual(expectedPrefix);
         expect(resultMcp.pagination).toBeUndefined();
-        if (resultRest && kind === "todo")
-          expect(resultMcp.counts).toEqual(resultRest.counts);
+        if (options.todoCounts)
+          expect(resultMcp.counts).toEqual(options.todoCounts);
         if (options.completedIds)
           expect(
             resultMcp[paths[kind]]
@@ -187,352 +195,456 @@ function createWorkspaceReaders(origin: string) {
 }
 
 // Prepared-state read consumers; mutation side effects require separate observations.
-test("interface-hierarchy.workspace-explicit-read-parity", async ({
-  isolatedWorker,
-  run,
-}) =>
-  run(async () => {
-    const db = isolatedWorker.database.owner;
-    const origin = isolatedWorker.origin;
-    const { compare } = createWorkspaceReaders(origin);
-    const signToken = await createParityTokenSigner(isolatedWorker);
-    const fixture = await createCatalogContractFixture(db);
-    const userIds = [0, 1, 2].map(
-      (index) => `workspace-parity-${fixture.marker}-${index}`,
-    );
-    const clientId = `workspace-parity-client-${fixture.marker}`;
-    await db.user.createMany({
-      data: userIds.map((id) => ({ id, email: `${id}@example.test` })),
-    });
-    const scopes = kinds.map((kind) => `workspace.${kind}:read`);
-    const client = await db.oAuthClient.create({
-      data: {
-        clientId,
-        name: "Workspace parity",
-        redirectUris: ["https://example.test/callback"],
-        consents: { create: userIds.map((userId) => ({ userId, scopes })) },
-      },
-      include: { consents: true },
-    });
-    const credentials: Tokens[] = [];
-    for (const userId of userIds) {
-      const grantId = client.consents.find(
-        (consent) => consent.userId === userId,
-      )?.grantId;
-      if (!grantId) throw new Error("Missing fixture consent grant");
-      const tokens = {} as Tokens;
-      for (const [transport, resource] of Object.entries({
-        rest: `${origin}/api/auth`,
-        graphql: `${origin}/api/graphql`,
-        mcp: `${origin}/api/mcp`,
-      })) {
-        const issuedAt = Math.floor(Date.now() / 1000);
-        const token = await signToken({
-          clientId,
-          grantId,
-          userId,
-          scopes,
-          resource,
-          issuedAt,
-          expiresAt: issuedAt + 600,
-        });
-        if (!token) throw new Error("Missing signed access token");
-        tokens[transport as keyof Tokens] = token;
-      }
-      credentials.push(tokens);
-    }
-    const newer = await db.semester.create({
-      data: {
-        jwId: fixture.base + 1,
-        code: `${fixture.marker}-newer`,
-        nameCn: "2030春",
-      },
-    });
-    await db.section.update({
-      where: { id: fixture.sections[1].id },
-      data: { semesterId: newer.id },
-    });
-    const otherSection = await db.section.create({
-      data: {
-        jwId: fixture.base + 2,
-        code: `${fixture.marker}-other`,
-        courseId: fixture.courses[0].id,
-        semesterId: newer.id,
-      },
-    });
-    const sections = [...fixture.sections, otherSection];
-    await db.userSectionSubscription.createMany({
-      data: [
-        { userId: userIds[0], sectionId: sections[0].id },
-        { userId: userIds[0], sectionId: sections[1].id },
-        { userId: userIds[1], sectionId: sections[0].id },
-        { userId: userIds[1], sectionId: sections[2].id },
-      ],
-    });
-    const schedules: Id[][] = [],
-      exams: Id[][] = [],
-      homeworks: string[][] = [];
-    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
-      const sectionId = sections[sectionIndex].id;
-      const group = await db.scheduleGroup.create({
-        data: {
-          jwId: fixture.base + sectionIndex,
-          sectionId,
-          no: 1,
-          limitCount: 10,
-          stdCount: 0,
-          actualPeriods: 2,
-          isDefault: true,
-        },
-      });
-      schedules.push([]);
-      exams.push([]);
-      homeworks.push([]);
-      // Reverse insertion order ensures assertions exercise declared date/time ordering.
-      for (const day of [2, 1]) {
-        const schedule = await db.schedule.create({
-          data: {
-            sectionId,
-            scheduleGroupId: group.id,
-            date: new Date(`2030-01-0${day}T00:00:00Z`),
-            weekday: day + 1,
-            startTime: 800 + sectionIndex * 100,
-            endTime: 850 + sectionIndex * 100,
-            periods: 1,
-            weekIndex: 1,
-            startUnit: 1,
-            endUnit: 1,
-          },
-        });
-        schedules[sectionIndex].unshift(schedule.id);
-        const homework = await db.homework.create({
-          data: {
-            sectionId,
-            title: `${fixture.marker}-${sectionIndex}-${day}`,
-            submissionDueAt: new Date(
-              `2030-01-0${day}T0${sectionIndex + 1}:00:00Z`,
-            ),
-          },
-        });
-        homeworks[sectionIndex].unshift(homework.id);
-      }
-      const exam = await db.exam.create({
-        data: {
-          jwId: fixture.base + sectionIndex,
-          sectionId,
-          examDate: new Date("2030-01-01T00:00:00Z"),
-          startTime: 800 + sectionIndex * 100,
-          endTime: 900 + sectionIndex * 100,
-        },
-      });
-      exams[sectionIndex].push(exam.id);
-    }
-    const unknown = await db.exam.create({
-      data: {
-        jwId: fixture.base + 3,
-        sectionId: sections[0].id,
-        examDate: null,
-      },
-    });
-    await db.homeworkCompletion.createMany({
-      data: [
-        { userId: userIds[0], homeworkId: homeworks[0][0] },
-        { userId: userIds[1], homeworkId: homeworks[0][1] },
-      ],
-    });
-    const todos: string[][] = [];
-    for (const userId of userIds.slice(0, 2)) {
-      const rows = [];
-      for (const [suffix, dueAt, completed, priority] of [
-        ["completed", "2030-01-01T00:00:00Z", true, "low"],
-        ["undated", null, false, "medium"],
-        ["later", "2030-01-02T00:00:00Z", false, "low"],
-        ["earlier", "2030-01-01T00:00:00Z", false, "high"],
-      ] as const)
-        rows.push(
-          await db.todo.create({
-            data: {
-              userId,
-              title: `${fixture.marker}-${suffix}`,
-              dueAt: dueAt ? new Date(dueAt) : null,
-              completed,
-              priority,
-            },
-          }),
+test.describe("interface-hierarchy.workspace-explicit-read-parity", () => {
+  for (const kind of kinds)
+    test(`${kind} prepared-state consumers`, async ({ isolatedWorker, run }) =>
+      run(async () => {
+        const db = isolatedWorker.database.owner;
+        const origin = isolatedWorker.origin;
+        const { compare } = createWorkspaceReaders(origin);
+        const signToken = await createParityTokenSigner(isolatedWorker);
+        const fixture = {
+          marker: `workspace-${crypto.randomUUID().slice(0, 8)}`,
+          base: 1600000000 + Math.floor(Math.random() * 100000000),
+        };
+        const userIds = [0, 1, 2].map(
+          (index) => `workspace-parity-${fixture.marker}-${index}`,
         );
-      todos.push([rows[3].id, rows[2].id, rows[1].id, rows[0].id]);
-    }
-    for (let owner = 0; owner < 2; owner++) {
-      const token = credentials[owner];
-      const distinct = owner + 1;
-      const homeworkIds = [
-        homeworks[0][0],
-        homeworks[distinct][0],
-        homeworks[0][1],
-        homeworks[distinct][1],
-      ];
-      const completedIds = [homeworks[0][owner]];
-      const scheduleIds = [
-        schedules[0][0],
-        schedules[distinct][0],
-        schedules[0][1],
-        schedules[distinct][1],
-      ];
-      await compare("todo", token, {}, todos[owner]);
-      await compare(
-        "todo",
-        token,
-        { completed: false },
-        todos[owner].slice(0, 3),
-      );
-      await compare("todo", token, { completed: true }, todos[owner].slice(3), {
-        mcp: false,
-      });
-      await compare(
-        "todo",
-        token,
-        {
-          priority: "high",
-          dueAfter: "2030-01-01T00:00:00Z",
-          dueBefore: "2030-01-02T00:00:00Z",
-        },
-        todos[owner].slice(0, 1),
-        { mcp: false },
-      );
-      await compare("homework", token, {}, homeworkIds, { completedIds });
-      await compare("homework", token, { completed: true }, completedIds, {
-        rest: false,
-        completedIds,
-      });
-      await compare(
-        "homework",
-        token,
-        { completed: false },
-        homeworkIds.filter((id) => !completedIds.includes(id)),
-        { rest: false, completedIds },
-      );
-      await compare(
-        "homework",
-        token,
-        { semesterId: newer.id },
-        homeworks[distinct],
-        { rest: false, completedIds },
-      );
-      await compare("schedule", token, {}, scheduleIds);
-      await compare(
-        "schedule",
-        token,
-        {
-          dateFrom: "2030-01-01T00:00:00Z",
-          dateTo: "2030-01-01T00:00:00Z",
-          weekday: 2,
-        },
-        scheduleIds.slice(0, 2),
-      );
-      await compare(
-        "schedule",
-        token,
-        { semesterId: newer.id },
-        schedules[distinct],
-        { rest: false },
-      );
-      await compare("exam", token, { includeDateUnknown: true }, [
-        exams[0][0],
-        exams[distinct][0],
-        unknown.id,
-      ]);
-      await compare(
-        "exam",
-        token,
-        {
-          dateFrom: "2030-01-01T00:00:00Z",
-          dateTo: "2030-01-01T00:00:00Z",
-          includeDateUnknown: false,
-        },
-        [exams[0][0], exams[distinct][0]],
-      );
-      await compare(
-        "exam",
-        token,
-        { semesterId: newer.id, includeDateUnknown: true },
-        exams[distinct],
-      );
-      await compare(
-        "exam",
-        token,
-        {
-          dateFrom: "2030-01-02T00:00:00Z",
-          dateTo: "2030-01-02T00:00:00Z",
-          includeDateUnknown: true,
-        },
-        [unknown.id],
-      );
-      await compare(
-        "exam",
-        token,
-        {
-          dateFrom: "2030-01-02T00:00:00Z",
-          dateTo: "2030-01-02T00:00:00Z",
-          includeDateUnknown: false,
-        },
-        [],
-      );
-    }
-    for (const kind of kinds) await compare(kind, credentials[2], {}, []);
-    await db.userSectionSubscription.create({
-      data: { userId: userIds[2], sectionId: sections[0].id },
-    });
-    const sectionId = sections[0].id;
-    const group = await db.scheduleGroup.findFirstOrThrow({
-      where: { sectionId },
-    });
-    await db.homework.deleteMany({ where: { sectionId } });
-    await db.schedule.deleteMany({ where: { sectionId } });
-    await db.exam.deleteMany({ where: { sectionId } });
-    const tied = {
-      todo: [] as Id[],
-      homework: [] as Id[],
-      schedule: [] as Id[],
-      exam: [] as Id[],
-    };
-    const at = new Date("2030-01-01T00:00:00Z");
-    for (const offset of [15, 14, 13, 12, 11, 10]) {
-      const id = `${fixture.marker}-tie-${offset}`;
-      const todo = await db.todo.create({
-        data: { id, title: id, userId: userIds[2], dueAt: at, createdAt: at },
-      });
-      const homework = await db.homework.create({
-        data: { id, title: id, sectionId, submissionDueAt: at, createdAt: at },
-      });
-      const schedule = await db.schedule.create({
-        data: {
-          id: fixture.base + offset,
-          sectionId,
-          scheduleGroupId: group.id,
-          date: at,
-          weekday: 2,
-          startTime: 800,
-          endTime: 900,
-          periods: 1,
-          weekIndex: 1,
-          startUnit: 1,
-          endUnit: 1,
-        },
-      });
-      const exam = await db.exam.create({
-        data: {
-          jwId: fixture.base + offset,
-          sectionId,
-          examDate: at,
-          startTime: 800,
-          endTime: 900,
-        },
-      });
-      tied.todo.unshift(todo.id);
-      tied.homework.unshift(homework.id);
-      tied.schedule.unshift(schedule.id);
-      tied.exam.unshift(exam.id);
-    }
-    for (const kind of kinds)
-      await compare(kind, credentials[2], {}, tied[kind]);
-  }));
+        const clientId = `workspace-parity-client-${fixture.marker}`;
+        await db.user.createMany({
+          data: userIds.map((id) => ({ id, email: `${id}@example.test` })),
+        });
+        const scopes = [`workspace.${kind}:read`];
+        const client = await db.oAuthClient.create({
+          data: {
+            clientId,
+            name: "Workspace parity",
+            redirectUris: ["https://example.test/callback"],
+            consents: { create: userIds.map((userId) => ({ userId, scopes })) },
+          },
+          include: { consents: true },
+        });
+        const credentials: Tokens[] = [];
+        for (const userId of userIds) {
+          const grantId = client.consents.find(
+            (consent) => consent.userId === userId,
+          )?.grantId;
+          if (!grantId) throw new Error("Missing fixture consent grant");
+          const tokens = {} as Tokens;
+          for (const [transport, resource] of Object.entries({
+            rest: `${origin}/api/auth`,
+            graphql: `${origin}/api/graphql`,
+            mcp: `${origin}/api/mcp`,
+          })) {
+            const issuedAt = Math.floor(Date.now() / 1000);
+            const token = await signToken({
+              clientId,
+              grantId,
+              userId,
+              scopes,
+              resource,
+              issuedAt,
+              expiresAt: issuedAt + 600,
+            });
+            if (!token) throw new Error("Missing signed access token");
+            tokens[transport as keyof Tokens] = token;
+          }
+          credentials.push(tokens);
+        }
+        const semesters = [];
+        const sections = [];
+        if (kind !== "todo") {
+          for (const offset of [0, 1])
+            semesters.push(
+              await db.semester.create({
+                data: {
+                  jwId: fixture.base + offset,
+                  code: `${fixture.marker}-${offset}`,
+                  nameCn: offset ? "2030春" : "2029秋",
+                },
+              }),
+            );
+          const course = await db.course.create({
+            data: {
+              jwId: fixture.base,
+              code: fixture.marker,
+              nameCn: "工作区读取契约课程",
+            },
+          });
+          for (const offset of [0, 1, 2])
+            sections.push(
+              await db.section.create({
+                data: {
+                  jwId: fixture.base + offset,
+                  code: `${fixture.marker}-${offset}`,
+                  courseId: course.id,
+                  semesterId: semesters[offset === 0 ? 0 : 1].id,
+                },
+              }),
+            );
+          await db.userSectionSubscription.createMany({
+            data: [
+              { userId: userIds[0], sectionId: sections[0].id },
+              { userId: userIds[0], sectionId: sections[1].id },
+              { userId: userIds[1], sectionId: sections[0].id },
+              { userId: userIds[1], sectionId: sections[2].id },
+            ],
+          });
+        }
+        const newer = semesters[1];
+        const schedules: Id[][] = [],
+          exams: Id[][] = [],
+          homeworks: string[][] = [];
+        for (
+          let sectionIndex = 0;
+          sectionIndex < sections.length;
+          sectionIndex++
+        ) {
+          const sectionId = sections[sectionIndex].id;
+          const group =
+            kind === "schedule"
+              ? await db.scheduleGroup.create({
+                  data: {
+                    jwId: fixture.base + sectionIndex,
+                    sectionId,
+                    no: 1,
+                    limitCount: 10,
+                    stdCount: 0,
+                    actualPeriods: 2,
+                    isDefault: true,
+                  },
+                })
+              : undefined;
+          schedules.push([]);
+          exams.push([]);
+          homeworks.push([]);
+          // Reverse insertion order ensures assertions exercise declared date/time ordering.
+          for (const day of [2, 1]) {
+            if (group) {
+              const schedule = await db.schedule.create({
+                data: {
+                  sectionId,
+                  scheduleGroupId: group.id,
+                  date: new Date(`2030-01-0${day}T00:00:00Z`),
+                  weekday: day + 1,
+                  startTime: 800 + sectionIndex * 100,
+                  endTime: 850 + sectionIndex * 100,
+                  periods: 1,
+                  weekIndex: 1,
+                  startUnit: 1,
+                  endUnit: 1,
+                },
+              });
+              schedules[sectionIndex].unshift(schedule.id);
+            }
+            if (kind === "homework") {
+              const homework = await db.homework.create({
+                data: {
+                  sectionId,
+                  title: `${fixture.marker}-${sectionIndex}-${day}`,
+                  submissionDueAt: new Date(
+                    `2030-01-0${day}T0${sectionIndex + 1}:00:00Z`,
+                  ),
+                },
+              });
+              homeworks[sectionIndex].unshift(homework.id);
+            }
+          }
+          if (kind === "exam") {
+            const exam = await db.exam.create({
+              data: {
+                jwId: fixture.base + sectionIndex,
+                sectionId,
+                examDate: new Date("2030-01-01T00:00:00Z"),
+                startTime: 800 + sectionIndex * 100,
+                endTime: 900 + sectionIndex * 100,
+              },
+            });
+            exams[sectionIndex].push(exam.id);
+          }
+        }
+        const unknown =
+          kind === "exam"
+            ? await db.exam.create({
+                data: {
+                  jwId: fixture.base + 3,
+                  sectionId: sections[0].id,
+                  examDate: null,
+                },
+              })
+            : undefined;
+        if (kind === "homework")
+          await db.homeworkCompletion.createMany({
+            data: [
+              { userId: userIds[0], homeworkId: homeworks[0][0] },
+              { userId: userIds[1], homeworkId: homeworks[0][1] },
+            ],
+          });
+        const todos: string[][] = [];
+        if (kind === "todo")
+          for (const userId of userIds.slice(0, 2)) {
+            const rows = [];
+            for (const [suffix, dueAt, completed, priority] of [
+              ["completed", "2030-01-01T00:00:00Z", true, "low"],
+              ["undated", null, false, "medium"],
+              ["later", "2030-01-02T00:00:00Z", false, "low"],
+              ["earlier", "2030-01-01T00:00:00Z", false, "high"],
+            ] as const)
+              rows.push(
+                await db.todo.create({
+                  data: {
+                    userId,
+                    title: `${fixture.marker}-${suffix}`,
+                    dueAt: dueAt ? new Date(dueAt) : null,
+                    completed,
+                    priority,
+                  },
+                }),
+              );
+            todos.push([rows[3].id, rows[2].id, rows[1].id, rows[0].id]);
+          }
+        const todoCounts = {
+          incomplete: 3,
+          completed: 1,
+          overdue: ["2030-01-01T00:00:00Z", "2030-01-02T00:00:00Z"].filter(
+            (at) => Date.parse(at) < Date.now(),
+          ).length,
+        };
+        for (let owner = 0; owner < 2; owner++) {
+          const token = credentials[owner];
+          const distinct = owner + 1;
+          if (kind === "todo") {
+            await compare("todo", token, {}, todos[owner], { todoCounts });
+            await compare(
+              "todo",
+              token,
+              { completed: false },
+              todos[owner].slice(0, 3),
+              { todoCounts },
+            );
+            await compare(
+              "todo",
+              token,
+              { completed: true },
+              todos[owner].slice(3),
+              {
+                mcp: false,
+                todoCounts,
+              },
+            );
+            await compare(
+              "todo",
+              token,
+              {
+                priority: "high",
+                dueAfter: "2030-01-01T00:00:00Z",
+                dueBefore: "2030-01-02T00:00:00Z",
+              },
+              todos[owner].slice(0, 1),
+              { mcp: false, todoCounts },
+            );
+          }
+          if (kind === "homework") {
+            const homeworkIds = [
+              homeworks[0][0],
+              homeworks[distinct][0],
+              homeworks[0][1],
+              homeworks[distinct][1],
+            ];
+            const completedIds = [homeworks[0][owner]];
+            await compare("homework", token, {}, homeworkIds, { completedIds });
+            await compare(
+              "homework",
+              token,
+              { completed: true },
+              completedIds,
+              {
+                rest: false,
+                completedIds,
+              },
+            );
+            await compare(
+              "homework",
+              token,
+              { completed: false },
+              homeworkIds.filter((id) => !completedIds.includes(id)),
+              { rest: false, completedIds },
+            );
+            await compare(
+              "homework",
+              token,
+              { semesterId: newer.id },
+              homeworks[distinct],
+              { rest: false, completedIds },
+            );
+          }
+          if (kind === "schedule") {
+            const scheduleIds = [
+              schedules[0][0],
+              schedules[distinct][0],
+              schedules[0][1],
+              schedules[distinct][1],
+            ];
+            await compare("schedule", token, {}, scheduleIds);
+            await compare(
+              "schedule",
+              token,
+              {
+                dateFrom: "2030-01-01T00:00:00Z",
+                dateTo: "2030-01-01T00:00:00Z",
+                weekday: 2,
+              },
+              scheduleIds.slice(0, 2),
+            );
+            await compare(
+              "schedule",
+              token,
+              { semesterId: newer.id },
+              schedules[distinct],
+              { rest: false },
+            );
+          }
+          if (kind === "exam") {
+            if (!unknown) throw new Error("Missing undated exam fixture");
+            await compare("exam", token, { includeDateUnknown: true }, [
+              exams[0][0],
+              exams[distinct][0],
+              unknown.id,
+            ]);
+            await compare(
+              "exam",
+              token,
+              {
+                dateFrom: "2030-01-01T00:00:00Z",
+                dateTo: "2030-01-01T00:00:00Z",
+                includeDateUnknown: false,
+              },
+              [exams[0][0], exams[distinct][0]],
+            );
+            await compare(
+              "exam",
+              token,
+              { semesterId: newer.id, includeDateUnknown: true },
+              exams[distinct],
+            );
+            await compare(
+              "exam",
+              token,
+              {
+                dateFrom: "2030-01-02T00:00:00Z",
+                dateTo: "2030-01-02T00:00:00Z",
+                includeDateUnknown: true,
+              },
+              [unknown.id],
+            );
+            await compare(
+              "exam",
+              token,
+              {
+                dateFrom: "2030-01-02T00:00:00Z",
+                dateTo: "2030-01-02T00:00:00Z",
+                includeDateUnknown: false,
+              },
+              [],
+            );
+          }
+        }
+        await compare(kind, credentials[2], {}, [], {
+          todoCounts:
+            kind === "todo"
+              ? { incomplete: 0, completed: 0, overdue: 0 }
+              : undefined,
+        });
+        if (kind !== "todo") {
+          await db.userSectionSubscription.create({
+            data: { userId: userIds[2], sectionId: sections[0].id },
+          });
+          const sectionId = sections[0].id;
+          if (kind === "homework")
+            await db.homework.deleteMany({ where: { sectionId } });
+          if (kind === "schedule")
+            await db.schedule.deleteMany({ where: { sectionId } });
+          if (kind === "exam")
+            await db.exam.deleteMany({ where: { sectionId } });
+        }
+        const group =
+          kind === "schedule"
+            ? await db.scheduleGroup.findFirstOrThrow({
+                where: { sectionId: sections[0].id },
+              })
+            : undefined;
+        const tied: Id[] = [];
+        const at = new Date("2030-01-01T00:00:00Z");
+        for (const offset of [15, 14, 13, 12, 11, 10]) {
+          const id = `${fixture.marker}-tie-${offset}`;
+          if (kind === "todo") {
+            const todo = await db.todo.create({
+              data: {
+                id,
+                title: id,
+                userId: userIds[2],
+                dueAt: at,
+                createdAt: at,
+              },
+            });
+            tied.unshift(todo.id);
+          }
+          if (kind === "homework") {
+            const sectionId = sections[0].id;
+            const homework = await db.homework.create({
+              data: {
+                id,
+                title: id,
+                sectionId,
+                submissionDueAt: at,
+                createdAt: at,
+              },
+            });
+            tied.unshift(homework.id);
+          }
+          if (kind === "schedule") {
+            const sectionId = sections[0].id;
+            if (!group) throw new Error("Missing schedule group fixture");
+            const schedule = await db.schedule.create({
+              data: {
+                id: fixture.base + offset,
+                sectionId,
+                scheduleGroupId: group.id,
+                date: at,
+                weekday: 2,
+                startTime: 800,
+                endTime: 900,
+                periods: 1,
+                weekIndex: 1,
+                startUnit: 1,
+                endUnit: 1,
+              },
+            });
+            tied.unshift(schedule.id);
+          }
+          if (kind === "exam") {
+            const sectionId = sections[0].id;
+            const exam = await db.exam.create({
+              data: {
+                jwId: fixture.base + offset,
+                sectionId,
+                examDate: at,
+                startTime: 800,
+                endTime: 900,
+              },
+            });
+            tied.unshift(exam.id);
+          }
+        }
+        await compare(kind, credentials[2], {}, tied, {
+          todoCounts:
+            kind === "todo"
+              ? {
+                  incomplete: 6,
+                  completed: 0,
+                  overdue: at.getTime() < Date.now() ? 6 : 0,
+                }
+              : undefined,
+        });
+      }));
+});
