@@ -1,7 +1,8 @@
-import { expect, type Page, type Request } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-browser-fixture";
 import type { CommunityFlow } from "../../../utils/community-flow";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { observeAction } from "../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -129,42 +130,33 @@ async function verifyHistory(
       }
       await gotoAndWaitForReady(page, `${route}?sectionsPage=2#sections`);
       const viewerPath = `/_internal/catalog/sections/${sectionBase + 22}/viewer`;
-      const viewerRequests: Request[] = [];
-      const observeViewer = (request: Request) => {
-        if (
-          request.method() !== "GET" ||
-          new URL(request.url()).pathname !== viewerPath
-        )
-          return;
-        viewerRequests.push(request);
-        // Client navigation refreshes the anonymous shell, replacing the first
-        // section controller. Require its actual abort and a successful successor.
-        if (viewerRequests.length === 1)
-          flow.expectReadCancellation(page, request);
-      };
-      page.on("request", observeViewer);
-      try {
-        await page
-          .locator(
-            `#sections a[href="/catalog/sections/${sectionBase + 22}"]:visible`,
-          )
-          .first()
-          .click();
-        await expect(page).toHaveURL(
-          new RegExp(`/catalog/sections/${sectionBase + 22}$`),
-        );
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-        await expect(
-          page.getByTestId("section-mobile-primary-actions"),
-        ).toBeVisible();
-        await waitForUiSettled(page);
-        expect(viewerRequests).toHaveLength(2);
-        const successor = await viewerRequests[1].response();
-        expect(successor?.status()).toBe(200);
-        await successor?.body();
-      } finally {
-        page.off("request", observeViewer);
-      }
+      // Client navigation reads the destination section viewer. Observe that
+      // actual read before clicking and require it to complete successfully.
+      const viewerResponse = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              response.request().method() === "GET" &&
+              new URL(response.url()).pathname === viewerPath,
+          ),
+        () =>
+          page
+            .locator(
+              `#sections a[href="/catalog/sections/${sectionBase + 22}"]:visible`,
+            )
+            .first()
+            .click(),
+      );
+      expect(viewerResponse.status()).toBe(200);
+      await viewerResponse.body();
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/sections/${sectionBase + 22}$`),
+      );
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(
+        page.getByTestId("section-mobile-primary-actions"),
+      ).toBeVisible();
+      await waitForUiSettled(page);
     },
     { anonymousCourseCount: 1 },
     {
