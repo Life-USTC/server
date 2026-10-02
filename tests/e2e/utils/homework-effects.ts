@@ -167,6 +167,11 @@ export async function withHomeworkEffects(
           `Worker completed ${owned.method} ${owned.path}${status === undefined ? " (no browser response)" : ` (${status})`}`,
         ).toBeGreaterThanOrEqual(0);
         const [native] = unmatched.splice(index, 1);
+        if (owned.canceled)
+          expect(
+            native.result,
+            `Canceled Worker read ${owned.method} ${owned.path}`,
+          ).toBeLessThan(500);
         // A public cache miss renders through a second Worker entrypoint. It
         // belongs to this exact outer request, not a second browser request.
         const publicSsr = unmatched.filter(

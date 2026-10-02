@@ -316,6 +316,11 @@ export async function withPreferenceFlow(
           for (const request of observation.requests) {
             expect(request.outcome).toBe("fulfilled");
             expect(request.result).toEqual(expect.any(Number));
+            if (["GET", "HEAD"].includes(request.value.method))
+              expect(
+                request.result,
+                `Worker read ${request.value.method} ${request.value.path}`,
+              ).toBeLessThan(500);
           }
           const after = await state();
           if (before && completed) {
