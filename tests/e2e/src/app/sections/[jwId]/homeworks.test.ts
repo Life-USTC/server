@@ -21,7 +21,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { test } from "../../../../utils/section-homework-fixture";
 import {
   escapeForRegExp,
@@ -35,7 +34,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     section,
     homeworks,
-  }, testInfo) => {
+  }) => {
     await sectionRun(async ({ headers }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       const localeResponse = await page.request.post(
@@ -97,12 +96,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/homework-style-guide-create-mobile",
-      );
-
       await page.keyboard.press("Escape");
       await expect(createDialog).toHaveCount(0);
 
@@ -128,12 +121,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(editGuide).toBeVisible();
       await expect(editGuide).toContainText("第{N}次作业");
       await expect(editGuide.locator("pre")).toContainText("- 题目：...");
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/homework-style-guide-edit-mobile",
-      );
-
       const saveButton = detailDialog.getByRole("button", {
         name: /保存修改|Save changes/i,
       });
@@ -246,7 +233,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     section,
     homeworks: _homeworks,
-  }, testInfo) => {
+  }) => {
     await sectionRun(async () => {
       await page.context().clearCookies();
       await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
@@ -272,7 +259,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
-      await captureStepScreenshot(page, testInfo, "section/homework-list-view");
     });
   });
 
@@ -281,7 +267,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     page,
     section,
     homeworks,
-  }, testInfo) => {
+  }) => {
     await sectionRun(async () => {
       await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
 
@@ -297,7 +283,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expectHomeworkDetailOrder(dialog);
       await expectSingleColumnDiscussion(dialog);
       await expect(dialog.getByText(/评论|Comments/i).first()).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "section/homework-discuss");
       await expectComfortablePopupWidth(page, dialog);
       await expectIconOnlyCloseButton(dialog);
       await closeDetailDialog(page, dialog);
@@ -336,7 +321,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     section,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await sectionRun(
       async () => {
         const db = isolatedWorker.database.owner;
@@ -397,7 +382,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
         // homework.title is displayed
         await expect(hwCard.getByText(title)).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "section/homework-created");
         expect(
           await readHomeworkCompletion(db, account.id, homeworkId),
         ).toBeNull();
@@ -415,7 +399,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     section,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await sectionRun(
       async () => {
         const db = isolatedWorker.database.owner;
@@ -502,12 +486,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         await expect(completionButton).toHaveAccessibleName(
           /取消完成|Mark as incomplete/i,
         );
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "section/homework-completion-toggled",
-        );
-
         await expect(reminder).toHaveCount(0);
         expect(
           await readHomeworkCompletion(db, account.id, homeworkId),
@@ -593,7 +571,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     section,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await sectionRun(
       async () => {
         const db = isolatedWorker.database.owner;
@@ -708,11 +686,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         await expect(deadlineSummary).not.toContainText(
           /Team required|需要组队/i,
         );
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "section/homework-edited-full-fields",
-        );
         await page.reload({ waitUntil: "domcontentloaded" });
         await waitForUiSettled(page);
         await hwCard.click();
@@ -737,7 +710,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     section,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await sectionRun(async () => {
       test.setTimeout(60_000);
 
@@ -781,11 +754,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await expect(targetComment).toBeVisible();
       await expect(targetComment.getByText(body)).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/homework-comment-permalink",
-      );
       expect(await readHomeworks(db, section.id)).toEqual(before);
       expect(await db.comment.findUnique({ where: { id: commentId } })).toEqual(
         comment,

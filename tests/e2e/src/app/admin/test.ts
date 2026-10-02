@@ -13,7 +13,6 @@ import {
 } from "../../../utils/admin-fixture";
 import { expectRequiresSignIn } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 
 const test = adminTest.extend<{
   records: { user: string; comment: string; oauth: string; bus: string };
@@ -84,23 +83,21 @@ function adminPrimaryNav(page: import("@playwright/test").Page) {
   });
 }
 
-test("/admin 未登录重定向到登录页", async ({ page }, testInfo) => {
+test("/admin 未登录重定向到登录页", async ({ page }) => {
   await expectRequiresSignIn(page, "/admin", {
     providers: ["ustc", "github", "google"],
   });
-  await captureStepScreenshot(page, testInfo, "admin/unauthorized");
 });
 
 test("/admin 普通用户访问返回 403", async ({
   pageRun,
   page,
   account: _account,
-}, testInfo) => {
+}) => {
   await pageRun(
     async () => {
       await gotoAndWaitForReady(page, "/admin");
       await expect(page.locator("h1")).toHaveText("403");
-      await captureStepScreenshot(page, testInfo, "admin/403");
     },
     async () => {
       throw new Error("Read-only authorization case submitted a browser write");
@@ -113,14 +110,13 @@ test("/admin 重定向到用户管理", async ({
   run,
   page,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
         await gotoAndWaitForReady(page, "/admin");
         await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
         await expect(page.getByTestId("admin-workspace")).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "admin/redirect-users");
       },
       {},
       adminWriteChecks([]),
@@ -162,7 +158,7 @@ test("admin.primary-admin-navigation", async ({
   run,
   page,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -185,11 +181,14 @@ test("admin.primary-admin-navigation", async ({
 
           const navigation = adminPrimaryNav(page);
           const adminLinks = navigation.locator('a[href^="/admin"]');
-          await expect(adminLinks).toHaveCount(4);
-          await expect(navigation.getByRole("link", { name })).toHaveAttribute(
-            "aria-current",
-            "page",
+          await expect(adminLinks).toHaveCount(
+            path === "/admin/moderation" ? 8 : 4,
           );
+          const currentName =
+            path === "/admin/moderation" ? /^(评论|Comments)$/ : name;
+          await expect(
+            navigation.getByRole("link", { name: currentName }),
+          ).toHaveAttribute("aria-current", "page");
           await expect(
             navigation.locator('a[aria-current="page"]'),
           ).toHaveCount(1);
@@ -199,7 +198,6 @@ test("admin.primary-admin-navigation", async ({
         }
 
         await expect(page.getByTestId("admin-navigation")).toHaveCount(0);
-        await captureStepScreenshot(page, testInfo, "admin/primary-navigation");
       },
       {},
       adminWriteChecks([]),
@@ -212,7 +210,7 @@ test("/admin 主导航支持键盘切换", async ({
   run,
   page,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -231,12 +229,7 @@ test("/admin 主导航支持键盘切换", async ({
         await expect(page).toHaveURL(/\/admin\/moderation(?:\?.*)?$/);
         await expect(
           navigation.locator('a[aria-current="page"]'),
-        ).toHaveAttribute("href", "/admin/moderation");
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin/navigation-keyboard",
-        );
+        ).toHaveAttribute("href", "/admin/moderation?tab=comments");
       },
       {},
       adminWriteChecks([]),
@@ -249,7 +242,7 @@ test("/admin 主导航可跳转到各管理工具", async ({
   run,
   page,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -265,25 +258,21 @@ test("/admin 主导航可跳转到各管理工具", async ({
           {
             name: /OAuth|OAuth 客户端/i,
             url: /\/admin\/oauth(?:\?.*)?$/,
-            shot: "admin/navigate-oauth",
           },
           {
             name: /校车管理|Bus Management/i,
             url: /\/admin\/bus(?:\?.*)?$/,
-            shot: "admin/navigate-bus",
           },
           {
             name: /用户管理|User Management/i,
             url: /\/admin\/users(?:\?.*)?$/,
-            shot: "admin/navigate-users",
           },
         ] as const;
 
-        for (const { name, url, shot } of hops) {
+        for (const { name, url } of hops) {
           const link = navigation.getByRole("link", { name });
           await expect(link).toBeVisible();
           await Promise.all([page.waitForURL(url), link.click()]);
-          await captureStepScreenshot(page, testInfo, shot);
         }
       },
       {},
@@ -329,7 +318,7 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
           const panel = page.getByTestId("admin-mobile-navigation-panel");
           await expect(panel).toBeVisible();
           await expect(panel.getByRole("link", { name })).toBeVisible();
-          await expect(panel.getByRole("link", { name: /./ })).toHaveCount(4);
+          await expect(panel.getByRole("link", { name: /./ })).toHaveCount(8);
           await panel.getByRole("link", { name }).click();
           await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
         }
@@ -340,7 +329,7 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, admin: _admin }, testInfo) => {
+test("页面契约", async ({ adminFlow, run, page, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -349,7 +338,6 @@ test("页面契约", async ({ adminFlow, run, page, admin: _admin }, testInfo) =
           expectMeaningfulContent: true,
           expectNoHorizontalOverflow: true,
           uiQuality: {},
-          testInfo,
         });
         expect(response?.ok()).toBe(true);
         await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
@@ -374,7 +362,7 @@ test("admin.responsive-workspace", async ({
   run,
   page,
   records,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -485,11 +473,6 @@ test("admin.responsive-workspace", async ({
                 recordGeometry.top,
               );
             }
-            await captureStepScreenshot(
-              page,
-              testInfo,
-              `admin-responsive-${desktop ? "desktop" : "mobile"}-${entry.path.split("/").at(-1)}`,
-            );
           }
         }
       },

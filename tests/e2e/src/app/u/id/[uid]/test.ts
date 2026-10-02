@@ -20,10 +20,9 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../../utils/account-fixture";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../../utils/screenshot";
 
 test.describe("/community/users/[identifier] by ID", () => {
-  test("页面契约", async ({ accountRun, page, account }, testInfo) => {
+  test("页面契约", async ({ accountRun, page, account }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.context().clearCookies();
       const response = await gotoAndWaitForReady(
@@ -34,7 +33,6 @@ test.describe("/community/users/[identifier] by ID", () => {
           expectMeaningfulContent: true,
           expectNoHorizontalOverflow: true,
           uiQuality: {},
-          testInfo,
         },
       );
       expect(response?.status()).toBe(200);
@@ -45,7 +43,6 @@ test.describe("/community/users/[identifier] by ID", () => {
       await expect(
         page.getByText(`@${account.username}`, { exact: true }),
       ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "u-username");
     });
   });
 
@@ -54,7 +51,7 @@ test.describe("/community/users/[identifier] by ID", () => {
     page,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await isolatedWorker.database.owner.user.update({
         where: { id: account.id },
@@ -79,8 +76,6 @@ test.describe("/community/users/[identifier] by ID", () => {
           .getByRole("img", { name: account.name, exact: true }),
       ).toBeVisible();
       await expect(page.getByText(/加入时间|Joined/i).first()).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "u-id/canonical-profile");
       return async () => {
         expect(
           await isolatedWorker.database.owner.user.findUniqueOrThrow({
@@ -101,7 +96,7 @@ test.describe("/community/users/[identifier] by ID", () => {
     page,
     account,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await isolatedWorker.database.owner.user.update({
         where: { id: account.id },
@@ -122,7 +117,6 @@ test.describe("/community/users/[identifier] by ID", () => {
       );
       await expect(page.getByText(account.name).first()).toBeVisible();
       await expect(page.getByText(account.id, { exact: true })).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "u-id/no-username");
       return async () => {
         expect(
           await isolatedWorker.database.owner.user.findUniqueOrThrow({
@@ -137,7 +131,7 @@ test.describe("/community/users/[identifier] by ID", () => {
     accountRun,
     page,
     account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.context().clearCookies();
       await page.setViewportSize({ width: 390, height: 844 });
@@ -190,17 +184,14 @@ test.describe("/community/users/[identifier] by ID", () => {
       await expect(
         page.locator("[data-profile-contribution-detail]"),
       ).toHaveText(lastLabel ?? "");
-      await captureStepScreenshot(page, testInfo, "u-profile/heatmap-mobile");
-
       await page.setViewportSize({ width: 1280, height: 900 });
       await gotoAndWaitForReady(page, `/community/users/${account.username}`);
       const desktopCellBox = await cells.first().boundingBox();
       expect(desktopCellBox?.width).toBeGreaterThanOrEqual(15);
-      await captureStepScreenshot(page, testInfo, "u-profile/heatmap-desktop");
     });
   });
 
-  test("不存在的用户 ID 返回 404", async ({ page }, testInfo) => {
+  test("不存在的用户 ID 返回 404", async ({ page }) => {
     await gotoAndWaitForReady(page, "/community/users/non-existing-user-id", {
       expectMainContent: false,
     });
@@ -208,6 +199,5 @@ test.describe("/community/users/[identifier] by ID", () => {
     await expect(
       page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
     ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "u-id/404");
   });
 });

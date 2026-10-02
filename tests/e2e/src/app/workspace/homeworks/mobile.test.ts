@@ -2,7 +2,6 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -11,17 +10,14 @@ test.describe("仪表盘作业", () => {
     page,
     homeworks: _homeworks,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         await page.addInitScript(() => {
           localStorage.removeItem("life-ustc-workspace-view-mode");
         });
         await page.setViewportSize({ width: 390, height: 844 });
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks-mobile-toolbar",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         const incomplete = page
           .getByRole("radio", { name: /未完成|Incomplete/i })
@@ -76,8 +72,6 @@ test.describe("仪表盘作业", () => {
             () => document.documentElement.scrollWidth <= window.innerWidth,
           ),
         ).toBe(true);
-
-        await captureStepScreenshot(page, testInfo, "homeworks/mobile-toolbar");
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );

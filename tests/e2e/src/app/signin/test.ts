@@ -25,7 +25,6 @@ import {
 } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { signInThroughDevButton, test } from "../../../utils/signin-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -83,19 +82,16 @@ async function expectSignedOutAfterMenuClick(page: Page) {
   ).toBeVisible();
 }
 
-test("/account/sign-in 页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/account/sign-in", testInfo });
+test("/account/sign-in 页面契约", async ({ page }) => {
+  await assertPageContract(page, { routePath: "/account/sign-in" });
 });
 
 test("/account/sign-in narrow mobile shell uses an accessible compact brand", async ({
   page,
-}, testInfo) => {
+}) => {
   for (const width of [280, 375, 390]) {
     await page.setViewportSize({ width, height: 800 });
-    await gotoAndWaitForReady(page, "/account/sign-in", {
-      testInfo,
-      screenshotLabel: `signin-brand-${width}`,
-    });
+    await gotoAndWaitForReady(page, "/account/sign-in");
 
     const brand = page.locator("[data-shell-topbar] [data-shell-brand]");
     if (width < 320) {
@@ -129,9 +125,9 @@ test("/account/sign-in narrow mobile shell uses an accessible compact brand", as
 
 test("/account/sign-in 320px actions and legal links stay inside the Card", async ({
   page,
-}, testInfo) => {
+}) => {
   await page.setViewportSize({ width: 320, height: 800 });
-  await gotoAndWaitForReady(page, "/account/sign-in", { testInfo });
+  await gotoAndWaitForReady(page, "/account/sign-in");
 
   const overflow = await page.locator('[data-slot="card"]').evaluate((card) => {
     const elements = [
@@ -156,11 +152,8 @@ test("/account/sign-in 320px actions and legal links stay inside the Card", asyn
   ).toBeVisible();
 });
 
-test("/account/sign-in 显示所有必填字段", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/account/sign-in", {
-    testInfo,
-    screenshotLabel: "signin",
-  });
+test("/account/sign-in 显示所有必填字段", async ({ page }) => {
+  await gotoAndWaitForReady(page, "/account/sign-in");
 
   // OAuth provider buttons (user.yml sign-in.display.fields)
   await expect(
@@ -180,8 +173,6 @@ test("/account/sign-in 显示所有必填字段", async ({ page }, testInfo) => 
   await expect(
     page.getByRole("link", { name: /隐私政策|Privacy/i }).first(),
   ).toBeVisible();
-
-  await captureStepScreenshot(page, testInfo, "signin/all-fields");
 });
 
 test("/account/sign-in 显示账户未关联错误", async ({ page }) => {
@@ -232,17 +223,11 @@ test("/account/sign-in 调试用户按钮可登录", async ({
   page,
   debugUser,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   const writes: AuthWrite[] = [["/account/sign-in?callbackUrl=%2F", 200, "/"]];
   await pageRun(
     async () => {
-      await gotoAndWaitForReady(page, "/account/sign-in", {
-        testInfo,
-        screenshotLabel: "signin",
-      });
-
-      await captureStepScreenshot(page, testInfo, "signin/initial");
-
+      await gotoAndWaitForReady(page, "/account/sign-in");
       await signInThroughDevButton(page, debugUser);
       await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
@@ -253,7 +238,6 @@ test("/account/sign-in 调试用户按钮可登录", async ({
           where: { userId: debugUser.id },
         }),
       ).toBe(1);
-      await captureStepScreenshot(page, testInfo, "signin/after-login");
       expect(writes).toEqual([]);
       await expect
         .poll(() => isolatedWorker.database.owner.auditLog.count())
@@ -277,7 +261,7 @@ test("/account/sign-in 调试用户可登出", async ({
   page,
   debugUser,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   const writes: AuthWrite[] = [
     ["/account/sign-in?callbackUrl=%2F", 200, "/"],
     ["/account/sign-out", 303, "/"],
@@ -293,7 +277,6 @@ test("/account/sign-in 调试用户可登出", async ({
           where: { userId: debugUser.id },
         }),
       ).toBe(0);
-      await captureStepScreenshot(page, testInfo, "signin/after-sign-out");
       expect(writes).toEqual([]);
       await expect
         .poll(() => isolatedWorker.database.owner.auditLog.count())
@@ -317,7 +300,7 @@ test("/account/sign-in 调试管理员可登出", async ({
   page,
   adminUser,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   const writes: AuthWrite[] = [
     ["/account/sign-in?callbackUrl=%2F", 200, "/"],
     ["/account/sign-out", 303, "/"],
@@ -333,11 +316,6 @@ test("/account/sign-in 调试管理员可登出", async ({
           where: { userId: adminUser.id },
         }),
       ).toBe(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "signin/admin-after-sign-out",
-      );
       expect(writes).toEqual([]);
       await expect
         .poll(() => isolatedWorker.database.owner.auditLog.count())

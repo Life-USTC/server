@@ -8,7 +8,6 @@ import { expectRequiresSignIn } from "../../../../utils/auth";
 import { visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 const test = adminTest.extend<{ managedUser: User & { username: string } }>({
   managedUser: async ({ isolatedWorker, admin: _admin, run }, use) => {
@@ -59,21 +58,19 @@ async function openAdminUserDialog(
   return dialog;
 }
 
-test("/admin/users 未登录重定向到登录页", async ({ page }, testInfo) => {
+test("/admin/users 未登录重定向到登录页", async ({ page }) => {
   await expectRequiresSignIn(page, "/admin/users");
-  await captureStepScreenshot(page, testInfo, "admin-users-unauthorized");
 });
 
 test("/admin/users 普通用户访问返回 403", async ({
   pageRun,
   page,
   account: _account,
-}, testInfo) => {
+}) => {
   await pageRun(
     async () => {
       await gotoAndWaitForReady(page, "/admin/users");
       await expect(page.locator("h1")).toHaveText("403");
-      await captureStepScreenshot(page, testInfo, "admin-users-403");
     },
     async () => {
       throw new Error("Read-only authorization case submitted a browser write");
@@ -87,7 +84,7 @@ test("/admin/users 管理员可看到独立用户与管理员", async ({
   page,
   managedUser,
   admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -97,7 +94,6 @@ test("/admin/users 管理员可看到独立用户与管理员", async ({
         await expect(page.locator("#main-content")).toBeVisible();
         await expect(visibleText(page, managedUser.username)).toBeVisible();
         await expect(visibleText(page, admin.username)).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "admin-users-seed");
       },
       {},
       adminWriteChecks([]),
@@ -110,18 +106,13 @@ test("/admin/users 桌面行操作可用键盘打开管理弹窗", async ({
   run,
   page,
   managedUser,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
         await gotoAndWaitForReady(page, "/admin/users");
 
         await openAdminUserDialog(page, managedUser.username, "keyboard");
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-users-keyboard-manage",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -177,7 +168,7 @@ test("/admin/users 搜索表单可过滤用户", async ({
   run,
   page,
   managedUser,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -193,14 +184,11 @@ test("/admin/users 搜索表单可过滤用户", async ({
           new RegExp(`search=${managedUser.username}`),
         );
         await expect(visibleText(page, managedUser.username)).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "admin-users-search");
-
         const clearLink = page.getByRole("link", { name: /^(清除|Clear)$/i });
         await expect(clearLink).toHaveAttribute("href", "/admin/users");
         await clearLink.click();
         await expect(page).toHaveURL(/\/admin\/users$/);
         await expect(page.getByRole("searchbox")).toHaveValue("");
-        await captureStepScreenshot(page, testInfo, "admin-users-clear");
       },
       {},
       adminWriteChecks([]),
@@ -213,7 +201,7 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
   run,
   page,
   managedUser,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -266,11 +254,6 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
         ).toBeLessThanOrEqual(320);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-users-mobile-dialog",
-        );
         await page.keyboard.press("Escape");
         await expect(dialog).toBeHidden();
       },
@@ -285,7 +268,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
   run,
   page,
   managedUser,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -353,12 +336,6 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
         });
         await expect(suspensionBadge).toBeVisible();
         expect(verticalCenterOffset).toBeLessThanOrEqual(1);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-users-alignment-desktop",
-        );
-
         await page.setViewportSize({ width: 1024, height: 768 });
         await expect(table).toBeHidden();
         const list = page.getByTestId("admin-users-mobile-list");
@@ -381,12 +358,6 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
         ).toBeLessThanOrEqual(1024);
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-users-alignment-tablet",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -400,7 +371,7 @@ test("/admin/users 分页控件可进入下一页", async ({
   page,
   managedUser,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -439,7 +410,6 @@ test("/admin/users 分页控件可进入下一页", async ({
           "1",
         );
         expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
-        await captureStepScreenshot(page, testInfo, "admin-users-pagination");
       },
       {},
       adminWriteChecks([]),
@@ -453,7 +423,7 @@ test("/admin/users 用户名非法保存返回 400", async ({
   page,
   managedUser,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -482,11 +452,6 @@ test("/admin/users 用户名非法保存返回 400", async ({
             where: { id: managedUser.id },
           }),
         ).toMatchObject({ username: managedUser.username });
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-users-invalid-username",
-        );
       },
       {},
       adminWriteChecks([["PATCH", `/api/admin/users/${managedUser.id}`, 400]]),
@@ -500,7 +465,7 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({
   page,
   managedUser,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -540,8 +505,6 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({
             .locator("[data-sonner-toast]")
             .filter({ hasText: /更新成功|Updated successfully/i }),
         ).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "admin-users-updated");
-
         await gotoAndWaitForReady(
           page,
           `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
@@ -562,7 +525,7 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
   page,
   managedUser,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -602,11 +565,6 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
             where: { userId: managedUser.id },
           }),
         ).toBe(0);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-users-suspended-custom",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -621,7 +579,7 @@ test("/admin/users 可创建默认时长封禁", async ({
   managedUser,
   admin,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -679,12 +637,6 @@ test("/admin/users 可创建默认时长封禁", async ({
             .locator("[data-sonner-toast]")
             .filter({ hasText: /封禁成功|Suspended successfully/i }),
         ).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-users-suspend-created",
-        );
-
         await gotoAndWaitForReady(
           page,
           `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
@@ -725,7 +677,7 @@ test("/admin/users 可创建默认时长封禁", async ({
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, admin: _admin }, testInfo) => {
+test("页面契约", async ({ adminFlow, run, page, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -734,7 +686,6 @@ test("页面契约", async ({ adminFlow, run, page, admin: _admin }, testInfo) =
           expectMeaningfulContent: true,
           expectNoHorizontalOverflow: true,
           uiQuality: {},
-          testInfo,
         });
         expect(response?.ok()).toBe(true);
         await expect(page.locator("#main-content")).toBeVisible();

@@ -38,11 +38,10 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/catalog/young-events",
-        testInfo,
       });
     });
   });

@@ -2,7 +2,6 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -20,7 +19,7 @@ test.describe("仪表盘作业", () => {
         academicDb,
         homeworkRun,
         storedHomeworkCompletion,
-      }, testInfo) => {
+      }) => {
         if (initiallyCompleted)
           await academicDb((db) =>
             db.homeworkCompletion.create({
@@ -34,10 +33,7 @@ test.describe("仪表盘作业", () => {
         await homeworkRun(
           async () => {
             test.setTimeout(60_000);
-            await gotoAndWaitForReady(page, "/workspace/homeworks", {
-              testInfo,
-              screenshotLabel: "homeworks",
-            });
+            await gotoAndWaitForReady(page, "/workspace/homeworks");
             const before = await storedHomeworkCompletion(
               account.id,
               homeworks[0].id,
@@ -102,11 +98,6 @@ test.describe("仪表盘作业", () => {
             expect(
               await storedHomeworkCompletion(account.id, homeworks[1].id),
             ).toBeNull();
-            await captureStepScreenshot(
-              page,
-              testInfo,
-              "homeworks/completion-toggled",
-            );
           },
           {
             calendarMessages: [{ type: "user", userId: account.id }],
@@ -123,7 +114,7 @@ test.describe("仪表盘作业", () => {
     homeworks,
     homeworkRun,
     storedHomeworkCompletion,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
         await page.route(
@@ -136,10 +127,7 @@ test.describe("仪表盘作业", () => {
             });
           },
         );
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         await page
           .getByRole("radio", { name: /全部|All/i })
@@ -188,11 +176,6 @@ test.describe("仪表盘作业", () => {
             .filter({ hasText: homeworks[0].title })
             .getByRole("button", { name: /标记为完成|Mark as complete/i }),
         ).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "homeworks/completion-error",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );

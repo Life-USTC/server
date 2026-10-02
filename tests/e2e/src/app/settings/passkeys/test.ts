@@ -4,7 +4,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { test } from "../../../../utils/settings-fixture";
 
 test.describe("/account/settings/accounts 通行密钥", () => {
@@ -16,7 +15,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     account,
     credential: _credential,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     test.setTimeout(90_000);
     await accountRun(
       {
@@ -90,12 +89,6 @@ test.describe("/account/settings/accounts 通行密钥", () => {
           expect(stored[0].credentialID).not.toBe("");
           expect(stored[0].publicKey).not.toBe("");
           await passkeyCard.scrollIntoViewIfNeeded();
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "settings-passkeys/registered",
-          );
-
           const nameInput = passkeyCard.getByLabel(
             /重命名 E2E laptop|Rename E2E laptop/i,
           );
@@ -147,12 +140,6 @@ test.describe("/account/settings/accounts 通行密钥", () => {
           await page
             .locator("[data-passkey-settings]")
             .scrollIntoViewIfNeeded();
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            "settings-passkeys/passkey-login",
-          );
-
           const passkeyRow = page
             .locator('[data-slot="item"]')
             .filter({
@@ -195,7 +182,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     );
   });
 
-  test("user.passkey-unsupported", async ({ accountRun, page }, testInfo) => {
+  test("user.passkey-unsupported", async ({ accountRun, page }) => {
     await accountRun(
       {
         writes: [
@@ -228,12 +215,6 @@ test.describe("/account/settings/accounts 通行密钥", () => {
         await expect(
           page.getByText("此浏览器或设备不支持通行密钥登录。"),
         ).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "settings-passkeys/unsupported-zh-cn",
-        );
-
         const enLocaleResponse = await page.request.post(
           "/api/account/preferences",
           {
@@ -248,11 +229,6 @@ test.describe("/account/settings/accounts 通行密钥", () => {
             "Passkey sign-in is not supported by this browser or device.",
           ),
         ).toBeVisible();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "settings-passkeys/unsupported-en-us",
-        );
       },
     );
   });
@@ -261,7 +237,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     accountRun,
     page,
     account: _account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/account/settings/accounts");
@@ -288,7 +264,6 @@ test.describe("/account/settings/accounts 通行密钥", () => {
           ),
         )
         .toBe(true);
-      await captureStepScreenshot(page, testInfo, "settings-passkeys/mobile");
     });
   });
 
