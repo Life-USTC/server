@@ -43,10 +43,12 @@ export function ownHttpServer(
           await sent;
         }
       } catch (error) {
+        // Keep fixture diagnostics in the test runner, outside HTTP responses.
+        console.error("HTTP contract handler failed", error);
         if (!outgoing.destroyed) {
           if (!outgoing.headersSent) outgoing.statusCode = 500;
           const sent = finished(outgoing, { cleanup: true });
-          outgoing.end(String(error));
+          outgoing.end("Internal Server Error");
           await sent;
         }
       }
