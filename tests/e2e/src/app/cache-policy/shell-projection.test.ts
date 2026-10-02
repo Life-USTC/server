@@ -2,7 +2,6 @@ import {
   type APIResponse,
   test as browserTest,
   expect,
-  type Request,
 } from "@playwright/test";
 import { unflatten } from "devalue";
 import { restReadScope } from "@/lib/oauth/scope-registry";
@@ -641,7 +640,7 @@ test("rendering-and-cache.web-rendering-and-cache-2", async ({
 test("user.shell-viewer", async ({ shell, page, context }) => {
   await shell.run(
     { debug: true, feedToken: true, sessions: [{ user: 0 }] },
-    async ({ users, flow, sessionCookie, teacher, organizer, event }) => {
+    async ({ users, sessionCookie, teacher, organizer, event, debugUser }) => {
       await context.addCookies([await sessionCookie(users[0].id)]);
       const identities: string[] = [];
       const identityPaths = new Set([
@@ -748,50 +747,43 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       );
       identities.length = 0;
       const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
-      const viewerRequests: Request[] = [];
-      const observeViewer = (request: Request) => {
-        if (
-          request.method() !== "GET" ||
-          new URL(request.url()).pathname !== viewerPath
-        )
-          return;
-        viewerRequests.push(request);
-        // Login's shell refresh replaces the first section controller.
-        if (viewerRequests.length === 1)
-          flow.expectReadCancellation(page, request);
-      };
-      page.on("request", observeViewer);
-      try {
-        const signedInBootstrap = await observeAction(
-          () =>
+      if (!debugUser) throw new Error("Missing debug user fixture");
+      const [signedInBootstrap, signedInViewer] = await observeAction(
+        () =>
+          Promise.all([
             page.waitForResponse(
               (response) =>
                 new URL(response.url()).pathname ===
                 "/_internal/shell-bootstrap",
             ),
-          () =>
-            page
-              .getByRole("button", {
-                name: /Debug User \(Dev\)|调试用户（开发）/i,
-              })
-              .click(),
-        );
-        expect((await signedInBootstrap.json()).viewer.name).toBe(
-          DEV_SEED.debugName,
-        );
-        await expect(page).toHaveURL(new RegExp(`${destination}$`));
-        await expect(page.locator("#app-user-menu")).toContainText(
-          DEV_SEED.debugName,
-        );
-        expect(identities).toEqual(["/_internal/shell-bootstrap"]);
-        await waitForUiSettled(page);
-        expect(viewerRequests).toHaveLength(2);
-        const successor = await viewerRequests[1].response();
-        expect(successor?.status()).toBe(200);
-        await successor?.body();
-      } finally {
-        page.off("request", observeViewer);
-      }
+            page.waitForResponse(
+              (response) =>
+                response.request().method() === "GET" &&
+                new URL(response.url()).pathname === viewerPath,
+            ),
+          ]),
+        () =>
+          page
+            .getByRole("button", {
+              name: /Debug User \(Dev\)|调试用户（开发）/i,
+            })
+            .click(),
+      );
+      expect(signedInBootstrap.status()).toBe(200);
+      expect((await signedInBootstrap.json()).viewer).toMatchObject({
+        id: debugUser.id,
+        name: DEV_SEED.debugName,
+      });
+      expect(signedInViewer.status()).toBe(200);
+      expect((await signedInViewer.json()).homeworkData.viewer.userId).toBe(
+        debugUser.id,
+      );
+      await expect(page).toHaveURL(new RegExp(`${destination}$`));
+      await expect(page.locator("#app-user-menu")).toContainText(
+        DEV_SEED.debugName,
+      );
+      expect(identities).toEqual(["/_internal/shell-bootstrap"]);
+      await waitForUiSettled(page);
     },
   );
 });
