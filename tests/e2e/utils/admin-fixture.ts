@@ -84,11 +84,10 @@ export const test = isolatedWorkerTest.extend<{
   adminFlow: async (
     { page, browser, request: observer, isolatedWorker, admin, run },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
-        { page, browser, observer, isolatedWorker, account: admin, testInfo },
+        { page, browser, observer, isolatedWorker, account: admin },
         use,
       ),
     );

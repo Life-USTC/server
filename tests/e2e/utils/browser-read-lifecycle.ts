@@ -17,65 +17,14 @@ export function ownBrowserReads(
     method: string;
     mainFrame: boolean;
     settled: boolean;
+    status?: number;
+    canceled?: "retired" | "removed" | "superseded";
     retiredBy?: { order: number; url: string };
     closing?: boolean;
   };
   const pendingNavigations = new Set<Promise<void>>();
   const pendingNavigationOrders = new Map<number, Promise<void>>();
-  const navigationCommits: { order: number; url: string }[] = [];
-  const navigationObservations: {
-    order: number;
-    outcome: "committed" | "same-document" | "different-document" | "rejected";
-    url?: string;
-    error?: string;
-  }[] = [];
-  const retiredReads: {
-    requestId: string;
-    method: string;
-    path: string;
-    order: number;
-    retiredBy: { order: number; url: string };
-    outcome: "retired-document/page-close" | "retired-document/request-abort";
-    error: string;
-  }[] = [];
-  const blockedReads: {
-    requestId: string;
-    method: string;
-    path: string;
-    order: number;
-    resourceType: "script";
-    outcome: "script-disabled/csp";
-    error: "csp";
-  }[] = [];
   const errors: unknown[] = [];
-  const reads: {
-    requestId: string;
-    method: string;
-    path: string;
-    status: number;
-    order: number;
-  }[] = [];
-  const supersededCalendarReads: {
-    requestId: string;
-    path: string;
-    order: number;
-  }[] = [];
-  const canceledReads: {
-    requestId: string;
-    method: string;
-    path: string;
-    order: number;
-    outcome: "expected-request-cancellation";
-    error: "net::ERR_ABORTED";
-  }[] = [];
-  const removedReads: {
-    requestId: string;
-    method: string;
-    path: string;
-    order: number;
-    outcome: "removed-component/request-abort";
-    error: "net::ERR_ABORTED";
-  }[] = [];
   const removals = new Map<
     Request,
     {
@@ -142,10 +91,7 @@ export function ownBrowserReads(
     page.on("framenavigated", captureBoundary);
     const observation = page.waitForNavigation({ waitUntil: "commit" }).then(
       (response) => {
-        if (!response) {
-          navigationObservations.push({ order, outcome: "same-document" });
-          return;
-        }
+        if (!response) return;
         let root = response.request();
         for (
           let predecessor = root.redirectedFrom();
@@ -153,35 +99,12 @@ export function ownBrowserReads(
           predecessor = root.redirectedFrom()
         )
           root = predecessor;
-        if (root !== incoming) {
-          navigationObservations.push({
-            order,
-            outcome: "different-document",
-            url: response.url(),
-          });
-          return;
-        }
-        if (!departingReads) {
-          navigationObservations.push({
-            order,
-            outcome: "rejected",
-            error: "Navigation has no captured frame boundary",
-          });
-          return;
-        }
+        if (root !== incoming || !departingReads) return;
         const committed = { order, url: response.url() };
-        navigationCommits.push(committed);
-        navigationObservations.push({ ...committed, outcome: "committed" });
         for (const owned of departingReads)
           if (!owned.retiredBy) owned.retiredBy = committed;
       },
-      (error: unknown) => {
-        navigationObservations.push({
-          order,
-          outcome: "rejected",
-          error: error instanceof Error ? error.message : String(error),
-        });
-      },
+      () => undefined,
     );
     pendingNavigations.add(observation);
     pendingNavigationOrders.set(order, observation);
@@ -255,15 +178,7 @@ export function ownBrowserReads(
                   ({ order }) => order === retiredBy.order,
                 ))
             ) {
-              retiredReads.push({
-                requestId,
-                method: owned.method,
-                path,
-                order,
-                retiredBy,
-                outcome: "retired-document/request-abort",
-                error: "net::ERR_ABORTED",
-              });
+              owned.canceled = "retired";
               return;
             }
           }
@@ -275,15 +190,6 @@ export function ownBrowserReads(
             incoming.resourceType() === "script" &&
             incoming.failure()?.errorText === "csp"
           ) {
-            blockedReads.push({
-              requestId,
-              method: incoming.method(),
-              path,
-              order,
-              resourceType: "script",
-              outcome: "script-disabled/csp",
-              error: "csp",
-            });
             return;
           }
           // Range changes deliberately abort the obsolete calendar fetch. The
@@ -292,20 +198,14 @@ export function ownBrowserReads(
             path === "/api/workspace/calendar/events" &&
             incoming.failure()?.errorText === "net::ERR_ABORTED"
           ) {
-            supersededCalendarReads.push({ requestId, path, order });
+            owned.canceled = "superseded";
             return;
           }
           throw new Error(
             `Calendar read failed: ${incoming.failure()?.errorText}`,
           );
         }
-        reads.push({
-          requestId,
-          method: incoming.method(),
-          path,
-          status: response.status(),
-          order,
-        });
+        owned.status = response.status();
         const location = response.headers().location;
         if (
           [301, 302, 303, 307, 308].includes(response.status()) &&
@@ -326,15 +226,7 @@ export function ownBrowserReads(
           error.message ===
             "request.response: Target page, context or browser has been closed"
         ) {
-          retiredReads.push({
-            requestId,
-            method: owned.method,
-            path,
-            order,
-            retiredBy: owned.retiredBy,
-            outcome: "retired-document/page-close",
-            error: error.message,
-          });
+          owned.canceled = "retired";
         } else errors.push(error);
       } finally {
         owned.settled = true;
@@ -401,7 +293,7 @@ export function ownBrowserReads(
       await Promise.all(
         records.map(({ request }) => readObservations.get(request)!),
       );
-      const canceled: typeof removedReads = [];
+      const canceled: OwnedRead[] = [];
       for (const { record, owned } of records) {
         if (
           record.responseMissing &&
@@ -424,22 +316,15 @@ export function ownBrowserReads(
             throw new Error(
               `Component removal read failed: ${record.nativeFailure ?? "no native requestfailed"}`,
             );
-          canceled.push({
-            requestId: owned.requestId,
-            method: owned.method,
-            path: owned.path,
-            order: owned.order,
-            outcome: "removed-component/request-abort",
-            error: "net::ERR_ABORTED",
-          });
-        } else if (!reads.some((read) => read.order === owned.order)) {
+          canceled.push(owned);
+        } else if (owned.status === undefined) {
           throw new Error(
             "Removal read has neither a native response nor a proven cancellation",
           );
         }
       }
       // No allowance is finalized until the action and every exact read pass.
-      removedReads.push(...canceled);
+      for (const owned of canceled) owned.canceled = "removed";
     } catch (error) {
       errors.push(error);
       throw error;
@@ -451,17 +336,8 @@ export function ownBrowserReads(
 
   return {
     ownedReads,
-    reads,
-    javaScriptEnabled,
-    blockedReads,
-    supersededCalendarReads,
-    canceledReads,
-    removedReads,
     duringRemoval,
     activeReads: () => [...ownedReads.keys()].filter(activeRead),
-    retiredReads,
-    navigationCommits,
-    navigationObservations,
     errors,
     pendingReads,
     pendingNavigations,
@@ -501,19 +377,10 @@ export function ownBrowserReads(
       for (const [request, expected] of expectedCancellations) {
         const owned = ownedReads.get(request);
         if (
-          owned?.settled &&
-          expected.responseMissing &&
-          expected.nativeFailure === "net::ERR_ABORTED"
-        ) {
-          canceledReads.push({
-            requestId: owned.requestId,
-            method: owned.method,
-            path: owned.path,
-            order: owned.order,
-            outcome: "expected-request-cancellation",
-            error: "net::ERR_ABORTED",
-          });
-        } else
+          !owned?.settled ||
+          !expected.responseMissing ||
+          expected.nativeFailure !== "net::ERR_ABORTED"
+        )
           errors.push(
             new Error(
               `Expected cancellation did not receive native requestfailed net::ERR_ABORTED: ${owned?.requestId} ${owned?.method} ${owned?.path}`,

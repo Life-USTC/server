@@ -5,7 +5,6 @@ import {
   type Request as BrowserRequest,
   expect,
   type Page,
-  type TestInfo,
 } from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import {
@@ -54,7 +53,6 @@ export async function withCalendarProtocol(
     isolatedWorker,
     createRequest,
     runBody,
-    testInfo,
     verifyBrowserWrite,
   }: {
     page: Page;
@@ -64,7 +62,6 @@ export async function withCalendarProtocol(
       headers: Record<string, string>,
     ) => Promise<APIRequestContext>;
     runBody: (body: () => Promise<void>) => Promise<void>;
-    testInfo: TestInfo;
     verifyBrowserWrite?: CalendarBrowserWriteVerifier;
   },
   work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
@@ -232,15 +229,6 @@ export async function withCalendarProtocol(
           effects = await response.json();
         }
         observation = { effects, sdkRequests };
-        await testInfo.attach("calendar-protocol-effects", {
-          contentType: "application/json",
-          body: JSON.stringify({
-            effects,
-            consumer,
-            sdkRequests,
-            browserReads: reads.reads,
-          }),
-        });
         if (calendar && consumer)
           calendar.observer.assert(
             { producer: effects, consumer },

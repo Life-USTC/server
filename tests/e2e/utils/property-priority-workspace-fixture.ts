@@ -210,7 +210,6 @@ export const test = workerTest.extend<{
   workspacePriorityRun: async (
     { isolatedWorker, workspacePriority: data, page, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((consumer, work) =>
@@ -223,7 +222,6 @@ export const test = workerTest.extend<{
                   isolatedWorker,
                   account: data.user,
                   sectionId: data.section.id,
-                  testInfo,
                   runBody: workflow.body,
                   observeReads: true,
                   presetCalendarToken: data.presetCalendarToken,

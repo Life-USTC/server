@@ -52,7 +52,6 @@ export const test = workerTest.extend<{
   accountRun: async (
     { page, request, playwright, isolatedWorker, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use(({ writes, audits, verifyWrite }, work) => {
@@ -70,7 +69,6 @@ export const test = workerTest.extend<{
                     extraHTTPHeaders: headers,
                   }),
                 runBody: workflow.body,
-                testInfo,
                 async verifyBrowserWrite(response, incoming) {
                   const url = new URL(incoming.url());
                   expect(incoming.method()).toBe("POST");

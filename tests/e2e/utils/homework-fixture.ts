@@ -112,11 +112,7 @@ export const test = workerTest.extend<{
     );
     await use([overdue, homeworks[1]]);
   },
-  homeworkRun: async (
-    { isolatedWorker, page, actor, academic, run },
-    use,
-    testInfo,
-  ) => {
+  homeworkRun: async ({ isolatedWorker, page, actor, academic, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work, effects) =>
         workflow.run(() =>
@@ -127,7 +123,6 @@ export const test = workerTest.extend<{
                 isolatedWorker,
                 account: actor,
                 sectionId: academic.section.id,
-                testInfo,
                 runBody: workflow.body,
                 ...effects,
                 observeReads: true,

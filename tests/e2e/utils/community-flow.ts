@@ -8,7 +8,6 @@ import {
   type Page,
   type Request,
   type Route,
-  type TestInfo,
 } from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
@@ -71,14 +70,12 @@ export async function withCommunityFlow(
     observer,
     isolatedWorker,
     account,
-    testInfo,
   }: {
     page: Page;
     browser: Browser;
     observer: APIRequestContext;
     isolatedWorker: IsolatedWorker;
     account: { id: string } | null;
-    testInfo: TestInfo;
   },
   use: (flow: CommunityFlow) => Promise<void>,
 ) {
@@ -99,8 +96,6 @@ export async function withCommunityFlow(
   }[] = [];
   const releases: (() => void)[] = [];
   const errors: unknown[] = [];
-  const controls: { path: string; method: string; complete: boolean }[] = [];
-  const writes: { path: string; status: number }[] = [];
   let closing = false;
   let registrationAttempted = false;
   let registered = false;
@@ -111,7 +106,6 @@ export async function withCommunityFlow(
   let checks: CommunityChecks | undefined;
   let observation: ProducerObservation | undefined;
   let finalization: Promise<void> | undefined;
-  let anonymousState: Record<string, number> | undefined;
   const remember = (error: unknown) => {
     if (!errors.includes(error)) errors.push(error);
   };
@@ -221,16 +215,11 @@ export async function withCommunityFlow(
   async function observeWrite(response: APIResponse, incoming: Request) {
     if (!account) throw new Error("Anonymous browser flow submitted a write");
     if (checks?.verifyBrowserWrite) {
-      writes.push({
-        path: new URL(incoming.url()).pathname,
-        status: response.status(),
-      });
       await checks.verifyBrowserWrite(response, incoming);
       return;
     }
     const path = new URL(incoming.url()).pathname;
     const body = await response.json();
-    writes.push({ path, status: response.status() });
     if (path === "/api/community/comments") {
       expect(incoming.method()).toBe("POST");
       expect(response.status()).toBe(201);
@@ -347,25 +336,9 @@ export async function withCommunityFlow(
       const producer = await readProducer();
       const audits = await db.auditLog.findMany();
       const state = await readAnonymousState();
-      await testInfo.attach("anonymous-no-effects", {
-        contentType: "application/json",
-        body: JSON.stringify({
-          database: isolatedWorker.database.name,
-          origin,
-          producer,
-          audits,
-          writes,
-          anonymousState: state,
-          errors: errors.map(String),
-          browserErrors: [...reads.values()].flatMap((reader) =>
-            reader.errors.map(String),
-          ),
-        }),
-      });
       assertProducer(producer);
       assertAnonymousExpectations();
       expect(producer.purges).toEqual([]);
-      expect(writes).toEqual([]);
       expect(audits).toEqual([]);
       expect(errors).toEqual([]);
       for (const reader of reads.values()) expect(reader.errors).toEqual([]);
@@ -476,35 +449,10 @@ export async function withCommunityFlow(
               // Anonymous checks own an empty graph except an explicitly
               // declared course fixture; no synthetic account is needed.
               assertAnonymousExpectations();
-              anonymousState = await readAnonymousState();
+              const anonymousState = await readAnonymousState();
               assertAnonymousState(anonymousState);
             }
           }
-          await testInfo.attach("community-shell-effects", {
-            contentType: "application/json",
-            body: JSON.stringify({
-              database: isolatedWorker.database.name,
-              origin,
-              accountId: account?.id ?? null,
-              completed,
-              expected,
-              anonymousState,
-              producer,
-              audits,
-              writes,
-              controlledRoutes: controls,
-              sdkRequests: sdk.requests,
-              browsers: [...reads.values()].map((reader) => ({
-                reads: reader.reads,
-                javaScriptEnabled: reader.javaScriptEnabled,
-                blockedReads: reader.blockedReads,
-                canceledReads: reader.canceledReads,
-                retiredReads: reader.retiredReads,
-                navigationCommits: reader.navigationCommits,
-                errors: reader.errors.map(String),
-              })),
-            }),
-          });
         } catch (error) {
           remember(error);
         }
@@ -591,17 +539,10 @@ export async function withCommunityFlow(
           async route(current, match, handler) {
             open();
             const owned = async (route: Route) => {
-              const record = {
-                path: new URL(route.request().url()).pathname,
-                method: route.request().method(),
-                complete: false,
-              };
-              controls.push(record);
               const task = Promise.resolve()
                 .then(async () => {
                   open();
                   await handler(route);
-                  record.complete = true;
                 })
                 .catch(async (error) => {
                   remember(error);
