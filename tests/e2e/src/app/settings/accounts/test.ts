@@ -59,7 +59,9 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
       await expectPagePath(page, "/account/settings/accounts");
       await expect(page.getByText("GitHub").first()).toBeVisible();
       await expect(page.getByText("Google").first()).toBeVisible();
-      await expect(page.getByText("USTC").first()).toBeVisible();
+      await expect(
+        page.getByText("USTC", { exact: true }).first(),
+      ).toBeVisible();
       await captureStepScreenshot(
         page,
         testInfo,
