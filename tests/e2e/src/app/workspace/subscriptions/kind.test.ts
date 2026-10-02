@@ -1,7 +1,9 @@
 import { expect, type Page } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
+import { waitForUiSettled } from "../../../../utils/page-ready";
 
 async function openKindDialog(page: Page, jwId: number, width: number) {
+  await waitForUiSettled(page);
   const row = page
     .locator(width < 768 ? '[data-slot="item"]' : "tr")
     .filter({ has: page.locator(`a[href="/catalog/sections/${jwId}"]`) })
