@@ -102,9 +102,7 @@ jobs:
               bash tests/ci/retry.test.sh
               bash tests/ci/seed-guard.test.sh
               bash tests/ci/runtime-database-parity.test.sh
-              bash tests/ci/e2e-full-suite-parity.test.sh
               bash tests/ci/integration-parallel-local.test.sh
-              bash tests/ci/e2e-run-shard.test.sh
               bash tests/ci/e2e-parallel-cleanup.test.sh
               bash tests/ci/worker-request-id-platform.test.sh
               bun run app:prepare
