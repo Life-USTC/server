@@ -23,8 +23,8 @@ docs.
   install dependencies or prepare test database roles; keep test commands in jobs.
 - Only database-backed jobs provision PostgreSQL. Matrix jobs own separate service
   containers; REST, browser and visual jobs consume the single application build.
-- Feature PR and manual runs share a head-repository/branch concurrency group;
-  newer feature work cancels stale runs, while main runs are not interrupted.
+- PR and manual branch runs use separate ref-based concurrency groups; newer
+  runs on the same ref cancel stale work, while main runs are not interrupted.
 - Preserve external job names used by protection. The aggregate gate always runs
   and rejects every non-success mandatory result; specifications run in Check.
 - Browser jobs upload native HTML reports and failure diagnostics as CI artifacts.
