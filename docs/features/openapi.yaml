@@ -304,7 +304,7 @@ requirements:
     - Valid values are preserved after trimming; invalid values are rejected.
     test:
       file: tests/unit/lib/api/public-catalog-search-specification.test.ts
-      name: openapi.public-catalog-search-boundaries
+      name: courses catalog search > handles minimum after trimming using UTF-16 length
 - id: openapi.public-catalog-locale
   category: consistency
   rule: Omitted public catalog REST locale deterministically selects zh-cn. An explicit en-us or zh-cn selects that variant; cookies and Accept-Language cannot personalize it.
