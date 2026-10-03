@@ -1,13 +1,10 @@
-import { expect, type Locator, test } from "@playwright/test";
-import {
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../../../../shared/catalog-contract-fixture";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect, type Locator } from "@playwright/test";
+import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
+import type { TestPrismaClient } from "../../../../shared/prisma";
+import { test } from "../../../utils/catalog-browser-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
-  createPriorityViewAudit,
+  assertPriorityView,
   type PriorityField,
   type VisiblePriorityField,
 } from "../../../utils/property-priority";
@@ -41,9 +38,9 @@ function secondaryName(
         value.nameCn,
       );
 }
-async function fixture() {
-  return withE2ePrisma(async (db) => {
-    const catalog = await createCatalogContractFixture(db);
+async function fixture(owner: TestPrismaClient) {
+  const catalog = await createCatalogContractFixture(owner);
+  return owner.$transaction(async (db) => {
     const named = (suffix: string) => ({
       nameCn: `${suffix}${catalog.marker}`,
       nameEn: `${suffix} ${catalog.marker}`,
@@ -128,440 +125,450 @@ async function fixture() {
   });
 }
 
-test("ui.model-property-priority-catalog-views", async ({ page }) => {
-  test.setTimeout(120_000);
-  page.setDefaultTimeout(5_000);
-  const data = await fixture();
-  const {
-    catalog,
-    education,
-    category,
-    classType,
-    courseType,
-    campus,
-    examMode,
-    language,
-    roomType,
-    adminClass,
-  } = data;
-  const course = catalog.courses[0],
-    teacher = catalog.teachers[0],
-    section = catalog.sections[0];
-  try {
-    for (const locale of ["zh-cn", "en-us"] as const) {
-      await page.context().clearCookies();
-      await page
-        .context()
-        .addCookies([
-          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-        ]);
-      const semester = locale === "en-us" ? "Fall 2026" : "2026年秋季学期";
-      for (const width of [1280, 390]) {
-        await page.setViewportSize({ width, height: 844 });
-        const audit = createPriorityViewAudit("catalog");
-        for (const kind of ["course", "teacher", "section"] as const) {
-          const entity =
-            kind === "course" ? course : kind === "teacher" ? teacher : section;
-          const href = `/catalog/${kind}s/${kind === "teacher" ? teacher.id : entity.jwId}`;
-          await gotoAndWaitForReady(
-            page,
-            `/catalog/${kind}s?search=${catalog.marker}`,
-          );
-          const main = page.locator("#main-content");
-          const row =
-            width === 1280
-              ? main
-                  .getByRole("row")
-                  .filter({ has: page.locator(`a[href="${href}"]`) })
-                  .first()
-              : main
-                  .getByRole("listitem")
-                  .filter({ has: page.locator(`a[href="${href}"]`) })
-                  .first();
-          const identity =
-            width === 1280
-              ? row.locator(`a[href="${href}"]`).first()
-              : row.locator('[data-slot="item-title"]');
-          const primary: Record<string, PriorityField> =
-            kind === "teacher"
-              ? {
-                  "teacher.namePrimary": field(identity, name(teacher, locale)),
-                }
-              : kind === "course"
-                ? {
-                    "course.namePrimary": field(identity, name(course, locale)),
-                  }
-                : {
-                    "section.course.namePrimary": field(
-                      identity,
-                      name(course, locale),
-                    ),
-                    "section.teachers.namePrimary": field(
-                      row
-                        .getByText(name(teacher, locale), { exact: false })
-                        .filter({ visible: true })
-                        .first(),
-                      name(teacher, locale),
-                    ),
-                  };
-          const secondary: Record<string, PriorityField> =
-            kind === "course"
-              ? {
-                  "course.nameSecondary": secondaryName(
-                    identity,
-                    course,
-                    locale,
-                  ),
-                  "course.code": text(row, course.code),
-                  "course.educationLevel.namePrimary": text(
-                    row,
-                    name(education, locale),
-                  ),
-                  "course.category.namePrimary": text(
-                    row,
-                    name(category, locale),
-                  ),
-                  "course.classType.namePrimary": text(
-                    row,
-                    name(classType, locale),
-                  ),
-                }
-              : kind === "teacher"
-                ? {
-                    "teacher.nameSecondary": secondaryName(
-                      identity,
-                      teacher,
-                      locale,
-                    ),
-                    "teacher.department.namePrimary": text(
-                      row,
-                      name(catalog.departments[0], locale),
-                    ),
-                    "teacher.teacherTitle.namePrimary": text(
-                      row,
-                      name(catalog.titles[0], locale),
-                    ),
-                    "teacher.email": text(row, teacher.email ?? ""),
-                    "teacher._count.sections": text(row, "1"),
-                    "teacher.code": text(row, teacher.code ?? ""),
-                  }
-                : {
-                    "section.course.nameSecondary": secondaryName(
-                      identity,
-                      course,
-                      locale,
-                    ),
-                    "section.semester.nameCn": field(
-                      row
-                        .getByText(semester, { exact: false })
-                        .filter({ visible: true })
-                        .first(),
-                      semester,
-                    ),
-                    "section.campus.namePrimary": text(
-                      row,
-                      name(campus, locale),
-                    ),
-                    "section.code": text(row, section.code),
-                    "section.credits": field(
-                      row
-                        .getByText("3.5", { exact: false })
-                        .filter({ visible: true })
-                        .first(),
-                      "3.5",
-                    ),
-                    "section.stdCount": field(
-                      row
-                        .getByText("17 / 27", { exact: false })
-                        .filter({ visible: true })
-                        .first(),
-                      "17",
-                    ),
-                    "section.limitCount": field(
-                      row
-                        .getByText("17 / 27", { exact: false })
-                        .filter({ visible: true })
-                        .first(),
-                      "27",
-                    ),
-                  };
-          await test.info().attach(`${kind}-list-${locale}-${width}`, {
-            body: await page.screenshot(),
-            contentType: "image/png",
-          });
-          await audit.check({
-            feature: kind,
-            capability: `${kind}-list`,
-            view: "web",
-            scope: row,
-            identity,
-            primary,
-            secondary,
-            tertiary: {
-              [`${kind}.id`]: internal(entity.id),
-              [`${kind}.jwId`]: internal(entity.jwId),
-              ...(kind === "teacher"
-                ? { "teacher.personId": internal(teacher.personId ?? 0) }
-                : {}),
+for (const locale of ["zh-cn", "en-us"] as const)
+  for (const width of [1280, 390]) {
+    test(`ui.model-property-priority-catalog-views ${locale}/${width}`, async ({
+      page,
+      isolatedWorker,
+      catalogFlow,
+    }) => {
+      test.setTimeout(120_000);
+      page.setDefaultTimeout(5_000);
+      await catalogFlow.run(
+        async () => {
+          const data = await fixture(isolatedWorker.database.owner);
+          const {
+            catalog,
+            education,
+            category,
+            classType,
+            courseType,
+            campus,
+            examMode,
+            language,
+            roomType,
+            adminClass,
+          } = data;
+          const course = catalog.courses[0],
+            teacher = catalog.teachers[0],
+            section = catalog.sections[0];
+          await page.context().clearCookies();
+          await page.context().addCookies([
+            {
+              name: "NEXT_LOCALE",
+              value: locale,
+              url: isolatedWorker.origin,
             },
-          });
-          await gotoAndWaitForReady(page, href);
-          const heading = page.getByRole("heading", { level: 1 });
-          const aside = main.locator("aside");
-          const detailPrimary: Record<string, PriorityField> =
-            kind === "teacher"
-              ? { "teacher.namePrimary": field(heading, name(teacher, locale)) }
-              : kind === "course"
-                ? { "course.namePrimary": field(heading, name(course, locale)) }
-                : {
-                    "section.course.namePrimary": field(
-                      heading,
-                      name(course, locale),
-                    ),
-                    "section.teachers.namePrimary": field(
-                      main
-                        .locator("[data-detail-identity]")
-                        .getByRole("link", { name: name(teacher, locale) }),
-                      name(teacher, locale),
-                    ),
-                  };
-          const detailSecondary: Record<string, PriorityField> =
-            kind === "course"
-              ? {
-                  "course.nameSecondary": secondaryName(
-                    heading,
-                    course,
-                    locale,
-                  ),
-                  "course.code": field(
-                    main.getByTestId("course-public-code"),
-                    course.code,
-                  ),
-                  "course.educationLevel.namePrimary": text(
-                    main.locator("[data-detail-identity]"),
-                    name(education, locale),
-                  ),
-                  "course.category.namePrimary": text(
-                    main.locator("[data-detail-identity]"),
-                    name(category, locale),
-                  ),
-                  "course.classType.namePrimary": text(
-                    aside,
-                    name(classType, locale),
-                  ),
-                  "course.type.namePrimary": text(
-                    aside,
-                    name(courseType, locale),
-                  ),
-                }
-              : kind === "teacher"
-                ? {
-                    "teacher.nameSecondary": secondaryName(
-                      heading,
-                      teacher,
-                      locale,
-                    ),
-                    "teacher.department.namePrimary": text(
-                      main.locator("[data-detail-identity]"),
-                      name(catalog.departments[0], locale),
-                    ),
-                    "teacher.teacherTitle.namePrimary": text(
-                      main.locator("[data-detail-identity]"),
-                      name(catalog.titles[0], locale),
-                    ),
-                    "teacher.email": text(aside, teacher.email ?? ""),
-                    "teacher.telephone": text(aside, teacher.telephone ?? ""),
-                    "teacher.mobile": text(aside, teacher.mobile ?? ""),
-                    "teacher.address": text(aside, teacher.address ?? ""),
-                  }
-                : {
-                    "section.course.nameSecondary": text(
-                      heading.locator(".."),
-                      locale === "en-us"
-                        ? course.nameCn
-                        : (course.nameEn ?? ""),
-                    ),
-                    "section.semester.nameCn": text(
-                      main.locator("[data-detail-identity]"),
-                      semester,
-                    ),
-                    "section.campus.namePrimary": text(
-                      main.locator("[data-detail-identity]"),
-                      name(campus, locale),
-                    ),
-                    "section.code": text(aside, section.code),
-                    "section.credits": text(aside, "3.5"),
-                    "section.stdCount": field(
-                      aside.getByText("17 / 27", { exact: true }),
-                      "17",
-                    ),
-                    "section.limitCount": field(
-                      aside.getByText("17 / 27", { exact: true }),
-                      "27",
-                    ),
-                    "section.period": field(
-                      aside.getByText("31 / 29", { exact: true }),
-                      "31",
-                    ),
-                    "section.actualPeriods": field(
-                      aside.getByText("31 / 29", { exact: true }),
-                      "29",
-                    ),
-                    "section.examMode.namePrimary": text(
-                      aside,
-                      name(examMode, locale),
-                    ),
-                    "section.remark": text(aside, `Remark ${catalog.marker}`),
-                    "section.adminClasses.namePrimary": text(
-                      aside,
-                      name(adminClass, locale),
-                    ),
-                    "section.timesPerWeek": field(
-                      aside.getByText("5 x 4", { exact: true }),
-                      "5",
-                    ),
-                    "section.periodsPerWeek": field(
-                      aside.getByText("5 x 4", { exact: true }),
-                      "4",
-                    ),
-                    ...Object.fromEntries(
-                      [
-                        "theoryPeriods",
-                        "practicePeriods",
-                        "experimentPeriods",
-                        "machinePeriods",
-                        "designPeriods",
-                        "testPeriods",
-                      ].map((key, index) => [
-                        `section.${key}`,
-                        text(aside, String(11 + index)),
-                      ]),
-                    ),
-                    "section.teachLanguage.namePrimary": text(
-                      aside,
-                      name(language, locale),
-                    ),
-                    "section.roomType.namePrimary": text(
-                      aside,
-                      name(roomType, locale),
-                    ),
-                    "section.graduateAndPostgraduate": text(
-                      aside,
-                      locale === "en-us" ? "Yes" : "是",
-                    ),
-                  };
-          await audit.check({
-            feature: kind,
-            capability: `${kind}-detail`,
-            view: "web",
-            scope: main,
-            identity: heading,
-            primary: detailPrimary,
-            secondary: detailSecondary,
-            tertiary: {
-              [`${kind}.id`]: internal(entity.id),
-              [`${kind}.jwId`]: internal(entity.jwId),
-              ...(kind === "teacher"
-                ? { "teacher.personId": internal(teacher.personId ?? 0) }
-                : {}),
-            },
-          });
-          if (kind !== "section") {
-            const history = main.locator("#sections");
-            const offering =
+          ]);
+          const semester = locale === "en-us" ? "Fall 2026" : "2026年秋季学期";
+
+          await page.setViewportSize({ width, height: 844 });
+
+          for (const kind of ["course", "teacher", "section"] as const) {
+            const entity =
+              kind === "course"
+                ? course
+                : kind === "teacher"
+                  ? teacher
+                  : section;
+            const href = `/catalog/${kind}s/${kind === "teacher" ? teacher.id : entity.jwId}`;
+            await gotoAndWaitForReady(
+              page,
+              `/catalog/${kind}s?search=${catalog.marker}`,
+            );
+            const main = page.locator("#main-content");
+            const row =
               width === 1280
-                ? history
+                ? main
                     .getByRole("row")
-                    .filter({
-                      has: page.locator(
-                        `a[href="/catalog/sections/${section.jwId}"]`,
-                      ),
-                    })
+                    .filter({ has: page.locator(`a[href="${href}"]`) })
                     .first()
-                : history
-                    .locator(
-                      `a[href="/catalog/sections/${section.jwId}"]:visible`,
-                    )
+                : main
+                    .getByRole("listitem")
+                    .filter({ has: page.locator(`a[href="${href}"]`) })
                     .first();
             const identity =
-              kind === "course"
-                ? offering.getByText(semester, { exact: true }).first()
-                : offering
-                    .getByText(name(course, locale), { exact: false })
-                    .first();
-            await audit.check({
-              feature: kind,
-              capability: `${kind}-detail`,
-              view: "web-history",
-              scope: offering,
-              identity,
-              primary:
-                kind === "course"
-                  ? { "section.semester.nameCn": field(identity, semester) }
+              width === 1280
+                ? row.locator(`a[href="${href}"]`).first()
+                : row.locator('[data-slot="item-title"]');
+            const primary: Record<string, PriorityField> =
+              kind === "teacher"
+                ? {
+                    "teacher.namePrimary": field(
+                      identity,
+                      name(teacher, locale),
+                    ),
+                  }
+                : kind === "course"
+                  ? {
+                      "course.namePrimary": field(
+                        identity,
+                        name(course, locale),
+                      ),
+                    }
                   : {
                       "section.course.namePrimary": field(
                         identity,
                         name(course, locale),
                       ),
-                    },
-              secondary:
-                kind === "course"
-                  ? {
                       "section.teachers.namePrimary": field(
-                        offering
+                        row
                           .getByText(name(teacher, locale), { exact: false })
+                          .filter({ visible: true })
                           .first(),
                         name(teacher, locale),
                       ),
-                      "section.code": text(offering, section.code),
-                      "section.campus.namePrimary": field(
-                        offering
-                          .getByText(name(campus, locale), { exact: false })
+                    };
+            const secondary: Record<string, PriorityField> =
+              kind === "course"
+                ? {
+                    "course.nameSecondary": secondaryName(
+                      identity,
+                      course,
+                      locale,
+                    ),
+                    "course.code": text(row, course.code),
+                    "course.educationLevel.namePrimary": text(
+                      row,
+                      name(education, locale),
+                    ),
+                    "course.category.namePrimary": text(
+                      row,
+                      name(category, locale),
+                    ),
+                    "course.classType.namePrimary": text(
+                      row,
+                      name(classType, locale),
+                    ),
+                  }
+                : kind === "teacher"
+                  ? {
+                      "teacher.nameSecondary": secondaryName(
+                        identity,
+                        teacher,
+                        locale,
+                      ),
+                      "teacher.department.namePrimary": text(
+                        row,
+                        name(catalog.departments[0], locale),
+                      ),
+                      "teacher.teacherTitle.namePrimary": text(
+                        row,
+                        name(catalog.titles[0], locale),
+                      ),
+                      "teacher.email": text(row, teacher.email ?? ""),
+                      "teacher._count.sections": text(row, "1"),
+                      "teacher.code": text(row, teacher.code ?? ""),
+                    }
+                  : {
+                      "section.course.nameSecondary": secondaryName(
+                        identity,
+                        course,
+                        locale,
+                      ),
+                      "section.semester.nameCn": field(
+                        row
+                          .getByText(semester, { exact: false })
+                          .filter({ visible: true })
                           .first(),
+                        semester,
+                      ),
+                      "section.campus.namePrimary": text(
+                        row,
                         name(campus, locale),
                       ),
+                      "section.code": text(row, section.code),
+                      "section.credits": field(
+                        row
+                          .getByText("3.5", { exact: false })
+                          .filter({ visible: true })
+                          .first(),
+                        "3.5",
+                      ),
                       "section.stdCount": field(
-                        offering.getByText("17 / 27", { exact: false }).first(),
+                        row
+                          .getByText("17 / 27", { exact: false })
+                          .filter({ visible: true })
+                          .first(),
                         "17",
                       ),
                       "section.limitCount": field(
-                        offering.getByText("17 / 27", { exact: false }).first(),
+                        row
+                          .getByText("17 / 27", { exact: false })
+                          .filter({ visible: true })
+                          .first(),
                         "27",
+                      ),
+                    };
+            await test.info().attach(`${kind}-list-${locale}-${width}`, {
+              body: await page.screenshot(),
+              contentType: "image/png",
+            });
+            await assertPriorityView({
+              scope: row,
+              identity,
+              primary,
+              secondary,
+              tertiary: {
+                [`${kind}.id`]: internal(entity.id),
+                [`${kind}.jwId`]: internal(entity.jwId),
+                ...(kind === "teacher"
+                  ? { "teacher.personId": internal(teacher.personId ?? 0) }
+                  : {}),
+              },
+            });
+            await gotoAndWaitForReady(page, href);
+            const heading = page.getByRole("heading", { level: 1 });
+            const aside = main.locator("aside");
+            const detailPrimary: Record<string, PriorityField> =
+              kind === "teacher"
+                ? {
+                    "teacher.namePrimary": field(
+                      heading,
+                      name(teacher, locale),
+                    ),
+                  }
+                : kind === "course"
+                  ? {
+                      "course.namePrimary": field(
+                        heading,
+                        name(course, locale),
                       ),
                     }
                   : {
-                      "section.semester.nameCn": text(offering, semester),
-                      "section.code": text(offering, section.code),
-                      "section.credits": field(
-                        offering.getByText("3.5", { exact: false }).first(),
-                        "3.5",
+                      "section.course.namePrimary": field(
+                        heading,
+                        name(course, locale),
                       ),
-                    },
+                      "section.teachers.namePrimary": field(
+                        main
+                          .locator("[data-detail-identity]")
+                          .getByRole("link", { name: name(teacher, locale) }),
+                        name(teacher, locale),
+                      ),
+                    };
+            const detailSecondary: Record<string, PriorityField> =
+              kind === "course"
+                ? {
+                    "course.nameSecondary": secondaryName(
+                      heading,
+                      course,
+                      locale,
+                    ),
+                    "course.code": field(
+                      main.getByTestId("course-public-code"),
+                      course.code,
+                    ),
+                    "course.educationLevel.namePrimary": text(
+                      main.locator("[data-detail-identity]"),
+                      name(education, locale),
+                    ),
+                    "course.category.namePrimary": text(
+                      main.locator("[data-detail-identity]"),
+                      name(category, locale),
+                    ),
+                    "course.classType.namePrimary": text(
+                      aside,
+                      name(classType, locale),
+                    ),
+                    "course.type.namePrimary": text(
+                      aside,
+                      name(courseType, locale),
+                    ),
+                  }
+                : kind === "teacher"
+                  ? {
+                      "teacher.nameSecondary": secondaryName(
+                        heading,
+                        teacher,
+                        locale,
+                      ),
+                      "teacher.department.namePrimary": text(
+                        main.locator("[data-detail-identity]"),
+                        name(catalog.departments[0], locale),
+                      ),
+                      "teacher.teacherTitle.namePrimary": text(
+                        main.locator("[data-detail-identity]"),
+                        name(catalog.titles[0], locale),
+                      ),
+                      "teacher.email": text(aside, teacher.email ?? ""),
+                      "teacher.telephone": text(aside, teacher.telephone ?? ""),
+                      "teacher.mobile": text(aside, teacher.mobile ?? ""),
+                      "teacher.address": text(aside, teacher.address ?? ""),
+                    }
+                  : {
+                      "section.course.nameSecondary": text(
+                        heading.locator(".."),
+                        locale === "en-us"
+                          ? course.nameCn
+                          : (course.nameEn ?? ""),
+                      ),
+                      "section.semester.nameCn": text(
+                        main.locator("[data-detail-identity]"),
+                        semester,
+                      ),
+                      "section.campus.namePrimary": text(
+                        main.locator("[data-detail-identity]"),
+                        name(campus, locale),
+                      ),
+                      "section.code": text(aside, section.code),
+                      "section.credits": text(aside, "3.5"),
+                      "section.stdCount": field(
+                        aside.getByText("17 / 27", { exact: true }),
+                        "17",
+                      ),
+                      "section.limitCount": field(
+                        aside.getByText("17 / 27", { exact: true }),
+                        "27",
+                      ),
+                      "section.period": field(
+                        aside.getByText("31 / 29", { exact: true }),
+                        "31",
+                      ),
+                      "section.actualPeriods": field(
+                        aside.getByText("31 / 29", { exact: true }),
+                        "29",
+                      ),
+                      "section.examMode.namePrimary": text(
+                        aside,
+                        name(examMode, locale),
+                      ),
+                      "section.remark": text(aside, `Remark ${catalog.marker}`),
+                      "section.adminClasses.namePrimary": text(
+                        aside,
+                        name(adminClass, locale),
+                      ),
+                      "section.timesPerWeek": field(
+                        aside.getByText("5 x 4", { exact: true }),
+                        "5",
+                      ),
+                      "section.periodsPerWeek": field(
+                        aside.getByText("5 x 4", { exact: true }),
+                        "4",
+                      ),
+                      ...Object.fromEntries(
+                        [
+                          "theoryPeriods",
+                          "practicePeriods",
+                          "experimentPeriods",
+                          "machinePeriods",
+                          "designPeriods",
+                          "testPeriods",
+                        ].map((key, index) => [
+                          `section.${key}`,
+                          text(aside, String(11 + index)),
+                        ]),
+                      ),
+                      "section.teachLanguage.namePrimary": text(
+                        aside,
+                        name(language, locale),
+                      ),
+                      "section.roomType.namePrimary": text(
+                        aside,
+                        name(roomType, locale),
+                      ),
+                      "section.graduateAndPostgraduate": text(
+                        aside,
+                        locale === "en-us" ? "Yes" : "是",
+                      ),
+                    };
+            await assertPriorityView({
+              scope: main,
+              identity: heading,
+              primary: detailPrimary,
+              secondary: detailSecondary,
               tertiary: {
-                "section.id": internal(section.id),
-                "section.jwId": internal(section.jwId),
+                [`${kind}.id`]: internal(entity.id),
+                [`${kind}.jwId`]: internal(entity.jwId),
+                ...(kind === "teacher"
+                  ? { "teacher.personId": internal(teacher.personId ?? 0) }
+                  : {}),
               },
             });
+            if (kind !== "section") {
+              const history = main.locator("#sections");
+              const offering =
+                width === 1280
+                  ? history
+                      .getByRole("row")
+                      .filter({
+                        has: page.locator(
+                          `a[href="/catalog/sections/${section.jwId}"]`,
+                        ),
+                      })
+                      .first()
+                  : history
+                      .locator(
+                        `a[href="/catalog/sections/${section.jwId}"]:visible`,
+                      )
+                      .first();
+              const identity =
+                kind === "course"
+                  ? offering.getByText(semester, { exact: true }).first()
+                  : offering
+                      .getByText(name(course, locale), { exact: false })
+                      .first();
+              await assertPriorityView({
+                scope: offering,
+                identity,
+                primary:
+                  kind === "course"
+                    ? { "section.semester.nameCn": field(identity, semester) }
+                    : {
+                        "section.course.namePrimary": field(
+                          identity,
+                          name(course, locale),
+                        ),
+                      },
+                secondary:
+                  kind === "course"
+                    ? {
+                        "section.teachers.namePrimary": field(
+                          offering
+                            .getByText(name(teacher, locale), { exact: false })
+                            .first(),
+                          name(teacher, locale),
+                        ),
+                        "section.code": text(offering, section.code),
+                        "section.campus.namePrimary": field(
+                          offering
+                            .getByText(name(campus, locale), { exact: false })
+                            .first(),
+                          name(campus, locale),
+                        ),
+                        "section.stdCount": field(
+                          offering
+                            .getByText("17 / 27", { exact: false })
+                            .first(),
+                          "17",
+                        ),
+                        "section.limitCount": field(
+                          offering
+                            .getByText("17 / 27", { exact: false })
+                            .first(),
+                          "27",
+                        ),
+                      }
+                    : {
+                        "section.semester.nameCn": text(offering, semester),
+                        "section.code": text(offering, section.code),
+                        "section.credits": field(
+                          offering.getByText("3.5", { exact: false }).first(),
+                          "3.5",
+                        ),
+                      },
+                tertiary: {
+                  "section.id": internal(section.id),
+                  "section.jwId": internal(section.jwId),
+                },
+              });
+            }
+            expect(
+              await page.evaluate(() => document.documentElement.scrollWidth),
+            ).toBeLessThanOrEqual(width);
           }
-          expect(
-            await page.evaluate(() => document.documentElement.scrollWidth),
-          ).toBeLessThanOrEqual(width);
-        }
-        audit.finish();
-      }
-    }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await cleanupCatalogContractFixture(db, catalog);
-      await db.adminClass.delete({ where: { id: adminClass.id } });
-      await db.roomType.delete({ where: { id: roomType.id } });
-      await db.teachLanguage.delete({ where: { id: language.id } });
-      await db.examMode.delete({ where: { id: examMode.id } });
-      await db.campus.delete({ where: { id: campus.id } });
-      await db.courseType.delete({ where: { id: courseType.id } });
-      await db.classType.delete({ where: { id: classType.id } });
-      await db.courseCategory.delete({ where: { id: category.id } });
-      await db.educationLevel.delete({ where: { id: education.id } });
+        },
+        { anonymousCourseCount: 2 },
+      );
     });
   }
-});

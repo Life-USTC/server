@@ -1,204 +1,181 @@
-import { expect, type Locator, test } from "@playwright/test";
-import { homeworkExpectation } from "../../../../../shared/specifications/homework";
-import { semanticContract } from "../../../../../shared/specifications/semantic-contract";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
+import { expect, type Locator } from "@playwright/test";
+import { test } from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘作业", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "parallel" });
 
-  test("桌面端默认显示作业列表", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
-    });
+  test("桌面端默认显示作业列表", async ({ page, homeworks, homeworkRun }) => {
+    await homeworkRun(
+      async () => {
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
-    await page
-      .getByRole("radio", { name: /全部|All/i })
-      .first()
-      .click();
+        await page
+          .getByRole("radio", { name: /全部|All/i })
+          .first()
+          .click();
 
-    await expect(
-      page.getByRole("radio", { name: /列表|List|卡片|Cards/i }),
-    ).toHaveCount(0);
-    await expect(page.getByTestId("workspace-homeworks-list")).toBeVisible();
-    await expect(page.getByTestId("workspace-homeworks-cards")).toBeHidden();
-    await expect(
-      page
-        .getByRole("row")
-        .filter({ hasText: DEV_SEED.homeworks.title })
-        .first(),
-    ).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "homeworks/list-view");
+        await expect(
+          page.getByRole("radio", { name: /列表|List|卡片|Cards/i }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByTestId("workspace-homeworks-list"),
+        ).toBeVisible();
+        await expect(
+          page.getByTestId("workspace-homeworks-cards"),
+        ).toBeHidden();
+        await expect(
+          page.getByRole("row").filter({ hasText: homeworks[0].title }).first(),
+        ).toBeVisible();
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
   });
 
-  test("homework.completed-deadline-display", async ({ page }, testInfo) => {
-    test.setTimeout(180_000);
-    const contract = await semanticContract(testInfo.title, "state_visibility");
-    contract.equal("/surface", "web");
-    const visited = new Set<string>();
-    const specification = homeworkExpectation(
-      "homework.completed-deadline-display",
-      "state_visibility",
-    );
-    const reminder = /已逾期|还剩|Overdue by|left/i;
-    function locators(target: Locator, detail: boolean) {
-      const status = detail
-        ? target
-            .getByTestId("homework-secondary-details")
-            .getByRole("row")
-            .filter({ hasText: /状态|Status/i })
-            .getByRole("cell")
-            .first()
-        : target.getByText(/^(已完成|Completed)$/i);
-      return {
-        due_at: (detail
-          ? target.getByTestId("homework-deadline-summary")
-          : target
-        )
-          .getByText(/\d{1,2}:\d{2}/)
-          .first(),
-        completion: status,
-        major: detail
-          ? status.filter({ hasText: /大作业|Major/i })
-          : target.getByText(/大作业|Major/i, { exact: true }),
-        team: detail
-          ? status.filter({ hasText: /需要组队|Team required|Requires team/i })
-          : target.getByText(/需要组队|Team required|Requires team/i, {
-              exact: true,
-            }),
-        deadline_reminder: target.getByText(reminder),
-      };
-    }
-    async function assertCompleted(target: Locator, detail: boolean) {
-      const fields = locators(target, detail);
-      for (const field of specification.visible)
-        await expect(fields[field]).toBeVisible();
-      for (const field of specification.hidden)
-        await expect(fields[field]).toHaveCount(0);
-      await expect(fields.completion).toContainText(/已完成|Completed/i);
-      const visible = [],
-        hidden = [];
-      for (const [name, locator] of Object.entries(fields)) {
-        if (await locator.isVisible()) visible.push(name);
-        else hidden.push(name);
-      }
-      contract.set("/visible", visible);
-      contract.set("/hidden", hidden);
-      contract.equal(
-        "/state/completed",
-        /已完成|Completed/i.test(await fields.completion.innerText()),
-      );
-    }
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
-    const views = specification.targets.filter(
-      (target) => target !== "detail-dialog",
-    );
-    // A detail-only specification still needs a workspace host to open the dialog.
-    if (views.length === 0) views.push("workspace-list");
-    for (const target of views) {
-      if (target !== "workspace-card" && target !== "workspace-list")
-        throw new Error(`Unsupported homework target: ${target}`);
-      const mobile = target === "workspace-card";
-      await page.setViewportSize(
-        mobile ? { width: 390, height: 844 } : { width: 1280, height: 900 },
-      );
-      for (const overdue of [true, false]) {
-        const title = `e2e-completed-deadline-${mobile}-${overdue}`;
-        let homeworkId: string | undefined;
-        try {
-          const response = await page.request.post(
-            "/api/community/section-homeworks",
+  for (const target of ["workspace-list", "workspace-card"] as const) {
+    for (const overdue of [true, false]) {
+      test(`homework.completed-deadline-display (${target}, ${overdue ? "overdue" : "future"})`, async ({
+        page,
+        account,
+        academic,
+        homeworkRun,
+        storedHomeworkCompletion,
+        academicDb,
+      }) => {
+        await homeworkRun(
+          async () => {
+            const reminder = /已逾期|还剩|Overdue by|left/i;
+            function locators(target: Locator, detail: boolean) {
+              const status = detail
+                ? target
+                    .getByTestId("homework-secondary-details")
+                    .getByRole("row")
+                    .filter({ hasText: /状态|Status/i })
+                    .getByRole("cell")
+                    .first()
+                : target.getByText(/^(已完成|Completed)$/i);
+              return {
+                due_at: (detail
+                  ? target.getByTestId("homework-deadline-summary")
+                  : target
+                )
+                  .getByText(/\d{1,2}:\d{2}/)
+                  .first(),
+                completion: status,
+                major: detail
+                  ? status.filter({ hasText: /大作业|Major/i })
+                  : target.getByText(/大作业|Major/i, { exact: true }),
+                team: detail
+                  ? status.filter({
+                      hasText: /需要组队|Team required|Requires team/i,
+                    })
+                  : target.getByText(/需要组队|Team required|Requires team/i, {
+                      exact: true,
+                    }),
+                deadline_reminder: target.getByText(reminder),
+              };
+            }
+            async function assertCompleted(target: Locator, detail: boolean) {
+              const fields = locators(target, detail);
+              for (const field of [
+                "due_at",
+                "completion",
+                "major",
+                "team",
+              ] as const)
+                await expect(fields[field]).toBeVisible();
+              await expect(fields.deadline_reminder).toHaveCount(0);
+              await expect(fields.completion).toContainText(
+                /已完成|Completed/i,
+              );
+            }
+            const mobile = target === "workspace-card";
+            await page.setViewportSize(
+              mobile
+                ? { width: 390, height: 844 }
+                : { width: 1280, height: 900 },
+            );
+            const title = `Completed deadline ${target} ${overdue}`;
+            const homework = await academicDb((db) =>
+              db.homework.create({
+                data: {
+                  sectionId: academic.section.id,
+                  createdById: account.id,
+                  title,
+                  submissionDueAt: new Date(
+                    overdue
+                      ? "2020-01-01T12:00:00+08:00"
+                      : "2099-01-01T12:00:00+08:00",
+                  ),
+                  isMajor: true,
+                  requiresTeam: true,
+                },
+              }),
+            );
+            await gotoAndWaitForReady(page, "/workspace/homeworks");
+            await page
+              .getByRole("radio", { name: /全部|All/i })
+              .first()
+              .click();
+            const surface = mobile
+              ? page
+                  .getByTestId("workspace-homeworks-cards")
+                  .locator('[data-slot="item"]')
+                  .filter({ hasText: title })
+              : page.getByRole("row").filter({ hasText: title });
+            await expect(
+              locators(surface, false).deadline_reminder,
+            ).toBeVisible();
+            const dueText = await locators(surface, false).due_at.textContent();
+            await surface
+              .getByRole("button", {
+                name: /标记为完成|Mark as complete/i,
+              })
+              .click();
+            await expect(
+              surface.getByRole("button", {
+                name: /取消完成|Mark as incomplete/i,
+              }),
+            ).toBeEnabled();
+            await assertCompleted(surface, false);
+            expect(
+              await storedHomeworkCompletion(account.id, homework.id),
+            ).not.toBeNull();
+
+            await expect(locators(surface, false).due_at).toHaveText(
+              dueText ?? "",
+            );
             {
-              data: {
-                sectionJwId: DEV_SEED.section.jwId,
-                title,
-                submissionDueAt: overdue
-                  ? "2020-01-01T12:00:00+08:00"
-                  : "2099-01-01T12:00:00+08:00",
-                isMajor: true,
-                requiresTeam: true,
-              },
-            },
-          );
-          expect(response.ok()).toBe(true);
-          homeworkId = (await response.json()).id;
-          expect(homeworkId).toBeTruthy();
-          await gotoAndWaitForReady(page, "/workspace/homeworks");
-          await page
-            .getByRole("radio", { name: /全部|All/i })
-            .first()
-            .click();
-          const surface = mobile
-            ? page
-                .getByTestId("workspace-homeworks-cards")
-                .locator('[data-slot="item"]')
-                .filter({ hasText: title })
-            : page.getByRole("row").filter({ hasText: title });
-          await expect(
-            locators(surface, false).deadline_reminder,
-          ).toBeVisible();
-          const dueText = await locators(surface, false).due_at.textContent();
-          await surface
-            .getByRole("button", {
-              name: specification.state.completed
-                ? /标记为完成|Mark as complete/i
-                : /取消完成|Mark as incomplete/i,
-            })
-            .click();
-          await expect(
-            surface.getByRole("button", {
-              name: /取消完成|Mark as incomplete/i,
-            }),
-          ).toBeEnabled();
-          await assertCompleted(surface, false);
-          visited.add(mobile ? "workspace-card" : "workspace-list");
-          await expect(locators(surface, false).due_at).toHaveText(
-            dueText ?? "",
-          );
-          await captureStepScreenshot(
-            page,
-            testInfo,
-            `homeworks/completed-deadline-${mobile}-${overdue}`,
-          );
-          if (specification.targets.includes("detail-dialog")) {
-            await surface
-              .getByRole("button", { name: title, exact: true })
-              .click();
-            const dialog = page.getByRole("dialog");
-            await assertCompleted(dialog, true);
-            visited.add("detail-dialog");
-            await dialog
-              .getByRole("button", { name: /取消完成|Mark as incomplete/i })
-              .click();
-            for (const field of specification.restore_on_incomplete)
-              await expect(locators(dialog, true)[field]).toBeVisible();
-            await page.keyboard.press("Escape");
-          } else {
-            await surface
-              .getByRole("button", { name: /取消完成|Mark as incomplete/i })
-              .click();
-          }
-          for (const field of specification.restore_on_incomplete)
-            await expect(locators(surface, false)[field]).toBeVisible();
-          const restored = [];
-          if (await locators(surface, false).deadline_reminder.isVisible())
-            restored.push("deadline_reminder");
-          contract.set("/restore_on_incomplete", restored);
-        } finally {
-          await cleanupHomeworksForE2e([homeworkId]);
-        }
-      }
+              await surface
+                .getByRole("button", { name: title, exact: true })
+                .click();
+              const dialog = page.getByRole("dialog");
+              await assertCompleted(dialog, true);
+
+              await dialog
+                .getByRole("button", { name: /取消完成|Mark as incomplete/i })
+                .click();
+              await expect(
+                locators(dialog, true).deadline_reminder,
+              ).toBeVisible();
+              await page.keyboard.press("Escape");
+            }
+            await expect(
+              locators(surface, false).deadline_reminder,
+            ).toBeVisible();
+            expect(
+              await storedHomeworkCompletion(account.id, homework.id),
+            ).toBeNull();
+          },
+          {
+            calendarMessages: [
+              { type: "user", userId: account.id },
+              { type: "user", userId: account.id },
+            ],
+            calendarTokenCreated: false,
+          },
+        );
+      });
     }
-    contract.set("/targets", [...visited]);
-    contract.recordPlaywright(testInfo);
-  });
+  }
 });

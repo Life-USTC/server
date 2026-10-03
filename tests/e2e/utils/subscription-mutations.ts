@@ -1,11 +1,17 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
-import { issueAccessToken, parseTextContent } from "../src/app/api/mcp/helpers";
-import { createCalendarContractFixture } from "./calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
-import { withE2ePrisma } from "./e2e-db/prisma";
-import { createSignedSessionCookie } from "./workspace-task-filters";
+import { type OAuthOwner, parseTextContent } from "../src/app/api/mcp/helpers";
+import type {
+  CalendarProtocol,
+  CalendarProtocolChecks,
+} from "./calendar-protocol-lifecycle";
+import type { PrivateCalendar } from "./private-calendar-fixture";
+import {
+  authorizeSubscription,
+  expectMcpToolCalls,
+  expectSubscriptionState,
+  signInSubscriptionOwner,
+} from "./subscription-consumption";
 
 export const subscriptionTransports = [
   "REST session",
@@ -22,17 +28,20 @@ export type SubscriptionRelation = {
 };
 
 export async function createSubscriptionMutationFixture(
+  owner: OAuthOwner,
+  createCalendar: () => Promise<PrivateCalendar>,
   role: "regular" | "suspended admin" = "regular",
 ) {
-  const own = await createCalendarContractFixture();
-  const foreign = await createCalendarContractFixture();
+  const db = owner.worker.database.owner;
+  const own = await createCalendar();
+  const foreign = await createCalendar();
   if (role === "suspended admin") {
-    await withE2ePrisma(async (db) => {
-      await db.user.update({
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: own.users[0].id },
         data: { isAdmin: true },
       });
-      await db.userSuspension.create({
+      await tx.userSuspension.create({
         data: {
           userId: own.users[0].id,
           reason: "Personal subscriptions remain available during suspension",
@@ -40,19 +49,17 @@ export async function createSubscriptionMutationFixture(
       });
     });
   }
-  const stableRows = await withE2ePrisma((db) =>
-    db.userSectionSubscription.findMany({
-      where: {
-        userId: { in: [...own.users, ...foreign.users].map(({ id }) => id) },
-      },
-      orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
-    }),
-  );
+  const userIds = [...own.users, ...foreign.users].map(({ id }) => id);
+  const stableRows = await db.userSectionSubscription.findMany({
+    where: { userId: { in: userIds } },
+    orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+  });
   return {
+    owner,
     own,
     foreign,
     stableRows,
-    userIds: [...own.users, ...foreign.users].map(({ id }) => id),
+    userIds,
     initial: [
       { userId: own.users[0].id, sectionId: own.section.id, kind: "regular" },
       {
@@ -61,13 +68,9 @@ export async function createSubscriptionMutationFixture(
         kind: "regular",
       },
     ] satisfies SubscriptionRelation[],
-    cleanup: async () => {
-      await foreign.cleanup();
-      await own.cleanup();
-    },
   };
 }
-export type SubscriptionMutationFixture = Awaited<
+type SubscriptionMutationFixture = Awaited<
   ReturnType<typeof createSubscriptionMutationFixture>
 >;
 
@@ -77,12 +80,11 @@ export async function expectSubscriptionRelations(
   fixture: SubscriptionMutationFixture,
   expected: SubscriptionRelation[],
 ) {
-  const actual = await withE2ePrisma((db) =>
-    db.userSectionSubscription.findMany({
-      where: { userId: { in: fixture.userIds } },
-      orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
-    }),
-  );
+  const db = fixture.owner.worker.database.owner;
+  const actual = await db.userSectionSubscription.findMany({
+    where: { userId: { in: fixture.userIds } },
+    orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+  });
   const ordered = (rows: SubscriptionRelation[]) =>
     [...rows].sort(
       (a, b) => a.userId.localeCompare(b.userId) || a.sectionId - b.sectionId,
@@ -110,72 +112,118 @@ export async function expectSubscriptionRelations(
 
 export async function subscriptionGraphql(
   request: APIRequestContext,
+  origin: string,
   query: string,
   variables: Record<string, unknown>,
   headers: Record<string, string> = {},
 ) {
   const response = await request.post("/api/graphql", {
-    headers: { origin: PLAYWRIGHT_BASE_URL, ...headers },
+    headers: { origin, ...headers },
     data: { query, variables },
   });
   return { response, body: await response.json() };
 }
 
-export async function openSubscriptionTransport(
-  page: Page,
-  anonymousRequest: APIRequestContext,
-  userId: string,
-  transport: SubscriptionTransport,
-  scope = "workspace.subscription:read workspace.subscription:write",
+type SubscriptionConnection = {
+  origin: string;
+  transport: SubscriptionTransport | "anonymous";
+  request: APIRequestContext;
+  headers: Record<string, string>;
+  client?: Client;
+};
+
+export async function runSubscriptionScenario(
+  {
+    page,
+    oauthOwner: owner,
+    createCalendar,
+    calendarProtocolRun,
+  }: {
+    page: Page;
+    oauthOwner: OAuthOwner;
+    createCalendar: () => Promise<PrivateCalendar>;
+    calendarProtocolRun: (
+      work: (io: CalendarProtocol) => Promise<CalendarProtocolChecks>,
+    ) => Promise<void>;
+  },
+  {
+    transport = "anonymous",
+    role = "regular",
+    messages,
+    scope = "workspace.subscription:read workspace.subscription:write",
+    sdkTools = [],
+  }: {
+    transport?: SubscriptionConnection["transport"];
+    role?: "regular" | "suspended admin";
+    messages: number;
+    scope?: string;
+    sdkTools?: string[];
+  },
+  work: (
+    connection: SubscriptionConnection,
+    fixture: SubscriptionMutationFixture,
+  ) => Promise<SubscriptionRelation[]>,
 ) {
-  await page
-    .context()
-    .addCookies([
-      await createSignedSessionCookie(userId),
-      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
-    ]);
-  const resource = `${PLAYWRIGHT_BASE_URL}/api/${transport.startsWith("REST") ? "auth" : transport.startsWith("GraphQL") ? "graphql" : "mcp"}`;
-  let clientId: string | undefined;
-  let client: Client | undefined;
-  const headers: Record<string, string> = {};
-  if (transport.endsWith("bearer")) {
-    const token = await issueAccessToken(page, anonymousRequest, {
-      scope,
-      clientScopes: scope.split(" "),
-      resource,
-    });
-    clientId = token.clientId;
-    headers.Authorization = `Bearer ${token.accessToken}`;
-  }
-  const request = transport.endsWith("session")
-    ? page.request
-    : anonymousRequest;
-  if (transport === "MCP bearer") {
-    client = new Client({ name: "subscription-state-test", version: "1" });
-    await client.connect(
-      new StreamableHTTPClientTransport(new URL(resource), {
-        requestInit: { headers },
-      }),
+  await calendarProtocolRun(async ({ request, mcp, observeCalendar }) => {
+    const fixture = await createSubscriptionMutationFixture(
+      owner,
+      createCalendar,
+      role,
     );
-  }
-  return {
-    transport,
-    request,
-    headers,
-    client,
-    close: async () => {
-      await client?.close();
-      if (clientId) {
-        await withE2ePrisma((db) =>
-          db.oAuthClient.deleteMany({ where: { clientId } }),
+    const userId = fixture.own.users[0].id;
+    await observeCalendar(
+      fixture.own.users[0],
+      Array.from({ length: messages }, () => ({ type: "user", userId })),
+    );
+    const headers: Record<string, string> = {};
+    const origin = owner.worker.origin;
+    let client: Client | undefined;
+    if (transport !== "anonymous")
+      await signInSubscriptionOwner(page, fixture.own, owner.worker);
+    if (transport.endsWith("bearer")) {
+      const token = await authorizeSubscription(page, request, owner, {
+        scope,
+        channel: transport.startsWith("REST")
+          ? "rest"
+          : transport.startsWith("GraphQL")
+            ? "graphql"
+            : "mcp",
+      });
+      headers.Authorization = `Bearer ${token}`;
+      if (transport === "MCP bearer")
+        client = await mcp(
+          { name: "subscription-state-test", version: "1" },
+          token,
         );
-      }
-    },
-  };
+    }
+    const expected = await work(
+      {
+        origin,
+        transport,
+        headers,
+        client,
+        request: transport.endsWith("session") ? page.request : request,
+      },
+      fixture,
+    );
+    return {
+      async verifyTransport(observation) {
+        expectMcpToolCalls(observation, sdkTools);
+      },
+      async verifyState() {
+        await expectSubscriptionRelations(fixture, expected);
+        for (const calendar of [fixture.own, fixture.foreign])
+          await expectSubscriptionState(
+            calendar,
+            owner.worker,
+            expected
+              .filter(({ userId }) => userId === calendar.users[0].id)
+              .map(({ sectionId, kind }) => ({ sectionId, kind })),
+          );
+      },
+    };
+  });
 }
-export type SubscriptionConnection = Awaited<
-  ReturnType<typeof openSubscriptionTransport>
->;
 
 // Each branch retains its native response contract. Only the operation and
 // fixture identifiers are shared; errors are deliberately not normalized.
@@ -183,10 +231,10 @@ export async function mutateSubscription(
   connection: SubscriptionConnection,
   fixture: SubscriptionMutationFixture,
   action: "add" | "remove" | "kind",
-  wasSubscribed = true,
+  wasSubscribed: boolean,
 ) {
   const { own, foreign } = fixture;
-  const { transport, request, headers, client } = connection;
+  const { transport, request, headers, client, origin } = connection;
   if (transport.startsWith("REST")) {
     const response =
       action === "kind"
@@ -225,8 +273,8 @@ export async function mutateSubscription(
       );
       if (action === "add") {
         expect(body).toMatchObject({
-          addedCount: 1,
-          alreadySubscribedCount: 0,
+          addedCount: wasSubscribed ? 0 : 1,
+          alreadySubscribedCount: wasSubscribed ? 1 : 0,
         });
       }
     }
@@ -241,6 +289,7 @@ export async function mutateSubscription(
           : "subscriptionRemove";
     const { response, body } = await subscriptionGraphql(
       request,
+      origin,
       `mutation($jwId: Int!) { ${field}(jwId: $jwId${action === "kind" ? ", kind: auditor" : ""}) { ${action === "kind" ? "sectionJwId kind" : "subscribed"} } }`,
       { jwId: foreign.section.jwId },
       headers,
@@ -272,7 +321,9 @@ export async function mutateSubscription(
           sectionJwId: foreign.section.jwId,
           action:
             action === "add"
-              ? "subscribed"
+              ? wasSubscribed
+                ? "already_subscribed"
+                : "subscribed"
               : wasSubscribed
                 ? "unsubscribed"
                 : "not_subscribed",
@@ -284,7 +335,7 @@ export async function expectMissingSubscriptionKind(
   connection: SubscriptionConnection,
   jwId: number,
 ) {
-  const { transport, request, headers, client } = connection;
+  const { transport, request, headers, client, origin } = connection;
   if (transport.startsWith("REST")) {
     const response = await request.patch(
       `/api/workspace/subscriptions/${jwId}`,
@@ -293,14 +344,17 @@ export async function expectMissingSubscriptionKind(
         data: { kind: "auditor" },
       },
     );
+    await response.body();
     expect(response.status()).toBe(404);
   } else if (transport.startsWith("GraphQL")) {
-    const { body } = await subscriptionGraphql(
+    const { response, body } = await subscriptionGraphql(
       request,
+      origin,
       "mutation($jwId: Int!) { subscriptionKindUpdate(jwId: $jwId, kind: auditor) { kind } }",
       { jwId },
       headers,
     );
+    expect(response.status()).toBe(404);
     expect(body.errors).toHaveLength(1);
     expect(body.errors[0].extensions.code).toBe("NOT_FOUND");
     expect(body.data).toBeNull();

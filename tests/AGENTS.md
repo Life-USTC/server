@@ -8,11 +8,15 @@ when changing behavior: `$life-ustc-implement`.
 | Unit | `tests/unit/` | `bunx vitest run --coverage`; files run in parallel with isolated mocks |
 | Integration | `tests/integration/` | `bun run integration:test:parallel`; four independent PostgreSQL shards, serial files within each |
 | RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job and the default local parallel runner enable all role-test gates against the production bootstrap |
-| REST | `tests/integration/rest/` | `bun run rest:test`; two isolated CI shards, each with its own database and real Worker |
-| Browser | `tests/e2e/` | Eight isolated CI shards; locally `bun run e2e:test:parallel` or serial `bun run e2e:test` |
+| REST | `tests/integration/rest/` | `bun run rest:test`; eight isolated CI shards; each case owns its database and real Worker |
+| Browser | `tests/e2e/` | 24 isolated CI shards; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
 
 CI static checks, unit coverage, integration shards, RLS, and the application
 build start independently. REST and browser jobs consume that single build.
+Local `e2e:test:local` owns one temporary PostgreSQL service; native Playwright
+workers schedule the isolated cases. `e2e:test` and `rest:test` invoke Playwright directly after database setup
+and a build (see root `AGENTS.md`). Browser HTML reports and failure artifacts
+are under `playwright-report/` (or the explicit `E2E_REPORT_ROOT`).
 Coverage reports measure unit execution of `src/**/*.ts`; database and browser
 tests separately verify real permissions and transport behavior. Keep every
 layer enabled when changing orchestration.
@@ -43,29 +47,37 @@ a one-requirement/one-test rule, or semantic receipts.
 
 Separate business checks by responsibility:
 
-- Mutation tests act through each supported real entry point (Web, REST, GraphQL,
-  MCP), then independently observe the expected persisted state. Include ownership,
-  repeat operations, invalid input and rejection without partial effects. Assert
-  each transport's own response and authorization contract as well as shared state.
+- Mutation cases independently prepare the state required by one operation, act
+  through the supported real entry point (Web, REST, GraphQL, MCP), and independently
+  observe the expected persisted state. Update, remove and repeat-operation cases
+  seed their own preconditions; an earlier create test or CRUD step is not setup.
+  Include ownership, invalid input and rejection without partial effects. Assert
+  each transport's response and authorization contract as well as shared state.
 - Consumer tests independently prepare a known state, then verify its projections
   through the supported interfaces and pages. Apply each consumer's filtering,
   timing, ordering and visibility rules rather than demanding identical JSON.
-- Connection tests change state through an entry point and observe another consumer
-  in the same session or after refresh. Cover cache invalidation and already-open
-  views that independent fixture-based read/write checks cannot prove.
-- Selected complete journeys verify that essential user tasks work end to end.
-  Keep scenarios independently runnable; never depend on an earlier test's output.
 
 Keep operation adapters, state fixtures/observers and expected assertions separate.
 Adapters must use the interface under test, not bypass it through a shared use-case.
 An observer may read the database directly, but must not compute its expected result
 with the production logic it is checking. Database state alone cannot prove cache,
-UI, object storage or asynchronous effects; observe those explicitly when required.
+UI, object storage or asynchronous effects; observe those explicitly in the module
+that owns the promised behavior. A refresh or cache requirement still needs its
+actual boundary checked, including an already-open view when specified. Do not add
+separate cross-entrypoint or complete-journey layers that repeat these checks.
 Choose concrete state transitions and invariants instead of the full Cartesian
 product of writers, readers, actors and presentation states. Preserve dedicated
 permission and transaction regressions as well as entry-point checks.
 
-New tests use explicit expected data maintained alongside the test. Existing typed
-comparison helpers remain in other features, but their metadata is not an acceptance
-coverage claim. Agents may author tests; reviewers own the requirements, oracle and
+Tests use explicit expected data maintained alongside the test. Shared helpers
+observe actual state and accept explicit expected values; they do not read feature
+specifications or record field-consumption receipts. Agents may author tests; reviewers own the requirements, oracle and
 assertion quality. Never weaken expectations or skip failures automatically.
+
+Mutable actors and records belong to a test, including resources acquired before
+the test body starts. Use runner fixtures with failure-safe teardown, atomic
+database-only setup, and exact owned IDs for cleanup. A shared immutable catalog
+fixture is acceptable; a shared user whose preferences are restored afterward is
+not a new isolation pattern. Global maintenance and version activation need their
+own database/service environment. Do not increase suite concurrency until the
+affected cases have passed standalone, reordered and concurrent validation.

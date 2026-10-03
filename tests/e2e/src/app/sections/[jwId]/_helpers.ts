@@ -2,10 +2,7 @@
  * Shared helpers for /catalog/sections/[jwId] E2E shards.
  */
 import { expect, type Locator, type Page } from "@playwright/test";
-import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-
-export const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 export function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -13,6 +10,7 @@ export function escapeForRegExp(value: string) {
 
 export async function jumpToSection(
   page: Page,
+  sectionPath: string,
   name: RegExp,
   selector: string,
 ) {
@@ -23,7 +21,7 @@ export async function jumpToSection(
     hash === "comments" ||
     hash === "teachers"
   ) {
-    await gotoAndWaitForReady(page, `${SECTION_URL}#${hash}`);
+    await gotoAndWaitForReady(page, `${sectionPath}#${hash}`);
     await expect(page.locator(selector)).toBeVisible({ timeout: 60_000 });
     if (hash === "calendar") {
       await expect(

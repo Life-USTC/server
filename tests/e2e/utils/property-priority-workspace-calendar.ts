@@ -1,9 +1,8 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 import { gotoAndWaitForReady } from "./page-ready";
-import type {
-  createPriorityViewAudit,
-  VisiblePriorityField,
+import {
+  assertPriorityView,
+  type VisiblePriorityField,
 } from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
 
@@ -20,11 +19,11 @@ const local = (
 ) => (locale === "en-us" ? (item.nameEn ?? item.nameCn) : item.nameCn);
 
 export async function checkWorkspaceCalendarPriorityViews(
-  audit: ReturnType<typeof createPriorityViewAudit>,
   page: Page,
   data: WorkspacePriorityFixture,
   locale: Locale,
   width: number,
+  headers: Record<string, string>,
 ) {
   const { catalog, section, schedule, room } = data;
   const main = page.locator("#main-content");
@@ -37,10 +36,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const row = table.getByRole("row").filter({ hasText: "08:00" });
   const date = row.getByRole("cell").nth(1);
   const lecture = row.getByRole("cell").first().locator("div").first();
-  await audit.check({
-    feature: "calendar",
-    capability: "section-calendar-view",
-    view: "web",
+  await assertPriorityView({
     scope: row,
     identity: date,
     primary: {
@@ -58,10 +54,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     },
     tertiary: { "event.id": { value: `class-${schedule.id}` } },
   });
-  await audit.check({
-    feature: "schedule",
-    capability: "section-schedule",
-    view: "web",
+  await assertPriorityView({
     scope: row,
     identity: date,
     primary: {
@@ -93,14 +86,11 @@ export async function checkWorkspaceCalendarPriorityViews(
   const calendar = page.getByRole("dialog");
   const calendarTitle = calendar.getByRole("heading").first();
   const calendarUrl = calendar.locator("#calendar-url");
-  const publicUrl = `${PLAYWRIGHT_BASE_URL}/api/catalog/sections/${section.jwId}/calendar.ics`;
+  const publicUrl = `${data.origin}/api/catalog/sections/${section.jwId}/calendar.ics`;
   const calendarPrimary = {
     "calendar.url": { locator: calendarUrl, expected: publicUrl, input: true },
   };
-  await audit.check({
-    feature: "ical",
-    capability: "section-calendar-dialog",
-    view: "web",
+  await assertPriorityView({
     scope: calendar,
     identity: calendarTitle,
     primary: calendarPrimary,
@@ -114,10 +104,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     },
     tertiary: {},
   });
-  await audit.check({
-    feature: "section",
-    capability: "section-ical",
-    view: "web",
+  await assertPriorityView({
     scope: calendar,
     identity: calendarTitle,
     primary: calendarPrimary,
@@ -155,10 +142,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   });
   const regular = roleDialog.getByRole("radio", { name: /^(普通|Regular)$/ });
   await expect(regular).toBeChecked();
-  await audit.check({
-    feature: "subscription",
-    capability: "update-kind",
-    view: "web",
+  await assertPriorityView({
     scope: roleDialog,
     identity: roleDialog.getByRole("heading"),
     primary: {
@@ -174,18 +158,17 @@ export async function checkWorkspaceCalendarPriorityViews(
     tertiary: {},
   });
   await page.keyboard.press("Escape");
-  expect(
-    (
-      await page.request.patch(`/api/workspace/subscriptions/${section.jwId}`, {
-        data: { kind: "teaching_assistant" },
-      })
-    ).status(),
-  ).toBe(200);
+  const updated = await page.request.patch(
+    `/api/workspace/subscriptions/${section.jwId}`,
+    { headers, data: { kind: "teaching_assistant" } },
+  );
+  expect(updated.status()).toBe(200);
+  expect(await updated.json()).toEqual({
+    sectionJwId: section.jwId,
+    kind: "teaching_assistant",
+  });
   await gotoAndWaitForReady(page, "/workspace/subscriptions");
-  await audit.check({
-    feature: "subscribed-sections",
-    capability: "subscribed-sections-tab",
-    view: "web",
+  await assertPriorityView({
     scope: semesterScope,
     identity: subscriptionTitle,
     primary: {
@@ -208,12 +191,9 @@ export async function checkWorkspaceCalendarPriorityViews(
     .click();
   const personal = page.getByRole("dialog");
   const personalUrl = personal.locator("#personal-subscription-url");
-  const value = `${PLAYWRIGHT_BASE_URL}/api/calendar-feeds/${data.user.id}:${data.user.calendarFeedToken}.ics`;
+  const value = `${data.origin}/api/calendar-feeds/${data.user.id}:${data.user.calendarFeedToken}.ics`;
   await expect(personalUrl).toHaveValue(value);
-  await audit.check({
-    feature: "ical",
-    capability: "personal-calendar-subscription",
-    view: "web",
+  await assertPriorityView({
     scope: personal,
     identity: personal.getByRole("heading").first(),
     primary: {
@@ -241,10 +221,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const quickRow = quick
     .locator('[data-slot="item"]')
     .filter({ hasText: courseName });
-  await audit.check({
-    feature: "subscription",
-    capability: "batch-subscribe-by-codes",
-    view: "web-quick-add",
+  await assertPriorityView({
     scope: quick,
     identity: quickRow.locator('[data-slot="item-title"]'),
     primary: {
@@ -277,10 +254,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     .locator('[data-slot="field"]')
     .filter({ hasText: courseName });
   const matchTitle = match.locator("label");
-  await audit.check({
-    feature: "subscription",
-    capability: "batch-subscribe-by-codes",
-    view: "web-import",
+  await assertPriorityView({
     scope: confirm,
     identity: matchTitle,
     primary: { "section.course.namePrimary": field(matchTitle, courseName) },
@@ -293,11 +267,13 @@ export async function checkWorkspaceCalendarPriorityViews(
     tertiary: {},
   });
   await page.keyboard.press("Escape");
-  expect(
-    (
-      await page.request.patch(`/api/workspace/subscriptions/${section.jwId}`, {
-        data: { kind: "regular" },
-      })
-    ).status(),
-  ).toBe(200);
+  const restored = await page.request.patch(
+    `/api/workspace/subscriptions/${section.jwId}`,
+    { headers, data: { kind: "regular" } },
+  );
+  expect(restored.status()).toBe(200);
+  expect(await restored.json()).toEqual({
+    sectionJwId: section.jwId,
+    kind: "regular",
+  });
 }

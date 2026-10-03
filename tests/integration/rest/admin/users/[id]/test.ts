@@ -10,49 +10,44 @@
  * - Returns 401 for unauthenticated or non-admin requests
  * - Returns 400 for invalid body or username format
  */
-import { expect, test } from "@playwright/test";
-import {
-  signInAsDebugUserApi,
-  signInAsDevAdminApi,
-} from "../../../_harness/auth";
+import { expect } from "@playwright/test";
 import { assertApiContract } from "../../../_shared/api-contract";
-
-const BASE = "/api/admin/users";
+import { base as BASE, test } from "../_fixture";
 
 test.describe("PATCH /api/admin/users/[id] 用户更新", () => {
-  test("API 契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: `${BASE}/[id]` });
-  });
-
-  test("未认证 PATCH 返回 401", async ({ request }) => {
-    const response = await request.patch(`${BASE}/nonexistent-id`, {
-      data: { name: "test" },
-    });
-    expect(response.status()).toBe(401);
-  });
-
-  test("非管理员 PATCH 返回 401", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const response = await request.patch(`${BASE}/nonexistent-id`, {
-      data: { name: "test" },
-    });
-    expect(response.status()).toBe(401);
-  });
-
-  test("无效用户名格式返回 400", async ({ request }) => {
-    await signInAsDevAdminApi(request, "/admin");
-    const listResponse = await request.get(`${BASE}?pageSize=1`);
-    expect(listResponse.status()).toBe(200);
-    const userId = (
-      (await listResponse.json()) as {
-        data?: Array<{ id?: string }>;
-      }
-    ).data?.[0]?.id;
-    expect(userId).toBeTruthy();
-
-    const response = await request.patch(`${BASE}/${userId}`, {
-      data: { username: "INVALID_USERNAME" },
-    });
-    expect(response.status()).toBe(400);
-  });
+  test("API 契约", async ({ request, run }) =>
+    run(async () => {
+      await assertApiContract(request, { routePath: `${BASE}/[id]` });
+    }));
+  test("未认证 PATCH 返回 401", async ({ request, run }) =>
+    run(async () => {
+      const response = await request.patch(`${BASE}/nonexistent-id`, {
+        data: { name: "test" },
+      });
+      expect(response.status()).toBe(401);
+    }));
+  test("非管理员 PATCH 返回 401", async ({ userState, run }) =>
+    run(async () => {
+      const { owner, adminUser, db } = userState;
+      const response = await owner.request.patch(`${BASE}/${adminUser.id}`, {
+        data: { name: "test" },
+      });
+      expect(response.status()).toBe(401);
+      expect(
+        await db.user.findUniqueOrThrow({ where: { id: adminUser.id } }),
+      ).toEqual(adminUser);
+      expect(await db.auditLog.count()).toBe(0);
+    }));
+  test("无效用户名格式返回 400", async ({ userState, run }) =>
+    run(async () => {
+      const { admin, ownerUser, db } = userState;
+      const response = await admin.request.patch(`${BASE}/${ownerUser.id}`, {
+        data: { username: "INVALID_USERNAME" },
+      });
+      expect(response.status()).toBe(400);
+      expect(
+        await db.user.findUniqueOrThrow({ where: { id: ownerUser.id } }),
+      ).toEqual(ownerUser);
+      expect(await db.auditLog.count()).toBe(0);
+    }));
 });

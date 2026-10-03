@@ -1,188 +1,169 @@
-/**
- * E2E tests for GET /api/workspace/todos and POST /api/workspace/todos.
- *
- * ## GET /api/workspace/todos
- * - Response: { counts: { incomplete, completed, overdue }, todos: Array<{ id, title, content, priority, completed, dueAt, ... }> }
- * - Auth required (401 if unauthenticated)
- * - Returns all todos belonging to the current user
- *
- * ## POST /api/workspace/todos
- * - Body: { title, content?, priority?, dueAt? }
- * - Response: { id: string }
- * - Auth required (401 if unauthenticated)
- * - Creates a new todo for the current user
- * - Returns 400 for missing title
- *
- * ## Edge cases
- * - Unauthenticated GET/POST → 401
- * - Seed todo appears in list with correct priority and completed status
- * - Full create → verify in list → cleanup via DELETE
- */
-import { expect, test } from "@playwright/test";
-import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
-import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../e2e/utils/dev-seed";
-import {
-  assertTodoCreateSuccess,
-  assertTodoListedWithFields,
-} from "../../../shared/scenarios/todo-crud";
-import { signInAsDebugUserApi } from "../_harness/auth";
-import { assertApiContract } from "../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { test } from "./_fixture";
 
-test("/api/workspace/todos", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/workspace/todos" });
-});
+const base = "/api/workspace/todos";
 
-test("/api/workspace/todos GET 未登录返回 401", async ({ request }) => {
-  const response = await request.get("/api/workspace/todos");
-  expect(response.status()).toBe(401);
-});
-
-test("/api/workspace/todos GET 登录后返回 seed 待办", async ({ request }) => {
-  await signInAsDebugUserApi(request, "/");
-
-  const response = await request.get("/api/workspace/todos");
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    counts?: { completed?: number; incomplete?: number; overdue?: number };
-    todos?: Array<{ title?: string; completed?: boolean }>;
-  };
-  expect(typeof body.counts?.incomplete).toBe("number");
-  expect(typeof body.counts?.completed).toBe("number");
-  expect(typeof body.counts?.overdue).toBe("number");
-  expect(
-    body.todos?.some(
-      (todo) =>
-        todo.title === DEV_SEED.todos.dueTodayTitle && todo.completed === false,
-    ),
-  ).toBe(true);
-});
-
-test("/api/workspace/todos GET 支持 completed 筛选与 limit", async ({
-  request,
-}) => {
-  await signInAsDebugUserApi(request, "/");
-
-  const response = await request.get(
-    "/api/workspace/todos?completed=false&limit=1",
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    todos?: Array<{ completed?: boolean }>;
-  };
-
-  expect(body.todos).toHaveLength(1);
-  expect(body.todos?.every((todo) => todo.completed === false)).toBe(true);
-});
-
-test("/api/workspace/todos GET 接受裸日期筛选并拒绝无效日期", async ({
-  request,
-}) => {
-  await signInAsDebugUserApi(request, "/");
-
-  const response = await request.get(
-    `/api/workspace/todos?completed=false&dueBefore=${DEV_SEED_ANCHOR.date}&limit=10`,
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    todos?: Array<{ completed?: boolean; title?: string }>;
-  };
-  expect(
-    body.todos?.some(
-      (todo) =>
-        todo.title === DEV_SEED.todos.overdueTitle && todo.completed === false,
-    ),
-  ).toBe(true);
-  expect(
-    body.todos?.some((todo) => todo.title === DEV_SEED.todos.dueTodayTitle),
-  ).toBe(false);
-
-  const invalidResponse = await request.get(
-    "/api/workspace/todos?dueBefore=not-a-date",
-  );
-  expect(invalidResponse.status()).toBe(400);
-});
-
-test("/api/workspace/todos GET 拒绝无效 limit", async ({ request }) => {
-  await signInAsDebugUserApi(request, "/");
-
-  const response = await request.get("/api/workspace/todos?limit=0");
-  expect(response.status()).toBe(400);
-});
-
-test("待办包含所有必需的 TodoItem 字段", async ({ request }) => {
-  await signInAsDebugUserApi(request, "/");
-
-  const response = await request.get("/api/workspace/todos");
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    todos?: Array<Record<string, unknown>>;
-  };
-
-  const todo = body.todos?.find(
-    (t) => t.title === DEV_SEED.todos.dueTodayTitle,
-  );
-  expect(todo).toBeDefined();
-  if (!todo) return;
-
-  expect(typeof todo.id).toBe("string");
-  expect(todo.id).toBeTruthy();
-  expect(typeof todo.title).toBe("string");
-  expect(Object.hasOwn(todo, "content")).toBe(true);
-  expect(typeof todo.completed).toBe("boolean");
-  expect(typeof todo.priority).toBe("string");
-  expect(Object.hasOwn(todo, "dueAt")).toBe(true);
-  expect(typeof todo.createdAt).toBe("string");
-  expect(typeof todo.updatedAt).toBe("string");
-});
-
-test("/api/workspace/todos POST 未登录返回 401", async ({ request }) => {
-  const response = await request.post("/api/workspace/todos", {
-    data: { title: "should fail" },
+for (const method of ["get", "post"] as const) {
+  test(`anonymous ${method} returns JSON 401`, async ({ request, run }) => {
+    await run(async () => {
+      const response = await request[method](
+        base,
+        method === "post" ? { data: { title: "denied" } } : {},
+      );
+      expect(response.status()).toBe(401);
+      expect(response.headers()["content-type"]).toContain("application/json");
+      expect((await response.json()).error).toEqual(expect.any(String));
+    });
   });
-  expect(response.status()).toBe(401);
-});
+}
 
-test("openapi.todo-created-status", async ({ request }) => {
-  await signInAsDebugUserApi(request, "/");
-
-  const title = `e2e-api-todo-${Date.now()}`;
-  const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
-  const createResponse = await request.post("/api/workspace/todos", {
-    data: {
-      title,
-      content: ` ${content} `,
+test("known todos expose complete fields, counts and only the current owner", async ({
+  createActor,
+  db,
+  run,
+}) => {
+  await run(async () => {
+    const owner = await createActor();
+    const other = await createActor();
+    const overdue = await db.todo.create({
+      data: {
+        userId: owner.id,
+        title: "overdue",
+        content: "known content",
+        priority: "high",
+        dueAt: new Date("2000-01-01T00:00:00Z"),
+      },
+    });
+    await db.todo.createMany({
+      data: [
+        {
+          userId: owner.id,
+          title: "future",
+          dueAt: new Date("2100-01-01T00:00:00Z"),
+        },
+        { userId: owner.id, title: "done", completed: true },
+        { userId: other.id, title: "private" },
+      ],
+    });
+    const response = await owner.request.get(base);
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.counts).toEqual({ incomplete: 2, completed: 1, overdue: 1 });
+    expect(
+      body.todos.map((todo: { title: string }) => todo.title).sort(),
+    ).toEqual(["done", "future", "overdue"]);
+    expect(
+      body.todos.find((todo: { id: string }) => todo.id === overdue.id),
+    ).toMatchObject({
+      id: overdue.id,
+      title: "overdue",
+      content: "known content",
       priority: "high",
-    },
+      completed: false,
+      dueAt: "2000-01-01T08:00:00+08:00",
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    });
   });
-  expect(createResponse.status()).toBe(201);
+});
 
-  const created = (await createResponse.json()) as { id?: string };
-  assertTodoCreateSuccess(created);
-  const createdId = created.id;
-  expect(createResponse.headers().location).toBe(
-    `/api/workspace/todos/${createdId}`,
-  );
+test("completed and limit filters consume independently prepared rows", async ({
+  createActor,
+  db,
+  run,
+}) => {
+  await run(async () => {
+    const owner = await createActor();
+    await db.todo.createMany({
+      data: [
+        { userId: owner.id, title: "incomplete A" },
+        { userId: owner.id, title: "incomplete B" },
+        { userId: owner.id, title: "completed", completed: true },
+      ],
+    });
+    const response = await owner.request.get(`${base}?completed=false&limit=1`);
+    expect(response.status()).toBe(200);
+    expect((await response.json()).todos).toEqual([
+      expect.objectContaining({ completed: false }),
+    ]);
+  });
+});
 
-  try {
-    const listResponse = await request.get("/api/workspace/todos");
-    expect(listResponse.status()).toBe(200);
-    const listBody = (await listResponse.json()) as {
-      todos?: Array<{
-        content?: string | null;
-        id?: string;
-        priority?: string;
-        title?: string;
-      }>;
-    };
-    assertTodoListedWithFields(listBody.todos ?? [], {
-      id: createdId,
-      title,
+test("bare dueBefore uses its UTC date boundary", async ({
+  createActor,
+  db,
+  run,
+}) => {
+  await run(async () => {
+    const owner = await createActor();
+    const before = await db.todo.create({
+      data: {
+        userId: owner.id,
+        title: "before",
+        dueAt: new Date("2026-09-27T23:59:59Z"),
+      },
+    });
+    await db.todo.create({
+      data: {
+        userId: owner.id,
+        title: "at boundary",
+        dueAt: new Date("2026-09-28T00:00:00Z"),
+      },
+    });
+    const response = await owner.request.get(
+      `${base}?completed=false&dueBefore=2026-09-28`,
+    );
+    expect(response.status()).toBe(200);
+    expect(
+      (await response.json()).todos.map((todo: { id: string }) => todo.id),
+    ).toEqual([before.id]);
+  });
+});
+
+for (const query of ["dueBefore=not-a-date", "limit=0"]) {
+  test(`rejects invalid query ${query}`, async ({ createActor, run }) => {
+    await run(async () => {
+      const owner = await createActor();
+      const response = await owner.request.get(`${base}?${query}`);
+      expect(response.status()).toBe(400);
+      expect((await response.json()).error).toEqual(expect.any(String));
+    });
+  });
+}
+
+test("openapi.todo-created-status", async ({ createActor, db, run }) => {
+  await run(async () => {
+    const owner = await createActor();
+    const other = await createActor();
+    const content = "x".repeat(4_000);
+    const response = await owner.request.post(base, {
+      data: {
+        title: "created todo",
+        content: ` ${content} `,
+        priority: "high",
+      },
+    });
+    expect(response.status()).toBe(201);
+    const { id } = await response.json();
+    expect(id).toEqual(expect.any(String));
+    expect(response.headers().location).toBe(`${base}/${id}`);
+    expect(await db.todo.findUniqueOrThrow({ where: { id } })).toMatchObject({
+      userId: owner.id,
+      title: "created todo",
       content,
       priority: "high",
+      completed: false,
     });
-  } finally {
-    if (createdId) {
-      await request.delete(`/api/workspace/todos/${createdId}`);
-    }
-  }
+    expect(await db.todo.count({ where: { userId: other.id } })).toBe(0);
+    const read = await owner.request.get(base);
+    expect(read.status()).toBe(200);
+    expect((await read.json()).todos).toEqual([
+      expect.objectContaining({
+        id,
+        title: "created todo",
+        content,
+        priority: "high",
+      }),
+    ]);
+  });
 });

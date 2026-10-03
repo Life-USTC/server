@@ -1,12 +1,12 @@
-import { expect, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect } from "@playwright/test";
+import type { TestPrismaClient } from "../../../../shared/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { test } from "../../../utils/personal-preferences-fixture";
 
-async function createFixture() {
+async function createFixture(owner: TestPrismaClient) {
   const marker = crypto.randomUUID();
   const base = 1_500_000_000 + Math.floor(Math.random() * 100_000_000);
-  return withE2ePrisma(async (db) => {
+  return owner.$transaction(async (db) => {
     const owner = await db.user.create({
       data: {
         name: "Numeric table reader",
@@ -43,9 +43,8 @@ async function createFixture() {
         createdAt: new Date("2026-01-01T00:00:00Z"),
       },
     });
-    const semester = await db.semester.findFirstOrThrow({
-      select: { id: true },
-      orderBy: { id: "asc" },
+    const semester = await db.semester.create({
+      data: { jwId: base + 3, code: marker, nameCn: "2026年秋季学期" },
     });
     const course = await db.course.create({
       data: {
@@ -81,14 +80,18 @@ async function createFixture() {
 test("ui.numeric-measure-table-alignment", async ({
   page,
   baseURL,
+  isolatedWorker,
+  preferenceFlow,
 }, testInfo) => {
   if (!baseURL) throw new Error("Missing Playwright baseURL");
-  const f = await createFixture();
-  try {
+  const f = await preferenceFlow.prepare(() =>
+    createFixture(isolatedWorker.database.owner),
+  );
+  await preferenceFlow.run(async () => {
     await page
       .context()
       .addCookies([
-        await createSignedSessionCookie(f.owner.id),
+        (await isolatedWorker.createSession(f.owner.id)).cookie,
         { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
       ]);
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -173,13 +176,5 @@ test("ui.numeric-measure-table-alignment", async ({
           .toBeLessThanOrEqual(1);
       }
     }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await db.user.delete({ where: { id: f.owner.id } });
-      await db.youngEvent.delete({ where: { youngId: f.event.youngId } });
-      await db.youngOrganizer.delete({ where: { id: f.organizer.id } });
-      await db.section.delete({ where: { id: f.section.id } });
-      await db.course.delete({ where: { id: f.course.id } });
-    });
-  }
+  });
 });

@@ -1,66 +1,100 @@
-/**
- * E2E tests for GET /api/workspace/schedules
- *
- * Authenticated one-call schedule query across the current user's subscribed
- * sections. This replaces client-side fan-out over /api/catalog/schedules.
- */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { subscribedSchedulesResponseSchema } from "@/lib/api/schemas/schedule-response-schema-core";
-import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
-import { signInAsDebugUserApi } from "../../../_harness/auth";
-import { assertApiContract } from "../../../_shared/api-contract";
+import {
+  calendarCatalog,
+  test,
+} from "../../../calendar-subscriptions/_fixture";
 
-const BASE = "/api/workspace/schedules";
+const base = "/api/workspace/schedules";
 
-test.describe("GET /api/workspace/schedules - 订阅课表", () => {
-  test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: BASE });
-  });
-
-  test("未认证时返回 401", async ({ request }) => {
-    const response = await request.get(BASE);
+test("anonymous schedule read returns JSON 401", async ({ run, request }) => {
+  await run(async () => {
+    const response = await request.get(base);
     expect(response.status()).toBe(401);
+    expect((await response.json()).error).toEqual(expect.any(String));
   });
+});
 
-  test("一次认证响应返回已订阅课表", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.get(
-      `${BASE}?dateFrom=${DEV_SEED.seedAnchorAtTime.slice(0, 10)}&dateTo=${DEV_SEED.seedAnchorAtTime.slice(0, 10)}&limit=5`,
+test("known subscriptions return only their schedules with localized teacher details", async ({
+  run,
+  calendarState,
+}) => {
+  await run(async () => {
+    const { db, owner, other, section, scheduleGroupId, teacherId } =
+      calendarState;
+    await db.userSectionSubscription.create({
+      data: { userId: owner.id, sectionId: section.id },
+    });
+    const first = await db.schedule.create({
+      data: {
+        sectionId: section.id,
+        scheduleGroupId,
+        date: new Date("2026-04-29T00:00:00Z"),
+        weekday: 3,
+        startTime: 900,
+        endTime: 1000,
+        periods: 2,
+        weekIndex: 1,
+        startUnit: 1,
+        endUnit: 2,
+        teacherParticipations: { create: { teacherId } },
+      },
+    });
+    await db.schedule.create({
+      data: {
+        sectionId: section.id,
+        scheduleGroupId,
+        date: new Date("2026-04-30T00:00:00Z"),
+        weekday: 4,
+        startTime: 900,
+        endTime: 1000,
+        periods: 2,
+        weekIndex: 1,
+        startUnit: 1,
+        endUnit: 2,
+      },
+    });
+    const response = await owner.request.get(
+      `${base}?dateFrom=2026-04-29&dateTo=2026-04-29&limit=5`,
     );
     expect(response.status()).toBe(200);
     const body = subscribedSchedulesResponseSchema.parse(await response.json());
-
-    expect(body.schedules.length).toBeGreaterThan(0);
-    const seedSchedule = body.schedules.find(
-      (schedule) => schedule.section.code === DEV_SEED.section.code,
-    );
-    expect(seedSchedule).toBeDefined();
-    expect(
-      seedSchedule?.date?.startsWith(DEV_SEED.seedAnchorAtTime.slice(0, 10)),
-    ).toBe(true);
-    expect(seedSchedule?.section.course.nameCn).toBe(DEV_SEED.course.nameCn);
-    expect(seedSchedule?.startTime).toMatch(/^\d{2}:\d{2}$/);
-    expect(seedSchedule?.endTime).toMatch(/^\d{2}:\d{2}$/);
-
-    const seedTeacher = seedSchedule?.teachers.find(
-      (teacher) => teacher.jwId === DEV_SEED.teacher.jwId,
-    );
-    expect(seedTeacher?.namePrimary).toBe(DEV_SEED.teacher.nameCn);
-    expect(seedTeacher?.nameSecondary).toBe(DEV_SEED.teacher.nameEn);
-    expect(seedTeacher?.department?.namePrimary).toBe(
-      DEV_SEED.teacher.departmentNameCn,
-    );
-    expect(seedTeacher?.teacherTitle?.namePrimary).toBe(
-      DEV_SEED.teacher.titleNameCn,
-    );
-    expect(seedTeacher?._count.sections).toBeGreaterThan(0);
+    expect(body.schedules).toHaveLength(1);
+    expect(body.schedules[0]).toMatchObject({
+      id: first.id,
+      date: expect.stringMatching(/^2026-04-29/),
+      startTime: "09:00",
+      endTime: "10:00",
+      section: {
+        code: section.code,
+        course: { nameCn: calendarCatalog.courseNameCn },
+      },
+      teachers: [
+        expect.objectContaining({
+          jwId: calendarCatalog.teacher.jwId,
+          namePrimary: calendarCatalog.teacher.nameCn,
+          nameSecondary: calendarCatalog.teacher.nameEn,
+          department: expect.objectContaining({
+            namePrimary: calendarCatalog.teacher.departmentNameCn,
+          }),
+          teacherTitle: expect.objectContaining({
+            namePrimary: calendarCatalog.teacher.titleNameCn,
+          }),
+        }),
+      ],
+    });
+    expect(body.schedules[0].teachers[0]._count.sections).toBeGreaterThan(0);
+    const unrelated = await other.request.get(base);
+    expect(unrelated.status()).toBe(200);
+    expect((await unrelated.json()).schedules).toEqual([]);
   });
+});
 
-  test("无效日期查询返回 400", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.get(`${BASE}?dateFrom=not-a-date`);
+test("invalid schedule date returns 400", async ({ run, createActor }) => {
+  await run(async () => {
+    const owner = await createActor();
+    const response = await owner.request.get(`${base}?dateFrom=not-a-date`);
     expect(response.status()).toBe(400);
+    expect((await response.json()).error).toEqual(expect.any(String));
   });
 });

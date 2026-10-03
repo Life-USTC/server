@@ -1,54 +1,52 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { type APIRequestContext, expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { type APIRequestContext, expect } from "@playwright/test";
 import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
+import { test } from "../../../../utils/private-calendar-fixture";
+import {
+  authorizeSubscription,
+  expectIndependentCalendarItems,
+  expectMcpToolCalls,
   expectSubscribedWebProjections,
-  observeSubscriptionState,
+  expectSubscriptionState,
   type SubscriptionFixture,
   signInSubscriptionOwner,
+  subscribedCourseLink,
+  subscriptionOverviewUrl,
+  useSubscriptionSession,
 } from "../../../../utils/subscription-consumption";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
+import { parseTextContent } from "../../api/mcp/helpers";
 
-async function createOwners() {
-  const alice = await createCalendarContractFixture();
-  try {
-    const bob = await createCalendarContractFixture();
-    try {
-      await withE2ePrisma(async (db) => {
-        await db.user.update({
-          where: { id: bob.users[0].id },
-          data: { isAdmin: true },
-        });
-        await db.userSuspension.create({
-          data: {
-            userId: bob.users[0].id,
-            reason: "Personal reads remain available during suspension",
-          },
-        });
-      });
-      await withE2ePrisma((db) =>
-        db.userSectionSubscription.update({
-          where: {
-            userId_sectionId: {
-              userId: bob.users[0].id,
-              sectionId: bob.section.id,
-            },
-          },
-          data: { kind: "auditor" },
-        }),
-      );
-      return [alice, bob] as const;
-    } catch (error) {
-      await bob.cleanup();
-      throw error;
-    }
-  } catch (error) {
-    await alice.cleanup();
-    throw error;
-  }
+async function createOwners(
+  createCalendar: () => Promise<SubscriptionFixture>,
+  isolatedWorker: import("../../../../utils/isolated-worker").IsolatedWorker,
+) {
+  const db = isolatedWorker.database.owner;
+  const alice = await createCalendar();
+  const bob = await createCalendar();
+  await db.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: bob.users[0].id },
+      data: { isAdmin: true },
+    });
+    await tx.userSuspension.create({
+      data: {
+        userId: bob.users[0].id,
+        reason: "Personal reads remain available during suspension",
+      },
+    });
+    await tx.userSectionSubscription.update({
+      where: {
+        userId_sectionId: {
+          userId: bob.users[0].id,
+          sectionId: bob.section.id,
+        },
+      },
+      data: { kind: "auditor" },
+    });
+  });
+  return [alice, bob] as const;
 }
 
 async function expectRestSubscription(
@@ -80,10 +78,11 @@ async function expectGraphqlSubscription(
   request: APIRequestContext,
   own: SubscriptionFixture,
   kind: string,
+  origin: string,
   headers: Record<string, string> = {},
 ) {
   const response = await request.post("/api/graphql", {
-    headers: { origin: PLAYWRIGHT_BASE_URL, ...headers },
+    headers: { origin, ...headers },
     data: {
       query:
         "{ workspace { subscribedSections { items { kind section { id jwId } } } } }",
@@ -97,43 +96,96 @@ async function expectGraphqlSubscription(
   ]);
 }
 
-test("subscription.consume-web-known-state", async ({ page }) => {
-  test.setTimeout(120_000);
-  const owners = await createOwners();
-  try {
+test("subscription.consume-web-known-state", async ({
+  page,
+  calendarProtocolRun,
+  isolatedWorker,
+  createCalendar,
+}) => {
+  await calendarProtocolRun(async ({ observeCalendar }) => {
+    test.setTimeout(120_000);
+    const owners = await createOwners(createCalendar, isolatedWorker);
+    await observeCalendar(owners[0].users[0], []);
+
     for (const [index, own] of owners.entries()) {
       const foreign = owners[1 - index];
-      const baseline = await observeSubscriptionState(own);
       await test.step(`Owner ${index + 1}: subscriptions, calendar and overview consume the same seeded state`, async () => {
-        await signInSubscriptionOwner(page, own);
+        await signInSubscriptionOwner(page, own, isolatedWorker);
         for (const width of [1280, 390]) {
           await page.setViewportSize({ width, height: 1000 });
           await expectSubscribedWebProjections(page, own, foreign);
         }
+        await page.reload();
+        await waitForUiSettled(page);
+        const focus = page.getByTestId("workspace-overview-focus");
+        await expect(focus).toContainText(String(own.course.nameEn));
+        await focus.getByRole("link").click();
+        await expect(page).toHaveURL(
+          new URL(
+            `/catalog/sections/${own.section.jwId}`,
+            isolatedWorker.origin,
+          ).toString(),
+        );
+        await expect(
+          page.getByRole("button", {
+            name: "Unsubscribe from section",
+            exact: true,
+          }),
+        ).toBeVisible();
       });
-      expect(await observeSubscriptionState(own)).toEqual(baseline);
+      await expectSubscriptionState(own, isolatedWorker, [
+        {
+          sectionId: own.section.id,
+          kind: index === 0 ? "regular" : "auditor",
+        },
+      ]);
     }
-  } finally {
-    for (const owner of owners) await owner.cleanup();
-  }
+    return {
+      async verifyTransport(observation) {
+        expectMcpToolCalls(observation, []);
+      },
+      async verifyState() {
+        for (const [index, own] of owners.entries())
+          await expectSubscriptionState(own, isolatedWorker, [
+            {
+              sectionId: own.section.id,
+              kind: index === 0 ? "regular" : "auditor",
+            },
+          ]);
+      },
+    };
+  });
 });
 
 test("subscription.consume-protocols-known-state", async ({
   page,
-  request,
+  calendarProtocolRun,
+  isolatedWorker,
+  oauthOwner,
+  createCalendar,
 }) => {
-  test.setTimeout(180_000);
-  const owners = await createOwners();
-  const clientIds: string[] = [];
-  try {
+  await calendarProtocolRun(async ({ request, mcp, observeCalendar }) => {
+    const db = isolatedWorker.database.owner;
+    test.setTimeout(180_000);
+    const owners = await createOwners(createCalendar, isolatedWorker);
+    await observeCalendar(owners[0].users[0], []);
+    const sessions = [
+      await signInSubscriptionOwner(page, owners[0], isolatedWorker),
+      await signInSubscriptionOwner(page, owners[1], isolatedWorker),
+    ];
+
     for (const [index, own] of owners.entries()) {
       const foreign = owners[1 - index];
       const kind = index === 0 ? "regular" : "auditor";
-      const baseline = await observeSubscriptionState(own);
-      await signInSubscriptionOwner(page, own);
+      await useSubscriptionSession(page, sessions[index]);
       await test.step(`Owner ${index + 1}: session reads expose only their subscribed academic records`, async () => {
         await expectRestSubscription(page.request, own, foreign, kind);
-        await expectGraphqlSubscription(page.request, own, kind);
+        await expectGraphqlSubscription(
+          page.request,
+          own,
+          kind,
+          isolatedWorker.origin,
+        );
         const params = `userId=${foreign.users[0].id}&dateFrom=${own.date}&dateTo=${own.activityDate}`;
         for (const [path, key] of [
           ["schedules", "schedules"],
@@ -149,7 +201,7 @@ test("subscription.consume-protocols-known-state", async ({
           expect(body[key][0].section.id).toBe(own.section.id);
           expect(JSON.stringify(body)).not.toContain(foreign.course.code);
         }
-        const academic = await withE2ePrisma(async (db) => ({
+        const academic = await {
           schedule: await db.schedule.findFirstOrThrow({
             where: { sectionId: own.section.id },
             select: { id: true },
@@ -158,7 +210,7 @@ test("subscription.consume-protocols-known-state", async ({
             where: { sectionId: own.section.id },
             select: { id: true },
           }),
-        }));
+        };
         const response = await page.request.get(
           `/api/workspace/calendar/events?${params}`,
         );
@@ -216,17 +268,20 @@ test("subscription.consume-protocols-known-state", async ({
       });
       for (const surface of ["rest", "graphql", "mcp"] as const) {
         await test.step(`Owner ${index + 1}: ${surface} bearer reads preserve identity and subscription kind`, async () => {
-          const scope = "workspace.subscription:read";
-          const resource = `${PLAYWRIGHT_BASE_URL}/api/${surface === "rest" ? "auth" : surface}`;
-          const token = await issueAccessToken(page, request, {
-            scope,
-            clientScopes: [scope],
-            resource,
+          const token = await authorizeSubscription(page, request, oauthOwner, {
+            scope: "workspace.subscription:read",
+            channel: surface,
           });
-          clientIds.push(token.clientId);
-          const headers = { Authorization: `Bearer ${token.accessToken}` };
+          const headers = { Authorization: `Bearer ${token}` };
           // The bearer owner is deliberately different from the ambient browser session.
-          await signInSubscriptionOwner(page, foreign);
+          await useSubscriptionSession(page, sessions[1 - index]);
+          const client =
+            surface === "mcp"
+              ? await mcp(
+                  { name: "subscription-consumer", version: "1" },
+                  token,
+                )
+              : undefined;
           if (surface === "rest")
             await expectRestSubscription(
               page.request,
@@ -236,163 +291,217 @@ test("subscription.consume-protocols-known-state", async ({
               headers,
             );
           else if (surface === "graphql")
-            await expectGraphqlSubscription(page.request, own, kind, headers);
+            await expectGraphqlSubscription(
+              page.request,
+              own,
+              kind,
+              isolatedWorker.origin,
+              headers,
+            );
           else {
-            const client = new Client({
-              name: "subscription-consumer",
-              version: "1",
+            if (!client) throw new Error("MCP connection is required");
+            const result = await client.callTool({
+              name: "workspace_subscription_list",
+              arguments: { userId: foreign.users[0].id, mode: "full" },
             });
-            try {
-              await client.connect(
-                new StreamableHTTPClientTransport(new URL(resource), {
-                  requestInit: { headers },
-                }),
-              );
-              const result = await client.callTool({
-                name: "workspace_subscription_list",
-                arguments: { userId: foreign.users[0].id, mode: "full" },
-              });
-              expect(result.isError).not.toBe(true);
-              const body = parseTextContent(result);
-              expect(body.success).toBe(true);
-              expect(body.sections).toEqual([
-                expect.objectContaining({
-                  id: own.section.id,
-                  jwId: own.section.jwId,
-                  kind,
-                  course: expect.objectContaining({ code: own.course.code }),
-                }),
-              ]);
-              expect(JSON.stringify(body)).not.toContain(foreign.course.code);
-            } finally {
-              await client.close();
-            }
+            expect(result.isError).not.toBe(true);
+            const body = parseTextContent(result);
+            expect(body.success).toBe(true);
+            expect(body.sections).toEqual([
+              expect.objectContaining({
+                id: own.section.id,
+                jwId: own.section.jwId,
+                kind,
+                course: expect.objectContaining({ code: own.course.code }),
+              }),
+            ]);
+            expect(JSON.stringify(body)).not.toContain(foreign.course.code);
           }
-          await signInSubscriptionOwner(page, own);
+          await useSubscriptionSession(page, sessions[index]);
         });
       }
-      expect(await observeSubscriptionState(own)).toEqual(baseline);
+      await expectSubscriptionState(own, isolatedWorker, [
+        {
+          sectionId: own.section.id,
+          kind: index === 0 ? "regular" : "auditor",
+        },
+      ]);
     }
-  } finally {
-    await withE2ePrisma((db) =>
-      db.oAuthClient.deleteMany({ where: { clientId: { in: clientIds } } }),
-    );
-    for (const owner of owners) await owner.cleanup();
-  }
+    return {
+      async verifyTransport(observation) {
+        expectMcpToolCalls(observation, [
+          "workspace_subscription_list",
+          "workspace_subscription_list",
+        ]);
+      },
+      async verifyState() {
+        for (const [index, own] of owners.entries())
+          await expectSubscriptionState(own, isolatedWorker, [
+            {
+              sectionId: own.section.id,
+              kind: index === 0 ? "regular" : "auditor",
+            },
+          ]);
+      },
+    };
+  });
 });
 
 // Authentication is independent of the state projection cases above.
-test("subscription.consume-anonymous-denied", async ({ request }) => {
-  const page = await request.get("/workspace/subscriptions", {
-    maxRedirects: 0,
+test("subscription.consume-anonymous-denied", async ({
+  calendarProtocolRun,
+  isolatedWorker,
+}) => {
+  await calendarProtocolRun(async ({ request }) => {
+    const page = await request.get("/workspace/subscriptions", {
+      maxRedirects: 0,
+    });
+    await page.body();
+    expect(page.status()).toBe(303);
+    expect(page.headers().location).toContain("/account/sign-in?");
+    for (const path of [
+      "subscriptions/current",
+      "schedules",
+      "exams",
+      "homeworks",
+      "calendar/events",
+    ]) {
+      const response = await request.get(`/api/workspace/${path}`);
+      await response.body();
+      expect(response.status()).toBe(401);
+    }
+    const graph = await request.post("/api/graphql", {
+      headers: { origin: isolatedWorker.origin },
+      data: {
+        query:
+          "{ workspace { subscribedSections { items { kind section { id } } } } }",
+      },
+    });
+    expect(graph.status()).toBe(200);
+    expect((await graph.json()).data.workspace).toBeNull();
+    return {
+      async verifyTransport(observation) {
+        expectMcpToolCalls(observation, []);
+      },
+      async verifyState() {
+        expect(
+          await isolatedWorker.database.owner.userSectionSubscription.count(),
+        ).toBe(0);
+      },
+    };
   });
-  expect(page.status()).toBe(303);
-  expect(page.headers().location).toContain("/account/sign-in?");
-  for (const path of [
-    "subscriptions/current",
-    "schedules",
-    "exams",
-    "homeworks",
-    "calendar/events",
-  ]) {
-    expect((await request.get(`/api/workspace/${path}`)).status()).toBe(401);
-  }
-  const graph = await request.post("/api/graphql", {
-    headers: { origin: PLAYWRIGHT_BASE_URL },
-    data: {
-      query:
-        "{ workspace { subscribedSections { items { kind section { id } } } } }",
-    },
-  });
-  expect(graph.status()).toBe(200);
-  expect((await graph.json()).data.workspace).toBeNull();
 });
 
-test("subscription.consume-unsubscribed-known-state", async ({ page }) => {
-  const owners = await createOwners();
-  try {
-    // Arrange the absence directly; this consumer test does not depend on a
-    // successful unsubscribe operation through any product entry point.
-    for (const [index, own] of owners.entries()) {
+for (const role of ["regular", "suspended admin"] as const) {
+  test(`subscription.consume-unsubscribed-known-state ${role}`, async ({
+    page,
+    calendarProtocolRun,
+    isolatedWorker,
+    createCalendar,
+  }) => {
+    await calendarProtocolRun(async ({ observeCalendar }) => {
+      const db = isolatedWorker.database.owner;
+      const owners = await createOwners(createCalendar, isolatedWorker);
+      const index = role === "regular" ? 0 : 1;
+      const own = owners[index];
       const foreign = owners[1 - index];
-      await withE2ePrisma(async (db) => {
-        await db.userSectionSubscription.deleteMany({
-          where: { userId: own.users[0].id },
-        });
-        const foreignMembership = {
-          userId: foreign.users[0].id,
-          sectionId: foreign.section.id,
-        };
-        await db.userSectionSubscription.upsert({
-          where: { userId_sectionId: foreignMembership },
-          create: {
-            ...foreignMembership,
-            kind: index === 0 ? "auditor" : "regular",
-          },
-          update: {},
-        });
+      // Consumer absence is arranged directly, independently of unsubscribe.
+      await db.userSectionSubscription.deleteMany({
+        where: { userId: own.users[0].id },
       });
-      const foreignBaseline = await observeSubscriptionState(foreign);
-      expect(foreignBaseline.sections).toEqual([
-        {
-          sectionId: foreign.section.id,
-          kind: index === 0 ? "auditor" : "regular",
-        },
-      ]);
-      const baseline = await observeSubscriptionState(own);
-      expect(baseline.sections).toEqual([]);
-      await signInSubscriptionOwner(page, own);
-      await test.step(`${index === 0 ? "Regular user" : "Suspended administrator"}: no academic records; independent personal items remain private`, async () => {
-        const params = `userId=${foreign.users[0].id}&dateFrom=${own.date}&dateTo=${own.activityDate}`;
-        const current = await page.request.get(
-          `/api/workspace/subscriptions/current?${params}`,
+      await observeCalendar(own.users[0], []);
+      await signInSubscriptionOwner(page, own, isolatedWorker);
+      const params = `userId=${foreign.users[0].id}&dateFrom=${own.date}&dateTo=${own.activityDate}`;
+      const current = await page.request.get(
+        `/api/workspace/subscriptions/current?${params}`,
+      );
+      expect(current.status()).toBe(200);
+      expect((await current.json()).subscription).toMatchObject({
+        userId: own.users[0].id,
+        sections: [],
+      });
+      for (const [path, key] of [
+        ["schedules", "schedules"],
+        ["exams", "data"],
+        ["homeworks", "data"],
+      ] as const) {
+        const response = await page.request.get(
+          `/api/workspace/${path}?${params}`,
         );
-        expect(current.status()).toBe(200);
-        expect((await current.json()).subscription).toMatchObject({
-          userId: own.users[0].id,
-          sections: [],
-        });
-        for (const [path, key] of [
-          ["schedules", "schedules"],
-          ["exams", "data"],
-          ["homeworks", "data"],
-        ] as const) {
-          const response = await page.request.get(
-            `/api/workspace/${path}?${params}`,
-          );
-          expect(response.status()).toBe(200);
-          const body = await response.json();
-          expect(body[key]).toEqual([]);
-          expect(JSON.stringify(body)).not.toContain(foreign.course.code);
-        }
-        const calendar = await page.request.get(
-          `/api/workspace/calendar/events?${params}`,
-        );
-        expect(calendar.status()).toBe(200);
-        const body = await calendar.json();
-        expect(
-          body.data.map((event: { type: string }) => event.type).sort(),
-        ).toEqual(["todo_due", "young_event"]);
-        expect(body.data).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              id: `todo-${own.todo.id}`,
-              title: own.todo.title,
-            }),
-            expect.objectContaining({
-              youngId: own.young.youngId,
-              title: own.young.name,
-            }),
-          ]),
-        );
-        expect(JSON.stringify(body)).not.toContain(foreign.todo.id);
-        expect(JSON.stringify(body)).not.toContain(foreign.young.youngId);
+        expect(response.status()).toBe(200);
+        const body = await response.json();
+        expect(body[key]).toEqual([]);
         expect(JSON.stringify(body)).not.toContain(foreign.course.code);
-      });
-      expect(await observeSubscriptionState(own)).toEqual(baseline);
-      expect(await observeSubscriptionState(foreign)).toEqual(foreignBaseline);
-    }
-  } finally {
-    for (const owner of owners) await owner.cleanup();
-  }
-});
+      }
+      const calendar = await page.request.get(
+        `/api/workspace/calendar/events?${params}`,
+      );
+      expect(calendar.status()).toBe(200);
+      const body = await calendar.json();
+      expect(
+        body.data.map((event: { type: string }) => event.type).sort(),
+      ).toEqual(["todo_due", "young_event"]);
+      expect(body.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: `todo-${own.todo.id}`,
+            title: own.todo.title,
+          }),
+          expect.objectContaining({
+            youngId: own.young.youngId,
+            title: own.young.name,
+          }),
+        ]),
+      );
+      expect(JSON.stringify(body)).not.toContain(foreign.todo.id);
+      expect(JSON.stringify(body)).not.toContain(foreign.young.youngId);
+      expect(JSON.stringify(body)).not.toContain(foreign.course.code);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await expect(subscribedCourseLink(page, own)).toHaveCount(0);
+      await expect(subscribedCourseLink(page, foreign)).toHaveCount(0);
+      await expectIndependentCalendarItems(page, own);
+      await gotoAndWaitForReady(page, subscriptionOverviewUrl);
+      await expect(page.locator("#main-content")).not.toContainText(
+        String(own.course.nameEn),
+      );
+      await expect(page.locator("#main-content")).not.toContainText(
+        own.homework.title,
+      );
+      await expect(
+        page
+          .getByText(own.todo.title, { exact: true })
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
+      await page.reload();
+      await waitForUiSettled(page);
+      await expect(page.locator("#main-content")).not.toContainText(
+        String(own.course.nameEn),
+      );
+      await gotoAndWaitForReady(page, `/catalog/sections/${own.section.jwId}`);
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(
+        String(own.course.nameEn),
+      );
+      await expect(
+        page.getByRole("button", {
+          name: "Subscribe to section",
+          exact: true,
+        }),
+      ).toBeVisible();
+      return {
+        async verifyTransport(observation) {
+          expectMcpToolCalls(observation, []);
+        },
+        async verifyState() {
+          await expectSubscriptionState(own, isolatedWorker, []);
+          await expectSubscriptionState(foreign, isolatedWorker, [
+            {
+              sectionId: foreign.section.id,
+              kind: index === 0 ? "auditor" : "regular",
+            },
+          ]);
+        },
+      };
+    });
+  });
+}

@@ -1,86 +1,87 @@
 import { createHash } from "node:crypto";
-import { expect, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import {
-  createPublicationFixture,
-  deletePublicationFixture,
-  publicationFixtureObjectCommand,
-} from "../../../utils/e2e-db/publications";
+import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test } from "../../../utils/publication-fixture";
 
-test("publications.markdown-presentation", async ({ page }) => {
-  const f = await createPublicationFixture(
-    `presentation-${crypto.randomUUID()}`,
-  );
-  const asset = Buffer.from(`PDF fixture ${crypto.randomUUID()}`);
-  const hash = createHash("sha256").update(asset).digest("hex");
-  const key = `publications/asset/sha256/${hash.slice(0, 2)}/${hash}`;
-  const filename = "Planning notes <b>source</b>.pdf";
-  const caption = "<img src=x onerror=alert(1)> Plain caption";
-  const title = 'Revision title " onerror="alert(1)';
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  try {
-    publicationFixtureObjectCommand("put", key, asset, "application/pdf");
-    const missing = await withE2ePrisma(async (db) => {
-      const publication = await db.publication.findUniqueOrThrow({
-        where: { id: f.id },
-      });
-      const revisionId = publication.currentRevisionId;
-      if (!revisionId) throw new Error("Missing current revision");
-      await db.publicationRevision.update({
-        where: { id: revisionId },
-        data: {
-          author: "Article author",
-          reporter: "Article reporter",
-          editor: "Article editor",
-          originalPublisher: "Original publisher",
-        },
-      });
-      await db.publicationRevisionImageSource.update({
-        where: {
-          revisionId_imageSourceId: { revisionId, imageSourceId: f.imageId },
-        },
-        data: { altText: "Revision image description", title, caption },
-      });
-      const object = await db.publicationObject.create({
-        data: {
-          kind: "asset",
-          sha256: hash,
-          r2Key: key,
-          size: asset.byteLength,
-          contentType: "application/pdf",
-          status: "verified",
-          verifiedAt: new Date(),
-        },
-      });
-      await db.publicationObjectLink.create({
-        data: { revisionId, objectId: object.id, role: "asset", filename },
-      });
-      const missing = await db.publication.create({
-        data: {
-          sourceId: f.sourceId,
-          canonicalUrl: `${f.canonicalUrl}/no-body`,
-          title: "No Markdown",
-          publicationType: "news",
-        },
-      });
-      const revision = await db.publicationRevision.create({
-        data: {
-          publicationId: missing.id,
-          revisionHash: "a".repeat(64),
-          observedAt: new Date(),
-          publicationType: "news",
-          title: "No Markdown",
-          bodyText: "Private fallback must not render",
-        },
-      });
-      await db.publication.update({
-        where: { id: missing.id },
-        data: { currentRevisionId: revision.id },
-      });
-      return missing.id;
-    });
+test("publications.markdown-presentation", async ({
+  browseRun,
+  page,
+  publication: f,
+  publicationObjects,
+  isolatedWorker,
+}) => {
+  await browseRun(async () => {
+    const asset = Buffer.from(`PDF fixture ${crypto.randomUUID()}`);
+    const hash = createHash("sha256").update(asset).digest("hex");
+    const key = `publications/asset/sha256/${hash.slice(0, 2)}/${hash}`;
+    const filename = "Planning notes <b>source</b>.pdf";
+    const caption = "<img src=x onerror=alert(1)> Plain caption";
+    const title = 'Revision title " onerror="alert(1)';
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await publicationObjects.put(key, asset, "application/pdf");
+    expect(await publicationObjects.get(key)).toEqual(asset);
+    const missing = await isolatedWorker.database.owner.$transaction(
+      async (db) => {
+        const publication = await db.publication.findUniqueOrThrow({
+          where: { id: f.id },
+        });
+        const revisionId = publication.currentRevisionId;
+        if (!revisionId) throw new Error("Missing current revision");
+        await db.publicationRevision.update({
+          where: { id: revisionId },
+          data: {
+            author: "Article author",
+            reporter: "Article reporter",
+            editor: "Article editor",
+            originalPublisher: "Original publisher",
+          },
+        });
+        await db.publicationRevisionImageSource.update({
+          where: {
+            revisionId_imageSourceId: { revisionId, imageSourceId: f.imageId },
+          },
+          data: { altText: "Revision image description", title, caption },
+        });
+        const object = await db.publicationObject.create({
+          data: {
+            kind: "asset",
+            sha256: hash,
+            r2Key: key,
+            size: asset.byteLength,
+            contentType: "application/pdf",
+            status: "verified",
+            verifiedAt: new Date(),
+          },
+        });
+        await db.publicationObjectLink.create({
+          data: { revisionId, objectId: object.id, role: "asset", filename },
+        });
+        const missing = await db.publication.create({
+          data: {
+            sourceId: f.sourceId,
+            canonicalUrl: `${f.canonicalUrl}/no-body`,
+            title: "No Markdown",
+            publicationType: "news",
+          },
+        });
+        const revision = await db.publicationRevision.create({
+          data: {
+            publicationId: missing.id,
+            revisionHash: "a".repeat(64),
+            observedAt: new Date(),
+            publicationType: "news",
+            title: "No Markdown",
+            bodyText: "Private fallback must not render",
+          },
+        });
+        await db.publication.update({
+          where: { id: missing.id },
+          data: { currentRevisionId: revision.id },
+        });
+        return missing.id;
+      },
+    );
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 844 });
       await gotoAndWaitForReady(page, `/news/${f.id}`);
@@ -137,13 +138,5 @@ test("publications.markdown-presentation", async ({ page }) => {
       );
     }
     expect(errors).toEqual([]);
-  } finally {
-    await deletePublicationFixture(f);
-    await withE2ePrisma((db) =>
-      db.publicationObject.deleteMany({
-        where: { kind: "asset", sha256: hash },
-      }),
-    );
-    publicationFixtureObjectCommand("delete", key);
-  }
+  });
 });

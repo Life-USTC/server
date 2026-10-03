@@ -88,6 +88,9 @@ requirements:
     when: Each actual detail overlay opens at 1280, 390 and 320 pixels, and the user scrolls to its reading end and discussion where available.
     then:
     - Due date, relative urgency, facts and reading content have one column in the required order, followed by homework discussion.
+    - Within each deadline summary, the due datetime has no smaller computed font size or lighter weight than
+      its relative urgency text. The two differ in size, weight or text color; urgency colors may convey
+      status without making the relative label larger or heavier than the due datetime.
     - Exactly one content viewport scrolls; the title remains visible at the same position while the reading content moves.
     - Bottom actions remain visible, enabled and keyboard-focusable without horizontal overflow.
     test:
@@ -559,6 +562,9 @@ requirements:
     then:
     - Every declared primary field is visible in its identifying content, input or version title;
       before-and-after history content remains equally readable and upload state stays task-critical.
+    - Within one description revision, before-and-after bodies and their diff segments share the same
+      computed base font size and line height. Added and removed segment colors may differ; the responsive
+      side-by-side or stacked arrangement does not impose a vertical order between the two bodies.
     - Secondary metadata remains visible and subordinate to its local identity, including rendered image
       previews, storage usage, attribution, timestamps and profile statistics.
     - Public comment text omits its raw moderation state and private badge; ordinary views omit internal
@@ -567,7 +573,7 @@ requirements:
       returns the fixture bytes; rejected rename feedback retains the filename without changing the record.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-community.test.ts
-      name: ui.model-property-priority-community-views
+      name: "ui.model-property-priority-community-views en-us/1280"
 - id: ui.model-property-priority-admin-views
   category: presentation
   topic: model-property-priority
@@ -587,7 +593,7 @@ requirements:
       derived description edit display uses lastEditedAt or updatedAt only when lastEditedAt is absent.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-admin.test.ts
-      name: ui.model-property-priority-admin-views
+      name: "ui.model-property-priority-admin-views en-us/1280"
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority
@@ -626,7 +632,7 @@ requirements:
     - Locale-specific secondary names are either rendered in English views or explicitly absent in Chinese views.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-catalog.test.ts
-      name: ui.model-property-priority-catalog-views
+      name: "ui.model-property-priority-catalog-views zh-cn/1280"
 - id: ui.model-property-priority-account-views
   category: presentation
   topic: model-property-priority
@@ -647,7 +653,7 @@ requirements:
       and internal record identifiers do not appear as ordinary identifying content.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-account.test.ts
-      name: ui.model-property-priority-account-views
+      name: "ui.model-property-priority-account-views en-us/1280"
 - id: ui.model-property-priority-discovery-views
   category: presentation
   topic: model-property-priority
@@ -667,7 +673,7 @@ requirements:
       identifiers are absent from ordinary display content.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-discovery.test.ts
-      name: ui.model-property-priority-discovery-views
+      name: "ui.model-property-priority-discovery-views zh-cn/1280"
 - id: ui.model-property-priority-workspace-views
   category: presentation
   topic: model-property-priority
@@ -689,7 +695,7 @@ requirements:
       identifiers and raw numeric enums are absent from ordinary text and visible form values.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-workspace.test.ts
-      name: ui.model-property-priority-workspace-views
+      name: "workspace presentation calendar en-us/390"
 - id: ui.basic-info-card-2
   category: presentation
   topic: basic-info-card
@@ -951,17 +957,17 @@ requirements:
     results, and completing the last pending task. Only an explicit selection or clear action changes the applied
     filter.
   acceptance:
-    given: An isolated signed-in user has completed task records and, in a second case, one pending record,
-      on each homework, todo, and exam page at desktop and mobile widths.
+    given: Independent completed-only and pending scenarios each visit homework, todo, and exam pages at desktop
+      and mobile widths, with completed records and either no pending record or one pending record.
     when: The user repeatedly clicks and keyboard-activates filters while offline; after reconnecting, the user
-      completes the last pending record and clears the resulting filter-empty state.
+      completes the last pending homework or todo and clears the resulting filter-empty state.
     then:
     - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
       results, and completing the last pending task. Only an explicit selection or clear action changes the
       applied filter.
     test:
       file: tests/e2e/src/app/workspace/task-filters.test.ts
-      name: ui.workspace-filters-and-empty-states-1
+      name: ui.workspace-filters-and-empty-states-1 (desktop, pending)
 - id: ui.workspace-filters-and-empty-states-2
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -977,7 +983,7 @@ requirements:
       visual and accessible state without waiting for the results request to finish.
     test:
       file: tests/e2e/src/app/workspace/task-filter-readiness.test.ts
-      name: ui.workspace-filters-and-empty-states-2
+      name: ui.workspace-filters-and-empty-states-2 (homeworks)
 - id: ui.workspace-filters-and-empty-states-3
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -1020,7 +1026,7 @@ requirements:
     - Setup actions reach the public section/course pages, and the authorized todo action creates the first task in the database and displays it.
     test:
       file: tests/e2e/src/app/shared-policy/setup-empty.test.ts
-      name: ui.workspace-filters-and-empty-states-6
+      name: "ui.workspace-filters-and-empty-states-6 en-us/1280"
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
@@ -1138,40 +1144,40 @@ requirements:
   topic: workspace-page-identity
   rule: Every signed-in workspace branch exposes exactly one localized level-one heading.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
       and reads each level-one heading.
     then:
     - Every signed-in workspace branch exposes exactly one localized level-one heading.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-1
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-2
   category: presentation
   topic: workspace-page-identity
   rule: The main content landmark uses the same localized branch label.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
       and reads the accessible name of each main landmark.
     then:
     - The main content landmark uses the same localized branch label.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-2
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-3
   category: presentation
   topic: workspace-page-identity
   rule: The document title identifies the active branch before the Life@USTC suffix.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and reads
       each document title.
     then:
     - The document title identifies the active branch before the Life@USTC suffix.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-3
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-4
   category: presentation
   topic: workspace-page-identity
@@ -1306,7 +1312,7 @@ requirements:
     - Security repetition badges appear only for groups larger than one and report their actual repeated count.
     test:
       file: tests/e2e/src/app/shared-policy/remaining-count-copy.test.ts
-      name: ui.localized-count-copy-1
+      name: ui.localized-count-copy-1 count=1
 - id: ui.catalog-count-copy
   category: presentation
   topic: localized-count-copy
@@ -1384,7 +1390,7 @@ requirements:
     - The first focusable shell control is a localized skip link that moves keyboard focus to main content.
     test:
       file: tests/e2e/src/app/test.ts
-      name: ui.navigation-landmarks-4
+      name: anonymous landing and keyboard access
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
@@ -1403,14 +1409,19 @@ requirements:
   category: presentation
   topic: navigation-landmarks
   rule: Public notices and private activity reminders are separate navigation destinations. A user's reminder
-    badge counts only unread, unexpired notifications belonging to that user.
+    badge counts only unread, unexpired notifications belonging to that user. Marking a notice read refreshes
+    the page only after consuming a valid JSON acknowledgement with the requested ID and success true;
+    HTTP failure or an invalid acknowledgement shows a localized error and allows retry.
   acceptance:
     given: Two isolated users, with and without academic subscriptions, have different unread, read and expired activity notices.
     when: Each signed-in browser opens desktop/mobile navigation, visits activity reminders and marks one owned notice read.
+      Localized reminder flows also encounter failed or invalid acknowledgements before retrying the action.
     then:
     - Public News & Notices and Activity reminders have distinct links; only private reminders display the exact owner count.
     - Reminder lists exclude expired and foreign-owner notices while retaining the owner's read history.
-    - Marking a notice read updates the badge and removes the badge at zero.
+    - A complete acknowledgement for the requested notice updates the badge and removes the badge at zero.
+    - HTTP failure, malformed JSON, a different notice ID or success false leaves the current reminder visible,
+      shows a fresh localized error and re-enables the action; a subsequent confirmed write updates the read state.
     test:
       file: tests/e2e/src/app/shared-policy/navigation-context.test.ts
       name: ui.navigation-landmarks-6

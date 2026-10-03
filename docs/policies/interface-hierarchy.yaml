@@ -109,7 +109,7 @@ requirements:
     - Only the token with both scopes at the REST audience receives the stored calendar credential and its separate feed URL.
     - Missing subscription scope, anonymous requests and a wrong audience return 401 without membership or credential data.
     test:
-      file: tests/integration/rest-subscription-kind-contract.test.ts
+      file: tests/integration/rest-subscription-feed-disclosure.test.ts
       name: interface-hierarchy.representative-cross-surface-contract-4
 - id: interface-hierarchy.representative-cross-surface-contract-6
   category: consistency
@@ -165,6 +165,42 @@ requirements:
     test:
       file: tests/integration/graphql-mcp-resources.test.ts
       name: interface-hierarchy.transport-specific-exceptions-11
+- id: interface-hierarchy.catalog-rest-relationship-projections
+  category: consistency
+  topic: semantic-parity
+  rule: Public REST course, Section and Teacher lists and course/Teacher details retain the identities
+    and relationships of the persisted catalog graph. Each projection keeps its declared fields and public
+    privacy boundary. Consumption preserves the scenario's arranged catalog graph and the observed
+    User, Session, UserSectionSubscription and AuditLog state.
+  acceptance:
+    given: One isolated course has an active Section and its Teacher, with row IDs distinct from upstream JW IDs.
+    when: An anonymous HTTP caller reads the course, Section and Teacher lists and the course and Teacher details.
+    then:
+    - Every projection retains its required fields and identifies the exact persisted course, Section or Teacher.
+    - Course and Teacher detail offerings and Section teacher references describe the same persisted relationships.
+    - After each consumer stage, the arranged course/Section/Teacher graph remains unchanged, including
+      its campus, building, semester, teaching language, classification, teaching assignments, schedule
+      groups, schedules, exams, Section-teacher links and schedule-teacher participations.
+    - The observed User, Session, UserSectionSubscription and AuditLog tables remain unchanged after each consumer stage.
+    test:
+      file: tests/integration/rest/catalog/relationship-projections.test.ts
+      name: interface-hierarchy.catalog-rest-relationship-projections
+- id: interface-hierarchy.catalog-mcp-relationship-projections
+  category: consistency
+  topic: semantic-parity
+  rule: MCP course and Section search and detail projections preserve the identities and course/Teacher
+    relationships of the same catalog graph.
+  acceptance:
+    given: An isolated MCP actor and one course with current and historical Sections, with one Teacher
+      and schedule and exam records on the current Section. Row IDs differ from upstream JW IDs.
+    when: The real MCP SDK reads course search, Section search by course JW ID, course detail and current Section detail.
+    then:
+    - Course and Section projections identify their persisted records and course relationships; course offerings and course-filtered Sections identify the same two Sections.
+    - Embedded Teacher references on the current Section agree across Section search, course detail and Section detail.
+    - Search results retain pagination and metadata; Section detail retains schedule time fields serialized as strings, Teacher assignment privacy and published exam room and monitor fields.
+    test:
+      file: tests/integration/mcp/catalog/search.test.ts
+      name: interface-hierarchy.catalog-mcp-relationship-projections
 - id: interface-hierarchy.catalog-explicit-read-parity
   category: consistency
   topic: semantic-parity
@@ -174,13 +210,15 @@ requirements:
     are upstream JW IDs; teacher detail keys are database IDs. Only declared shared filters and ordering
     controls participate in this equivalence; transport-specific inputs and defaults remain explicit.
   acceptance:
-    given: The same isolated catalog contains distinct row/JW IDs, multiple courses, sections, teachers and filter relationships.
-    when: Actual REST, GraphQL and MCP reads apply equivalent explicit common filters, pages and supported Section search ordering.
+    given: Independent course, teacher and section consumer cases each own a private Worker and catalog
+      database with distinct row/JW IDs and the filter relationships required by that resource.
+    when: The referenced test group runs each resource through actual REST, GraphQL and MCP reads
+      with equivalent explicit common filters, pages and supported Section search ordering.
     then:
     - All three transports return the same ordered IDs and matching total on every page, including empty results and reverse-inserted rows with tied primary sort keys.
     - Equivalent detail keys resolve the same entity; row IDs are never silently substituted for course or section JW IDs.
     test:
-      file: tests/integration/catalog-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/catalog-semantic-parity.test.ts
       name: interface-hierarchy.catalog-explicit-read-parity
 - id: interface-hierarchy.workspace-explicit-read-parity
   category: consistency
@@ -196,16 +234,19 @@ requirements:
     filters and schedule semester filters are shared only by GraphQL and MCP. The native todo MCP
     includeCompleted flag maps to all versus incomplete records, not a completed-only filter.
   acceptance:
-    given: Three isolated owners, resource-bound OAuth credentials, a restricted database role,
-      overlapping and distinct subscriptions, differing homework completion and an empty workspace.
-    when: Real loopback REST, GraphQL and MCP HTTP requests read each collection with supported
+    given: Each resource has an independent test with a private Worker and database, three isolated
+      owners, resource-bound OAuth credentials and a restricted database role. Catalog-backed
+      resources have overlapping and distinct subscriptions; homework has differing owner completion.
+      Every resource includes an empty workspace.
+    when: The referenced test group runs separate todo, homework, schedule and exam prepared-state
+      consumer cases. Real loopback REST, GraphQL and MCP requests read each collection with supported
       common filters, two-item pages or limits and a limit large enough for the complete fixture.
     then:
     - Ordered identities equal the independently arranged fixture for each owner and filter, including reverse-inserted rows with tied primary sort keys.
     - Paginated bindings report exact totals and an empty page after the end; prefix bindings return the requested prefix.
     - Shared homework completion remains owner-specific and the empty owner receives no records.
     test:
-      file: tests/integration/workspace-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/workspace-semantic-parity.test.ts
       name: interface-hierarchy.workspace-explicit-read-parity
 - id: interface-hierarchy.public-schedule-read-parity
   category: consistency
@@ -225,7 +266,7 @@ requirements:
     - Conflicting identifiers and row/JW substitutions select no rows; tied sort keys use ascending row IDs.
     - Section-specific results retain the selected section JW identity and requested ordered prefix.
     test:
-      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.public-schedule-read-parity
 - id: interface-hierarchy.subscription-read-parity
   category: consistency
@@ -246,7 +287,7 @@ requirements:
     - GraphQL totals and exhausted pages match the complete REST/MCP sequence, including same-key boundaries.
     - The empty owner receives no records and forged query identity cannot select another user's membership.
     test:
-      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.subscription-read-parity
 - id: interface-hierarchy.comment-read-parity
   category: consistency
@@ -264,7 +305,7 @@ requirements:
     - Nested focus and reply-as-anchor retain required ancestors and root identity; complete DTOs and action authority match for each viewer.
     - Anonymous REST hides logged-in-only roots; malformed cursors and missing targets retain declared HTTP and MCP error meanings.
     test:
-      file: tests/integration/community-read-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/community-read-semantic-parity.test.ts
       name: interface-hierarchy.comment-read-parity
 - id: interface-hierarchy.public-homework-read-parity
   category: consistency
@@ -282,7 +323,7 @@ requirements:
     - Every REST page equals the corresponding slice of the independently ordered MCP full list, with complete totals and empty exhaustion.
     - Owner completion differs correctly, anonymous REST completion is null, selector unions deduplicate, and invalid or missing targets preserve declared errors.
     test:
-      file: tests/integration/community-read-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/community-read-semantic-parity.test.ts
       name: interface-hierarchy.public-homework-read-parity
 - id: interface-hierarchy.description-read-parity
   category: consistency
@@ -300,7 +341,7 @@ requirements:
     - Full description and viewer payloads match after removing declared protocol envelopes, including the exact latest 20 history IDs.
     - Wrong identifier forms are not silently reinterpreted, empty descriptions remain valid and reads do not mutate history.
     test:
-      file: tests/integration/community-read-semantic-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/community-read-semantic-parity.test.ts
       name: interface-hierarchy.description-read-parity
 - id: interface-hierarchy.public-profile-read-parity
   category: consistency
@@ -332,7 +373,7 @@ requirements:
     - All readers preserve the exact independent order and empty state, ignore a foreign userId query and report the four-pin bound.
     - The Web overview starts with that owner's ordered pins and overflow removes the deterministically oldest pin.
     test:
-      file: tests/integration/profile-link-read-parity.test.ts
+      file: tests/integration/profile-link-pins-read-parity.test.ts
       name: interface-hierarchy.link-pin-read-parity
 - id: interface-hierarchy.overview-read-parity
   category: consistency
@@ -364,6 +405,8 @@ requirements:
   acceptance:
     given: An isolated database has events and organizers inserted in reverse order under tied sort keys,
       independent source-active flags, both time bases and missing dates, accessed by the restricted app role.
+      Three independent cases each arrange that complete fixture for event search/taxonomy filters,
+      event date semantics, or organizer search/ordering respectively.
     when: Real REST handlers, the actual Yoga request handler and native MCP JSON-RPC handlers combine
       category, module, level, search, organizer, date and unknown-date filters and exhaust two-item pages.
     then:
@@ -371,8 +414,8 @@ requirements:
     - Ordered IDs, complete totals, unknownDateCount and exhausted empty pages match the independently arranged fixture.
     - Both date bases retain Shanghai overlap boundaries and missing-date records without guessing times.
     test:
-      file: tests/integration/young-public-semantic-parity.test.ts
-      name: interface-hierarchy.young-public-read-parity
+      file: tests/integration/rest/protocol-contracts/young-public-semantic-parity.test.ts
+      name: Young event search and taxonomy consumers
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity
@@ -405,8 +448,9 @@ requirements:
   acceptance:
     given: Isolated public catalog, activity, organizer and user records have known existing and missing
       identifiers; real services use the restricted application database role.
-    when: Actual loopback REST, GraphQL and native MCP HTTP requests read each existing and missing
-      detail, with a resource-bound community.user read bearer for native profiles, then request an unknown bus route.
+    when: An independently prepared case per entity reads existing and missing details through real Worker
+      REST, GraphQL and MCP HTTP, with a resource-bound community.user read bearer for native profiles.
+      A separate case requests an unknown bus route.
     then:
     - Existing detail controls succeed on all supported transports.
     - Missing details return REST 404 and a not-found error, GraphQL 200 with null and no errors, or
@@ -414,8 +458,8 @@ requirements:
     - Unknown bus-route detail is null in GraphQL and not_found with hasData false in native MCP.
     - The reads leave the fixture's shared domain rows, completions, reactions, attachments and audit state unchanged.
     test:
-      file: tests/integration/public-detail-error-parity.test.ts
-      name: interface-hierarchy.public-detail-not-found-parity
+      file: tests/integration/rest/protocol-contracts/public-detail-error.test.ts
+      name: interface-hierarchy.public-detail-not-found-parity.course
 - id: interface-hierarchy.private-delete-error-parity
   category: authorization
   topic: semantic-parity
@@ -427,7 +471,7 @@ requirements:
     - Foreign and missing responses have equal public error payloads within each transport and reveal no foreign owner identity.
     - The exact stored foreign rows remain unchanged.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: interface-hierarchy.private-delete-error-parity
 - id: interface-hierarchy.shared-delete-error-parity
   category: authorization
@@ -440,7 +484,7 @@ requirements:
     - Missing records return 404/NOT_FOUND/not_found; foreign shared records return 403/FORBIDDEN/forbidden.
     - The owned locked comment returns 403/FORBIDDEN/locked, and every rejected target remains unchanged.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: interface-hierarchy.shared-delete-error-parity
 - id: interface-hierarchy.suspended-delete-error-parity
   category: authorization
@@ -453,7 +497,7 @@ requirements:
     - Every transport rejects the currently suspended actor with its declared permission encoding.
     - All three complete stored records remain unchanged.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: interface-hierarchy.suspended-delete-error-parity
 - id: interface-hierarchy.semantic-parity-9
   category: consistency
@@ -480,7 +524,7 @@ requirements:
     - Each lookup returns the record whose JW ID matches, even when another record has that numeric row ID.
     - Each kind update changes only the section selected by its public JW ID.
     test:
-      file: tests/integration/rest-subscription-kind-contract.test.ts
+      file: tests/integration/rest-catalog-identifier-parity.test.ts
       name: interface-hierarchy.semantic-parity-12
 - id: interface-hierarchy.semantic-parity-13
   category: consistency
@@ -507,7 +551,7 @@ requirements:
     then:
     - Only the target membership changes; the complete witness membership, including its kind and timestamps, stays unchanged.
     test:
-      file: tests/integration/rest-subscription-kind-contract.test.ts
+      file: tests/integration/rest-subscription-single-identifier.test.ts
       name: interface-hierarchy.semantic-parity-15
 - id: interface-hierarchy.locale-caching-and-seo-1
   category: consistency
@@ -919,6 +963,8 @@ topics:
 - id: semantic-parity
   title: Semantic Parity
   requirement_refs:
+  - interface-hierarchy.catalog-rest-relationship-projections
+  - interface-hierarchy.catalog-mcp-relationship-projections
   - interface-hierarchy.catalog-explicit-read-parity
   - interface-hierarchy.workspace-explicit-read-parity
   - interface-hierarchy.public-schedule-read-parity

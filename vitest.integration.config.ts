@@ -11,7 +11,7 @@ const sharedTest = {
   hookTimeout: 30_000,
 };
 
-/** Integration DB + seed setup lives in `tests/integration/AGENTS.md`. */
+/** Integration schema and role setup lives in `tests/integration/AGENTS.md`. */
 export default defineConfig({
   resolve: { alias: sharedAlias },
   test: {
@@ -20,8 +20,7 @@ export default defineConfig({
     include: ["tests/integration/**/*.test.ts"],
     // REST contracts run under Playwright with a real Worker, not Vitest.
     exclude: ["tests/integration/rest/**"],
-    // Integration fixtures share seeded users and database rows. Running the
-    // files serially also keeps whole-table auth assertions deterministic.
+    // Keep per-shard resource use bounded; test fixtures own mutable state.
     fileParallelism: false,
   },
 });

@@ -24,7 +24,7 @@ chmod +x "$test_dir/bin/"*
 export PATH="$test_dir/bin:$PATH"
 unset E2E_BUNX_BIN
 export FUNCTION_OWNER_DATABASE_URL='postgresql://postgres:owner@127.0.0.1:59999/parity?sslmode=disable'
-export ALLOW_DATABASE_SEED=true
+export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
 [[ "$DATABASE_URL" == 'postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:59999/parity?sslmode=disable' ]]
 [[ "$AUTH_DATABASE_URL" == 'postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:59999/parity?sslmode=disable' ]]
@@ -32,9 +32,9 @@ source tests/ci/setup-runtime-database.sh
 [[ "$CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE" == "$DATABASE_URL" ]]
 [[ "$CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH" == "$AUTH_DATABASE_URL" ]]
 [[ "$CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE" == "$MAINTENANCE_DATABASE_URL" ]]
-source tests/ci/setup-runtime-database.sh reset
-printf '%s\n' 'prisma migrate deploy' 'prisma db seed' bootstrap \
-  'prisma migrate reset --force' 'prisma db seed' bootstrap >"$test_dir/expected"
+source tests/ci/setup-runtime-database.sh
+printf '%s\n' 'prisma migrate deploy' bootstrap \
+  'prisma migrate deploy' bootstrap >"$test_dir/expected"
 diff -u "$test_dir/expected" "$PARITY_COMMAND_LOG"
 
 # Missing owner credentials must fail before running setup, even if DATABASE_URL
@@ -43,8 +43,12 @@ if (unset FUNCTION_OWNER_DATABASE_URL; source tests/ci/setup-runtime-database.sh
   echo 'Setup accepted missing fixture owner credentials.' >&2
   exit 1
 fi
-if (export ALLOW_DATABASE_SEED=false; source tests/ci/setup-runtime-database.sh) 2>/dev/null; then
-  echo 'Setup accepted missing seed authorization.' >&2
+if (export ALLOW_TEST_DATABASE_SETUP=false; source tests/ci/setup-runtime-database.sh) 2>/dev/null; then
+  echo 'Setup accepted missing test database setup authorization.' >&2
+  exit 1
+fi
+if (unset ALLOW_TEST_DATABASE_SETUP; export ALLOW_DATABASE_SEED=true; source tests/ci/setup-runtime-database.sh) 2>/dev/null; then
+  echo 'Development seed authorization must not authorize test database setup.' >&2
   exit 1
 fi
 diff -u "$test_dir/expected" "$PARITY_COMMAND_LOG"
@@ -52,6 +56,10 @@ grep -Fq '\ir ../../../prisma/roles/production-runtime-bootstrap.sql' \
   tests/integration/fixtures/rls-runtime-bootstrap.sql
 if grep -Eq '^(GRANT|REVOKE|ALTER ROLE|CREATE POLICY)' tests/integration/fixtures/rls-runtime-bootstrap.sql; then
   echo 'Test fixtures must not maintain a separate runtime permission contract.' >&2
+  exit 1
+fi
+if grep -Eq '^(INSERT|UPDATE|DELETE)' tests/integration/fixtures/rls-runtime-bootstrap.sql; then
+  echo 'Runtime role setup must not write shared application fixtures.' >&2
   exit 1
 fi
 echo 'Runtime database parity orchestration passed.'

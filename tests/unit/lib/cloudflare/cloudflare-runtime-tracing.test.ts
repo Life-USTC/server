@@ -2,12 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getCloudflareNamedCache,
   getCloudflareRequestContext,
+  getCloudflareRuntimeContext,
   getCloudflareRuntimeTaskScheduler,
   registerCloudflareRuntimeCleanup,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
+import { createDeferred } from "../../../shared/deferred";
 
 describe("Cloudflare runtime tracing", () => {
   afterEach(() => {
@@ -238,5 +240,101 @@ describe("Cloudflare runtime tracing", () => {
         throw callbackFailure;
       }),
     ).rejects.toBe(callbackFailure);
+  });
+
+  it("releases a client first acquired by background work after response EOF", async () => {
+    const scheduled: Promise<unknown>[] = [];
+    const cleanup = vi.fn();
+    const gate = createDeferred();
+    let cache!: Map<symbol, unknown>;
+    const response = await runWithCloudflareRuntimeEnv(
+      {},
+      () => {
+        const context = getCloudflareRuntimeContext();
+        if (!context) throw new Error("Missing runtime context");
+        cache = context.cache;
+        getCloudflareRuntimeTaskScheduler()?.(
+          gate.promise.then(() => {
+            cache.set(Symbol("late-client"), {});
+            registerCloudflareRuntimeCleanup(cleanup);
+          }),
+        );
+        return new Response("complete before background work");
+      },
+      { waitUntil: (task: Promise<unknown>) => scheduled.push(task) },
+    );
+
+    await expect(response.text()).resolves.toBe(
+      "complete before background work",
+    );
+    expect(cleanup).not.toHaveBeenCalled();
+    gate.resolve();
+    await Promise.all(scheduled);
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(cache.size).toBe(0);
+  });
+
+  it.each(["cancel", "bodyless", "throw"])(
+    "keeps resources alive for deferred work when the request ends by %s",
+    async (end) => {
+      const gate = createDeferred();
+      const scheduled: Promise<unknown>[] = [];
+      const cleanup = vi.fn();
+      const failure = new Error("request failed");
+      const result = runWithCloudflareRuntimeEnv(
+        {},
+        () => {
+          registerCloudflareRuntimeCleanup(cleanup);
+          getCloudflareRuntimeTaskScheduler()?.(
+            gate.promise.then(() => {
+              expect(cleanup).not.toHaveBeenCalled();
+            }),
+          );
+          if (end === "throw") throw failure;
+          return end === "bodyless"
+            ? new Response(null, { status: 204 })
+            : new Response("unused");
+        },
+        { waitUntil: (task: Promise<unknown>) => scheduled.push(task) },
+      );
+      if (end === "throw") await expect(result).rejects.toBe(failure);
+      else await (await result).body?.cancel();
+      expect(cleanup).not.toHaveBeenCalled();
+      gate.resolve();
+      await Promise.all(scheduled);
+      expect(cleanup).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("drains background followups before cleanup even when a task rejects", async () => {
+    const first = createDeferred();
+    const followup = createDeferred();
+    const scheduled: Promise<unknown>[] = [];
+    const cleanup = vi.fn();
+    const failure = new Error("background write failed");
+    const response = await runWithCloudflareRuntimeEnv(
+      {},
+      () => {
+        registerCloudflareRuntimeCleanup(cleanup);
+        getCloudflareRuntimeTaskScheduler()?.(
+          first.promise.then(() => {
+            getCloudflareRuntimeTaskScheduler()?.(followup.promise);
+            throw failure;
+          }),
+        );
+        return new Response("sent");
+      },
+      { waitUntil: (task: Promise<unknown>) => scheduled.push(task) },
+    );
+    await response.text();
+    first.resolve();
+    await expect(scheduled[0]).rejects.toBe(failure);
+    expect(cleanup).not.toHaveBeenCalled();
+    followup.resolve();
+    const results = await Promise.allSettled(scheduled);
+    expect(
+      results.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 });

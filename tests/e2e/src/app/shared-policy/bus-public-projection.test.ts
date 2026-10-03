@@ -1,53 +1,77 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { unflatten } from "devalue";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import type { User } from "../../../../../src/generated/prisma-node/client";
+import { busTest } from "../../../utils/personal-preferences-fixture";
 
-test("bus.public-web-personal-overlay", async ({ browser, baseURL }) => {
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  const users = await withE2ePrisma(async (db) => {
-    const owners = [];
-    for (const destination of [4, 6]) {
-      const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
-      owners.push(
-        await db.user.create({
-          data: {
-            name: `Private bus ${suffix}`,
-            username: `bus${suffix}`,
-            email: `bus-${suffix}@example.test`,
-            busPreference: {
-              create: {
-                preferredOriginCampusId: 1,
-                preferredDestinationCampusId: destination,
-                showDepartedTrips: true,
+const test = busTest.extend<{ busUsers: User[] }>({
+  busUsers: async (
+    { isolatedWorker, preferenceFlow, busTimetable: _busTimetable },
+    use,
+  ) => {
+    const owners = await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction(async (db) => {
+        const owners: User[] = [];
+        for (const destination of [4, 6]) {
+          const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
+          owners.push(
+            await db.user.create({
+              data: {
+                name: `Private bus ${suffix}`,
+                username: `bus${suffix}`,
+                email: `bus-${suffix}@example.test`,
+                busPreference: {
+                  create: {
+                    preferredOriginCampusId: 1,
+                    preferredDestinationCampusId: destination,
+                    showDepartedTrips: true,
+                  },
+                },
               },
-            },
-          },
-        }),
-      );
-    }
-    return owners;
-  });
-  try {
+            }),
+          );
+        }
+        return owners;
+      }),
+    );
+    await use(owners);
+  },
+});
+
+test("bus.public-web-personal-overlay", async ({
+  preferenceFlow,
+  baseURL,
+  busUsers: users,
+  isolatedWorker,
+}) => {
+  await preferenceFlow.run(async () => {
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
     for (const locale of ["zh-cn", "en-us"]) {
       let publicDestination = "";
       for (const owner of [null, ...users]) {
-        const context = await browser.newContext({
+        const context = await preferenceFlow.newContext({
           baseURL,
           javaScriptEnabled: false,
         });
         try {
           await context.addCookies([
             { name: "NEXT_LOCALE", value: locale, url: baseURL },
-            ...(owner ? [await createSignedSessionCookie(owner.id)] : []),
+            ...(owner
+              ? [(await isolatedWorker.createSession(owner.id)).cookie]
+              : []),
           ]);
-          const response = await context.request.get("/catalog/bus");
+          const response = await preferenceFlow.http(() =>
+            context.request.get("/catalog/bus", {
+              headers: preferenceFlow.headers,
+            }),
+          );
           expect(response.status()).toBe(200);
           const html = await response.text();
           expect(html.includes("preferredOriginCampusId")).toBe(false);
           expect(html.includes("preferredDestinationCampusId")).toBe(false);
-          const dataResponse = await context.request.get(
-            "/catalog/bus/__data.json",
+          const dataResponse = await preferenceFlow.http(() =>
+            context.request.get("/catalog/bus/__data.json", {
+              headers: preferenceFlow.headers,
+            }),
           );
           expect(dataResponse.status()).toBe(200);
           const envelope = await dataResponse.json();
@@ -61,7 +85,7 @@ test("bus.public-web-personal-overlay", async ({ browser, baseURL }) => {
           expect(projection.bus.preferences).toBeNull();
           expect(projection.bus.routes.length).toBeGreaterThan(0);
           expect(projection.bus.trips.length).toBeGreaterThan(0);
-          const page = await context.newPage();
+          const page = await preferenceFlow.newPage(context);
           await page.goto("/catalog/bus", { waitUntil: "domcontentloaded" });
           await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
           const selectedDestination = page
@@ -74,8 +98,10 @@ test("bus.public-web-personal-overlay", async ({ browser, baseURL }) => {
           if (owner) expect(destinationLabel).toBe(publicDestination);
           else publicDestination = destinationLabel;
           if (owner) {
-            const privateResponse = await context.request.get(
-              "/api/workspace/bus-preferences",
+            const privateResponse = await preferenceFlow.http(() =>
+              context.request.get("/api/workspace/bus-preferences", {
+                headers: preferenceFlow.headers,
+              }),
             );
             expect(privateResponse.status()).toBe(200);
             expect(privateResponse.headers()["cache-control"]).toBe(
@@ -89,15 +115,9 @@ test("bus.public-web-personal-overlay", async ({ browser, baseURL }) => {
             });
           }
         } finally {
-          await context.close();
+          await preferenceFlow.closeContext(context);
         }
       }
     }
-  } finally {
-    await withE2ePrisma((db) =>
-      db.user.deleteMany({
-        where: { id: { in: users.map((user) => user.id) } },
-      }),
-    );
-  }
+  }, "consume");
 });

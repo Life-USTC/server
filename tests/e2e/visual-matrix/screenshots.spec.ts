@@ -1,11 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../fixtures/dev-seed";
-import { signInAsDebugUser } from "../utils/auth";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../utils/page-ready";
-import { ensureSeedSectionSubscription } from "../utils/subscriptions";
 import {
   applyVisualMatrixContext,
   isVisualRegressionEnabled,
@@ -13,6 +11,7 @@ import {
   VISUAL_MATRIX_LOCALES,
   type VisualMatrixLocale,
 } from "./matrix-setup";
+import { test } from "./workspace-fixture";
 
 const OVERVIEW_WEEK_START = "2026-04-27";
 
@@ -75,9 +74,7 @@ const VISUAL_SCREENS: VisualScreen[] = [
       await page.clock.setFixedTime(
         new Date(DEV_SEED_ANCHOR.recommendedAtTime),
       );
-      await signInAsDebugUser(page, "/workspace/overview");
       await syncAuthenticatedLocale(page, locale);
-      await ensureSeedSectionSubscription(page);
     },
     assertReady: async (page, locale) => {
       await expect(page.locator("html")).toHaveAttribute("lang", locale);
@@ -93,7 +90,7 @@ const VISUAL_SCREENS: VisualScreen[] = [
 ];
 
 test.describe("视觉回归基线矩阵", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "parallel" });
 
   test.skip(
     !isVisualRegressionEnabled(),
@@ -102,14 +99,39 @@ test.describe("视觉回归基线矩阵", () => {
 
   for (const locale of VISUAL_MATRIX_LOCALES) {
     for (const screen of VISUAL_SCREENS) {
-      test(`${screen.id} / ${locale}`, async ({ baseURL, page }) => {
+      const verify = async (page: Page, baseURL: string | undefined) => {
         await applyVisualMatrixContext(page, { baseURL, locale });
         await screen.prepare?.(page, locale);
         await gotoAndWaitForReady(page, screen.path);
         await screen.assertReady(page, locale);
         await expectNoPageHorizontalOverflow(page);
         await expect(page).toHaveScreenshot(`${screen.id}-${locale}.png`);
-      });
+      };
+      if (screen.id === "workspace-overview") {
+        test(`${screen.id} / ${locale}`, async ({
+          baseURL,
+          page,
+          workspace: _workspace,
+          pageRun,
+        }) =>
+          pageRun(
+            () => verify(page, baseURL),
+            async (_response, request) => {
+              throw new Error(
+                `Read-only workspace screenshot submitted ${request.method()} ${new URL(request.url()).pathname}`,
+              );
+            },
+          ));
+      } else if (screen.id === "catalog-courses") {
+        test(`${screen.id} / ${locale}`, async ({
+          baseURL,
+          page,
+          catalog: _catalog,
+        }) => verify(page, baseURL));
+      } else {
+        test(`${screen.id} / ${locale}`, async ({ baseURL, page }) =>
+          verify(page, baseURL));
+      }
     }
   }
 });

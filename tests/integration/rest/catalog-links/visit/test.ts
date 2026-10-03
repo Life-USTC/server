@@ -1,60 +1,69 @@
-/**
- * E2E tests for GET /api/catalog/links/resolve
- *
- * ## Endpoints
- * - `GET /api/catalog/links/resolve?slug=X` — Record an authenticated visit
- *   (best-effort) and redirect to the workspace link URL
- *
- * ## GET Request
- * - Query: `{ slug: string }`
- * - 307: redirect to the link's URL
- * - Records click count for authenticated users (upsert with increment)
- * - Invalid/missing slug: redirect to /
- *
- * ## Auth Requirements
- * - No auth required for redirect; click is only recorded when authenticated
- *
- * ## Edge Cases
- * - Invalid slug redirects to / instead of erroring
- * - Click recording is best-effort (failures are logged, not surfaced)
- */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUserApi } from "../../_harness/auth";
+import { expect } from "@playwright/test";
+import { test } from "../../../../e2e/utils/owned-worker";
 
-const BASE = "/api/catalog/links/resolve";
+const base = "/api/catalog/links/resolve";
 
-test.describe("GET /api/catalog/links/resolve 接口", () => {
-  test("GET 重定向到目标链接 URL", async ({ request }) => {
-    const response = await request.get(`${BASE}?slug=jw`, {
-      maxRedirects: 0,
-    });
+test("anonymous visit redirects to the target without following it", async ({
+  request,
+  run,
+}) =>
+  run(async () => {
+    const response = await request.get(`${base}?slug=jw`, { maxRedirects: 0 });
     expect(response.status()).toBe(307);
     expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
-  });
+  }));
 
-  test("GET 登录后仍重定向到目标 URL", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.get(`${BASE}?slug=jw`, {
-      maxRedirects: 0,
+test("authenticated visits increment only the current owner's click count", async ({
+  isolatedWorker,
+  run,
+}) =>
+  run(async () => {
+    const { createActor } = isolatedWorker;
+    const db = isolatedWorker.database.owner;
+    const owner = await createActor();
+    const other = await createActor();
+    await db.catalogLinkClick.createMany({
+      data: [
+        { userId: owner.id, slug: "jw", count: 3 },
+        { userId: other.id, slug: "jw", count: 8 },
+      ],
     });
-    expect(response.status()).toBe(307);
-    expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
-  });
-
-  test("GET 无效 slug 重定向到 /", async ({ request }) => {
-    const response = await request.get(`${BASE}?slug=nonexistent-e2e`, {
-      maxRedirects: 0,
+    const otherBefore = await db.catalogLinkClick.findMany({
+      where: { userId: other.id },
     });
-    expect(response.status()).toBe(307);
-    expect(response.headers().location).toMatch(/\/$/);
-  });
+    for (const count of [4, 5]) {
+      const response = await owner.request.get(`${base}?slug=jw`, {
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(307);
+      expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
+      expect(
+        await db.catalogLinkClick.findUniqueOrThrow({
+          where: { userId_slug: { userId: owner.id, slug: "jw" } },
+        }),
+      ).toMatchObject({ count });
+    }
+    expect(
+      await db.catalogLinkClick.findMany({ where: { userId: other.id } }),
+    ).toEqual(otherBefore);
+  }));
 
-  test("GET 缺少 slug 重定向到 /", async ({ request }) => {
-    const response = await request.get(BASE, {
-      maxRedirects: 0,
-    });
-    expect(response.status()).toBe(307);
-    expect(response.headers().location).toMatch(/\/$/);
-  });
-});
+for (const query of ["?slug=nonexistent-e2e", ""]) {
+  test(`invalid visit ${query || "missing slug"} redirects without recording a click`, async ({
+    isolatedWorker,
+    run,
+  }) =>
+    run(async () => {
+      const { createActor } = isolatedWorker;
+      const db = isolatedWorker.database.owner;
+      const owner = await createActor();
+      const response = await owner.request.get(`${base}${query}`, {
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(307);
+      expect(response.headers().location).toMatch(/\/$/);
+      expect(
+        await db.catalogLinkClick.count({ where: { userId: owner.id } }),
+      ).toBe(0);
+    }));
+}

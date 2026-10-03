@@ -1,205 +1,161 @@
+import { describe, expect } from "vitest";
 import {
   AUTH_RECORD_CLEANUP_BATCH_SIZE,
   type AuthRecordCleanupReport,
   cleanupExpiredAuthRecords,
 } from "@/features/auth/server/auth-record-cleanup";
-import {
-  createFixturePrisma,
-  createTestPrisma,
-  disconnectTestPrisma,
-} from "../shared/prisma";
+import { isolatedDatabaseTest } from "../shared/isolated-database";
 
-const maintenanceDatabaseUrl = process.env.MAINTENANCE_DATABASE_URL;
-if (!maintenanceDatabaseUrl) {
-  throw new Error(
-    "MAINTENANCE_DATABASE_URL is required for auth record cleanup tests",
-  );
-}
-const fixturePrisma = createFixturePrisma();
-const maintenancePrisma = createTestPrisma(maintenanceDatabaseUrl);
-const cutoff = new Date(Date.now() - 60_000);
-const expiredAt = new Date(cutoff.getTime() - 60_000);
-const futureAt = new Date(cutoff.getTime() + 24 * 60 * 60 * 1000);
-const marker = `auth-cleanup-${crypto.randomUUID()}`;
-
-describe("expired auth record cleanup", () => {
-  let userId: string;
-  let clientId: string;
-  let preexistingExpired: AuthRecordCleanupReport;
-
-  beforeAll(async () => {
-    const [
-      sessions,
-      verificationTokens,
-      oauthAccessTokens,
-      oauthRefreshTokens,
-      deviceCodes,
-    ] = await Promise.all([
-      fixturePrisma.session.count({ where: { expires: { lt: cutoff } } }),
-      fixturePrisma.verificationToken.count({
-        where: { expires: { lt: cutoff } },
-      }),
-      fixturePrisma.oAuthAccessToken.count({
-        where: { expiresAt: { lt: cutoff } },
-      }),
-      fixturePrisma.oAuthRefreshToken.count({
-        where: { expiresAt: { lt: cutoff } },
-      }),
-      fixturePrisma.deviceCode.count({ where: { expiresAt: { lt: cutoff } } }),
-    ]);
-    preexistingExpired = {
-      sessions,
-      verificationTokens,
-      oauthAccessTokens,
-      oauthRefreshTokens,
-      deviceCodes,
-    };
-
-    const user = await fixturePrisma.user.create({
-      data: {
-        email: `${marker}@example.test`,
-        name: marker,
-      },
-    });
-    userId = user.id;
-
-    const client = await fixturePrisma.oAuthClient.create({
-      data: {
-        clientId: marker,
-        name: marker,
-        redirectUris: [],
-        userId,
-      },
-    });
-    clientId = client.clientId;
-
-    await fixturePrisma.session.createMany({
-      data: Array.from(
-        { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
-        (_, index) => ({
-          sessionToken: `${marker}-expired-session-${index}`,
-          userId,
-          expires: expiredAt,
-        }),
-      ),
-    });
-    await fixturePrisma.session.createMany({
-      data: [
-        {
-          sessionToken: `${marker}-boundary-session`,
-          userId,
-          expires: cutoff,
+const test = isolatedDatabaseTest.extend<{
+  records: { marker: string; cutoff: Date };
+}>({
+  records: async ({ isolatedDatabase: { owner } }, use) => {
+    const marker = `auth-cleanup-${crypto.randomUUID()}`;
+    const cutoff = new Date(Date.now() - 60_000);
+    const expiredAt = new Date(cutoff.getTime() - 60_000);
+    const futureAt = new Date(cutoff.getTime() + 24 * 60 * 60 * 1000);
+    await owner.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: `${marker}@example.test`,
+          name: marker,
         },
-        {
-          sessionToken: `${marker}-future-session`,
+      });
+      const userId = user.id;
+
+      const client = await tx.oAuthClient.create({
+        data: {
+          clientId: marker,
+          name: marker,
+          redirectUris: [],
           userId,
-          expires: futureAt,
         },
-      ],
-    });
-    await fixturePrisma.verificationToken.createMany({
-      data: [
-        ...Array.from(
+      });
+      const clientId = client.clientId;
+
+      await tx.session.createMany({
+        data: Array.from(
           { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
           (_, index) => ({
-            identifier: marker,
-            token: `${marker}-expired-verification-${index}`,
+            sessionToken: `${marker}-expired-session-${index}`,
+            userId,
             expires: expiredAt,
           }),
         ),
-        {
-          identifier: marker,
-          token: `${marker}-boundary-verification`,
-          expires: cutoff,
-        },
-      ],
-    });
-    await fixturePrisma.deviceCode.createMany({
-      data: [
-        ...Array.from(
-          { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
-          (_, index) => ({
-            deviceCode: `${marker}-expired-device-${index}`,
-            userCode: `${marker}-expired-user-code-${index}`,
+      });
+      await tx.session.createMany({
+        data: [
+          {
+            sessionToken: `${marker}-boundary-session`,
+            userId,
+            expires: cutoff,
+          },
+          {
+            sessionToken: `${marker}-future-session`,
+            userId,
+            expires: futureAt,
+          },
+        ],
+      });
+      await tx.verificationToken.createMany({
+        data: [
+          ...Array.from(
+            { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+            (_, index) => ({
+              identifier: marker,
+              token: `${marker}-expired-verification-${index}`,
+              expires: expiredAt,
+            }),
+          ),
+          {
+            identifier: marker,
+            token: `${marker}-boundary-verification`,
+            expires: cutoff,
+          },
+        ],
+      });
+      await tx.deviceCode.createMany({
+        data: [
+          ...Array.from(
+            { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+            (_, index) => ({
+              deviceCode: `${marker}-expired-device-${index}`,
+              userCode: `${marker}-expired-user-code-${index}`,
+              clientId,
+              userId,
+              expiresAt: expiredAt,
+            }),
+          ),
+          {
+            deviceCode: `${marker}-boundary-device`,
+            userCode: `${marker}-boundary-user-code`,
             clientId,
             userId,
-            expiresAt: expiredAt,
-          }),
-        ),
-        {
-          deviceCode: `${marker}-boundary-device`,
-          userCode: `${marker}-boundary-user-code`,
-          clientId,
-          userId,
-          expiresAt: cutoff,
-        },
-      ],
-    });
-    await fixturePrisma.oAuthRefreshToken.createMany({
-      data: [
-        ...Array.from(
-          { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
-          (_, index) => ({
-            token: `${marker}-expired-refresh-${index}`,
+            expiresAt: cutoff,
+          },
+        ],
+      });
+      await tx.oAuthRefreshToken.createMany({
+        data: [
+          ...Array.from(
+            { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+            (_, index) => ({
+              token: `${marker}-expired-refresh-${index}`,
+              clientId,
+              userId,
+              expiresAt: expiredAt,
+            }),
+          ),
+          {
+            token: `${marker}-boundary-refresh`,
             clientId,
             userId,
-            expiresAt: expiredAt,
-          }),
-        ),
-        {
-          token: `${marker}-boundary-refresh`,
-          clientId,
-          userId,
-          expiresAt: cutoff,
-        },
-        {
-          token: `${marker}-revoked-future-refresh`,
-          clientId,
-          userId,
-          expiresAt: futureAt,
-          revoked: expiredAt,
-        },
-      ],
-    });
-    await fixturePrisma.oAuthAccessToken.createMany({
-      data: [
-        ...Array.from(
-          { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
-          (_, index) => ({
-            token: `${marker}-expired-access-${index}`,
+            expiresAt: cutoff,
+          },
+          {
+            token: `${marker}-revoked-future-refresh`,
             clientId,
             userId,
-            expiresAt: expiredAt,
-          }),
-        ),
-        {
-          token: `${marker}-boundary-access`,
-          clientId,
-          userId,
-          expiresAt: cutoff,
-        },
-        {
-          token: `${marker}-future-access`,
-          clientId,
-          userId,
-          expiresAt: futureAt,
-        },
-      ],
+            expiresAt: futureAt,
+            revoked: expiredAt,
+          },
+        ],
+      });
+      await tx.oAuthAccessToken.createMany({
+        data: [
+          ...Array.from(
+            { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+            (_, index) => ({
+              token: `${marker}-expired-access-${index}`,
+              clientId,
+              userId,
+              expiresAt: expiredAt,
+            }),
+          ),
+          {
+            token: `${marker}-boundary-access`,
+            clientId,
+            userId,
+            expiresAt: cutoff,
+          },
+          {
+            token: `${marker}-future-access`,
+            clientId,
+            userId,
+            expiresAt: futureAt,
+          },
+        ],
+      });
     });
-  });
+    await use({ marker, cutoff });
+  },
+});
 
-  afterAll(async () => {
-    await fixturePrisma.verificationToken.deleteMany({
-      where: { identifier: marker },
-    });
-    await fixturePrisma.user.delete({ where: { id: userId } });
-    await Promise.all([
-      disconnectTestPrisma(fixturePrisma),
-      disconnectTestPrisma(maintenancePrisma),
-    ]);
-  });
-
-  test("uses a locked-down security-definer function with bounded batches", async () => {
+describe("expired auth record cleanup", () => {
+  test("uses a locked-down security-definer function with bounded batches", async ({
+    isolatedDatabase: { owner: fixturePrisma, maintenance: maintenancePrisma },
+    records: { cutoff },
+  }) => {
     const [definition] = await fixturePrisma.$queryRaw<
       Array<{
         securityDefiner: boolean;
@@ -243,7 +199,10 @@ describe("expired auth record cleanup", () => {
     }
   });
 
-  test("rejects a future cutoff before deleting expired or future records", async () => {
+  test("rejects a future cutoff before deleting expired or future records", async ({
+    isolatedDatabase: { owner: fixturePrisma, maintenance: maintenancePrisma },
+    records: { marker },
+  }) => {
     await expect(
       cleanupExpiredAuthRecords(
         maintenancePrisma,
@@ -271,7 +230,10 @@ describe("expired auth record cleanup", () => {
     ).toBe(2);
   });
 
-  test("runs concurrently in bounded, idempotent batches while preserving boundary and replay-detection rows", async () => {
+  test("runs concurrently in bounded, idempotent batches while preserving boundary and replay-detection rows", async ({
+    isolatedDatabase: { owner: fixturePrisma, maintenance: maintenancePrisma },
+    records: { marker, cutoff },
+  }) => {
     const reports = await Promise.all([
       cleanupExpiredAuthRecords(maintenancePrisma, cutoff),
       cleanupExpiredAuthRecords(maintenancePrisma, cutoff),
@@ -294,22 +256,11 @@ describe("expired auth record cleanup", () => {
     );
 
     expect(total).toEqual({
-      sessions:
-        AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 + preexistingExpired.sessions,
-      verificationTokens:
-        AUTH_RECORD_CLEANUP_BATCH_SIZE +
-        1 +
-        preexistingExpired.verificationTokens,
-      oauthAccessTokens:
-        AUTH_RECORD_CLEANUP_BATCH_SIZE +
-        1 +
-        preexistingExpired.oauthAccessTokens,
-      oauthRefreshTokens:
-        AUTH_RECORD_CLEANUP_BATCH_SIZE +
-        1 +
-        preexistingExpired.oauthRefreshTokens,
-      deviceCodes:
-        AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 + preexistingExpired.deviceCodes,
+      sessions: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      verificationTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      oauthAccessTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      oauthRefreshTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      deviceCodes: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
     });
     for (const report of reports) {
       for (const deleted of Object.values(report)) {

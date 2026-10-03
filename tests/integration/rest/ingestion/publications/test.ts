@@ -7,8 +7,8 @@
  * batch without a session, OAuth bearer token, or User/admin row.
  */
 import { createHash } from "node:crypto";
-import { expect, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
+import { expect } from "@playwright/test";
+import { test } from "../../../../e2e/utils/owned-worker";
 
 const BASE = "/api/ingestion/publications/batches";
 const OBJECT_PLAN = "/api/ingestion/publications/objects/plan";
@@ -45,63 +45,34 @@ function payloadFor(suffix: string) {
   };
 }
 
-type CleanupPayload = Pick<
-  ReturnType<typeof payloadFor>,
-  "batchId" | "clientRunId" | "sources"
->;
-
-async function cleanup(payload: CleanupPayload, sha256?: string) {
-  await withE2ePrisma(async (prisma) => {
-    const publications = await prisma.publication.findMany({
-      where: { sourceId: payload.sources[0].id },
-      select: { id: true },
-    });
-    await prisma.$transaction([
-      prisma.publicationEventOutbox.deleteMany({
-        where: { aggregateId: { in: publications.map(({ id }) => id) } },
-      }),
-      prisma.publication.deleteMany({
-        where: { sourceId: payload.sources[0].id },
-      }),
-      prisma.ingestionBatch.deleteMany({
-        where: {
-          principalKey: "service:publication-crawler",
-          batchId: payload.batchId,
-        },
-      }),
-      prisma.ingestionRun.deleteMany({
-        where: {
-          principalKey: "service:publication-crawler",
-          clientRunId: payload.clientRunId,
-        },
-      }),
-      prisma.publicationSource.deleteMany({
-        where: { id: payload.sources[0].id },
-      }),
-    ]);
-    if (sha256) {
-      await prisma.publicationObject.deleteMany({
-        where: { kind: "body_html", sha256 },
-      });
-    }
-  });
-}
-
 test("ingestion rejects requests without the dedicated secret", async ({
+  run,
   request,
+  isolatedWorker,
 }) => {
-  const response = await request.post(BASE);
-  expect(response.status()).toBe(401);
-  await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
+  await run(async () => {
+    const response = await request.post(BASE, {
+      data: payloadFor("unauthorized"),
+    });
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
+    const db = isolatedWorker.database.owner;
+    expect(await db.ingestionBatch.count()).toBe(0);
+    expect(await db.ingestionRun.count()).toBe(0);
+    expect(await db.publicationSource.count()).toBe(0);
+    expect(await db.publication.count()).toBe(0);
+    expect(await db.publicationEventOutbox.count()).toBe(0);
+  });
 });
 
 test("ingestion accepts the service secret and scopes ownership to its stable key", async ({
+  run,
   request,
+  isolatedWorker,
 }) => {
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const payload = payloadFor(suffix);
+  await run(async () => {
+    const payload = payloadFor("service-auth");
 
-  try {
     const response = await request.post(BASE, {
       headers: { "X-Publication-Ingestion-Secret": SECRET },
       data: payload,
@@ -119,59 +90,55 @@ test("ingestion accepts the service secret and scopes ownership to its stable ke
       ],
     });
 
-    await withE2ePrisma(async (prisma) => {
-      const batch = await prisma.ingestionBatch.findUnique({
-        where: {
-          principalKey_batchId: {
-            principalKey: "service:publication-crawler",
-            batchId: payload.batchId,
-          },
+    const prisma = isolatedWorker.database.owner;
+    const batch = await prisma.ingestionBatch.findUnique({
+      where: {
+        principalKey_batchId: {
+          principalKey: "service:publication-crawler",
+          batchId: payload.batchId,
         },
-        select: { principalId: true, principalKey: true },
-      });
-      expect(batch).toEqual({
-        principalId: null,
-        principalKey: "service:publication-crawler",
-      });
+      },
+      select: { principalId: true, principalKey: true },
     });
-  } finally {
-    await cleanup(payload);
-  }
+    expect(batch).toEqual({
+      principalId: null,
+      principalKey: "service:publication-crawler",
+    });
+    expect(await prisma.user.count()).toBe(0);
+  });
 });
 
 test("unchanged redelivery re-registers claims so missing bytes can be planned and uploaded", async ({
+  run,
   request,
 }) => {
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  // R2 survives local reruns; this test must own an initially absent object.
-  const bytes = Buffer.from(`publication-object-${suffix}`);
-  const sha256 = createHash("sha256").update(bytes).digest("hex");
-  const base = payloadFor(suffix);
-  const headers = { "X-Publication-Ingestion-Secret": SECRET };
-  const firstPayload = {
-    ...base,
-    batchId: `batch-${suffix}-first`,
-    items: [
-      {
-        ...base.items[0],
-        objects: [
-          {
-            contentType: "text/plain",
-            kind: "body_html" as const,
-            sha256,
-            size: bytes.length,
-          },
-        ],
-      },
-    ],
-  };
-  const retryPayload = { ...firstPayload, batchId: `batch-${suffix}-retry` };
-  const finalPayload = { ...firstPayload, batchId: `batch-${suffix}-final` };
+  await run(async () => {
+    const suffix = "redelivery";
+    // Each case owns its Worker storage, including content-addressed objects.
+    const bytes = Buffer.from(`publication-object-${suffix}`);
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const base = payloadFor(suffix);
+    const headers = { "X-Publication-Ingestion-Secret": SECRET };
+    const firstPayload = {
+      ...base,
+      batchId: `batch-${suffix}-first`,
+      items: [
+        {
+          ...base.items[0],
+          objects: [
+            {
+              contentType: "text/plain",
+              kind: "body_html" as const,
+              sha256,
+              size: bytes.length,
+            },
+          ],
+        },
+      ],
+    };
+    const retryPayload = { ...firstPayload, batchId: `batch-${suffix}-retry` };
+    const finalPayload = { ...firstPayload, batchId: `batch-${suffix}-final` };
 
-  await cleanup(firstPayload, sha256);
-  await cleanup(retryPayload, sha256);
-  await cleanup(finalPayload, sha256);
-  try {
     const first = await request.post(BASE, { data: firstPayload, headers });
     expect(first.status()).toBe(200);
     await expect(first.json()).resolves.toMatchObject({
@@ -219,41 +186,37 @@ test("unchanged redelivery re-registers claims so missing bytes can be planned a
     const finalBody = await final.json();
     expect(finalBody.results[0].status).toBe("unchanged");
     expect(finalBody.results[0]).not.toHaveProperty("objectsNeedingUpload");
-  } finally {
-    await cleanup(firstPayload, sha256);
-    await cleanup(retryPayload, sha256);
-    await cleanup(finalPayload, sha256);
-  }
+  });
 });
 
 test("ingestion streams an object through the authenticated Worker R2 binding", async ({
+  run,
   request,
 }) => {
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  // R2 survives local reruns; this test must own an initially absent object.
-  const bytes = Buffer.from(`publication-object-${suffix}`);
-  const sha256 = createHash("sha256").update(bytes).digest("hex");
-  const base = payloadFor(suffix);
-  const payload = {
-    ...base,
-    items: [
-      {
-        ...base.items[0],
-        objects: [
-          {
-            contentType: "text/plain",
-            kind: "body_html" as const,
-            sha256,
-            size: bytes.length,
-          },
-        ],
-      },
-    ],
-  };
-  const headers = { "X-Publication-Ingestion-Secret": SECRET };
+  await run(async () => {
+    const suffix = "streaming";
+    // Each case owns its Worker storage, including content-addressed objects.
+    const bytes = Buffer.from(`publication-object-${suffix}`);
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const base = payloadFor(suffix);
+    const payload = {
+      ...base,
+      items: [
+        {
+          ...base.items[0],
+          objects: [
+            {
+              contentType: "text/plain",
+              kind: "body_html" as const,
+              sha256,
+              size: bytes.length,
+            },
+          ],
+        },
+      ],
+    };
+    const headers = { "X-Publication-Ingestion-Secret": SECRET };
 
-  await cleanup(payload, sha256);
-  try {
     const batch = await request.post(BASE, { data: payload, headers });
     expect(batch.status()).toBe(200);
 
@@ -288,6 +251,12 @@ test("ingestion streams an object through the authenticated Worker R2 binding", 
       status: "linked",
     });
 
+    const downloaded = await request.get(
+      `/api/publications/objects/body_html/${sha256}`,
+    );
+    expect(downloaded.status()).toBe(200);
+    expect(await downloaded.body()).toEqual(bytes);
+
     const replayPlan = await request.post(OBJECT_PLAN, {
       data: {
         batchId: payload.batchId,
@@ -295,10 +264,9 @@ test("ingestion streams an object through the authenticated Worker R2 binding", 
       },
       headers,
     });
+    expect(replayPlan.status()).toBe(200);
     await expect(replayPlan.json()).resolves.toMatchObject({
       objects: [{ status: "already_present", uploadUrl: null }],
     });
-  } finally {
-    await cleanup(payload, sha256);
-  }
+  });
 });

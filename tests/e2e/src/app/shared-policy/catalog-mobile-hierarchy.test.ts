@@ -1,128 +1,109 @@
-import { expect, type Locator, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect, type Locator, type Page } from "@playwright/test";
+import type { TestPrismaClient } from "../../../../shared/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test } from "../../../utils/personal-preferences-fixture";
 
-async function createFixture() {
+async function createFixture(db: TestPrismaClient) {
   const base = 1_700_000_000 + Math.floor(Math.random() * 100_000_000);
-  return withE2ePrisma((db) =>
-    db.$transaction(async (tx) => {
-      const suffix = crypto.randomUUID().slice(0, 8);
-      const education = await tx.educationLevel.create({
-        data: { nameCn: `层次${suffix}`, nameEn: `Level ${suffix}` },
-      });
-      const category = await tx.courseCategory.create({
-        data: { nameCn: `类别${suffix}`, nameEn: `Category ${suffix}` },
-      });
-      const classType = await tx.classType.create({
-        data: { nameCn: `类型${suffix}`, nameEn: `Class type ${suffix}` },
-      });
-      const department = await tx.department.create({
+  return db.$transaction(async (tx) => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const education = await tx.educationLevel.create({
+      data: { nameCn: `层次${suffix}`, nameEn: `Level ${suffix}` },
+    });
+    const category = await tx.courseCategory.create({
+      data: { nameCn: `类别${suffix}`, nameEn: `Category ${suffix}` },
+    });
+    const classType = await tx.classType.create({
+      data: { nameCn: `类型${suffix}`, nameEn: `Class type ${suffix}` },
+    });
+    const department = await tx.department.create({
+      data: {
+        code: suffix,
+        nameCn: `学院${suffix}`,
+        nameEn: `Department ${suffix}`,
+      },
+    });
+    const title = await tx.teacherTitle.create({
+      data: {
+        jwId: base + 3,
+        code: suffix,
+        nameCn: `职称${suffix}`,
+        nameEn: `Title ${suffix}`,
+      },
+    });
+    const semester = await tx.semester.create({
+      data: { jwId: base + 4, code: suffix, nameCn: "2026-2027学年第一学期" },
+    });
+    const campus = await tx.campus.create({
+      data: {
+        jwId: base + 5,
+        nameCn: `校区${suffix}`,
+        nameEn: `Campus ${suffix}`,
+      },
+    });
+    const user = await tx.user.create({
+      data: { name: "Hierarchy author", email: `${suffix}@example.test` },
+    });
+    const course = await tx.course.create({
+      data: {
+        jwId: base,
+        code: `HIER-${suffix}`,
+        nameCn: "移动阅读层次测试课程",
+        nameEn: "Mobile reading hierarchy course",
+        educationLevelId: education.id,
+        categoryId: category.id,
+        classTypeId: classType.id,
+      },
+    });
+    const teacher = await tx.teacher.create({
+      data: {
+        jwId: base + 1,
+        code: `HIER-T-${suffix}`,
+        nameCn: "移动阅读层次测试教师",
+        nameEn: "Mobile reading hierarchy teacher",
+        departmentId: department.id,
+        teacherTitleId: title.id,
+        email: `teacher-${suffix}@example.test`,
+      },
+    });
+    const section = await tx.section.create({
+      data: {
+        jwId: base + 2,
+        code: `HIER-S-${suffix}`,
+        courseId: course.id,
+        teachers: { connect: { id: teacher.id } },
+        semesterId: semester.id,
+        campusId: campus.id,
+        credits: 4,
+        remark: `Secondary section facts ${suffix}`,
+      },
+    });
+    for (const target of [
+      { courseId: course.id },
+      { teacherId: teacher.id },
+      { sectionId: section.id },
+    ]) {
+      await tx.description.create({
         data: {
-          code: suffix,
-          nameCn: `学院${suffix}`,
-          nameEn: `Department ${suffix}`,
+          ...target,
+          content: "Readable introduction for the catalog hierarchy.",
+          lastEditedById: user.id,
         },
       });
-      const title = await tx.teacherTitle.create({
-        data: {
-          jwId: base + 3,
-          code: suffix,
-          nameCn: `职称${suffix}`,
-          nameEn: `Title ${suffix}`,
-        },
-      });
-      const semester = await tx.semester.create({
-        data: { jwId: base + 4, code: suffix, nameCn: "2026-2027学年第一学期" },
-      });
-      const campus = await tx.campus.create({
-        data: {
-          jwId: base + 5,
-          nameCn: `校区${suffix}`,
-          nameEn: `Campus ${suffix}`,
-        },
-      });
-      const user = await tx.user.create({
-        data: { name: "Hierarchy author", email: `${suffix}@example.test` },
-      });
-      const course = await tx.course.create({
-        data: {
-          jwId: base,
-          code: `HIER-${suffix}`,
-          nameCn: "移动阅读层次测试课程",
-          nameEn: "Mobile reading hierarchy course",
-          educationLevelId: education.id,
-          categoryId: category.id,
-          classTypeId: classType.id,
-        },
-      });
-      const teacher = await tx.teacher.create({
-        data: {
-          jwId: base + 1,
-          code: `HIER-T-${suffix}`,
-          nameCn: "移动阅读层次测试教师",
-          nameEn: "Mobile reading hierarchy teacher",
-          departmentId: department.id,
-          teacherTitleId: title.id,
-          email: `teacher-${suffix}@example.test`,
-        },
-      });
-      const section = await tx.section.create({
-        data: {
-          jwId: base + 2,
-          code: `HIER-S-${suffix}`,
-          courseId: course.id,
-          teachers: { connect: { id: teacher.id } },
-          semesterId: semester.id,
-          campusId: campus.id,
-          credits: 4,
-          remark: `Secondary section facts ${suffix}`,
-        },
-      });
-      for (const target of [
-        { courseId: course.id },
-        { teacherId: teacher.id },
-        { sectionId: section.id },
-      ]) {
-        await tx.description.create({
-          data: {
-            ...target,
-            content: "Readable introduction for the catalog hierarchy.",
-            lastEditedById: user.id,
-          },
-        });
-      }
-      return {
-        education,
-        category,
-        classType,
-        department,
-        title,
-        semester,
-        campus,
-        user,
-        course,
-        teacher,
-        section,
-      };
-    }),
-  );
-}
-
-async function cleanupFixture(
-  fixture: Awaited<ReturnType<typeof createFixture>>,
-) {
-  await withE2ePrisma(async (db) => {
-    await db.section.delete({ where: { id: fixture.section.id } });
-    await db.teacher.delete({ where: { id: fixture.teacher.id } });
-    await db.course.delete({ where: { id: fixture.course.id } });
-    await db.user.delete({ where: { id: fixture.user.id } });
-    await db.educationLevel.delete({ where: { id: fixture.education.id } });
-    await db.courseCategory.delete({ where: { id: fixture.category.id } });
-    await db.classType.delete({ where: { id: fixture.classType.id } });
-    await db.department.delete({ where: { id: fixture.department.id } });
-    await db.teacherTitle.delete({ where: { id: fixture.title.id } });
-    await db.semester.delete({ where: { id: fixture.semester.id } });
-    await db.campus.delete({ where: { id: fixture.campus.id } });
+    }
+    return {
+      education,
+      category,
+      classType,
+      department,
+      title,
+      semester,
+      campus,
+      user,
+      course,
+      teacher,
+      section,
+    };
   });
 }
 
@@ -132,13 +113,15 @@ function required(value: string | null) {
 }
 
 test("ui.catalog-table-column-alignment", async ({
+  preferenceFlow,
+  isolatedWorker,
   page,
   baseURL,
 }, testInfo) => {
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  const fixture = await createFixture();
-  try {
-    await withE2ePrisma(async (db) => {
+  await preferenceFlow.run(async () => {
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    await isolatedWorker.database.owner.$transaction(async (db) => {
       await db.course.update({
         where: { id: fixture.course.id },
         data: { code: "ALIGN-COURSE" },
@@ -272,14 +255,16 @@ test("ui.catalog-table-column-alignment", async ({
           .toBeLessThanOrEqual(1);
       }
     }
-  } finally {
-    await cleanupFixture(fixture);
-  }
+  });
 });
 
-test("ui.detail-two-column-stream-1", async ({ page }) => {
-  const fixture = await createFixture();
-  try {
+test("ui.detail-two-column-stream-1", async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       for (const item of [
@@ -335,15 +320,17 @@ test("ui.detail-two-column-stream-1", async ({ page }) => {
         }
       }
     }
-  } finally {
-    await cleanupFixture(fixture);
-  }
+  });
 });
 
-test("ui.detail-two-column-stream-7", async ({ page }) => {
-  const fixture = await createFixture();
-  try {
-    await withE2ePrisma((db) =>
+test("ui.detail-two-column-stream-7", async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    await isolatedWorker.database.owner.$transaction((db) =>
       db.description.updateMany({
         where: { lastEditedById: fixture.user.id },
         data: {
@@ -403,28 +390,26 @@ test("ui.detail-two-column-stream-7", async ({ page }) => {
         page.off("request", observe);
       }
     }
-  } finally {
-    await cleanupFixture(fixture);
-  }
+  });
 });
 
-test("ui.detail-hero-4", async ({ page }) => {
-  const fixture = await createFixture();
-  const courseNames = {
-    nameCn: "跨学科科学研究与高等数学方法应用课程".repeat(4),
-    nameEn:
-      "Interdisciplinary scientific research and advanced mathematical methods "
+test("ui.detail-hero-4", async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const courseNames = {
+      nameCn: "跨学科科学研究与高等数学方法应用课程".repeat(4),
+      nameEn:
+        "Interdisciplinary scientific research and advanced mathematical methods "
+          .repeat(4)
+          .trim(),
+    };
+    const teacherNames = {
+      nameCn: "跨学科科学研究领域教师姓名".repeat(4),
+      nameEn: "Professor of interdisciplinary scientific research "
         .repeat(4)
         .trim(),
-  };
-  const teacherNames = {
-    nameCn: "跨学科科学研究领域教师姓名".repeat(4),
-    nameEn: "Professor of interdisciplinary scientific research "
-      .repeat(4)
-      .trim(),
-  };
-  try {
-    await withE2ePrisma(async (db) => {
+    };
+    await isolatedWorker.database.owner.$transaction(async (db) => {
       await db.course.update({
         where: { id: fixture.course.id },
         data: courseNames,
@@ -437,9 +422,12 @@ test("ui.detail-hero-4", async ({ page }) => {
     for (const locale of ["zh-cn", "en-us"]) {
       expect(
         (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
         ).status(),
       ).toBe(200);
       for (const width of [320, 390]) {
@@ -523,9 +511,7 @@ test("ui.detail-hero-4", async ({ page }) => {
         }
       }
     }
-  } finally {
-    await cleanupFixture(fixture);
-  }
+  });
 });
 
 async function box(locator: Locator) {
@@ -534,15 +520,41 @@ async function box(locator: Locator) {
   return result;
 }
 
-test("ui.layout-principles-3", async ({ page }, testInfo) => {
-  const fixture = await createFixture();
-  try {
+async function regionBounds(page: Page, selectors: string[]) {
+  return page.evaluate(
+    (selectors) =>
+      selectors.map((selector) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing catalog region: ${selector}`);
+        const { x, y, width, height } = element.getBoundingClientRect();
+        if (
+          width <= 0 ||
+          height <= 0 ||
+          getComputedStyle(element).visibility !== "visible"
+        )
+          throw new Error(`Catalog region is not visible: ${selector}`);
+        return { x, y, width, height };
+      }),
+    selectors,
+  );
+}
+
+test("ui.layout-principles-3", async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}, testInfo) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
     for (const locale of ["zh-cn", "en-us"] as const) {
       expect(
         (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
         ).status(),
       ).toBe(200);
       const cn = locale === "zh-cn";
@@ -623,10 +635,14 @@ test("ui.layout-principles-3", async ({ page }, testInfo) => {
           ];
         });
         expect(order).toEqual([true, true, true]);
-        const hero = await box(page.getByRole("heading", { level: 1 }));
-        const identityBounds = await box(identity);
-        const readingBounds = await box(reading);
-        const secondaryBounds = await box(secondary);
+        // Read one layout so streamed content cannot shift later measurements.
+        const [hero, identityBounds, readingBounds, secondaryBounds] =
+          await regionBounds(page, [
+            "h1",
+            "[data-detail-identity]",
+            "[data-detail-reading-stream]",
+            "[data-detail-scroll-container] aside",
+          ]);
         expect(hero.y + hero.height).toBeLessThanOrEqual(identityBounds.y);
         expect(identityBounds.y + identityBounds.height).toBeLessThanOrEqual(
           readingBounds.y,
@@ -653,25 +669,11 @@ test("ui.layout-principles-3", async ({ page }, testInfo) => {
         // Resizing animates the sidebar width. Compare regions from one layout
         // observation so a transition cannot move the grid between measurements.
         const [desktopReading, desktopIdentity, desktopSecondary] =
-          await page.evaluate(() =>
-            [
-              "[data-detail-reading-stream]",
-              "[data-detail-identity]",
-              "[data-detail-scroll-container] aside",
-            ].map((selector) => {
-              const element = document.querySelector(selector);
-              if (!element)
-                throw new Error(`Missing catalog region: ${selector}`);
-              const { x, y, width, height } = element.getBoundingClientRect();
-              if (
-                width <= 0 ||
-                height <= 0 ||
-                getComputedStyle(element).visibility !== "visible"
-              )
-                throw new Error(`Catalog region is not visible: ${selector}`);
-              return { x, y, width, height };
-            }),
-          );
+          await regionBounds(page, [
+            "[data-detail-reading-stream]",
+            "[data-detail-identity]",
+            "[data-detail-scroll-container] aside",
+          ]);
         expect(desktopIdentity.x).toBeGreaterThan(
           desktopReading.x + desktopReading.width,
         );
@@ -686,17 +688,23 @@ test("ui.layout-principles-3", async ({ page }, testInfo) => {
           });
       }
     }
-  } finally {
-    await cleanupFixture(fixture);
-  }
+  });
 });
 
-test("ui.catalog-count-copy", async ({ page, baseURL }, testInfo) => {
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  const fixtures = [await createFixture(), await createFixture()];
-  try {
+test("ui.catalog-count-copy", async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+  baseURL,
+}, testInfo) => {
+  await preferenceFlow.run(async () => {
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
+    const fixtures = [
+      await createFixture(isolatedWorker.database.owner),
+      await createFixture(isolatedWorker.database.owner),
+    ];
     for (const [index, fixture] of fixtures.entries()) {
-      await withE2ePrisma(async (db) => {
+      await isolatedWorker.database.owner.$transaction(async (db) => {
         await db.course.update({
           where: { id: fixture.course.id },
           data: { code: `COUNT-COURSE-${index}` },
@@ -744,7 +752,5 @@ test("ui.catalog-count-copy", async ({ page, baseURL }, testInfo) => {
         }
       }
     }
-  } finally {
-    for (const fixture of fixtures.reverse()) await cleanupFixture(fixture);
-  }
+  });
 });

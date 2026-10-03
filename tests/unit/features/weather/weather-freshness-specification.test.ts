@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { readSpecification } from "../../../../scripts/specifications/yaml";
-import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 const mocks = vi.hoisted(() => ({
   readCache: vi.fn(),
@@ -61,87 +59,60 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-it("weather.cache-and-history", async (context) => {
-  const contract = await semanticContract(context.task.name, "cache_freshness");
-  contract.equal("/surface", "service");
-  contract.equal("/operation", getWeatherSnapshot.name);
-  contract.equal("/timestamp", "fetchedAt");
-  const document = await readSpecification<{
-    requirements: {
-      id: string;
-      expectation?: {
-        kind: "cache_freshness";
-        max_age_seconds: number;
-        expires_at_boundary: boolean;
-        invalid_timestamps: "refresh";
-        future_timestamps: "refresh";
-        refresh_failure: "unavailable";
-      };
-    }[];
-  }>("docs/features/weather.yaml");
-  const rule = document.requirements.find(
-    (r) => r.id === "weather.cache-and-history",
-  )?.expectation;
-  if (rule?.kind !== "cache_freshness")
-    throw new Error("Missing weather freshness expectation");
-  const maxAge = rule.max_age_seconds * 1000;
-  for (const age of [0, maxAge - 1, maxAge, maxAge + 1]) {
-    mocks.amap.mockClear();
-    mocks.openMeteo.mockClear();
-    mocks.readCache.mockResolvedValue(
-      cached(new Date(reference.getTime() - age).toISOString()),
-    );
-    const result = await getWeatherSnapshot("ustc-main");
-    const expired = rule.expires_at_boundary ? age >= maxAge : age > maxAge;
-    expect(mocks.openMeteo).toHaveBeenCalledTimes(expired ? 1 : 0);
-    expect(mocks.amap).toHaveBeenCalledTimes(expired ? 1 : 0);
-    expect(result?.current.temperature).toBe(expired ? 23 : 12);
-    if (age === maxAge)
-      contract.equal(
-        "/expires_at_boundary",
-        mocks.openMeteo.mock.calls.length === 1,
-      );
-    // Both adjacent probes must agree before the observed expiry is recorded.
-    if (age === maxAge - 1) expect(mocks.openMeteo).not.toHaveBeenCalled();
-    if (age === maxAge + 1) {
-      expect(mocks.openMeteo).toHaveBeenCalledOnce();
-      contract.equal("/max_age_seconds", (age - 1) / 1000);
-    }
-  }
-  for (const [timestamp, policy, field] of [
-    ["invalid", rule.invalid_timestamps, "invalid_timestamps"],
-    [
-      new Date(reference.getTime() + 1).toISOString(),
-      rule.future_timestamps,
-      "future_timestamps",
-    ],
-  ]) {
-    if (policy !== "refresh") throw new Error("Unsupported timestamp policy");
-    mocks.openMeteo.mockClear();
-    mocks.readCache.mockResolvedValue(cached(timestamp));
-    expect((await getWeatherSnapshot("ustc-main"))?.current.temperature).toBe(
-      23,
-    );
-    expect(mocks.openMeteo).toHaveBeenCalledOnce();
-    contract.equal(
-      `/${field}`,
-      mocks.openMeteo.mock.calls.length === 1 ? "refresh" : "cache",
-    );
-  }
+it.each([
+  { name: "just fetched", age: 0, providerCalls: 0, temperature: 12 },
+  {
+    name: "one millisecond before expiry",
+    age: 899_999,
+    providerCalls: 0,
+    temperature: 12,
+  },
+  {
+    name: "exactly fifteen minutes old",
+    age: 900_000,
+    providerCalls: 1,
+    temperature: 23,
+  },
+  {
+    name: "one millisecond after expiry",
+    age: 900_001,
+    providerCalls: 1,
+    temperature: 23,
+  },
+])("weather cache: $name", async ({ age, providerCalls, temperature }) => {
   mocks.readCache.mockResolvedValue(
-    cached(new Date(reference.getTime() - maxAge - 1).toISOString()),
+    cached(new Date(reference.getTime() - age).toISOString()),
+  );
+  const result = await getWeatherSnapshot("ustc-main");
+  expect(mocks.openMeteo).toHaveBeenCalledTimes(providerCalls);
+  expect(mocks.amap).toHaveBeenCalledTimes(providerCalls);
+  expect(result?.current.temperature).toBe(temperature);
+});
+
+it.each([
+  { name: "invalid", timestamp: "invalid" },
+  {
+    name: "in the future",
+    timestamp: new Date(reference.getTime() + 1).toISOString(),
+  },
+])("refreshes a cache whose fetchedAt is $name", async ({ timestamp }) => {
+  mocks.readCache.mockResolvedValue(cached(timestamp));
+  expect((await getWeatherSnapshot("ustc-main"))?.current.temperature).toBe(23);
+  expect(mocks.openMeteo).toHaveBeenCalledOnce();
+  expect(mocks.amap).toHaveBeenCalledOnce();
+});
+
+it("returns unavailable when an expired cache cannot be refreshed", async () => {
+  mocks.readCache.mockResolvedValue(
+    cached(new Date(reference.getTime() - 900_001).toISOString()),
   );
   mocks.openMeteo.mockResolvedValue({
     ok: false,
     error: new Error("unavailable"),
   });
-  if (rule.refresh_failure !== "unavailable")
-    throw new Error("Unsupported refresh failure policy");
-  contract.equal(
-    "/refresh_failure",
-    (await getWeatherSnapshot("ustc-main")) === null ? "unavailable" : "cached",
-  );
-  contract.recordVitest(context);
+  expect(await getWeatherSnapshot("ustc-main")).toBeNull();
+  expect(mocks.amap).toHaveBeenCalledOnce();
+  expect(mocks.openMeteo).toHaveBeenCalledOnce();
 });
 
 it("weather.hourly-forecast-expiry", async () => {

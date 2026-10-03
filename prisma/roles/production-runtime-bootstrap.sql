@@ -241,8 +241,9 @@ GRANT SELECT ON TABLE
   "OAuthClient",
   "UserSuspension",
   "User",
-  "CommentReaction",
-  "UserSectionSubscription"
+  "CommentReaction"
+TO life_ustc_function_owner;
+GRANT SELECT ("userId", "sectionId") ON "UserSectionSubscription"
 TO life_ustc_function_owner;
 GRANT UPDATE, DELETE ON TABLE "UploadPending"
 TO life_ustc_function_owner;
@@ -357,7 +358,8 @@ ALTER POLICY "Comment_hidden_count_reader" ON "Comment"
   TO life_ustc_function_owner;
 
 DROP POLICY IF EXISTS "UserSectionSubscription_profile_reader" ON "UserSectionSubscription";
-CREATE POLICY "UserSectionSubscription_profile_reader" ON "UserSectionSubscription"
+DROP POLICY IF EXISTS "UserSectionSubscription_calendar_recipients" ON "UserSectionSubscription";
+CREATE POLICY "UserSectionSubscription_calendar_recipients" ON "UserSectionSubscription"
   FOR SELECT
   TO life_ustc_function_owner
   USING (true);
@@ -542,3 +544,7 @@ ALTER FUNCTION public.list_young_notification_recipients(text, integer) OWNER TO
 GRANT EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) TO life_ustc_maintenance_runtime;
 
 REVOKE EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) FROM life_ustc_function_owner;
+
+ALTER FUNCTION public.list_section_calendar_subscribers(integer, text, integer) OWNER TO life_ustc_function_owner;
+GRANT EXECUTE ON FUNCTION public.list_section_calendar_subscribers(integer, text, integer) TO life_ustc_maintenance_runtime;
+REVOKE EXECUTE ON FUNCTION public.list_section_calendar_subscribers(integer, text, integer) FROM life_ustc_function_owner;

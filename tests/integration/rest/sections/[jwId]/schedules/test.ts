@@ -1,76 +1,141 @@
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
-import { assertApiContract } from "../../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { test } from "../../../_shared/public-academic-fixture";
 
-test("/api/catalog/sections/[jwId]/schedules 契约", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/catalog/sections/[jwId]/schedules",
+test("/api/catalog/sections/[jwId]/schedules 契约", async ({
+  run,
+  request,
+  academic,
+}) => {
+  await run(async () => {
+    const response = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules`,
+    );
+    expect(response.status()).toBe(200);
+    expect(
+      ((await response.json()) as Array<{ id?: number }>).length,
+    ).toBeGreaterThan(0);
   });
 });
 
 test("/api/catalog/sections/[jwId]/schedules 返回排课明细", async ({
+  run,
   request,
+  academic,
 }) => {
-  const response = await request.get(
-    `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as Array<{
-    scheduleGroup?: { id?: number };
-    teachers?: Array<{ nameCn?: string }>;
-  }>;
-  expect(body.length).toBeGreaterThan(0);
-  expect(body.some((item) => Boolean(item.scheduleGroup?.id))).toBe(true);
-  expect(
-    body.some((item) =>
-      item.teachers?.some(
-        (teacher) => teacher.nameCn === DEV_SEED.teacher.nameCn,
+  await run(async () => {
+    const response = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as Array<{
+      id: number;
+      scheduleGroup?: { id?: number };
+      teachers?: Array<{ nameCn?: string }>;
+    }>;
+    expect(body.length).toBeGreaterThan(0);
+    expect(body.some((item) => Boolean(item.scheduleGroup?.id))).toBe(true);
+    expect(
+      body.some((item) =>
+        item.teachers?.some(
+          (teacher) => teacher.nameCn === academic.teacher.nameCn,
+        ),
       ),
-    ),
-  ).toBe(true);
+    ).toBe(true);
+    expect(body.map((item) => item.id)).toEqual([
+      academic.schedules[3].id,
+      academic.schedules[2].id,
+      academic.schedules[1].id,
+      academic.schedules[0].id,
+    ]);
+    expect(body[0]).toMatchObject({
+      scheduleGroup: { id: academic.defaultGroup.id },
+      teachers: [
+        {
+          id: academic.teacher.id,
+          jwId: academic.teacher.jwId,
+          personId: academic.teacher.personId,
+          code: academic.teacher.code,
+          nameCn: academic.teacher.nameCn,
+        },
+      ],
+      teacherParticipations: [
+        {
+          teacher: { id: academic.teacher.id },
+          periods: 2,
+          exerciseClass: false,
+        },
+      ],
+    });
+  });
 });
 
 test("/api/catalog/sections/[jwId]/schedules 支持日期窗口", async ({
+  run,
   request,
+  academic,
 }) => {
-  const seedDate = DEV_SEED.seedAnchorAtTime.slice(0, 10);
-  const response = await request.get(
-    `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules?dateFrom=${seedDate}&dateTo=${seedDate}&limit=5`,
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as Array<{ date?: string }>;
-  expect(body.length).toBeGreaterThan(0);
-  expect(body.length).toBeLessThanOrEqual(5);
-  expect(body.every((item) => item.date?.startsWith(seedDate))).toBe(true);
+  await run(async () => {
+    const seedDate = academic.date;
+    const response = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules?dateFrom=${seedDate}&dateTo=${seedDate}&limit=5`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as Array<{
+      id?: number;
+      date?: string;
+    }>;
+    expect(body.length).toBeGreaterThan(0);
+    expect(body.length).toBeLessThanOrEqual(5);
+    expect(body.every((item) => item.date?.startsWith(seedDate))).toBe(true);
+    expect(body.map((item) => item.id)).toEqual([
+      academic.schedules[2].id,
+      academic.schedules[1].id,
+    ]);
+  });
 });
 
 test("/api/catalog/sections/[jwId]/schedules 支持 limit", async ({
+  run,
   request,
+  academic,
 }) => {
-  const response = await request.get(
-    `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules?limit=1`,
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as Array<unknown>;
-  expect(body.length).toBeLessThanOrEqual(1);
+  await run(async () => {
+    const response = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules?limit=1`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as Array<{ id?: number }>;
+    expect(body.length).toBeLessThanOrEqual(1);
+    expect(body.map((item) => item.id)).toEqual([academic.schedules[3].id]);
+  });
 });
 
 test("/api/catalog/sections/[jwId]/schedules 无效日期返回 400", async ({
+  run,
   request,
+  academic,
 }) => {
-  const response = await request.get(
-    `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules?dateFrom=not-a-date`,
-  );
-  expect(response.status()).toBe(400);
+  await run(async () => {
+    const response = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules?dateFrom=not-a-date`,
+    );
+    expect(response.status()).toBe(400);
+    expect((await response.json()).error).toEqual(expect.any(String));
+  });
 });
 
 test("/api/catalog/sections/[jwId]/schedules 无效 limit 返回 400", async ({
+  run,
   request,
+  academic,
 }) => {
-  for (const limit of [0, 201]) {
-    const response = await request.get(
-      `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules?limit=${limit}`,
-    );
-    expect(response.status()).toBe(400);
-  }
+  await run(async () => {
+    for (const limit of [0, 201]) {
+      const response = await request.get(
+        `/api/catalog/sections/${academic.section.jwId}/schedules?limit=${limit}`,
+      );
+      expect(response.status()).toBe(400);
+      expect((await response.json()).error).toEqual(expect.any(String));
+    }
+  });
 });

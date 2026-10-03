@@ -1,54 +1,76 @@
-import { afterAll, expect, it } from "vitest";
+import { expect } from "vitest";
 import type { AuditAction } from "@/generated/prisma/client";
-import { createEphemeralMcpUser, DEV_SEED, prisma } from "../_harness";
+import type { TestPrismaClient } from "../../../shared/prisma";
+import { isolatedMcpTest } from "../_harness/isolated-context";
 
-afterAll(() => prisma.$disconnect());
+const auditTest = isolatedMcpTest.extend(
+  "f",
+  async ({
+    mcpWorkflow,
+    signal,
+    isolatedDatabase,
+    mcpSessions,
+    mcpSection,
+  }) => {
+    const setupResult = await mcpWorkflow.run(async () => {
+      const marker = `private-body-${crypto.randomUUID()}`;
+      const { user, comment } = await isolatedDatabase.owner.$transaction(
+        async (db) => {
+          const user = await db.user.create({
+            data: {
+              id: "audit-author",
+              email: "audit-author@example.test",
+              name: "Private audit author",
+            },
+          });
+          const comment = await db.comment.create({
+            data: {
+              userId: user.id,
+              sectionId: mcpSection.id,
+              body: marker,
+              visibility: "public",
+              status: "active",
+              isAnonymous: false,
+            },
+          });
+          return { user, comment };
+        },
+      );
+      const session = mcpSessions.own(user.id);
+      await session.initialize();
+      return {
+        userId: user.id,
+        client: session.client,
+        marker,
+        comment,
+        section: mcpSection,
+      };
+    });
+    signal.throwIfAborted();
+    return setupResult;
+  },
+);
 
-async function fixture() {
-  const user = await createEphemeralMcpUser({
-    emailPrefix: "audit-policy",
-    name: "Private audit author",
-  });
-  const marker = `private-body-${crypto.randomUUID()}`;
-  const section = await prisma.section.findUniqueOrThrow({
-    where: { jwId: DEV_SEED.section.jwId },
-    select: { id: true },
-  });
-  const comment = await prisma.comment.create({
-    data: {
-      userId: user.userId,
-      sectionId: section.id,
-      body: marker,
-      visibility: "public",
-      status: "active",
-      isAnonymous: false,
-    },
-  });
-  return {
-    ...user,
-    marker,
-    comment,
-    async close() {
-      await prisma.auditLog.deleteMany({ where: { userId: user.userId } });
-      await prisma.comment.deleteMany({ where: { userId: user.userId } });
-      await user.close();
-    },
-  };
-}
-
-async function auditRows(userId: string, action: AuditAction) {
+async function auditRows(
+  prisma: TestPrismaClient,
+  userId: string,
+  action: AuditAction,
+) {
   return prisma.auditLog.findMany({
     where: { userId, action },
     orderBy: { createdAt: "asc" },
   });
 }
-async function expectCommentAudit(input: {
-  userId: string;
-  commentId: string;
-  action: AuditAction;
-  privateBody: string;
-}) {
-  const rows = await auditRows(input.userId, input.action);
+async function expectCommentAudit(
+  prisma: TestPrismaClient,
+  input: {
+    userId: string;
+    commentId: string;
+    action: AuditAction;
+    privateBody: string;
+  },
+) {
+  const rows = await auditRows(prisma, input.userId, input.action);
   expect(rows).toHaveLength(1);
   expect(rows[0]).toMatchObject({
     userId: input.userId,
@@ -62,215 +84,218 @@ async function expectCommentAudit(input: {
   expect(JSON.stringify(rows)).not.toContain("Private audit author");
 }
 
-it("audit.action-comment-create", async () => {
-  const f = await fixture();
-  try {
-    const result = await f.client.call<{ success: boolean; id: string }>(
-      "community_comment_create",
-      {
-        targetType: "section",
-        sectionJwId: DEV_SEED.section.jwId,
-        body: `${f.marker}-created`,
-        visibility: "public",
-        isAnonymous: false,
-      },
-    );
-    expect(result.success).toBe(true);
-    expect(
-      await prisma.comment.findUnique({ where: { id: result.id } }),
-    ).toMatchObject({ body: `${f.marker}-created`, userId: f.userId });
-    await expectCommentAudit({
-      userId: f.userId,
-      commentId: result.id,
-      action: "comment_create",
-      privateBody: f.marker,
-    });
-  } finally {
-    await f.close();
-  }
-});
+auditTest(
+  "audit.action-comment-create",
+  async ({ mcpWorkflow, f, isolatedDatabase }) =>
+    mcpWorkflow.run(async () => {
+      const prisma = isolatedDatabase.owner;
+      const result = await f.client.call<{ success: boolean; id: string }>(
+        "community_comment_create",
+        {
+          targetType: "section",
+          sectionJwId: f.section.jwId,
+          body: `${f.marker}-created`,
+          visibility: "public",
+          isAnonymous: false,
+        },
+      );
+      expect(result.success).toBe(true);
+      expect(
+        await prisma.comment.findUnique({ where: { id: result.id } }),
+      ).toMatchObject({ body: `${f.marker}-created`, userId: f.userId });
+      await expectCommentAudit(prisma, {
+        userId: f.userId,
+        commentId: result.id,
+        action: "comment_create",
+        privateBody: f.marker,
+      });
+    }),
+);
 
-it("audit.action-comment-edit", async () => {
-  const f = await fixture();
-  try {
-    const result = await f.client.call<{ success: boolean }>(
-      "community_comment_update",
-      {
-        commentId: f.comment.id,
+auditTest(
+  "audit.action-comment-edit",
+  async ({ mcpWorkflow, f, isolatedDatabase }) =>
+    mcpWorkflow.run(async () => {
+      const prisma = isolatedDatabase.owner;
+      const result = await f.client.call<{ success: boolean }>(
+        "community_comment_update",
+        {
+          commentId: f.comment.id,
+          body: `${f.marker}-updated`,
+          visibility: "logged_in_only",
+          isAnonymous: true,
+        },
+      );
+      expect(result.success).toBe(true);
+      expect(
+        await prisma.comment.findUnique({ where: { id: f.comment.id } }),
+      ).toMatchObject({
         body: `${f.marker}-updated`,
         visibility: "logged_in_only",
         isAnonymous: true,
-      },
-    );
-    expect(result.success).toBe(true);
-    expect(
-      await prisma.comment.findUnique({ where: { id: f.comment.id } }),
-    ).toMatchObject({
-      body: `${f.marker}-updated`,
-      visibility: "logged_in_only",
-      isAnonymous: true,
-    });
-    await expectCommentAudit({
-      userId: f.userId,
-      commentId: f.comment.id,
-      action: "comment_edit",
-      privateBody: f.marker,
-    });
-  } finally {
-    await f.close();
-  }
-});
-
-it("audit.action-comment-delete", async () => {
-  const f = await fixture();
-  try {
-    expect(
-      await f.client.call("community_comment_delete", {
-        commentId: f.comment.id,
-      }),
-    ).toEqual({ success: true });
-    expect(
-      await prisma.comment.findUnique({ where: { id: f.comment.id } }),
-    ).toMatchObject({ status: "deleted", deletedAt: expect.any(Date) });
-    await expectCommentAudit({
-      userId: f.userId,
-      commentId: f.comment.id,
-      action: "comment_delete",
-      privateBody: f.marker,
-    });
-  } finally {
-    await f.close();
-  }
-});
-
-it("audit.action-comment-react", async () => {
-  const f = await fixture();
-  try {
-    for (const operation of ["add", "remove"] as const) {
-      expect(
-        await f.client.call(`community_comment_reaction_${operation}`, {
-          commentId: f.comment.id,
-          type: "heart",
-        }),
-      ).toEqual({ success: true, changed: true });
-      expect(
-        await prisma.commentReaction.count({
-          where: { commentId: f.comment.id, userId: f.userId, type: "heart" },
-        }),
-      ).toBe(operation === "add" ? 1 : 0);
-      const rows = await auditRows(f.userId, "comment_react");
-      expect(rows).toHaveLength(operation === "add" ? 1 : 2);
-      expect(rows.at(-1)).toMatchObject({
-        userId: f.userId,
-        subjectUserId: f.userId,
-        targetId: f.comment.id,
-        targetType: "comment",
-        outcome: "success",
-        metadata: { source: "mcp", type: "heart", operation },
       });
-      expect(JSON.stringify(rows)).not.toContain(f.marker);
-      // An unchanged retry has no committed reaction change and adds no event.
+      await expectCommentAudit(prisma, {
+        userId: f.userId,
+        commentId: f.comment.id,
+        action: "comment_edit",
+        privateBody: f.marker,
+      });
+    }),
+);
+
+auditTest(
+  "audit.action-comment-delete",
+  async ({ mcpWorkflow, f, isolatedDatabase }) =>
+    mcpWorkflow.run(async () => {
+      const prisma = isolatedDatabase.owner;
       expect(
-        await f.client.call(`community_comment_reaction_${operation}`, {
+        await f.client.call("community_comment_delete", {
           commentId: f.comment.id,
-          type: "heart",
         }),
-      ).toEqual({ success: true, changed: false });
-      expect(await auditRows(f.userId, "comment_react")).toHaveLength(
-        rows.length,
-      );
-    }
-  } finally {
-    await f.close();
-  }
-});
+      ).toEqual({ success: true });
+      expect(
+        await prisma.comment.findUnique({ where: { id: f.comment.id } }),
+      ).toMatchObject({ status: "deleted", deletedAt: expect.any(Date) });
+      await expectCommentAudit(prisma, {
+        userId: f.userId,
+        commentId: f.comment.id,
+        action: "comment_delete",
+        privateBody: f.marker,
+      });
+    }),
+);
 
-it("audit.action-description-edit", async () => {
-  const f = await fixture();
-  const teacher = await prisma.teacher.create({
-    data: {
-      jwId: -Math.floor(Math.random() * 1_000_000_000) - 1,
-      nameCn: f.marker,
-    },
-  });
-  try {
-    const constraint = `audit_policy_${crypto.randomUUID().replaceAll("-", "")}`;
-    if (!/^[a-zA-Z0-9_-]+$/.test(f.userId))
-      throw new Error("Unsafe fixture identifier");
-    await prisma.$executeRawUnsafe(
-      `ALTER TABLE public."AuditLog" ADD CONSTRAINT "${constraint}" CHECK ("userId" IS DISTINCT FROM '${f.userId}') NOT VALID`,
-    );
-    try {
-      const failed = await f.client.callToolResult(
-        "community_description_set",
-        { targetType: "teacher", teacherId: teacher.id, content: f.marker },
-      );
-      expect(failed.isError).toBe(true);
-      expect(
-        await prisma.description.count({ where: { teacherId: teacher.id } }),
-      ).toBe(0);
-      expect(
-        await prisma.descriptionEdit.count({ where: { editorId: f.userId } }),
-      ).toBe(0);
-      expect(await auditRows(f.userId, "description_edit")).toHaveLength(0);
-    } finally {
+auditTest(
+  "audit.action-comment-react",
+  async ({ mcpWorkflow, f, isolatedDatabase }) =>
+    mcpWorkflow.run(async () => {
+      const prisma = isolatedDatabase.owner;
+      for (const operation of ["add", "remove"] as const) {
+        expect(
+          await f.client.call(`community_comment_reaction_${operation}`, {
+            commentId: f.comment.id,
+            type: "heart",
+          }),
+        ).toEqual({ success: true, changed: true });
+        expect(
+          await prisma.commentReaction.count({
+            where: { commentId: f.comment.id, userId: f.userId, type: "heart" },
+          }),
+        ).toBe(operation === "add" ? 1 : 0);
+        const rows = await auditRows(prisma, f.userId, "comment_react");
+        expect(rows).toHaveLength(operation === "add" ? 1 : 2);
+        expect(rows.at(-1)).toMatchObject({
+          userId: f.userId,
+          subjectUserId: f.userId,
+          targetId: f.comment.id,
+          targetType: "comment",
+          outcome: "success",
+          metadata: { source: "mcp", type: "heart", operation },
+        });
+        expect(JSON.stringify(rows)).not.toContain(f.marker);
+        // An unchanged retry has no committed reaction change and adds no event.
+        expect(
+          await f.client.call(`community_comment_reaction_${operation}`, {
+            commentId: f.comment.id,
+            type: "heart",
+          }),
+        ).toEqual({ success: true, changed: false });
+        expect(await auditRows(prisma, f.userId, "comment_react")).toHaveLength(
+          rows.length,
+        );
+      }
+    }),
+);
+
+auditTest(
+  "audit.action-description-edit",
+  async ({ mcpWorkflow, f, isolatedDatabase }) =>
+    mcpWorkflow.run(async () => {
+      const prisma = isolatedDatabase.owner;
+      const teacher = await prisma.teacher.create({
+        data: {
+          jwId: -Math.floor(Math.random() * 1_000_000_000) - 1,
+          nameCn: f.marker,
+        },
+      });
+      const constraint = `audit_policy_${crypto.randomUUID().replaceAll("-", "")}`;
+      if (!/^[a-zA-Z0-9_-]+$/.test(f.userId))
+        throw new Error("Unsafe fixture identifier");
       await prisma.$executeRawUnsafe(
-        `ALTER TABLE public."AuditLog" DROP CONSTRAINT "${constraint}"`,
+        `ALTER TABLE public."AuditLog" ADD CONSTRAINT "${constraint}" CHECK ("userId" IS DISTINCT FROM '${f.userId}') NOT VALID`,
       );
-    }
+      try {
+        const failed = await f.client.callToolResult(
+          "community_description_set",
+          {
+            targetType: "teacher",
+            teacherId: teacher.id,
+            content: f.marker,
+          },
+        );
+        expect(failed.isError).toBe(true);
+        expect(
+          await prisma.description.count({ where: { teacherId: teacher.id } }),
+        ).toBe(0);
+        expect(
+          await prisma.descriptionEdit.count({ where: { editorId: f.userId } }),
+        ).toBe(0);
+        expect(
+          await auditRows(prisma, f.userId, "description_edit"),
+        ).toHaveLength(0);
+      } finally {
+        await prisma.$executeRawUnsafe(
+          `ALTER TABLE public."AuditLog" DROP CONSTRAINT "${constraint}"`,
+        );
+      }
 
-    const result = await f.client.call<{
-      success: boolean;
-      id: string;
-      updated: boolean;
-    }>("community_description_set", {
-      targetType: "teacher",
-      teacherId: teacher.id,
-      content: f.marker,
-    });
-    expect(result).toMatchObject({ success: true, updated: true });
-    expect(
-      await prisma.description.findUnique({ where: { id: result.id } }),
-    ).toMatchObject({ content: f.marker, lastEditedById: f.userId });
-    expect(
-      await prisma.descriptionEdit.findMany({
-        where: { descriptionId: result.id },
-      }),
-    ).toEqual([
-      expect.objectContaining({
-        editorId: f.userId,
-        previousContent: null,
-        nextContent: f.marker,
-      }),
-    ]);
-    const rows = await auditRows(f.userId, "description_edit");
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      targetId: result.id,
-      targetType: "description",
-      userId: f.userId,
-      metadata: { source: "mcp", targetType: "teacher" },
-    });
-    expect(JSON.stringify(rows)).not.toContain(f.marker);
-    expect(
-      await f.client.call("community_description_set", {
+      const result = await f.client.call<{
+        success: boolean;
+        id: string;
+        updated: boolean;
+      }>("community_description_set", {
         targetType: "teacher",
         teacherId: teacher.id,
         content: f.marker,
-      }),
-    ).toMatchObject({ success: true, updated: false });
-    expect(await auditRows(f.userId, "description_edit")).toHaveLength(1);
-    expect(
-      await prisma.descriptionEdit.count({
-        where: { descriptionId: result.id },
-      }),
-    ).toBe(1);
-  } finally {
-    await prisma.descriptionEdit.deleteMany({
-      where: { description: { teacherId: teacher.id } },
-    });
-    await prisma.description.deleteMany({ where: { teacherId: teacher.id } });
-    await prisma.teacher.delete({ where: { id: teacher.id } });
-    await f.close();
-  }
-});
+      });
+      expect(result).toMatchObject({ success: true, updated: true });
+      expect(
+        await prisma.description.findUnique({ where: { id: result.id } }),
+      ).toMatchObject({ content: f.marker, lastEditedById: f.userId });
+      expect(
+        await prisma.descriptionEdit.findMany({
+          where: { descriptionId: result.id },
+        }),
+      ).toEqual([
+        expect.objectContaining({
+          editorId: f.userId,
+          previousContent: null,
+          nextContent: f.marker,
+        }),
+      ]);
+      const rows = await auditRows(prisma, f.userId, "description_edit");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        targetId: result.id,
+        targetType: "description",
+        userId: f.userId,
+        metadata: { source: "mcp", targetType: "teacher" },
+      });
+      expect(JSON.stringify(rows)).not.toContain(f.marker);
+      expect(
+        await f.client.call("community_description_set", {
+          targetType: "teacher",
+          teacherId: teacher.id,
+          content: f.marker,
+        }),
+      ).toMatchObject({ success: true, updated: false });
+      expect(
+        await auditRows(prisma, f.userId, "description_edit"),
+      ).toHaveLength(1);
+      expect(
+        await prisma.descriptionEdit.count({
+          where: { descriptionId: result.id },
+        }),
+      ).toBe(1);
+    }),
+);

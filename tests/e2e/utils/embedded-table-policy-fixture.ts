@@ -1,12 +1,16 @@
-import { withE2ePrisma } from "./e2e-db/prisma";
+import { arrangeBusTimetable } from "../../shared/bus-timetable";
+import type { TestPrismaClient } from "../../shared/prisma";
 import {
-  cleanupOtherCollectionPolicyFixture,
-  createOtherCollectionPolicyFixture,
+  test as collectionTest,
+  type OtherCollectionPolicyFixture,
 } from "./other-collection-policy-fixture";
+import { withSettledPageWrites } from "./settled-page-writes";
 
-export async function createEmbeddedTablePolicyFixture() {
-  const base = await createOtherCollectionPolicyFixture();
-  const extra = await withE2ePrisma(async (db) => {
+export async function arrangeEmbeddedTablePolicyFixture(
+  db: TestPrismaClient,
+  base: OtherCollectionPolicyFixture,
+) {
+  const extra = await db.$transaction(async (db) => {
     const section = base.catalog.sections[0];
     const userId = base.admin.id;
     const marker = base.catalog.marker;
@@ -153,20 +157,27 @@ export async function createEmbeddedTablePolicyFixture() {
 }
 
 export type EmbeddedTablePolicyFixture = Awaited<
-  ReturnType<typeof createEmbeddedTablePolicyFixture>
+  ReturnType<typeof arrangeEmbeddedTablePolicyFixture>
 >;
 
-export async function cleanupEmbeddedTablePolicyFixture(
-  f: EmbeddedTablePolicyFixture,
-) {
-  await withE2ePrisma(async (db) => {
-    await db.busScheduleVersion.delete({ where: { id: f.bus.id } });
-    await db.schedule.deleteMany({
-      where: { sectionId: f.catalog.sections[0].id },
-    });
-    await db.scheduleGroup.deleteMany({
-      where: { sectionId: f.catalog.sections[0].id },
-    });
-  });
-  await cleanupOtherCollectionPolicyFixture(f);
-}
+export const test = collectionTest.extend<{
+  embedded: EmbeddedTablePolicyFixture;
+  busEmbedded: EmbeddedTablePolicyFixture;
+}>({
+  embedded: async ({ isolatedWorker, collection }, use) => {
+    await use(
+      await arrangeEmbeddedTablePolicyFixture(
+        isolatedWorker.database.owner,
+        collection,
+      ),
+    );
+  },
+  busEmbedded: async ({ isolatedWorker, embedded, page }, use) => {
+    await arrangeBusTimetable(isolatedWorker.database.owner);
+    await withSettledPageWrites(
+      page,
+      (url) => url.pathname === "/api/workspace/bus-preferences",
+      () => use(embedded),
+    );
+  },
+});

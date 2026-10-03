@@ -32,7 +32,7 @@ requirements:
     - Read-only scopes cannot write; governance and credential mutation reject bearer-only requests; client
       activity rejects cookies and ingestion rejects both end-user credentials.
     test:
-      file: tests/integration/rest-state-setting-contract.test.ts
+      file: tests/integration/rest-session-bearer-authority.test.ts
       name: openapi.session-and-bearer
 - id: openapi.crawler-ingestion-rest-only
   category: behavior
@@ -71,7 +71,7 @@ requirements:
     - Repeated normalized targets return 400 and leave the stored record exactly unchanged.
     - Distinct targets reach the domain service and return the ordered per-item failures.
     test:
-      file: tests/integration/rest-state-setting-contract.test.ts
+      file: tests/integration/rest-batch-unique-targets.test.ts
       name: openapi.rest-batch-unique-targets
 - id: openapi.openapi-drift-gate
   category: consistency
@@ -253,7 +253,7 @@ requirements:
     - Utility and provider requests succeed without consuming the authenticated mutation budget.
     - Better Auth keeps its independently enabled provider limiter.
     test:
-      file: tests/integration/rest-state-setting-contract.test.ts
+      file: tests/integration/rest-rate-limit-accuracy.test.ts
       name: openapi.rate-limit-accuracy-boundary
 - id: openapi.unknown-api-json-errors
   category: validation
@@ -304,7 +304,7 @@ requirements:
     - Valid values are preserved after trimming; invalid values are rejected.
     test:
       file: tests/unit/lib/api/public-catalog-search-specification.test.ts
-      name: openapi.public-catalog-search-boundaries
+      name: courses catalog search > handles minimum after trimming using UTF-16 length
 - id: openapi.public-catalog-locale
   category: consistency
   rule: Omitted public catalog REST locale deterministically selects zh-cn. An explicit en-us or zh-cn selects that variant; cookies and Accept-Language cannot personalize it.
@@ -343,11 +343,12 @@ requirements:
   rule: Paginated REST list endpoints return data and pagination with page, pageSize, total and totalPages. Resource-specific list metadata is nested under meta. Empty collections have total zero and one addressable empty page; out-of-range pages return empty data while retaining the total.
   rationale: MCP projections are declared per tool and are not all REST-shaped lists; their own feature contracts own those envelopes.
   acceptance:
-    given: The live OpenAPI document identifies every paginated REST GET operation and an authenticated admin fixture can read all list scopes.
+    given: The live OpenAPI document identifies every paginated REST GET operation. A private Worker and database contain an authenticated administrator plus independently prepared catalog records, comments and todos, alongside empty collections.
     when: Actual Worker requests retrieve pages one and two with pageSize one for every declared paginated list.
     then:
     - Every response uses the core envelope with only optional meta alongside it.
     - Pagination fields, total-page calculation, data length and page-to-page totals are consistent for populated and empty collections.
+    - Prepared course, section, comment and todo lists each report two records, and the admin user list reports one user.
     test:
       file: tests/integration/rest/openapi/list-contracts.test.ts
       name: openapi.paginated-list-envelope

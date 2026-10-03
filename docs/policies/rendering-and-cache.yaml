@@ -326,7 +326,7 @@ requirements:
     - All authenticated bodies and cache headers equal the anonymous representation, no response sets a session
       cookie, and none includes either viewer's private identity or todo content.
     test:
-      file: tests/e2e/src/app/cache-policy/test.ts
+      file: tests/integration/rest/cache-policy/public-viewers.test.ts
       name: rendering-and-cache.personal-overlays-9
 - id: rendering-and-cache.personal-overlays-10
   category: privacy
@@ -591,7 +591,7 @@ requirements:
     - Revision changes remove retired/inactive URLs and change ETag; exactly twenty-four hours later newly
       committed course URLs appear without requiring another import revision.
     test:
-      file: tests/integration/public-discovery-cache-contract.test.ts
+      file: tests/integration/public-sitemap-cache-contract.test.ts
       name: rendering-and-cache.sitemap-freshness
 - id: rendering-and-cache.static-location-freshness
   category: consistency

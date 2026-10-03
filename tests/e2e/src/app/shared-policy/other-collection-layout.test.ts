@@ -1,92 +1,90 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect, type Locator, type Page } from "@playwright/test";
+import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import {
-  cleanupOtherCollectionPolicyFixture,
-  createOtherCollectionPolicyFixture,
+  test as collectionTest,
   type OtherCollectionPolicyFixture,
 } from "../../../utils/other-collection-policy-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-let fixture: OtherCollectionPolicyFixture;
-let busVersionId: number;
-test.beforeAll(async () => {
-  fixture = await createOtherCollectionPolicyFixture();
-  await withE2ePrisma(async (db) => {
-    const c = fixture.catalog;
-    await db.comment.create({
-      data: {
-        sectionId: c.sections[0].id,
-        userId: fixture.members[0].id,
-        body: `${c.marker} moderation comment with a full readable content`,
-      },
-    });
-    await db.homework.create({
-      data: {
-        sectionId: c.sections[0].id,
-        createdById: fixture.admin.id,
-        title: `${c.marker} moderation homework with a full readable title`,
-      },
-    });
-    await db.description.create({
-      data: {
-        courseId: c.courses[0].id,
-        content: `${c.marker} public description content`,
-        lastEditedById: fixture.admin.id,
-        lastEditedAt: new Date(),
-      },
-    });
-    await db.userSuspension.create({
-      data: {
-        userId: fixture.members[0].id,
-        createdById: fixture.admin.id,
-        reason: `${c.marker} suspension reason with a complete explanation`,
-        expiresAt: new Date("2099-01-01T00:00:00Z"),
-      },
-    });
-    await db.oAuthClient.create({
-      data: {
-        clientId: `${c.marker}-client`,
-        userId: fixture.admin.id,
-        name: `${c.marker} OAuth client with a distinguishing long name`,
-        redirectUris: ["https://example.test/callback"],
-        tokenEndpointAuthMethod: "none",
-        public: true,
-        grantTypes: ["authorization_code"],
-        responseTypes: ["code"],
-      },
-    });
-    const bus = await db.busScheduleVersion.create({
-      data: {
-        key: `${c.marker}-bus`,
-        checksum: `${c.marker}-bus`,
-        title: `${c.marker} imported bus timetable with a complete title`,
-        rawJson: {},
-        isEnabled: false,
-      },
-    });
-    busVersionId = bus.id;
-  });
-});
-test.afterAll(async () => {
-  if (busVersionId)
-    await withE2ePrisma((db) =>
-      db.busScheduleVersion.delete({ where: { id: busVersionId } }),
+const test = collectionTest.extend<{ layout: OtherCollectionPolicyFixture }>({
+  layout: async ({ isolatedWorker, collection: fixture, run }, use) => {
+    await run(() =>
+      isolatedWorker.database.owner.$transaction(async (db) => {
+        const c = fixture.catalog;
+        await db.comment.create({
+          data: {
+            sectionId: c.sections[0].id,
+            userId: fixture.members[0].id,
+            body: `${c.marker} moderation comment with a full readable content`,
+          },
+        });
+        await db.homework.create({
+          data: {
+            sectionId: c.sections[0].id,
+            createdById: fixture.admin.id,
+            title: `${c.marker} moderation homework with a full readable title`,
+          },
+        });
+        await db.description.create({
+          data: {
+            courseId: c.courses[0].id,
+            content: `${c.marker} public description content`,
+            lastEditedById: fixture.admin.id,
+            lastEditedAt: new Date(),
+          },
+        });
+        await db.userSuspension.create({
+          data: {
+            userId: fixture.members[0].id,
+            createdById: fixture.admin.id,
+            reason: `${c.marker} suspension reason with a complete explanation`,
+            expiresAt: new Date("2099-01-01T00:00:00Z"),
+          },
+        });
+        await db.oAuthClient.create({
+          data: {
+            clientId: `${c.marker}-client`,
+            userId: fixture.admin.id,
+            name: `${c.marker} OAuth client with a distinguishing long name`,
+            redirectUris: ["https://example.test/callback"],
+            tokenEndpointAuthMethod: "none",
+            public: true,
+            grantTypes: ["authorization_code"],
+            responseTypes: ["code"],
+          },
+        });
+        await db.busScheduleVersion.create({
+          data: {
+            key: `${c.marker}-bus`,
+            checksum: `${c.marker}-bus`,
+            title: `${c.marker} imported bus timetable with a complete title`,
+            rawJson: {},
+            isEnabled: false,
+          },
+        });
+      }),
     );
-  if (fixture) await cleanupOtherCollectionPolicyFixture(fixture);
+    await use(fixture);
+  },
 });
 
-async function prepare(page: Page, baseURL: string | undefined, width: number) {
+async function prepare(
+  page: Page,
+  baseURL: string | undefined,
+  width: number,
+  worker: IsolatedWorker,
+  fixture: OtherCollectionPolicyFixture,
+) {
   if (!baseURL) throw new Error("Missing Playwright baseURL");
   await page
     .context()
     .addCookies([
-      await createSignedSessionCookie(fixture.admin.id),
+      (await worker.createSession(fixture.admin.id)).cookie,
       { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
     ]);
   await page.setViewportSize({ width, height: 900 });
 }
-function cases() {
+function cases(fixture: OtherCollectionPolicyFixture) {
   return [
     {
       name: "links",
@@ -180,80 +178,98 @@ function summary(page: Page, name: string) {
   return page.locator('main [data-slot="results-summary"]').first();
 }
 
-test("ui.other-collection-order", async ({ page, baseURL }) => {
-  for (const width of [390, 1280]) {
-    await prepare(page, baseURL, width);
-    for (const item of cases()) {
-      await gotoAndWaitForReady(page, item.path);
-      const record = rows(page, item.name, width).first();
-      await expect(record, item.name).toBeVisible();
-      const heading = page.getByRole("heading", { level: 1 });
-      await expect(heading).toBeVisible();
-      let previous = heading;
-      if (item.filter) {
-        const filter =
-          item.name === "notifications"
-            ? page.getByRole("group", { name: "Filter reminders" })
-            : page.getByRole("searchbox");
-        await expect(filter).toBeVisible();
-        await precedes(previous, filter);
-        previous = filter;
-      }
-      if (item.summary) {
-        const resultSummary = summary(page, item.name);
-        await expect(resultSummary).toBeVisible();
-        await precedes(previous, resultSummary);
-        previous = resultSummary;
-      }
-      await precedes(previous, record);
-      if (item.pagination) {
-        const pagination = page.locator('[data-slot="list-pagination"]');
-        await expect(pagination).toBeVisible();
-        await precedes(rows(page, item.name, width).last(), pagination);
+test("ui.other-collection-order", async ({
+  browseRun,
+  page,
+  baseURL,
+  isolatedWorker,
+  layout: fixture,
+}) => {
+  await browseRun(async () => {
+    for (const width of [390, 1280]) {
+      await prepare(page, baseURL, width, isolatedWorker, fixture);
+      for (const item of cases(fixture)) {
+        await gotoAndWaitForReady(page, item.path);
+        const record = rows(page, item.name, width).first();
+        await expect(record, item.name).toBeVisible();
+        const heading = page.getByRole("heading", { level: 1 });
+        await expect(heading).toBeVisible();
+        let previous = heading;
+        if (item.filter) {
+          const filter =
+            item.name === "notifications"
+              ? page.getByRole("group", { name: "Filter reminders" })
+              : page.getByRole("searchbox");
+          await expect(filter).toBeVisible();
+          await precedes(previous, filter);
+          previous = filter;
+        }
+        if (item.summary) {
+          const resultSummary = summary(page, item.name);
+          await expect(resultSummary).toBeVisible();
+          await precedes(previous, resultSummary);
+          previous = resultSummary;
+        }
+        await precedes(previous, record);
+        if (item.pagination) {
+          const pagination = page.locator('[data-slot="list-pagination"]');
+          await expect(pagination).toBeVisible();
+          await precedes(rows(page, item.name, width).last(), pagination);
+        }
       }
     }
-  }
+  });
 });
 
-test("ui.other-browse-responsive-lists", async ({ page, baseURL }) => {
-  // This layout contract loads 13 collections at each of two widths. Retain
-  // per-navigation deadlines; the complete matrix is not a 30-second SLA.
-  test.setTimeout(90_000);
-  for (const width of [320, 390]) {
-    await prepare(page, baseURL, width);
-    for (const item of cases()) {
-      await gotoAndWaitForReady(page, item.path);
-      const records = rows(page, item.name, width);
-      expect(await records.count(), item.name).toBeGreaterThan(0);
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= innerWidth,
-        ),
-        item.name,
-      ).toBe(true);
-      const boxes = await records.evaluateAll((elements) =>
-        elements.map((element) => {
-          element.scrollIntoView({
-            behavior: "instant",
-            block: "nearest",
-            inline: "nearest",
-          });
-          const box = element.getBoundingClientRect();
-          return {
-            x: box.x,
-            width: box.width,
-            visible:
-              getComputedStyle(element).visibility === "visible" &&
-              box.width > 0 &&
-              box.height > 0,
-          };
-        }),
-      );
-      for (const box of boxes) {
-        expect(box.visible, `Expected visible ${item.name} record`).toBe(true);
-        expect(box.x, item.name).toBeGreaterThanOrEqual(0);
-        expect(box.x + box.width, item.name).toBeLessThanOrEqual(width);
+test("ui.other-browse-responsive-lists", async ({
+  browseRun,
+  page,
+  baseURL,
+  isolatedWorker,
+  layout: fixture,
+}) => {
+  await browseRun(async () => {
+    // This layout contract loads 13 collections at each of two widths. Retain
+    // per-navigation deadlines; the complete matrix is not a 30-second SLA.
+    test.setTimeout(90_000);
+    for (const width of [320, 390]) {
+      await prepare(page, baseURL, width, isolatedWorker, fixture);
+      for (const item of cases(fixture)) {
+        await gotoAndWaitForReady(page, item.path);
+        const records = rows(page, item.name, width);
+        expect(await records.count(), item.name).toBeGreaterThan(0);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          item.name,
+        ).toBe(true);
+        const boxes = await records.evaluateAll((elements) =>
+          elements.map((element) => {
+            element.scrollIntoView({
+              behavior: "instant",
+              block: "nearest",
+              inline: "nearest",
+            });
+            const box = element.getBoundingClientRect();
+            return {
+              x: box.x,
+              width: box.width,
+              visible:
+                getComputedStyle(element).visibility === "visible" &&
+                box.width > 0 &&
+                box.height > 0,
+            };
+          }),
+        );
+        for (const box of boxes) {
+          expect(box.visible, `Expected visible ${item.name} record`).toBe(
+            true,
+          );
+          expect(box.x, item.name).toBeGreaterThanOrEqual(0);
+          expect(box.x + box.width, item.name).toBeLessThanOrEqual(width);
+        }
       }
     }
-  }
+  });
 });

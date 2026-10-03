@@ -1,10 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { expect } from "@playwright/test";
+import { test } from "../../../../utils/private-calendar-fixture";
 import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 
 type CalendarEvent = {
@@ -22,32 +17,40 @@ type NativeEvent = {
 
 test("interface-hierarchy.representative-cross-surface-contract-6", async ({
   page,
-  request,
+  calendarProtocolRun,
+  isolatedWorker,
+  createCalendar,
+  oauthOwner,
 }) => {
-  const fixture = await createCalendarContractFixture();
-  let clientId: string | undefined;
-  let client: Client | undefined;
-  try {
+  await calendarProtocolRun(async ({ request, mcp, observeCalendar }) => {
+    const db = isolatedWorker.database.owner;
+    const fixture = await createCalendar();
+    await observeCalendar(fixture.users[0], []);
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
-    const extra = await withE2ePrisma(async (db) => {
-      const items = [];
-      for (let index = 0; index < 125; index++)
-        items.push(
-          await db.todo.create({
-            data: {
-              userId: fixture.users[0].id,
-              title: `Complete calendar ${index}`,
-              dueAt: new Date(
-                new Date(`${fixture.date}T00:00:00+08:00`).getTime() +
-                  index * 60_000,
-              ),
-            },
-          }),
-        );
-      await db.todo.createMany({
+      .addCookies([
+        (await isolatedWorker.createSession(fixture.users[0].id)).cookie,
+      ]);
+    const sessions = await db.session.findMany({
+      where: { userId: fixture.users[0].id },
+      select: { id: true },
+    });
+    expect(sessions).toHaveLength(1);
+    const ownerSessionId = sessions[0].id;
+    // Independent input IDs/times are the oracle; insertion order/returned rows
+    // are not used to reconstruct the expected calendar.
+    const items = Array.from({ length: 125 }, (_, index) => ({
+      id: crypto.randomUUID(),
+      userId: fixture.users[0].id,
+      title: `Complete calendar ${index}`,
+      dueAt: new Date(
+        new Date(`${fixture.date}T00:00:00+08:00`).getTime() + index * 60_000,
+      ),
+    }));
+    const extra = await db.$transaction(async (tx) => {
+      await tx.todo.createMany({
         data: [
+          ...items,
           {
             userId: fixture.users[1].id,
             title: "Foreign calendar task",
@@ -71,10 +74,10 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
           },
         ],
       });
-      const schedule = await db.schedule.findFirstOrThrow({
+      const schedule = await tx.schedule.findFirstOrThrow({
         where: { sectionId: fixture.section.id },
       });
-      const exam = await db.exam.findFirstOrThrow({
+      const exam = await tx.exam.findFirstOrThrow({
         where: { sectionId: fixture.section.id },
       });
       return { items, schedule, exam };
@@ -83,7 +86,7 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
       ...extra.items.map((item) => ({
         id: `todo-${item.id}`,
         type: "todo_due",
-        at: item.dueAt?.getTime(),
+        at: item.dueAt.getTime(),
       })),
       {
         id: `schedule-${extra.schedule.id}-${fixture.date}T09:00:00+08:00`,
@@ -150,7 +153,7 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
       expect(body.data).toHaveLength(pageNumber < 8 ? 17 : 11);
       restEvents.push(...body.data);
       const graphResponse = await page.request.post("/api/graphql", {
-        headers: { origin: PLAYWRIGHT_BASE_URL },
+        headers: { origin: isolatedWorker.origin },
         data: {
           query,
           variables: {
@@ -180,22 +183,20 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
     expect(project(graphEvents)).toEqual(expected);
     expect(new Set(restEvents.map((event) => event.id)).size).toBe(130);
     const scope = "workspace.calendar:read";
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const resource = `${isolatedWorker.origin}/api/mcp`;
     const token = await issueAccessToken(page, request, {
+      owner: oauthOwner,
       scope,
       clientScopes: [scope],
       resource,
     });
-    clientId = token.clientId;
-    client = new Client({ name: "calendar-completeness", version: "1" });
-    await client.connect(
-      new StreamableHTTPClientTransport(new URL(resource), {
-        requestInit: {
-          headers: { Authorization: `Bearer ${token.accessToken}` },
-        },
-      }),
+    const client = await mcp(
+      { name: "calendar-completeness", version: "1" },
+      token.accessToken,
     );
+    const callWindows: { start: number; end: number }[] = [];
     for (const mode of ["default", "full"]) {
+      const start = Date.now();
       const result = await client.callTool({
         name: "workspace_calendar_event_list",
         arguments: {
@@ -204,6 +205,7 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
           mode,
         },
       });
+      callWindows.push({ start, end: Date.now() });
       expect(result.isError).not.toBe(true);
       const { events } = parseTextContent(result) as { events: NativeEvent[] };
       expect(events).toHaveLength(130);
@@ -222,21 +224,198 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
     await page.context().clearCookies();
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[1].id)]);
+      .addCookies([
+        (await isolatedWorker.createSession(fixture.users[1].id)).cookie,
+      ]);
     const foreign = await page.request.get(
       `/api/workspace/calendar/events?dateFrom=${fixture.date}&dateTo=${fixture.activityDate}`,
     );
+    expect(foreign.status(), await foreign.text()).toBe(200);
+    expect(foreign.headers()["cache-control"]).toContain("private, no-store");
     const foreignBody = await foreign.json();
     expect(foreignBody.pagination.total).toBe(2);
     expect(
       foreignBody.data.map((item: { title: string }) => item.title).sort(),
     ).toEqual([fixture.young.name, "Foreign calendar task"].sort());
-  } finally {
-    await client?.close();
-    if (clientId)
-      await withE2ePrisma((db) =>
-        db.oAuthClient.delete({ where: { clientId } }),
-      );
-    await fixture.cleanup();
-  }
+    // Runs only after browser, API, SDK and real server waitUntil work drain.
+    return {
+      async verifyTransport({ effects, sdkRequests }) {
+        for (const [method, path, count, status] of [
+          ["GET", "/api/workspace/calendar/events", 9, 200],
+          ["POST", "/api/graphql", 8, 200],
+          ["POST", "/api/auth/oauth2/register", 1, 201],
+          ["GET", "/api/auth/oauth2/authorize", 1, 302],
+          ["POST", "/oauth/authorize", 1, 200],
+          ["POST", "/api/auth/oauth2/token", 1, 200],
+        ] as const) {
+          const producers = effects.requests.filter(
+            (native: { value: { method: string; path: string } }) =>
+              native.value.method === method && native.value.path === path,
+          );
+          expect(producers).toHaveLength(count);
+          for (const producer of producers)
+            expect(producer.result).toBe(status);
+        }
+        expect(
+          sdkRequests
+            .map((read) => `${read.method} ${read.rpc ?? "stream"}`)
+            .sort(),
+        ).toEqual([
+          "GET stream",
+          "POST initialize",
+          "POST notifications/initialized",
+          "POST tools/call",
+          "POST tools/call",
+        ]);
+        expect(
+          sdkRequests
+            .filter((request) => request.rpc === "tools/call")
+            .map((request) => request.tool),
+        ).toEqual([
+          "workspace_calendar_event_list",
+          "workspace_calendar_event_list",
+        ]);
+      },
+      async verifyState() {
+        const consents = await db.oAuthConsent.findMany({
+          select: {
+            clientId: true,
+            userId: true,
+            grantId: true,
+            scopes: true,
+            resources: true,
+            requestedUserInfoClaims: true,
+          },
+        });
+        expect(consents).toEqual([
+          {
+            clientId: token.clientId,
+            userId: fixture.users[0].id,
+            grantId: expect.any(String),
+            scopes: [scope],
+            resources: [resource],
+            requestedUserInfoClaims: [],
+          },
+        ]);
+        const { grantId } = consents[0];
+        expect(grantId).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        );
+        expect(
+          await db.auditLog.findMany({
+            select: {
+              action: true,
+              outcome: true,
+              channel: true,
+              userId: true,
+              subjectUserId: true,
+              targetId: true,
+              targetType: true,
+              oauthClientId: true,
+              oauthGrantId: true,
+              sessionId: true,
+              metadata: true,
+            },
+          }),
+        ).toEqual([
+          {
+            action: "oauth_authorization_grant",
+            outcome: "success",
+            channel: "web",
+            userId: fixture.users[0].id,
+            subjectUserId: fixture.users[0].id,
+            targetId: token.clientId,
+            targetType: "oauth_client",
+            oauthClientId: token.clientId,
+            oauthGrantId: grantId,
+            sessionId: ownerSessionId,
+            metadata: {
+              changedFields: ["resources", "scopes", "userinfoClaims"],
+              resourceCount: 1,
+              scopeCount: 1,
+            },
+          },
+        ]);
+        expect(
+          await db.user.findMany({
+            orderBy: { id: "asc" },
+            select: { id: true, calendarFeedToken: true },
+          }),
+        ).toEqual(
+          fixture.users
+            .map(({ id }) => ({
+              id,
+              calendarFeedToken: null,
+            }))
+            .sort((left, right) => left.id.localeCompare(right.id)),
+        );
+        const usage = await db.oAuthGrantUsageDaily.findMany({
+          orderBy: { day: "asc" },
+          select: {
+            userId: true,
+            clientId: true,
+            grantId: true,
+            grantKey: true,
+            day: true,
+            feature: true,
+            channel: true,
+            readCount: true,
+            writeCount: true,
+            errorCount: true,
+            lastUsedAt: true,
+          },
+        });
+        expect(usage.length).toBeGreaterThanOrEqual(1);
+        expect(usage.length).toBeLessThanOrEqual(2);
+        expect(usage.reduce((sum, row) => sum + row.readCount, 0)).toBe(2);
+        for (const row of usage) {
+          expect(row).toMatchObject({
+            userId: fixture.users[0].id,
+            clientId: token.clientId,
+            grantId,
+            grantKey: `grant:${grantId}`,
+            feature: "workspace.calendar",
+            channel: "mcp",
+            writeCount: 0,
+            // Successful large responses remain successes even when an observer
+            // cannot inspect their entire payload. Do not bless truncation as error.
+            errorCount: 0,
+          });
+        }
+        // Independently enumerate only the day assignments allowed by these two
+        // call intervals, including a call that crosses Shanghai midnight.
+        const day = (time: number) =>
+          new Date(time + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        expect(callWindows).toHaveLength(2);
+        const days = callWindows.map(({ start, end }) => [
+          ...new Set([day(start), day(end)]),
+        ]);
+        const assignments = days[0].flatMap((first) =>
+          days[1].map((second) => [first, second]),
+        );
+        expect(
+          assignments.some((assignment) => {
+            const expectedDays = [...new Set(assignment)].sort();
+            return (
+              expectedDays.length === usage.length &&
+              expectedDays.every((expectedDay, index) => {
+                const contributors = callWindows.filter(
+                  (_, call) => assignment[call] === expectedDay,
+                );
+                const row = usage[index];
+                const last = row.lastUsedAt.getTime();
+                return (
+                  row.day.toISOString() === `${expectedDay}T00:00:00.000Z` &&
+                  row.readCount === contributors.length &&
+                  day(last) === expectedDay &&
+                  last >= Math.max(...contributors.map(({ start }) => start)) &&
+                  last <= Math.max(...contributors.map(({ end }) => end))
+                );
+              })
+            );
+          }),
+        ).toBe(true);
+      },
+    };
+  });
 });

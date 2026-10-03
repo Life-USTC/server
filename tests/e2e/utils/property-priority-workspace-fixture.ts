@@ -1,14 +1,25 @@
+import { expect } from "@playwright/test";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
-import {
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../../shared/catalog-contract-fixture";
-import { withE2ePrisma } from "./e2e-db/prisma";
+import { createCatalogContractFixture } from "../../shared/catalog-contract-fixture";
+import type { TestPrismaClient } from "../../shared/prisma";
+import { withBrowserWorkflow } from "./browser-workflow";
+import { withHomeworkEffects } from "./homework-effects";
+import { test as workerTest } from "./owned-worker";
 
 /** Every row is owned by this fixture; shared seed data is never changed. */
-export async function createWorkspacePriorityFixture() {
-  return withE2ePrisma(async (db) => {
-    const catalog = await createCatalogContractFixture(db);
+async function createWorkspacePriorityFixture(owner: TestPrismaClient) {
+  return owner.$transaction(async (db) => {
+    const catalog = await createCatalogContractFixture({
+      $transaction: (work) => work(db),
+    });
+    // The title shares the attendance number, so metadata must target its label.
+    catalog.courses[0] = await db.course.update({
+      where: { id: catalog.courses[0].id },
+      data: {
+        nameCn: `契约课程23 ${catalog.marker}`,
+        nameEn: `Contract Course 23 ${catalog.marker}`,
+      },
+    });
     const today = formatShanghaiDate(new Date());
     const tomorrow = formatShanghaiDate(new Date(Date.now() + 86400000));
     const named = (label: string) => ({
@@ -23,10 +34,12 @@ export async function createWorkspacePriorityFixture() {
         endDate: new Date(Date.now() + 60 * 86400000),
       },
     });
+    const presetCalendarToken = crypto.randomUUID().replaceAll("-", "");
     const user = await db.user.create({
       data: {
+        id: crypto.randomUUID(),
         name: catalog.marker,
-        calendarFeedToken: crypto.randomUUID().replaceAll("-", ""),
+        calendarFeedToken: presetCalendarToken,
         username: catalog.marker,
         email: `${catalog.marker}@test.invalid`,
         emailVerified: true,
@@ -59,7 +72,7 @@ export async function createWorkspacePriorityFixture() {
       data: { id: catalog.base + 70, campusId: campus.id, credits: 3.5 },
     });
     catalog.sections[0] = section;
-    await db.userSectionSubscription.create({
+    const subscription = await db.userSectionSubscription.create({
       data: { userId: user.id, sectionId: section.id, kind: "regular" },
     });
     const group = await db.scheduleGroup.create({
@@ -117,6 +130,7 @@ export async function createWorkspacePriorityFixture() {
       },
     });
     const homework = await db.homework.create({
+      include: { description: true },
       data: {
         title: `Homework ${catalog.marker}`,
         sectionId: section.id,
@@ -155,13 +169,14 @@ export async function createWorkspacePriorityFixture() {
         rawJson: {},
       },
     });
-    await db.userYoungEventSubscription.create({
+    const activitySubscription = await db.userYoungEventSubscription.create({
       data: { userId: user.id, youngId: activity.youngId, observedState: "{}" },
     });
     return {
       catalog,
       activity,
       user,
+      presetCalendarToken,
       semester,
       section,
       campus,
@@ -172,6 +187,8 @@ export async function createWorkspacePriorityFixture() {
       exam,
       homework,
       todo,
+      subscription,
+      activitySubscription,
       today,
       tomorrow,
     };
@@ -179,18 +196,97 @@ export async function createWorkspacePriorityFixture() {
 }
 export type WorkspacePriorityFixture = Awaited<
   ReturnType<typeof createWorkspacePriorityFixture>
->;
-export async function cleanupWorkspacePriorityFixture(
-  data: WorkspacePriorityFixture,
-) {
-  await withE2ePrisma(async (db) => {
-    await db.homework.delete({ where: { id: data.homework.id } });
-    await db.user.delete({ where: { id: data.user.id } });
-    await db.youngEvent.delete({ where: { youngId: data.activity.youngId } });
-    await cleanupCatalogContractFixture(db, data.catalog);
-    await db.examBatch.delete({ where: { id: data.batch.id } });
-    await db.room.delete({ where: { id: data.room.id } });
-    await db.building.delete({ where: { id: data.building.id } });
-    await db.campus.delete({ where: { id: data.campus.id } });
-  });
-}
+> & { origin: string };
+
+export const test = workerTest.extend<{
+  workspacePriority: WorkspacePriorityFixture;
+  workspacePriorityRun: (
+    consumer: "tasks" | "overview" | "events" | "calendar",
+    work: Parameters<typeof withHomeworkEffects>[1],
+  ) => Promise<void>;
+}>({
+  workspacePriority: async ({ isolatedWorker, run }, use) => {
+    await use(
+      await run(async () => ({
+        ...(await createWorkspacePriorityFixture(
+          isolatedWorker.database.owner,
+        )),
+        origin: isolatedWorker.origin,
+      })),
+    );
+  },
+  workspacePriorityRun: async (
+    { isolatedWorker, workspacePriority: data, page, run },
+    use,
+  ) => {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use((consumer, work) =>
+        workflow.run(() =>
+          run(async () => {
+            const results = await Promise.allSettled([
+              withHomeworkEffects(
+                {
+                  page,
+                  isolatedWorker,
+                  account: data.user,
+                  sectionId: data.section.id,
+                  runBody: workflow.body,
+                  observeReads: true,
+                  presetCalendarToken: data.presetCalendarToken,
+                  calendarMessages:
+                    consumer === "calendar"
+                      ? [
+                          { type: "user", userId: data.user.id },
+                          { type: "user", userId: data.user.id },
+                        ]
+                      : [],
+                },
+                async (effects) => {
+                  const actor = await isolatedWorker.createSession(
+                    data.user.id,
+                  );
+                  await page.context().addCookies([actor.cookie]);
+                  await work(effects);
+                },
+              ),
+            ]);
+            results.push(
+              ...(await Promise.allSettled([
+                (async () => {
+                  const db = isolatedWorker.database.owner;
+                  expect(await db.user.findMany()).toEqual([data.user]);
+                  expect(await db.todo.findMany()).toEqual([data.todo]);
+                  expect(
+                    await db.homework.findMany({
+                      include: { description: true },
+                    }),
+                  ).toEqual([data.homework]);
+                  expect(await db.homeworkCompletion.findMany()).toEqual([]);
+                  expect(await db.descriptionEdit.findMany()).toEqual([]);
+                  expect(await db.comment.findMany()).toEqual([]);
+                  expect(await db.userSectionSubscription.findMany()).toEqual([
+                    data.subscription,
+                  ]);
+                  expect(
+                    await db.userYoungEventSubscription.findMany(),
+                  ).toEqual([data.activitySubscription]);
+                  expect(await db.youngEvent.findMany()).toEqual([
+                    data.activity,
+                  ]);
+                })(),
+              ])),
+            );
+            const errors = results.flatMap((result) =>
+              result.status === "rejected" ? [result.reason] : [],
+            );
+            if (errors.length)
+              throw new AggregateError(
+                errors,
+                "Workspace priority workflow failed",
+              );
+          }),
+        ),
+      );
+    });
+  },
+});

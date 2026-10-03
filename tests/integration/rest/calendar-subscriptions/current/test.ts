@@ -1,123 +1,71 @@
-/**
- * E2E tests for GET /api/workspace/subscriptions/current
- *
- * ## Endpoint
- * - `GET /api/workspace/subscriptions/current` — Get the current user's subscribed sections
- *
- * ## Response
- * - 200: `{ subscription: { userId: string, sections: { id: number }[] } }`
- * - 200: `{ subscription: null }` when user record is missing
- * - 401: unauthorized when not signed in
- *
- * ## Auth Requirements
- * - Requires session authentication
- *
- * ## Edge Cases
- * - The dev seed user already has subscribed sections from seed data
- * - Returns subscription: null only if user row itself is missing (unlikely in normal flow)
- */
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
-import { signInAsDebugUserApi } from "../../_harness/auth";
-import { assertApiContract } from "../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { test } from "../_fixture";
 
-const BASE = "/api/workspace/subscriptions/current";
+const base = "/api/workspace/subscriptions/current";
 
-test.describe("GET /api/workspace/subscriptions/current 接口", () => {
-  test.describe.configure({ mode: "serial" });
-
-  test("接口契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: BASE });
-  });
-
-  test("未登录时返回 401", async ({ request }) => {
-    const response = await request.get(BASE);
+test("anonymous current subscription returns JSON 401", async ({
+  run,
+  request,
+}) => {
+  await run(async () => {
+    const response = await request.get(base);
     expect(response.status()).toBe(401);
+    expect((await response.json()).error).toEqual(expect.any(String));
   });
+});
 
-  test("登录用户返回包含 seed 课程的订阅", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    // Resolve seed section ID
-    const matchRes = await request.post("/api/catalog/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
+test("known subscriptions expose only the owner's sections and hide feed credentials", async ({
+  run,
+  calendarState,
+}) => {
+  await run(async () => {
+    const { db, owner, other, section, second } = calendarState;
+    const secret = crypto.randomUUID();
+    await db.user.update({
+      where: { id: owner.id },
+      data: { calendarFeedToken: secret },
     });
-    expect(matchRes.status()).toBe(200);
-    const matchBody = (await matchRes.json()) as {
-      sections?: Array<{ id?: number; code?: string | null }>;
-    };
-    const seedSection = matchBody.sections?.find(
-      (s) => s.code === DEV_SEED.section.code,
-    );
-    expect(seedSection?.id).toBeDefined();
-
-    const response = await request.get(BASE);
+    await db.userSectionSubscription.createMany({
+      data: [
+        { userId: owner.id, sectionId: section.id },
+        { userId: other.id, sectionId: second.id },
+      ],
+    });
+    const response = await owner.request.get(base);
     expect(response.status()).toBe(200);
-
-    const body = (await response.json()) as {
-      subscription?: {
-        userId?: string;
-        note?: string | null;
-        sections?: Array<{ id?: number }>;
-        calendarPath?: string | null;
-        calendarUrl?: string | null;
-      } | null;
-    };
-    expect(body.subscription).not.toBeNull();
-    expect(body.subscription?.userId).toBeTruthy();
-    expect(Array.isArray(body.subscription?.sections)).toBe(true);
+    const body = await response.json();
+    expect(body.subscription).toMatchObject({
+      userId: owner.id,
+      note: expect.any(String),
+      calendarPath: null,
+      calendarUrl: null,
+      sections: [
+        expect.objectContaining({ id: section.id, code: section.code }),
+      ],
+    });
+    expect(JSON.stringify(body)).not.toContain(secret);
     expect(
-      body.subscription?.sections?.some((s) => s.id === seedSection?.id),
-    ).toBe(true);
-
-    // Session authentication never reveals the long-lived private calendar
-    // bearer credential. Only the dedicated OAuth scope can populate it.
-    const sub = body.subscription as Record<string, unknown>;
-    expect(Object.hasOwn(sub, "note")).toBe(true);
-    expect(sub.calendarPath).toBeNull();
-    expect(sub.calendarUrl).toBeNull();
+      (await db.user.findUniqueOrThrow({ where: { id: owner.id } }))
+        .calendarFeedToken,
+    ).toBe(secret);
   });
+});
 
-  test("反映 PATCH 和 DELETE 修改后的状态", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    // Save original state
-    const originalRes = await request.get(BASE);
-    const originalBody = (await originalRes.json()) as {
-      subscription?: { sections?: Array<{ id?: number }> } | null;
-    };
-    const originalIds =
-      originalBody.subscription?.sections?.map((s) => s.id as number) ?? [];
-
-    try {
-      // Clear subscriptions
-      if (originalIds.length > 0) {
-        const clearResponse = await request.delete(
-          "/api/workspace/subscriptions",
-          {
-            data: { sectionIds: originalIds },
-          },
-        );
-        expect(clearResponse.status()).toBe(200);
-      }
-
-      const emptyRes = await request.get(BASE);
-      expect(emptyRes.status()).toBe(200);
-      const emptyBody = (await emptyRes.json()) as {
-        subscription?: { sections?: Array<{ id?: number }> } | null;
-      };
-      expect(emptyBody.subscription?.sections).toEqual([]);
-    } finally {
-      // Restore original subscriptions
-      if (originalIds.length > 0) {
-        const restoreResponse = await request.patch(
-          "/api/workspace/subscriptions",
-          {
-            data: { sectionIds: originalIds },
-          },
-        );
-        expect(restoreResponse.status()).toBe(200);
-      }
-    }
+test("a new user receives an empty subscription with no feed credential", async ({
+  run,
+  createActor,
+}) => {
+  await run(async () => {
+    const owner = await createActor();
+    const response = await owner.request.get(base);
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({
+      subscription: {
+        userId: owner.id,
+        sections: [],
+        calendarPath: null,
+        calendarUrl: null,
+      },
+    });
   });
 });

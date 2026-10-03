@@ -1,204 +1,214 @@
-/**
- * E2E tests for GET /api/calendar-feeds/[credential].ics
- *
- * ## Endpoint
- * - `GET /api/calendar-feeds/:userId.ics` — Generate iCalendar feed for a user's subscriptions
- *
- * ## Auth Modes
- * - Session auth: must be the same user (own calendar only)
- * - Token auth via path: `/api/calendar-feeds/:userId::token.ics`
- * - Token auth via query: `/api/calendar-feeds/:userId.ics?token=X`
- *
- * ## Response
- * - 200: `text/calendar; charset=utf-8` with iCalendar data
- * - 401: unauthorized (no session and no token)
- * - 403: forbidden (session accessing another user's calendar)
- * - 404: unknown user (including unknown user with a token)
- * - 410: existing user with wrong/revoked feed token
- *
- * ## Content
- * - Includes subscribed section schedules and exams
- * - Includes incomplete homework with due dates
- * - Includes todos with due dates (excludes completed)
- * - Empty calendars still return 200 with an empty VCALENDAR
- *
- * ## Edge Cases
- * - Path token format: `userId:token` in the [userId] segment
- * - Invalid token for an existing user returns 410 Gone
- * - Unknown user with a token returns 404
- * - Accessing another user's calendar via session returns 403
- */
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
+import { expect } from "@playwright/test";
 import {
-  createTempUsersFixture,
-  deleteUsersByPrefix,
-  ensureUserCalendarFeedFixture,
-  getCurrentSessionUser,
-} from "../../../../../e2e/utils/e2e-db";
-import { signInAsDebugUserApi } from "../../../_harness/auth";
-import {
-  assertApiContract,
-  expectCalendarDtstampsAreUtc,
-} from "../../../_shared/api-contract";
+  calendarCatalog,
+  test,
+} from "../../../calendar-subscriptions/_fixture";
 
-const ROUTE_PATH = "/api/calendar-feeds/[credential].ics";
+const path = (id: string) => `/api/calendar-feeds/${id}.ics`;
 
-function unfoldICalendar(text: string) {
-  return text.replace(/\r?\n[ \t]/g, "");
+test("anonymous access without a feed token returns 401", async ({
+  run,
+  request,
+}) => {
+  await run(async () => {
+    expect((await request.get(path(crypto.randomUUID()))).status()).toBe(401);
+  });
+});
+
+test("unknown user with a feed token returns 404", async ({ run, request }) => {
+  await run(async () => {
+    expect(
+      (
+        await request.get(`${path(crypto.randomUUID())}?token=invalid-token`)
+      ).status(),
+    ).toBe(404);
+  });
+});
+
+test("a session cannot read another existing user's calendar", async ({
+  run,
+  createActor,
+}) => {
+  await run(async () => {
+    const owner = await createActor();
+    const other = await createActor();
+    expect((await other.request.get(path(owner.id))).status()).toBe(403);
+  });
+});
+
+for (const mode of ["session", "path token", "query token"] as const) {
+  test(`${mode} consumes known calendar state and excludes completed, deleted and foreign items`, async ({
+    run,
+    request,
+    calendarState,
+  }) => {
+    await run(async () => {
+      const { db, owner, other, section, scheduleGroupId } = calendarState;
+      const token = crypto.randomUUID();
+      await db.user.update({
+        where: { id: owner.id },
+        data: { calendarFeedToken: token },
+      });
+      await db.userSectionSubscription.create({
+        data: { userId: owner.id, sectionId: section.id },
+      });
+      const schedule = await db.schedule.create({
+        data: {
+          sectionId: section.id,
+          scheduleGroupId,
+          date: new Date("2026-04-29"),
+          weekday: 3,
+          startTime: 900,
+          endTime: 1000,
+          periods: 2,
+          weekIndex: 1,
+          startUnit: 1,
+          endUnit: 2,
+        },
+      });
+      await db.exam.create({
+        data: {
+          jwId: section.jwId,
+          sectionId: section.id,
+          examDate: new Date("2026-04-30"),
+          examType: 1,
+          startTime: 1400,
+          endTime: 1600,
+        },
+      });
+      await db.homework.createMany({
+        data: [
+          {
+            sectionId: section.id,
+            title: "visible homework",
+            submissionDueAt: new Date("2026-05-01"),
+          },
+          {
+            sectionId: section.id,
+            title: "deleted homework",
+            submissionDueAt: new Date("2026-05-01"),
+            deletedAt: new Date(),
+          },
+          { sectionId: section.id, title: "undated homework" },
+        ],
+      });
+      const completed = await db.homework.create({
+        data: {
+          sectionId: section.id,
+          title: "completed homework",
+          submissionDueAt: new Date("2026-05-01"),
+        },
+      });
+      await db.homeworkCompletion.create({
+        data: { userId: owner.id, homeworkId: completed.id },
+      });
+      await db.todo.createMany({
+        data: [
+          {
+            userId: owner.id,
+            title: "visible todo",
+            dueAt: new Date("2026-05-01"),
+          },
+          {
+            userId: owner.id,
+            title: "completed todo",
+            dueAt: new Date("2026-05-01"),
+            completed: true,
+          },
+          { userId: owner.id, title: "undated todo" },
+          {
+            userId: other.id,
+            title: "foreign todo",
+            dueAt: new Date("2026-05-01"),
+          },
+        ],
+      });
+      const response =
+        mode === "session"
+          ? await owner.request.get(path(owner.id))
+          : await request.get(
+              mode === "path token"
+                ? `/api/calendar-feeds/${owner.id}:${token}.ics`
+                : `${path(owner.id)}?token=${token}`,
+            );
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toContain("text/calendar");
+      expect(response.headers()["cache-control"]).toBe("private, no-store");
+      const text = (await response.text()).replace(/\r?\n[ \t]/g, "");
+      expect(text).toContain("BEGIN:VCALENDAR");
+      expect(text).toContain("END:VCALENDAR");
+      expect(text.match(/BEGIN:VEVENT/g)).toHaveLength(4);
+      expect(text).toContain(`/schedule/${schedule.id}`);
+      expect(text).toContain(`${calendarCatalog.courseNameCn} - 期中考试`);
+      expect(text).toContain("visible homework");
+      expect(text).toContain("visible todo");
+      for (const hidden of [
+        "deleted homework",
+        "completed homework",
+        "undated homework",
+        "completed todo",
+        "undated todo",
+        "foreign todo",
+        token,
+      ])
+        expect(text).not.toContain(hidden);
+      const stamps = text
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("DTSTAMP:"));
+      expect(stamps).toHaveLength(4);
+      for (const stamp of stamps)
+        expect(stamp).toMatch(/^DTSTAMP:\d{8}T\d{6}Z$/);
+    });
+  });
 }
 
-test.describe("GET /api/calendar-feeds/[credential].ics", () => {
-  test.describe.configure({ mode: "serial" });
+test("invalid or revoked token returns private 410 even with the owner's session", async ({
+  run,
+  isolatedWorker,
+  request,
+  createActor,
+}) => {
+  await run(async () => {
+    const owner = await createActor();
+    const db = isolatedWorker.database.owner;
 
-  test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: ROUTE_PATH });
-  });
-
-  test("未认证且无 token 时返回 401", async ({ request }) => {
-    const response = await request.get("/api/calendar-feeds/invalid-e2e.ics");
-    expect(response.status()).toBe(401);
-  });
-
-  test("未知用户带 token 返回 404", async ({ request }) => {
-    const response = await request.get(
-      "/api/calendar-feeds/invalid-e2e.ics?token=invalid-token",
-    );
-    expect(response.status()).toBe(404);
-  });
-
-  test("访问其他用户日历时返回 403", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.get(
-      "/api/calendar-feeds/not-the-current-user.ics",
-    );
-    expect(response.status()).toBe(403);
-  });
-
-  test("通过 session 认证返回有效的个人 iCalendar", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const { id: userId } = await getCurrentSessionUser(request);
-
-    const currentRes = await request.get(
-      "/api/workspace/subscriptions/current",
-    );
-    const currentBody = (await currentRes.json()) as {
-      subscription?: { sections?: Array<{ id?: number }> } | null;
-    };
-    const originalIds =
-      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
-
-    const matchRes = await request.post("/api/catalog/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
+    await db.user.update({
+      where: { id: owner.id },
+      data: { calendarFeedToken: crypto.randomUUID() },
     });
-    expect(matchRes.status()).toBe(200);
-    const matchBody = (await matchRes.json()) as {
-      sections?: Array<{ id?: number; code?: string | null }>;
-    };
-    const seedSection = matchBody.sections?.find(
-      (s) => s.code === DEV_SEED.section.code,
-    );
-    expect(seedSection?.id).toBeDefined();
-    if (seedSection?.id == null) {
-      throw new Error("Expected seed section id");
-    }
-
-    try {
-      await request.patch("/api/workspace/subscriptions", {
-        data: { sectionIds: [seedSection.id] },
-      });
-
-      const response = await request.get(`/api/calendar-feeds/${userId}.ics`);
-      expect(response.status()).toBe(200);
-      expect(response.headers()["content-type"]).toContain("text/calendar");
-
-      const body = await response.text();
-      const unfoldedBody = unfoldICalendar(body);
-      expect(body.trim().length).toBeGreaterThan(0);
-      expect(unfoldedBody).toContain("BEGIN:VCALENDAR");
-      expectCalendarDtstampsAreUtc(body);
-
-      // Seed data should include homework, todos, and exam events
-      expect(unfoldedBody).toContain(DEV_SEED.homeworks.title);
-      expect(unfoldedBody).toContain(DEV_SEED.todos.dueTodayTitle);
-      expect(unfoldedBody).toContain(`${DEV_SEED.course.nameCn} - 期中考试`);
-
-      // Completed todos and deleted homework must not appear
-      expect(unfoldedBody).not.toContain(DEV_SEED.todos.completedTitle);
-      expect(unfoldedBody).not.toContain("已删除作业");
-    } finally {
-      await request.delete("/api/workspace/subscriptions", {
-        data: { sectionIds: [seedSection.id] },
-      });
-      await request.patch("/api/workspace/subscriptions", {
-        data: { sectionIds: originalIds },
-      });
+    for (const reader of [request, owner.request]) {
+      const response = await reader.get(
+        `${path(owner.id)}?token=revoked-token`,
+      );
+      expect(response.status()).toBe(410);
+      expect(response.headers()["cache-control"]).toBe("private, no-store");
     }
   });
+});
 
-  test("通过 path token 返回有效的 iCalendar（匿名）", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const { id: userId } = await getCurrentSessionUser(request);
-    const feed = await ensureUserCalendarFeedFixture(userId);
+test("valid anonymous token returns an empty VCALENDAR for a new user", async ({
+  run,
+  isolatedWorker,
+  request,
+  createActor,
+}) => {
+  await run(async () => {
+    const owner = await createActor();
+    const token = crypto.randomUUID();
+    const db = isolatedWorker.database.owner;
 
-    // Request with path token, no session
-    const response = await request.get(feed.path);
-    expect(response.status()).toBe(200);
-    expect(response.headers()["content-type"]).toContain("text/calendar");
-
-    const body = await response.text();
-    expect(body.trim().length).toBeGreaterThan(0);
-    expect(body).toContain("BEGIN:VCALENDAR");
-  });
-
-  test("通过 query token 返回有效的 iCalendar（匿名）", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const { id: userId } = await getCurrentSessionUser(request);
-    const feed = await ensureUserCalendarFeedFixture(userId);
-
-    // Request with query param token instead of path token
+    await db.user.update({
+      where: { id: owner.id },
+      data: { calendarFeedToken: token },
+    });
     const response = await request.get(
-      `/api/calendar-feeds/${userId}.ics?token=${feed.token}`,
+      `/api/calendar-feeds/${owner.id}:${token}.ics`,
     );
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("text/calendar");
-
-    const body = await response.text();
-    expect(body).toContain("BEGIN:VCALENDAR");
-  });
-
-  test("现有用户无效 token 返回 410", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const { id: userId } = await getCurrentSessionUser(request);
-
-    const response = await request.get(
-      `/api/calendar-feeds/${userId}.ics?token=bogus-token-e2e`,
-    );
-    expect(response.status()).toBe(410);
-    expect(response.headers()["cache-control"]).toBe("private, no-store");
-  });
-
-  test("有效 token 在没有日历项目时返回空 iCalendar", async ({ request }) => {
-    const prefix = `e2e-empty-calendar-${Date.now()}`;
-    const { userIds } = await createTempUsersFixture({ prefix, count: 1 });
-    const userId = userIds[0];
-    if (!userId) {
-      throw new Error("Expected temporary calendar user");
-    }
-
-    try {
-      const feed = await ensureUserCalendarFeedFixture(userId);
-      const response = await request.get(feed.path);
-
-      expect(response.status()).toBe(200);
-      expect(response.headers()["content-type"]).toContain("text/calendar");
-      const body = await response.text();
-      expect(body).toContain("BEGIN:VCALENDAR");
-      expect(body).toContain("END:VCALENDAR");
-      expect(body).not.toContain("BEGIN:VEVENT");
-    } finally {
-      await deleteUsersByPrefix(prefix);
-    }
+    const text = await response.text();
+    expect(text).toContain("BEGIN:VCALENDAR");
+    expect(text).toContain("END:VCALENDAR");
+    expect(text).not.toContain("BEGIN:VEVENT");
   });
 });

@@ -4,7 +4,7 @@ set -euo pipefail
 shard="$1"
 shard_total="$2"
 export FUNCTION_OWNER_DATABASE_URL="$3"
-export ALLOW_DATABASE_SEED=true
+export ALLOW_TEST_DATABASE_SETUP=true
 shift 3
 
 for role_test_flag in \

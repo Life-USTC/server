@@ -1,9 +1,11 @@
 /**
  * E2E tests for legacy settings content tab redirects.
  */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { test } from "../../../../utils/settings-fixture";
+
+test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/content legacy redirect", () => {
   test("legacy ?tab=content redirects to profile", async ({ page }) => {
@@ -21,13 +23,17 @@ test.describe("/account/settings/content legacy redirect", () => {
   });
 
   test("direct /account/settings/content path returns 404", async ({
+    accountRun,
     page,
+    account: _account,
   }) => {
-    await signInAsDebugUser(page, "/account/settings/profile");
-    await gotoAndWaitForReady(page, "/account/settings/content", {
-      expectMainContent: false,
-    });
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await gotoAndWaitForReady(page, "/account/settings/profile");
+      await gotoAndWaitForReady(page, "/account/settings/content", {
+        expectMainContent: false,
+      });
 
-    await expect(page.locator("h1")).toHaveText("404");
+      await expect(page.locator("h1")).toHaveText("404");
+    });
   });
 });

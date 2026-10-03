@@ -10,82 +10,77 @@
  * - POST returns 400 for invalid request body
  * - Both methods return 401 for unauthenticated or non-admin requests
  */
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
-import {
-  createTempUsersFixture,
-  deleteUsersByPrefix,
-} from "../../../../e2e/utils/e2e-db";
-import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
+import { expect } from "@playwright/test";
 import { assertApiContract } from "../../_shared/api-contract";
-
-const BASE = "/api/admin/suspensions";
+import { base as BASE, test } from "./_fixture";
 
 test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
-  test("API 契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: BASE });
-  });
-
-  test("未认证 GET 返回 401", async ({ request }) => {
-    const response = await request.get(BASE);
-    expect(response.status()).toBe(401);
-  });
-
-  test("未认证 POST 返回 401", async ({ request }) => {
-    const response = await request.post(BASE, {
-      data: { userId: "fake-id", reason: "test" },
-    });
-    expect(response.status()).toBe(401);
-  });
-
-  test("非管理员 GET 返回 401", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const response = await request.get(BASE);
-    expect(response.status()).toBe(401);
-  });
-
-  test("管理员可列出封禁并找到 seed 记录", async ({ request }) => {
-    await signInAsDevAdminApi(request, "/admin");
-
-    const response = await request.get(BASE);
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      data?: Array<{ reason?: string | null }>;
-    };
-    expect(
-      body.data?.some((item) =>
-        item.reason?.includes(DEV_SEED.suspensions.reasonKeyword),
-      ),
-    ).toBe(true);
-  });
-
-  test("POST 不存在的 userId 返回 404", async ({ request }) => {
-    await signInAsDevAdminApi(request, "/admin");
-
-    const response = await request.post(BASE, {
-      data: { userId: "nonexistent-user-id-e2e", reason: "should fail" },
-    });
-    expect(response.status()).toBe(404);
-  });
-
-  test("POST 无效 expiresAt 返回 400 且不创建封禁", async ({ request }) => {
-    const prefix = `e2e-sus-invalid-${Date.now()}`;
-    const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
-
-    try {
-      await signInAsDevAdminApi(request, "/admin");
-
-      const searchResponse = await request.get(
-        `/api/admin/users?search=${usernames[0]}`,
-      );
-      expect(searchResponse.status()).toBe(200);
-      const userId = (
-        (await searchResponse.json()) as {
-          data?: Array<{ id?: string; username?: string | null }>;
-        }
-      ).data?.find((u) => u.username === usernames[0])?.id;
-      expect(userId).toBeTruthy();
-
+  test("API 契约", async ({ request, run }) =>
+    run(async () => {
+      await assertApiContract(request, { routePath: BASE });
+    }));
+  test("未认证 GET 返回 401", async ({ request, run }) =>
+    run(async () => {
+      expect((await request.get(BASE)).status()).toBe(401);
+    }));
+  test("未认证 POST 返回 401", async ({ request, run }) =>
+    run(async () => {
+      expect(
+        (
+          await request.post(BASE, {
+            data: { userId: "fake-id", reason: "test" },
+          })
+        ).status(),
+      ).toBe(401);
+    }));
+  test("非管理员 GET 返回 401", async ({ suspensionState, run }) =>
+    run(async () => {
+      const { ordinary, db } = suspensionState;
+      expect((await ordinary.request.get(BASE)).status()).toBe(401);
+      expect(await db.auditLog.count()).toBe(0);
+    }));
+  test("管理员可列出封禁并找到 seed 记录", async ({ suspensionState, run }) =>
+    run(async () => {
+      const { admin, known, historical, knownUser, db } = suspensionState;
+      const response = await admin.request.get(BASE);
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+      expect(body.data.map((row: { id: string }) => row.id)).toEqual([
+        known.id,
+        historical.id,
+      ]);
+      expect(body.data[0]).toMatchObject({
+        reason: "Known suspension record",
+        userId: knownUser.id,
+        liftedAt: null,
+        user: { id: knownUser.id },
+      });
+      expect(await db.auditLog.count()).toBe(0);
+    }));
+  test("POST 不存在的 userId 返回 404", async ({ suspensionState, run }) =>
+    run(async () => {
+      const { admin, db } = suspensionState;
+      const before = await db.userSuspension.findMany({
+        orderBy: { id: "asc" },
+      });
+      const response = await admin.request.post(BASE, {
+        data: { userId: "nonexistent-user-id-e2e", reason: "should fail" },
+      });
+      expect(response.status()).toBe(404);
+      expect(
+        await db.userSuspension.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before);
+      expect(await db.auditLog.count()).toBe(0);
+    }));
+  test("POST 无效 expiresAt 返回 400 且不创建封禁", async ({
+    suspensionState,
+    run,
+  }) =>
+    run(async () => {
+      const { admin, target, db } = suspensionState;
+      const before = await db.userSuspension.findMany({
+        orderBy: { id: "asc" },
+      });
       for (const expiresAt of [
         "not-a-date",
         "2026-02-31",
@@ -94,119 +89,127 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
         "02/31/2026",
         "February 31, 2026",
       ]) {
-        const postResponse = await request.post(BASE, {
+        const response = await admin.request.post(BASE, {
           data: {
-            userId,
+            userId: target.id,
             reason: "invalid expiration should fail",
             expiresAt,
           },
         });
-        expect(postResponse.status()).toBe(400);
+        expect(response.status()).toBe(400);
       }
-
-      const listResponse = await request.get(BASE);
-      expect(listResponse.status()).toBe(200);
-      const body = (await listResponse.json()) as {
-        data?: Array<{ userId?: string }>;
-      };
-      expect((body.data ?? []).some((item) => item.userId === userId)).toBe(
-        false,
-      );
-    } finally {
-      await deleteUsersByPrefix(prefix);
-    }
-  });
-
-  test("openapi.suspension-created-status", async ({ request }) => {
-    const prefix = `e2e-sus-${Date.now()}`;
-    const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
-
-    try {
-      await signInAsDevAdminApi(request, "/admin");
-
-      // Resolve the temp user's ID.
-      const searchResponse = await request.get(
-        `/api/admin/users?search=${usernames[0]}`,
-      );
-      expect(searchResponse.status()).toBe(200);
-      const userId = (
-        (await searchResponse.json()) as {
-          data?: Array<{ id?: string; username?: string | null }>;
-        }
-      ).data?.find((u) => u.username === usernames[0])?.id;
-      expect(userId).toBeTruthy();
-
-      // Create the suspension.
-      const postResponse = await request.post(BASE, {
+      const list = await admin.request.get(BASE);
+      expect(list.status()).toBe(200);
+      expect(
+        (await list.json()).data.some(
+          (row: { userId: string }) => row.userId === target.id,
+        ),
+      ).toBe(false);
+      expect(
+        await db.userSuspension.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before);
+      expect(await db.auditLog.count()).toBe(0);
+    }));
+  test("openapi.suspension-created-status", async ({ suspensionState, run }) =>
+    run(async () => {
+      const { admin, target, known, historical, db } = suspensionState;
+      const response = await admin.request.post(BASE, {
         data: {
-          userId,
+          userId: target.id,
           reason: "e2e suspension test",
           note: "automated test",
         },
       });
-      expect(postResponse.status()).toBe(201);
-      const postBody = (await postResponse.json()) as {
-        suspension?: {
-          expiresAt?: string | null;
-          id?: string;
-          userId?: string;
-          reason?: string | null;
-        };
-      };
-      expect(postBody.suspension?.userId).toBe(userId);
-      expect(postResponse.headers().location).toBe(
-        `/api/admin/suspensions/${postBody.suspension?.id}`,
-      );
-      expect(postBody.suspension?.reason).toBe("e2e suspension test");
-      expect(postBody.suspension?.expiresAt).toBeNull();
+      expect(response.status()).toBe(201);
+      const first = (await response.json()).suspension;
+      expect(response.headers().location).toBe(`${BASE}/${first.id}`);
+      expect(first).toMatchObject({
+        userId: target.id,
+        reason: "e2e suspension test",
+        expiresAt: null,
+      });
+      expect(
+        await db.userSuspension.findUniqueOrThrow({ where: { id: first.id } }),
+      ).toMatchObject({
+        userId: target.id,
+        createdById: admin.id,
+        reason: "e2e suspension test",
+        note: "automated test",
+        expiresAt: null,
+        liftedAt: null,
+      });
+      expect(await db.auditLog.findMany()).toEqual([
+        expect.objectContaining({
+          action: "admin_user_suspend",
+          userId: admin.id,
+          subjectUserId: target.id,
+          targetType: "user",
+          targetId: target.id,
+          channel: "rest",
+          metadata: { reasonProvided: true },
+        }),
+      ]);
 
-      const replacementResponse = await request.post(BASE, {
-        data: {
-          userId,
-          reason: "e2e suspension replacement",
-        },
+      const replacementResponse = await admin.request.post(BASE, {
+        data: { userId: target.id, reason: "e2e suspension replacement" },
       });
       expect(replacementResponse.status()).toBe(201);
-      const replacementBody = (await replacementResponse.json()) as {
-        suspension?: {
-          id?: string;
-          userId?: string;
-          reason?: string | null;
-        };
-      };
-      expect(replacementBody.suspension?.userId).toBe(userId);
-      expect(replacementBody.suspension?.reason).toBe(
-        "e2e suspension replacement",
+      const replacement = (await replacementResponse.json()).suspension;
+      expect(replacement).toMatchObject({
+        userId: target.id,
+        reason: "e2e suspension replacement",
+      });
+      expect(replacement.id).not.toBe(first.id);
+      expect(replacementResponse.headers().location).toBe(
+        `${BASE}/${replacement.id}`,
       );
-
-      const listResponse = await request.get(BASE);
+      const listResponse = await admin.request.get(BASE);
       expect(listResponse.status()).toBe(200);
-      const listBody = (await listResponse.json()) as {
-        data?: Array<{
-          id?: string;
-          liftedAt?: string | null;
-          userId?: string;
-        }>;
-      };
-      const userSuspensions = (listBody.data ?? []).filter(
-        (item) => item.userId === userId,
+      const userSuspensions = (await listResponse.json()).data.filter(
+        (row: { userId: string }) => row.userId === target.id,
       );
       expect(
-        userSuspensions.filter((item) => item.liftedAt === null),
+        userSuspensions.filter(
+          (row: { liftedAt: string | null }) => row.liftedAt === null,
+        ),
       ).toHaveLength(1);
       expect(
         userSuspensions.some(
-          (item) =>
-            item.id === postBody.suspension?.id && item.liftedAt !== null,
+          (row: { id: string; liftedAt: string | null }) =>
+            row.id === first.id && row.liftedAt !== null,
         ),
       ).toBe(true);
-
-      // Lift the suspension so user can be cleanly deleted.
-      if (replacementBody.suspension?.id) {
-        await request.patch(`${BASE}/${replacementBody.suspension.id}`);
-      }
-    } finally {
-      await deleteUsersByPrefix(prefix);
-    }
-  });
+      expect(
+        await db.userSuspension.findUniqueOrThrow({ where: { id: first.id } }),
+      ).toMatchObject({ liftedAt: expect.any(Date), liftedById: admin.id });
+      expect(
+        await db.userSuspension.findMany({
+          where: { userId: target.id, liftedAt: null },
+        }),
+      ).toEqual([
+        expect.objectContaining({
+          id: replacement.id,
+          createdById: admin.id,
+          reason: "e2e suspension replacement",
+          note: null,
+          expiresAt: null,
+        }),
+      ]);
+      const audits = await db.auditLog.findMany();
+      expect(audits).toHaveLength(2);
+      for (const audit of audits)
+        expect(audit).toMatchObject({
+          action: "admin_user_suspend",
+          userId: admin.id,
+          subjectUserId: target.id,
+          targetId: target.id,
+          targetType: "user",
+          channel: "rest",
+          metadata: { reasonProvided: true },
+        });
+      for (const row of [known, historical])
+        expect(
+          await db.userSuspension.findUniqueOrThrow({ where: { id: row.id } }),
+        ).toEqual(row);
+    }));
 });

@@ -175,7 +175,7 @@ requirements:
     - Forbidden initial origins make no fetch. Allowed redirect targets are fetched and returned; forbidden
       targets are never fetched and failures are not cached.
     test:
-      file: tests/integration/publication-object-contracts.test.ts
+      file: tests/integration/publication-image-origin-policy.test.ts
       name: publications.image-origin-policy
 - id: publications.image-response-validation
   category: validation
@@ -189,7 +189,7 @@ requirements:
     - Invalid responses return 502 with no-store and leave R2 empty.
     - Streaming overflow cancels after bounded over-read; exactly 10 MiB succeeds and is archived.
     test:
-      file: tests/integration/publication-object-contracts.test.ts
+      file: tests/integration/publication-image-response-validation.test.ts
       name: publications.image-response-validation
 - id: publications.image-archive
   category: consistency
@@ -206,7 +206,7 @@ requirements:
     - Later reads and conditional 304 use the archived bytes and ETag without fetching the origin again
       or advertising immutable caching.
     test:
-      file: tests/integration/publication-object-contracts.test.ts
+      file: tests/integration/publication-image-archive.test.ts
       name: publications.image-archive
 - id: publications.public-cache
   category: consistency

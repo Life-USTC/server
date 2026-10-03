@@ -2,11 +2,9 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI (`ci.yml`) | manual branch run, push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
+| CI (`ci.yml`) | manual branch run, push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression |
 | OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
 | GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
-| Bun job | workflow_call | Reusable non-DB Bun job for static checks, unit coverage, and builds |
-| DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
 | Release | successful CI on main | Tags and GitHub release notes; no main-branch commits |
 | Copilot Setup Steps | manual / setup changes | Copilot bootstrap validation |
@@ -21,11 +19,14 @@ docs.
 - App-exercising workflows provision their own Postgres + `DATABASE_URL`.
 - Production deploy is Cloudflare Git integration only.
 - Docker is local infra, CI services, and the static loader image only.
-- Keep YAML as orchestration; pure phase command lists live in `bun-job.yml` and
-  database-backed phase command lists live in `db-backed-bun-job.yml`.
-- Pure static, unit, and build jobs must use `bun-job.yml`; only app-exercising
-  jobs should provision the Postgres service from `db-backed-bun-job.yml`.
-  Local check recipes for agents: root `AGENTS.md`.
-- E2E HTML publish stays `continue-on-error` with serial artifact concurrency.
+- Declare each CI responsibility directly in `ci.yml`. Shared composite actions only
+  install dependencies or prepare test database roles; keep test commands in jobs.
+- Only database-backed jobs provision PostgreSQL. Matrix jobs own separate service
+  containers; REST, browser and visual jobs consume the single application build.
+- PR and manual branch runs use separate ref-based concurrency groups; newer
+  runs on the same ref cancel stale work, while main runs are not interrupted.
+- Preserve external job names used by protection. The aggregate gate always runs
+  and rejects every non-success mandatory result; specifications run in Check.
+- Browser jobs upload native HTML reports and failure diagnostics as CI artifacts.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
   with inline `runs-on` / steps (no reusable-workflow delegation for that job).

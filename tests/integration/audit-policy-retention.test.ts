@@ -1,25 +1,12 @@
-import { afterAll, expect, it } from "vitest";
+import { expect } from "vitest";
 import { maintainAuditLogRetention } from "@/features/admin/server/audit-retention";
-import { createFixturePrisma, createTestPrisma } from "../shared/prisma";
-import { auditRetentionExpectation } from "../shared/specifications/audit";
-import { semanticContract } from "../shared/specifications/semantic-contract";
+import { isolatedDatabaseTest as it } from "../shared/isolated-database";
 
-const owner = createFixturePrisma();
-const app = createTestPrisma();
-const auth = createTestPrisma(process.env.AUTH_DATABASE_URL);
-const maintenance = createTestPrisma(process.env.MAINTENANCE_DATABASE_URL);
-const marker = `audit-policy-${crypto.randomUUID()}`;
-afterAll(async () => {
-  await owner.auditLog.deleteMany({ where: { id: { startsWith: marker } } });
-  await Promise.all(
-    [owner, app, auth, maintenance].map((db) => db.$disconnect()),
-  );
-});
-
-it("audit.writer-4", async (context) => {
-  const contract = await semanticContract(context.task.name, "retention");
-  contract.equal("/operation", "maintain_audit_log_retention");
-  const expected = auditRetentionExpectation();
+it("audit retention clears network data at 30 days, attribution at 90, and events at 400 inclusively", async ({
+  isolatedDatabase: { owner, maintenance },
+}) => {
+  const marker = "audit-boundary";
+  const expected = { network_days: 30, attribution_days: 90, event_days: 400 };
   const now = new Date(Date.now() - 1000);
   const privateFields = {
     ipAddress: "192.0.2.4",
@@ -46,10 +33,12 @@ it("audit.writer-4", async (context) => {
       });
     }
   }
-  expect(expected.boundary).toBe("inclusive");
-  expect(expected.operation).toBe("maintain_audit_log_retention");
-  expect(await maintainAuditLogRetention(maintenance, now)).toMatchObject({
+  expect(await maintainAuditLogRetention(maintenance, now)).toEqual({
+    auditRetentionBatches: 1,
     auditRetentionComplete: true,
+    networkAnonymized: 8,
+    attributionAnonymized: 5,
+    rowsDeleted: 2,
   });
   for (const [kind, days] of Object.entries({
     network: expected.network_days,
@@ -63,21 +52,9 @@ it("audit.writer-4", async (context) => {
       const age = days * 86_400_000 - offset;
       if (age >= expected.event_days * 86_400_000) {
         expect(row).toBeNull();
-        if (kind === "event" && offset === 0) {
-          contract.equal("/event_days", age / 86_400_000);
-          contract.equal("/boundary", "inclusive");
-        }
         continue;
       }
       expect(row).not.toBeNull();
-      if (offset === 0 && kind === "network") {
-        expect(row?.ipAddress).toBeNull();
-        contract.equal("/network_days", age / 86_400_000);
-      }
-      if (offset === 0 && kind === "attribution") {
-        expect(row?.oauthGrantId).toBeNull();
-        contract.equal("/attribution_days", age / 86_400_000);
-      }
       const networkExpired = age >= expected.network_days * 86_400_000;
       const attributionExpired = age >= expected.attribution_days * 86_400_000;
       expect(row).toMatchObject({
@@ -92,10 +69,12 @@ it("audit.writer-4", async (context) => {
       });
     }
   }
-  contract.recordVitest(context);
 });
 
-it("audit.retention-maintenance-authority", async () => {
+it("only maintenance can execute audit retention while direct table deletion remains forbidden", async ({
+  isolatedDatabase: { owner, app, auth, maintenance },
+}) => {
+  const marker = "authority";
   const [definition] = await owner.$queryRaw<
     Array<{ securityDefiner: boolean; owner: string }>
   >`

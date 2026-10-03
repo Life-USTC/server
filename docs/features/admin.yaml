@@ -32,11 +32,14 @@ requirements:
   category: presentation
   rule: High-risk admin actions such as delete, suspend, and hide must have clear feedback.
   acceptance:
-    given: An isolated user, comment, and homework controlled through the actual admin UI.
-    when: Hide the comment, suspend its author, cancel homework deletion, then confirm deletion.
+    given: Independent case-owned comment, comment author, and homework records, each prepared for a single
+      administrator action.
+    when: In separate scenarios hide a comment, suspend a comment author from its management dialog, and
+      cancel then confirm a homework deletion through the real admin UI.
     then:
-    - Each successful high-risk action displays specific feedback and changes the persisted record.
-    - Deletion confirmation names the target and cancellation leaves the homework unchanged.
+    - Each successful high-risk action shows its own specific feedback and changes only the record it targets.
+    - Deletion confirmation names the target, cancellation leaves the homework row unchanged, and confirmation
+      marks the already-open row deleted and withdraws its delete control.
     test:
       file: tests/e2e/src/app/admin/moderation/test.ts
       name: admin.high-risk-feedback
@@ -45,14 +48,13 @@ requirements:
   rule: Admin user management must reject self-suspension, self-demotion, and removing the final remaining
     admin.
   acceptance:
-    given: A real administrator session and an isolated rollback-only administrator population inspected
-      under the app runtime role.
-    when: Attempt self-demotion and self-suspension through REST, then run the same transactional demotion
-      guard against the sole administrator.
+    given: A real administrator session in a case-owned PostgreSQL database containing exactly one administrator.
+    when: Invoke the real Node REST handlers for self-demotion and self-suspension, then run the transactional
+      demotion guard using an independent restricted app-role connection against that sole administrator.
     then:
     - Self actions return 400 without changing authority or suspension state.
-    - The real app-role count rejects removal of the last administrator; all population fixture changes
-      roll back.
+    - The real app-role count rejects removal of the last administrator, rejects self-demotion, and leaves
+      the case-owned administrator population unchanged.
     test:
       file: tests/integration/admin-governance-contracts.test.ts
       name: admin.admin-self-protection
@@ -61,12 +63,13 @@ requirements:
   rule: Admin REST endpoints require the in-site Better Auth session cookie and do not accept OAuth bearer
     tokens.
   acceptance:
-    given: Real administrator and ordinary-user sessions and a signed OAuth token for the administrator.
-    when: Call every admin list and a profile mutation anonymously, with bearer, with mixed bearer/cookie,
-      with an ordinary session, and with an administrator session.
+    given: Case-owned administrator and ordinary-user sessions and a signed OAuth token for the administrator.
+    when: Invoke every real Node admin list handler anonymously, with bearer, with mixed bearer/cookie,
+      with an ordinary session, and with an administrator session; invoke the profile-mutation handler with
+      bearer and mixed credentials.
     then:
-    - Only the administrator cookie session succeeds; bearer and mixed credentials never acquire governance
-      authority or change the user.
+    - Only administrator-cookie list reads succeed; bearer and mixed profile mutations return 401 without
+      acquiring governance authority or changing the user.
     test:
       file: tests/integration/admin-governance-contracts.test.ts
       name: admin.admin-rest-session-only
@@ -75,8 +78,10 @@ requirements:
   rule: Admin comments, descriptions, homeworks, and users accept page and pageSize and return the shared
     { data, pagination } envelope. The retired limit parameter is not accepted.
   acceptance:
-    given: Real comment, description, homework, and user rows under the production app role.
-    when: Read pages one and two and an empty later page; send obsolete limit and invalid pageSize parameters.
+    given: Exactly three case-owned rows for each comment, description, homework, and user list in an isolated
+      PostgreSQL database.
+    when: Invoke the real Node list handlers under the production app role for pages one and two and an empty
+      later page; send obsolete limit and invalid pageSize parameters.
     then:
     - All four lists return the shared data/pagination envelope with disjoint pages and correct totals.
     - The retired limit field and invalid page sizes are rejected.
@@ -90,10 +95,10 @@ requirements:
     suspended 403 response until suspension is lifted. Anonymous-comment governance reads additionally
     enforce comment.governance-anonymous-author-access.
   acceptance:
-    given: An administrator with a persisted active suspension, signed session, and mutable user/comment
-      fixtures.
-    when: Read permitted lists and the user page, request identity-revealing comments, attempt REST and
-      page-action mutations, then lift the suspension.
+    given: A case-owned administrator with a persisted active suspension, signed session, and mutable
+      user/comment fixtures in an isolated database.
+    when: Invoke permitted Node list handlers and the user page loader, request identity-revealing comments,
+      attempt Node REST and page-action mutations, then lift the suspension.
     then:
     - Ordinary governance reads remain available while anonymous-identity comments and all tested writes
       return suspended 403 without changes.
@@ -124,8 +129,9 @@ requirements:
     open suspension for that user while retaining history; lifting an open suspension clears the user's
     open suspension state.
   acceptance:
-    given: A real administrator and isolated target user.
-    when: Create two suspensions concurrently through REST and lift the remaining open suspension.
+    given: A case-owned administrator and target user in an isolated PostgreSQL database.
+    when: Invoke the real Node REST handlers concurrently to create two suspensions, then lift the remaining
+      open suspension through its handler.
     then:
     - Both historical records remain, exactly one stays open after creation, and the replaced record names
       its lifting administrator.
@@ -138,8 +144,8 @@ requirements:
   rule: PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return
     404 when the target record is not found.
   acceptance:
-    given: An authenticated administrator and nonexistent target identifiers.
-    when: PATCH a user and comment and POST a suspension for a missing target.
+    given: A case-owned authenticated administrator and nonexistent target identifiers in an isolated database.
+    when: Invoke the real Node PATCH user/comment and POST suspension handlers for a missing target.
     then:
     - Each actual route returns 404 and creates no successful mutation audit.
     test:
@@ -187,7 +193,7 @@ requirements:
       error.
     - No issue row or warning log is generated.
     test:
-      file: tests/integration/admin-observability-contracts.test.ts
+      file: tests/integration/admin-observability-outcomes.test.ts
       name: admin.feature-experience-outcomes
 - id: admin.feature-experience-retention
   category: consistency
@@ -207,20 +213,25 @@ requirements:
       records.
     - Metrics rendering marks absent retained history unavailable and omits unknown active-user values.
     test:
-      file: tests/integration/admin-observability-contracts.test.ts
+      file: tests/integration/admin-observability-retention.test.ts
       name: admin.feature-experience-retention
 - id: admin.responsive-workspace
   category: presentation
-  rule: Admin pages present the page identity, feedback or filters when applicable, then records. Desktop
-    shows tabular records; mobile presents compact records containing the same primary identity and available
-    actions.
+  rule: Admin pages present the page identity, feedback or filters when applicable, then records. The
+    page heading uses larger text than the record identity. Desktop shows tabular records; mobile presents
+    compact records containing the same primary identity and available actions.
   acceptance:
-    given: A signed-in administrator and real users, moderation, OAuth, and bus records.
-    when: Render each page at desktop and mobile widths and compare the first record and its available
-      actions.
+    given: A private signed-in administrator and explicitly prepared user, moderation comment, OAuth client,
+      and inactive bus version records.
+    when: Render each page at desktop and mobile widths and check the known records against independently
+      specified headings, identities, and action names.
     then:
-    - Each page preserves its heading and primary record identity; desktop tables become compact mobile
-      records with the same available actions and no horizontal overflow.
+    - Desktop tables become compact mobile records with the expected identity and complete expected
+      actions, and neither layout has horizontal overflow.
+    - Users and comments expose their manage controls; OAuth exposes client-specific deletion; inactive
+      bus versions expose activation and deletion.
+    - The page heading appears above the records with larger text; applicable search controls appear
+      between the heading and records.
     test:
       file: tests/e2e/src/app/admin/test.ts
       name: admin.responsive-workspace
@@ -238,7 +249,7 @@ requirements:
       search, IP, credentials, and stacks do not.
     - Writer failures and telemetry diagnostics never generate recursive issue rows.
     test:
-      file: tests/integration/admin-observability-contracts.test.ts
+      file: tests/integration/admin-runtime-logs-contract.test.ts
       name: admin.platform-runtime-logs
 - id: admin.prometheus-export
   category: behavior
@@ -276,22 +287,23 @@ requirements:
       boundaries match recorded durations.
     test:
       file: tests/integration/admin-prometheus-contracts.test.ts
-      name: admin.prometheus-collection
+      name: ignores retained observations that predate the counter epoch
 - id: admin.prometheus-gauge-cache
   category: behavior
   rule: Expensive Prometheus activity/current-state gauges are cached sixty seconds and may remain at
     most 120 seconds old during refresh contention. Empty or older caches fail promptly with a 503 scrape
     rather than blocking or presenting zero activity. Collection recovers when refresh is available.
   acceptance:
-    given: Actual shared metric cache rows and an advisory refresh lock held by a separate database transaction.
-    when: Read fresh and 61-second-old snapshots, then scrape with empty or 121-second-old cache under
-      contention and release the lock.
+    given: Each case owns a separate database with the production metric schema and permissions.
+    when: Independently prepared cases read fresh and 61-second-old snapshots, or scrape empty and
+      121-second-old caches while a separate transaction holds the advisory refresh lock; contention
+      cases also release the lock and verify recovery.
     then:
     - Fresh gauges are reused; expired gauges refresh normally or serve bounded stale data during contention.
     - Unusable caches return 503 with no metric values and recover after lock release.
     test:
       file: tests/integration/prometheus-metrics-cache.test.ts
-      name: admin.prometheus-gauge-cache
+      name: returns native scrape 503 for empty activity while refresh is locked and recovers after release
 - id: admin.prometheus-windows
   category: behavior
   rule: Only exact distinct-user/client gauges use rolling 24-hour, 7-day and 30-day windows. Feature

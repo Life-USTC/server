@@ -1,9 +1,4 @@
 import { expect, type Locator } from "@playwright/test";
-import { readSpecifications } from "../../../scripts/specifications/repository";
-import {
-  PRESENTATION_VIEW_FAMILIES,
-  type PresentationViewFamily,
-} from "../../shared/presentation-view-owners";
 
 export type VisiblePriorityField = {
   locator: Locator;
@@ -24,9 +19,6 @@ export type InternalPriorityField = {
   exactText?: boolean;
 };
 export type PriorityViewCheck = {
-  feature: string;
-  capability: string;
-  view: string;
   /** The real title, card title, or first identifying table cell. */
   identity: Locator;
   scope: Locator;
@@ -34,28 +26,6 @@ export type PriorityViewCheck = {
   secondary: Record<string, PriorityField>;
   tertiary: Record<string, InternalPriorityField>;
 };
-type Fields = { primary: string[]; secondary: string[]; tertiary: string[] };
-const declarations = readSpecifications().then(
-  (files) =>
-    new Map(
-      files.flatMap(({ data }) =>
-        Object.entries(
-          (data.capabilities ?? {}) as Record<
-            string,
-            { presentation?: { views?: Record<string, Fields> } }
-          >,
-        ).flatMap(([capability, { presentation }]) =>
-          Object.entries(presentation?.views ?? {})
-            .filter(([view]) => view.startsWith("web"))
-            .map(
-              ([view, fields]) =>
-                [`${data.id}/${capability}/${view}`, fields] as const,
-            ),
-        ),
-      ),
-    ),
-);
-
 async function textStyle(locator: Locator) {
   return locator.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -66,13 +36,12 @@ async function textStyle(locator: Locator) {
     };
   });
 }
-async function assertVisibleField(field: VisiblePriorityField) {
-  await expect(async () => {
-    await field.locator.scrollIntoViewIfNeeded();
-    await expect(field.locator).toBeVisible();
-  }).toPass();
-  await field.locator.scrollIntoViewIfNeeded();
-  await expect(field.locator).toBeVisible();
+async function assertVisibleField(
+  field: VisiblePriorityField,
+  options: { timeout?: number },
+) {
+  await field.locator.scrollIntoViewIfNeeded(options);
+  await expect(field.locator).toBeVisible(options);
   await expect
     .poll(
       () =>
@@ -83,15 +52,13 @@ async function assertVisibleField(field: VisiblePriorityField) {
           }),
         ),
       {
+        timeout: options.timeout,
         message:
-          "declared field must be visibly painted, including its ancestors",
+          "expected field must be visibly painted, including its ancestors",
       },
     )
     .toBe(true);
-  await expect(async () => {
-    await field.locator.scrollIntoViewIfNeeded();
-    await expect(field.locator).toBeInViewport({ timeout: 500 });
-  }).toPass();
+  await expect(field.locator).toBeInViewport();
   if (field.attribute)
     await expect(field.locator).toHaveAttribute(
       field.attribute,
@@ -170,17 +137,12 @@ export async function assertInternalPriorityFieldAbsent(
   }
 }
 
-/** Every declared property is consumed; missing and surplus assertions fail. */
-export async function assertPriorityView(check: PriorityViewCheck) {
-  const key = `${check.feature}/${check.capability}/${check.view}` as const;
-  const fields = (await declarations).get(key);
-  expect(fields, key).toBeDefined();
-  if (!fields) throw new Error(`Missing presentation view: ${key}`);
-  for (const group of ["primary", "secondary", "tertiary"] as const)
-    expect(Object.keys(check[group]).sort(), `${key}.${group}`).toEqual(
-      [...fields[group]].sort(),
-    );
-  await expect(check.identity).toBeVisible();
+/** Explicit, manually maintained field expectations are checked against the rendered page. */
+export async function assertPriorityView(
+  check: PriorityViewCheck,
+  options: { timeout?: number } = {},
+) {
+  await expect(check.identity).toBeVisible(options);
   async function visible(field: PriorityField) {
     if ("absentInLocale" in field) {
       const language = await check.scope
@@ -193,7 +155,7 @@ export async function assertPriorityView(check: PriorityViewCheck) {
       expect(await check.scope.innerText()).not.toContain(field.text);
       return false;
     }
-    await assertVisibleField(field);
+    await assertVisibleField(field, options);
     return true;
   }
   for (const field of Object.values(check.primary)) await visible(field);
@@ -205,34 +167,16 @@ export async function assertPriorityView(check: PriorityViewCheck) {
   }
   for (const field of Object.values(check.tertiary)) {
     if (field.locator) {
-      await assertVisibleField({
-        locator: field.locator,
-        expected: field.value,
-      });
+      await assertVisibleField(
+        {
+          locator: field.locator,
+          expected: field.value,
+        },
+        options,
+      );
       await assertSecondaryStyle(field.locator, check.identity);
     } else {
       await assertInternalPriorityFieldAbsent(check.scope, field);
     }
   }
-}
-
-/** A browser owner fails if it omits any view assigned to its family. */
-export function createPriorityViewAudit(family: PresentationViewFamily) {
-  const owner = PRESENTATION_VIEW_FAMILIES[family];
-  const visited = new Set<string>();
-  return {
-    async check(input: PriorityViewCheck) {
-      const key = `${input.feature}/${input.capability}/${input.view}`;
-      expect(owner.views as readonly string[], owner.requirement).toContain(
-        key,
-      );
-      await assertPriorityView(input);
-      visited.add(key);
-    },
-    finish() {
-      expect([...visited].sort(), owner.requirement).toEqual(
-        [...owner.views].sort(),
-      );
-    },
-  };
 }

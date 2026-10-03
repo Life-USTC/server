@@ -1,39 +1,34 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import {
+  createPastSemesterFixture,
+  prepareSemesterObservation,
+  test,
+  verifySemesterMatch,
+} from "./semester-presentation-fixture";
 
-test("cases.semester.no-current-semester-1", async ({ page }, testInfo) => {
-  const marker = `semester-policy-${crypto.randomUUID()}`;
-  const fixture = await withE2ePrisma(async (db) => {
-    const user = await db.user.create({
-      data: {
+test("cases.semester.no-current-semester-1", async ({
+  page,
+  isolatedWorker,
+  calendarProtocolRun,
+}, testInfo) => {
+  await calendarProtocolRun(async (io) => {
+    const marker = `semester-policy-${crypto.randomUUID()}`;
+    const fixture = await isolatedWorker.database.owner.$transaction((db) =>
+      createPastSemesterFixture(db, {
+        marker,
         name: "Semester policy user",
-        username: `sp${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
-        email: `${marker}@example.test`,
-      },
-    });
-    const section = await db.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.previousSection.jwId },
-    });
-    await db.userSectionSubscription.create({
-      data: { userId: user.id, sectionId: section.id },
-    });
-    await db.todo.create({ data: { userId: user.id, title: marker } });
-    await db.userYoungEventSubscription.create({
-      data: {
-        userId: user.id,
-        youngId: DEV_SEED.youngEvent.youngId,
-        observedState: "open",
-      },
-    });
-    return { user, section };
-  });
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(fixture.user.id)]);
+        activity: true,
+      }),
+    );
+    const observation = await prepareSemesterObservation(
+      page,
+      isolatedWorker,
+      io,
+      fixture.user.id,
+      [],
+    );
     // No fixture semester covers this explicit snapshot date.
     const snapshot =
       "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00";
@@ -86,37 +81,34 @@ test("cases.semester.no-current-semester-1", async ({ page }, testInfo) => {
         DEV_SEED.youngEvent.youngId,
       );
     }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await db.auditLog.deleteMany({ where: { userId: fixture.user.id } });
-      await db.user.delete({ where: { id: fixture.user.id } });
+    return observation.checks({
+      feedTokenCreated: false,
+      requests: [["POST", "/api/account/preferences", [200, 200]]],
     });
-  }
+  });
 });
 
-test("cases.semester.no-current-semester-2", async ({ page }) => {
-  const marker = `semester-import-${crypto.randomUUID()}`;
-  const fixture = await withE2ePrisma(async (db) => {
-    const user = await db.user.create({
-      data: {
+test("cases.semester.no-current-semester-2", async ({
+  page,
+  isolatedWorker,
+  calendarProtocolRun,
+}) => {
+  await calendarProtocolRun(async (io) => {
+    const marker = `semester-import-${crypto.randomUUID()}`;
+    const fixture = await isolatedWorker.database.owner.$transaction((db) =>
+      createPastSemesterFixture(db, {
+        marker,
         name: "Semester import user",
-        username: `si${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
-        email: `${marker}@example.test`,
-      },
-    });
-    const section = await db.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.previousSection.jwId },
-      include: { semester: true },
-    });
-    await db.userSectionSubscription.create({
-      data: { userId: user.id, sectionId: section.id },
-    });
-    return { user, section };
-  });
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(fixture.user.id)]);
+        activity: false,
+      }),
+    );
+    const observation = await prepareSemesterObservation(
+      page,
+      isolatedWorker,
+      io,
+      fixture.user.id,
+      [],
+    );
     for (const locale of ["en-us", "zh-cn"]) {
       expect(
         (
@@ -185,36 +177,37 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
       );
       await page.keyboard.press("Escape");
     }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await db.auditLog.deleteMany({ where: { userId: fixture.user.id } });
-      await db.user.delete({ where: { id: fixture.user.id } });
+    return observation.checks({
+      feedTokenCreated: true,
+      requests: [
+        ["POST", "/api/account/preferences", [200, 200]],
+        ["POST", "/api/workspace/subscriptions/query", [200, 200]],
+      ],
     });
-  }
+  }, verifySemesterMatch);
 });
 
 test("cases.semester.only-non-current-semester-subscriptions-1", async ({
   page,
+  isolatedWorker,
+  calendarProtocolRun,
 }) => {
-  const marker = `past-term-${crypto.randomUUID()}`;
-  const user = await withE2ePrisma(async (db) => {
-    const user = await db.user.create({
-      data: {
+  await calendarProtocolRun(async (io) => {
+    const marker = `past-term-${crypto.randomUUID()}`;
+    const fixture = await isolatedWorker.database.owner.$transaction((db) =>
+      createPastSemesterFixture(db, {
+        marker,
         name: "Past term user",
-        username: `pt${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
-        email: `${marker}@example.test`,
-      },
-    });
-    const section = await db.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.previousSection.jwId },
-    });
-    await db.userSectionSubscription.create({
-      data: { userId: user.id, sectionId: section.id },
-    });
-    return user;
-  });
-  try {
-    await page.context().addCookies([await createSignedSessionCookie(user.id)]);
+        activity: false,
+      }),
+    );
+    const observation = await prepareSemesterObservation(
+      page,
+      isolatedWorker,
+      io,
+      fixture.user.id,
+      [],
+    );
     for (const locale of ["en-us", "zh-cn"]) {
       expect(
         (
@@ -264,10 +257,9 @@ test("cases.semester.only-non-current-semester-subscriptions-1", async ({
         page.getByTestId("subscription-course-link").filter({ visible: true }),
       ).toHaveCount(1);
     }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await db.auditLog.deleteMany({ where: { userId: user.id } });
-      await db.user.delete({ where: { id: user.id } });
+    return observation.checks({
+      feedTokenCreated: true,
+      requests: [["POST", "/api/account/preferences", [200, 200]]],
     });
-  }
+  });
 });

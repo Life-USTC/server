@@ -1,250 +1,318 @@
-/**
- * E2E tests for POST/DELETE /api/community/comments/{id}/reactions.
- *
- * ## POST /api/community/comments/{id}/reactions
- * - Body: { type } where type is one of: upvote|downvote|heart|laugh|hooray|confused|rocket|eyes
- * - Response: { success: true }
- * - Auth required (401 if unauthenticated)
- * - Returns 403 if user is suspended
- * - Returns 404 if comment does not exist
- * - Upserts: adding the same reaction twice is idempotent
- *
- * ## DELETE /api/community/comments/{id}/reactions
- * - Query: type (same enum as POST)
- * - Response: { success: true }
- * - Auth required (401 if unauthenticated)
- * - Deletes matching reaction; no-op if not present (still returns success)
- * - Returns 403 when the comment exists but is inactive
- *
- * ## Edge cases
- * - POST reaction on non-existent comment → 404
- * - DELETE reaction on non-existent comment → still 200 (deleteMany)
- * - Verify reaction appears in comment's reactions array after POST
- */
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
-import { withE2ePrisma } from "../../../../../e2e/utils/e2e-db/prisma";
-import { resolveSeedSectionId } from "../../../../../e2e/utils/seed-lookups";
-import { signInAsDebugUserApi } from "../../../_harness/auth";
-import { assertApiContract } from "../../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { test } from "../../_fixture";
 
-/** Resolve the seed section's internal DB id via match-codes. */
-/** Find the seed root comment by body content. */
-async function findSeedCommentId(
-  request: import("@playwright/test").APIRequestContext,
-  sectionId: number,
-) {
-  const response = await request.get(
-    `/api/community/comments?targetType=section&targetId=${sectionId}`,
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    data?: Array<{ id?: string; body?: string }>;
-  };
-  const seed = body.data?.find((c) =>
-    c.body?.includes(DEV_SEED.comments.sectionRootBody),
-  );
-  expect(seed?.id).toBeTruthy();
-  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
-  return seed!.id!;
-}
+test.describe.configure({ mode: "parallel" });
 
-test("/api/community/comments/[id]/reactions 接口契约", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/community/comments/[id]/reactions",
+// comment.interaction-gate, comment.locked-action-projection and
+// comment.reaction-removal-noop are maintained manually in
+// docs/features/comment.yaml. All requests use the real Worker.
+test("/api/community/comments/[id]/reactions 接口契约", async ({
+  run,
+  request,
+}) => {
+  await run(async () => {
+    const response = await request.get(
+      "/api/community/comments/invalid-e2e/reactions",
+    );
+    expect(response.status()).toBe(405);
   });
 });
 
-test("/api/community/comments/[id]/reactions POST 未登录返回 401", async ({
-  request,
-}) => {
-  const response = await request.post(
-    "/api/community/comments/00000000-0000-0000-0000-000000000000/reactions",
-    { data: { type: "rocket" } },
-  );
-  expect(response.status()).toBe(401);
-});
-
-test("/api/community/comments/[id]/reactions DELETE 未登录返回 401", async ({
-  request,
-}) => {
-  const response = await request.delete(
-    "/api/community/comments/00000000-0000-0000-0000-000000000000/reactions?type=rocket",
-  );
-  expect(response.status()).toBe(401);
-});
-
-test("/api/community/comments/[id]/reactions 登录后可添加并验证再删除", async ({
-  request,
-}) => {
-  await signInAsDebugUserApi(request, "/");
-  const sectionId = await resolveSeedSectionId(request);
-  const commentId = await findSeedCommentId(request, sectionId);
-
-  // POST is idempotent, including duplicate requests that arrive together.
-  const createResponses = await Promise.all([
-    request.post(`/api/community/comments/${commentId}/reactions`, {
-      data: { type: "rocket" },
-    }),
-    request.post(`/api/community/comments/${commentId}/reactions`, {
-      data: { type: "rocket" },
-    }),
-  ]);
-  for (const createResponse of createResponses) {
-    expect(createResponse.status()).toBe(200);
-    expect((await createResponse.json()) as { success?: boolean }).toEqual({
-      success: true,
+for (const method of ["POST", "DELETE"] as const) {
+  test(`/api/community/comments/[id]/reactions ${method} 未登录返回 401`, async ({
+    run,
+    commentState: { anonymous, db, owner, comment },
+  }) => {
+    await run(async () => {
+      const prepared = await comment();
+      for (const commentId of [prepared.id, crypto.randomUUID()]) {
+        const path = `/api/community/comments/${commentId}/reactions`;
+        const response =
+          method === "POST"
+            ? await anonymous.post(path, { data: { type: "rocket" } })
+            : await anonymous.delete(`${path}?type=rocket`);
+        expect(response.status()).toBe(401);
+        expect(await response.json()).toEqual({ error: "Unauthorized" });
+      }
+      expect(
+        await db.comment.findUniqueOrThrow({ where: { id: prepared.id } }),
+      ).toEqual(prepared);
+      expect(
+        await db.commentReaction.count({ where: { commentId: prepared.id } }),
+      ).toBe(0);
+      expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
     });
-  }
+  });
+}
 
-  // Verify the reaction is visible in the thread
-  const threadResponse = await request.get(
-    `/api/community/comments/${commentId}`,
-  );
-  expect(threadResponse.status()).toBe(200);
-  const threadBody = (await threadResponse.json()) as {
-    thread?: Array<{
-      id?: string;
-      reactions?: Array<{ type?: string; count?: number }>;
-      viewerReactions?: string[];
-    }>;
-  };
-  const focusNode = threadBody.thread?.find((n) => n.id === commentId);
-  expect(focusNode).toBeDefined();
-  expect(focusNode?.reactions?.some((r) => r.type === "rocket")).toBe(true);
+test("/api/community/comments/[id]/reactions concurrent duplicates persist one reaction and audit", async ({
+  run,
+  commentState: { owner, db, comment },
+}) => {
+  await run(async () => {
+    const request = owner.request;
+    const prepared = await comment();
+    const commentId = prepared.id;
+    const createResponses = await Promise.all([
+      request.post(`/api/community/comments/${commentId}/reactions`, {
+        data: { type: "rocket" },
+      }),
+      request.post(`/api/community/comments/${commentId}/reactions`, {
+        data: { type: "rocket" },
+      }),
+    ]);
+    for (const response of createResponses) {
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toEqual({ success: true });
+    }
+    expect(
+      await db.commentReaction.findMany({
+        where: { commentId },
+        select: { userId: true, type: true },
+      }),
+    ).toEqual([{ userId: owner.id, type: "rocket" }]);
+    expect(
+      await db.auditLog.count({
+        where: { targetId: commentId, action: "comment_react" },
+      }),
+    ).toBe(1);
 
-  // DELETE: remove the rocket reaction
-  const deleteResponse = await request.delete(
-    `/api/community/comments/${commentId}/reactions?type=rocket`,
-  );
-  expect(deleteResponse.status()).toBe(200);
-  expect((await deleteResponse.json()) as { success?: boolean }).toEqual({
-    success: true,
+    expect(
+      await db.comment.findUniqueOrThrow({ where: { id: commentId } }),
+    ).toEqual(prepared);
+  });
+});
+
+test("/api/community/comments/[id]/reactions DELETE removes only the seeded own reaction", async ({
+  run,
+  commentState: { owner, other, db, comment },
+}) => {
+  await run(async () => {
+    const prepared = await comment({
+      reactions: {
+        create: [
+          { userId: owner.id, type: "rocket" },
+          { userId: other.id, type: "rocket" },
+        ],
+      },
+    });
+    const before = await db.comment.findUniqueOrThrow({
+      where: { id: prepared.id },
+      include: { reactions: { orderBy: { userId: "asc" } }, attachments: true },
+    });
+    const response = await owner.request.delete(
+      `/api/community/comments/${prepared.id}/reactions?type=rocket`,
+    );
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(
+      await db.comment.findUniqueOrThrow({
+        where: { id: prepared.id },
+        include: {
+          reactions: { orderBy: { userId: "asc" } },
+          attachments: true,
+        },
+      }),
+    ).toEqual({
+      ...before,
+      reactions: before.reactions.filter((row) => row.userId !== owner.id),
+    });
+    const audits = await db.auditLog.findMany({
+      where: { targetId: prepared.id },
+    });
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      action: "comment_react",
+      userId: owner.id,
+      outcome: "success",
+    });
+  });
+});
+
+test("/api/community/comments/[id]/reactions seeded thread exposes count and viewer state", async ({
+  run,
+  commentState: { owner, db, comment },
+}) => {
+  await run(async () => {
+    const prepared = await comment({
+      reactions: { create: { userId: owner.id, type: "rocket" } },
+    });
+    const before = await db.comment.findUniqueOrThrow({
+      where: { id: prepared.id },
+      include: { reactions: true, attachments: true },
+    });
+    const response = await owner.request.get(
+      `/api/community/comments/${prepared.id}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.focusId).toBe(prepared.id);
+    expect(
+      body.thread.find((node: { id: string }) => node.id === prepared.id)
+        ?.reactions,
+    ).toEqual([{ type: "rocket", count: 1, viewerHasReacted: true }]);
+    expect(
+      await db.comment.findUniqueOrThrow({
+        where: { id: prepared.id },
+        include: { reactions: true, attachments: true },
+      }),
+    ).toEqual(before);
+    expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
   });
 });
 
 test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404", async ({
-  request,
+  run,
+  commentState: { owner, db },
 }) => {
-  await signInAsDebugUserApi(request, "/");
-
-  const response = await request.post(
-    "/api/community/comments/00000000-0000-0000-0000-000000000000/reactions",
-    { data: { type: "heart" } },
-  );
-  expect(response.status()).toBe(404);
+  await run(async () => {
+    const commentId = crypto.randomUUID();
+    const response = await owner.request.post(
+      `/api/community/comments/${commentId}/reactions`,
+      { data: { type: "heart" } },
+    );
+    expect(response.status()).toBe(404);
+    expect(await response.json()).toEqual({ error: "Not found" });
+    expect(
+      await db.comment.findUnique({ where: { id: commentId } }),
+    ).toBeNull();
+    expect(
+      await db.commentReaction.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+    expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
+  });
 });
 
-test("/api/community/comments/[id]/reactions POST 对失效评论返回 403", async ({
-  request,
+for (const status of ["deleted", "softbanned"] as const) {
+  for (const method of ["POST", "DELETE"] as const) {
+    test(`/api/community/comments/[id]/reactions ${method} 对失效评论返回 403 (${status})`, async ({
+      run,
+      commentState: { owner, db, comment },
+    }) => {
+      await run(async () => {
+        const prepared = await comment({
+          status,
+          deletedAt:
+            status === "deleted" ? new Date("2026-01-02T00:00:00Z") : null,
+          ...(method === "DELETE"
+            ? {
+                reactions: {
+                  create: { userId: owner.id, type: "heart" as const },
+                },
+              }
+            : {}),
+        });
+        const before = await db.comment.findUniqueOrThrow({
+          where: { id: prepared.id },
+          include: { reactions: true, attachments: true },
+        });
+        expect(before.reactions).toHaveLength(method === "DELETE" ? 1 : 0);
+        const path = `/api/community/comments/${prepared.id}/reactions`;
+        const response =
+          method === "POST"
+            ? await owner.request.post(path, { data: { type: "heart" } })
+            : await owner.request.delete(`${path}?type=heart`);
+        expect(response.status()).toBe(403);
+        expect(await response.json()).toEqual({ error: "Forbidden" });
+        expect(
+          await db.comment.findUniqueOrThrow({
+            where: { id: prepared.id },
+            include: { reactions: true, attachments: true },
+          }),
+        ).toEqual(before);
+        expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(
+          0,
+        );
+      });
+    });
+  }
+}
+
+test("/api/community/comments/[id]/reactions suspended actor cannot add or remove reactions", async ({
+  run,
+  commentState: { owner, other, db, comment },
 }) => {
-  await signInAsDebugUserApi(request, "/");
-  const sectionId = await resolveSeedSectionId(request);
-
-  const content = `e2e-inactive-reaction-${Date.now()}`;
-  const createResponse = await request.post("/api/community/comments", {
-    data: {
-      targetType: "section",
-      targetId: String(sectionId),
-      body: content,
-      visibility: "public",
-    },
+  await run(async () => {
+    const prepared = await comment();
+    await db.commentReaction.create({
+      data: { userId: owner.id, commentId: prepared.id, type: "heart" },
+    });
+    const reason = "Private reaction suspension";
+    await db.userSuspension.create({
+      data: { userId: owner.id, createdById: other.id, reason },
+    });
+    const before = await db.comment.findUniqueOrThrow({
+      where: { id: prepared.id },
+      include: { reactions: true },
+    });
+    for (const commentId of [prepared.id, crypto.randomUUID()]) {
+      for (const method of ["POST", "DELETE"] as const) {
+        const path = `/api/community/comments/${commentId}/reactions`;
+        const response =
+          method === "POST"
+            ? await owner.request.post(path, { data: { type: "rocket" } })
+            : await owner.request.delete(`${path}?type=heart`);
+        expect(response.status()).toBe(403);
+        expect(await response.json()).toEqual({ error: "Suspended", reason });
+        expect(
+          await db.comment.findUniqueOrThrow({
+            where: { id: prepared.id },
+            include: { reactions: true },
+          }),
+        ).toEqual(before);
+        expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(
+          0,
+        );
+      }
+    }
   });
-  expect(createResponse.status()).toBe(201);
-  const commentId = ((await createResponse.json()) as { id?: string }).id;
-  expect(commentId).toBeTruthy();
-  if (!commentId) {
-    throw new Error("Expected created comment id");
-  }
-
-  try {
-    await withE2ePrisma((prisma) =>
-      prisma.comment.update({
-        where: { id: commentId },
-        data: { deletedAt: new Date(), status: "deleted" },
-      }),
-    );
-
-    const deletedResponse = await request.post(
-      `/api/community/comments/${commentId}/reactions`,
-      { data: { type: "heart" } },
-    );
-    expect(deletedResponse.status()).toBe(403);
-
-    await withE2ePrisma((prisma) =>
-      prisma.comment.update({
-        where: { id: commentId },
-        data: { deletedAt: null, status: "softbanned" },
-      }),
-    );
-
-    const softbannedResponse = await request.post(
-      `/api/community/comments/${commentId}/reactions`,
-      { data: { type: "heart" } },
-    );
-    expect(softbannedResponse.status()).toBe(403);
-  } finally {
-    await withE2ePrisma((prisma) =>
-      prisma.comment.deleteMany({ where: { id: commentId } }),
-    );
-  }
 });
 
-test("/api/community/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
-  request,
+test("/api/community/comments/[id]/reactions DELETE missing comment succeeds without effects", async ({
+  run,
+  commentState: { owner, db },
 }) => {
-  await signInAsDebugUserApi(request, "/");
-  const sectionId = await resolveSeedSectionId(request);
-
-  const content = `e2e-inactive-reaction-delete-${Date.now()}`;
-  const createResponse = await request.post("/api/community/comments", {
-    data: {
-      targetType: "section",
-      targetId: String(sectionId),
-      body: content,
-      visibility: "public",
-    },
+  await run(async () => {
+    const commentId = crypto.randomUUID();
+    const response = await owner.request.delete(
+      `/api/community/comments/${commentId}/reactions?type=heart`,
+    );
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(
+      await db.comment.findUnique({ where: { id: commentId } }),
+    ).toBeNull();
+    expect(
+      await db.commentReaction.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+    expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
   });
-  expect(createResponse.status()).toBe(201);
-  const commentId = ((await createResponse.json()) as { id?: string }).id;
-  expect(commentId).toBeTruthy();
-  if (!commentId) {
-    throw new Error("Expected created comment id");
-  }
+});
 
-  try {
-    const reactionResponse = await request.post(
-      `/api/community/comments/${commentId}/reactions`,
-      { data: { type: "heart" } },
+test("/api/community/comments/[id]/reactions DELETE absent own reaction is idempotent and preserves another actor", async ({
+  run,
+  commentState: { owner, other, db, comment },
+}) => {
+  await run(async () => {
+    const prepared = await comment();
+    await db.commentReaction.create({
+      data: { userId: other.id, commentId: prepared.id, type: "heart" },
+    });
+    const before = await db.comment.findUniqueOrThrow({
+      where: { id: prepared.id },
+      include: { reactions: true },
+    });
+    const response = await owner.request.delete(
+      `/api/community/comments/${prepared.id}/reactions?type=heart`,
     );
-    expect(reactionResponse.status()).toBe(200);
-
-    await withE2ePrisma((prisma) =>
-      prisma.comment.update({
-        where: { id: commentId },
-        data: { deletedAt: new Date(), status: "deleted" },
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(
+      await db.comment.findUniqueOrThrow({
+        where: { id: prepared.id },
+        include: { reactions: true },
       }),
-    );
-
-    const deletedResponse = await request.delete(
-      `/api/community/comments/${commentId}/reactions?type=heart`,
-    );
-    expect(deletedResponse.status()).toBe(403);
-
-    await withE2ePrisma((prisma) =>
-      prisma.comment.update({
-        where: { id: commentId },
-        data: { deletedAt: null, status: "softbanned" },
-      }),
-    );
-
-    const softbannedResponse = await request.delete(
-      `/api/community/comments/${commentId}/reactions?type=heart`,
-    );
-    expect(softbannedResponse.status()).toBe(403);
-  } finally {
-    await withE2ePrisma((prisma) =>
-      prisma.comment.deleteMany({ where: { id: commentId } }),
-    );
-  }
+    ).toEqual(before);
+    expect(await db.auditLog.count({ where: { userId: owner.id } })).toBe(0);
+  });
 });
