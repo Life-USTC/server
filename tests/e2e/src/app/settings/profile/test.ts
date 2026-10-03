@@ -24,7 +24,10 @@ import { expect } from "@playwright/test";
 import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
 import { observeAction } from "../../../../utils/observed-action";
 
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import {
   expectSettingsPage,
@@ -119,6 +122,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         ).toMatchObject({ name: newName });
         await expect(page).toHaveURL(/\/account\/settings\/profile$/);
         await page.reload({ waitUntil: "domcontentloaded" });
+        await waitForUiSettled(page);
         await expect(page.locator("input#name")).toHaveValue(newName, {
           timeout: 10_000,
         });
@@ -141,6 +145,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         });
         await expect(page).toHaveURL(/\/account\/settings\/profile$/);
         await page.reload({ waitUntil: "domcontentloaded" });
+        await waitForUiSettled(page);
         await expect(page.locator("input#name")).toHaveValue(originalName, {
           timeout: 10_000,
         });
