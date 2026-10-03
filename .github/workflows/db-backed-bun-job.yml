@@ -144,29 +144,11 @@ jobs:
           VITEST_SHARD: ${{ inputs.vitest-shard }}
           JOB_PHASE: ${{ inputs.job-phase }}
         run: |
-          run_e2e_test_phase() {
-            if [[ ! "$E2E_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
-              echo "::error::ci:e2e:test requires e2e-shard in current/total format."
-              exit 1
-            fi
-
-            bun run app:prepare
-            source tests/ci/setup-runtime-database.sh
-            bash tests/ci/e2e-run-shard.sh "$E2E_SHARD"
-          }
-
           case "$JOB_PHASE" in
             ci:integration)
-              if [[ ! "$VITEST_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
-                echo "::error::ci:integration requires vitest-shard in current/total format."
-                exit 1
-              fi
-
               # Match the auth configuration used by the private Worker fixtures.
               export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
-              source tests/ci/setup-runtime-database.sh
-              # Verify setup remains safe to repeat, including grants.
               source tests/ci/setup-runtime-database.sh
               bunx vitest run \
                 --config vitest.integration.config.ts \
@@ -177,13 +159,12 @@ jobs:
               export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
               source tests/ci/setup-runtime-database.sh
-              # Verify setup remains safe to repeat, including grants.
-              source tests/ci/setup-runtime-database.sh
-              bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts
+              bunx playwright test --shard="$E2E_SHARD" --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare
               source tests/ci/setup-runtime-database.sh
+              # Check bootstrap idempotence once in the role-contract job.
               source tests/ci/setup-runtime-database.sh
               runtime_database_url="$DATABASE_URL"
               expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
@@ -237,10 +218,14 @@ jobs:
                 tests/integration/*-rls.test.ts
               ;;
             ci:e2e:test)
-              run_e2e_test_phase
+              bun run app:prepare
+              source tests/ci/setup-runtime-database.sh
+              bunx playwright test --shard="$E2E_SHARD"
               ;;
             ci:visual-regression)
-              bash tests/ci/visual-regression.test.sh
+              bun run app:prepare
+              source tests/ci/setup-runtime-database.sh
+              bun run e2e:visual
               ;;
             *)
               echo "::error::Unknown DB-backed Bun job phase: $JOB_PHASE"

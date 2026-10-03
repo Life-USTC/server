@@ -33,7 +33,6 @@ import {
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -43,13 +42,10 @@ test.describe("仪表盘作业", () => {
     academic,
     homeworks,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         // Switch to All to see all homeworks
         await page
@@ -84,12 +80,6 @@ test.describe("仪表盘作业", () => {
           page.locator('[data-slot="dialog-content"]').first(),
         ).toBeVisible();
         await page.keyboard.press("Escape");
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "homeworks/seed-list-fields",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -99,13 +89,10 @@ test.describe("仪表盘作业", () => {
     page,
     homeworks,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         await page
           .getByRole("radio", { name: /全部|All/i })
@@ -123,12 +110,6 @@ test.describe("仪表盘作业", () => {
             .filter({ hasText: /重要|Major|重大/i }),
         ).toBeVisible();
         await expect(hwRow.getByText(/团队|Team/i)).toBeVisible();
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "homeworks/major-team-badges",
-        );
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -138,13 +119,10 @@ test.describe("仪表盘作业", () => {
     page,
     homeworkStates,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
         await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
 
         // Completed filter
@@ -155,18 +133,11 @@ test.describe("仪表盘作业", () => {
         await completedTab.click();
         await expect(visibleText(page, homeworkStates[1].title)).toBeVisible();
         await expect(visibleText(page, homeworkStates[0].title)).toHaveCount(0);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "homeworks/filter-completed",
-        );
-
         // All filter
         const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
         await expect(allTab).toBeVisible();
         await allTab.click();
         await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
-        await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
@@ -212,13 +183,10 @@ test.describe("仪表盘作业", () => {
     academic,
     homeworks,
     homeworkRun,
-  }, testInfo) => {
+  }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, "/workspace/homeworks", {
-          testInfo,
-          screenshotLabel: "homeworks",
-        });
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         await page
           .getByRole("radio", { name: /全部|All/i })
@@ -242,7 +210,6 @@ test.describe("仪表盘作业", () => {
         await sectionLink.click();
 
         await expect(page).toHaveURL(/\/catalog\/sections\/\d+$/);
-        await captureStepScreenshot(page, testInfo, "homeworks/view-details");
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );

@@ -131,7 +131,6 @@ export const test = oauthTest.extend<{
   teachingFlow: async (
     { page, browser, request: observer, isolatedWorker, teachingTarget, run },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
@@ -141,7 +140,6 @@ export const test = oauthTest.extend<{
           observer,
           isolatedWorker,
           account: { id: teachingTarget.ownerId },
-          testInfo,
         },
         async (flow) => {
           await use({

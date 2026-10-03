@@ -14,7 +14,6 @@ import { sidebarNavigationLink } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import type { PreferenceFlow } from "../../../../utils/preference-flow";
 import { test } from "../../../../utils/public-worker";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 async function setLocale(
@@ -47,19 +46,15 @@ async function expectWorkspacePageIdentity(
   ).toHaveCount(1);
 }
 
-test("/workspace 别名需要登录", async ({ publicFlow, page }, testInfo) => {
+test("/workspace 别名需要登录", async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     await expectRequiresSignIn(page, "/workspace/homeworks");
-    await captureStepScreenshot(page, testInfo, "workspace-homeworks-unauth");
   });
 });
 
 privateTest(
   "匿名工作区重定向后仍可登录并加载标签",
-  async (
-    { page, isolatedWorker, privateLoginUser, loginFlow, run },
-    testInfo,
-  ) => {
+  async ({ page, isolatedWorker, privateLoginUser, loginFlow, run }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
       const credentials = await db.account.findMany();
@@ -82,15 +77,11 @@ privateTest(
             })
             .click();
           await expect(page).toHaveURL(/\/workspace\/homeworks$/);
-          await gotoAndWaitForReady(page, "/workspace/homeworks", {
-            testInfo,
-            screenshotLabel: "workspace-homeworks",
-          });
+          await gotoAndWaitForReady(page, "/workspace/homeworks");
           await expect(page).toHaveURL(/\/workspace\/homeworks(?:[/?#].*)?$/);
           await expect(
             sidebarNavigationLink(page, /^(作业|Homework)$/i),
           ).toHaveAttribute("aria-current", "page");
-          await captureStepScreenshot(page, testInfo, "workspace-homeworks");
         },
         { auditActions: { account_sign_in: 1 } },
         {
@@ -229,7 +220,7 @@ privateTest(
 
 privateTest(
   "页面契约",
-  async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
+  async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const viewer = await preferenceFlow.prepare(() =>
         preparePrivateViewer(page, isolatedWorker, false),
@@ -237,7 +228,6 @@ privateTest(
       await preferenceFlow.run(async () => {
         await assertPageContract(page, {
           routePath: "/workspace/overview",
-          testInfo,
         });
       });
       await expectPrivateViewerState(isolatedWorker.database.owner, viewer, []);
@@ -247,13 +237,13 @@ privateTest(
 
 privateTest(
   "页面契约 /workspace",
-  async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
+  async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const viewer = await preferenceFlow.prepare(() =>
         preparePrivateViewer(page, isolatedWorker, false),
       );
       await preferenceFlow.run(async () => {
-        await assertPageContract(page, { routePath: "/workspace", testInfo });
+        await assertPageContract(page, { routePath: "/workspace" });
       });
       await expectPrivateViewerState(isolatedWorker.database.owner, viewer, []);
     });

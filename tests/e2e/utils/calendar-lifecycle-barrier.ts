@@ -67,7 +67,7 @@ export async function calendarLifecycleBarrier(database: IsolatedDatabase) {
     get releaseRequested() {
       return releaseRequested;
     },
-    async blockRead(userId: string, todoId: string) {
+    async blockRead(userId: string, todoId: string, failAfterRelease: boolean) {
       const appRole = identifier(
         decodeURIComponent(new URL(database.connections.app).username),
       );
@@ -82,6 +82,7 @@ export async function calendarLifecycleBarrier(database: IsolatedDatabase) {
             IF nextval('calendar_lifecycle.first_read') = 1 THEN
               PERFORM set_config('application_name', ${literal(marker)}, true);
               PERFORM pg_advisory_xact_lock(${namespace}, ${key});
+              ${failAfterRelease ? "RAISE EXCEPTION 'Native calendar read failed after lifecycle release';" : ""}
             END IF;
           END IF;
           RETURN true;

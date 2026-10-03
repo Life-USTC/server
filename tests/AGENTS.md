@@ -13,6 +13,9 @@ when changing behavior: `$life-ustc-implement`.
 
 CI static checks, unit coverage, integration shards, RLS, and the application
 build start independently. REST and browser jobs consume that single build.
+Local `e2e:test` and `rest:test` invoke Playwright directly after database setup
+and a build (see root `AGENTS.md`). Browser HTML reports and failure artifacts
+are under `playwright-report/`; local parallel shards use separate subdirectories.
 Coverage reports measure unit execution of `src/**/*.ts`; database and browser
 tests separately verify real permissions and transport behavior. Keep every
 layer enabled when changing orchestration.

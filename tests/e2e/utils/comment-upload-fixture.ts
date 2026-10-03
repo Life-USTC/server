@@ -88,10 +88,9 @@ export const test = storageTest.extend<{
   commentFlow: async (
     { page, browser, request, isolatedWorker, account },
     use,
-    testInfo,
   ) => {
     await withCommunityFlow(
-      { page, browser, observer: request, isolatedWorker, account, testInfo },
+      { page, browser, observer: request, isolatedWorker, account },
       use,
     );
   },

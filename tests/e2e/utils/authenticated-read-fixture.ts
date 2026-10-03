@@ -32,7 +32,6 @@ export const test = preferenceTest.extend<{
   loginFlow: async (
     { page, browser, request: observer, isolatedWorker, privateLoginUser, run },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
@@ -42,7 +41,6 @@ export const test = preferenceTest.extend<{
           observer,
           isolatedWorker,
           account: privateLoginUser,
-          testInfo,
         },
         use,
       ),

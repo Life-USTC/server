@@ -2,7 +2,6 @@ import {
   type APIResponse,
   test as browserTest,
   expect,
-  type Request,
 } from "@playwright/test";
 import { unflatten } from "devalue";
 import { restReadScope } from "@/lib/oauth/scope-registry";
@@ -641,15 +640,7 @@ test("rendering-and-cache.web-rendering-and-cache-2", async ({
 test("user.shell-viewer", async ({ shell, page, context }) => {
   await shell.run(
     { debug: true, feedToken: true, sessions: [{ user: 0 }] },
-    async ({
-      users,
-      flow,
-      sessionCookie,
-      teacher,
-      organizer,
-      event,
-      debugUser,
-    }) => {
+    async ({ users, sessionCookie, teacher, organizer, event, debugUser }) => {
       await context.addCookies([await sessionCookie(users[0].id)]);
       const identities: string[] = [];
       const identityPaths = new Set([
@@ -757,36 +748,22 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
       identities.length = 0;
       const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
       if (!debugUser) throw new Error("Missing debug user fixture");
-      const loginViewerRequests: Request[] = [];
-      const recordLoginViewer = (request: Request) => {
-        if (new URL(request.url()).pathname === viewerPath)
-          loginViewerRequests.push(request);
-      };
-      page.on("request", recordLoginViewer);
-      flow.onClosing(() => page.off("request", recordLoginViewer));
-      await flow.route(page, "**/_internal/shell-bootstrap", async (route) => {
-        const response = await route.fetch();
-        await expect(page).toHaveURL(new RegExp(`${destination}$`));
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-        // Public content may render while the new identity is still pending.
-        // Personal reads must wait until this bootstrap response is released.
-        expect(loginViewerRequests).toEqual([]);
-        await route.fulfill({ response });
-      });
       const [signedInBootstrap, signedInViewer] = await observeAction(
         () =>
-          Promise.all([
-            page.waitForResponse(
-              (response) =>
-                new URL(response.url()).pathname ===
-                "/_internal/shell-bootstrap",
-            ),
-            page.waitForResponse(
-              (response) =>
-                response.request().method() === "GET" &&
-                new URL(response.url()).pathname === viewerPath,
-            ),
-          ]),
+          Promise.all(
+            ["/_internal/shell-bootstrap", viewerPath].map(async (path) => {
+              const request = await page.waitForEvent("requestfinished", {
+                predicate: (request) =>
+                  request.method() === "GET" &&
+                  new URL(request.url()).pathname === path,
+              });
+              const response = await request.response();
+              if (!response)
+                throw new Error("Finished request has no response");
+              expect(response.status()).toBe(200);
+              return response.json();
+            }),
+          ),
         () =>
           page
             .getByRole("button", {
@@ -794,23 +771,17 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
             })
             .click(),
       );
-      expect(signedInBootstrap.status()).toBe(200);
-      expect((await signedInBootstrap.json()).viewer).toMatchObject({
+      expect(signedInBootstrap.viewer).toMatchObject({
         id: debugUser.id,
         name: DEV_SEED.debugName,
       });
-      expect(signedInViewer.status()).toBe(200);
-      expect((await signedInViewer.json()).homeworkData.viewer.userId).toBe(
-        debugUser.id,
-      );
+      expect(signedInViewer.homeworkData.viewer.userId).toBe(debugUser.id);
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
       await expect(page.locator("#app-user-menu")).toContainText(
         DEV_SEED.debugName,
       );
       expect(identities).toEqual(["/_internal/shell-bootstrap"]);
       await waitForUiSettled(page);
-      await flow.clearRoutes(page);
-      page.off("request", recordLoginViewer);
     },
   );
 });

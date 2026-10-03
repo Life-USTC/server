@@ -4,13 +4,12 @@ import {
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
 import { test } from "../../../utils/publication-fixture";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/news 新闻与通知预览", () => {
-  test("页面契约", async ({ browseRun, page }, testInfo) => {
+  test("页面契约", async ({ browseRun, page }) => {
     await browseRun(async () => {
-      await assertPageContract(page, { routePath: "/news", testInfo });
+      await assertPageContract(page, { routePath: "/news" });
     });
   });
 
@@ -18,12 +17,11 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
       await gotoAndWaitForReady(
         page,
         `/news?source=${encodeURIComponent(fixture.sourceId)}`,
-        { testInfo, screenshotLabel: "news-source-filter" },
       );
 
       await expect(
@@ -117,12 +115,11 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
       await gotoAndWaitForReady(
         page,
         `/news?source=${encodeURIComponent(fixture.sourceId)}&page=2`,
-        { testInfo },
       );
       await page
         .getByRole("searchbox", { name: /^(搜索|Search)$/i })
@@ -205,12 +202,9 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
-      await gotoAndWaitForReady(page, "/news?organizationLevel=office", {
-        testInfo,
-        screenshotLabel: "news-organization-level-filter",
-      });
+      await gotoAndWaitForReady(page, "/news?organizationLevel=office");
 
       // An office-level filter keeps the office source's notices and drops the
       // university-level fixture entirely.
@@ -250,13 +244,10 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
       const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
-      await gotoAndWaitForReady(page, `/news?${sourceQuery}`, {
-        testInfo,
-        screenshotLabel: "news-pagination-first-page",
-      });
+      await gotoAndWaitForReady(page, `/news?${sourceQuery}`);
 
       await expect(
         page
@@ -314,10 +305,10 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
       const listHref = `/news?type=news&source=${encodeURIComponent(fixture.sourceId)}&page=2`;
-      await gotoAndWaitForReady(page, listHref, { testInfo });
+      await gotoAndWaitForReady(page, listHref);
       const article = page
         .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
         .getByRole("heading")
@@ -444,13 +435,12 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(
         page,
         `/news?source=${encodeURIComponent(fixture.sourceId)}`,
-        { testInfo },
       );
       const firstArticle = page.getByRole("link", {
         name: fixture.title,
@@ -468,13 +458,10 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
       const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
-      await gotoAndWaitForReady(page, `/news?${sourceQuery}&page=9999`, {
-        testInfo,
-        screenshotLabel: "news-pagination-overflow",
-      });
+      await gotoAndWaitForReady(page, `/news?${sourceQuery}&page=9999`);
 
       await expect(page).toHaveURL(
         new RegExp(`/news\\?${sourceQuery}&page=2$`),
@@ -494,12 +481,9 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
-      await gotoAndWaitForReady(page, `/news/${fixture.id}`, {
-        testInfo,
-        screenshotLabel: "news-detail",
-      });
+      await gotoAndWaitForReady(page, `/news/${fixture.id}`);
 
       await expect(
         page.getByRole("heading", { name: fixture.title }),
@@ -549,7 +533,6 @@ test.describe("/news 新闻与通知预览", () => {
           name: /^(图片|Images|媒体|Media|附件|Attachments)$/i,
         }),
       ).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "news-inline-markdown");
     });
   });
 
@@ -585,13 +568,11 @@ test.describe("/news 新闻与通知预览", () => {
     browseRun,
     page,
     publication: fixture,
-  }, testInfo) => {
+  }) => {
     await browseRun(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, `/news/${fixture.id}`, {
-        testInfo,
         expectNoHorizontalOverflow: true,
-        screenshotLabel: "news-detail-mobile",
       });
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(
@@ -627,7 +608,6 @@ test.describe("/news 新闻与通知预览", () => {
         await expectNoPageHorizontalOverflow(page);
         await summary.click();
       }
-      await captureStepScreenshot(page, testInfo, "news-detail-mobile");
     });
   });
 

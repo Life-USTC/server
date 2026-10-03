@@ -72,9 +72,12 @@ bun run build && bun run rest:test
 # Parallel integration: provisions and cleans up four isolated databases
 bun run integration:test:parallel
 
-# E2E — prepares schema and roles once; each case owns its database and Worker
-ALLOW_TEST_DATABASE_SETUP=true bun run e2e:test
-# FUNCTION_OWNER_DATABASE_URL must still identify the disposable test database.
+# E2E — each case owns its database and Worker
+# Use the disposable FUNCTION_OWNER_DATABASE_URL and setup flags above.
+source tests/ci/setup-runtime-database.sh
+bun run build
+bun run e2e:test
+# Native Playwright filters/options also work, e.g. bun run e2e:test --project=chromium
 
 docker compose -f docker-compose.dev.yml down
 ```

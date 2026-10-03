@@ -8,11 +8,7 @@ type Run = (work: () => Promise<void>) => Promise<void>;
 
 /** Navigation checks own their page, real writes and deferred Worker reads. */
 export const test = workerTest.extend<{ navigationRun: Run }>({
-  navigationRun: async (
-    { page, request, isolatedWorker, run },
-    use,
-    testInfo,
-  ) => {
+  navigationRun: async ({ page, request, isolatedWorker, run }, use) => {
     await run(() =>
       withBrowserWorkflow(page, async (workflow) => {
         await use((work) =>
@@ -119,17 +115,6 @@ export const test = workerTest.extend<{ navigationRun: Run }>({
                   });
                   expect(response.status()).toBe(200);
                   const producer = await response.json();
-                  await testInfo.attach("navigation-effects", {
-                    contentType: "application/json",
-                    body: JSON.stringify({
-                      database: isolatedWorker.database.name,
-                      origin,
-                      producer,
-                      reads: reads.reads,
-                      retiredReads: reads.retiredReads,
-                      errors: errors.map(String),
-                    }),
-                  });
                   expect(producer.backgroundErrors).toEqual([]);
                   expect(producer.requests.length).toBeGreaterThan(0);
                   for (const completed of producer.requests) {

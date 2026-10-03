@@ -4,7 +4,6 @@
 import { expect, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/personal-preferences-fixture";
-import { capturePageScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
@@ -21,11 +20,10 @@ async function waitForSectionsReference(page: Page) {
 }
 
 test.describe("/api/docs 页面", () => {
-  test("接口契约", async ({ page, preferenceFlow }, testInfo) => {
+  test("接口契约", async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/api/docs/tag/catalog-section",
-        testInfo,
       });
     });
   });
@@ -42,7 +40,7 @@ test.describe("/api/docs 页面", () => {
   test("openapi.api-docs-mobile-navigation", async ({
     page,
     preferenceFlow,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await setLocale(page, "zh-cn");
@@ -74,10 +72,6 @@ test.describe("/api/docs 页面", () => {
       );
       expect(initialMetrics.viewportHeight).toBe(844);
       expect(initialMetrics.hasBodyOverflow).toBe(false);
-      await capturePageScreenshot(page, testInfo, {
-        url: "api-docs/mobile-reference",
-      });
-
       await mobileTrigger.click();
       const panel = page.getByTestId("api-docs-mobile-navigation-panel");
       await expect(panel).toBeVisible();
@@ -100,10 +94,6 @@ test.describe("/api/docs 页面", () => {
           panel.evaluate((element) => getComputedStyle(element).overflowY),
         )
         .toBe("auto");
-      await capturePageScreenshot(page, testInfo, {
-        url: "api-docs/mobile-navigation",
-      });
-
       await page.keyboard.press("Escape");
       await expect(panel).toBeHidden();
       await expect(mobileTrigger).toBeFocused();
@@ -128,16 +118,13 @@ test.describe("/api/docs 页面", () => {
       ).toHaveAttribute("aria-current", "page");
       await page.keyboard.press("Escape");
       await expect(panel).toBeHidden();
-      await capturePageScreenshot(page, testInfo, {
-        url: "api-docs/mobile-operation-reference",
-      });
     });
   });
 
   test("openapi.api-docs-desktop-navigation", async ({
     page,
     preferenceFlow,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 1280, height: 800 });
       await setLocale(page, "en-us");
@@ -165,9 +152,6 @@ test.describe("/api/docs 页面", () => {
       expect(
         await sidebar.evaluate((element) => getComputedStyle(element).position),
       ).toBe("sticky");
-      await capturePageScreenshot(page, testInfo, {
-        url: "api-docs/desktop-navigation",
-      });
     });
   });
 
@@ -202,8 +186,8 @@ test.describe("/api-docs 页面", () => {
   });
 });
 
-test("页面契约 /api/docs", async ({ page, preferenceFlow }, testInfo) => {
+test("页面契约 /api/docs", async ({ page, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
-    await assertPageContract(page, { routePath: "/api/docs", testInfo });
+    await assertPageContract(page, { routePath: "/api/docs" });
   });
 });

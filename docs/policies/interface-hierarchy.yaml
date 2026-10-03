@@ -210,11 +210,10 @@ requirements:
     are upstream JW IDs; teacher detail keys are database IDs. Only declared shared filters and ordering
     controls participate in this equivalence; transport-specific inputs and defaults remain explicit.
   acceptance:
-    given: Course, section and teacher each have an independent case with a private Worker and database.
-      Every case arranges its own catalog containing distinct row/JW IDs, multiple courses, sections,
-      teachers and filter relationships, and seeds tied rows and dependencies for its resource. No case depends
-      on state prepared by another.
-    when: Actual REST, GraphQL and MCP reads apply equivalent explicit common filters, pages and supported Section search ordering.
+    given: Independent course, teacher and section consumer cases each own a private Worker and catalog
+      database with distinct row/JW IDs and the filter relationships required by that resource.
+    when: The referenced test group runs each resource through actual REST, GraphQL and MCP reads
+      with equivalent explicit common filters, pages and supported Section search ordering.
     then:
     - All three transports return the same ordered IDs and matching total on every page, including empty results and reverse-inserted rows with tied primary sort keys.
     - Equivalent detail keys resolve the same entity; row IDs are never silently substituted for course or section JW IDs.
@@ -406,8 +405,8 @@ requirements:
   acceptance:
     given: An isolated database has events and organizers inserted in reverse order under tied sort keys,
       independent source-active flags, both time bases and missing dates, accessed by the restricted app role.
-      Four independent cases each arrange that complete fixture and own the search/active ordering, taxonomy
-      and organizer filters, date semantics, or organizer reads respectively.
+      Three independent cases each arrange that complete fixture for event search/taxonomy filters,
+      event date semantics, or organizer search/ordering respectively.
     when: Real REST handlers, the actual Yoga request handler and native MCP JSON-RPC handlers combine
       category, module, level, search, organizer, date and unknown-date filters and exhaust two-item pages.
     then:
@@ -416,7 +415,7 @@ requirements:
     - Both date bases retain Shanghai overlap boundaries and missing-date records without guessing times.
     test:
       file: tests/integration/rest/protocol-contracts/young-public-semantic-parity.test.ts
-      name: interface-hierarchy.young-public-read-parity
+      name: Young event search and taxonomy consumers
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity

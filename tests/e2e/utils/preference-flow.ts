@@ -8,7 +8,6 @@ import {
   type Request,
   type Response,
   type Route,
-  type TestInfo,
 } from "@playwright/test";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
@@ -55,13 +54,11 @@ export async function withPreferenceFlow(
     browser,
     observer,
     isolatedWorker,
-    testInfo,
   }: {
     page: Page;
     browser: Browser;
     observer: APIRequestContext;
     isolatedWorker: IsolatedWorker;
-    testInfo: TestInfo;
   },
   use: (flow: PreferenceFlow) => Promise<void>,
 ) {
@@ -87,8 +84,6 @@ export async function withPreferenceFlow(
     match: RouteMatch;
     handler: (route: Route) => Promise<void>;
   }[] = [];
-  const writes: { path: string; method: string; status: number }[] = [];
-  const controlled: { path: string; method: string; complete: boolean }[] = [];
   const errors: unknown[] = [];
   let closing = false;
   let registered = false;
@@ -229,11 +224,6 @@ export async function withPreferenceFlow(
             const response = await route.fetch({ maxRedirects: 0 });
             // Retain the real status and body, including intentional 400/500 cases.
             await response.body();
-            writes.push({
-              path,
-              method: request.method(),
-              status: response.status(),
-            });
             await route.fulfill({ response });
           } catch (error) {
             remember(error);
@@ -314,14 +304,11 @@ export async function withPreferenceFlow(
         reader.stop();
         for (const error of reader.errors) remember(error);
       }
-      let producer: unknown;
-      let after: Awaited<ReturnType<typeof state>> | undefined;
       if (registered) {
         try {
           const response = await observer.get(probePath, { headers: secret });
           expect(response.status()).toBe(200);
           const observation = await response.json();
-          producer = observation;
           expect(observation.backgroundErrors).toEqual([]);
           expect(observation.messages).toEqual([]);
           expect(observation.purges).toEqual([]);
@@ -329,8 +316,13 @@ export async function withPreferenceFlow(
           for (const request of observation.requests) {
             expect(request.outcome).toBe("fulfilled");
             expect(request.result).toEqual(expect.any(Number));
+            if (["GET", "HEAD"].includes(request.value.method))
+              expect(
+                request.result,
+                `Worker read ${request.value.method} ${request.value.path}`,
+              ).toBeLessThan(500);
           }
-          after = await state();
+          const after = await state();
           if (before && completed) {
             if (mode !== "pins") expect(after.pins).toEqual(before.pins);
             if (mode !== "bus") expect(after.bus).toEqual(before.bus);
@@ -346,33 +338,6 @@ export async function withPreferenceFlow(
         } catch (error) {
           remember(error);
         }
-      }
-      try {
-        await testInfo.attach("preference-workflow-effects", {
-          contentType: "application/json",
-          body: JSON.stringify({
-            database: isolatedWorker.database.name,
-            origin,
-            mode,
-            completed,
-            before,
-            after,
-            producer,
-            writes,
-            controlled,
-            browsers: [...readers.values()].map((reader) => ({
-              reads: reader.reads,
-              retiredReads: reader.retiredReads,
-              canceledReads: reader.canceledReads,
-              blockedReads: reader.blockedReads,
-              navigationCommits: reader.navigationCommits,
-              errors: reader.errors.map(String),
-            })),
-            errors: errors.map(String),
-          }),
-        });
-      } catch (error) {
-        remember(error);
       }
     })();
     return finalization;
@@ -491,19 +456,12 @@ export async function withPreferenceFlow(
               const admitted = admittedRequests.has(request) || !closing;
               if (admitted) admittedRequests.add(request);
               return own(async () => {
-                const record = {
-                  path: new URL(route.request().url()).pathname,
-                  method: route.request().method(),
-                  complete: false,
-                };
-                controlled.push(record);
                 try {
                   if (!admitted)
                     throw new Error(
                       "Controlled preference request began during closing",
                     );
                   await handler(route);
-                  record.complete = true;
                 } catch (error) {
                   remember(error);
                   try {

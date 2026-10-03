@@ -12,7 +12,6 @@ import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 async function createClient(
   db: TestPrismaClient,
@@ -119,22 +118,20 @@ async function readClientSecret(
   return expectSecret ? value : undefined;
 }
 
-test("/admin/oauth 未登录重定向到登录页", async ({ page }, testInfo) => {
+test("/admin/oauth 未登录重定向到登录页", async ({ page }) => {
   await expectRequiresSignIn(page, "/admin/oauth");
-  await captureStepScreenshot(page, testInfo, "admin-oauth-unauthorized");
 });
 
 test("/admin/oauth 普通用户访问返回 403", async ({
   pageRun,
   page,
   account: _account,
-}, testInfo) => {
+}) => {
   await pageRun(
     async () => {
       await gotoAndWaitForReady(page, "/admin/oauth");
       await expect(page.getByText("403").first()).toBeVisible();
       await expect(page.getByText("Forbidden").first()).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "admin-oauth-403");
     },
     async () => {
       throw new Error("Read-only authorization case submitted a browser write");
@@ -148,7 +145,7 @@ test("oauth.client-authentication-inventory", async ({
   page,
   isolatedWorker,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -271,8 +268,6 @@ test("oauth.client-authentication-inventory", async ({
           await expect(page.getByText(secret, { exact: true })).toHaveCount(0);
         }
         await expectNoPageHorizontalOverflow(page);
-
-        await captureStepScreenshot(page, testInfo, "admin-oauth/simple-table");
       },
       { auditActions: { admin_oauth_client_create: 3 } },
       adminWriteChecks([
@@ -290,7 +285,7 @@ test("/admin/oauth 显示 disabled 客户端并确认删除", async ({
   page,
   isolatedWorker,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -337,11 +332,6 @@ test("/admin/oauth 显示 disabled 客户端并确认删除", async ({
             where: { id: client.id },
           }),
         ).toBeNull();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-oauth/disabled-delete",
-        );
       },
       { auditActions: { admin_oauth_client_delete: 1 } },
       adminWriteChecks([["POST", "/admin/oauth", 200]]),
@@ -355,7 +345,7 @@ test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完�
   page,
   isolatedWorker,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -431,11 +421,6 @@ test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完�
         expect(
           Math.abs((longBox?.height ?? 0) - (shortBox?.height ?? 0)),
         ).toBeLessThan(1);
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "admin-oauth/table-overflow",
-        );
       },
       {},
       adminWriteChecks([]),
@@ -449,7 +434,7 @@ test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async (
   page,
   isolatedWorker,
   admin: _admin,
-}, testInfo) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -479,8 +464,6 @@ test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async (
           item.getByRole("button", { name: /删除|Delete/i }),
         ).toBeVisible();
         await expectNoPageHorizontalOverflow(page);
-
-        await captureStepScreenshot(page, testInfo, "admin-oauth/mobile-list");
       },
       {},
       adminWriteChecks([]),
@@ -488,7 +471,7 @@ test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async (
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, admin: _admin }, testInfo) => {
+test("页面契约", async ({ adminFlow, run, page, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -497,7 +480,6 @@ test("页面契约", async ({ adminFlow, run, page, admin: _admin }, testInfo) =
           expectMeaningfulContent: true,
           expectNoHorizontalOverflow: true,
           uiQuality: {},
-          testInfo,
         });
         expect(response?.ok()).toBe(true);
         await expect(page.locator("#main-content")).toBeVisible();

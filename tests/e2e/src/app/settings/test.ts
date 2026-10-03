@@ -19,22 +19,16 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { expectSettingsPage, test } from "../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings 设置中心", () => {
-  test("需要登录", async ({ page }, testInfo) => {
+  test("需要登录", async ({ page }) => {
     await expectRequiresSignIn(page, "/account/settings");
-    await captureStepScreenshot(page, testInfo, "settings-unauthorized");
   });
 
-  test("ui.settings-navigation-2", async ({
-    accountRun,
-    page,
-    account,
-  }, testInfo) => {
+  test("ui.settings-navigation-2", async ({ accountRun, page, account }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings");
 
@@ -44,7 +38,6 @@ test.describe("/account/settings 设置中心", () => {
         account.username ?? "",
       );
       await expect(page.locator("footer")).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "settings-default-profile");
     });
   });
 
@@ -52,7 +45,7 @@ test.describe("/account/settings 设置中心", () => {
     accountRun,
     page,
     account: _account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.setViewportSize({ width: 1280, height: 900 });
       await gotoAndWaitForReady(page, "/account/settings");
@@ -71,12 +64,6 @@ test.describe("/account/settings 设置中心", () => {
       const sidebarBox = await sidebar.boundingBox();
       const panelBox = await activePanel.boundingBox();
       expect(sidebarBox?.x).toBeLessThan(panelBox?.x ?? 0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-responsive-desktop",
-      );
-
       await back.click();
       await page.waitForURL(/\/(?:workspace\/overview)?(?:\?.*)?$/);
       await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
@@ -96,7 +83,6 @@ test.describe("/account/settings 设置中心", () => {
       await expect(
         mobileSidebar.getByRole("link", { name: /危险操作|Danger zone/i }),
       ).toHaveAttribute("aria-current", "page");
-      await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
     });
   });
 
@@ -123,11 +109,7 @@ test.describe("/account/settings 设置中心", () => {
     });
   });
 
-  test("标签导航切换分区", async ({
-    accountRun,
-    page,
-    account: _account,
-  }, testInfo) => {
+  test("标签导航切换分区", async ({ accountRun, page, account: _account }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings");
 
@@ -139,8 +121,6 @@ test.describe("/account/settings 设置中心", () => {
       await accountsTab.click();
       await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
       await expect(page.getByText("GitHub").first()).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
-
       // Navigate to danger tab
       const dangerTab = page.getByRole("link", {
         name: /危险操作|Danger zone/i,
@@ -155,8 +135,6 @@ test.describe("/account/settings 设置中心", () => {
         page.getByRole("heading", { name: /删除账户|Delete Account/i }),
       ).toBeVisible();
       await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-danger-tab");
-
       // Navigate back to profile tab
       const profileTab = page.getByRole("link", {
         name: /个人资料|Profile/i,
@@ -165,7 +143,6 @@ test.describe("/account/settings 设置中心", () => {
       await profileTab.click();
       await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
       await expect(page.locator("input#name")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-profile-tab");
     });
   });
 
@@ -173,7 +150,7 @@ test.describe("/account/settings 设置中心", () => {
     accountRun,
     page,
     account: _account,
-  }, testInfo) => {
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings/accounts");
       await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
@@ -186,14 +163,13 @@ test.describe("/account/settings 设置中心", () => {
 
       await gotoAndWaitForReady(page, "/account/settings/profile");
       await expect(page.locator("input#name")).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-path-profile");
     });
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }, testInfo) => {
+test("页面契约", async ({ accountRun, page, account: _account }) => {
   await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings", testInfo);
+    await expectSettingsPage(page, "/account/settings");
     for (const name of [
       /个人资料|Profile/i,
       /账号关联|Accounts/i,

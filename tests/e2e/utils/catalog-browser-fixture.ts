@@ -34,11 +34,10 @@ export const test = workerTest.extend<{
   catalogFlow: async (
     { page, browser, request: observer, isolatedWorker, run },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
-        { page, browser, observer, isolatedWorker, account: null, testInfo },
+        { page, browser, observer, isolatedWorker, account: null },
         use,
       ),
     );
@@ -54,11 +53,10 @@ export const test = workerTest.extend<{
       run,
     },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withCommunityFlow(
-        { page, browser, observer, isolatedWorker, account, testInfo },
+        { page, browser, observer, isolatedWorker, account },
         async (flow) => {
           await use({
             run: (work, expected) =>

@@ -14,11 +14,10 @@ export const test = workerTest.extend<{
   preferenceFlow: async (
     { page, browser, request, isolatedWorker, run },
     use,
-    testInfo,
   ) => {
     await run(() =>
       withPreferenceFlow(
-        { page, browser, observer: request, isolatedWorker, testInfo },
+        { page, browser, observer: request, isolatedWorker },
         use,
       ),
     );

@@ -281,7 +281,6 @@ export const test = ownedTest.extend<{
   shell: async (
     { isolatedWorker, page, browser, request: observer, run },
     use,
-    testInfo,
   ) => {
     const db = isolatedWorker.database.owner;
     const origin = isolatedWorker.origin;
@@ -296,7 +295,6 @@ export const test = ownedTest.extend<{
           observer,
           isolatedWorker,
           account: { id: actorId },
-          testInfo,
         },
         async (flow) => {
           await use({

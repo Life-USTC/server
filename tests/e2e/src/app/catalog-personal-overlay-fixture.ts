@@ -294,7 +294,6 @@ export const test = ownedTest.extend<{
   overlay: async (
     { isolatedWorker, page, browser, request: observer, run },
     use,
-    testInfo,
   ) => {
     const db = isolatedWorker.database.owner;
     const userId = crypto.randomUUID();
@@ -306,7 +305,6 @@ export const test = ownedTest.extend<{
           observer,
           isolatedWorker,
           account: { id: userId },
-          testInfo,
         },
         async (flow) => {
           await use({
@@ -336,17 +334,24 @@ export const test = ownedTest.extend<{
                   // Signing in on the section destination reads its viewer.
                   // Observe that actual read alongside the work and require it
                   // to complete successfully.
-                  const viewerResponse = await observeAction(
-                    () =>
-                      page.waitForResponse(
-                        (response) =>
-                          response.request().method() === "GET" &&
-                          new URL(response.url()).pathname === viewerPath,
-                      ),
+                  await observeAction(
+                    async () => {
+                      const request = await page.waitForEvent(
+                        "requestfinished",
+                        {
+                          predicate: (request) =>
+                            request.method() === "GET" &&
+                            new URL(request.url()).pathname === viewerPath,
+                        },
+                      );
+                      const response = await request.response();
+                      if (!response)
+                        throw new Error("Finished request has no response");
+                      expect(response.status()).toBe(200);
+                      await response.body();
+                    },
                     () => work(flow),
                   );
-                  expect(viewerResponse.status()).toBe(200);
-                  await viewerResponse.body();
                 },
                 { auditActions: { account_sign_in: 1 } },
                 {

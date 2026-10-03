@@ -10,7 +10,6 @@ import {
   busTest as test,
 } from "../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../utils/request-url";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 async function setLocale(
@@ -123,12 +122,9 @@ test.describe("校车面板标签页", () => {
     );
   });
 
-  test("bus.public-no-signin", async ({ preferenceFlow, page }, testInfo) => {
+  test("bus.public-no-signin", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
-      const response = await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus-public-route",
-      });
+      const response = await gotoAndWaitForReady(page, "/catalog/bus");
 
       expect(response?.status()).toBe(200);
       await expect(page).toHaveURL(/\/bus$/);
@@ -159,15 +155,9 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.public-responsive-planner", async ({
-    preferenceFlow,
-    page,
-  }, testInfo) => {
+  test("bus.public-responsive-planner", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
 
       const summary = page.getByTestId("bus-compact-summary");
       await expect(summary).toBeHidden();
@@ -208,7 +198,6 @@ test.describe("校车面板标签页", () => {
         throw new Error("Missing desktop planner geometry");
       expect(table.x).toBeGreaterThanOrEqual(controls.x + controls.width);
       expect(await page.locator("tbody tr:visible").count()).toBeGreaterThan(0);
-      await captureStepScreenshot(page, testInfo, "bus-planner-public");
     }, "consume");
   });
 
@@ -217,7 +206,7 @@ test.describe("校车面板标签页", () => {
     page,
     baseURL,
     account: _account,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       const sessionCookies = await page.context().cookies();
       await page.context().clearCookies();
@@ -230,12 +219,6 @@ test.describe("校车面板标签页", () => {
       await expect(
         page.getByText("Static Structured Bus Timetable", { exact: true }),
       ).toHaveCount(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "bus-version-label-zh-public",
-      );
-
       await page.context().addCookies(sessionCookies);
       await setLocale(page, baseURL, "zh-cn");
       await gotoAndWaitForReady(page, "/catalog/bus");
@@ -304,16 +287,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.mobile-full-timetable", async ({
-    preferenceFlow,
-    page,
-  }, testInfo) => {
+  test("bus.mobile-full-timetable", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus-mobile",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
 
       const summary = page.getByTestId("bus-compact-summary");
       await expect(summary).toBeVisible();
@@ -345,20 +322,15 @@ test.describe("校车面板标签页", () => {
       ).toBeHidden();
       await expect(summary).toContainText(/东区\s*→\s*南区/);
       await openFullTimetable(page);
-
-      await captureStepScreenshot(page, testInfo, "bus-planner-public-mobile");
     }, "consume");
   });
 
   test("默认站点对按下一班可用校车排序显示所有适用线路", async ({
     preferenceFlow,
     page,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
 
       await openFullTimetable(page);
       // Seed stop-pair yields two primary routes; additional applicable routes
@@ -376,15 +348,9 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("反向交换方向并重新计算适用线路", async ({
-    preferenceFlow,
-    page,
-  }, testInfo) => {
+  test("反向交换方向并重新计算适用线路", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
 
       await openRouteControls(page);
       await openFullTimetable(page);
@@ -414,20 +380,12 @@ test.describe("校车面板标签页", () => {
       await expect(routeSectionRows(page).first()).toContainText(
         /高新\s*→\s*先研院\s*→\s*西区\s*→\s*东区/,
       );
-
-      await captureStepScreenshot(page, testInfo, "bus-planner-reverse");
     }, "consume");
   });
 
-  test("选择东区到南区缩小为直达线路", async ({
-    preferenceFlow,
-    page,
-  }, testInfo) => {
+  test("选择东区到南区缩小为直达线路", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
 
       await openRouteControls(page);
       await openFullTimetable(page);
@@ -441,15 +399,9 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("已发车切换保持时刻表可见且可切换", async ({
-    preferenceFlow,
-    page,
-  }, testInfo) => {
+  test("已发车切换保持时刻表可见且可切换", async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
 
       await openRouteControls(page);
       await openFullTimetable(page);
@@ -470,12 +422,9 @@ test.describe("校车面板标签页", () => {
   test("工作日/周日切换更新所选线路时刻表", async ({
     preferenceFlow,
     page,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
 
       await openRouteControls(page);
       await openFullTimetable(page);
@@ -498,8 +447,6 @@ test.describe("校车面板标签页", () => {
       const sundayRows = await page.locator("tbody tr:visible").count();
       expect(sundayRows).toBeGreaterThan(0);
       expect(sundayRows).not.toBe(weekdayRows);
-
-      await captureStepScreenshot(page, testInfo, "bus-planner-daytype");
     }, "consume");
   });
 
@@ -568,7 +515,7 @@ test.describe("校车面板标签页", () => {
     page,
     busPreferences,
     isolatedWorker,
-  }, testInfo) => {
+  }) => {
     await preferenceFlow.run(async () => {
       const db = isolatedWorker.database.owner;
       expect(await storedBusPreference(db, busPreferences.id)).toEqual({
@@ -576,10 +523,7 @@ test.describe("校车面板标签页", () => {
         preferredDestinationCampusId: null,
         showDepartedTrips: false,
       });
-      await gotoAndWaitForReady(page, "/catalog/bus", {
-        testInfo,
-        screenshotLabel: "bus",
-      });
+      await gotoAndWaitForReady(page, "/catalog/bus");
       await openRouteControls(page);
       const departedToggle = page.getByRole("switch", {
         name: /Show departed trips|显示已发车班次/,
@@ -629,8 +573,6 @@ test.describe("校车面板标签页", () => {
       await expect
         .poll(() => storedBusPreference(db, busPreferences.id))
         .toEqual(expected);
-      await captureStepScreenshot(page, testInfo, "bus-planner-autosave");
-
       await page.reload({ waitUntil: "domcontentloaded" });
       await waitForUiSettled(page);
       await openRouteControls(page);
@@ -645,8 +587,8 @@ test.describe("校车面板标签页", () => {
   });
 });
 
-test("页面契约", async ({ preferenceFlow, page }, testInfo) => {
+test("页面契约", async ({ preferenceFlow, page }) => {
   await preferenceFlow.run(async () => {
-    await assertPageContract(page, { routePath: "/catalog/bus", testInfo });
+    await assertPageContract(page, { routePath: "/catalog/bus" });
   }, "consume");
 });

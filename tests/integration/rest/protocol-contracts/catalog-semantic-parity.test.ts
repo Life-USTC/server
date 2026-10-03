@@ -1,7 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
-import type { TestPrismaClient } from "../../../shared/prisma";
 import { createPublicParityClient } from "./_public-parity";
 
 type Kind = "course" | "section" | "teacher";
@@ -83,48 +82,6 @@ function createCatalogReaders(origin: string) {
   }
   return { comparePage, compareDetail };
 }
-/** Reverse-inserted rows with tied primary sort keys, for the selected kind only. */
-async function seedTiedRows(
-  db: TestPrismaClient,
-  kind: Kind,
-  base: number,
-  tieMarker: string,
-  semesterId: number,
-) {
-  const tied: number[] = [];
-  for (const offset of [15, 14, 13, 12, 11, 10]) {
-    if (kind === "teacher") {
-      const teacher = await db.teacher.create({
-        data: {
-          jwId: base + offset,
-          code: `${tieMarker}-${offset}`,
-          nameCn: tieMarker,
-        },
-      });
-      tied.unshift(teacher.id);
-      continue;
-    }
-    // A tied section needs its own private course as a foreign-key dependency.
-    const course = await db.course.create({
-      data: { jwId: base + offset, code: tieMarker, nameCn: tieMarker },
-    });
-    if (kind === "course") {
-      tied.unshift(course.id);
-      continue;
-    }
-    const section = await db.section.create({
-      data: {
-        jwId: base + offset,
-        code: tieMarker,
-        courseId: course.id,
-        semesterId,
-      },
-    });
-    tied.unshift(section.id);
-  }
-  return tied;
-}
-// Independent prepared-state consumer cases, one per catalog resource.
 test.describe("interface-hierarchy.catalog-explicit-read-parity", () => {
   for (const kind of ["course", "teacher", "section"] as const)
     test(`${kind} prepared-state consumers`, async ({ isolatedWorker, run }) =>
@@ -134,92 +91,32 @@ test.describe("interface-hierarchy.catalog-explicit-read-parity", () => {
           isolatedWorker.origin,
         );
         const fixture = await createCatalogContractFixture(db);
-        const category = await db.courseCategory.create({
-          data: { nameCn: `${fixture.marker}-category` },
-        });
-        const classType = await db.classType.create({
-          data: { nameCn: `${fixture.marker}-class` },
-        });
-        const educationLevel = await db.educationLevel.create({
-          data: { nameCn: `${fixture.marker}-level` },
-        });
-        const campus = await db.campus.create({
-          data: {
-            jwId: fixture.base,
-            code: fixture.marker,
-            nameCn: "契约校区",
-          },
-        });
-        const newer = await db.semester.create({
-          data: {
-            jwId: fixture.base + 1,
-            code: `${fixture.marker}-newer`,
-            nameCn: "2027春",
-          },
-        });
         const [courseA, courseB] = fixture.courses;
         const [sectionA, sectionB] = fixture.sections;
         const [teacherA, teacherB] = fixture.teachers;
-        await db.course.update({
-          where: { id: courseA.id },
-          data: {
-            code: `Z-${fixture.marker}`,
-            categoryId: category.id,
-            classTypeId: classType.id,
-            educationLevelId: educationLevel.id,
-          },
-        });
-        await db.course.update({
-          where: { id: courseB.id },
-          data: { code: `A-${fixture.marker}` },
-        });
-        await db.teacher.update({
-          where: { id: teacherA.id },
-          data: { nameCn: `Z-${fixture.marker}` },
-        });
-        await db.teacher.update({
-          where: { id: teacherB.id },
-          data: { nameCn: `A-${fixture.marker}` },
-        });
-        await db.section.update({
-          where: { id: sectionA.id },
-          data: {
-            code: `Z-${fixture.marker}`,
-            campusId: campus.id,
-            openDepartmentId: fixture.departments[0].id,
-          },
-        });
-        await db.section.update({
-          where: { id: sectionB.id },
-          data: {
-            code: `A-${fixture.marker}`,
-            semesterId: newer.id,
-            openDepartmentId: fixture.departments[1].id,
-          },
-        });
-        if (kind !== "section") {
-          const records =
-            kind === "course" ? fixture.courses : fixture.teachers;
-          await comparePage(
-            kind,
-            { search: fixture.marker },
-            1,
-            1,
-            [records[1].id],
-            2,
-          );
-          await comparePage(
-            kind,
-            { search: fixture.marker },
-            2,
-            1,
-            [records[0].id],
-            2,
-          );
-          await comparePage(kind, { search: fixture.marker }, 3, 1, [], 2);
-        }
-        const descending = `${fixture.marker} sort:code order:desc`;
         if (kind === "course") {
+          const category = await db.courseCategory.create({
+            data: { nameCn: `${fixture.marker}-category` },
+          });
+          const classType = await db.classType.create({
+            data: { nameCn: `${fixture.marker}-class` },
+          });
+          const educationLevel = await db.educationLevel.create({
+            data: { nameCn: `${fixture.marker}-level` },
+          });
+          await db.course.update({
+            where: { id: courseA.id },
+            data: {
+              code: `Z-${fixture.marker}`,
+              categoryId: category.id,
+              classTypeId: classType.id,
+              educationLevelId: educationLevel.id,
+            },
+          });
+          await db.course.update({
+            where: { id: courseB.id },
+            data: { code: `A-${fixture.marker}` },
+          });
           const courseFilters: Filter[] = [
             { categoryId: category.id },
             { classTypeId: classType.id },
@@ -242,6 +139,14 @@ test.describe("interface-hierarchy.catalog-explicit-read-parity", () => {
           }
         }
         if (kind === "teacher") {
+          await db.teacher.update({
+            where: { id: teacherA.id },
+            data: { nameCn: `Z-${fixture.marker}` },
+          });
+          await db.teacher.update({
+            where: { id: teacherB.id },
+            data: { nameCn: `A-${fixture.marker}` },
+          });
           await comparePage(
             "teacher",
             { search: fixture.marker, departmentId: fixture.departments[0].id },
@@ -259,8 +164,60 @@ test.describe("interface-hierarchy.catalog-explicit-read-parity", () => {
             1,
           );
         }
+        if (kind !== "section") {
+          const records =
+            kind === "course" ? fixture.courses : fixture.teachers;
+          await comparePage(
+            kind,
+            { search: fixture.marker },
+            1,
+            1,
+            [records[1].id],
+            2,
+          );
+          await comparePage(
+            kind,
+            { search: fixture.marker },
+            2,
+            1,
+            [records[0].id],
+            2,
+          );
+          await comparePage(kind, { search: fixture.marker }, 3, 1, [], 2);
+        }
         if (kind === "section") {
+          const campus = await db.campus.create({
+            data: {
+              jwId: fixture.base,
+              code: fixture.marker,
+              nameCn: "契约校区",
+            },
+          });
+          const newer = await db.semester.create({
+            data: {
+              jwId: fixture.base + 1,
+              code: `${fixture.marker}-newer`,
+              nameCn: "2027春",
+            },
+          });
+          await db.section.update({
+            where: { id: sectionA.id },
+            data: {
+              code: `Z-${fixture.marker}`,
+              campusId: campus.id,
+              openDepartmentId: fixture.departments[0].id,
+            },
+          });
+          await db.section.update({
+            where: { id: sectionB.id },
+            data: {
+              code: `A-${fixture.marker}`,
+              semesterId: newer.id,
+              openDepartmentId: fixture.departments[1].id,
+            },
+          });
           const ascending = `${fixture.marker} sort:code order:asc`;
+          const descending = `${fixture.marker} sort:code order:desc`;
           await comparePage(
             "section",
             { search: ascending },
@@ -366,13 +323,37 @@ test.describe("interface-hierarchy.catalog-explicit-read-parity", () => {
           0,
         );
         const tieMarker = `${fixture.marker}-ties`;
-        const tied = await seedTiedRows(
-          db,
-          kind,
-          fixture.base,
-          tieMarker,
-          fixture.semester.id,
-        );
+        const tied: number[] = [];
+        for (const offset of [15, 14, 13, 12, 11, 10]) {
+          const row =
+            kind === "teacher"
+              ? await db.teacher.create({
+                  data: {
+                    jwId: fixture.base + offset,
+                    code: `${tieMarker}-${offset}`,
+                    nameCn: tieMarker,
+                  },
+                })
+              : await db.course.create({
+                  data: {
+                    jwId: fixture.base + offset,
+                    code: tieMarker,
+                    nameCn: tieMarker,
+                  },
+                });
+          const record =
+            kind === "section"
+              ? await db.section.create({
+                  data: {
+                    jwId: fixture.base + offset,
+                    code: tieMarker,
+                    courseId: row.id,
+                    semesterId: fixture.semester.id,
+                  },
+                })
+              : row;
+          tied.unshift(record.id);
+        }
         const searches =
           kind === "section"
             ? [

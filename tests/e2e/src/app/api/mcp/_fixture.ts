@@ -58,7 +58,6 @@ export const test = workerTest.extend<{
   calendarProtocolRun: async (
     { page, request, playwright, isolatedWorker, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work, verifyBrowserWrite) =>
@@ -75,7 +74,6 @@ export const test = workerTest.extend<{
                     extraHTTPHeaders: headers,
                   }),
                 runBody: workflow.body,
-                testInfo,
                 verifyBrowserWrite,
               },
               work,

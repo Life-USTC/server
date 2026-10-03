@@ -1,14 +1,10 @@
 import { expect } from "@playwright/test";
 import { gotoAndWaitForReady, waitForUiSettled } from "../../utils/page-ready";
 import { test } from "../../utils/public-worker";
-import { captureStepScreenshot } from "../../utils/screenshot";
 import { test as shellTest } from "../../utils/shell-fixture";
 import { assertPageContract } from "./_shared/page-contract";
 
-test("anonymous landing and keyboard access", async ({
-  publicFlow,
-  page,
-}, testInfo) => {
+test("anonymous landing and keyboard access", async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     await test.step("ui.navigation-landmarks-4", async () => {
       await gotoAndWaitForReady(page, "/");
@@ -25,14 +21,11 @@ test("anonymous landing and keyboard access", async ({
       await publicFlow.assertAnonymousNoEffects();
     });
     await test.step("/", async () => {
-      await assertPageContract(page, { routePath: "/", testInfo });
+      await assertPageContract(page, { routePath: "/" });
       await publicFlow.assertAnonymousNoEffects();
     });
     await test.step("/ 首页快速入口可见", async () => {
-      await gotoAndWaitForReady(page, "/", {
-        testInfo,
-        screenshotLabel: "home",
-      });
+      await gotoAndWaitForReady(page, "/");
 
       await expect(page.locator("#app-logo")).toBeVisible();
       await expect(page.locator("#app-user-menu")).toHaveCount(0);
@@ -57,14 +50,10 @@ test("anonymous landing and keyboard access", async ({
         main.locator('a[href="/account/sign-in"]').first(),
       ).toBeVisible();
       await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "home-shortcuts");
       await publicFlow.assertAnonymousNoEffects();
     });
     await test.step("仪表盘 › 无效 tab 不再选择其他公共资源", async () => {
-      await gotoAndWaitForReady(page, "/?tab=unknown", {
-        testInfo,
-        screenshotLabel: "home-invalid-tab",
-      });
+      await gotoAndWaitForReady(page, "/?tab=unknown");
 
       await expect(page).toHaveURL(/\/\?tab=unknown$/);
       await expect(
@@ -98,10 +87,7 @@ shellTest(
   },
 );
 
-test("/ shell 匿名 390px 抽屉只展示公开导航", async ({
-  publicFlow,
-  page,
-}, testInfo) => {
+test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     const browserIssues: string[] = [];
     page.on("console", (message) => {
@@ -130,12 +116,6 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({
     await expect(
       topbar.getByRole("link", { name: /^(登录|Sign in)$/i }),
     ).toBeVisible();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "shell/anonymous-mobile-topbar",
-    );
-
     await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
     const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
@@ -177,9 +157,9 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({
   }, {});
 });
 
-test("ui.theme-system-response", async ({ publicFlow, page }, testInfo) => {
+test("ui.theme-system-response", async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
-    await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
+    await gotoAndWaitForReady(page, "/");
 
     const themeButton = page.getByRole("button", {
       name: /^(主题选择|Theme selector)$/i,
@@ -213,19 +193,14 @@ test("ui.theme-system-response", async ({ publicFlow, page }, testInfo) => {
 
     await selectTheme(/^(浅色|Light)$/i, "light");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    await captureStepScreenshot(page, testInfo, "theme-light");
-
     await selectTheme(/^(深色|Dark)$/i, "dark");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await captureStepScreenshot(page, testInfo, "theme-dark");
-
     await page.emulateMedia({ colorScheme: "dark" });
     await selectTheme(/^(跟随系统|System)$/i, "system");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
     await page.emulateMedia({ colorScheme: "light" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    await captureStepScreenshot(page, testInfo, "theme-system-light");
   }, {});
 });
 
@@ -593,7 +568,7 @@ shellTest(
 
 shellTest(
   "ui.shell-layout-8",
-  async ({ communityFlow, page, administrator: _administrator }, testInfo) => {
+  async ({ communityFlow, page, administrator: _administrator }) => {
     await communityFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/workspace/todos");
@@ -633,8 +608,6 @@ shellTest(
       await expect(
         primaryNavigation.getByRole("link", { name: /^(任务|Tasks)$/i }),
       ).toHaveAttribute("aria-current", "page");
-      await captureStepScreenshot(page, testInfo, "shell/mobile-primary");
-
       const topbar = page.locator("[data-shell-topbar]");
       await expect(
         topbar.getByRole("button", { name: /语言|Language/i }),
@@ -682,7 +655,6 @@ shellTest(
       await expect(
         sidebar.getByRole("button", { name: /^Toggle /i }),
       ).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "shell/mobile-secondary");
     }, {});
   },
 );
@@ -884,7 +856,7 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({
 
 shellTest(
   "/ 登录用户在空状态总览页可看到班级发现入口",
-  async ({ communityFlow, page, account, isolatedWorker }, testInfo) => {
+  async ({ communityFlow, page, account, isolatedWorker }) => {
     await communityFlow.run(async () => {
       test.setTimeout(300_000);
       await gotoAndWaitForReady(page, "/workspace/overview");
@@ -905,15 +877,13 @@ shellTest(
       await expect(
         page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
       ).toBeVisible();
-
-      await captureStepScreenshot(page, testInfo, "workspace-overview-empty");
     }, {});
   },
 );
 
 shellTest(
   "cases.semester.only-non-current-semester-subscriptions-3",
-  async ({ communityFlow, page, historical }, testInfo) => {
+  async ({ communityFlow, page, historical }) => {
     await communityFlow.run(
       async () => {
         test.setTimeout(300_000);
@@ -971,12 +941,6 @@ shellTest(
               section: expect.objectContaining({ id: historical.sectionId }),
             }),
           ]),
-        );
-
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          "workspace-history-recovery",
         );
         await page
           .getByRole("link", { name: /查看往期作业|View Past Homework/i })

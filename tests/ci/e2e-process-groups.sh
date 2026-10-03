@@ -24,15 +24,6 @@ e2e_process_start_time() {
   printf '%s\n' "${stat_fields[19]}"
 }
 
-e2e_process_is_alive() {
-  local pid="$1"
-  kill -0 "$pid" >/dev/null 2>&1 || return 1
-
-  local process_state
-  process_state="$(ps -o stat= -p "$pid" 2>/dev/null | tr -d '[:space:]' || true)"
-  [[ -n "$process_state" && "$process_state" != Z* ]]
-}
-
 e2e_list_owned_processes() {
   local owner="$1"
   local environ_file

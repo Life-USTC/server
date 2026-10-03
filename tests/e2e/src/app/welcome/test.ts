@@ -2,24 +2,19 @@ import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../utils/auth";
 import { getUserProfileById, test } from "../../../utils/onboarding-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 
-test("/account/welcome 未登录重定向到登录页", async ({ page }, testInfo) => {
+test("/account/welcome 未登录重定向到登录页", async ({ page }) => {
   await expectRequiresSignIn(page, "/account/welcome");
-  await captureStepScreenshot(page, testInfo, "welcome/unauthorized");
 });
 
 test("/account/welcome 资料步骤显示必填字段与进度", async ({
   accountRun,
   page,
   incompleteProfile: _incompleteProfile,
-}, testInfo) => {
+}) => {
   test.setTimeout(300_000);
   await accountRun({ writes: [], audits: [] }, async () => {
-    await gotoAndWaitForReady(page, "/account/welcome", {
-      testInfo,
-      screenshotLabel: "welcome",
-    });
+    await gotoAndWaitForReady(page, "/account/welcome");
 
     // Required profile fields are shown before optional onboarding steps.
     await expect(
@@ -50,8 +45,6 @@ test("/account/welcome 资料步骤显示必填字段与进度", async ({
         name: /^(导入|Import)$/i,
       }),
     ).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "welcome/fields");
   });
 });
 
@@ -113,7 +106,7 @@ test("/account/welcome 完成后返回原回调页面", async ({
   page,
   incompleteProfile,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   test.setTimeout(300_000);
   await accountRun(
     {
@@ -167,7 +160,6 @@ test("/account/welcome 完成后返回原回调页面", async ({
       expect(
         await getUserProfileById(isolatedWorker.database.owner, profile.id),
       ).toMatchObject({ name: profile.name, username: profile.username });
-      await captureStepScreenshot(page, testInfo, "welcome/completed-callback");
       return async () => {
         expect(
           await getUserProfileById(isolatedWorker.database.owner, profile.id),
@@ -182,7 +174,7 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
   page,
   incompleteProfile,
   isolatedWorker,
-}, testInfo) => {
+}) => {
   test.setTimeout(300_000);
   await accountRun(
     {
@@ -198,10 +190,7 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
     },
     async () => {
       const profile = incompleteProfile;
-      await gotoAndWaitForReady(page, "/account/welcome", {
-        testInfo,
-        screenshotLabel: "welcome",
-      });
+      await gotoAndWaitForReady(page, "/account/welcome");
 
       await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
       await page
@@ -232,7 +221,6 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
       );
       expect(updatedUser.name).toBe(profile.name);
       expect(updatedUser.username).toBe(profile.username);
-      await captureStepScreenshot(page, testInfo, "welcome/completed");
       return async () => {
         expect(
           await getUserProfileById(isolatedWorker.database.owner, profile.id),
@@ -319,13 +307,12 @@ test("user.welcome-subscription-guidance", async ({
   page,
   semester,
   account: _account,
-}, testInfo) => {
+}) => {
   test.setTimeout(300_000);
   await accountRun({ writes: [], audits: [] }, async () => {
     await gotoAndWaitForReady(
       page,
       "/account/welcome?step=subscriptions&callbackUrl=%2Fworkspace%2Foverview",
-      { testInfo, screenshotLabel: "welcome-subscriptions" },
     );
 
     await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
@@ -368,8 +355,6 @@ test("user.welcome-subscription-guidance", async ({
     await expect(
       page.getByRole("button", { name: /^(导入|Import)$/i }),
     ).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "welcome/next-steps");
   });
 });
 
@@ -377,13 +362,12 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
   accountRun,
   page,
   account: _account,
-}, testInfo) => {
+}) => {
   test.setTimeout(300_000);
   await accountRun({ writes: [], audits: [] }, async () => {
     await gotoAndWaitForReady(
       page,
       "/account/welcome?step=finish&callbackUrl=%2Fworkspace%2Foverview",
-      { testInfo, screenshotLabel: "welcome-finish" },
     );
 
     await expect(
@@ -403,8 +387,6 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
     await expect(
       page.getByRole("button", { name: /打开搜索|Open search/i }),
     ).toHaveCount(0);
-    await captureStepScreenshot(page, testInfo, "welcome/finish");
-
     await page.getByRole("link", { name: /上一步|Back/i }).click();
     await expect(page).toHaveURL(/step=subscriptions/);
   });

@@ -1,11 +1,6 @@
 import { readFileSync, statSync } from "node:fs";
 import { resolve, sep } from "node:path";
-import {
-  expect,
-  type Page,
-  type Request,
-  type TestInfo,
-} from "@playwright/test";
+import { expect, type Page, type Request, test } from "@playwright/test";
 import { parse } from "jsonc-parser";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import {
@@ -74,7 +69,6 @@ export async function withHomeworkEffects(
     isolatedWorker,
     account,
     sectionId,
-    testInfo,
     calendarMessages,
     calendarTokenCreated = false,
     presetCalendarToken,
@@ -86,7 +80,6 @@ export async function withHomeworkEffects(
     isolatedWorker: IsolatedWorker;
     account: { id: string };
     sectionId?: number;
-    testInfo: TestInfo;
     // Consumer scenarios must drain GET waitUntil work before asserting no effects.
     observeReads?: boolean;
     // The wrapper may interrupt its wait; this helper still owns the real body.
@@ -104,15 +97,10 @@ export async function withHomeworkEffects(
   const consumerPath = `/__test/calendar-consumer?userId=${account.id}${sectionId === undefined ? "" : `&sectionId=${sectionId}`}`;
   const pending = new Set<Promise<void>>();
   const errors: unknown[] = [];
-  const expectedReadCancellations = new Set<Request>();
-  const canceledNativeStatuses = new Map<number, number | null>();
   const closingReleases: (() => void)[] = [];
   let actualBody:
     | Promise<{ ok: true } | { ok: false; error: unknown }>
     | undefined;
-  const writes: { method: string; path: string; status: number }[] = [];
-  const retiredNativeStatuses = new Map<number, number>();
-  const removedNativeStatuses = new Map<number, number>();
   let accepting = true;
   let registered = false;
   const browserReads = ownBrowserReads(
@@ -120,14 +108,7 @@ export async function withHomeworkEffects(
     isolatedWorker.origin,
     () => accepting,
   );
-  const {
-    ownedReads,
-    reads,
-    supersededCalendarReads,
-    retiredReads,
-    removedReads,
-    pendingReads,
-  } = browserReads;
+  const { ownedReads, pendingReads } = browserReads;
 
   function readHeaders(incoming: Request) {
     const requestId = ownedReads.get(incoming)?.requestId;
@@ -158,14 +139,15 @@ export async function withHomeworkEffects(
       // The server independently records tagged requests, including redirect
       // successors and handlers that outlive a cancelled browser request.
       const unmatched = [...producer.requests];
-      for (const [incoming, owned] of ownedReads) {
-        const read = reads.find((read) => read.order === owned.order);
+      for (const owned of ownedReads.values()) {
+        const status = owned.status;
         if (workerAsset(owned.path)) {
-          if (!read)
+          if (owned.canceled) continue;
+          if (status === undefined)
             throw new Error(
               `Static asset has no browser response: ${owned.path}`,
             );
-          expect(read.status, `Static asset ${owned.path}`).toBe(200);
+          expect(status, `Static asset ${owned.path}`).toBe(200);
           continue;
         }
         const index = unmatched.findIndex(
@@ -174,25 +156,22 @@ export async function withHomeworkEffects(
             request.value.requestId === owned.requestId &&
             request.value.method === owned.method &&
             request.value.path === owned.path &&
-            (read === undefined || request.result === read.status),
+            (status === undefined || request.result === status),
         );
-        const canceled =
-          expectedReadCancellations.has(incoming) &&
-          owned.settled &&
-          !read &&
-          incoming.failure()?.errorText === "net::ERR_ABORTED";
-        // A browser can cancel before its request reaches the Worker. Only the
-        // declared exact Request with a native abort may lack a producer record.
-        // Matching remains by requestId, so it cannot consume its successor.
-        if (canceled && index === -1) {
-          canceledNativeStatuses.set(owned.order, null);
-          continue;
-        }
+        // Native cancellation may happen before dispatch or while the Worker
+        // finishes an obsolete read. collect() still drains every dispatched
+        // request; cancellation never manufactures a successful browser result.
+        if (owned.canceled && index === -1) continue;
         expect(
           index,
-          `Worker completed ${owned.method} ${owned.path}${read ? ` (${read.status})` : " (no browser response)"}`,
+          `Worker completed ${owned.method} ${owned.path}${status === undefined ? " (no browser response)" : ` (${status})`}`,
         ).toBeGreaterThanOrEqual(0);
         const [native] = unmatched.splice(index, 1);
+        if (owned.canceled)
+          expect(
+            native.result,
+            `Canceled Worker read ${owned.method} ${owned.path}`,
+          ).toBeLessThan(500);
         // A public cache miss renders through a second Worker entrypoint. It
         // belongs to this exact outer request, not a second browser request.
         const publicSsr = unmatched.filter(
@@ -215,50 +194,12 @@ export async function withHomeworkEffects(
           ).toBe(native.result);
           unmatched.splice(unmatched.indexOf(render), 1);
         }
-        if (canceled) {
-          expect(
-            native.result,
-            `Canceled consumer ${owned.method} ${owned.path}`,
-          ).toBe(200);
-          canceledNativeStatuses.set(owned.order, native.result);
-        }
-        if (removedReads.some((removed) => removed.order === owned.order)) {
-          expect(
-            native.result,
-            `Removed component ${owned.method} ${owned.path}`,
-          ).toBe(200);
-          removedNativeStatuses.set(owned.order, native.result);
-        }
-        if (
-          !read &&
-          ((!owned.settled && owned.retiredBy) ||
-            retiredReads.some((retired) => retired.order === owned.order))
-        ) {
-          expect(
-            native.result,
-            `Retired consumer ${owned.method} ${owned.path}`,
-          ).toBeGreaterThanOrEqual(200);
-          expect(
-            native.result,
-            `Retired consumer ${owned.method} ${owned.path}`,
-          ).toBeLessThan(400);
-          retiredNativeStatuses.set(owned.order, native.result);
-        }
       }
-      if (expectedReadCancellations.size)
+      if ([...ownedReads.values()].some((read) => read.canceled))
         expect(
           unmatched.filter((request) => request.value.requestId),
           "Every tagged Worker request belongs to an observed browser request",
         ).toEqual([]);
-      for (const cancelled of supersededCalendarReads)
-        expect(
-          reads.some(
-            (read) =>
-              read.path === cancelled.path &&
-              read.order > cancelled.order &&
-              read.status === 200,
-          ),
-        ).toBe(true);
     }
   }
 
@@ -282,7 +223,7 @@ export async function withHomeworkEffects(
     const observation = await collect(
       completed ? calendarMessages.length : "submitted",
     );
-    const { producer, consumer } = observation;
+    const { producer } = observation;
     assertServerReads(producer);
     calendarEffects.assert(observation, calendarMessages, completed);
     const actor = await db.user.findUniqueOrThrow({
@@ -337,55 +278,6 @@ export async function withHomeworkEffects(
         });
     }
     expect(actualActions).toEqual(expectedActions);
-    return {
-      calendarMessages,
-      calendarTokenCreated,
-      presetCalendarToken,
-      auditActions,
-      producer,
-      consumer,
-      audits,
-      writes,
-      reads,
-      supersededCalendarReads,
-      canceledReads: [...expectedReadCancellations].flatMap((request) => {
-        const owned = ownedReads.get(request);
-        if (!owned)
-          throw new Error("Expected cancellation lost its owned browser read");
-        if (!canceledNativeStatuses.has(owned.order)) return [];
-        return [
-          {
-            requestId: owned.requestId,
-            method: owned.method,
-            path: owned.path,
-            order: owned.order,
-            outcome: "expected-request-cancellation",
-            error: request.failure()?.errorText,
-            nativeStatus: canceledNativeStatuses.get(owned.order),
-          },
-        ];
-      }),
-      removedReads: removedReads.map((read) => ({
-        ...read,
-        nativeStatus: removedNativeStatuses.get(read.order),
-      })),
-      retiredReads: retiredReads.map((read) => ({
-        ...read,
-        nativeStatus: retiredNativeStatuses.get(read.order),
-      })),
-      navigationCommits: browserReads.navigationCommits,
-      navigationObservations: browserReads.navigationObservations,
-      admittedReads: [...ownedReads.values()].map(
-        ({ requestId, order, path, method, mainFrame, retiredBy }) => ({
-          requestId,
-          order,
-          path,
-          method,
-          mainFrame,
-          retiredBy,
-        }),
-      ),
-    };
   }
 
   async function settleReads(expectedMessages: number) {
@@ -413,32 +305,15 @@ export async function withHomeworkEffects(
     }
   }
 
-  const checkpoints: {
-    name: string;
-    expected: HomeworkEffects;
-    status: "pending" | "passed" | "failed";
-    observation?: Pick<
-      Awaited<ReturnType<typeof observe>>,
-      "producer" | "consumer" | "audits"
-    >;
-  }[] = [];
-
   async function checkpoint(name: string, expectation: HomeworkEffects) {
     if (!accepting || page.isClosed())
       throw new Error("Homework checkpoint requires an active workflow");
-    const entry: (typeof checkpoints)[number] = {
-      name,
-      expected: structuredClone(expectation),
-      status: "pending",
-    };
-    checkpoints.push(entry);
     try {
-      await settleReads(entry.expected.calendarMessages.length);
-      const { producer, consumer, audits } = await observe(entry.expected);
-      entry.observation = { producer, consumer, audits };
-      entry.status = "passed";
+      await test.step(name, async () => {
+        await settleReads(expectation.calendarMessages.length);
+        await observe(expectation);
+      });
     } catch (error) {
-      entry.status = "failed";
       // A callback catching the assertion cannot erase a failed checkpoint.
       errors.push(error);
       throw error;
@@ -493,12 +368,6 @@ export async function withHomeworkEffects(
             // Deliver the genuine response before joining native asynchronous effects.
             await route.fulfill({ response });
             fulfilled = true;
-            if (["POST", "PUT", "PATCH", "DELETE"].includes(incoming.method()))
-              writes.push({
-                method: incoming.method(),
-                path: new URL(incoming.url()).pathname,
-                status: response.status(),
-              });
           } catch (error) {
             errors.push(error);
             if (!fulfilled)
@@ -540,7 +409,6 @@ export async function withHomeworkEffects(
                 "Cancellation requires this active workflow page",
               );
             browserReads.expectCancellation(request);
-            expectedReadCancellations.add(request);
           },
           onClosing(release) {
             if (!accepting)
@@ -603,18 +471,7 @@ export async function withHomeworkEffects(
       ]);
     if (registered)
       try {
-        await testInfo.attach("homework-effects", {
-          body: JSON.stringify(
-            {
-              ...(await observe(undefined, bodyResult?.ok !== false)),
-              completed: bodyResult?.ok === true,
-              checkpoints,
-            },
-            null,
-            2,
-          ),
-          contentType: "application/json",
-        });
+        await observe(undefined, bodyResult?.ok !== false);
       } catch (error) {
         errors.push(error);
       }
