@@ -227,16 +227,7 @@ export async function checkWorkspaceTaskPriorityViews(
     page,
     `/catalog/sections/${section.jwId}?homeworkId=${homework.id}#homework`,
   );
-  const sectionHomework = page.getByRole("button", {
-    name: homework.title,
-    exact: true,
-  });
-  if (
-    !(await page
-      .getByRole("dialog", { name: homework.title, exact: true })
-      .isVisible())
-  )
-    await sectionHomework.click();
+  // The deep link opens the dialog after the section viewer data arrives.
   await checkHomeworkDetail();
 
   await gotoAndWaitForReady(page, "/workspace/exams");
