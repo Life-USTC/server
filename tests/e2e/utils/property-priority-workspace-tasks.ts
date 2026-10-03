@@ -242,18 +242,14 @@ export async function checkWorkspaceTaskPriorityViews(
     name: courseName,
     exact: true,
   });
+  const examCountLabel = locale === "en-us" ? "People: 23" : "人数: 23";
   if (width >= 768) await examRow.locator("summary").click();
   await assertPriorityView({
     scope: examRow,
     identity: examTitle,
     primary: {
       "section.course.namePrimary": field(examTitle, courseName),
-      "exam.examDate": text(
-        examRow,
-        new RegExp(
-          `${Number(data.tomorrow.slice(5, 7))}.*${Number(data.tomorrow.slice(8, 10))}|${data.tomorrow}`,
-        ),
-      ),
+      "exam.examDate": text(examRow, data.tomorrow),
       "exam.startTime": text(examRow, "14:00"),
       "exam.endTime": text(examRow, "16:00"),
       "exam.completed": text(examRow, /^(未结束|即将到来|Upcoming)$/i),
@@ -266,7 +262,10 @@ export async function checkWorkspaceTaskPriorityViews(
       "exam.examMode": text(examRow, exam.examMode ?? ""),
       "exam.examBatch.namePrimary": text(examRow, localized(batch, locale)),
       "exam.examType": text(examRow, locale === "en-us" ? "Final" : "期末"),
-      "exam.examTakeCount": text(examRow, "23"),
+      "exam.examTakeCount": field(
+        examRow.getByText(examCountLabel, { exact: true }),
+        examCountLabel,
+      ),
       "exam.examRooms.namePrimary": text(
         examRow,
         `ExamRoom-${catalog.marker}`.toUpperCase(),
