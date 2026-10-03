@@ -12,6 +12,14 @@ async function createWorkspacePriorityFixture(owner: TestPrismaClient) {
     const catalog = await createCatalogContractFixture({
       $transaction: (work) => work(db),
     });
+    // The title shares the attendance number, so metadata must target its label.
+    catalog.courses[0] = await db.course.update({
+      where: { id: catalog.courses[0].id },
+      data: {
+        nameCn: `契约课程23 ${catalog.marker}`,
+        nameEn: `Contract Course 23 ${catalog.marker}`,
+      },
+    });
     const today = formatShanghaiDate(new Date());
     const tomorrow = formatShanghaiDate(new Date(Date.now() + 86400000));
     const named = (label: string) => ({
