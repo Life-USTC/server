@@ -13,30 +13,25 @@ const memberPages = mobileScreenshotPaths("authed");
 
 test.describe("移动端页面健全性", () => {
   test.describe("登录后页面", () => {
-    test("member account settings share a private session", async ({
-      page,
-      mobileRun,
-    }) => {
-      await mobileRun(
-        async ({ startPage, checkpoint }) => {
-          await startPage();
-          for (const path of memberPages.filter((path) =>
-            path.startsWith("/account/settings/"),
-          )) {
-            await test.step(path, async () => {
-              await expectHealthyMobileRoute(page, path);
-              await checkpoint(path, {
-                calendarMessages: [],
-                calendarTokenCreated: false,
-              });
+    // Each route consumes its own populated account and starts with a null token.
+    for (const path of memberPages) {
+      test(path, async ({ page, mobileRun }) => {
+        const calendarTokenCreated = tokenPages.includes(path);
+        await mobileRun(
+          async ({ startPage, checkpoint }) => {
+            await startPage();
+            await expectHealthyMobileRoute(page, path);
+            await checkpoint(path, {
+              calendarMessages: [],
+              calendarTokenCreated,
             });
-          }
-        },
-        { calendarTokenCreated: false },
-      );
-    });
+          },
+          { calendarTokenCreated },
+        );
+      });
+    }
 
-    test("member workspace and profile views share a private session", async ({
+    test("member profile ID resolves its private session", async ({
       page,
       mobileAccount,
       mobileRun,
@@ -44,64 +39,30 @@ test.describe("移动端页面健全性", () => {
       await mobileRun(
         async ({ headers, startPage, checkpoint }) => {
           await startPage();
-          for (const path of memberPages.filter(
-            (path) =>
-              !path.startsWith("/account/settings/") &&
-              !tokenPages.includes(path),
-          )) {
-            await test.step(path, async () => {
-              await expectHealthyMobileRoute(page, path);
-              await checkpoint(path, {
-                calendarMessages: [],
-                calendarTokenCreated: false,
-              });
-            });
-          }
-          await test.step("/community/users/[identifier] ID 页面截图", async () => {
-            const sessionResponse = await page.request.get(
-              "/api/auth/get-session",
-              { headers },
-            );
-            expect(sessionResponse.status()).toBe(200);
-            const session = (await sessionResponse.json()) as {
-              user?: { id?: string };
-            };
-            const userId = session.user?.id ?? "";
-            expect(userId).toBe(mobileAccount.id);
-            await gotoAndWaitForReady(page, `/community/users/${userId}`, {
-              browserHealth: {},
-              expectMeaningfulContent: true,
-              expectNoHorizontalOverflow: true,
-              uiQuality: {},
-            });
-            await checkpoint("/community/users/[identifier] ID 页面截图", {
-              calendarMessages: [],
-              calendarTokenCreated: false,
-            });
+          const sessionResponse = await page.request.get(
+            "/api/auth/get-session",
+            { headers },
+          );
+          expect(sessionResponse.status()).toBe(200);
+          const session = (await sessionResponse.json()) as {
+            user?: { id?: string };
+          };
+          const userId = session.user?.id ?? "";
+          expect(userId).toBe(mobileAccount.id);
+          await gotoAndWaitForReady(page, `/community/users/${userId}`, {
+            browserHealth: {},
+            expectMeaningfulContent: true,
+            expectNoHorizontalOverflow: true,
+            uiQuality: {},
+          });
+          await checkpoint("/community/users/[identifier] ID", {
+            calendarMessages: [],
+            calendarTokenCreated: false,
           });
         },
         { calendarTokenCreated: false },
       );
     });
-
-    // Each entry point still starts with its own null token and must create it.
-    for (const path of tokenPages) {
-      test(path, async ({ page, mobileRun }) => {
-        await mobileRun(
-          async ({ startPage, checkpoint }) => {
-            await test.step(path, async () => {
-              await startPage();
-              await expectHealthyMobileRoute(page, path);
-              await checkpoint(path, {
-                calendarMessages: [],
-                calendarTokenCreated: true,
-              });
-            });
-          },
-          { calendarTokenCreated: true },
-        );
-      });
-    }
 
     test.describe("welcome 共享用户状态", () => {
       test.use({ incompleteMobileProfile: true });
