@@ -19,10 +19,12 @@ Global setup validates the four database connections and production role
 constraints. The Playwright configuration does not start a shared server or
 provide a default origin.
 
-CI distributes browser files across isolated jobs. The local parallel runner uses
-24 partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
-available memory. Every partition retains its own PostgreSQL service and reports.
-Individual cases own ephemeral Worker ports and persistence directories.
+CI distributes browser files across 24 isolated jobs. Locally, use
+`bun run e2e:test:local --workers=2` to build once and run native Playwright workers
+against one temporary PostgreSQL service. Cases retain private database clones,
+Worker ports and persistence directories. The local launcher removes its service
+and any owned detached processes on exit or interruption. Native Playwright
+arguments and exit status pass through unchanged.
 
 CI and local runners invoke Playwright directly. Assertions and runtime failures
 are not retried. Native HTML reports, per-test Worker logs, resource identities
