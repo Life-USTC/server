@@ -5,10 +5,7 @@ import { parse } from "yaml";
 it("keeps the CI RLS preflight function allowlist equal to the database contract", async () => {
   const [workflowSource, contractSource] = await Promise.all([
     readFile(
-      new URL(
-        "../../../.github/workflows/db-backed-bun-job.yml",
-        import.meta.url,
-      ),
+      new URL("../../../.github/workflows/ci.yml", import.meta.url),
       "utf8",
     ),
     readFile(
@@ -20,10 +17,10 @@ it("keeps the CI RLS preflight function allowlist equal to the database contract
     ),
   ]);
   const workflow = parse(workflowSource) as {
-    jobs: { run: { steps: Array<{ name?: string; run?: string }> } };
+    jobs: { "test-rls": { steps: Array<{ name?: string; run?: string }> } };
   };
-  const phase = workflow.jobs.run.steps.find(
-    (step) => step.name === "Run job phase",
+  const phase = workflow.jobs["test-rls"].steps.find(
+    (step) => step.name === "Verify runtime roles",
   )?.run;
   expect(phase).toBeDefined();
   const preflight = [
