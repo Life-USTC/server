@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-# Verify that local E2E cleanup handles both an interrupted runner and a shard
-# that exits before the parent reaches its EXIT trap. The detached fixture
-# carries the same run marker as its shard so cleanup can identify it without
-# matching process names or touching an unrelated process group.
+# Verify that interruption and early failure release the one local database and
+# detached Worker descendants without touching an unrelated process group.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-parallel_script_source="${E2E_PARALLEL_SCRIPT_SOURCE:-${repo_root}/tests/ci/e2e-parallel-local.sh}"
-local_shard_script_source="${E2E_LOCAL_SHARD_SCRIPT_SOURCE:-${repo_root}/tests/ci/e2e-local-shard.sh}"
-process_groups_source="${E2E_PROCESS_GROUPS_SOURCE:-${repo_root}/tests/ci/e2e-process-groups.sh}"
-expected_shard_total="${E2E_EXPECTED_SHARD_TOTAL:-24}"
+local_script_source="${repo_root}/tests/ci/e2e-local.sh"
+process_groups_source="${repo_root}/tests/ci/e2e-process-groups.sh"
 source "$process_groups_source"
 test_dir="$(mktemp -d)"
 runner_pid=""
@@ -18,7 +14,7 @@ sentinel_group=""
 sentinel_start_time=""
 
 fail() {
-  echo "parallel E2E cleanup regression failed: $*" >&2
+  echo "local E2E cleanup regression failed: $*" >&2
   exit 1
 }
 
@@ -50,7 +46,7 @@ cleanup() {
     ((detached_group > 1)) || continue
     [[ "$(e2e_process_start_time "$detached_pid" 2>/dev/null || true)" == "$detached_start_time" ]] || continue
     [[ "$(e2e_process_group_for_pid "$detached_pid")" == "$detached_group" ]] || continue
-    grep -aFzxq -- "PARALLEL_FIXTURE_DIR=${pid_file%/*}" "/proc/${detached_pid}/environ" 2>/dev/null || continue
+    grep -aFzxq -- "E2E_FIXTURE_DIR=${pid_file%/*}" "/proc/${detached_pid}/environ" 2>/dev/null || continue
     kill -KILL -- "-${detached_group}" >/dev/null 2>&1 || true
   done
   rm -rf "$test_dir"
@@ -60,10 +56,7 @@ trap cleanup EXIT
 prepare_fixture() {
   local fixture_root="$1"
   mkdir -p "$fixture_root/tests/ci" "$fixture_root/bin"
-  cp "$parallel_script_source" \
-    "$fixture_root/tests/ci/e2e-parallel-local.sh"
-  cp "$local_shard_script_source" \
-    "$fixture_root/tests/ci/e2e-local-shard.sh"
+  cp "$local_script_source" "$fixture_root/tests/ci/e2e-local.sh"
   cp "$process_groups_source" \
     "$fixture_root/tests/ci/e2e-process-groups.sh"
 
@@ -71,8 +64,7 @@ prepare_fixture() {
 #!/usr/bin/env bash
 set -euo pipefail
 
-fixture_shard="${E2E_REPORT_ROOT##*-}"
-detached_pid_file="${PARALLEL_FIXTURE_DIR}/${E2E_FIXTURE_MODE}-${fixture_shard}.pid"
+detached_pid_file="${E2E_FIXTURE_DIR}/${E2E_FIXTURE_MODE}-worker.pid"
 setsid bash -c '
   fixture_pid="$BASHPID"
   source tests/ci/e2e-process-groups.sh
@@ -97,6 +89,8 @@ EOF
   cat >"$fixture_root/bin/bunx" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+[[ "$*" == 'playwright test --workers=2 selected test' ]]
+printf '%s\n' "$@" >"${E2E_FIXTURE_DIR}/playwright-arguments"
 trap 'exit 143' INT TERM
 while :; do sleep 1; done
 EOF
@@ -106,14 +100,24 @@ EOF
 set -euo pipefail
 
 case "${1:-}" in
-  exec|rm)
+  exec)
+    exit 0
+    ;;
+  rm)
+    rm -rf "${E2E_FIXTURE_DIR}/container-${*: -1}"
     exit 0
     ;;
   port)
-    suffix="${2##*-}"
-    printf '127.0.0.1:%s\n' "$((45000 + suffix))"
+    printf '127.0.0.1:45000\n'
     ;;
   run)
+    while [[ "$1" != --name ]]; do shift; done
+    mkdir "${E2E_FIXTURE_DIR}/container-$2"
+    active="$(find "$E2E_FIXTURE_DIR" -maxdepth 1 -type d -name 'container-*' | wc -l)"
+    [[ "$active" -eq 1 ]] || {
+      echo "runner provisioned more than one database" >&2
+      exit 55
+    }
     exit 0
     ;;
   *)
@@ -129,7 +133,7 @@ set -euo pipefail
 if [[ "${1:-}" == run && ("${2:-}" == app:prepare || "${2:-}" == build) ]]; then
   exit 0
 fi
-exec "$PARALLEL_REAL_BUN" "$@"
+exec "$E2E_REAL_BUN" "$@"
 EOF
 
   cat >"$fixture_root/bin/psql" <<'EOF'
@@ -169,11 +173,10 @@ start_runner() {
   local run_dir="$4"
 
   E2E_FIXTURE_MODE="$mode" \
-  PARALLEL_FIXTURE_DIR="$run_dir" \
-  PARALLEL_REAL_BUN="$(command -v bun)" \
+  E2E_FIXTURE_DIR="$run_dir" \
+  E2E_REAL_BUN="$(command -v bun)" \
   PATH="$fixture_root/bin:$PATH" \
-  E2E_CONCURRENCY=2 \
-    bash "$fixture_root/tests/ci/e2e-parallel-local.sh" >"$output_file" 2>&1 &
+    bash "$fixture_root/tests/ci/e2e-local.sh" --workers=2 'selected test' >"$output_file" 2>&1 &
   runner_pid="$!"
 }
 
@@ -192,6 +195,12 @@ wait_for_detached_fixture() {
     sleep 0.05
   done
   return 1
+}
+
+assert_containers_stopped() {
+  local run_dir="$1"
+  [[ "$(find "$run_dir" -maxdepth 1 -type d -name 'container-*' | wc -l)" -eq 0 ]] ||
+    fail "local database survived cleanup"
 }
 
 assert_detached_processes_stopped() {
@@ -217,26 +226,33 @@ run_normal_cancellation() {
   start_sentinel
   start_runner "$fixture_root" normal "$run_dir/runner.log" "$run_dir"
 
-  wait_for_detached_fixture "$run_dir" normal 2 || {
+  wait_for_detached_fixture "$run_dir" normal 1 || {
     sed -n '1,240p' "$run_dir/runner.log" >&2
-    fail "parallel runner did not start its bounded active shard set"
+    fail "local runner did not start its owned Worker fixture"
   }
 
+  for _ in $(seq 1 100); do
+    [[ -f "$run_dir/playwright-arguments" ]] && break
+    sleep 0.01
+  done
+  printf '%s\n' playwright test --workers=2 'selected test' >"$run_dir/expected-arguments"
+  diff -u "$run_dir/expected-arguments" "$run_dir/playwright-arguments"
   kill -TERM "$runner_pid"
   set +e
   wait "$runner_pid"
   runner_exit_code="$?"
   set -e
   runner_pid=""
-  [[ "$runner_exit_code" == 130 ]] ||
-    fail "parallel runner returned ${runner_exit_code} after interrupt"
+  [[ "$runner_exit_code" == 143 ]] ||
+    fail "local runner returned ${runner_exit_code} after interrupt"
 
   assert_detached_processes_stopped "$run_dir" normal
+  assert_containers_stopped "$run_dir"
   process_is_alive "$sentinel_pid" || fail "cleanup killed an unrelated process group"
   stop_sentinel
 }
 
-run_early_shard_exit() {
+run_early_failure() {
   local fixture_root="$test_dir/fixture-early"
   local run_dir="$test_dir/early-run"
   mkdir -p "$run_dir"
@@ -249,17 +265,18 @@ run_early_shard_exit() {
   runner_exit_code="$?"
   set -e
   runner_pid=""
-  [[ "$runner_exit_code" == 1 ]] ||
-    fail "early shard exit returned ${runner_exit_code}"
+  [[ "$runner_exit_code" == 42 ]] ||
+    fail "early runner exit returned ${runner_exit_code}"
 
   detached_count="$(find "$run_dir" -maxdepth 1 -name 'early-exit-*.pid' -type f | wc -l)"
-  [[ "$detached_count" == "$expected_shard_total" ]] ||
-    fail "early shard fixture started ${detached_count} of ${expected_shard_total} partitions"
+  [[ "$detached_count" == 1 ]] ||
+    fail "early failure did not start exactly one detached fixture"
   assert_detached_processes_stopped "$run_dir" early-exit
+  assert_containers_stopped "$run_dir"
   process_is_alive "$sentinel_pid" || fail "early-exit cleanup killed an unrelated process group"
   stop_sentinel
 }
 
 run_normal_cancellation
-run_early_shard_exit
-echo "parallel E2E detached-process cleanup regression passed"
+run_early_failure
+echo "local E2E process and database cleanup regression passed"

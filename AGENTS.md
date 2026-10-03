@@ -37,7 +37,7 @@ docs/schemas/            Strict JSON Schemas for specification data
 docs/graphql/            Generated SDL snapshot
 docs/reference/          Structured interface reference data
 tests/unit|integration|e2e
-.github/workflows/       CI phases in bun-job.yml / db-backed-bun-job.yml
+.github/workflows/       CI jobs and shared setup actions
 ```
 
 **Do not edit:** `src/generated/prisma/`, `src/generated/prisma-node/`,
@@ -62,7 +62,7 @@ bun run dev            # http://127.0.0.1:3000
 # Local static, unit, type, specification, and schema checks
 bun run check
 
-# Integration (same shape as CI ci:integration), in Bash
+# Integration (same commands as the CI integration jobs), in Bash
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
 export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
@@ -72,7 +72,10 @@ bun run build && bun run rest:test
 # Parallel integration: provisions and cleans up four isolated databases
 bun run integration:test:parallel
 
-# E2E — each case owns its database and Worker
+# Local E2E — one temporary PostgreSQL service, native concurrent workers
+bun run e2e:test:local --workers=2
+
+# E2E against an existing disposable source — each case owns its database and Worker
 # Use the disposable FUNCTION_OWNER_DATABASE_URL and setup flags above.
 source tests/ci/setup-runtime-database.sh
 bun run build
@@ -82,8 +85,8 @@ bun run e2e:test
 docker compose -f docker-compose.dev.yml down
 ```
 
-CI phases live in `.github/workflows/bun-job.yml` (static, unit, build) and
-`.github/workflows/db-backed-bun-job.yml` (database-backed tests). Uploads in
+CI jobs live directly in `.github/workflows/ci.yml`. Shared actions install Bun
+dependencies and prepare production-equivalent test database roles. Uploads in
 E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
 specifically testing object storage.
 
@@ -93,8 +96,9 @@ Before opening a PR, run local checks and the complete CI workflow on the
 pushed branch with `gh workflow run ci.yml --ref <branch>`. Verify the run's
 head SHA and every mandatory job: static checks, unit coverage, build/client
 budget, static-loader image, RLS, all integration/REST/E2E shards, and the aggregate required-jobs gate.
-The protected check named Specification execution evidence now validates native
-job outcomes and document structure; it does not infer requirement coverage. `bun run check` alone is insufficient.
+The protected check named Specification execution evidence aggregates mandatory
+native job outcomes. Check validates document structure separately; neither
+establishes requirement coverage. `bun run check` alone is insufficient.
 Visual changes also require the visual suite and matched before/after evidence.
 
 After review changes, revalidate the current head. Merge only when main's

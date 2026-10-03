@@ -44,9 +44,7 @@ describe("OpenAPI build and workflow contracts", () => {
     const compatibilityWorkflow = await readRepositoryFile(
       ".github/workflows/graphql-compatibility.yml",
     );
-    const bunWorkflow = await readRepositoryFile(
-      ".github/workflows/bun-job.yml",
-    );
+    const ciWorkflow = await readRepositoryFile(".github/workflows/ci.yml");
 
     expect(compatibilityWorkflow).toContain("'graphql-breaking-approved'");
     expect(compatibilityWorkflow).toContain(
@@ -61,12 +59,9 @@ describe("OpenAPI build and workflow contracts", () => {
     expect(compatibilityWorkflow).toContain(
       '-t "does not break the configured base schema"',
     );
-    expect(bunWorkflow).toMatch(
+    expect(ciWorkflow).toMatch(
       /name: Verify canonical GraphQL schema snapshot[\s\S]*GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"/,
     );
-    expect(bunWorkflow).toContain(
-      'echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"',
-    );
-    expect(bunWorkflow).not.toContain("PR_TITLE:");
+    expect(ciWorkflow).not.toContain("PR_TITLE:");
   });
 });

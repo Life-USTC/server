@@ -1,0 +1,26 @@
+name: Setup test database
+description: Prepare generated clients and production database roles on the job's disposable PostgreSQL service.
+
+runs:
+  using: composite
+  steps:
+    - name: Select PostgreSQL 16 client
+      shell: bash
+      run: |
+        /usr/lib/postgresql/16/bin/psql --version
+        /usr/lib/postgresql/16/bin/pg_dump --version
+        echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+    - name: Prepare clients and restricted runtime roles
+      shell: bash
+      run: |
+        bun run app:prepare
+        export FUNCTION_OWNER_DATABASE_URL="$DATABASE_URL"
+        export ALLOW_TEST_DATABASE_SETUP=true
+        source tests/ci/setup-runtime-database.sh
+        for variable in FUNCTION_OWNER_DATABASE_URL ALLOW_TEST_DATABASE_SETUP \
+          DATABASE_URL AUTH_DATABASE_URL MAINTENANCE_DATABASE_URL \
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE \
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH \
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE; do
+          printf '%s=%s\n' "$variable" "${!variable}" >> "$GITHUB_ENV"
+        done
