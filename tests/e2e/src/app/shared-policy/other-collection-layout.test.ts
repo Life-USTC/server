@@ -84,7 +84,7 @@ async function prepare(
     ]);
   await page.setViewportSize({ width, height: 900 });
 }
-function cases(fixture: OtherCollectionPolicyFixture) {
+function cases() {
   return [
     {
       name: "links",
@@ -109,7 +109,8 @@ function cases(fixture: OtherCollectionPolicyFixture) {
     },
     {
       name: "users",
-      path: `/admin/users?search=${fixture.catalog.marker}-member`,
+      path: (fixture: OtherCollectionPolicyFixture) =>
+        `/admin/users?search=${fixture.catalog.marker}-member`,
       filter: true,
       summary: true,
       pagination: true,
@@ -123,7 +124,8 @@ function cases(fixture: OtherCollectionPolicyFixture) {
     })),
     ...["comments", "descriptions", "homeworks", "suspensions"].map((tab) => ({
       name: tab,
-      path: `/admin/moderation?tab=${tab}${tab === "suspensions" ? "" : `&search=${fixture.catalog.marker}`}`,
+      path: (fixture: OtherCollectionPolicyFixture) =>
+        `/admin/moderation?tab=${tab}${tab === "suspensions" ? "" : `&search=${fixture.catalog.marker}`}`,
       filter: true,
       summary: tab === "descriptions",
       pagination: false,
@@ -178,18 +180,20 @@ function summary(page: Page, name: string) {
   return page.locator('main [data-slot="results-summary"]').first();
 }
 
-test("ui.other-collection-order", async ({
-  browseRun,
-  page,
-  baseURL,
-  isolatedWorker,
-  layout: fixture,
-}) => {
-  await browseRun(async () => {
-    for (const width of [390, 1280]) {
-      await prepare(page, baseURL, width, isolatedWorker, fixture);
-      for (const item of cases(fixture)) {
-        await gotoAndWaitForReady(page, item.path);
+for (const item of cases()) {
+  for (const width of [390, 1280]) {
+    test(`ui.other-collection-order: ${item.name} at ${width}px`, async ({
+      browseRun,
+      page,
+      baseURL,
+      isolatedWorker,
+      layout: fixture,
+    }) => {
+      await browseRun(async () => {
+        await prepare(page, baseURL, width, isolatedWorker, fixture);
+        const path =
+          typeof item.path === "function" ? item.path(fixture) : item.path;
+        await gotoAndWaitForReady(page, path);
         const record = rows(page, item.name, width).first();
         await expect(record, item.name).toBeVisible();
         const heading = page.getByRole("heading", { level: 1 });
@@ -216,26 +220,23 @@ test("ui.other-collection-order", async ({
           await expect(pagination).toBeVisible();
           await precedes(rows(page, item.name, width).last(), pagination);
         }
-      }
-    }
-  });
-});
+      });
+    });
+  }
 
-test("ui.other-browse-responsive-lists", async ({
-  browseRun,
-  page,
-  baseURL,
-  isolatedWorker,
-  layout: fixture,
-}) => {
-  await browseRun(async () => {
-    // This layout contract loads 13 collections at each of two widths. Retain
-    // per-navigation deadlines; the complete matrix is not a 30-second SLA.
-    test.setTimeout(90_000);
-    for (const width of [320, 390]) {
-      await prepare(page, baseURL, width, isolatedWorker, fixture);
-      for (const item of cases(fixture)) {
-        await gotoAndWaitForReady(page, item.path);
+  for (const width of [320, 390]) {
+    test(`ui.other-browse-responsive-lists: ${item.name} at ${width}px`, async ({
+      browseRun,
+      page,
+      baseURL,
+      isolatedWorker,
+      layout: fixture,
+    }) => {
+      await browseRun(async () => {
+        await prepare(page, baseURL, width, isolatedWorker, fixture);
+        const path =
+          typeof item.path === "function" ? item.path(fixture) : item.path;
+        await gotoAndWaitForReady(page, path);
         const records = rows(page, item.name, width);
         expect(await records.count(), item.name).toBeGreaterThan(0);
         expect(
@@ -269,7 +270,7 @@ test("ui.other-browse-responsive-lists", async ({
           expect(box.x, item.name).toBeGreaterThanOrEqual(0);
           expect(box.x + box.width, item.name).toBeLessThanOrEqual(width);
         }
-      }
-    }
-  });
-});
+      });
+    });
+  }
+}
