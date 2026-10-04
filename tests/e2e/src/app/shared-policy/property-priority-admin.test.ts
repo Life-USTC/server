@@ -17,7 +17,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
       page,
       baseURL,
       adminPriorityRun,
-    }, testInfo) => {
+    }) => {
       test.setTimeout(240_000);
       page.setDefaultTimeout(10_000);
       if (!baseURL) throw new Error("Missing Playwright baseURL");
@@ -58,9 +58,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
           title: string,
           label: string,
         ) {
-          await input.scope.screenshot({
-            path: testInfo.outputPath(`admin-${locale}-${width}-${label}.png`),
-          });
           try {
             await expect(input.identity).toContainText(title);
             await assertPriorityView(input);

@@ -14,7 +14,7 @@ for (const count of [0, 1, 2]) {
     request,
     isolatedWorker,
     calendarProtocolRun,
-  }, testInfo) => {
+  }) => {
     test.setTimeout(300_000);
     const baseURL = isolatedWorker.origin;
     const db = isolatedWorker.database.owner;
@@ -87,10 +87,6 @@ for (const count of [0, 1, 2]) {
             await expect
               .soft(locator, `${locale} ${count}: ${label}`)
               .toHaveText(expected);
-            if (count === 1)
-              await locator.screenshot({
-                path: testInfo.outputPath(`count-${locale}-${label}.png`),
-              });
           }
           const eventSummary = en
             ? `Showing ${count} of ${count} ${count === 1 ? "event" : "events"}`

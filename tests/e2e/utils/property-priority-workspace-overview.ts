@@ -1,4 +1,4 @@
-import { type Locator, type Page, test } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
 import {
   assertPriorityView,
@@ -162,10 +162,7 @@ export async function checkWorkspaceOverviewPriorityViews(
       tertiary: {},
     });
   }
-  await test.info().attach(`overview-week-priority-${locale}-${width}`, {
-    body: await week.screenshot(),
-    contentType: "image/png",
-  });
+
   if (width < 768)
     await page.getByRole("button", { name: /^(菜单|Menu)$/i }).click();
   const navigation = page.locator(
