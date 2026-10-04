@@ -24,6 +24,7 @@ type Plan = {
   incomplete?: boolean;
   device?: boolean;
   debug?: boolean;
+  bus?: boolean;
   feedToken?: boolean;
   sessions: { user: number; deleted?: boolean }[];
 };
@@ -176,7 +177,7 @@ async function arrange(
           },
         })
       : null;
-    if (plan.debug) {
+    if (plan.bus) {
       const campuses = [
         { id: 1, name: "Private East", latitude: 31.82, longitude: 117.28 },
         { id: 2, name: "Private West", latitude: 31.83, longitude: 117.26 },
@@ -264,7 +265,7 @@ function relatedState(db: Database) {
   }));
 }
 
-type Shell = Awaited<ReturnType<typeof arrange>> & {
+export type Shell = Awaited<ReturnType<typeof arrange>> & {
   origin: string;
   flow: CommunityFlow;
   sessionCookie: (
