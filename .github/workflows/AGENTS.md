@@ -34,8 +34,7 @@ docs.
 - Browser jobs upload native HTML reports and failure diagnostics as CI artifacts.
 - CI groups tests by engine and browser project: Integration, HTTP, Chromium,
   and Mobile Chrome. HTTP/browser jobs use native case sharding and two workers;
-  HTTP runs at most four shards at once to leave runner capacity for longer
-  browser jobs. Keep local defaults conservative and visual projects opt-in. Do not maintain
+  keep local defaults conservative and visual projects opt-in. Do not maintain
   a separate file-to-shard registry or scheduler.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
   with inline `runs-on` / steps (no reusable-workflow delegation for that job).
