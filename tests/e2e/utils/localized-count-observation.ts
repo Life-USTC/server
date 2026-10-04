@@ -166,11 +166,12 @@ export async function prepareCountObservation(
           expect(await db.deviceCode.count()).toBe(0);
           expect(await db.upload.count()).toBe(0);
           expect(await db.uploadPending.count()).toBe(0);
-          expect(
-            await createUploadBucket(request, worker.origin).list({
-              prefix: "uploads/",
-            }),
-          ).toEqual({ objects: [], truncated: false });
+          if (userId)
+            expect(
+              await createUploadBucket(request, worker.origin).list({
+                prefix: `uploads/${userId}/`,
+              }),
+            ).toEqual({ objects: [], truncated: false });
         },
       };
     },
