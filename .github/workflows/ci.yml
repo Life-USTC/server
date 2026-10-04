@@ -359,7 +359,7 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - *download-build
       - uses: ./.github/actions/setup-test-database
-      - run: bunx playwright test --project=${{ matrix.project }} --fully-parallel --workers=3 --shard=${{ matrix.index }}/${{ matrix.total }}
+      - run: bunx playwright test --project=${{ matrix.project }} --fully-parallel --workers=2 --shard=${{ matrix.index }}/${{ matrix.total }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() }}
         with:
