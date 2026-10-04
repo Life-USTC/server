@@ -73,26 +73,29 @@ test("task filters respond after navigating between workspace pages", async ({
   );
 });
 
-for (const mobile of [false, true]) {
-  for (const includePending of [false, true]) {
-    test(`ui.workspace-filters-and-empty-states-1 (${mobile ? "mobile" : "desktop"}, ${includePending ? "pending" : "completed-only"})`, async ({
-      page,
-      taskFilterState,
-      taskFilterRun,
-      taskFilterDb,
-    }) => {
-      await page.setViewportSize(
-        mobile ? { width: 390, height: 844 } : { width: 1280, height: 900 },
-      );
-      const fixture = await taskFilterState(includePending);
-      const rebuild = { type: "user" as const, userId: fixture.userId };
-      const oneCompletion = includePending ? [rebuild] : [];
-      const bothCompletions = includePending ? [rebuild, rebuild] : [];
-      await taskFilterRun(
-        async ({ activeReads, duringRemoval, checkpoint }) => {
-          // Independent domains share one arranged state. Exams come last:
-          // its token creation must not conceal earlier token-free behavior.
-          for (const tab of ["homeworks", "todos", "exams"] as const) {
+for (const tab of ["homeworks", "todos", "exams"] as const) {
+  for (const mobile of [false, true]) {
+    for (const includePending of [false, true]) {
+      test(`ui.workspace-filters-and-empty-states-1 (${tab}, ${mobile ? "mobile" : "desktop"}, ${includePending ? "pending" : "completed-only"})`, async ({
+        page,
+        taskFilterState,
+        taskFilterRun,
+        taskFilterDb,
+      }) => {
+        await page.setViewportSize(
+          mobile ? { width: 390, height: 844 } : { width: 1280, height: 900 },
+        );
+        const fixture = await taskFilterState(includePending);
+        const rebuild = { type: "user" as const, userId: fixture.userId };
+        const calendarMessages =
+          includePending && tab !== "exams" ? [rebuild] : [];
+        const effects = {
+          calendarTokenCreated: tab === "exams",
+          calendarMessages,
+        };
+        await taskFilterRun(
+          async ({ activeReads, duringRemoval, checkpoint }) => {
+            // Each domain observes its own mutations and token-free or token-creating reads.
             const step = `ui.workspace-filters-and-empty-states-1 (${tab}, ${mobile ? "mobile" : "desktop"}, ${includePending ? "pending" : "completed-only"})`;
             await test.step(step, async () => {
               const errors: string[] = [];
@@ -273,16 +276,12 @@ for (const mobile of [false, true]) {
                   failures,
                   "Task filter assertions and offline cleanup failed",
                 );
-              await checkpoint(step, {
-                calendarTokenCreated: tab === "exams",
-                calendarMessages:
-                  tab === "homeworks" ? oneCompletion : bothCompletions,
-              });
+              await checkpoint(step, effects);
             });
-          }
-        },
-        { calendarTokenCreated: true, calendarMessages: bothCompletions },
-      );
-    });
+          },
+          effects,
+        );
+      });
+    }
   }
 }
