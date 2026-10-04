@@ -5,28 +5,28 @@ import {
   test,
 } from "../../account-policy/semester-presentation-fixture";
 
-test("calendar.subscription-badges", async ({
-  page,
-  calendar: fixture,
-  isolatedWorker,
-  calendarProtocolRun,
-}) => {
-  // Two locales × three subscription kinds × four viewport/view combinations.
-  // Each case loads and hydrates the calendar; keep individual waits unchanged.
-  test.setTimeout(60_000);
-  await calendarProtocolRun(async (io) => {
-    await page.context().clearCookies();
-    const observation = await prepareSemesterObservation(
-      page,
-      isolatedWorker,
-      io,
-      fixture.users[0].id,
-      Array.from({ length: 6 }, () => ({
-        type: "user",
-        userId: fixture.users[0].id,
-      })),
-    );
-    for (const locale of ["zh-CN", "en-US"]) {
+for (const locale of ["zh-CN", "en-US"]) {
+  test(`calendar.subscription-badges: ${locale}`, async ({
+    page,
+    calendar: fixture,
+    isolatedWorker,
+    calendarProtocolRun,
+  }) => {
+    // Each locale owns three subscription kinds × four viewport/view combinations.
+    // Each case loads and hydrates the calendar; keep individual waits unchanged.
+    test.setTimeout(60_000);
+    await calendarProtocolRun(async (io) => {
+      await page.context().clearCookies();
+      const observation = await prepareSemesterObservation(
+        page,
+        isolatedWorker,
+        io,
+        fixture.users[0].id,
+        Array.from({ length: 3 }, () => ({
+          type: "user",
+          userId: fixture.users[0].id,
+        })),
+      );
       await page.context().addCookies([
         {
           name: "NEXT_LOCALE",
@@ -110,21 +110,19 @@ test("calendar.subscription-badges", async ({
               () => document.documentElement.scrollWidth <= window.innerWidth,
             ),
           ).toBe(true);
-          if (kind === "teaching_assistant") {
-          }
         }
       }
-    }
-    return observation.checks({
-      feedTokenCreated: true,
-      requests: [
-        [
-          "PATCH",
-          `/api/workspace/subscriptions/${fixture.section.jwId}`,
-          [200, 200, 200, 200, 200, 200],
+      return observation.checks({
+        feedTokenCreated: true,
+        requests: [
+          [
+            "PATCH",
+            `/api/workspace/subscriptions/${fixture.section.jwId}`,
+            [200, 200, 200],
+          ],
         ],
-      ],
-      subscriptionKind: { sectionId: fixture.section.id, kind: "auditor" },
+        subscriptionKind: { sectionId: fixture.section.id, kind: "auditor" },
+      });
     });
   });
-});
+}
