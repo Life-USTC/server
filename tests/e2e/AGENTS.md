@@ -20,7 +20,7 @@ Global setup validates the four database connections and production role
 constraints. The Playwright configuration does not start a shared server or
 provide a default origin.
 
-CI distributes Chromium cases across 24 jobs and runs Mobile Chrome separately.
+CI distributes Chromium cases across 16 jobs and runs Mobile Chrome separately.
 Each job uses native `--fully-parallel --workers=2`; the visual projects remain
 opt-in. Locally, use
 `bun run e2e:test:local --workers=2` to build the application and test Worker once

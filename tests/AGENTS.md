@@ -9,7 +9,7 @@ when changing behavior: `$life-ustc-implement`.
 | Integration | `tests/integration/` | `bun run integration:test:parallel`; four independent PostgreSQL shards, serial files within each |
 | RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job and the default local parallel runner enable all role-test gates against the production bootstrap |
 | HTTP | `tests/integration/rest/` | `bun run rest:test`; eight CI shards with two workers each; each case owns its database and real Worker |
-| Browser | `tests/e2e/` | 24 Chromium CI shards and one Mobile Chrome job, two workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
+| Browser | `tests/e2e/` | 16 Chromium CI shards and one Mobile Chrome job, two workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
 
 CI static checks, unit coverage, integration shards, RLS, and the test build start
 independently. HTTP and browser jobs consume the single `test-build` artifact:
