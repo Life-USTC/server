@@ -1,5 +1,4 @@
-import { createRequire } from "node:module";
-import { unstable_readConfig, unstable_startWorker } from "wrangler";
+import { unstable_startWorker } from "wrangler";
 
 let worker;
 let starting;
@@ -13,21 +12,7 @@ const cancelled = new Promise((_, reject) => {
 void cancelled.catch(() => undefined);
 
 async function start(options) {
-  const config = unstable_readConfig({ config: options.config });
-  const require = createRequire(options.config);
-  // The process owns its temporary build directory. Resolve configured aliases
-  // from the source config before Wrangler bundles from that private directory.
-  worker = await unstable_startWorker({
-    ...options,
-    build: {
-      alias: Object.fromEntries(
-        Object.entries(config.alias ?? {}).map(([name, target]) => [
-          name,
-          require.resolve(target),
-        ]),
-      ),
-    },
-  });
+  worker = await unstable_startWorker(options);
   const fail = (event) => {
     const error =
       event instanceof Error
@@ -48,8 +33,8 @@ async function start(options) {
   });
   abort.signal.throwIfAborted();
   const url = await Promise.race([worker.url, cancelled]);
-  // A config update starts a new build. Settle the first build before replacing
-  // its temporary directory so its asynchronous writes cannot recreate it later.
+  // Settle initial startup before updating configuration. Both phases own
+  // temporary runtime resources that teardown must observe.
   await Promise.race([initialReload, cancelled]);
   const origin = `http://localhost:${url.port}`;
   // Only the application binding changes. Wrangler retains its bound HTTP
@@ -92,11 +77,23 @@ function stop() {
   abort.abort(new Error("Private Worker process stopped"));
   stopping ??= (async () => {
     await starting?.catch(() => undefined);
+    process.exitCode = 0;
     // dispose() waits for readiness first. Teardown must also work when startup
     // has not reached readiness, so use the DevEnv's exposed teardown directly.
-    await worker?.raw.teardown();
-    if (process.connected) process.disconnect?.();
-    process.exitCode = 0;
+    try {
+      await worker?.raw.teardown();
+    } catch (error) {
+      // Miniflare cleans up, then rethrows its initial readiness failure.
+      // That exact cause was already reported; independent cleanup errors fail.
+      if (error !== abort.signal.reason?.cause) {
+        console.error(error);
+        if (process.connected)
+          process.send?.({ type: "error", message: String(error) });
+        process.exitCode = 1;
+      }
+    } finally {
+      if (process.connected) process.disconnect?.();
+    }
   })();
   return stopping;
 }

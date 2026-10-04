@@ -32,6 +32,7 @@ trap 'exit 143' TERM
 
 # The build needs a datasource URL, but does not connect to a database.
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev bun run build
+bun run build:test-worker
 
 docker run --detach --rm --name "$container" \
   --env POSTGRES_DB=life_ustc_dev \
