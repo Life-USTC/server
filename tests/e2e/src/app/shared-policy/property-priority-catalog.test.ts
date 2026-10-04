@@ -300,10 +300,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
                         "27",
                       ),
                     };
-            await test.info().attach(`${kind}-list-${locale}-${width}`, {
-              body: await page.screenshot(),
-              contentType: "image/png",
-            });
+
             await assertPriorityView({
               scope: row,
               identity,

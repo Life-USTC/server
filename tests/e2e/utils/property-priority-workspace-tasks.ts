@@ -1,4 +1,4 @@
-import { type Locator, type Page, test } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
 import {
   assertPriorityView,
@@ -91,10 +91,7 @@ export async function checkWorkspaceTaskPriorityViews(
     secondary: { "todo.priority": text(todoRow, high) },
     tertiary: todoInternal,
   });
-  await test.info().attach(`todo-priority-${locale}-${width}`, {
-    body: await page.screenshot(),
-    contentType: "image/png",
-  });
+
   await todoTitle.click();
   const todoDialog = page.getByRole("dialog", {
     name: todo.title,
@@ -276,10 +273,7 @@ export async function checkWorkspaceTaskPriorityViews(
       "exam.examBatch.id": internal(batch.id),
     },
   });
-  await test.info().attach(`exam-priority-${locale}-${width}`, {
-    body: await page.screenshot(),
-    contentType: "image/png",
-  });
+
   await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}#exams`);
   const sectionExam = main
     .getByTestId("section-exams-list")

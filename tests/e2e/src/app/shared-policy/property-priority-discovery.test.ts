@@ -28,7 +28,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
       baseURL,
       isolatedWorker,
       discoveryState: f,
-    }, testInfo) => {
+    }) => {
       await browseRun(async () => {
         test.setTimeout(240_000);
         if (!baseURL) throw new Error("Missing Playwright baseURL");
@@ -180,10 +180,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
               },
               tertiary: { "route.id": { value: String(f.route.id) } },
             });
-            await page.screenshot({
-              path: testInfo.outputPath(`after-bus-${locale}-${width}.png`),
-              fullPage: true,
-            });
+
             await gotoAndWaitForReady(page, "/catalog/bus/map");
             const label = main
               .locator("text[data-campus-label]")
@@ -246,10 +243,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
                 "revision.id": { value: f.revision.id },
               },
             });
-            await page.screenshot({
-              path: testInfo.outputPath(`after-news-${locale}-${width}.png`),
-              fullPage: true,
-            });
+
             await gotoAndWaitForReady(page, `/news/${f.publication.id}`);
             const sourceLink = main.getByRole("link", {
               name: p.sourcePage,
@@ -371,10 +365,6 @@ for (const locale of ["zh-cn", "en-us"] as const)
               },
               tertiary: { "source.id": { value: f.publication.sourceId } },
             });
-            await page.screenshot({
-              path: testInfo.outputPath(`after-sources-${locale}-${width}.png`),
-              fullPage: true,
-            });
           });
           await test.step(`${locale}/${width}: Young`, async () => {
             await gotoAndWaitForReady(
@@ -424,12 +414,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
               },
               tertiary: {},
             });
-            await page.screenshot({
-              path: testInfo.outputPath(
-                `after-young-list-${locale}-${width}.png`,
-              ),
-              fullPage: true,
-            });
+
             await gotoAndWaitForReady(
               page,
               `/catalog/young-events/${f.young.youngId}`,
@@ -823,10 +808,6 @@ for (const locale of ["zh-cn", "en-us"] as const)
               },
               secondary: {},
               tertiary: { "link.slug": { value: item.slug } },
-            });
-            await page.screenshot({
-              path: testInfo.outputPath(`after-links-${locale}-${width}.png`),
-              fullPage: true,
             });
           });
         }

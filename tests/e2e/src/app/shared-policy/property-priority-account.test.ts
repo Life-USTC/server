@@ -148,7 +148,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
       accountPriority: fixture,
       accountPriorityDb: accountDb,
       accountPriorityRun,
-    }, testInfo) => {
+    }) => {
       test.setTimeout(180_000);
       page.setDefaultTimeout(10_000);
       await accountPriorityRun(async () => {
@@ -183,10 +183,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
         const passkey = main
           .locator('[data-slot="item"]')
           .filter({ has: page.locator(`#passkey-name-${fixture.passkey.id}`) });
-        await page.screenshot({
-          path: testInfo.outputPath(`account-fields-${locale}-${width}.png`),
-          fullPage: true,
-        });
+
         await assertPriorityView({
           scope: main,
           identity: passkey.locator("input"),
@@ -258,12 +255,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           tertiary: { "event.id": { value: fixture.event.id } },
         });
         await gotoAndWaitForReady(page, "/account/settings/authorizations");
-        await page.screenshot({
-          path: testInfo.outputPath(
-            `authorization-fields-${locale}-${width}.png`,
-          ),
-          fullPage: true,
-        });
+
         await checkAuthorizations(page, fixture, locale);
 
         await accountDb((db) =>

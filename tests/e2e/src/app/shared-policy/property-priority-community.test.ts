@@ -27,7 +27,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
       communityPriorityDb: communityDb,
       communityPriorityRun,
       communityUploadGate,
-    }, testInfo) => {
+    }) => {
       test.setTimeout(240_000);
       page.setDefaultTimeout(10_000);
       if (!baseURL) throw new Error("Missing baseURL");
@@ -59,11 +59,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
           expected: text,
         });
         async function check(input: PriorityViewCheck, label: string) {
-          await input.scope.screenshot({
-            path: testInfo.outputPath(
-              `community-${locale}-${width}-${label}.png`,
-            ),
-          });
           try {
             await assertPriorityView(input);
           } catch (error) {
