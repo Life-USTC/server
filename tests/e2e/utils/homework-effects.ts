@@ -143,6 +143,10 @@ export async function withHomeworkEffects(
         const status = owned.status;
         if (workerAsset(owned.path)) {
           if (owned.canceled) continue;
+          // Replaced documents can retain response() until page.close(). Defer
+          // only these pending reads; the final joined observation still checks
+          // their native cancellation or response status.
+          if (!owned.settled && owned.retiredBy) continue;
           if (status === undefined)
             throw new Error(
               `Static asset has no browser response: ${owned.path}`,

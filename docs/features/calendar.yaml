@@ -115,7 +115,7 @@ requirements:
     - No viewport gains page-level horizontal overflow.
     test:
       file: tests/e2e/src/app/workspace/calendar/subscription-badge.test.ts
-      name: calendar.subscription-badges
+      name: 'calendar.subscription-badges: zh-CN'
 - id: calendar.event-card-types
   category: presentation
   rule: Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity
