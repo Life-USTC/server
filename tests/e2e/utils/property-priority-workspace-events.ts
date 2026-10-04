@@ -1,6 +1,10 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
-import { assertPriorityView, type PriorityField } from "./property-priority";
+import {
+  assertInternalPriorityFieldAbsent,
+  assertPriorityView,
+  type PriorityField,
+} from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
 
 type Locale = "zh-cn" | "en-us";
@@ -132,13 +136,7 @@ async function checkEvent(
     tertiary: { "event.id": { value: id } },
   });
   if (kind === "class") {
-    await assertPriorityView({
-      scope,
-      identity,
-      primary,
-      secondary,
-      tertiary: { "event.id": { value: id } },
-    });
+    await assertInternalPriorityFieldAbsent(scope, { value: id });
     const day = grid
       ? event.locator('xpath=ancestor::*[@role="gridcell"][1]')
       : event.locator("xpath=ancestor::section[1]");

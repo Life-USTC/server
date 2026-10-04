@@ -184,30 +184,37 @@ test("ui.data-table-cells-4", async ({
       columns: ["left", "left", "right", "left", "right", "center", "right"],
     },
   ];
+  let currentPath: string | undefined;
   for (const item of cases) {
-    await gotoAndWaitForReady(page, item.path);
+    if (item.path !== currentPath) {
+      await gotoAndWaitForReady(page, item.path);
+      currentPath = item.path;
+    }
     await checkColumns(
       page.locator(item.selector ?? "main table:visible").first(),
       item.columns,
       item.name,
     );
+    if (item.name === "todos") {
+      await page
+        .getByRole("button", { name: f.todo.title, exact: true })
+        .click();
+      await checkFacts(
+        page.getByRole("dialog").locator("table"),
+        "todo-details",
+      );
+      await page.keyboard.press("Escape");
+    } else if (item.name === "homeworks") {
+      await page
+        .getByRole("button", { name: f.homework.title, exact: true })
+        .click();
+      await checkFacts(
+        page.getByTestId("homework-secondary-details").locator("table"),
+        "homework-details",
+      );
+      await page.keyboard.press("Escape");
+    }
   }
-  await gotoAndWaitForReady(page, "/workspace/todos");
-  await page.getByRole("button", { name: f.todo.title, exact: true }).click();
-  await checkFacts(page.getByRole("dialog").locator("table"), "todo-details");
-  await page.keyboard.press("Escape");
-  await gotoAndWaitForReady(
-    page,
-    `/workspace/homeworks?semester=${f.catalog.semester.code}`,
-  );
-  await page
-    .getByRole("button", { name: f.homework.title, exact: true })
-    .click();
-  await checkFacts(
-    page.getByTestId("homework-secondary-details").locator("table"),
-    "homework-details",
-  );
-  await page.keyboard.press("Escape");
   await page.context().clearCookies();
   await page
     .context()

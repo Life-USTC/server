@@ -99,20 +99,6 @@ export async function checkWorkspaceCalendarPriorityViews(
         calendar,
         locale === "en-us"
           ? "Lectures, exams, and homework for this section."
-          : /只包含本班级的上课、考试与作业/,
-      ),
-    },
-    tertiary: {},
-  });
-  await assertPriorityView({
-    scope: calendar,
-    identity: calendarTitle,
-    primary: calendarPrimary,
-    secondary: {
-      "calendar.description": text(
-        calendar,
-        locale === "en-us"
-          ? "Lectures, exams, and homework for this section."
           : "只包含本班级的上课、考试与作业。",
       ),
     },
