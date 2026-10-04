@@ -85,7 +85,7 @@ export async function withCalendarProtocol(
   let registered = false;
   let accepting = true;
   let completed = false;
-  const reads = ownBrowserReads(page, origin, () => !page.isClosed());
+  const reads = ownBrowserReads(page, origin, () => accepting);
   const remember = (error: unknown) => {
     if (error instanceof AggregateError) {
       for (const child of error.errors) remember(child);

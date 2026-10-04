@@ -9,6 +9,7 @@ const test = base.extend<{
     owner: ReturnType<typeof ownBrowserReads>;
     start: (path?: string) => Promise<Request>;
     release: () => void;
+    stopAccepting: () => void;
     cancel: () => Promise<void>;
   };
 }>({
@@ -16,10 +17,12 @@ const test = base.extend<{
     const release = createDeferred();
     const arrived = createDeferred();
     const server = createServer((request, response) => {
-      if (request.url === "/slow" || request.url === "/error") {
+      if (["/slow", "/error", "/redirect"].includes(request.url ?? "")) {
         arrived.resolve();
         void release.promise.then(() => {
           if (request.url === "/error") response.destroy();
+          else if (request.url === "/redirect")
+            response.writeHead(302, { location: "/completed" }).end();
           else response.writeHead(201).end("completed");
         });
       } else
@@ -34,7 +37,8 @@ const test = base.extend<{
     if (!address || typeof address === "string")
       throw new Error("Missing server port");
     const origin = `http://127.0.0.1:${address.port}`;
-    const owner = ownBrowserReads(page, origin, () => true);
+    let accepting = true;
+    const owner = ownBrowserReads(page, origin, () => accepting);
     owner.start();
     let cancel: (() => Promise<void>) | undefined;
     try {
@@ -43,6 +47,9 @@ const test = base.extend<{
         origin,
         owner,
         release: release.resolve,
+        stopAccepting() {
+          accepting = false;
+        },
         async start(path = "/slow") {
           const requested = page.waitForEvent("request", {
             predicate: (request) => new URL(request.url()).pathname === path,
@@ -92,6 +99,26 @@ test("keeps native response status and joins the observation", async ({
     .poll(() => reads.owner.ownedReads.get(request)?.settled)
     .toBe(true);
   expect(reads.owner.ownedReads.get(request)?.status).toBe(201);
+  expect(reads.owner.errors).toEqual([]);
+});
+
+test("closing admission retains an already-owned redirect successor", async ({
+  page,
+  reads,
+}) => {
+  const original = await reads.start("/redirect");
+  reads.stopAccepting();
+  const completed = page.waitForResponse(`${reads.origin}/completed`);
+  reads.release();
+  const response = await completed;
+  expect(response.status()).toBe(200);
+  const successor = response.request();
+  expect(successor.redirectedFrom()).toBe(original);
+  await expect
+    .poll(() => reads.owner.ownedReads.get(successor)?.settled)
+    .toBe(true);
+  expect(reads.owner.ownedReads.get(original)?.status).toBe(302);
+  expect(reads.owner.ownedReads.get(successor)?.status).toBe(200);
   expect(reads.owner.errors).toEqual([]);
 });
 
