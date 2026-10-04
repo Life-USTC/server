@@ -33,8 +33,11 @@ docs.
   and rejects every non-success mandatory result; specifications run in Check.
 - Browser jobs upload native HTML reports and failure diagnostics as CI artifacts.
 - CI groups tests by engine and browser project: Integration, HTTP, Chromium,
-  and Mobile Chrome. HTTP/browser jobs use native case sharding and two workers;
-  keep local defaults conservative and visual projects opt-in. Do not maintain
-  a separate file-to-shard registry or scheduler.
+  and Mobile Chrome. Chromium uses directory scopes: Shared UI (5 shards),
+  Workspace (5), and all remaining features/harnesses (6). The remaining scope
+  excludes only the first two directories so new test directories stay covered.
+  HTTP/browser jobs use native case sharding and two workers; keep local defaults
+  conservative and visual projects opt-in. Do not maintain a separate
+  file-to-shard registry or scheduler.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
   with inline `runs-on` / steps (no reusable-workflow delegation for that job).
