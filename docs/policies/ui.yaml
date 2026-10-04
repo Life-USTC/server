@@ -1311,8 +1311,8 @@ requirements:
     - Selecting zero sections updates the confirmation title, accessible legend and disabled action; importing one or two sections renders the correct success message and included-section summary in workspace and welcome.
     - Security repetition badges appear only for groups larger than one and report their actual repeated count.
     test:
-      file: tests/e2e/src/app/shared-policy/remaining-count-copy.test.ts
-      name: ui.localized-count-copy-1 count=1
+      file: tests/e2e/src/app/workspace/subscriptions/bulk-count-copy.test.ts
+      name: subscriptions.bulk-count-copy en-us count=1
 - id: ui.catalog-count-copy
   category: presentation
   topic: localized-count-copy
