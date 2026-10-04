@@ -1297,22 +1297,99 @@ requirements:
     test:
       file: tests/e2e/src/app/courses/social-metadata.test.ts
       name: ui.social-sharing-metadata-6
-- id: ui.localized-count-copy-1
+- id: ui.young-count-copy
   category: presentation
   topic: localized-count-copy
-  rule: Outside catalog result summaries and profile contribution-day labels, user-visible English count copy distinguishes singular from plural forms; Chinese may share one count template when its grammar does not change.
-  rationale: Catalog result summaries and profile contribution-day labels have the independent owners ui.catalog-count-copy and ui.profile-count-copy. Count-neutral labels need no invented singular variant, and zero-count notices/results may be absent where their component only renders nonempty records.
+  rule: Activity and organizer summaries and digest notices report actual counts with singular/plural English
+    grammar. Chinese and count-neutral labels may keep unchanged templates; nonempty-only notices may be absent at zero.
+  rationale: The linked count=1 case represents this domain; count=0 and count=2 cases complete the matrix, each in both languages.
   acceptance:
-    given: Isolated database fixtures provide zero, one and two activities, organizers, publications, sources, private comments, administrative records, importable sections and account security events.
-    when: English and Chinese browsers open the activity list/calendar/organizer history/directory, news and source directory, course comments, administrative users/OAuth/descriptions, activity digests, account security, subscription search/import and welcome import; publication folding and subscription selection are changed through reachable states.
+    given: Independent fixtures provide zero, one and two matching activities, organizers and notifications.
+    when: English and Chinese browsers open the activity list, day calendar, organizer history/directory and authenticated notifications.
     then:
-    - Visible summaries, digest/hidden-comment notices, folded sibling badges, search legends and import headings/actions use the actual count and natural singular/plural grammar.
-    - Source and publication totals choose their grammar independently, including sources with no publications; empty-only branches omit inapplicable count notices.
-    - Selecting zero sections updates the confirmation title, accessible legend and disabled action; importing one or two sections renders the correct success message and included-section summary in workspace and welcome.
-    - Security repetition badges appear only for groups larger than one and report their actual repeated count.
+    - Summaries report actual shown/total counts and digests report the actual activity count with natural localized grammar.
+    - Notification rows match the prepared count; an empty notification list requires no digest notice.
+    test:
+      file: tests/e2e/src/app/young-events/count-copy.test.ts
+      name: young.localized-count-copy count=1
+- id: ui.news-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: News results, source totals/groups and folded sibling badges report actual counts with independent
+    singular/plural English grammar for each noun. Chinese and count-neutral labels may keep unchanged
+    templates; nonempty-only notices may be absent at zero.
+  rationale: The linked count=1 case represents this domain; count=0 and count=2 cases complete the matrix, each in both languages.
+  acceptance:
+    given: Independent fixtures provide zero, one and two sources/publications, folded siblings and sources with no publications.
+    when: English and Chinese browsers open news and source directories, fold publications and revisit changed publication totals.
+    then:
+    - Result and sibling badges use actual counts; source and publication totals choose grammar independently, including zero publications.
+    - Source group labels retain correct localized counts; an empty source directory omits its inapplicable summary.
+    test:
+      file: tests/e2e/src/app/news/count-copy.test.ts
+      name: news.localized-count-copy count=1
+- id: ui.account-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Hidden-comment notices, administrative user/client/description counts and security repetition badges
+    use actual counts and singular/plural English grammar. Chinese and count-neutral labels may keep unchanged
+    templates; nonempty-only notices may be absent at zero. Repetition badges appear only for groups larger than one.
+  rationale: The linked count=1 case is representative; count=0 and count=2 cases include empty and repeated-event branches, each in both languages.
+  acceptance:
+    given: Independent fixtures provide zero, one and two private comments, administrative records and security events.
+    when: English and Chinese anonymous browsers open course comments, then the administrator opens security, users, OAuth clients and description moderation.
+    then:
+    - Hidden-comment notices use correct counts and localized noun/verb/pronoun agreement; zero hidden comments produce no notice.
+    - Administrative summaries use actual counts and natural grammar; repetition badges are absent at zero/one and report the actual repeated count otherwise.
+    test:
+      file: tests/e2e/src/app/account-policy/count-copy.test.ts
+      name: account.localized-count-copy count=1
+- id: ui.subscription-search-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Subscription search legends report actual matching-section counts with singular/plural English
+    grammar. Chinese and count-neutral labels may keep unchanged templates; zero results may omit a nonempty-only legend.
+  rationale: The linked count=1 case is representative; count=0 and count=2 cases complete the matrix, each in both languages.
+  acceptance:
+    given: Independent fixtures provide zero, one and two sections matching a semester and course code.
+    when: English and Chinese users open Add Subscription, select the semester, search by code and cancel.
+    then:
+    - Nonempty search legends use actual counts and natural localized grammar; zero results show the localized no-sections-found state.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/search-count-copy.test.ts
+      name: subscriptions.search-count-copy count=1
+- id: ui.subscription-bulk-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Bulk import headings, accessible legends, actions, success messages and included-section summaries
+    use actual counts and singular/plural English grammar. Chinese and count-neutral labels may keep unchanged
+    templates. Zero selection updates count copy and disables the subscription action.
+  rationale: The linked English count=1 case is representative; count=2 and Chinese cases complete the import matrix, and every case checks zero selection.
+  acceptance:
+    given: Each English or Chinese operation independently owns an account and one or two unsubscribed sections.
+    when: The user matches codes, changes confirmation selection from all to zero and back, then imports.
+    then:
+    - Title, accessible legend and action use the selected count and natural grammar; zero selection disables the action and positive selection enables it.
+    - Importing one or two sections renders the correct localized success message and included-section summary in the workspace.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/bulk-count-copy.test.ts
       name: subscriptions.bulk-count-copy en-us count=1
+- id: ui.welcome-import-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Welcome import success messages and included-section summaries use actual counts and singular/plural
+    English grammar. Chinese and count-neutral labels may keep unchanged templates; nonempty-only notices may be absent at zero.
+  rationale: The linked English count=1 success-notice case is representative; count=2 and Chinese cases complete that matrix.
+    The included-section summary obligation is currently unmet by both the implementation and its tests;
+    the pointer represents only the success notice.
+  acceptance:
+    given: Each English or Chinese welcome import independently owns an account and one or two unsubscribed sections.
+    when: The user selects a semester, matches codes and imports results on the welcome subscriptions step.
+    then:
+    - Importing one or two sections renders the correct localized success message and included-section summary in welcome, with the actual added count and natural grammar.
+    test:
+      file: tests/e2e/src/app/welcome/import-count-copy.test.ts
+      name: welcome.import-count-copy en-us count=1
 - id: ui.catalog-count-copy
   category: presentation
   topic: localized-count-copy
@@ -1606,6 +1683,15 @@ topics:
   title: Social Sharing Metadata
 - id: localized-count-copy
   title: Localized Count Copy
+  requirement_refs:
+  - ui.young-count-copy
+  - ui.news-count-copy
+  - ui.account-count-copy
+  - ui.subscription-search-count-copy
+  - ui.subscription-bulk-count-copy
+  - ui.welcome-import-count-copy
+  - ui.catalog-count-copy
+  - ui.profile-count-copy
 - id: navigation-landmarks
   title: Navigation Landmarks
 rationale:
