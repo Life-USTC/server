@@ -2,6 +2,7 @@ import {
   type APIResponse,
   test as browserTest,
   expect,
+  type Page,
 } from "@playwright/test";
 import { unflatten } from "devalue";
 import { restReadScope } from "@/lib/oauth/scope-registry";
@@ -12,7 +13,7 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../utils/page-ready";
-import { test } from "./shell-projection-fixture";
+import { type Shell, test } from "./shell-projection-fixture";
 
 function expectPrivate(response: APIResponse) {
   expect(response.headers()["cache-control"]).toBe("private, no-store");
@@ -637,54 +638,97 @@ test("rendering-and-cache.web-rendering-and-cache-2", async ({
   );
 });
 
-test("user.shell-viewer", async ({ shell, page, context }) => {
-  await shell.run(
-    { debug: true, feedToken: true, sessions: [{ user: 0 }] },
-    async ({ users, sessionCookie, teacher, organizer, event, debugUser }) => {
-      await context.addCookies([await sessionCookie(users[0].id)]);
-      const identities: string[] = [];
-      const identityPaths = new Set([
-        "/_internal/shell-bootstrap",
-        "/api/account/profile",
-        "/api/auth/get-session",
-      ]);
-      page.on("request", (request) => {
-        const path = new URL(request.url()).pathname;
-        if (identityPaths.has(path)) identities.push(path);
-      });
-      const cases = [
-        {
-          path: `/catalog/courses/${DEV_SEED.course.jwId}`,
-          projection: "/api/community/descriptions",
-        },
-        {
-          path: `/catalog/teachers/${teacher.id}`,
-          projection: "/api/community/descriptions",
-        },
-        {
-          path: `/catalog/sections/${DEV_SEED.section.jwId}`,
-          projection: `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`,
-        },
-        {
-          path: "/catalog/links",
-          projection: "/_internal/catalog/links/viewer",
-        },
-        { path: "/catalog/bus", projection: "/api/workspace/bus-preferences" },
-        {
-          path: `/catalog/young-events/${event.youngId}`,
-          projection: `/api/workspace/young-event-subscriptions/${event.youngId}`,
-        },
-        {
-          path: `/catalog/young-events/organizers/${organizer.id}`,
-          projection: `/api/workspace/young-organizer-subscriptions/${organizer.id}`,
-        },
-        {
-          path: "/catalog/young-events/calendar?view=day&date=2035-09-10",
-          projection: "/api/workspace/calendar/events",
-        },
-      ];
-      for (const item of cases) {
-        identities.length = 0;
+function observeShellIdentities(page: Page) {
+  const identities: string[] = [];
+  const identityPaths = new Set([
+    "/_internal/shell-bootstrap",
+    "/api/account/profile",
+    "/api/auth/get-session",
+  ]);
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (identityPaths.has(path)) identities.push(path);
+  });
+  return identities;
+}
+
+const shellViewerPages: {
+  name: string;
+  bus?: boolean;
+  page: (fixture: Shell) => { path: string; projection: string };
+}[] = [
+  {
+    name: "course",
+    page: () => ({
+      path: `/catalog/courses/${DEV_SEED.course.jwId}`,
+      projection: "/api/community/descriptions",
+    }),
+  },
+  {
+    name: "teacher",
+    page: ({ teacher }) => ({
+      path: `/catalog/teachers/${teacher.id}`,
+      projection: "/api/community/descriptions",
+    }),
+  },
+  {
+    name: "section",
+    page: () => ({
+      path: `/catalog/sections/${DEV_SEED.section.jwId}`,
+      projection: `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`,
+    }),
+  },
+  {
+    name: "links",
+    page: () => ({
+      path: "/catalog/links",
+      projection: "/_internal/catalog/links/viewer",
+    }),
+  },
+  {
+    name: "bus",
+    bus: true,
+    page: () => ({
+      path: "/catalog/bus",
+      projection: "/api/workspace/bus-preferences",
+    }),
+  },
+  {
+    name: "young event",
+    page: ({ event }) => ({
+      path: `/catalog/young-events/${event.youngId}`,
+      projection: `/api/workspace/young-event-subscriptions/${event.youngId}`,
+    }),
+  },
+  {
+    name: "young organizer",
+    page: ({ organizer }) => ({
+      path: `/catalog/young-events/organizers/${organizer.id}`,
+      projection: `/api/workspace/young-organizer-subscriptions/${organizer.id}`,
+    }),
+  },
+  {
+    name: "young calendar",
+    page: () => ({
+      path: "/catalog/young-events/calendar?view=day&date=2035-09-10",
+      projection: "/api/workspace/calendar/events",
+    }),
+  },
+];
+
+for (const scenario of shellViewerPages) {
+  test(`user.shell-viewer: ${scenario.name} public projection`, async ({
+    shell,
+    page,
+    context,
+  }) => {
+    await shell.run(
+      { bus: scenario.bus, sessions: [{ user: 0 }] },
+      async (fixture) => {
+        const { users, sessionCookie } = fixture;
+        await context.addCookies([await sessionCookie(users[0].id)]);
+        const identities = observeShellIdentities(page);
+        const item = scenario.page(fixture);
         const [personal, shell] = await observeAction(
           () =>
             Promise.all([
@@ -707,8 +751,21 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
           users[0].name ?? "",
         );
         expect(identities, item.path).toEqual(["/_internal/shell-bootstrap"]);
-      }
-      identities.length = 0;
+      },
+    );
+  });
+}
+
+test("user.shell-viewer: private navigation retains the viewer on the public section", async ({
+  shell,
+  page,
+  context,
+}) => {
+  await shell.run(
+    { feedToken: true, sessions: [{ user: 0 }] },
+    async ({ users, sessionCookie }) => {
+      await context.addCookies([await sessionCookie(users[0].id)]);
+      const identities = observeShellIdentities(page);
       await gotoAndWaitForReady(page, "/workspace/calendar");
       await expect(page.locator("#app-user-menu")).toContainText(
         users[0].name ?? "",
@@ -738,6 +795,35 @@ test("user.shell-viewer", async ({ shell, page, context }) => {
         users[0].name ?? "",
       );
       expect(identities).toEqual([]);
+    },
+  );
+});
+
+test("user.shell-viewer: real sign-in initializes the public section projections", async ({
+  shell,
+  page,
+  context,
+}) => {
+  await shell.run(
+    { debug: true, sessions: [{ user: 0 }] },
+    async ({ users, sessionCookie, debugUser }) => {
+      const identities = observeShellIdentities(page);
+      const destination = `/catalog/sections/${DEV_SEED.section.jwId}`;
+      // Prime a different authenticated viewer before the real sign-in changes users.
+      await context.addCookies([await sessionCookie(users[0].id)]);
+      const priorBootstrap = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === "/_internal/shell-bootstrap",
+          ),
+        () => gotoAndWaitForReady(page, destination),
+      );
+      expect((await priorBootstrap.json()).viewer.id).toBe(users[0].id);
+      await expect(page.locator("#app-user-menu")).toContainText(
+        users[0].name ?? "",
+      );
+      expect(identities).toEqual(["/_internal/shell-bootstrap"]);
       // Signing in directly to a public detail retains the focused root layout.
       // The completed login must initialize its private shell projection.
       await context.clearCookies();
