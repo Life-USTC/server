@@ -67,7 +67,7 @@ export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:543
 export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
-bun run build && bun run rest:test
+bun run build && bun run build:test-worker && bun run rest:test
 
 # Parallel integration: provisions and cleans up four isolated databases
 bun run integration:test:parallel
@@ -79,6 +79,7 @@ bun run e2e:test:local --workers=2
 # Use the disposable FUNCTION_OWNER_DATABASE_URL and setup flags above.
 source tests/ci/setup-runtime-database.sh
 bun run build
+bun run build:test-worker
 bun run e2e:test
 # Native Playwright filters/options also work, e.g. bun run e2e:test --project=chromium
 
@@ -86,16 +87,22 @@ docker compose -f docker-compose.dev.yml down
 ```
 
 CI jobs live directly in `.github/workflows/ci.yml`. Shared actions install Bun
-dependencies and prepare production-equivalent test database roles. Uploads in
+dependencies and prepare production-equivalent test database roles. The shared
+`test-build` artifact contains the application and precompiled test Worker in
+`.svelte-kit/test-worker`. Manual HTTP/browser runs build both in the order above;
+`e2e:test:local` does this automatically. Rebuild after changing application or
+Worker fixture code. Cases share only the compiled code; databases, Worker
+processes and local storage remain private. Uploads in
 E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
 specifically testing object storage.
 
 ## Delivery gate
 
-Before opening a PR, run local checks and the complete CI workflow on the
-pushed branch with `gh workflow run ci.yml --ref <branch>`. Verify the run's
-head SHA and every mandatory job: static checks, unit coverage, build/client
-budget, static-loader image, RLS, all integration/REST/E2E shards, and the aggregate required-jobs gate.
+Run local checks and the complete CI workflow on the current PR head. Pushes to
+an open PR trigger CI automatically; wait for that run instead of dispatching
+a duplicate branch run. Verify its head SHA and every mandatory job: static
+checks, unit coverage, build/client budget, static-loader image, RLS, all
+integration/HTTP/browser shards, and the aggregate required-jobs gate.
 The protected check named Specification execution evidence aggregates mandatory
 native job outcomes. Check validates document structure separately; neither
 establishes requirement coverage. `bun run check` alone is insufficient.

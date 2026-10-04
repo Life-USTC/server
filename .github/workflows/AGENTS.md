@@ -22,11 +22,19 @@ docs.
 - Declare each CI responsibility directly in `ci.yml`. Shared composite actions only
   install dependencies or prepare test database roles; keep test commands in jobs.
 - Only database-backed jobs provision PostgreSQL. Matrix jobs own separate service
-  containers; REST, browser and visual jobs consume the single application build.
+  containers; HTTP, browser and visual jobs consume the single `test-build`
+  artifact. Build the application, then run `bun run build:test-worker` once;
+  `.svelte-kit/test-worker` shares immutable code, never mutable case state.
 - PR and manual branch runs use separate ref-based concurrency groups; newer
   runs on the same ref cancel stale work, while main runs are not interrupted.
+- Validate an open PR through its automatic current-head run; do not dispatch
+  a duplicate manual run after pushing review changes.
 - Preserve external job names used by protection. The aggregate gate always runs
   and rejects every non-success mandatory result; specifications run in Check.
 - Browser jobs upload native HTML reports and failure diagnostics as CI artifacts.
+- CI groups tests by engine and browser project: Integration, HTTP, Chromium,
+  and Mobile Chrome. HTTP/browser jobs use native case sharding and two workers;
+  keep local defaults conservative and visual projects opt-in. Do not maintain
+  a separate file-to-shard registry or scheduler.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
   with inline `runs-on` / steps (no reusable-workflow delegation for that job).

@@ -8,6 +8,7 @@ export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:543
 export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
 bun run build
+bun run build:test-worker
 bun run e2e:test   # runs the complete suite once
 bunx playwright test path/to/test          # uses the already-prepared schema/roles
 ```
@@ -19,12 +20,18 @@ Global setup validates the four database connections and production role
 constraints. The Playwright configuration does not start a shared server or
 provide a default origin.
 
-CI distributes browser files across 24 isolated jobs. Locally, use
-`bun run e2e:test:local --workers=2` to build once and run native Playwright workers
+CI distributes Chromium cases across 16 jobs and runs Mobile Chrome separately.
+Each job uses native `--fully-parallel --workers=2`; the visual projects remain
+opt-in. Locally, use
+`bun run e2e:test:local --workers=2` to build the application and test Worker once
+and run native Playwright workers
 against one temporary PostgreSQL service. Cases retain private database clones,
 Worker ports and persistence directories. The local launcher removes its service
 and any owned detached processes on exit or interruption. Native Playwright
 arguments and exit status pass through unchanged.
+The shared `.svelte-kit/test-worker` output is immutable compiled code. Rebuild
+it after application or Worker fixture changes; every case still starts its own
+Worker process with private database and storage state.
 
 CI and local runners invoke Playwright directly. Assertions and runtime failures
 are not retried. Native HTML reports, per-test Worker logs, resource identities
@@ -89,9 +96,10 @@ Use `utils/owned-worker.ts` to own complete asynchronous preparation, request an
 observation callbacks with `run()`. Browser workflow fixtures must also depend on
 the native `page` fixture and wait for the complete workflow before releasing it;
 request ownership alone does not keep a page alive. Observe actual UI write
-responses and required persisted effects before completing the workflow. Worker
-bundles and storage belong to the private temporary directory, which the parent
-removes even when the Worker cannot shut down gracefully.
+responses and required persisted effects before completing the workflow. Compiled
+Worker modules and source maps are shared read-only. Each case owns its runtime
+and storage directory, which the parent removes even when the Worker cannot shut
+down gracefully.
 
 
 Helpers: `gotoAndWaitForReady` and `DEV_SEED` under `utils/`. Authenticated
@@ -100,7 +108,8 @@ scenarios arrange a private actor or exercise the real sign-in flow explicitly.
 ## Conventions
 
 - Prefer role/label selectors; never `waitForTimeout` or `networkidle`.
-- The complete suite defaults to one worker per shard to bound resource use.
+- Local execution defaults to one worker; CI explicitly uses two workers and
+  case-level sharding through native Playwright options.
   Validate fixture changes standalone, reordered and with multiple workers
   sharing a schema source. Do not introduce
   serial blocks or shared-user restore logic as a new isolation mechanism.
