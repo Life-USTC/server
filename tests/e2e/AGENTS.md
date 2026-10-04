@@ -21,6 +21,10 @@ constraints. The Playwright configuration does not start a shared server or
 provide a default origin.
 
 CI distributes Chromium cases across 16 jobs and runs Mobile Chrome separately.
+Chromium uses 5 Shared UI shards (`src/app/shared-policy/`), 5 Workspace shards
+(`src/app/workspace/`), and 6 shards for all remaining Chromium tests. The last
+group excludes only those two directories, including new features and harnesses
+automatically. CI names and report artifacts identify the group and shard.
 Each job uses native `--fully-parallel --workers=2`; the visual projects remain
 opt-in. Locally, use
 `bun run e2e:test:local --workers=2` to build the application and test Worker once

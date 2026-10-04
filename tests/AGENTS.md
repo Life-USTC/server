@@ -20,7 +20,10 @@ and `bun run build` followed by `bun run build:test-worker` (see root `AGENTS.md
 The local launcher runs both builds automatically. Browser HTML reports and failure artifacts
 are under `playwright-report/` (or the explicit `E2E_REPORT_ROOT`).
 CI uses native `--fully-parallel --workers=2` so Playwright shards individual
-cases instead of keeping a long file on one runner. Local defaults remain one
+cases instead of keeping a long file on one runner. Chromium's 16 jobs are scoped
+by directory: 5 Shared UI, 5 Workspace, and 6 for all remaining features and
+harnesses. Each scope uses native sharding; no per-file assignments are maintained.
+Local defaults remain one
 worker with serial files; the same native options are available for reproduction.
 Visual projects remain in the separate opt-in visual job.
 Coverage reports measure unit execution of `src/**/*.ts`; database and browser

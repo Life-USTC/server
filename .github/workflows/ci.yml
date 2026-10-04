@@ -341,14 +341,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [chromium]
-        index: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        group: [shared-ui, workspace, features]
+        index: [1, 2, 3, 4, 5, 6]
+        exclude:
+          - group: shared-ui
+            index: 6
+          - group: workspace
+            index: 6
         include:
-          - project: chromium
-            name: Chromium
-            total: 16
-          - project: mobile-chrome
+          - group: shared-ui
+            project: chromium
+            name: Chromium · Shared UI
+            filter: tests/e2e/src/app/shared-policy/
+            total: 5
+          - group: workspace
+            project: chromium
+            name: Chromium · Workspace
+            filter: tests/e2e/src/app/workspace/
+            total: 5
+          - group: features
+            project: chromium
+            name: Chromium · Features
+            filter: '^(?!.*tests/e2e/src/app/(?:shared-policy|workspace)/)'
+            total: 6
+          - group: mobile
+            project: mobile-chrome
             name: Mobile Chrome
+            filter: .
             index: 1
             total: 1
     env: *worker-env
@@ -359,11 +378,11 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - *download-build
       - uses: ./.github/actions/setup-test-database
-      - run: bunx playwright test --project=${{ matrix.project }} --fully-parallel --workers=2 --shard=${{ matrix.index }}/${{ matrix.total }}
+      - run: bunx playwright test '${{ matrix.filter }}' --project=${{ matrix.project }} --fully-parallel --workers=2 --shard=${{ matrix.index }}/${{ matrix.total }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() }}
         with:
-          name: playwright-report-${{ matrix.project }}-${{ matrix.index }}
+          name: playwright-report-${{ matrix.project }}-${{ matrix.group }}-${{ matrix.index }}
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 14
