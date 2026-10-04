@@ -9,7 +9,7 @@ when changing behavior: `$life-ustc-implement`.
 | Integration | `tests/integration/` | `bun run integration:test:parallel`; four independent PostgreSQL shards, serial files within each |
 | RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job and the default local parallel runner enable all role-test gates against the production bootstrap |
 | HTTP | `tests/integration/rest/` | `bun run rest:test`; eight CI shards with two workers each; each case owns its database and real Worker |
-| Browser | `tests/e2e/` | 24 Chromium CI shards and one Mobile Chrome job, three workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
+| Browser | `tests/e2e/` | 24 Chromium CI shards and one Mobile Chrome job, two workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
 
 CI static checks, unit coverage, integration shards, RLS, and the test build start
 independently. HTTP and browser jobs consume the single `test-build` artifact:
@@ -19,9 +19,9 @@ workers schedule the isolated cases. `e2e:test` and `rest:test` invoke Playwrigh
 and `bun run build` followed by `bun run build:test-worker` (see root `AGENTS.md`).
 The local launcher runs both builds automatically. Browser HTML reports and failure artifacts
 are under `playwright-report/` (or the explicit `E2E_REPORT_ROOT`).
-CI uses native `--fully-parallel` with two HTTP or three browser workers so
-Playwright shards individual cases instead of keeping a long file on one runner.
-Local defaults remain one worker with serial files; the same native options are available for reproduction.
+CI uses native `--fully-parallel --workers=2` so Playwright shards individual
+cases instead of keeping a long file on one runner. Local defaults remain one
+worker with serial files; the same native options are available for reproduction.
 Visual projects remain in the separate opt-in visual job.
 Coverage reports measure unit execution of `src/**/*.ts`; database and browser
 tests separately verify real permissions and transport behavior. Keep every
