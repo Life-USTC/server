@@ -27,6 +27,7 @@
   "scripts": {
     "dev": "vite dev --host 127.0.0.1 --port 3000 --strictPort",
     "build": "bun run app:prepare && bun run openapi:generate && vite build",
+    "build:test-worker": "rm -rf .svelte-kit/test-worker && NODE_ENV=development wrangler deploy --dry-run --minify --config wrangler.e2e.jsonc --outdir \"$PWD/.svelte-kit/test-worker\" && cp tests/ci/fixtures/prebuilt-worker-entry.mjs .svelte-kit/test-worker/entry.mjs",
     "app:prepare": "svelte-kit sync && prisma generate",
     "svelte:sync": "svelte-kit sync",
     "db:generate": "prisma generate",

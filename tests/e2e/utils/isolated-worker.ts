@@ -1,7 +1,7 @@
 import { type ChildProcess, fork } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { createWriteStream, mkdirSync, mkdtempSync } from "node:fs";
-import { rm, writeFile } from "node:fs/promises";
+import { access, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { type APIRequestContext, test as base } from "@playwright/test";
@@ -70,6 +70,10 @@ async function stopWorker(child: ChildProcess, exited: Promise<void>) {
     stopProcessGroup();
   }
   if (sendError) throw sendError;
+  if (child.exitCode !== null && child.exitCode !== 0)
+    throw new Error(
+      `Private Worker exited with code ${child.exitCode}; see isolated-worker.log`,
+    );
 }
 
 /** Stateful cases own the database and the actual workerd process/storage.
@@ -169,6 +173,13 @@ export const test = base.extend<
             }),
           );
           abort.signal.throwIfAborted();
+          const entrypoint = resolve(".svelte-kit/test-worker/entry.mjs");
+          await access(entrypoint).catch((cause) => {
+            throw new Error(
+              "Prebuilt test Worker is unavailable. Run bun run build:test-worker after bun run build.",
+              { cause },
+            );
+          });
           await database.initialize(abort.signal);
           abort.signal.throwIfAborted();
           directory = mkdtempSync(join(tmpdir(), "life-ustc-worker-"));
@@ -266,7 +277,15 @@ export const test = base.extend<
           abort.signal.throwIfAborted();
           const options: Parameters<typeof unstable_startWorker>[0] = {
             config: resolve("wrangler.e2e.jsonc"),
-            entrypoint: resolve("tests/ci/fixtures/e2e-storage-worker.ts"),
+            entrypoint,
+            build: {
+              // Wrangler bundles its dev middleware and this small entrypoint.
+              // Matching additional ES modules remain external, prebuilt code.
+              bundle: true,
+              moduleRules: [{ type: "ESModule", globs: ["**/*.js"] }],
+              findAdditionalModules: true,
+              moduleRoot: resolve(".svelte-kit/test-worker"),
+            },
             envFiles: [],
             bindings: Object.fromEntries(
               Object.entries(workerBindings).map(([name, value]) => [

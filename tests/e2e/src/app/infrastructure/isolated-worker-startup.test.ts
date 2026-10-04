@@ -4,7 +4,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { test as base, expect } from "@playwright/test";
 
-type Phase = "config" | "build" | "reload" | "disconnect";
+type Phase = "config" | "build" | "module" | "reload" | "disconnect";
 type Outcome = {
   code: number | null;
   signal: NodeJS.Signals | null;
@@ -44,13 +44,19 @@ const test = base.extend<{ phase: Phase; nativeWorker: NativeWorker }>({
         compatibility_date: "2026-09-01",
       }),
     );
+    const module =
+      phase === "build" ? entrypoint : join(directory, "worker.js");
+    if (phase !== "build")
+      await writeFile(entrypoint, 'export { default } from "./worker.js";');
     await writeFile(
-      entrypoint,
+      module,
       phase === "build"
         ? 'import "./missing-dependency.mjs"; export default { fetch() { return new Response("unreachable"); } };'
-        : phase === "reload"
-          ? 'import { env } from "cloudflare:workers"; if (env.APP_PUBLIC_ORIGIN.startsWith("http:")) throw new Error("PRIVATE_WORKER_ORIGIN_RELOAD_FAILURE"); export default { fetch() { return new Response("initial"); } };'
-          : 'export default { fetch() { return new Response("ready"); } };',
+        : phase === "module"
+          ? 'import missing from "./missing-module.wasm"; export default { fetch() { return new Response(String(missing)); } };'
+          : phase === "reload"
+            ? 'import { env } from "cloudflare:workers"; if (env.APP_PUBLIC_ORIGIN.startsWith("http:")) throw new Error("PRIVATE_WORKER_ORIGIN_RELOAD_FAILURE"); export default { fetch() { return new Response("initial"); } };'
+            : 'export default { fetch() { return new Response("ready"); } };',
     );
 
     const child = fork(
@@ -128,6 +134,12 @@ const test = base.extend<{ phase: Phase; nativeWorker: NativeWorker }>({
               ? join(directory, "missing-worker.mjs")
               : entrypoint,
           envFiles: [],
+          build: {
+            bundle: true,
+            findAdditionalModules: true,
+            moduleRoot: directory,
+            moduleRules: [{ type: "ESModule", globs: ["**/*.js"] }],
+          },
           bindings: {
             APP_PUBLIC_ORIGIN: { type: "plain_text", value: "unbound" },
           },
@@ -187,6 +199,12 @@ const failures = {
     cause: "Could not resolve",
     detail: "missing-dependency.mjs",
   },
+  module: {
+    message:
+      "Error: Private Worker LocalRuntimeController: Error reloading local server",
+    cause: "No such module",
+    detail: "missing-module.wasm",
+  },
   reload: {
     message:
       "Error: Private Worker LocalRuntimeController: Error reloading local server",
@@ -195,7 +213,13 @@ const failures = {
   },
 } as const;
 
-for (const phase of ["config", "build", "reload", "disconnect"] as const) {
+for (const phase of [
+  "config",
+  "build",
+  "module",
+  "reload",
+  "disconnect",
+] as const) {
   test.describe(phase, () => {
     test.use({ phase });
     test(`private Worker native ${phase} before readiness stops cleanly`, async ({
