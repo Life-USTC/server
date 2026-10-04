@@ -1,20 +1,26 @@
 # tests/integration/
 
-MCP in-process harness + REST Playwright contracts. Full recipes: root
-`AGENTS.md` (same shape as CI `ci:integration`).
+Vitest database, authentication, GraphQL and MCP integration tests, plus
+Playwright HTTP contracts. Full recipes: root `AGENTS.md`.
 
 ```bash
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
 export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
-bun run build && bun run rest:test
+bun run build && bun run build:test-worker && bun run rest:test
 ```
 
 Test setup applies migrations and production-equivalent roles, with no demo seed
 or shared RLS rows. RLS fixtures arrange their actors and records in private clones.
 Native Vitest and Playwright commands can use the four already-prepared database
 URLs without rerunning setup.
+CI names the mixed Vitest suite `Integration` and the real Worker suite `HTTP`.
+HTTP uses eight native case shards with `--fully-parallel --workers=2`; Vitest
+retains four shards with serial files.
+HTTP cases load immutable compiled Worker code from `.svelte-kit/test-worker`.
+CI shares it through `test-build`; manual runs rebuild it after application or
+Worker fixture changes. Each case retains its own Worker, database and storage.
 
 ## REST (`tests/integration/rest/`)
 
