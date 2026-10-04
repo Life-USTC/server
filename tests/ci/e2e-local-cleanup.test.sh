@@ -130,7 +130,7 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "${1:-}" == run && ("${2:-}" == app:prepare || "${2:-}" == build) ]]; then
+if [[ "${1:-}" == run && ("${2:-}" == build || "${2:-}" == build:test-worker) ]]; then
   exit 0
 fi
 exec "$E2E_REAL_BUN" "$@"
