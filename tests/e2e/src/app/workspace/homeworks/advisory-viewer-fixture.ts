@@ -223,7 +223,11 @@ export const test = oauthTest.extend<{
 });
 
 /** Observations only: actual browser/protocol work remains in calendarProtocolRun. */
-export function observeAdvisory(target: Target, owner: OAuthOwner) {
+export function observeAdvisory(
+  target: Target,
+  owner: OAuthOwner,
+  method: "Web" | "REST" | "GraphQL" | "MCP",
+) {
   const db = target.worker.database.owner;
   const origin = target.worker.origin;
   let baseline: Awaited<ReturnType<typeof readCalendarState>>;
@@ -291,7 +295,7 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
     async prepare(io: CalendarProtocol) {
       await io.observeCalendar(
         { id: target.ownerId },
-        Array.from({ length: 9 }, () => ({
+        Array.from({ length: method === "Web" ? 3 : 2 }, () => ({
           type: "section" as const,
           sectionId: target.sectionId,
         })),
@@ -319,33 +323,50 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
       return {
         async verifyTransport({ effects, sdkRequests }) {
           expect(effects.purges).toEqual([]);
-          expect(browserWrites).toEqual([
-            {
-              method: "POST",
-              path: "/api/community/section-homeworks",
-              status: 201,
-            },
-            {
-              method: "PATCH",
-              path: `/api/community/section-homeworks/${sectionHomeworkId}`,
-              status: 200,
-            },
-            { method: "POST", path: "/workspace/homeworks", status: 200 },
-          ]);
-          for (const [method, path, statuses] of [
+          expect(browserWrites).toEqual(
+            method === "Web"
+              ? [
+                  {
+                    method: "POST",
+                    path: "/api/community/section-homeworks",
+                    status: 201,
+                  },
+                  {
+                    method: "PATCH",
+                    path: `/api/community/section-homeworks/${sectionHomeworkId}`,
+                    status: 200,
+                  },
+                  { method: "POST", path: "/workspace/homeworks", status: 200 },
+                ]
+              : [],
+          );
+          for (const [requestMethod, path, statuses] of [
             ["POST", "/api/account/preferences", [200]],
-            ["POST", "/api/community/section-homeworks", [201, 201]],
-            ["POST", "/workspace/homeworks", [200]],
-            ["POST", "/api/graphql", [200, 200]],
-            ["POST", "/api/auth/oauth2/register", [201]],
-            ["GET", "/api/auth/oauth2/authorize", [302]],
-            ["POST", "/oauth/authorize", [200]],
-            ["POST", "/api/auth/oauth2/token", [200]],
+            [
+              "POST",
+              "/api/community/section-homeworks",
+              method === "Web" || method === "REST" ? [201] : [],
+            ],
+            ["POST", "/workspace/homeworks", method === "Web" ? [200] : []],
+            ["POST", "/api/graphql", method === "GraphQL" ? [200, 200] : []],
+            [
+              "POST",
+              "/api/auth/oauth2/register",
+              method === "MCP" ? [201] : [],
+            ],
+            [
+              "GET",
+              "/api/auth/oauth2/authorize",
+              method === "MCP" ? [302] : [],
+            ],
+            ["POST", "/oauth/authorize", method === "MCP" ? [200] : []],
+            ["POST", "/api/auth/oauth2/token", method === "MCP" ? [200] : []],
           ] as const) {
             expect(
               effects.requests
                 .filter(
-                  ({ value }) => value.method === method && value.path === path,
+                  ({ value }) =>
+                    value.method === requestMethod && value.path === path,
                 )
                 .map(({ result }) => result),
             ).toEqual(statuses);
@@ -353,39 +374,51 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
           const patches = effects.requests.filter(
             ({ value }) => value.method === "PATCH",
           );
-          expect(patches.map(({ result }) => result)).toEqual([200, 200]);
-          expect(patches[0].value.path).toBe(
-            `/api/community/section-homeworks/${sectionHomeworkId}`,
+          expect(patches.map(({ result }) => result)).toEqual(
+            method === "Web" || method === "REST" ? [200] : [],
           );
-          expect(patches[1].value.path).toMatch(
-            /^\/api\/community\/section-homeworks\/[^/]+$/,
-          );
+          if (method === "Web")
+            expect(patches[0].value.path).toBe(
+              `/api/community/section-homeworks/${sectionHomeworkId}`,
+            );
+          if (method === "REST")
+            expect(patches[0].value.path).toMatch(
+              /^\/api\/community\/section-homeworks\/[^/]+$/,
+            );
           expect(
             effects.requests.filter(
               ({ value }) =>
                 !["GET", "HEAD"].includes(value.method) &&
                 value.path !== "/api/mcp",
             ),
-          ).toHaveLength(11);
+          ).toHaveLength(method === "Web" || method === "MCP" ? 4 : 3);
           expect(
             sdkRequests
               .map(({ method, rpc }) => `${method} ${rpc ?? "stream"}`)
               .sort(),
-          ).toEqual([
-            "GET stream",
-            "POST initialize",
-            "POST notifications/initialized",
-            "POST tools/call",
-            "POST tools/call",
-          ]);
+          ).toEqual(
+            method === "MCP"
+              ? [
+                  "GET stream",
+                  "POST initialize",
+                  "POST notifications/initialized",
+                  "POST tools/call",
+                  "POST tools/call",
+                ]
+              : [],
+          );
           expect(
             sdkRequests
               .filter(({ rpc }) => rpc === "tools/call")
               .map(({ tool }) => tool),
-          ).toEqual([
-            "community_section_homework_create",
-            "community_section_homework_update",
-          ]);
+          ).toEqual(
+            method === "MCP"
+              ? [
+                  "community_section_homework_create",
+                  "community_section_homework_update",
+                ]
+              : [],
+          );
         },
         async verifyState() {
           const state = await readCalendarState(db);
@@ -402,14 +435,11 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
             orderBy: { title: "asc" },
             include: { description: { include: { edits: true } } },
           });
-          const suffixes = [
-            "graphql-edit",
-            "mcp-edit",
-            "rest-edit",
-            "section-edit",
-            "workspace",
-          ];
-          expect(rows).toHaveLength(5);
+          const suffixes =
+            method === "Web"
+              ? ["section-edit", "workspace"]
+              : [`${method.toLowerCase()}-edit`];
+          expect(rows).toHaveLength(suffixes.length);
           expect(rows.map((row) => row.title)).toEqual(suffixes.map(title));
           for (const [index, row] of rows.entries()) {
             const ui = ["section-edit", "workspace"].includes(suffixes[index]);
@@ -478,73 +508,82 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
               },
             });
           }
-          expect(await db.description.count()).toBe(5);
-          expect(await db.descriptionEdit.count()).toBe(5);
-          expect(owner.clientNames).toHaveLength(1);
-          expect(clientId).toBeDefined();
-          expect(
-            await db.oAuthClient.findMany({
+          expect(await db.description.count()).toBe(suffixes.length);
+          expect(await db.descriptionEdit.count()).toBe(suffixes.length);
+          let grantId: string | undefined;
+          if (method === "MCP") {
+            expect(owner.clientNames).toHaveLength(1);
+            expect(clientId).toBeDefined();
+            expect(
+              await db.oAuthClient.findMany({
+                select: {
+                  clientId: true,
+                  name: true,
+                  userId: true,
+                  scopes: true,
+                  redirectUris: true,
+                  grantTypes: true,
+                  responseTypes: true,
+                  tokenEndpointAuthMethod: true,
+                  applicationType: true,
+                },
+              }),
+            ).toEqual([
+              {
+                clientId,
+                name: owner.clientNames[0],
+                userId: null,
+                scopes: REGISTERED_CLIENT_CAPABILITIES,
+                redirectUris: [`${origin}/e2e/oauth/callback`],
+                grantTypes: ["authorization_code"],
+                responseTypes: ["code"],
+                tokenEndpointAuthMethod: "none",
+                applicationType: "native",
+              },
+            ]);
+            const grants = await db.oAuthConsent.findMany({
               select: {
                 clientId: true,
-                name: true,
                 userId: true,
+                grantId: true,
                 scopes: true,
-                redirectUris: true,
-                grantTypes: true,
-                responseTypes: true,
-                tokenEndpointAuthMethod: true,
-                applicationType: true,
+                resources: true,
+                requestedUserInfoClaims: true,
               },
-            }),
-          ).toEqual([
-            {
-              clientId,
-              name: owner.clientNames[0],
-              userId: null,
-              scopes: REGISTERED_CLIENT_CAPABILITIES,
-              redirectUris: [`${origin}/e2e/oauth/callback`],
-              grantTypes: ["authorization_code"],
-              responseTypes: ["code"],
-              tokenEndpointAuthMethod: "none",
-              applicationType: "native",
-            },
-          ]);
-          const grants = await db.oAuthConsent.findMany({
-            select: {
-              clientId: true,
-              userId: true,
-              grantId: true,
-              scopes: true,
-              resources: true,
-              requestedUserInfoClaims: true,
-            },
-          });
-          expect(grants).toEqual([
-            {
-              clientId,
-              userId: target.ownerId,
-              grantId: expect.any(String),
-              scopes: ["community.section-homework:write"],
-              resources: [`${origin}/api/mcp`],
-              requestedUserInfoClaims: [],
-            },
-          ]);
-          const grantId = grants[0].grantId;
-          expect(grantId).toMatch(/^[0-9a-f-]{36}$/i);
-          const usage = await db.oAuthGrantUsageDaily.findMany({
-            orderBy: { day: "asc" },
-          });
-          expectOAuthUsage(usage, {
-            dimensions: {
-              userId: target.ownerId,
-              clientId,
-              grantId,
-              feature: "community.section-homework",
-              channel: "mcp",
-            },
-            counts: [0, 2, 0],
-            windows,
-          });
+            });
+            expect(grants).toEqual([
+              {
+                clientId,
+                userId: target.ownerId,
+                grantId: expect.any(String),
+                scopes: ["community.section-homework:write"],
+                resources: [`${origin}/api/mcp`],
+                requestedUserInfoClaims: [],
+              },
+            ]);
+            grantId = grants[0].grantId;
+            expect(grantId).toMatch(/^[0-9a-f-]{36}$/i);
+            const usage = await db.oAuthGrantUsageDaily.findMany({
+              orderBy: { day: "asc" },
+            });
+            expectOAuthUsage(usage, {
+              dimensions: {
+                userId: target.ownerId,
+                clientId,
+                grantId,
+                feature: "community.section-homework",
+                channel: "mcp",
+              },
+              counts: [0, 2, 0],
+              windows,
+            });
+          } else {
+            expect(owner.clientNames).toEqual([]);
+            expect(clientId).toBeUndefined();
+            expect(await db.oAuthClient.count()).toBe(0);
+            expect(await db.oAuthConsent.count()).toBe(0);
+            expect(await db.oAuthGrantUsageDaily.count()).toBe(0);
+          }
           expect(await db.oAuthAccessToken.count()).toBe(0);
           expect(await db.oAuthRefreshToken.count()).toBe(0);
           expect(await db.deviceCode.count()).toBe(0);
@@ -614,23 +653,27 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
           });
           const expected = [
             ...expectedAudits,
-            {
-              action: "oauth_authorization_grant",
-              outcome: "success",
-              channel: "web",
-              userId: target.ownerId,
-              subjectUserId: target.ownerId,
-              targetId: clientId,
-              targetType: "oauth_client",
-              sessionId: sessions[0].id,
-              oauthClientId: clientId,
-              oauthGrantId: grantId,
-              metadata: {
-                changedFields: ["resources", "scopes", "userinfoClaims"],
-                resourceCount: 1,
-                scopeCount: 1,
-              },
-            },
+            ...(method === "MCP"
+              ? [
+                  {
+                    action: "oauth_authorization_grant",
+                    outcome: "success",
+                    channel: "web",
+                    userId: target.ownerId,
+                    subjectUserId: target.ownerId,
+                    targetId: clientId,
+                    targetType: "oauth_client",
+                    sessionId: sessions[0].id,
+                    oauthClientId: clientId,
+                    oauthGrantId: grantId,
+                    metadata: {
+                      changedFields: ["resources", "scopes", "userinfoClaims"],
+                      resourceCount: 1,
+                      scopeCount: 1,
+                    },
+                  },
+                ]
+              : []),
           ];
           const audits = () =>
             db.auditLog.findMany({
@@ -648,7 +691,9 @@ export function observeAdvisory(target: Target, owner: OAuthOwner) {
                 metadata: true,
               },
             });
-          await expect.poll(async () => (await audits()).length).toBe(10);
+          await expect
+            .poll(async () => (await audits()).length)
+            .toBe(expected.length);
           const remaining = await audits();
           for (const row of expected) {
             const index = remaining.findIndex((actual) =>
