@@ -454,10 +454,13 @@ for (const method of ["REST", "GraphQL", "MCP"] as const)
         };
       };
       const mcp = await connect(mcpToken, 2);
-      const readMcp = await connect(mcpRead, 5, [
-        "workspace_upload_rename",
-        "workspace_upload_delete",
-      ]);
+      const readMcp = await connect(
+        mcpRead,
+        5,
+        method === "MCP"
+          ? ["workspace_upload_rename", "workspace_upload_delete"]
+          : [],
+      );
       const otherMcp = await connect(otherMcpToken, 6);
       const actualUploadIds: string[] = [];
       const contents = "original owned object bytes";

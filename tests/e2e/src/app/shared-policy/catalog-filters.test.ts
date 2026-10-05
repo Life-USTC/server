@@ -115,7 +115,11 @@ async function resultText(page: Page) {
   return page.locator("#main-content").innerText();
 }
 
-test("ui.list-table-3", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("ui.list-table-3", { tag: "@Catalog/Web" }, async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const fixture of await cases(isolatedWorker.database.owner)) {
       await gotoAndWaitForReady(page, fixture.route);
@@ -147,7 +151,11 @@ test("ui.list-table-3", async ({ page, preferenceFlow, isolatedWorker }) => {
   });
 });
 
-test("ui.list-table-4", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("ui.list-table-4", { tag: "@Catalog/Web" }, async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const fixture of await cases(isolatedWorker.database.owner)) {
       const query = new URLSearchParams({
@@ -181,7 +189,11 @@ test("ui.list-table-4", async ({ page, preferenceFlow, isolatedWorker }) => {
   });
 });
 
-test("ui.list-table-5", async ({ page, preferenceFlow, isolatedWorker }) => {
+test("ui.list-table-5", { tag: "@Catalog/Web" }, async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
   await preferenceFlow.run(async () => {
     for (const fixture of await cases(isolatedWorker.database.owner)) {
       await gotoAndWaitForReady(

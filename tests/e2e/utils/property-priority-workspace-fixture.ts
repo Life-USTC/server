@@ -201,7 +201,14 @@ export type WorkspacePriorityFixture = Awaited<
 export const test = workerTest.extend<{
   workspacePriority: WorkspacePriorityFixture;
   workspacePriorityRun: (
-    consumer: "tasks" | "overview" | "events" | "calendar",
+    domain:
+      | "Todo"
+      | "Homework"
+      | "Exam"
+      | "Overview"
+      | "Calendar"
+      | "Catalog"
+      | "Subscription",
     work: Parameters<typeof withHomeworkEffects>[1],
   ) => Promise<void>;
 }>({
@@ -220,7 +227,7 @@ export const test = workerTest.extend<{
     use,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
-      await use((consumer, work) =>
+      await use((domain, work) =>
         workflow.run(() =>
           run(async () => {
             const results = await Promise.allSettled([
@@ -234,7 +241,7 @@ export const test = workerTest.extend<{
                   observeReads: true,
                   presetCalendarToken: data.presetCalendarToken,
                   calendarMessages:
-                    consumer === "calendar"
+                    domain === "Subscription"
                       ? [
                           { type: "user", userId: data.user.id },
                           { type: "user", userId: data.user.id },

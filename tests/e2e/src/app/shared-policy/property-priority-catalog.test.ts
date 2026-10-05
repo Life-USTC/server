@@ -127,11 +127,9 @@ async function fixture(owner: TestPrismaClient) {
 
 for (const locale of ["zh-cn", "en-us"] as const)
   for (const width of [1280, 390]) {
-    test(`ui.model-property-priority-catalog-views ${locale}/${width}`, async ({
-      page,
-      isolatedWorker,
-      catalogFlow,
-    }) => {
+    test(`ui.model-property-priority-catalog-views ${locale}/${width}`, {
+      tag: "@Catalog/Web",
+    }, async ({ page, isolatedWorker, catalogFlow }) => {
       test.setTimeout(120_000);
       page.setDefaultTimeout(5_000);
       await catalogFlow.run(

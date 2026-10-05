@@ -163,6 +163,7 @@ for (const count of [0, 1, 2]) {
           }
         }
         return observation.checks({
+          sessionRefreshed: consumer !== "Comment",
           feedTokenCreated: false,
           subscriptions: [],
           writes: [],

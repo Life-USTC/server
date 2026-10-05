@@ -88,6 +88,7 @@ function cases() {
   return [
     {
       name: "links",
+      domain: "CatalogLink",
       path: "/catalog/links",
       filter: true,
       summary: false,
@@ -95,6 +96,7 @@ function cases() {
     },
     {
       name: "sources",
+      domain: "Publication",
       path: "/news/sources",
       filter: false,
       summary: true,
@@ -102,6 +104,7 @@ function cases() {
     },
     {
       name: "uploads",
+      domain: "Upload",
       path: "/workspace/uploads",
       filter: false,
       summary: true,
@@ -109,6 +112,7 @@ function cases() {
     },
     {
       name: "users",
+      domain: "Admin",
       path: (fixture: OtherCollectionPolicyFixture) =>
         `/admin/users?search=${fixture.catalog.marker}-member`,
       filter: true,
@@ -117,6 +121,7 @@ function cases() {
     },
     ...["events", "organizers", "notifications"].map((view) => ({
       name: view,
+      domain: "Young",
       path: `/workspace/subscriptions/activities?view=${view}${view === "notifications" ? "&unread=true" : ""}`,
       filter: view === "notifications",
       summary: true,
@@ -124,6 +129,7 @@ function cases() {
     })),
     ...["comments", "descriptions", "homeworks", "suspensions"].map((tab) => ({
       name: tab,
+      domain: "Admin",
       path: (fixture: OtherCollectionPolicyFixture) =>
         `/admin/moderation?tab=${tab}${tab === "suspensions" ? "" : `&search=${fixture.catalog.marker}`}`,
       filter: true,
@@ -132,6 +138,7 @@ function cases() {
     })),
     {
       name: "bus",
+      domain: "Admin",
       path: "/admin/bus",
       filter: false,
       summary: false,
@@ -139,6 +146,7 @@ function cases() {
     },
     {
       name: "oauth",
+      domain: "Admin",
       path: "/admin/oauth",
       filter: false,
       summary: true,
@@ -182,7 +190,9 @@ function summary(page: Page, name: string) {
 
 for (const item of cases()) {
   for (const width of [390, 1280]) {
-    test(`ui.other-collection-order: ${item.name} at ${width}px`, async ({
+    test(`ui.other-collection-order: ${item.name} at ${width}px`, {
+      tag: `@${item.domain}/Web`,
+    }, async ({
       browseRun,
       page,
       baseURL,
@@ -225,7 +235,9 @@ for (const item of cases()) {
   }
 
   for (const width of [320, 390]) {
-    test(`ui.other-browse-responsive-lists: ${item.name} at ${width}px`, async ({
+    test(`ui.other-browse-responsive-lists: ${item.name} at ${width}px`, {
+      tag: `@${item.domain}/Web`,
+    }, async ({
       browseRun,
       page,
       baseURL,

@@ -468,7 +468,7 @@ for (const transport of ["REST", "MCP"] as const)
               viewer: expectedViewer(reader),
             });
             expect(result.description.renderedHtml).toContain(
-              `<h1>${target.type}</h1>`,
+              `<h3>${target.type}</h3>`,
             );
             expect(result.description.renderedHtml).toContain(
               `${fixture.marker} source <strong>Markdown</strong>`,

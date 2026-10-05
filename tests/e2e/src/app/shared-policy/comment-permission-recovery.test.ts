@@ -3,7 +3,7 @@ import { test } from "../../../utils/community-fixture";
 import { observeAction } from "../../../utils/observed-action";
 import { absoluteTestUrl } from "../../../utils/request-url";
 
-test("comment.public-permission-recovery", async ({
+test("comment.public-permission-recovery", { tag: "@Comment/Web" }, async ({
   communityFlow,
   page,
   account: user,

@@ -15,12 +15,11 @@ Test setup applies migrations and production-equivalent roles, with no demo seed
 or shared RLS rows. RLS fixtures arrange their actors and records in private clones.
 Native Vitest and Playwright commands can use the four already-prepared database
 URLs without rerunning setup.
-CI names the mixed Vitest suite `Application / Integration` and the real Worker
-suite `Application / HTTP`, each followed by ` / i/n`. Integration includes
-internal services, database and protocol contracts; HTTP covers REST, GraphQL,
-MCP, authentication and page requests rather than only REST APIs.
-HTTP uses eight native case shards with `--fully-parallel --workers=2`; Vitest
-retains four shards with serial files.
+CI selects tests by their single native `@Domain/Method` tag and names jobs
+`Domain / Method`. Method describes the contract under test: Service, REST,
+GraphQL, MCP, ICS or another explicit boundary. A combination can run both Vitest
+and Worker request cases in the same job. HTTP uses two native workers; Vitest
+files remain serial. Role-gated contracts remain in the separate permissions job.
 HTTP cases load immutable compiled Worker code from `.svelte-kit/test-worker`.
 CI shares it through `test-build`; manual runs rebuild it after application or
 Worker fixture changes. Each case retains its own Worker, database and storage.

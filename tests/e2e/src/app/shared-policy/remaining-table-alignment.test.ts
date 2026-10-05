@@ -63,189 +63,219 @@ async function checkFacts(table: Locator, name: string) {
   }
 }
 
-test("ui.data-table-cells-4", async ({
-  page,
-  baseURL,
-  isolatedWorker,
-  busEmbedded: f,
-}) => {
-  test.setTimeout(120_000);
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  await page
-    .context()
-    .addCookies([
-      (await isolatedWorker.createSession(f.admin.id)).cookie,
-      { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
-    ]);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const sectionPath = `/catalog/sections/${f.catalog.sections[0].jwId}`;
-  const cases: {
-    name: string;
-    path: string;
-    selector?: string;
-    columns: Alignment[];
-  }[] = [
-    {
-      name: "young-events",
-      path: `/catalog/young-events?search=${f.catalog.marker}`,
-      columns: ["left", "left", "left", null, "left"],
-    },
-    {
-      name: "young-organizers",
-      path: `/catalog/young-events/organizers?search=${f.catalog.marker}`,
-      columns: ["left", null, null, null],
-    },
-    {
-      name: "uploads",
-      path: "/workspace/uploads",
-      columns: ["left", null, "left", "left"],
-    },
-    {
-      name: "section-homeworks",
-      path: sectionPath,
-      selector: '[data-testid="section-homeworks-list"] table:visible',
-      columns: ["left", "left", "left"],
-    },
-    {
-      name: "section-exams",
-      path: sectionPath,
-      selector: '[data-testid="section-exams-list"]',
-      columns: ["left", "left", "left", "left", "left", null],
-    },
-    {
-      name: "section-calendar",
-      path: sectionPath,
-      selector: '[data-testid="section-calendar-table"]',
-      columns: ["left", "left", "left", "left", "left"],
-    },
-    {
-      name: "homeworks",
-      path: `/workspace/homeworks?semester=${f.catalog.semester.code}`,
-      columns: ["left", "left", "left", "left", "left"],
-    },
-    {
-      name: "exams",
-      path: `/workspace/exams?semester=${f.catalog.semester.code}`,
-      columns: ["left", "left", "left", "left", "left", "left"],
-    },
-    {
-      name: "todos",
-      path: "/workspace/todos",
-      columns: ["left", "left", "left", "left"],
-    },
-    {
-      name: "subscriptions",
-      path: "/workspace/subscriptions",
-      columns: ["left", "left", "right", "left"],
-    },
-    {
-      name: "signed-links",
-      path: "/catalog/links?linkView=list",
-      columns: ["left", "left", "left"],
-    },
-    {
-      name: "sources",
-      path: "/news/sources",
-      columns: ["left", "right", "left"],
-    },
-    {
-      name: "admin-users",
-      path: `/admin/users?search=${f.catalog.marker}`,
-      columns: ["left", "left", "left", "center", "center", "right", "right"],
-    },
-    {
-      name: "admin-comments",
-      path: `/admin/moderation?tab=comments&search=${f.catalog.marker}`,
-      columns: ["left", "left", "left", "right", "center", "right"],
-    },
-    {
-      name: "admin-descriptions",
-      path: `/admin/moderation?tab=descriptions&search=${f.catalog.marker}`,
-      columns: ["left", "left", "left", "right", "right"],
-    },
-    {
-      name: "admin-homeworks",
-      path: "/admin/moderation?tab=homeworks&search=Embedded",
-      columns: ["left", "left", "right", "right", "center", "right"],
-    },
-    {
-      name: "admin-suspensions",
-      path: "/admin/moderation?tab=suspensions",
-      columns: ["left", "left", "right", "center", "right"],
-    },
-    {
-      name: "admin-oauth",
-      path: "/admin/oauth",
-      columns: ["left", "left", "left", "right", "right"],
-    },
-    {
-      name: "admin-bus",
-      path: "/admin/bus",
-      columns: ["left", "left", "right", "left", "right", "center", "right"],
-    },
-  ];
-  let currentPath: string | undefined;
-  for (const item of cases) {
-    if (item.path !== currentPath) {
-      await gotoAndWaitForReady(page, item.path);
-      currentPath = item.path;
-    }
-    await checkColumns(
-      page.locator(item.selector ?? "main table:visible").first(),
-      item.columns,
-      item.name,
-    );
-    if (item.name === "todos") {
-      await page
-        .getByRole("button", { name: f.todo.title, exact: true })
-        .click();
-      await checkFacts(
-        page.getByRole("dialog").locator("table"),
-        "todo-details",
+for (const [domain, names] of [
+  ["Young", ["young-events", "young-organizers"]],
+  ["Upload", ["uploads"]],
+  ["Homework", ["section-homeworks", "homeworks"]],
+  ["Exam", ["section-exams", "exams"]],
+  ["Catalog", ["section-calendar"]],
+  ["Todo", ["todos"]],
+  ["Subscription", ["subscriptions"]],
+  ["CatalogLink", ["signed-links"]],
+  ["Publication", ["sources"]],
+  [
+    "Admin",
+    [
+      "admin-users",
+      "admin-comments",
+      "admin-descriptions",
+      "admin-homeworks",
+      "admin-suspensions",
+      "admin-oauth",
+      "admin-bus",
+    ],
+  ],
+  ["Bus", []],
+] as const) {
+  test(`ui.data-table-cells-4 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    baseURL,
+    isolatedWorker,
+    busEmbedded: f,
+  }) => {
+    test.setTimeout(120_000);
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
+    await page
+      .context()
+      .addCookies([
+        (await isolatedWorker.createSession(f.admin.id)).cookie,
+        { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
+      ]);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const sectionPath = `/catalog/sections/${f.catalog.sections[0].jwId}`;
+    const cases: {
+      name: string;
+      path: string;
+      selector?: string;
+      columns: Alignment[];
+    }[] = [
+      {
+        name: "young-events",
+        path: `/catalog/young-events?search=${f.catalog.marker}`,
+        columns: ["left", "left", "left", null, "left"],
+      },
+      {
+        name: "young-organizers",
+        path: `/catalog/young-events/organizers?search=${f.catalog.marker}`,
+        columns: ["left", null, null, null],
+      },
+      {
+        name: "uploads",
+        path: "/workspace/uploads",
+        columns: ["left", null, "left", "left"],
+      },
+      {
+        name: "section-homeworks",
+        path: sectionPath,
+        selector: '[data-testid="section-homeworks-list"] table:visible',
+        columns: ["left", "left", "left"],
+      },
+      {
+        name: "section-exams",
+        path: sectionPath,
+        selector: '[data-testid="section-exams-list"]',
+        columns: ["left", "left", "left", "left", "left", null],
+      },
+      {
+        name: "section-calendar",
+        path: sectionPath,
+        selector: '[data-testid="section-calendar-table"]',
+        columns: ["left", "left", "left", "left", "left"],
+      },
+      {
+        name: "homeworks",
+        path: `/workspace/homeworks?semester=${f.catalog.semester.code}`,
+        columns: ["left", "left", "left", "left", "left"],
+      },
+      {
+        name: "exams",
+        path: `/workspace/exams?semester=${f.catalog.semester.code}`,
+        columns: ["left", "left", "left", "left", "left", "left"],
+      },
+      {
+        name: "todos",
+        path: "/workspace/todos",
+        columns: ["left", "left", "left", "left"],
+      },
+      {
+        name: "subscriptions",
+        path: "/workspace/subscriptions",
+        columns: ["left", "left", "right", "left"],
+      },
+      {
+        name: "signed-links",
+        path: "/catalog/links?linkView=list",
+        columns: ["left", "left", "left"],
+      },
+      {
+        name: "sources",
+        path: "/news/sources",
+        columns: ["left", "right", "left"],
+      },
+      {
+        name: "admin-users",
+        path: `/admin/users?search=${f.catalog.marker}`,
+        columns: ["left", "left", "left", "center", "center", "right", "right"],
+      },
+      {
+        name: "admin-comments",
+        path: `/admin/moderation?tab=comments&search=${f.catalog.marker}`,
+        columns: ["left", "left", "left", "right", "center", "right"],
+      },
+      {
+        name: "admin-descriptions",
+        path: `/admin/moderation?tab=descriptions&search=${f.catalog.marker}`,
+        columns: ["left", "left", "left", "right", "right"],
+      },
+      {
+        name: "admin-homeworks",
+        path: "/admin/moderation?tab=homeworks&search=Embedded",
+        columns: ["left", "left", "right", "right", "center", "right"],
+      },
+      {
+        name: "admin-suspensions",
+        path: "/admin/moderation?tab=suspensions",
+        columns: ["left", "left", "right", "center", "right"],
+      },
+      {
+        name: "admin-oauth",
+        path: "/admin/oauth",
+        columns: ["left", "left", "left", "right", "right"],
+      },
+      {
+        name: "admin-bus",
+        path: "/admin/bus",
+        columns: ["left", "left", "right", "left", "right", "center", "right"],
+      },
+    ];
+    let currentPath: string | undefined;
+    for (const item of cases) {
+      if (!names.some((name) => name === item.name)) continue;
+      if (item.path !== currentPath) {
+        await gotoAndWaitForReady(page, item.path);
+        currentPath = item.path;
+      }
+      await checkColumns(
+        page.locator(item.selector ?? "main table:visible").first(),
+        item.columns,
+        item.name,
       );
-      await page.keyboard.press("Escape");
-    } else if (item.name === "homeworks") {
-      await page
-        .getByRole("button", { name: f.homework.title, exact: true })
-        .click();
-      await checkFacts(
-        page.getByTestId("homework-secondary-details").locator("table"),
-        "homework-details",
-      );
-      await page.keyboard.press("Escape");
+      if (item.name === "todos") {
+        await page
+          .getByRole("button", { name: f.todo.title, exact: true })
+          .click();
+        await checkFacts(
+          page.getByRole("dialog").locator("table"),
+          "todo-details",
+        );
+        await page.keyboard.press("Escape");
+      } else if (item.name === "homeworks") {
+        await page
+          .getByRole("button", { name: f.homework.title, exact: true })
+          .click();
+        await checkFacts(
+          page.getByTestId("homework-secondary-details").locator("table"),
+          "homework-details",
+        );
+        await page.keyboard.press("Escape");
+      }
     }
-  }
-  await page.context().clearCookies();
-  await page
-    .context()
-    .addCookies([{ name: "NEXT_LOCALE", value: "en-us", url: baseURL }]);
-  await gotoAndWaitForReady(page, "/catalog/links?linkView=list");
-  await checkColumns(
-    page.locator("main table:visible").first(),
-    ["left", "left"],
-    "anonymous-links",
-  );
-  await gotoAndWaitForReady(page, "/catalog/bus");
-  // The seeded routes have weekday trips; layout checks must not depend on today.
-  const weekday = page.getByRole("radio", { name: "Weekday", exact: true });
-  await weekday.click();
-  await expect(weekday).toHaveAttribute("aria-checked", "true");
-  await page
-    .getByRole("switch", { name: "Show departed trips", exact: true })
-    .click();
-  const groups = page.getByTestId("bus-route-section");
-  expect(await groups.count()).toBeGreaterThan(0);
-  for (const bus of await groups.all()) {
-    const count = await bus.locator('th[scope="col"]').count();
-    expect(count).toBeGreaterThanOrEqual(2);
-    await checkColumns(
-      bus,
-      Array.from({ length: count }, (_, index) =>
-        index === 0 ? "left" : index === count - 1 ? "right" : "center",
-      ),
-      "bus-stops",
-      'th[scope="col"]',
-      "tr:has(td[headers])",
-    );
-  }
-});
+    await page.context().clearCookies();
+    await page
+      .context()
+      .addCookies([{ name: "NEXT_LOCALE", value: "en-us", url: baseURL }]);
+    if (domain === "CatalogLink") {
+      await gotoAndWaitForReady(page, "/catalog/links?linkView=list");
+      await checkColumns(
+        page.locator("main table:visible").first(),
+        ["left", "left"],
+        "anonymous-links",
+      );
+    }
+    if (domain === "Bus") {
+      await gotoAndWaitForReady(page, "/catalog/bus");
+      // The seeded routes have weekday trips; layout checks must not depend on today.
+      const weekday = page.getByRole("radio", { name: "Weekday", exact: true });
+      await weekday.click();
+      await expect(weekday).toHaveAttribute("aria-checked", "true");
+      await page
+        .getByRole("switch", { name: "Show departed trips", exact: true })
+        .click();
+      const groups = page.getByTestId("bus-route-section");
+      expect(await groups.count()).toBeGreaterThan(0);
+      for (const bus of await groups.all()) {
+        const count = await bus.locator('th[scope="col"]').count();
+        expect(count).toBeGreaterThanOrEqual(2);
+        await checkColumns(
+          bus,
+          Array.from({ length: count }, (_, index) =>
+            index === 0 ? "left" : index === count - 1 ? "right" : "center",
+          ),
+          "bus-stops",
+          'th[scope="col"]',
+          "tr:has(td[headers])",
+        );
+      }
+    }
+  });
+}

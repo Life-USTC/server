@@ -13,11 +13,9 @@ function required<T>(value: T | null | undefined): T {
 
 for (const locale of ["en-us", "zh-cn"] as const)
   for (const width of [390, 1280]) {
-    test(`ui.model-property-priority-admin-views ${locale}/${width}`, async ({
-      page,
-      baseURL,
-      adminPriorityRun,
-    }) => {
+    test(`ui.model-property-priority-admin-views ${locale}/${width}`, {
+      tag: "@Admin/Web",
+    }, async ({ page, baseURL, adminPriorityRun }) => {
       test.setTimeout(240_000);
       page.setDefaultTimeout(10_000);
       if (!baseURL) throw new Error("Missing Playwright baseURL");

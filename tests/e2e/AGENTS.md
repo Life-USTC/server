@@ -20,22 +20,18 @@ Global setup validates the four database connections and production role
 constraints. The Playwright configuration does not start a shared server or
 provide a default origin.
 
-CI distributes Chromium cases across 16 jobs and runs Mobile Chrome separately.
-Chromium uses 5 `Shared UI / Web` shards (`src/app/shared-policy/`), 5
-`Workspace / Web` shards (`src/app/workspace/`), and 6 `Application / Web` shards
-for all remaining Chromium tests, including related API and harness checks.
-`Application / Mobile web` runs the mobile project. Sharded job names end in
-` / i/n`; the separate `Application / Visual (opt-in)` job runs visual snapshots.
-The last Chromium group excludes only those two directories, including new features and harnesses
-automatically. CI names and report artifacts identify the group and shard.
-Each job uses native `--fully-parallel --workers=2`; the visual projects remain
-opt-in. Locally, use
-`bun run e2e:test:local --workers=2` to build the application and test Worker once
-and run native Playwright workers
-against one temporary PostgreSQL service. Cases retain private database clones,
-Worker ports and persistence directories. The local launcher removes its service
-and any owned detached processes on exit or interruption. Native Playwright
-arguments and exit status pass through unchanged.
+CI names jobs `Domain / Method`, using each test's single native tag such as
+`@Homework/Web` or `@Todo/MCP`. Browser configuration does not imply a Web
+contract: request-only cases keep their actual protocol. Native collection groups
+Chromium and Mobile Chrome by this ownership, without shard numbers or a file
+registry. Each combination runs once, including any Vitest/Worker cases with the
+same tag. Visual projects remain in the separate opt-in job.
+Each Playwright job uses `--fully-parallel --workers=2`. Locally, use
+`bun run e2e:test:local --workers=2` to build once and run native workers against
+one temporary PostgreSQL service. Cases retain private database clones, Worker
+ports and persistence directories. The local launcher removes its service and
+owned detached processes on exit or interruption; native arguments and exit
+status pass through unchanged.
 The shared `.svelte-kit/test-worker` output is immutable compiled code. Rebuild
 it after application or Worker fixture changes; every case still starts its own
 Worker process with private database and storage state.
@@ -82,7 +78,7 @@ tests/integration/rest/         REST contracts — not browser E2E
 
 Mobile route checks are split by public, authenticated, and admin access.
 Workspace homework checks are split by creation, completion, list state, and
-mobile behavior so file-based shards can distribute them independently. Use
+mobile behavior so native workers can execute them independently. Use
 test-scoped accounts and domain fixtures for mutable data. Global activation and
 maintenance scenarios require their own database/service environment. Use the native
 `test` export from `utils/isolated-worker.ts` for these cases. It clones an empty

@@ -71,6 +71,7 @@ for (const count of [0, 1, 2]) {
           .click();
       }
       return observation.checks({
+        sessionRefreshed: true,
         feedTokenCreated: true,
         subscriptions: [],
         writes: [],

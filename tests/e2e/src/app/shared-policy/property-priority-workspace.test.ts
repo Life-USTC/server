@@ -6,29 +6,56 @@ import { checkWorkspaceTaskPriorityViews } from "../../../utils/property-priorit
 
 // Each consumer owns a fresh state and can be scheduled without earlier views.
 test.describe.configure({ mode: "parallel" });
-for (const [consumer, check] of [
-  ["tasks", checkWorkspaceTaskPriorityViews],
-  ["overview", checkWorkspaceOverviewPriorityViews],
-  ["events", checkWorkspaceEventPriorityViews],
-  ["calendar", checkWorkspaceCalendarPriorityViews],
+for (const domain of [
+  "Todo",
+  "Homework",
+  "Exam",
+  "Overview",
+  "Calendar",
+  "Catalog",
+  "Subscription",
 ] as const) {
   for (const locale of ["zh-cn", "en-us"] as const) {
     for (const width of [1280, 390]) {
-      test(`workspace presentation ${consumer} ${locale}/${width}`, async ({
-        page,
-        workspacePriority: data,
-        workspacePriorityRun,
-      }) => {
+      test(`workspace presentation ${domain} ${locale}/${width}`, {
+        tag: `@${domain}/Web`,
+      }, async ({ page, workspacePriority: data, workspacePriorityRun }) => {
         test.setTimeout(120_000);
         page.setDefaultTimeout(5_000);
-        await workspacePriorityRun(consumer, async ({ headers }) => {
+        await workspacePriorityRun(domain, async ({ headers }) => {
           await page
             .context()
             .addCookies([
               { name: "NEXT_LOCALE", value: locale, url: data.origin },
             ]);
           await page.setViewportSize({ width, height: 844 });
-          await check(page, data, locale, width, headers);
+          if (domain === "Todo" || domain === "Homework" || domain === "Exam") {
+            await checkWorkspaceTaskPriorityViews(
+              page,
+              data,
+              locale,
+              width,
+              domain,
+            );
+          } else if (domain === "Catalog" || domain === "Subscription") {
+            await checkWorkspaceCalendarPriorityViews(
+              page,
+              data,
+              locale,
+              width,
+              headers,
+              domain,
+            );
+          } else if (domain === "Overview") {
+            await checkWorkspaceOverviewPriorityViews(
+              page,
+              data,
+              locale,
+              width,
+            );
+          } else {
+            await checkWorkspaceEventPriorityViews(page, data, locale, width);
+          }
         });
       });
     }

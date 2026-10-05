@@ -158,110 +158,128 @@ async function secondaryHeight(cell: Locator) {
     });
 }
 
-test("ui.data-table-cells-1", async ({
+test(
+  "ui.data-table-cells-1",
+  { tag: "@Admin/Web" },
+  async ({ adminFlow, run, page, fixture }, testInfo) => {
+    await run(() =>
+      adminFlow.run(
+        async () => {
+          for (const matrix of matrices(fixture)) {
+            await gotoAndWaitForReady(page, matrix.path);
+            const populated = fixtureRow(page, matrix.labels[0]);
+            const missing = fixtureRow(page, matrix.labels[1]);
+            await expect(populated).toHaveCount(1);
+            await expect(missing).toHaveCount(1);
+            await page.locator("table:visible").screenshot({
+              path: testInfo.outputPath(`secondary-${matrix.name}.png`),
+            });
+            const first = await secondaryHeight(
+              populated.locator("td").nth(matrix.cell),
+            );
+            const second = await secondaryHeight(
+              missing.locator("td").nth(matrix.cell),
+            );
+            expect
+              .soft(first, `${matrix.name}: populated secondary line`)
+              .toBeGreaterThan(0);
+            expect
+              .soft(
+                second,
+                `${matrix.name}: missing secondary line reserves space`,
+              )
+              .toBe(first);
+            const longRow = fixtureRow(page, matrix.labels[2]);
+            if (matrix.name === "bus" || matrix.name === "comments") {
+              const context = longRow.getByText(
+                matrix.name === "comments"
+                  ? `Moderation note (optional): ${longText}`
+                  : longText,
+                { exact: true },
+              );
+              await context.hover();
+              await expect(
+                page.locator('[data-slot="tooltip-content"]:visible'),
+              ).toContainText(longText);
+              await page.keyboard.press("Escape");
+            }
+            const buttons = longRow.getByRole("button");
+            expect(await buttons.count()).toBeGreaterThan(0);
+            for (const button of await buttons.all()) {
+              await button.scrollIntoViewIfNeeded();
+              await expect(button).toBeInViewport({ ratio: 1 });
+              const box = await button.boundingBox();
+              expect(box?.width).toBeGreaterThan(0);
+              expect(box?.height).toBeGreaterThan(0);
+            }
+          }
+        },
+        {},
+        adminWriteChecks([]),
+      ),
+    );
+  },
+);
+
+for (const domain of ["Admin", "Catalog"] as const) {
+  test(`ui.data-table-cells-5 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    adminFlow,
+    run,
+    page,
+    fixture,
+  }) => {
+    await run(() =>
+      adminFlow.run(
+        async () => {
+          if (domain === "Admin") {
+            for (const matrix of matrices(fixture)) {
+              await gotoAndWaitForReady(page, matrix.path);
+              const cell = fixtureRow(page, matrix.labels[1])
+                .locator("td")
+                .nth(matrix.cell);
+              const blank = cell.locator(
+                '[data-slot="truncated-text-placeholder"]',
+              );
+              await expect(blank).toHaveCount(1);
+              await expect(blank).toHaveAttribute("aria-hidden", "true");
+              expect(await blank.ariaSnapshot()).toBe("");
+              expect(await blank.innerText()).toBe("");
+              if (matrix.name === "users") {
+                const unknown = fixtureRow(page, matrix.labels[1])
+                  .locator("td")
+                  .nth(1);
+                expect(await unknown.ariaSnapshot()).toContain("No ID");
+              }
+            }
+          }
+          if (domain === "Catalog") {
+            await gotoAndWaitForReady(
+              page,
+              `/catalog/teachers?search=${fixture.teacher.code}`,
+            );
+            const title = fixtureRow(
+              page,
+              "Table unknown teacher (表格未知值教师)",
+            )
+              .locator("td")
+              .nth(3);
+            await expect(title).toHaveText("Unknown");
+            expect(await title.ariaSnapshot()).toContain("Unknown");
+          }
+        },
+        {},
+        adminWriteChecks([]),
+      ),
+    );
+  });
+}
+
+test("ui.data-table-cells-6", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
   fixture,
-}, testInfo) => {
-  await run(() =>
-    adminFlow.run(
-      async () => {
-        for (const matrix of matrices(fixture)) {
-          await gotoAndWaitForReady(page, matrix.path);
-          const populated = fixtureRow(page, matrix.labels[0]);
-          const missing = fixtureRow(page, matrix.labels[1]);
-          await expect(populated).toHaveCount(1);
-          await expect(missing).toHaveCount(1);
-          await page.locator("table:visible").screenshot({
-            path: testInfo.outputPath(`secondary-${matrix.name}.png`),
-          });
-          const first = await secondaryHeight(
-            populated.locator("td").nth(matrix.cell),
-          );
-          const second = await secondaryHeight(
-            missing.locator("td").nth(matrix.cell),
-          );
-          expect
-            .soft(first, `${matrix.name}: populated secondary line`)
-            .toBeGreaterThan(0);
-          expect
-            .soft(
-              second,
-              `${matrix.name}: missing secondary line reserves space`,
-            )
-            .toBe(first);
-          const longRow = fixtureRow(page, matrix.labels[2]);
-          if (matrix.name === "bus" || matrix.name === "comments") {
-            const context = longRow.getByText(
-              matrix.name === "comments"
-                ? `Moderation note (optional): ${longText}`
-                : longText,
-              { exact: true },
-            );
-            await context.hover();
-            await expect(
-              page.locator('[data-slot="tooltip-content"]:visible'),
-            ).toContainText(longText);
-            await page.keyboard.press("Escape");
-          }
-          const buttons = longRow.getByRole("button");
-          expect(await buttons.count()).toBeGreaterThan(0);
-          for (const button of await buttons.all()) {
-            await button.scrollIntoViewIfNeeded();
-            await expect(button).toBeInViewport({ ratio: 1 });
-            const box = await button.boundingBox();
-            expect(box?.width).toBeGreaterThan(0);
-            expect(box?.height).toBeGreaterThan(0);
-          }
-        }
-      },
-      {},
-      adminWriteChecks([]),
-    ),
-  );
-});
-
-test("ui.data-table-cells-5", async ({ adminFlow, run, page, fixture }) => {
-  await run(() =>
-    adminFlow.run(
-      async () => {
-        for (const matrix of matrices(fixture)) {
-          await gotoAndWaitForReady(page, matrix.path);
-          const cell = fixtureRow(page, matrix.labels[1])
-            .locator("td")
-            .nth(matrix.cell);
-          const blank = cell.locator(
-            '[data-slot="truncated-text-placeholder"]',
-          );
-          await expect(blank).toHaveCount(1);
-          await expect(blank).toHaveAttribute("aria-hidden", "true");
-          expect(await blank.ariaSnapshot()).toBe("");
-          expect(await blank.innerText()).toBe("");
-          if (matrix.name === "users") {
-            const unknown = fixtureRow(page, matrix.labels[1])
-              .locator("td")
-              .nth(1);
-            expect(await unknown.ariaSnapshot()).toContain("No ID");
-          }
-        }
-        await gotoAndWaitForReady(
-          page,
-          `/catalog/teachers?search=${fixture.teacher.code}`,
-        );
-        const title = fixtureRow(page, "Table unknown teacher (表格未知值教师)")
-          .locator("td")
-          .nth(3);
-        await expect(title).toHaveText("Unknown");
-        expect(await title.ariaSnapshot()).toContain("Unknown");
-      },
-      {},
-      adminWriteChecks([]),
-    ),
-  );
-});
-
-test("ui.data-table-cells-6", async ({ adminFlow, run, page, fixture }) => {
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {

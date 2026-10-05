@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { createCommentAudiences, test } from "../../../utils/community-fixture";
 import { observeAction } from "../../../utils/observed-action";
 
-test("ui.detail-two-column-stream-6", async ({
+test("ui.detail-two-column-stream-6", { tag: "@Comment/Web" }, async ({
   communityFlow,
   account,
   isolatedWorker,

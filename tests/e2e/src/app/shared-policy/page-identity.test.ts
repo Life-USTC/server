@@ -37,11 +37,9 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     ["unknown", "overview", cn ? "总览" : "Overview"],
   ] as const) {
     const start = tab === null ? "/workspace" : `/workspace?tab=${tab}`;
-    test(`ui.workspace-page-identity-4: ${locale} ${start}`, async ({
-      page,
-      isolatedWorker,
-      navigationRun,
-    }) => {
+    test(`ui.workspace-page-identity-4: ${locale} ${start}`, {
+      tag: `@${{ overview: "Overview", calendar: "Calendar", homeworks: "Homework", todos: "Todo", exams: "Exam" }[route]}/Web`,
+    }, async ({ page, isolatedWorker, navigationRun }) => {
       await navigationRun(async () => {
         await prepare(page, isolatedWorker, locale);
         const redirect = await page.request.get(start, { maxRedirects: 0 });
@@ -58,11 +56,9 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     });
   }
 
-  test(`ui.workspace-page-identity-4: ${locale} ignores a stale tab on /workspace/todos`, async ({
-    page,
-    isolatedWorker,
-    navigationRun,
-  }) => {
+  test(`ui.workspace-page-identity-4: ${locale} ignores a stale tab on /workspace/todos`, {
+    tag: "@Todo/Web",
+  }, async ({ page, isolatedWorker, navigationRun }) => {
     await navigationRun(async () => {
       await prepare(page, isolatedWorker, locale);
       // A stale selector on a semantic route must not change that route's identity.
@@ -85,11 +81,9 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     "authorizations",
     "danger",
   ]) {
-    test(`ui.settings-navigation-7: ${locale} /account/settings/${route}`, async ({
-      page,
-      isolatedWorker,
-      navigationRun,
-    }) => {
+    test(`ui.settings-navigation-7: ${locale} /account/settings/${route}`, {
+      tag: "@Account/Web",
+    }, async ({ page, isolatedWorker, navigationRun }) => {
       await navigationRun(async () => {
         await prepare(page, isolatedWorker, locale);
         const deleteLabel = cn ? "删除账户" : "Delete Account";

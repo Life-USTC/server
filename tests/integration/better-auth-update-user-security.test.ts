@@ -17,7 +17,7 @@ describe("Better Auth update-user field security", () => {
       sessionAge: 1_800_000,
     },
   ]) {
-    it(name, { tags: ["@Account/OAuth"] }, async ({
+    it(name, { tags: ["@Account/REST"] }, async ({
       isolatedDatabase: { owner: db },
       protocolRuntime,
       expect,

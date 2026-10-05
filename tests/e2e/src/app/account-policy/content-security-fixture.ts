@@ -454,9 +454,12 @@ export const test = communityTest.extend<{
           await work(fixture);
         },
         {
-          auditActions: {
-            comment_create: method === "REST" ? 2 : method === "Web" ? 0 : 1,
-          },
+          auditActions:
+            method === "Web"
+              ? {}
+              : {
+                  comment_create: method === "REST" ? 2 : 1,
+                },
         },
         {
           verifyTransport: (observation) =>

@@ -12,6 +12,7 @@ import {
   INVENTORY_SETTINGS_TABS,
   INVENTORY_WORKSPACE_TABS,
   PAGE_INVENTORY,
+  WORKSPACE_TAB_DOMAINS,
 } from "../_shared/page-inventory";
 
 const selectors = {
@@ -67,19 +68,25 @@ const pages = PAGE_INVENTORY.filter((entry) => entry.kind === "page").flatMap(
         : entry.routeId === "/workspace/[tab]"
           ? INVENTORY_WORKSPACE_TABS.map((tab) => `/workspace/${tab}`)
           : [entry.samplePath];
-    return paths.map((samplePath) => ({ ...entry, samplePath }));
+    return paths.map((samplePath) => ({
+      ...entry,
+      samplePath,
+      domain:
+        entry.routeId === "/workspace/[tab]"
+          ? WORKSPACE_TAB_DOMAINS[
+              samplePath.split("/").at(-1) as keyof typeof WORKSPACE_TAB_DOMAINS
+            ]
+          : entry.domain,
+    }));
   },
 );
 
 for (const sample of new Map(
   pages.map((entry) => [entry.samplePath, entry]),
 ).values()) {
-  test(`ui.social-sharing-metadata-1: ${sample.samplePath}`, async ({
-    page,
-    request,
-    preferenceFlow,
-    isolatedWorker,
-  }) => {
+  test(`ui.social-sharing-metadata-1: ${sample.samplePath}`, {
+    tag: `@${sample.domain}/Web`,
+  }, async ({ page, request, preferenceFlow, isolatedWorker }) => {
     await preferenceFlow.run(async () => {
       const db = isolatedWorker.database.owner;
       const origin = isolatedWorker.origin;
