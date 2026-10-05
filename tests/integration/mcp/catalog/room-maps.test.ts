@@ -113,7 +113,7 @@ describe("public room map entry contracts", () => {
   for (const method of ["REST", "GraphQL", "MCP"] as const) {
     contractTest(
       `room-map.public / ${method}`,
-      { tags: [`@Catalog/${method}`] },
+      { tags: [`@RoomMap/${method}`] },
       async ({ protocolRuntime, state, expect }) =>
         protocolRuntime.run(async () => {
           const { client, graphql, request } = state;
@@ -158,7 +158,7 @@ describe("public room map entry contracts", () => {
     );
     contractTest(
       `openapi.room-maps / ${method}`,
-      { tags: [`@Catalog/${method}`] },
+      { tags: [`@RoomMap/${method}`] },
       async ({ protocolRuntime, state, expect }) =>
         protocolRuntime.run(async () => {
           const { client, graphql, request } = state;

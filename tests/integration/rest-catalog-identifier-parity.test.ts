@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { restSubscriptionTest } from "../shared/rest-subscription-contract-fixture";
 
-for (const domain of ["Catalog", "Subscription"] as const) {
+for (const domain of ["Course", "Section", "Subscription"] as const) {
   for (const transport of ["REST", "GraphQL", "MCP"] as const) {
     restSubscriptionTest(
       `interface-hierarchy.semantic-parity-12 / ${domain} / ${transport}`,
@@ -59,11 +59,13 @@ for (const domain of ["Catalog", "Subscription"] as const) {
             expect(result.errors).toBeUndefined();
             return result.data;
           };
-          if (domain === "Catalog") {
+          if (domain !== "Subscription") {
             for (const [kind, ids] of [
               ["course", courseIds],
               ["section", sectionIds],
             ] as const) {
+              if ((kind === "course" ? "Course" : "Section") !== domain)
+                continue;
               for (const [index, id] of ids.entries()) {
                 const jwId = ids[1 - index];
                 if (transport === "REST") {

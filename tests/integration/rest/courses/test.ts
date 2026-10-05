@@ -27,13 +27,13 @@ import { assertApiContract } from "../_shared/api-contract";
 import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/courses 接口", () => {
-  test("接口契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
+  test("接口契约", { tag: "@Course/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, { routePath: "/api/catalog/courses" });
     });
   });
 
-  test("详情接口契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
+  test("详情接口契约", { tag: "@Course/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, {
         routePath: "/api/catalog/courses/[jwId]",
@@ -41,7 +41,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("返回分页响应结构", { tag: "@Catalog/REST" }, async ({
+  test("返回分页响应结构", { tag: "@Course/REST" }, async ({
     run,
     request,
   }) => {
@@ -68,7 +68,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
   });
 
   test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", {
-    tag: "@Catalog/REST",
+    tag: "@Course/REST",
   }, async ({ run, request }) => {
     return run(async () => {
       const explicit = await request.get(
@@ -108,7 +108,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("按课程代码搜索返回 seed 课程", { tag: "@Catalog/REST" }, async ({
+  test("按课程代码搜索返回 seed 课程", { tag: "@Course/REST" }, async ({
     run,
     request,
   }) => {
@@ -129,7 +129,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("按中文名搜索返回 seed 课程", { tag: "@Catalog/REST" }, async ({
+  test("按中文名搜索返回 seed 课程", { tag: "@Course/REST" }, async ({
     run,
     request,
   }) => {
@@ -147,7 +147,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("无匹配搜索返回空数据", { tag: "@Catalog/REST" }, async ({
+  test("无匹配搜索返回空数据", { tag: "@Course/REST" }, async ({
     run,
     request,
   }) => {
@@ -166,7 +166,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("page 参数切换结果页", { tag: "@Catalog/REST" }, async ({
+  test("page 参数切换结果页", { tag: "@Course/REST" }, async ({
     run,
     request,
   }) => {
@@ -181,7 +181,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
   });
 
   test("pageSize 控制分页大小并优先于 limit 别名", {
-    tag: "@Catalog/REST",
+    tag: "@Course/REST",
   }, async ({ run, request }) => {
     return run(async () => {
       const response = await request.get(

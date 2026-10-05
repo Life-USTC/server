@@ -311,7 +311,7 @@ describe("GraphQL public Query integration", () => {
   });
 
   it("returns the same Section shape from list and detail queries", {
-    tags: ["@Catalog/GraphQL"],
+    tags: ["@Section/GraphQL"],
   }, async ({ publicCatalog, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { payload } = await protocolRuntime.request(() =>

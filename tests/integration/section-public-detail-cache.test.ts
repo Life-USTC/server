@@ -4,7 +4,7 @@ import { getSectionPage } from "@/features/section-detail/server/section-page-da
 import { catalogReadTest as it } from "../shared/catalog-read-fixture";
 
 // The cache transition owns its Vitest process as well as its database.
-it("section.public-detail-cache", { tags: ["@Catalog/Service"] }, async ({
+it("section.public-detail-cache", { tags: ["@Section/Service"] }, async ({
   catalogRead: { run, db, fixture, request, commitRevision },
 }) => {
   await run(async () => {

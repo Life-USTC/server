@@ -32,13 +32,13 @@ import { assertApiContract } from "../_shared/api-contract";
 import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/schedules - 排课列表", () => {
-  test("契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
+  test("契约", { tag: "@Schedule/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, { routePath: "/api/catalog/schedules" });
     });
   });
 
-  test("返回分页响应结构", { tag: "@Catalog/REST" }, async ({
+  test("返回分页响应结构", { tag: "@Schedule/REST" }, async ({
     run,
     request,
   }) => {
@@ -63,7 +63,7 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("按 sectionId 过滤返回 seed 排课", { tag: "@Catalog/REST" }, async ({
+  test("按 sectionId 过滤返回 seed 排课", { tag: "@Schedule/REST" }, async ({
     run,
     request,
   }) => {
@@ -86,7 +86,7 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("排课包含嵌套关联", { tag: "@Catalog/REST" }, async ({
+  test("排课包含嵌套关联", { tag: "@Schedule/REST" }, async ({
     run,
     request,
   }) => {
@@ -151,7 +151,7 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("不匹配的 sectionId 返回空数据", { tag: "@Catalog/REST" }, async ({
+  test("不匹配的 sectionId 返回空数据", { tag: "@Schedule/REST" }, async ({
     run,
     request,
   }) => {
@@ -169,7 +169,7 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("无效 dateFrom 返回 400", { tag: "@Catalog/REST" }, async ({
+  test("无效 dateFrom 返回 400", { tag: "@Schedule/REST" }, async ({
     run,
     request,
   }) => {
@@ -181,7 +181,7 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("pageSize 参数控制页大小", { tag: "@Catalog/REST" }, async ({
+  test("pageSize 参数控制页大小", { tag: "@Schedule/REST" }, async ({
     run,
     request,
   }) => {

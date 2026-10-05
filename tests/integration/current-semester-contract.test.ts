@@ -2,7 +2,7 @@ import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-
 import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
 it("semester.current-semester.latest-startdate-wins", {
-  tags: ["@Catalog/Service"],
+  tags: ["@Semester/Service"],
 }, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const { older, newer } = await db.$transaction(async (tx) => {
@@ -51,7 +51,7 @@ it("semester.current-semester.latest-startdate-wins", {
 });
 
 it("semester.current-semester-by-rules", {
-  tags: ["@Catalog/Service"],
+  tags: ["@Semester/Service"],
 }, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const semester = await db.$transaction((tx) =>
