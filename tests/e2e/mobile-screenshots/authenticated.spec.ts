@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { mobileScreenshotPaths } from "../src/app/_shared/page-inventory";
+import { mobileScreenshotCases } from "../src/app/_shared/page-inventory";
 import { test } from "../utils/mobile-page-fixture";
 import { gotoAndWaitForReady } from "../utils/page-ready";
 import { expectHealthyMobileRoute } from "./route-health";
@@ -9,13 +9,13 @@ const tokenPages = [
   "/workspace/calendar",
   "/workspace/exams",
 ];
-const memberPages = mobileScreenshotPaths("authed");
+const memberPages = mobileScreenshotCases("authed");
 
 test.describe("移动端页面健全性", () => {
   test.describe("登录后页面", () => {
     // Each route consumes its own populated account and starts with a null token.
-    for (const path of memberPages) {
-      test(path, async ({ page, mobileRun }) => {
+    for (const { path, domain } of memberPages) {
+      test(path, { tag: `@${domain}/Web` }, async ({ page, mobileRun }) => {
         const calendarTokenCreated = tokenPages.includes(path);
         await mobileRun(
           async ({ startPage, checkpoint }) => {
@@ -31,11 +31,9 @@ test.describe("移动端页面健全性", () => {
       });
     }
 
-    test("member profile ID resolves its private session", async ({
-      page,
-      mobileAccount,
-      mobileRun,
-    }) => {
+    test("member profile ID resolves its private session", {
+      tag: "@Site/Web",
+    }, async ({ page, mobileAccount, mobileRun }) => {
       await mobileRun(
         async ({ headers, startPage, checkpoint }) => {
           await startPage();
@@ -67,7 +65,10 @@ test.describe("移动端页面健全性", () => {
     test.describe("welcome 共享用户状态", () => {
       test.use({ incompleteMobileProfile: true });
 
-      test("/account/welcome 页面截图", async ({ page, mobileRun }) => {
+      test("/account/welcome 页面截图", { tag: "@Account/Web" }, async ({
+        page,
+        mobileRun,
+      }) => {
         await mobileRun(
           async ({ startPage, checkpoint }) => {
             await test.step("/account/welcome 页面截图", async () => {
