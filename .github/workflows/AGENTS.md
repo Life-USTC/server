@@ -37,7 +37,8 @@ docs.
   Use the behavior under test as the owner; setup requests and independent
   database observations do not create another verification method.
 - `Tests / Inventory` collects native Vitest and Playwright test metadata and
-  deduplicates the tags into a matrix. Missing or ambiguous ownership fails the
+  deduplicates the tags into a matrix, creating groups with more collected cases
+  first. Missing or ambiguous ownership fails the
   inventory. Do not maintain a file-to-job registry, numbered shards, or timing
   scheduler. One combination runs all its applicable engines sequentially.
 - Role contracts remain in `Database / Permissions`; visual snapshots remain
