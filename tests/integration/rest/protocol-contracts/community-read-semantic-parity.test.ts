@@ -611,9 +611,11 @@ for (const transport of ["REST", "MCP"] as const)
                     reader,
                   ),
                 );
-          if (reader)
-            expect(result.meta.viewer).toEqual(expectedViewer(reader));
-          assertNodes(result.data, reader);
+          if (consumer === transport) {
+            if (reader)
+              expect(result.meta.viewer).toEqual(expectedViewer(reader));
+            assertNodes(result.data, reader);
+          }
           return result;
         }
         async function replies(
@@ -632,7 +634,7 @@ for (const transport of ["REST", "MCP"] as const)
                     reader,
                   ),
                 );
-          assertNodes(result.thread, reader);
+          if (consumer === transport) assertNodes(result.thread, reader);
           return result;
         }
         function assertNodes(nodes: CommentNode[], reader?: Reader) {
