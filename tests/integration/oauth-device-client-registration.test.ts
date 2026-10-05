@@ -5,6 +5,7 @@ const deviceGrant = "urn:ietf:params:oauth:grant-type:device_code";
 
 registrationTest(
   "oauth.dcr-device-only-no-redirect",
+  { tags: ["@OAuth/OAuth"] },
   async ({
     isolatedDatabase: { owner: db },
     oauthRuntime,

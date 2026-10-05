@@ -4,7 +4,10 @@ import { createUploadSession } from "@/features/uploads/server/upload-service";
 import { uploadFinalizationTest as it } from "../shared/upload-finalization-fixture";
 
 describe("upload finalization ownership", () => {
-  it("upload.exclusive-completion", async ({ uploads, protocolRuntime }) => {
+  it("upload.exclusive-completion", { tags: ["@Upload/Service"] }, async ({
+    uploads,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const {
         db: fixturePrisma,
@@ -41,7 +44,10 @@ describe("upload finalization ownership", () => {
     });
   });
 
-  it("upload.completion-phase-gate", async ({ uploads, protocolRuntime }) => {
+  it("upload.completion-phase-gate", { tags: ["@Upload/Service"] }, async ({
+    uploads,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { db: fixturePrisma, bucket, upload, complete } = uploads;
       for (const phase of ["reserved", "uploading", "cleaning"] as const) {
@@ -59,7 +65,10 @@ describe("upload finalization ownership", () => {
     });
   });
 
-  it("upload.completion-retry", async ({ uploads, protocolRuntime }) => {
+  it("upload.completion-retry", { tags: ["@Upload/Service"] }, async ({
+    uploads,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { bucket, defer, upload, complete } = uploads;
       const key = await upload();
@@ -83,10 +92,9 @@ describe("upload finalization ownership", () => {
     });
   });
 
-  it("upload.completion-failure-release", async ({
-    uploads,
-    protocolRuntime,
-  }) => {
+  it("upload.completion-failure-release", {
+    tags: ["@Upload/Service"],
+  }, async ({ uploads, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { db: fixturePrisma, bucket, upload, put, complete } = uploads;
       for (const failure of ["missing", "unavailable", "oversized"]) {
@@ -119,7 +127,7 @@ describe("upload finalization ownership", () => {
     });
   });
 
-  it("upload.completion-stale-attempt", async ({
+  it("upload.completion-stale-attempt", { tags: ["@Upload/Service"] }, async ({
     uploads,
     protocolRuntime,
   }) => {
@@ -177,7 +185,10 @@ describe("upload finalization ownership", () => {
     });
   });
 
-  it("upload.completion-expiry", async ({ uploads, protocolRuntime }) => {
+  it("upload.completion-expiry", { tags: ["@Upload/Service"] }, async ({
+    uploads,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { db: fixturePrisma, bucket, upload, complete } = uploads;
       for (const expired of ["reservation", "lease"]) {
@@ -209,10 +220,9 @@ describe("upload finalization ownership", () => {
     });
   });
 
-  it("upload.completion-quota-rejection", async ({
-    uploads,
-    protocolRuntime,
-  }) => {
+  it("upload.completion-quota-rejection", {
+    tags: ["@Upload/Service"],
+  }, async ({ uploads, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { db: fixturePrisma, bucket, userId, upload, complete } = uploads;
       const key = await upload();
@@ -238,7 +248,10 @@ describe("upload finalization ownership", () => {
     });
   });
 
-  it("upload.oversized-put-retry", async ({ uploads, protocolRuntime }) => {
+  it("upload.oversized-put-retry", { tags: ["@Upload/Service"] }, async ({
+    uploads,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { db: fixturePrisma, upload, put, complete } = uploads;
       const key = await upload();
@@ -254,7 +267,10 @@ describe("upload finalization ownership", () => {
   });
 });
 
-it("upload.pure-upload-reads", async ({ uploads, protocolRuntime }) => {
+it("upload.pure-upload-reads", { tags: ["@Upload/Service"] }, async ({
+  uploads,
+  protocolRuntime,
+}) => {
   await protocolRuntime.run(async () => {
     const {
       db: fixturePrisma,
@@ -352,7 +368,7 @@ it("upload.pure-upload-reads", async ({ uploads, protocolRuntime }) => {
   });
 });
 
-it("upload.paginated-upload-list", async ({
+it("upload.paginated-upload-list", { tags: ["@Upload/Service"] }, async ({
   uploads,
   protocolRuntime,
   mcpSessions,

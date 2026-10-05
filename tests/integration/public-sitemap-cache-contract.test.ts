@@ -5,7 +5,9 @@ import { GET as getSitemap } from "@/routes/sitemap.xml/+server";
 import { publicDiscoveryTest as it } from "../shared/public-discovery-fixture";
 
 // Keep its global clock and memory/colo cache separate from the search case.
-it("rendering-and-cache.sitemap-freshness", async ({ discovery: h }) => {
+it("rendering-and-cache.sitemap-freshness", { tags: ["@Search/Web"] }, async ({
+  discovery: h,
+}) => {
   await h.run(async () => {
     const youngId = `${h.catalog.marker}-sitemap`;
     const origin = getCanonicalOrigin();

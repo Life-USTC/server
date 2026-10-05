@@ -5,7 +5,9 @@ import { getDescriptionRoute } from "@/lib/api/routes/description-read-route";
 import { descriptionTest as it } from "../shared/description-fixture";
 
 describe("description durable write contracts", () => {
-  it("description.concurrent-first-write", async ({
+  it("description.concurrent-first-write", {
+    tags: ["@Description/Service"],
+  }, async ({
     descriptionEditor: f,
     isolatedDatabase: { owner: db },
     protocolRuntime,
@@ -47,7 +49,9 @@ describe("description durable write contracts", () => {
     });
   });
 
-  it("description.moderation-atomicity", async ({
+  it("description.moderation-atomicity", {
+    tags: ["@Description/Service"],
+  }, async ({
     descriptionEditor: f,
     isolatedDatabase: { owner: db },
     protocolRuntime,
@@ -131,7 +135,10 @@ describe("description durable write contracts", () => {
     });
   });
 
-  it("description.target-not-found", async ({ protocolRuntime, expect }) => {
+  it("description.target-not-found", { tags: ["@Description/REST"] }, async ({
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
       for (const target of [
         { targetType: "course", courseJwId: "2147483647" },

@@ -5,7 +5,9 @@ import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { workspaceNavigationTest as test } from "../shared/workspace-navigation-fixture";
 
 describe("signed workspace independent RLS contexts", () => {
-  test("keeps overview and calendar data semantics across short RLS reads", async ({
+  test("keeps overview and calendar data semantics across short RLS reads", {
+    tags: ["@Overview/Service"],
+  }, async ({
     navigation: { viewer, section, semester, schedule, exam, referenceDate },
     protocolRuntime,
     expect,

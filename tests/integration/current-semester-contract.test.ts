@@ -1,11 +1,9 @@
 import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
-it("semester.current-semester.latest-startdate-wins", async ({
-  isolatedDatabase: { owner: db },
-  protocolRuntime,
-  expect,
-}) => {
+it("semester.current-semester.latest-startdate-wins", {
+  tags: ["@Catalog/Service"],
+}, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const { older, newer } = await db.$transaction(async (tx) => {
       const older = await tx.semester.create({
@@ -52,11 +50,9 @@ it("semester.current-semester.latest-startdate-wins", async ({
   });
 });
 
-it("semester.current-semester-by-rules", async ({
-  isolatedDatabase: { owner: db },
-  protocolRuntime,
-  expect,
-}) => {
+it("semester.current-semester-by-rules", {
+  tags: ["@Catalog/Service"],
+}, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const semester = await db.$transaction((tx) =>
       tx.semester.create({

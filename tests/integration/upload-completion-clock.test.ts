@@ -21,7 +21,10 @@ const it = uploadFinalizationTest.extend<{ clock: undefined }>({
     { auto: true },
   ],
 });
-it("upload.completion-lease-duration", async ({ uploads, protocolRuntime }) => {
+it("upload.completion-lease-duration", { tags: ["@Upload/Service"] }, async ({
+  uploads,
+  protocolRuntime,
+}) => {
   await protocolRuntime.run(async () => {
     const { db: fixturePrisma, userId, run, upload, complete } = uploads;
     const key = await upload();

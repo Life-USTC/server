@@ -5,6 +5,7 @@ import { graphqlHomeworkTest } from "../shared/graphql-homework-contract-fixture
 describe("GraphQL homework CRUD mutations", () => {
   graphqlHomeworkTest(
     "collaboratively updates known homework and records description audit",
+    { tags: ["@Homework/GraphQL"] },
     async ({
       homework: {
         fixturePrisma,

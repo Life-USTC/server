@@ -11,7 +11,7 @@ import { loadYoungEvents } from "@/static-loader/young-plan";
 import type { TestPrismaClient } from "../shared/prisma";
 import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
-it("young-event.organizer-identity", async ({
+it("young-event.organizer-identity", { tags: ["@Young/Service"] }, async ({
   isolatedDatabase: { owner: db },
   importer,
   protocolRuntime,
@@ -60,7 +60,7 @@ it("young-event.organizer-identity", async ({
   });
 });
 
-it("young-event.snapshot-authoritative", async ({
+it("young-event.snapshot-authoritative", { tags: ["@Young/Service"] }, async ({
   isolatedDatabase: { owner: db },
   importer,
   protocolRuntime,
@@ -171,7 +171,9 @@ async function importSource(
   );
 }
 
-it("young-event.structured-participation", async ({
+it("young-event.structured-participation", {
+  tags: ["@Young/Service"],
+}, async ({
   isolatedDatabase: { owner: db },
   importer,
   protocolRuntime,
@@ -217,7 +219,9 @@ it("young-event.structured-participation", async ({
   });
 });
 
-it("young-event.participation-flag-normalization", async ({
+it("young-event.participation-flag-normalization", {
+  tags: ["@Young/Service"],
+}, async ({
   isolatedDatabase: { owner: db },
   importer,
   protocolRuntime,
@@ -248,7 +252,9 @@ it("young-event.participation-flag-normalization", async ({
   });
 });
 
-it("young-event.participation-sponsor-normalization", async ({
+it("young-event.participation-sponsor-normalization", {
+  tags: ["@Young/Service"],
+}, async ({
   isolatedDatabase: { owner: db },
   importer,
   protocolRuntime,

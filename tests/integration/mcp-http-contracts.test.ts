@@ -4,7 +4,7 @@ import { DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 import { createCatalogContractFixture } from "../shared/catalog-contract-fixture";
 import { call, mcpHttpTest as it, payload } from "../shared/mcp-http-fixture";
 
-it("mcp.public-catalog-access", async ({ http }) =>
+it("mcp.public-catalog-access", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { post } = http;
     const publicTools = [
@@ -154,56 +154,65 @@ it("mcp.public-catalog-access", async ({ http }) =>
     );
     const failure = await payload(privateResponse);
     expect(failure.error.code).toBe(-32000);
-  }));
+  }),
+);
 
-it("mcp.invalid-credentials-no-downgrade", async ({ http }) =>
-  http.run(async () => {
-    const { post } = http;
-    for (const credential of [
-      "Bearer invalid",
-      "Basic invalid",
-      "DPoP invalid",
-    ]) {
-      const response = await post(call("catalog_semester_list"), credential);
-      expect(response.status, credential).toBe(401);
-      expect((await payload(response)).result).toBeUndefined();
-    }
-  }));
+it(
+  "mcp.invalid-credentials-no-downgrade",
+  { tags: ["@MCP/MCP"] },
+  async ({ http }) =>
+    http.run(async () => {
+      const { post } = http;
+      for (const credential of [
+        "Bearer invalid",
+        "Basic invalid",
+        "DPoP invalid",
+      ]) {
+        const response = await post(call("catalog_semester_list"), credential);
+        expect(response.status, credential).toBe(401);
+        expect((await payload(response)).result).toBeUndefined();
+      }
+    }),
+);
 
-it("mcp.resource-bound-access-token", async ({ http }) =>
-  http.run(async () => {
-    const { origin, token, sign, post } = http;
-    expect(http.publicJwksRequests).toBe(0);
-    const valid = await post(call("workspace_todo_list"), `Bearer ${token}`);
-    expect(valid.status).toBe(200);
-    expect((await payload(valid)).result.structuredContent).toMatchObject({
-      success: true,
-      todos: [],
-    });
-    expect(http.publicJwksRequests).toBeGreaterThan(0);
-    const { decodeJwt } = await import("jose");
-    const wrongIssuer = await http.signJwt({
-      ...decodeJwt(token),
-      iss: "https://wrong.example/api/auth",
-    });
-    for (const invalid of [
-      wrongIssuer.token,
-      "opaque-token",
-      await sign({ resource: `${origin}/api/graphql` }),
-      await sign({ expired: true }),
-      await sign({ grantId: crypto.randomUUID() }),
-      `${token.slice(0, token.lastIndexOf(".") + 1)}${"A".repeat(86)}`,
-    ]) {
-      const response = await post(
-        call("workspace_todo_list"),
-        `Bearer ${invalid}`,
-      );
-      expect(response.status).toBe(401);
-      expect((await payload(response)).result).toBeUndefined();
-    }
-  }));
+it(
+  "mcp.resource-bound-access-token",
+  { tags: ["@MCP/MCP"] },
+  async ({ http }) =>
+    http.run(async () => {
+      const { origin, token, sign, post } = http;
+      expect(http.publicJwksRequests).toBe(0);
+      const valid = await post(call("workspace_todo_list"), `Bearer ${token}`);
+      expect(valid.status).toBe(200);
+      expect((await payload(valid)).result.structuredContent).toMatchObject({
+        success: true,
+        todos: [],
+      });
+      expect(http.publicJwksRequests).toBeGreaterThan(0);
+      const { decodeJwt } = await import("jose");
+      const wrongIssuer = await http.signJwt({
+        ...decodeJwt(token),
+        iss: "https://wrong.example/api/auth",
+      });
+      for (const invalid of [
+        wrongIssuer.token,
+        "opaque-token",
+        await sign({ resource: `${origin}/api/graphql` }),
+        await sign({ expired: true }),
+        await sign({ grantId: crypto.randomUUID() }),
+        `${token.slice(0, token.lastIndexOf(".") + 1)}${"A".repeat(86)}`,
+      ]) {
+        const response = await post(
+          call("workspace_todo_list"),
+          `Bearer ${invalid}`,
+        );
+        expect(response.status).toBe(401);
+        expect((await payload(response)).result).toBeUndefined();
+      }
+    }),
+);
 
-it("mcp.bootstrap-auth-challenge", async ({ http }) =>
+it("mcp.bootstrap-auth-challenge", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { post } = http;
     for (const credential of [undefined, "Bearer invalid"]) {
@@ -217,9 +226,10 @@ it("mcp.bootstrap-auth-challenge", async ({ http }) =>
       );
       expect((await payload(response)).error.code).toBe(-32000);
     }
-  }));
+  }),
+);
 
-it("mcp.http-methods", async ({ http }) =>
+it("mcp.http-methods", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { origin, token, fetch } = http;
     const get = await fetch(`${origin}/api/mcp`);
@@ -246,34 +256,42 @@ it("mcp.http-methods", async ({ http }) =>
       );
       await response.text();
     }
-  }));
+  }),
+);
 
-it("mcp.complete-batch-scope-enforcement", async ({ http }) =>
-  http.run(async () => {
-    const { db, userId, sign, post } = http;
-    const readToken = await sign({ scopes: ["workspace.todo:read"] });
-    const batch = [
-      call("workspace_todo_list"),
-      { ...call("workspace_todo_create", { title: "must not write" }), id: 2 },
-    ];
-    const response = await post(batch, `Bearer ${readToken}`);
-    expect(response.status).toBe(403);
-    expect(response.headers.get("www-authenticate")).toContain(
-      "workspace.todo:write",
-    );
-    expect(await db.todo.count({ where: { userId } })).toBe(0);
-    const writeToken = await sign({ scopes: ["workspace.todo:write"] });
-    const allowed = await post(
-      call("workspace_todo_list"),
-      `Bearer ${writeToken}`,
-    );
-    expect(allowed.status).toBe(200);
-    expect((await payload(allowed)).result.structuredContent.success).toBe(
-      true,
-    );
-  }));
+it(
+  "mcp.complete-batch-scope-enforcement",
+  { tags: ["@MCP/MCP"] },
+  async ({ http }) =>
+    http.run(async () => {
+      const { db, userId, sign, post } = http;
+      const readToken = await sign({ scopes: ["workspace.todo:read"] });
+      const batch = [
+        call("workspace_todo_list"),
+        {
+          ...call("workspace_todo_create", { title: "must not write" }),
+          id: 2,
+        },
+      ];
+      const response = await post(batch, `Bearer ${readToken}`);
+      expect(response.status).toBe(403);
+      expect(response.headers.get("www-authenticate")).toContain(
+        "workspace.todo:write",
+      );
+      expect(await db.todo.count({ where: { userId } })).toBe(0);
+      const writeToken = await sign({ scopes: ["workspace.todo:write"] });
+      const allowed = await post(
+        call("workspace_todo_list"),
+        `Bearer ${writeToken}`,
+      );
+      expect(allowed.status).toBe(200);
+      expect((await payload(allowed)).result.structuredContent.success).toBe(
+        true,
+      );
+    }),
+);
 
-it("mcp.request-body-limit", async ({ http }) =>
+it("mcp.request-body-limit", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { origin, token, post, request } = http;
     const prefix = JSON.stringify({
@@ -313,9 +331,10 @@ it("mcp.request-body-limit", async ({ http }) =>
     );
     expect(streamed.status).toBe(413);
     expect((await payload(streamed)).error.code).toBe(-32000);
-  }));
+  }),
+);
 
-it("mcp.request-batch-limit", async ({ http }) =>
+it("mcp.request-batch-limit", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { post } = http;
     for (const [count, status, code] of [
@@ -358,9 +377,10 @@ it("mcp.request-batch-limit", async ({ http }) =>
     expect(
       messages.every((message: { error?: unknown }) => !message.error),
     ).toBe(true);
-  }));
+  }),
+);
 
-it("mcp.catalog-search-length", async ({ http }) =>
+it("mcp.catalog-search-length", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { post } = http;
     for (const name of [
@@ -386,9 +406,10 @@ it("mcp.catalog-search-length", async ({ http }) =>
         }
       }
     }
-  }));
+  }),
+);
 
-it("mcp.catalog-pagination", async ({ http }) =>
+it("mcp.catalog-pagination", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { db, post } = http;
     await createCatalogContractFixture(db);
@@ -436,9 +457,10 @@ it("mcp.catalog-pagination", async ({ http }) =>
         }
       }
     }
-  }));
+  }),
+);
 
-it("mcp.graphql-authorization", async ({ http }) =>
+it("mcp.graphql-authorization", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { userId, sign, post } = http;
     const credential = await sign({ scopes: ["workspace.todo:read"] });
@@ -466,164 +488,176 @@ it("mcp.graphql-authorization", async ({ http }) =>
         `${userId}@example.test`,
       );
     }
-  }));
-
-it("mcp.upload-put-resource-isolation", async ({ http }) =>
-  http.run(async () => {
-    const { db, userId, origin, sign, fetch } = http;
-    const credential = await sign({ scopes: ["workspace.upload:write"] });
-    const key = `uploads/${userId}/${crypto.randomUUID()}`;
-    const pending = await db.uploadPending.create({
-      data: {
-        key,
-        userId,
-        filename: "private.txt",
-        size: 1,
-        attemptId: crypto.randomUUID(),
-        expiresAt: new Date(Date.now() + 300_000),
-        phase: "reserved",
-      },
-    });
-    const response = await fetch(
-      `${origin}/api/workspace/uploads/object?key=${encodeURIComponent(key)}`,
-      {
-        method: "PUT",
-        headers: {
-          authorization: `Bearer ${credential}`,
-          "content-type": "text/plain",
-        },
-        body: "x",
-      },
-    );
-    expect(response.status).toBe(401);
-    await response.text();
-    expect(
-      await db.uploadPending.findUnique({ where: { id: pending.id } }),
-    ).toEqual(pending);
-    expect(await db.upload.findUnique({ where: { key } })).toBeNull();
-  }));
-
-it("mcp.time-override", { timeout: 30_000 }, async ({ http }) =>
-  http.run(async () => {
-    const { db, userId, token, sign, post } = http;
-    const section = await http.arrangeClock();
-    await db.userSectionSubscription.create({
-      data: { userId, sectionId: section.id },
-    });
-    const dueAt = `${DEV_SEED_ANCHOR.date}T18:00:00+08:00`;
-    const todo = await db.todo.create({
-      data: {
-        userId,
-        title: "[integration-test] product clock",
-        dueAt: new Date(dueAt),
-      },
-    });
-    const expired = await sign({ expired: true });
-    const limited = await sign({ scopes: ["workspace.todo:read"] });
-    const tools: Array<[string, Record<string, unknown>]> = [
-      ["workspace_snapshot_get", {}],
-      ["workspace_schedule_next", {}],
-      ["workspace_calendar_timeline_get", {}],
-      ["workspace_deadline_list", {}],
-      ["workspace_overview_get", {}],
-      [
-        "catalog_bus_departure_next",
-        {
-          originCampusId: 1,
-          destinationCampusId: 2,
-        },
-      ],
-    ];
-    async function invoke(
-      name: string,
-      args: Record<string, unknown>,
-      atTime: string,
-    ) {
-      const response = await post(
-        call(name, { ...args, atTime, mode: "full" }),
-        `Bearer ${token}`,
-      );
-      expect(response.status, name).toBe(200);
-      const body = await payload(response);
-      expect(body.result.isError, `${name}: ${JSON.stringify(body)}`).not.toBe(
-        true,
-      );
-      expect(body.result.structuredContent.success, name).toBe(true);
-      return body.result.structuredContent;
-    }
-    const before = Object.fromEntries(
-      await Promise.all(
-        tools.map(async ([name, args]) => [
-          name,
-          await invoke(name, args, DEV_SEED_ANCHOR.recommendedAtTime),
-        ]),
-      ),
-    );
-    const after = Object.fromEntries(
-      await Promise.all(
-        tools.map(async ([name, args]) => [
-          name,
-          await invoke(name, args, "2099-01-01T08:00:00+08:00"),
-        ]),
-      ),
-    );
-    for (const name of ["workspace_snapshot_get", "workspace_schedule_next"]) {
-      expect(before[name].nextClass.at).toMatch(
-        new RegExp(`^${DEV_SEED_ANCHOR.date}`),
-      );
-      expect(after[name].nextClass).toBeNull();
-    }
-    expect(before.workspace_calendar_timeline_get.range.from).toBe(
-      `${DEV_SEED_ANCHOR.date}T00:00:00+08:00`,
-    );
-    expect(after.workspace_calendar_timeline_get.range.from).toBe(
-      "2099-01-01T00:00:00+08:00",
-    );
-    expect(before.workspace_deadline_list.deadlines).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: "todo_due",
-          at: dueAt,
-          payload: expect.objectContaining({ id: todo.id }),
-        }),
-      ]),
-    );
-    expect(after.workspace_deadline_list.deadlines).toEqual([]);
-    expect(
-      before.workspace_overview_get.overview.todaySchedulesCount,
-    ).toBeGreaterThan(0);
-    expect(after.workspace_overview_get.overview.todaySchedulesCount).toBe(0);
-    expect(
-      new Date(before.catalog_bus_departure_next.atTime).toISOString(),
-    ).toBe(new Date(DEV_SEED_ANCHOR.recommendedAtTime).toISOString());
-    expect(
-      new Date(after.catalog_bus_departure_next.atTime).toISOString(),
-    ).toBe("2099-01-01T00:00:00.000Z");
-    for (const [name, args] of tools) {
-      for (const atTime of [
-        DEV_SEED_ANCHOR.recommendedAtTime,
-        "2099-01-01T08:00:00+08:00",
-      ]) {
-        const rejected = await post(
-          call(name, { ...args, atTime }),
-          `Bearer ${expired}`,
-        );
-        expect(rejected.status, name).toBe(401);
-        expect((await payload(rejected)).result).toBeUndefined();
-        if (name.startsWith("workspace_")) {
-          const denied = await post(
-            call(name, { ...args, atTime }),
-            `Bearer ${limited}`,
-          );
-          expect(denied.status, name).toBe(403);
-          expect((await payload(denied)).result).toBeUndefined();
-        }
-      }
-    }
   }),
 );
 
-it("oauth.transport-cors", async ({ http }) =>
+it(
+  "mcp.upload-put-resource-isolation",
+  { tags: ["@MCP/MCP"] },
+  async ({ http }) =>
+    http.run(async () => {
+      const { db, userId, origin, sign, fetch } = http;
+      const credential = await sign({ scopes: ["workspace.upload:write"] });
+      const key = `uploads/${userId}/${crypto.randomUUID()}`;
+      const pending = await db.uploadPending.create({
+        data: {
+          key,
+          userId,
+          filename: "private.txt",
+          size: 1,
+          attemptId: crypto.randomUUID(),
+          expiresAt: new Date(Date.now() + 300_000),
+          phase: "reserved",
+        },
+      });
+      const response = await fetch(
+        `${origin}/api/workspace/uploads/object?key=${encodeURIComponent(key)}`,
+        {
+          method: "PUT",
+          headers: {
+            authorization: `Bearer ${credential}`,
+            "content-type": "text/plain",
+          },
+          body: "x",
+        },
+      );
+      expect(response.status).toBe(401);
+      await response.text();
+      expect(
+        await db.uploadPending.findUnique({ where: { id: pending.id } }),
+      ).toEqual(pending);
+      expect(await db.upload.findUnique({ where: { key } })).toBeNull();
+    }),
+);
+
+it(
+  "mcp.time-override",
+  { tags: ["@MCP/MCP"], timeout: 30_000 },
+  async ({ http }) =>
+    http.run(async () => {
+      const { db, userId, token, sign, post } = http;
+      const section = await http.arrangeClock();
+      await db.userSectionSubscription.create({
+        data: { userId, sectionId: section.id },
+      });
+      const dueAt = `${DEV_SEED_ANCHOR.date}T18:00:00+08:00`;
+      const todo = await db.todo.create({
+        data: {
+          userId,
+          title: "[integration-test] product clock",
+          dueAt: new Date(dueAt),
+        },
+      });
+      const expired = await sign({ expired: true });
+      const limited = await sign({ scopes: ["workspace.todo:read"] });
+      const tools: Array<[string, Record<string, unknown>]> = [
+        ["workspace_snapshot_get", {}],
+        ["workspace_schedule_next", {}],
+        ["workspace_calendar_timeline_get", {}],
+        ["workspace_deadline_list", {}],
+        ["workspace_overview_get", {}],
+        [
+          "catalog_bus_departure_next",
+          {
+            originCampusId: 1,
+            destinationCampusId: 2,
+          },
+        ],
+      ];
+      async function invoke(
+        name: string,
+        args: Record<string, unknown>,
+        atTime: string,
+      ) {
+        const response = await post(
+          call(name, { ...args, atTime, mode: "full" }),
+          `Bearer ${token}`,
+        );
+        expect(response.status, name).toBe(200);
+        const body = await payload(response);
+        expect(
+          body.result.isError,
+          `${name}: ${JSON.stringify(body)}`,
+        ).not.toBe(true);
+        expect(body.result.structuredContent.success, name).toBe(true);
+        return body.result.structuredContent;
+      }
+      const before = Object.fromEntries(
+        await Promise.all(
+          tools.map(async ([name, args]) => [
+            name,
+            await invoke(name, args, DEV_SEED_ANCHOR.recommendedAtTime),
+          ]),
+        ),
+      );
+      const after = Object.fromEntries(
+        await Promise.all(
+          tools.map(async ([name, args]) => [
+            name,
+            await invoke(name, args, "2099-01-01T08:00:00+08:00"),
+          ]),
+        ),
+      );
+      for (const name of [
+        "workspace_snapshot_get",
+        "workspace_schedule_next",
+      ]) {
+        expect(before[name].nextClass.at).toMatch(
+          new RegExp(`^${DEV_SEED_ANCHOR.date}`),
+        );
+        expect(after[name].nextClass).toBeNull();
+      }
+      expect(before.workspace_calendar_timeline_get.range.from).toBe(
+        `${DEV_SEED_ANCHOR.date}T00:00:00+08:00`,
+      );
+      expect(after.workspace_calendar_timeline_get.range.from).toBe(
+        "2099-01-01T00:00:00+08:00",
+      );
+      expect(before.workspace_deadline_list.deadlines).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "todo_due",
+            at: dueAt,
+            payload: expect.objectContaining({ id: todo.id }),
+          }),
+        ]),
+      );
+      expect(after.workspace_deadline_list.deadlines).toEqual([]);
+      expect(
+        before.workspace_overview_get.overview.todaySchedulesCount,
+      ).toBeGreaterThan(0);
+      expect(after.workspace_overview_get.overview.todaySchedulesCount).toBe(0);
+      expect(
+        new Date(before.catalog_bus_departure_next.atTime).toISOString(),
+      ).toBe(new Date(DEV_SEED_ANCHOR.recommendedAtTime).toISOString());
+      expect(
+        new Date(after.catalog_bus_departure_next.atTime).toISOString(),
+      ).toBe("2099-01-01T00:00:00.000Z");
+      for (const [name, args] of tools) {
+        for (const atTime of [
+          DEV_SEED_ANCHOR.recommendedAtTime,
+          "2099-01-01T08:00:00+08:00",
+        ]) {
+          const rejected = await post(
+            call(name, { ...args, atTime }),
+            `Bearer ${expired}`,
+          );
+          expect(rejected.status, name).toBe(401);
+          expect((await payload(rejected)).result).toBeUndefined();
+          if (name.startsWith("workspace_")) {
+            const denied = await post(
+              call(name, { ...args, atTime }),
+              `Bearer ${limited}`,
+            );
+            expect(denied.status, name).toBe(403);
+            expect((await payload(denied)).result).toBeUndefined();
+          }
+        }
+      }
+    }),
+);
+
+it("oauth.transport-cors", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { origin, token, fetch } = http;
     const preflight = await fetch(`${origin}/api/mcp`, {
@@ -674,67 +708,72 @@ it("oauth.transport-cors", async ({ http }) =>
         expect(response.headers.get("www-authenticate")).toContain("Bearer");
       await response.text();
     }
-  }));
+  }),
+);
 
-it("oauth.transport-origin-validation", async ({ http }) =>
-  http.run(async () => {
-    const { origin, fetch } = http;
-    const canonical = "https://canonical.example";
-    http.setOrigins({ canonical });
-    for (const requestOrigin of [
-      undefined,
-      canonical,
-      origin,
-      origin.replace("127.0.0.1", "localhost"),
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://evil.example",
-      "null",
-      "invalid-origin",
-    ]) {
-      const trusted =
-        requestOrigin === undefined ||
-        requestOrigin === canonical ||
-        requestOrigin.startsWith("http://localhost:") ||
-        requestOrigin.startsWith("http://127.0.0.1:");
-      for (const method of ["POST", "OPTIONS", "GET", "DELETE"]) {
-        const response = await fetch(`${origin}/api/mcp`, {
-          method,
-          headers: {
-            ...(requestOrigin ? { Origin: requestOrigin } : {}),
-            "content-type": "application/json",
-            Accept: "application/json, text/event-stream",
-          },
-          ...(method === "POST"
-            ? { body: JSON.stringify(call("catalog_semester_list")) }
-            : {}),
-        });
-        expect(response.status, `${method}:${requestOrigin}`).toBe(
-          trusted
-            ? method === "OPTIONS"
-              ? 204
-              : method === "GET"
-                ? 405
-                : 200
-            : 403,
-        );
-        if (!trusted) {
-          expect(await response.json()).toEqual({ error: "invalid_origin" });
-          expect(
-            response.headers.get("access-control-allow-origin"),
-          ).toBeNull();
-        } else await response.text();
+it(
+  "oauth.transport-origin-validation",
+  { tags: ["@MCP/MCP"] },
+  async ({ http }) =>
+    http.run(async () => {
+      const { origin, fetch } = http;
+      const canonical = "https://canonical.example";
+      http.setOrigins({ canonical });
+      for (const requestOrigin of [
+        undefined,
+        canonical,
+        origin,
+        origin.replace("127.0.0.1", "localhost"),
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://evil.example",
+        "null",
+        "invalid-origin",
+      ]) {
+        const trusted =
+          requestOrigin === undefined ||
+          requestOrigin === canonical ||
+          requestOrigin.startsWith("http://localhost:") ||
+          requestOrigin.startsWith("http://127.0.0.1:");
+        for (const method of ["POST", "OPTIONS", "GET", "DELETE"]) {
+          const response = await fetch(`${origin}/api/mcp`, {
+            method,
+            headers: {
+              ...(requestOrigin ? { Origin: requestOrigin } : {}),
+              "content-type": "application/json",
+              Accept: "application/json, text/event-stream",
+            },
+            ...(method === "POST"
+              ? { body: JSON.stringify(call("catalog_semester_list")) }
+              : {}),
+          });
+          expect(response.status, `${method}:${requestOrigin}`).toBe(
+            trusted
+              ? method === "OPTIONS"
+                ? 204
+                : method === "GET"
+                  ? 405
+                  : 200
+              : 403,
+          );
+          if (!trusted) {
+            expect(await response.json()).toEqual({ error: "invalid_origin" });
+            expect(
+              response.headers.get("access-control-allow-origin"),
+            ).toBeNull();
+          } else await response.text();
+        }
       }
-    }
-    http.setOrigins({ public: "https://preview.example", canonical });
-    const preview = await fetch(`${origin}/api/mcp`, {
-      method: "OPTIONS",
-      headers: { Origin: "https://preview.example" },
-    });
-    expect(preview.status).toBe(204);
-  }));
+      http.setOrigins({ public: "https://preview.example", canonical });
+      const preview = await fetch(`${origin}/api/mcp`, {
+        method: "OPTIONS",
+        headers: { Origin: "https://preview.example" },
+      });
+      expect(preview.status).toBe(204);
+    }),
+);
 
-it("upload.mcp-transfer-boundary", async ({ http }) =>
+it("upload.mcp-transfer-boundary", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { db, userId, origin, objects, sign, post, fetch } = http;
     const credentials = await sign({
@@ -887,4 +926,5 @@ it("upload.mcp-transfer-boundary", async ({ http }) =>
     });
     expect(objects.size).toBe(0);
     expect(await db.upload.count({ where: { key } })).toBe(0);
-  }));
+  }),
+);

@@ -24,7 +24,9 @@ import { createMcpHarness } from "./mcp/_harness/client";
 const now = new Date("2030-09-15T10:00:00+08:00");
 
 describe("Young workspace owner subscriptions and reminders", () => {
-  it("young-workspace.reminder-settings", async ({ young }) => {
+  it("young-workspace.reminder-settings", { tags: ["@Young/Service"] }, async ({
+    young,
+  }) => {
     const { userId, youngId } = young;
     await young.runtime(async () => {
       for (const [setting, kind] of [
@@ -58,7 +60,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("young-workspace.reminder-expiry", async ({ young }) => {
+  it("young-workspace.reminder-expiry", { tags: ["@Young/Service"] }, async ({
+    young,
+  }) => {
     const { db: fixture, userId, youngId } = young;
     await young.runtime(async () => {
       const rows = [
@@ -93,9 +97,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("serializes repeated subscriptions and keeps owner rows invisible outside their context", async ({
-    young,
-  }) => {
+  it("serializes repeated subscriptions and keeps owner rows invisible outside their context", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { userId, otherId, youngId } = young;
     await young.runtime(async () => {
       await Promise.all([
@@ -122,9 +126,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("generates reminders once even under concurrent refresh and does not leak notification ownership", async ({
-    young,
-  }) => {
+  it("generates reminders once even under concurrent refresh and does not leak notification ownership", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { userId, otherId, youngId } = young;
     await young.runtime(async () => {
       await setYoungEventSubscription(userId, youngId, true);
@@ -161,7 +165,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("young-workspace.reminder-source-change", async ({ young }) => {
+  it("young-workspace.reminder-source-change", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { db: fixture, userId, youngId } = young;
     await young.runtime(async () => {
       await setYoungEventSubscription(userId, youngId, true);
@@ -218,9 +224,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("withdraws reminders on unsubscribe and supports a new subscription lifecycle", async ({
-    young,
-  }) => {
+  it("withdraws reminders on unsubscribe and supports a new subscription lifecycle", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { db: fixture, userId, youngId } = young;
     await young.runtime(async () => {
       await setYoungEventSubscription(userId, youngId, true);
@@ -257,9 +263,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("does not infer cancellation or delete the subscription when the source disappears", async ({
-    young,
-  }) => {
+  it("does not infer cancellation or delete the subscription when the source disappears", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { db: fixture, userId, youngId } = young;
     await young.runtime(async () => {
       await setYoungEventSubscription(userId, youngId, true);
@@ -276,9 +282,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("following an organizer produces one digest without automatically subscribing activities", async ({
-    young,
-  }) => {
+  it("following an organizer produces one digest without automatically subscribing activities", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { db: fixture, userId, organizerId } = young;
     await young.runtime(async () => {
       await setYoungOrganizerSubscription(userId, organizerId, true);
@@ -297,7 +303,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("young-workspace.event-calendar-membership", async ({ young }) => {
+  it("young-workspace.event-calendar-membership", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { db: fixture, userId, youngId, organizerId } = young;
     await young.runtime(async () => {
       await setYoungOrganizerSubscription(userId, organizerId, true);
@@ -354,9 +362,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("GraphQL shares owner state and rejects missing read/write scopes before mutations", async ({
-    young,
-  }) => {
+  it("GraphQL shares owner state and rejects missing read/write scopes before mutations", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { userId, youngId } = young;
     await young.runtime(async () => {
       const run = async (source: string, scopes: string[]) => {
@@ -420,9 +428,9 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
 
-  it("MCP exposes the same owner-scoped subscription state and full calendar events", async ({
-    young,
-  }) => {
+  it("MCP exposes the same owner-scoped subscription state and full calendar events", {
+    tags: ["@Young/Service"],
+  }, async ({ young }) => {
     const { userId, youngId } = young;
     await young.runtime(async () => {
       const client = await createMcpHarness(userId);

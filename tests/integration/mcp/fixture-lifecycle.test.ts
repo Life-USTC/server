@@ -20,6 +20,7 @@ const require = createRequire(import.meta.url);
 // fixture fails, while independently checking that its resources were released.
 test.for(["setup", "body-teardown", "timeout"] as const)(
   "MCP %s failure is reported and releases private resources",
+  { tags: ["@MCP/MCP"] },
   async (phase, { expect }) => {
     const output = await mkdtemp(join(tmpdir(), "life-ustc-mcp-fixture-"));
     let passed = false;
@@ -152,6 +153,7 @@ test.for(["setup", "body-teardown", "timeout"] as const)(
 
 isolatedMcpTest(
   "catalog initialization rolls back earlier records when a later entity conflicts",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, isolatedDatabase: { owner: db }, expect }) =>
     mcpWorkflow.run(async () => {
       const marker = crypto.randomUUID();
@@ -215,6 +217,7 @@ isolatedMcpTest(
 
 isolatedMcpTest(
   "catalog cleanup preserves unrelated records inside the former random numeric range",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, isolatedDatabase: { owner: db }, expect }) =>
     mcpWorkflow.run(async () => {
       const fixture = await createCatalogContractFixture(db);

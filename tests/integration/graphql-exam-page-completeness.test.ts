@@ -5,7 +5,7 @@ import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
-it("exam.graphql-page-completeness", async ({
+it("exam.graphql-page-completeness", { tags: ["@Exam/GraphQL"] }, async ({
   isolatedDatabase,
   protocolRuntime,
 }) => {

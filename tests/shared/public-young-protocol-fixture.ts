@@ -58,42 +58,44 @@ export const publicYoungProtocolTest = publicCatalogProtocolTest.extend(
         ...upstream,
         itemPlaceDTO: { itemId: youngId, places: [rawPlace] },
       };
-      async function publicDetails() {
-        const response = await protocolRuntime.request(() =>
-          getYoungEventDetailRoute(
-            new Request(
-              `https://example.test/api/catalog/young-events/${youngId}`,
+      async function publicDetail(method: "REST" | "GraphQL" | "MCP") {
+        if (method === "REST") {
+          const response = await protocolRuntime.request(() =>
+            getYoungEventDetailRoute(
+              new Request(
+                `https://example.test/api/catalog/young-events/${youngId}`,
+              ),
+              { youngId },
             ),
-            { youngId },
-          ),
-        );
-        expect(response.status).toBe(200);
-        const rest = await response.json();
-        const gqlResponse = await protocolRuntime.request(() =>
-          createGraphqlYoga(false).fetch(
-            "https://example.test/api/graphql",
-            {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({
-                query: `query($id: String!) { catalog { youngEvent(youngId: $id) { youngId description participationNotes rawJson module activityLevel form sponsor contactName contactTel hours duration serviceHour sumHours sumPersons partakeNum favCount limitNum status activityStatusCode signupStatusCode requiresSignup isActive startAt endAt places { placeInfo placeSt placeEt } } } }`,
-                variables: { id: youngId },
-              }),
-            },
-            { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
-          ),
-        );
-        const gql = await gqlResponse.json();
-        expect(gql.errors).toBeUndefined();
+          );
+          expect(response.status).toBe(200);
+          return (await response.json()) as Record<string, unknown>;
+        }
+        if (method === "GraphQL") {
+          const response = await protocolRuntime.request(() =>
+            createGraphqlYoga(false).fetch(
+              "https://example.test/api/graphql",
+              {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  query: `query($id: String!) { catalog { youngEvent(youngId: $id) { youngId description participationNotes rawJson module activityLevel form sponsor contactName contactTel hours duration serviceHour sumHours sumPersons partakeNum favCount limitNum status activityStatusCode signupStatusCode requiresSignup isActive startAt endAt places { placeInfo placeSt placeEt } } } }`,
+                  variables: { id: youngId },
+                }),
+              },
+              { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
+            ),
+          );
+          const gql = await response.json();
+          expect(gql.errors).toBeUndefined();
+          return gql.data.catalog.youngEvent as Record<string, unknown>;
+        }
         const mcp = await client.call<{
           found: boolean;
           event: Record<string, unknown>;
         }>("catalog_young_event_get", { youngId, mode: "full" });
         expect(mcp.found).toBe(true);
-        return [rest, gql.data.catalog.youngEvent, mcp.event] as Record<
-          string,
-          unknown
-        >[];
+        return mcp.event;
       }
       const table = "young_mobile_item_enrolment_list_result_records";
       const tables: Record<string, Record<string, unknown>[]> = {
@@ -133,7 +135,7 @@ export const publicYoungProtocolTest = publicCatalogProtocolTest.extend(
         upstream,
         rawPlace,
         expectedRaw,
-        publicDetails,
+        publicDetail,
       };
     }),
 );

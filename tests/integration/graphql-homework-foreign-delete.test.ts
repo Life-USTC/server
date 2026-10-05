@@ -8,6 +8,7 @@ import {
 describe("GraphQL homework CRUD mutations", () => {
   graphqlHomeworkTest.for([false, true])(
     "rejects deletion by another owner even when isAdmin=%s",
+    { tags: ["@Homework/GraphQL"] },
     async (
       isAdmin,
       {

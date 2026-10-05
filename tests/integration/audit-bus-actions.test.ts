@@ -2,7 +2,9 @@ import { expect } from "vitest";
 import { adminBusActions } from "@/features/admin/server/admin-bus-page-server";
 import { busAuditTest as it } from "../shared/bus-audit-fixture";
 
-it("audit.action-admin-bus-version-activate", async ({ bus }) => {
+it("audit.action-admin-bus-version-activate", {
+  tags: ["@Admin/Web"],
+}, async ({ bus }) => {
   const { db, marker, userId, event, run } = bus;
   const version = await db.busScheduleVersion.create({
     data: {

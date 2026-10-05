@@ -63,11 +63,11 @@ it.for([
   },
 ])(
   "user.account-deletion-session-authority rejects $name session",
-  async ({ ageSeconds, expired, revoked, otherOwner }, {
-    isolatedDatabase: { owner: db },
-    protocolRuntime,
-    expect,
-  }) => {
+  { tags: ["@Account/Service"] },
+  async (
+    { ageSeconds, expired, revoked, otherOwner },
+    { isolatedDatabase: { owner: db }, protocolRuntime, expect },
+  ) => {
     await protocolRuntime.run(async () => {
       const { subject, row } = await db.$transaction(async (tx) => {
         const subject = (await user(tx)).id;
@@ -91,11 +91,9 @@ it.for([
   },
 );
 
-it("user.account-deletion-session-authority deletes only the fresh session owner", async ({
-  isolatedDatabase: { owner: db },
-  protocolRuntime,
-  expect,
-}) => {
+it("user.account-deletion-session-authority deletes only the fresh session owner", {
+  tags: ["@Account/Service"],
+}, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const { subject, other, fresh } = await db.$transaction(async (tx) => {
       const subject = (await user(tx)).id;
@@ -124,11 +122,11 @@ it.for([
   { ageMs: 0, status: "deleted" },
 ])(
   "user.account-deletion-session-authority SQL clock age $ageMs ms",
-  async ({ ageMs, status }, {
-    isolatedDatabase: { owner: db },
-    protocolRuntime,
-    expect,
-  }) => {
+  { tags: ["@Account/Service"] },
+  async (
+    { ageMs, status },
+    { isolatedDatabase: { owner: db }, protocolRuntime, expect },
+  ) => {
     await protocolRuntime.run(async () => {
       const { boundaryUser, row } = await db.$transaction(async (tx) => {
         const boundaryUser = (await user(tx)).id;
@@ -159,7 +157,7 @@ it.for([
   },
 );
 
-it("user.account-deletion-last-admin", async ({
+it("user.account-deletion-last-admin", { tags: ["@Account/Service"] }, async ({
   isolatedDatabase: { owner: db },
   protocolRuntime,
   expect,

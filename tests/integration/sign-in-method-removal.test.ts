@@ -126,41 +126,50 @@ async function consume(response: Response) {
   return response;
 }
 
-it("disabled providers cannot replace the last usable sign-in method", async ({
-  isolatedDatabase: { owner: fixture },
-  protocolRuntime,
-  signInMethods: { userWithMethods, cookieFor, request },
-  expect,
-}) => {
-  await protocolRuntime.run(async () => {
-    // A disabled provider is not a recovery path, even when its row remains.
-    const disabled = await userWithMethods(["github", "google"], 0);
-    expect(
-      await protocolRuntime.request(() =>
-        unlinkSettingsAccount(disabled.id, "github"),
-      ),
-    ).toBe("last_account");
-    const cookie = await cookieFor(disabled.id);
-    const denied = await request(cookie, "/unlink-account", {
-      accountId: disabled.accounts.find((a) => a.provider === "github")?.id,
+for (const method of ["Service", "OAuth"] as const) {
+  it(`disabled providers cannot replace the last usable sign-in method (${method})`, {
+    tags: [`@Account/${method}`],
+  }, async ({
+    isolatedDatabase: { owner: fixture },
+    protocolRuntime,
+    signInMethods: { userWithMethods, cookieFor, request },
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      // A disabled provider is not a recovery path, even when its row remains.
+      const disabled = await userWithMethods(["github", "google"], 0);
+      if (method === "Service") {
+        expect(
+          await protocolRuntime.request(() =>
+            unlinkSettingsAccount(disabled.id, "github"),
+          ),
+        ).toBe("last_account");
+      } else {
+        const cookie = await cookieFor(disabled.id);
+        const denied = await request(cookie, "/unlink-account", {
+          accountId: disabled.accounts.find((a) => a.provider === "github")?.id,
+        });
+        expect(denied.status).toBe(400);
+        expect(await denied.json()).toMatchObject({
+          code: "FAILED_TO_UNLINK_LAST_ACCOUNT",
+        });
+        expect(
+          await fixture.account.count({ where: { userId: disabled.id } }),
+        ).toBe(2);
+        // A valid enabled provider permits removal of the disabled one.
+        const allowed = await request(cookie, "/unlink-account", {
+          accountId: disabled.accounts.find((a) => a.provider === "google")?.id,
+        });
+        expect(allowed.status).toBe(200);
+        await allowed.text();
+      }
     });
-    expect(denied.status).toBe(400);
-    expect(await denied.json()).toMatchObject({
-      code: "FAILED_TO_UNLINK_LAST_ACCOUNT",
-    });
-    expect(
-      await fixture.account.count({ where: { userId: disabled.id } }),
-    ).toBe(2);
-    // A valid enabled provider permits removal of the disabled one.
-    const allowed = await request(cookie, "/unlink-account", {
-      accountId: disabled.accounts.find((a) => a.provider === "google")?.id,
-    });
-    expect(allowed.status).toBe(200);
-    await allowed.text();
   });
-});
+}
 
-it("a password permits provider removal only with a valid issuer and subject and still signs in", async ({
+it("a password permits provider removal only with a valid issuer and subject and still signs in", {
+  tags: ["@Account/Service"],
+}, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,
   signInMethods: { userWithMethods, request },
@@ -216,7 +225,9 @@ it("a password permits provider removal only with a valid issuer and subject and
   });
 });
 
-it("a remaining passkey permits account unlinking but cannot itself be removed last", async ({
+it("a remaining passkey permits account unlinking but cannot itself be removed last", {
+  tags: ["@Account/OAuth"],
+}, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,
   signInMethods: { userWithMethods, cookieFor, request },
@@ -248,7 +259,9 @@ it("a remaining passkey permits account unlinking but cannot itself be removed l
   });
 });
 
-it("cases.account.sign-in-method-removal-atomic", async ({
+it("cases.account.sign-in-method-removal-atomic", {
+  tags: ["@Account/Service"],
+}, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,
   signInMethods: { userWithMethods },
@@ -281,7 +294,9 @@ it("cases.account.sign-in-method-removal-atomic", async ({
   });
 });
 
-it("transaction adapters reject removing the last account or passkey", async ({
+it("transaction adapters reject removing the last account or passkey", {
+  tags: ["@Account/Service"],
+}, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,
   signInMethods: { userWithMethods, adapter },
@@ -317,7 +332,9 @@ it("transaction adapters reject removing the last account or passkey", async ({
   });
 });
 
-it("transaction rollback restores sign-in methods and preserves independent visibility", async ({
+it("transaction rollback restores sign-in methods and preserves independent visibility", {
+  tags: ["@Account/Service"],
+}, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,
   signInMethods: { userWithMethods, adapter },
@@ -371,7 +388,9 @@ it("transaction rollback restores sign-in methods and preserves independent visi
   });
 });
 
-it("concurrent adapter removals retain exactly one sign-in method", async ({
+it("concurrent adapter removals retain exactly one sign-in method", {
+  tags: ["@Account/Service"],
+}, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,
   signInMethods: { userWithMethods, adapter },

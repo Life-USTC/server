@@ -47,7 +47,7 @@ function valueKind(value: unknown) {
 describe("MCP domain projections through the SDK and production database role", () => {
   toolTest(
     "mcp.output-modes",
-    { timeout: 30_000 },
+    { tags: ["@MCP/MCP"], timeout: 30_000 },
     async ({
       mcpWorkflow,
       owner,
@@ -148,7 +148,7 @@ describe("MCP domain projections through the SDK and production database role", 
 
   toolTest(
     "mcp.privacy-safe-default",
-    { timeout: 30_000 },
+    { tags: ["@MCP/MCP"], timeout: 30_000 },
     async ({
       mcpWorkflow,
       owner,

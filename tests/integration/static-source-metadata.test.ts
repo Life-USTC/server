@@ -15,7 +15,9 @@ import {
 import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
 describe("academic source metadata persistence", () => {
-  it("section.source-planning-metadata", async ({
+  it("section.source-planning-metadata", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,
@@ -124,7 +126,9 @@ describe("academic source metadata persistence", () => {
   });
 });
 
-it("exam.source-audience-and-monitors", async ({
+it("exam.source-audience-and-monitors", {
+  tags: ["@StaticImport/Service"],
+}, async ({
   isolatedDatabase: { owner: db },
   importer,
   protocolRuntime,

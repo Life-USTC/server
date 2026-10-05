@@ -15,7 +15,9 @@ const context = {
 } as const;
 
 // This file owns one console spy scope; other cases run in isolated modules.
-it("admin.feature-experience-retention", async ({ observation }) => {
+it("admin.feature-experience-retention", { tags: ["@Admin/Service"] }, async ({
+  observation,
+}) => {
   await observation.runtime(async () => {
     const { db, capture, maintenance } = observation;
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);

@@ -7,7 +7,10 @@ import {
 
 const it = socialLoginTest.extend({ socialIp: "192.0.2.2" });
 
-it("user.welcome-oauth-refresh", async ({ social, expect }) => {
+it("user.welcome-oauth-refresh", { tags: ["@Account/Service"] }, async ({
+  social,
+  expect,
+}) => {
   await social.run(async () => {
     const { db, origin, email, fetch, start, network, request } = social;
     const flow = await start();

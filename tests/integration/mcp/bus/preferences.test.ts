@@ -15,6 +15,7 @@ type BusPreferenceToolResponse = {
 describe("catalog_bus_departure_next — 默认模式去除重复的校区对象", () => {
   toolTest(
     "接受仅日期的 atTime 以确定发车查询",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{ totalRoutes?: number }>(
@@ -34,6 +35,7 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 
   toolTest(
     "拒绝超过共享 REST/MCP 上限的 limit",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(
@@ -49,6 +51,7 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 
   toolTest(
     "以共享 MCP 日期提示拒绝无效的 atTime",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -71,6 +74,7 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 
   toolTest(
     "发车项省略 originCampus 和 destinationCampus",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -114,6 +118,7 @@ describe("bus preference 工具", () => {
 
   toolTest(
     "读取、保存并重置已认证用户的 bus 偏好",
+    { tags: ["@Bus/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -194,6 +199,7 @@ describe("bus preference 工具", () => {
 
   toolTest(
     "序列化未知校区校验失败且不写入",
+    { tags: ["@Bus/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,

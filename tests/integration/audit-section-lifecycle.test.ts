@@ -66,7 +66,7 @@ async function createLifecycle(
     },
   };
 }
-it("audit.writer-3", async ({
+it("audit.writer-3", { tags: ["@Admin/Service"] }, async ({
   isolatedDatabase: { owner: fixture },
   importer,
   protocolRuntime,
@@ -115,7 +115,7 @@ it("audit.writer-3", async ({
     ).toBe(2);
   });
 });
-it("audit.action-section-retire", async ({
+it("audit.action-section-retire", { tags: ["@Admin/Service"] }, async ({
   isolatedDatabase: { owner: fixture },
   importer,
   protocolRuntime,
@@ -162,7 +162,7 @@ it("audit.action-section-retire", async ({
     ).toEqual(rows);
   });
 });
-it("audit.action-section-reactivate", async ({
+it("audit.action-section-reactivate", { tags: ["@Admin/Service"] }, async ({
   isolatedDatabase: { owner: fixture },
   importer,
   protocolRuntime,

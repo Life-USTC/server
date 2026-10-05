@@ -181,11 +181,9 @@ const sectionFields = /* GraphQL */ `
 `;
 
 describe("GraphQL public Query integration", () => {
-  it("serves seeded catalog and bus data through the HTTP handler", async ({
-    publicCatalog,
-    publicBus,
-    protocolRuntime,
-  }) => {
+  it("serves seeded catalog and bus data through the HTTP handler", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ publicCatalog, publicBus, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { response, payload } = await protocolRuntime.request(() =>
         execute({
@@ -312,10 +310,9 @@ describe("GraphQL public Query integration", () => {
     });
   });
 
-  it("returns the same Section shape from list and detail queries", async ({
-    publicCatalog,
-    protocolRuntime,
-  }) => {
+  it("returns the same Section shape from list and detail queries", {
+    tags: ["@Catalog/GraphQL"],
+  }, async ({ publicCatalog, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { payload } = await protocolRuntime.request(() =>
         execute({
@@ -401,9 +398,9 @@ describe("GraphQL public Query integration", () => {
     });
   });
 
-  it("enforces production introspection and request-size boundaries", async ({
-    protocolRuntime,
-  }) => {
+  it("enforces production introspection and request-size boundaries", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const introspection = await protocolRuntime.request(() =>
         execute({ query: "{ __schema { queryType { name } } }" }, true),

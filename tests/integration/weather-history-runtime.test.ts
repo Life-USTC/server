@@ -68,11 +68,9 @@ const test = isolatedDatabaseTest.extend<{
 // Date/fetch are process globals. This file has one case; overlapping copies
 // require separate native processes, even though each database is private.
 describe("weather history under deployment runtime grants", () => {
-  test("weather.weather-observation-history", async ({
-    weather,
-    isolatedDatabase,
-    expect,
-  }) => {
+  test("weather.weather-observation-history", {
+    tags: ["@Weather/Service"],
+  }, async ({ weather, isolatedDatabase, expect }) => {
     await weather.run(async () => {
       const fixturePrisma = isolatedDatabase.owner;
       const where = {

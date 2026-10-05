@@ -8,7 +8,10 @@ import {
 
 const it = socialLoginTest.extend({ socialIp: "192.0.2.3" });
 
-it("user.explicit-provider-linking", async ({ social, expect }) => {
+it("user.explicit-provider-linking", { tags: ["@Account/OAuth"] }, async ({
+  social,
+  expect,
+}) => {
   await social.run(async () => {
     const { db, origin, email, fetch, start, request } = social;
     const owner = await db.user.create({

@@ -2,9 +2,9 @@ import { expect } from "vitest";
 import { maintainAuditLogRetention } from "@/features/admin/server/audit-retention";
 import { isolatedDatabaseTest as it } from "../shared/isolated-database";
 
-it("audit retention clears network data at 30 days, attribution at 90, and events at 400 inclusively", async ({
-  isolatedDatabase: { owner, maintenance },
-}) => {
+it("audit retention clears network data at 30 days, attribution at 90, and events at 400 inclusively", {
+  tags: ["@Admin/Service"],
+}, async ({ isolatedDatabase: { owner, maintenance } }) => {
   const marker = "audit-boundary";
   const expected = { network_days: 30, attribution_days: 90, event_days: 400 };
   const now = new Date(Date.now() - 1000);
@@ -71,9 +71,9 @@ it("audit retention clears network data at 30 days, attribution at 90, and event
   }
 });
 
-it("only maintenance can execute audit retention while direct table deletion remains forbidden", async ({
-  isolatedDatabase: { owner, app, auth, maintenance },
-}) => {
+it("only maintenance can execute audit retention while direct table deletion remains forbidden", {
+  tags: ["@Admin/Service"],
+}, async ({ isolatedDatabase: { owner, app, auth, maintenance } }) => {
   const marker = "authority";
   const [definition] = await owner.$queryRaw<
     Array<{ securityDefiner: boolean; owner: string }>

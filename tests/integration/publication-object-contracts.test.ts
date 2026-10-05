@@ -6,7 +6,9 @@ import {
 import { getPublicPublicationObjectRoute } from "@/lib/api/routes/publication-public-routes";
 import { publicationTest as it } from "../shared/publication-object-fixture";
 
-it("publications.objects", async ({ publication }) => {
+it("publications.objects", { tags: ["@Publication/REST"] }, async ({
+  publication,
+}) => {
   await publication.run(async () => {
     const { bucket, fixture, responseStatus, plan, upload, objectRow } =
       publication;
@@ -58,7 +60,9 @@ it("publications.objects", async ({ publication }) => {
   });
 });
 
-it("publications.required-upload-headers", async ({ publication }) => {
+it("publications.required-upload-headers", {
+  tags: ["@Publication/REST"],
+}, async ({ publication }) => {
   await publication.run(async () => {
     const { bucket, secret, origin, fixture, responseStatus, plan, upload } =
       publication;
@@ -111,7 +115,9 @@ it("publications.required-upload-headers", async ({ publication }) => {
   });
 });
 
-it("publications.unchanged-objects", async ({ publication }) => {
+it("publications.unchanged-objects", {
+  tags: ["@Publication/REST"],
+}, async ({ publication }) => {
   await publication.run(async () => {
     const { db, fixture, ingest, responseStatus, plan, upload, objectRow } =
       publication;
@@ -147,7 +153,9 @@ it("publications.unchanged-objects", async ({ publication }) => {
   });
 });
 
-it("publications.content-type", async ({ publication }) => {
+it("publications.content-type", { tags: ["@Publication/REST"] }, async ({
+  publication,
+}) => {
   await publication.run(async () => {
     const {
       db,
@@ -229,7 +237,9 @@ it("publications.content-type", async ({ publication }) => {
   });
 });
 
-it("publications.public-object-read", async ({ publication }) => {
+it("publications.public-object-read", {
+  tags: ["@Publication/REST"],
+}, async ({ publication }) => {
   await publication.run(async () => {
     const { db, bucket, fixture, responseStatus, upload, read, objectRow } =
       publication;
@@ -304,7 +314,9 @@ it("publications.public-object-read", async ({ publication }) => {
   });
 });
 
-it("publications.publication-markdown", async ({ publication }) => {
+it("publications.publication-markdown", {
+  tags: ["@Publication/Service"],
+}, async ({ publication }) => {
   await publication.run(async () => {
     const {
       db,
@@ -388,7 +400,9 @@ it("publications.publication-markdown", async ({ publication }) => {
   });
 });
 
-it("publications.publication-images", async ({ publication }) => {
+it("publications.publication-images", {
+  tags: ["@Publication/REST"],
+}, async ({ publication }) => {
   await publication.run(async () => {
     const {
       db,
@@ -450,7 +464,9 @@ it("publications.publication-images", async ({ publication }) => {
   });
 });
 
-it("publications.object-cache-revalidation", async ({ publication }) => {
+it("publications.object-cache-revalidation", {
+  tags: ["@Publication/REST"],
+}, async ({ publication }) => {
   await publication.run(async () => {
     const { db, fixture, responseStatus, upload, read } = publication;
     const f = await fixture("cache-revalidation");
@@ -488,7 +504,9 @@ it("publications.object-cache-revalidation", async ({ publication }) => {
   });
 });
 
-it("publications.object-content-disposition", async ({ publication }) => {
+it("publications.object-content-disposition", {
+  tags: ["@Publication/REST"],
+}, async ({ publication }) => {
   await publication.run(async () => {
     const { db, bucket, origin, fixture, runtime, objectRow } = publication;
     for (const [kind, contentType, disposition] of [

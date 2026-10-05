@@ -5,7 +5,10 @@ import {
 
 const it = socialLoginTest.extend({ socialIp: "192.0.2.4" });
 
-it("user.sign-in-providers", async ({ social, expect }) => {
+it("user.sign-in-providers", { tags: ["@Account/OAuth"] }, async ({
+  social,
+  expect,
+}) => {
   await social.run(async () => {
     const { db, origin, marker, oidcSubject, fetch } = social;
     for (const [

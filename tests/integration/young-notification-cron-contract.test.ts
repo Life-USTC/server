@@ -33,7 +33,7 @@ const it = nodeProtocolTest.extend<{ clock: undefined }>({
   ],
 });
 
-it("young-workspace.reminder-generation", async ({
+it("young-workspace.reminder-generation", { tags: ["@Young/Runtime"] }, async ({
   isolatedDatabase,
   protocolRuntime,
   expect,

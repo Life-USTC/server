@@ -27,9 +27,7 @@ function request(clientId: string, raw: string, resources: string[]) {
 
 oauthProviderTest(
   "oauth.authorization-management.refresh-revocation-race",
-  {
-    timeout: 30000,
-  },
+  { tags: ["@OAuth/OAuth"], timeout: 30000 },
   async ({ isolatedDatabase: { owner: db }, oauthRuntime }) => {
     await oauthRuntime.run(async () => {
       const marker = crypto.randomUUID();

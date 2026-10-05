@@ -4,6 +4,7 @@ import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
   toolTest(
     "description.mcp-markdown-projection",
+    { tags: ["@Description/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -86,6 +87,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
 
   toolTest(
     "community_description_get 报告缺失的公开班级目标",
+    { tags: ["@Description/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -108,6 +110,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
   for (const operation of ["create", "unchanged"] as const) {
     toolTest(
       `community_description_set ${operation} observes independently prepared state`,
+      { tags: ["@Description/MCP"] },
       async ({
         mcpWorkflow,
         mcpActor: actor,

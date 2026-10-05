@@ -10,7 +10,7 @@ import { compactScheduleSchema } from "@/lib/mcp/tool-output-schemas/catalog-sch
 import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
 describe("schedule teacher participation", () => {
-  it("schedule.teacher-participation", async ({
+  it("schedule.teacher-participation", { tags: ["@Catalog/Service"] }, async ({
     isolatedDatabase,
     protocolRuntime,
   }) => {

@@ -29,7 +29,9 @@ function readCurrentSemesterSeedInsert() {
 }
 
 describe("named seed semester dates", () => {
-  it("keeps the current fixture active on the Shanghai calendar day", async ({
+  it("keeps the current fixture active on the Shanghai calendar day", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async ({
     isolatedDatabase: { owner: prisma },
     protocolRuntime,
     expect,
@@ -67,7 +69,9 @@ describe("named seed semester dates", () => {
     });
   });
 
-  it("refreshes the current fixture horizon when reseeded in a later year", async ({
+  it("refreshes the current fixture horizon when reseeded in a later year", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async ({
     isolatedDatabase: { owner: prisma },
     protocolRuntime,
     expect,

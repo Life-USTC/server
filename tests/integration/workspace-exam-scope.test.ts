@@ -4,7 +4,11 @@ import { getMyCompactOverviewRoute } from "@/lib/api/routes/workspace-overview-r
 import { workspaceExamTest as it } from "../shared/workspace-exam-fixture";
 
 describe("complete subscribed exam pages", () => {
-  it("exam.rest-read-scope", async ({ exams, protocolRuntime, expect }) => {
+  it("exam.rest-read-scope", { tags: ["@Exam/REST"] }, async ({
+    exams,
+    protocolRuntime,
+    expect,
+  }) => {
     await protocolRuntime.run(async () => {
       const { signedRequest } = exams;
       const request = await signedRequest(0, "workspace.overview:read");

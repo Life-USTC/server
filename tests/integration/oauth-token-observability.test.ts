@@ -8,6 +8,7 @@ import {
 
 oauthObservationTest(
   "oauth.token-endpoint-observability",
+  { tags: ["@OAuth/OAuth"] },
   async ({ observation, observationRuntime }) => {
     await observationRuntime.run(async () => {
       const { clientId } = observation;

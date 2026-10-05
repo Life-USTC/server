@@ -36,6 +36,7 @@ describe("Catalog lookup request-context independence", () => {
     { name: "teacher", read: resolveSeedTeacherId },
   ])(
     "$name observes each context after a missing record and a successful lookup",
+    { tags: ["@Infrastructure/Runtime"] },
     async ({ name, read }, { http, protocolRuntime, signal }) => {
       await protocolRuntime.run(async () => {
         const contexts: APIRequestContext[] = [];

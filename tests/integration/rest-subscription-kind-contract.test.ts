@@ -3,6 +3,7 @@ import { restSubscriptionTest } from "../shared/rest-subscription-contract-fixtu
 
 restSubscriptionTest(
   "openapi.subscription-kind",
+  { tags: ["@Subscription/REST"] },
   async ({
     subscription: { db, origin, fetch, users, user },
     protocolRuntime,

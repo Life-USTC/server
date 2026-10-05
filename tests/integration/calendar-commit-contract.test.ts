@@ -72,73 +72,83 @@ for (const table of [
   "UserSectionSubscription",
   "UserYoungEventSubscription",
 ] as const) {
-  test(`${table} rebuild observes the committed source row`, async ({
-    calendar,
-  }) =>
-    calendar.workflow(async () => {
-      const source = sourceWrites(calendar)[table];
-      const visibleRows: number[] = [];
-      await calendar.run(
-        async () => source.write(),
-        async () => {
-          // The fixture client is a separate connection from the application write.
-          visibleRows.push(await source.count());
-        },
-      );
-      expect(calendar.messages).toEqual([source.message]);
-      expect(visibleRows).toEqual([1]);
-      expect(await source.count()).toBe(1);
-    }));
+  test(
+    `${table} rebuild observes the committed source row`,
+    { tags: ["@Calendar/Service"] },
+    async ({ calendar }) =>
+      calendar.workflow(async () => {
+        const source = sourceWrites(calendar)[table];
+        const visibleRows: number[] = [];
+        await calendar.run(
+          async () => source.write(),
+          async () => {
+            // The fixture client is a separate connection from the application write.
+            visibleRows.push(await source.count());
+          },
+        );
+        expect(calendar.messages).toEqual([source.message]);
+        expect(visibleRows).toEqual([1]);
+        expect(await source.count()).toBe(1);
+      }),
+  );
 
-  test(`${table} rejected commit leaves no row or rebuild`, async ({
-    calendar,
-  }) =>
-    calendar.workflow(async () => {
-      const source = sourceWrites(calendar)[table];
-      await rejectCommit(calendar.db, table);
-      await expect(calendar.run(async () => source.write())).rejects.toThrow(
-        "calendar test rejects commit",
-      );
-      expect(await source.count()).toBe(0);
-      expect(calendar.messages).toEqual([]);
-      expect(await calendar.db.auditLog.count()).toBe(0);
-    }));
+  test(
+    `${table} rejected commit leaves no row or rebuild`,
+    { tags: ["@Calendar/Service"] },
+    async ({ calendar }) =>
+      calendar.workflow(async () => {
+        const source = sourceWrites(calendar)[table];
+        await rejectCommit(calendar.db, table);
+        await expect(calendar.run(async () => source.write())).rejects.toThrow(
+          "calendar test rejects commit",
+        );
+        expect(await source.count()).toBe(0);
+        expect(calendar.messages).toEqual([]);
+        expect(await calendar.db.auditLog.count()).toBe(0);
+      }),
+  );
 }
 
-test("todo deletion rebuild observes the committed absence", async ({
-  calendar,
-}) =>
-  calendar.workflow(async () => {
-    const { db, userId, messages } = calendar;
-    const todo = await db.todo.create({
-      data: { userId, title: "Delete after commit" },
-    });
-    const visibleRows: number[] = [];
-    const result = await calendar.run(
-      () => deleteOwnedTodo(todo.id, userId),
-      async () => {
-        visibleRows.push(await db.todo.count({ where: { id: todo.id } }));
-      },
-    );
-    expect(result).toEqual({ ok: true });
-    expect(messages).toEqual([{ type: "user", userId }]);
-    expect(visibleRows).toEqual([0]);
-    expect(await db.todo.findUnique({ where: { id: todo.id } })).toBeNull();
-  }));
+test(
+  "todo deletion rebuild observes the committed absence",
+  { tags: ["@Calendar/Service"] },
+  async ({ calendar }) =>
+    calendar.workflow(async () => {
+      const { db, userId, messages } = calendar;
+      const todo = await db.todo.create({
+        data: { userId, title: "Delete after commit" },
+      });
+      const visibleRows: number[] = [];
+      const result = await calendar.run(
+        () => deleteOwnedTodo(todo.id, userId),
+        async () => {
+          visibleRows.push(await db.todo.count({ where: { id: todo.id } }));
+        },
+      );
+      expect(result).toEqual({ ok: true });
+      expect(messages).toEqual([{ type: "user", userId }]);
+      expect(visibleRows).toEqual([0]);
+      expect(await db.todo.findUnique({ where: { id: todo.id } })).toBeNull();
+    }),
+);
 
-test("todo rejected deletion preserves the row without a rebuild", async ({
-  calendar,
-}) =>
-  calendar.workflow(async () => {
-    const { db, userId } = calendar;
-    const todo = await db.todo.create({
-      data: { userId, title: "Retain after rollback" },
-    });
-    await rejectCommit(db, "Todo", "DELETE");
-    await expect(
-      calendar.run(() => deleteOwnedTodo(todo.id, userId)),
-    ).rejects.toThrow("calendar test rejects commit");
-    expect(await db.todo.findUnique({ where: { id: todo.id } })).toEqual(todo);
-    expect(calendar.messages).toEqual([]);
-    expect(await db.auditLog.count()).toBe(0);
-  }));
+test(
+  "todo rejected deletion preserves the row without a rebuild",
+  { tags: ["@Calendar/Service"] },
+  async ({ calendar }) =>
+    calendar.workflow(async () => {
+      const { db, userId } = calendar;
+      const todo = await db.todo.create({
+        data: { userId, title: "Retain after rollback" },
+      });
+      await rejectCommit(db, "Todo", "DELETE");
+      await expect(
+        calendar.run(() => deleteOwnedTodo(todo.id, userId)),
+      ).rejects.toThrow("calendar test rejects commit");
+      expect(await db.todo.findUnique({ where: { id: todo.id } })).toEqual(
+        todo,
+      );
+      expect(calendar.messages).toEqual([]);
+      expect(await db.auditLog.count()).toBe(0);
+    }),
+);

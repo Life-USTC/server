@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { cleanupStaleUploadPendingStorage } from "@/features/uploads/server/upload-pending-cleanup";
 import { uploadFinalizationTest as it } from "../shared/upload-finalization-fixture";
 
-it("upload.completion-cleanup-fence", async ({
+it("upload.completion-cleanup-fence", { tags: ["@Upload/Service"] }, async ({
   uploads,
   isolatedDatabase,
   protocolRuntime,

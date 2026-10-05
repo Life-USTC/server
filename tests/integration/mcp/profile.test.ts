@@ -4,6 +4,7 @@ import { isolatedMcpTest as toolTest } from "./_harness/isolated-context";
 describe("account_profile_get", () => {
   toolTest(
     "返回认证用户的 REST 等价资料字段",
+    { tags: ["@Account/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const profile = await context.client.call<{
@@ -31,6 +32,7 @@ describe("account_profile_get", () => {
 describe("account_client_activity_list", () => {
   toolTest(
     "只返回 verified MCP client 与当前用户交集，且不暴露敏感归因字段",
+    { tags: ["@Account/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -106,6 +108,7 @@ describe("account_client_activity_list", () => {
 describe("community_user_get", () => {
   toolTest(
     "按用户名返回公开资料层级",
+    { tags: ["@Account/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const profile = await context.client.call<{
@@ -144,6 +147,7 @@ describe("community_user_get", () => {
 
   toolTest(
     "缺失用户返回 not_found",
+    { tags: ["@Account/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{

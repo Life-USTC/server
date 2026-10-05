@@ -7,7 +7,7 @@ const elevenDaysLater = "2026-05-10";
 describe("MCP domain failure contracts", () => {
   toolTest(
     "mcp.actionable-errors",
-    { timeout: 30_000 },
+    { tags: ["@MCP/MCP"], timeout: 30_000 },
     async ({
       mcpWorkflow,
       mcpActor: owner,

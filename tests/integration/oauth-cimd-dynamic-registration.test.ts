@@ -7,6 +7,7 @@ const authOrigin = "http://localhost:3000";
 
 oauthProviderTest(
   "supports separately registered dynamic clients",
+  { tags: ["@OAuth/OAuth"] },
   async ({
     isolatedDatabase: { owner: fixturePrisma },
     oauthRuntime,

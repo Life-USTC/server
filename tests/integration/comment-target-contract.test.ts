@@ -3,6 +3,7 @@ import { commentTargetTest } from "../shared/comment-target-contract-fixture";
 
 commentTargetTest(
   "comment.attached-to-object",
+  { tags: ["@Comment/Service"] },
   async ({ commentTargets, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { db, userId, sectionId, postCommentRoute, request, marker, read } =
@@ -25,6 +26,7 @@ commentTargetTest(
 
 commentTargetTest(
   "comment.attached-object-types",
+  { tags: ["@Comment/Service"] },
   async ({ commentTargets, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { targets, create, db, userId, postCommentRoute, request, marker } =
@@ -73,6 +75,7 @@ commentTargetTest(
 
 commentTargetTest(
   "comment.target-identifiers",
+  { tags: ["@Comment/Service"] },
   async ({ commentTargets, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { targets, create, read, postCommentRoute, request, marker } =
@@ -124,6 +127,7 @@ commentTargetTest(
 
 commentTargetTest(
   "comment.target-not-found",
+  { tags: ["@Comment/Service"] },
   async ({ commentTargets, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { targets, marker, read } = commentTargets;
@@ -145,6 +149,7 @@ commentTargetTest(
 
 commentTargetTest(
   "comment.public-id-validation",
+  { tags: ["@Comment/Service"] },
   async ({ commentTargets, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { targets, read, postCommentRoute, request, marker } =
@@ -171,6 +176,7 @@ commentTargetTest(
 
 commentTargetTest(
   "comment.visibility-input",
+  { tags: ["@Comment/Service"] },
   async ({ commentTargets, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const {
@@ -244,6 +250,7 @@ commentTargetTest(
 
 commentTargetTest(
   "comment.section-teacher-target-lifecycle",
+  { tags: ["@Comment/Service"] },
   async ({ commentTargets, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { db, sectionId, teacherId, marker, postCommentRoute, request } =

@@ -82,10 +82,9 @@ const it = nodeProtocolTest.extend(
 );
 
 describe("known homework state consumers", () => {
-  it("filters TA deadlines before pagination and excludes undated work from calendar", async ({
-    homework,
-    protocolRuntime,
-  }) => {
+  it("filters TA deadlines before pagination and excludes undated work from calendar", {
+    tags: ["@Homework/Service"],
+  }, async ({ homework, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { users, ids, section, read } = homework;
       const pending = await read(users[0], false, 1);
@@ -105,10 +104,9 @@ describe("known homework state consumers", () => {
     });
   });
 
-  it("shows real TA completion independently of the completion requirement", async ({
-    homework,
-    protocolRuntime,
-  }) => {
+  it("shows real TA completion independently of the completion requirement", {
+    tags: ["@Homework/Service"],
+  }, async ({ homework, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { users, ids, read, expectCompletionPreserved } = homework;
       const all = await read(users[0]);
@@ -135,10 +133,9 @@ describe("known homework state consumers", () => {
     });
   });
 
-  it("keeps a regular subscriber's pending work independent of another owner's completion", async ({
-    homework,
-    protocolRuntime,
-  }) => {
+  it("keeps a regular subscriber's pending work independent of another owner's completion", {
+    tags: ["@Homework/Service"],
+  }, async ({ homework, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { users, ids, read, expectCompletionPreserved } = homework;
       const pending = await read(users[1], false);
@@ -161,6 +158,7 @@ describe("known homework state consumers", () => {
     { name: "without a deadline", dueAt: null, include: true },
   ])(
     "projects TA work $name without modifying completion",
+    { tags: ["@Homework/Service"] },
     async ({ dueAt, include }, { homework, protocolRuntime }) => {
       await protocolRuntime.run(async () => {
         const { db, users, ids, read, expectCompletionPreserved } = homework;
@@ -197,6 +195,7 @@ it.for([
   },
 ] as const)(
   "changing $before to $after updates consumers and preserves completion",
+  { tags: ["@Homework/Service"] },
   async (scenario, { homework, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { db, users, section, read, expectCompletionPreserved } = homework;

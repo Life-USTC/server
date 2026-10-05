@@ -2,6 +2,7 @@ import { youngTransportTest as contractTest } from "../../../shared/young-transp
 
 contractTest(
   "young-workspace.private-response-cache",
+  { tags: ["@Young/REST"] },
   async ({ state, expect, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const {

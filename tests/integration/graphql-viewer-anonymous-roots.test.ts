@@ -2,7 +2,9 @@ import { describe, expect } from "vitest";
 import { graphqlViewerTest as it } from "../shared/graphql-viewer-fixture";
 
 describe("GraphQL Viewer integration", () => {
-  it("graphql.anonymous-roots", async ({ viewerTransport }) => {
+  it("graphql.anonymous-roots", { tags: ["@GraphQL/GraphQL"] }, async ({
+    viewerTransport,
+  }) => {
     await viewerTransport.run(async () => {
       const { execute } = viewerTransport;
       const { response, payload } = await execute({

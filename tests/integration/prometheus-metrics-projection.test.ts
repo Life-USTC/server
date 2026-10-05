@@ -328,10 +328,9 @@ const it = metricsTest.extend<{ projection: undefined }>({
   },
 });
 
-it("preserves current-state summaries, rolling clients and audit policy exclusions", async ({
-  projection: _projection,
-  metrics: { run, read },
-}) => {
+it("preserves current-state summaries, rolling clients and audit policy exclusions", {
+  tags: ["@Admin/Service"],
+}, async ({ projection: _projection, metrics: { run, read } }) => {
   await run(async () => {
     const snapshot = await read();
     expect(snapshot.summary).toEqual({
@@ -395,10 +394,9 @@ it("preserves current-state summaries, rolling clients and audit policy exclusio
   });
 });
 
-it("projects all committed feature and runtime observations independently of their event dates", async ({
-  projection: _projection,
-  metrics: { run, read },
-}) => {
+it("projects all committed feature and runtime observations independently of their event dates", {
+  tags: ["@Admin/Service"],
+}, async ({ projection: _projection, metrics: { run, read } }) => {
   await run(async () => {
     const snapshot = await read();
     expect(snapshot.features).toHaveLength(3);
@@ -441,9 +439,9 @@ it("projects all committed feature and runtime observations independently of the
   });
 });
 
-it("does not grant runtime access to cached activity rows", async ({
-  metrics: { run, app },
-}) => {
+it("does not grant runtime access to cached activity rows", {
+  tags: ["@Admin/Service"],
+}, async ({ metrics: { run, app } }) => {
   await run(async () => {
     await expect(
       app.$queryRaw`SELECT id FROM public."PrometheusMetricsCache"`,

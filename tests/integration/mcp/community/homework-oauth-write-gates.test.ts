@@ -2,6 +2,7 @@ import { homeworkTransportTest as contractTest } from "../../../shared/homework-
 
 contractTest(
   "homework.oauth-write-gates",
+  { tags: ["@Homework/MCP"] },
   async ({ state, expect, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const {
@@ -112,6 +113,7 @@ for (const transport of ["rest", "graphql", "mcp"] as const) {
   ] as const) {
     contractTest(
       `homework OAuth ${operation} through ${transport} accepts only its required scope`,
+      { tags: ["@Homework/MCP"] },
       async ({ state, expect, protocolRuntime }) => {
         await protocolRuntime.run(async () => {
           const {

@@ -7,7 +7,9 @@ import {
 import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
 describe("global static import state persistence", () => {
-  it("section.source-monotonic-revision", async ({
+  it("section.source-monotonic-revision", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,

@@ -12,7 +12,9 @@ const context = {
   authMode: "unknown",
 } as const;
 
-it("admin.feature-experience-telemetry", async ({ observation }) => {
+it("admin.feature-experience-telemetry", { tags: ["@Admin/Service"] }, async ({
+  observation,
+}) => {
   const { db, capture, userId } = observation;
   await observation.runtime(async () => {
     const id = crypto.randomUUID();

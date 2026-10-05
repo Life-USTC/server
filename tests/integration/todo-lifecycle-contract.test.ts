@@ -15,7 +15,9 @@ const calendar = (userId: string) =>
     dateFrom: new Date("2031-01-14T00:00:00+08:00"),
     dateTo: new Date("2031-01-17T00:00:00+08:00"),
   });
-it("todo.purely-personal", async ({ workspace }) => {
+it("todo.purely-personal", { tags: ["@Todo/Service"] }, async ({
+  workspace,
+}) => {
   const { db, userId } = workspace;
   await workspace.runtime(async () => {
     const title = `Personal-only ${crypto.randomUUID()}`;
@@ -50,7 +52,9 @@ it("todo.purely-personal", async ({ workspace }) => {
   });
 });
 
-it("todo.due-date-calendar", async ({ workspace }) => {
+it("todo.due-date-calendar", { tags: ["@Todo/Service"] }, async ({
+  workspace,
+}) => {
   const { db, userId } = workspace;
   await workspace.runtime(async () => {
     const rows = await db.todo.createManyAndReturn({
@@ -93,7 +97,9 @@ it("todo.due-date-calendar", async ({ workspace }) => {
   });
 });
 
-it("todo.completed-retained", async ({ workspace }) => {
+it("todo.completed-retained", { tags: ["@Todo/Service"] }, async ({
+  workspace,
+}) => {
   const { db, userId } = workspace;
   await workspace.runtime(async () => {
     const { id } = await createTodo({
@@ -139,7 +145,9 @@ it("todo.completed-retained", async ({ workspace }) => {
   });
 });
 
-it("todo.completed-not-urgent", async ({ workspace }) => {
+it("todo.completed-not-urgent", { tags: ["@Todo/Service"] }, async ({
+  workspace,
+}) => {
   const { db, userId } = workspace;
   await workspace.runtime(async () => {
     const rows = await db.todo.createManyAndReturn({

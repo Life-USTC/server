@@ -6,7 +6,9 @@ import {
 } from "../shared/static-import-process-fixture";
 
 describe("unavailable static sources", () => {
-  it("preserves unavailable curriculum and exams while importing available curriculum", async ({
+  it("preserves unavailable curriculum and exams while importing available curriculum", {
+    tags: ["@StaticImport/Runtime"],
+  }, async ({
     isolatedDatabase: { owner: prisma },
     protocolRuntime,
     staticImportProcess,

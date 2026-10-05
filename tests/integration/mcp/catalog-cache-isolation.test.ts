@@ -5,6 +5,7 @@ import { isolatedMcpTest } from "./_harness/isolated-context";
 for (const code of ["CACHE.A", "CACHE.B"]) {
   isolatedMcpTest(
     `private MCP catalog reads retain ${code} across repeated requests`,
+    { tags: ["@MCP/MCP"] },
     async ({ mcpWorkflow, mcpActor, mcpSection, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         await isolatedDatabase.owner.section.update({
@@ -28,6 +29,7 @@ for (const code of ["CACHE.A", "CACHE.B"]) {
 for (const title of ["Timetable A", "Timetable B"]) {
   isolatedMcpTest(
     `private MCP bus reads retain ${title} with matching import timestamps`,
+    { tags: ["@MCP/MCP"] },
     async ({ mcpWorkflow, mcpActor, mcpBus, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         await isolatedDatabase.owner.busScheduleVersion.update({

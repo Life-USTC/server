@@ -100,7 +100,9 @@ for (const targetType of ["course", "section", "teacher"] as const) {
       }),
   );
 
-  it(`description cache retry preserves committed history: ${targetType}`, async ({
+  it(`description cache retry preserves committed history: ${targetType}`, {
+    tags: ["@Description/Service"],
+  }, async ({
     cachedDescription: cache,
     descriptionEditor: { user },
     isolatedDatabase: { owner: db },
@@ -166,7 +168,9 @@ for (const targetType of ["course", "section", "teacher"] as const) {
     });
   });
 
-  it(`description moderation clears its own cached content: ${targetType}`, async ({
+  it(`description moderation clears its own cached content: ${targetType}`, {
+    tags: ["@Description/Service"],
+  }, async ({
     cachedDescription: cache,
     descriptionEditor: { user },
     isolatedDatabase: { owner: db },

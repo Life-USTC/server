@@ -5,6 +5,7 @@ import { restStateTest } from "../shared/rest-state-contract-fixture";
 
 restStateTest(
   "todo.batch-result-replay",
+  { tags: ["@Todo/REST"] },
   async ({ rest: { db, origin, fetch }, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const owner = await db.user.create({

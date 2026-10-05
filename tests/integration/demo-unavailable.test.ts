@@ -7,7 +7,11 @@ import { mcpProtocolTest as it } from "../shared/mcp-protocol-fixture";
 const origin = "http://localhost:3000";
 
 // Better Auth owns a module singleton; this file has one native case.
-it("demo.planned-only", async ({ protocolRuntime, mcpSessions, expect }) => {
+it("demo.planned-only", { tags: ["@Account/OAuth"] }, async ({
+  protocolRuntime,
+  mcpSessions,
+  expect,
+}) => {
   await protocolRuntime.run(async () => {
     // Inspect executable registrations, not feature specifications.
     const auth = getBetterAuthInstance();

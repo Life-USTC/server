@@ -4,6 +4,7 @@ import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 describe("catalog_bus_timetable_get", () => {
   toolTest(
     "默认模式返回班车数据集的计数、校区与路线摘要",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -52,6 +53,7 @@ describe("catalog_bus_timetable_get", () => {
 
   toolTest(
     "summary 兼容输入返回与 default 相同的紧凑路线结构",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus: _bus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -89,6 +91,7 @@ describe("catalog_bus_timetable_get", () => {
 
   toolTest(
     "full 模式返回完整路线、班次与停靠站信息",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -149,6 +152,7 @@ describe("catalog_bus_timetable_get", () => {
 
   toolTest(
     "支持通过 versionKey 指定版本",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -164,6 +168,7 @@ describe("catalog_bus_timetable_get", () => {
 
   toolTest(
     "未认证调用返回公开时刻表且不包含个人偏好",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpSessions, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const anonymous = mcpSessions.ownAnonymous();
@@ -181,6 +186,7 @@ describe("catalog_bus_timetable_get", () => {
 describe("catalog_bus_route_list", () => {
   toolTest(
     "返回当前生效版本的路线与校区列表",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -223,6 +229,7 @@ describe("catalog_bus_route_list", () => {
 
   toolTest(
     "en-us locale 返回英文校区与路线名称",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -244,6 +251,7 @@ describe("catalog_bus_route_list", () => {
 describe("catalog_bus_route_get", () => {
   toolTest(
     "返回指定路线的平日与周日时刻表",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -293,6 +301,7 @@ describe("catalog_bus_route_get", () => {
 
   toolTest(
     "未知路线返回 hasData: false 与 catalog_bus_route_list 提示",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus: _bus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -312,6 +321,7 @@ describe("catalog_bus_route_get", () => {
 
   toolTest(
     "无效 routeId 触发校验错误",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(
@@ -333,6 +343,7 @@ describe("catalog_bus_route_get", () => {
 
 toolTest(
   "mcp.bus-route-stop-projection",
+  { tags: ["@Bus/MCP"] },
   async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
     mcpWorkflow.run(async () => {
       const outputs = [];

@@ -6,6 +6,7 @@ const origin = "http://localhost:3000";
 
 registrationTest(
   "oauth.public-clients-pkce",
+  { tags: ["@OAuth/OAuth"] },
   async ({
     isolatedDatabase: { owner: db },
     oauthRuntime,

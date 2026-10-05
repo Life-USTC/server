@@ -5,6 +5,7 @@ import { graphqlHomeworkTest } from "../shared/graphql-homework-contract-fixture
 describe("GraphQL homework CRUD mutations", () => {
   graphqlHomeworkTest(
     "creator deletion is idempotent and emits one deletion audit",
+    { tags: ["@Homework/GraphQL"] },
     async ({
       homework: {
         fixturePrisma,

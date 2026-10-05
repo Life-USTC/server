@@ -27,11 +27,9 @@ async function tupleId(
 }
 
 describe("static import write churn", () => {
-  it("syncs production-sized join sets within PostgreSQL stack limits", async ({
-    importer,
-    protocolRuntime,
-    expect,
-  }) => {
+  it("syncs production-sized join sets within PostgreSQL stack limits", {
+    tags: ["@StaticImport/Service"],
+  }, async ({ importer, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       await importer.$transaction(async (tx) => {
         await tx.$executeRawUnsafe(
@@ -75,7 +73,9 @@ describe("static import write churn", () => {
     });
   });
 
-  it("upserts AdminClass metadata directly by jwId", async ({
+  it("upserts AdminClass metadata directly by jwId", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,
@@ -124,11 +124,9 @@ describe("static import write churn", () => {
     });
   });
 
-  it("skips unchanged bulk upserts while still returning their ids", async ({
-    importer,
-    protocolRuntime,
-    expect,
-  }) => {
+  it("skips unchanged bulk upserts while still returning their ids", {
+    tags: ["@StaticImport/Service"],
+  }, async ({ importer, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const marker = 1;
 
@@ -178,7 +176,9 @@ describe("static import write churn", () => {
     });
   });
 
-  it("preserves unchanged schedules and joins, then applies real changes", async ({
+  it("preserves unchanged schedules and joins, then applies real changes", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,
@@ -500,7 +500,9 @@ describe("static import write churn", () => {
     });
   });
 
-  it("reconciles complete sections across the batch boundary without touching uncovered schedules", async ({
+  it("reconciles complete sections across the batch boundary without touching uncovered schedules", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,
@@ -617,7 +619,9 @@ describe("static import write churn", () => {
     });
   });
 
-  it("does not rebuild unchanged section relation rows", async ({
+  it("does not rebuild unchanged section relation rows", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,
@@ -728,7 +732,9 @@ describe("static import write churn", () => {
 });
 
 describe("Young source reconciliation", () => {
-  it("does not let a newer curriculum snapshot replay stale Young data", async ({
+  it("does not let a newer curriculum snapshot replay stale Young data", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,
@@ -772,7 +778,9 @@ describe("Young source reconciliation", () => {
       ).toMatchObject({ youngSyncedAt: seen });
     });
   });
-  it("preserves the last seen timestamp and rows when a complete snapshot omits an activity", async ({
+  it("preserves the last seen timestamp and rows when a complete snapshot omits an activity", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,
@@ -817,11 +825,9 @@ describe("Young source reconciliation", () => {
   });
 });
 
-it("round-trips Young participation arrays and clears removed facts without rewriting unchanged rows", async ({
-  importer,
-  protocolRuntime,
-  expect,
-}) => {
+it("round-trips Young participation arrays and clears removed facts without rewriting unchanged rows", {
+  tags: ["@StaticImport/Service"],
+}, async ({ importer, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     await importer.$transaction(async (tx) => {
       const youngId = `metadata-${crypto.randomUUID()}`;

@@ -49,6 +49,7 @@ const toolTest = isolatedMcpTest
 describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
   toolTest(
     "首次订阅返回 action=subscribed 与精简计数",
+    { tags: ["@Subscription/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: subscriber,
@@ -95,6 +96,7 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
 
   toolTest(
     "已有订阅返回 action=already_subscribed 且保留原始记录",
+    { tags: ["@Subscription/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: subscriber,
@@ -148,6 +150,7 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
 
   toolTest(
     "对缺失的订阅与取消订阅目标返回 not_found",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, mcpActor: subscriber, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -240,6 +243,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
   rlsTest(
     "adds an active membership under RLS and preserves the other owner",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -286,6 +290,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
   rlsTest(
     "removes an active membership under RLS and preserves retired and foreign rows",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -346,6 +351,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
   rlsTest(
     "removes a retired membership under RLS and preserves the other owner",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -394,6 +400,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
   rlsTest(
     "returns not_subscribed for an absent active membership and preserves every row",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -441,6 +448,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
   rlsTest(
     "lists known active and retired memberships without exposing the other owner",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -485,6 +493,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
   rlsTest(
     "lists no memberships when only the other owner is subscribed",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, state, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -510,6 +519,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 describe("个人日历订阅 — 读取与批量订阅", () => {
   toolTest(
     "workspace_calendar_feed_get 返回订阅班级但不泄露个人 iCal 凭据",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -562,6 +572,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_calendar_feed_get default 返回当前学期订阅摘要",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -604,6 +615,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_subscription_list 列出当前订阅班级",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -641,6 +653,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "catalog_section_calendar_feed_get 按 jwId 返回单班 iCal 信息",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -678,6 +691,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "catalog_section_calendar_feed_get 对缺失 jwId 返回 found=false",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -712,6 +726,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_subscription_import 批量匹配并订阅班级",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -757,6 +772,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_subscription_import 跳过已订阅班级",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -791,6 +807,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_subscription_import 报告未匹配代码",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -827,6 +844,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_subscription_import 对不存在的学期返回失败",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -859,6 +877,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_subscription_import 拒绝空代码列表",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -883,6 +902,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
   toolTest(
     "workspace_calendar_feed_get 对不存在用户返回失败",
+    { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, mcpSessions, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;

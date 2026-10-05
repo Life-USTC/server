@@ -3,7 +3,9 @@ import { observeHttpFeature } from "@/lib/metrics/feature-http-operation";
 import { observabilityTest as it } from "../shared/observability-fixture";
 
 // This file owns one console spy scope; other cases run in isolated modules.
-it("admin.feature-experience-outcomes", async ({ observation }) => {
+it("admin.feature-experience-outcomes", { tags: ["@Admin/Service"] }, async ({
+  observation,
+}) => {
   await observation.runtime(async () => {
     const { db, capture } = observation;
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);

@@ -66,7 +66,10 @@ const it = isolatedNodeTest.extend(
 );
 
 describe("Young public date filters and bounded organizer summaries", () => {
-  it("young-event.date-range-overlap", async ({ catalog, nodeRuntime }) => {
+  it("young-event.date-range-overlap", { tags: ["@Young/Service"] }, async ({
+    catalog,
+    nodeRuntime,
+  }) => {
     await nodeRuntime.run(async () => {
       const { organizerId, id } = catalog;
       const page = await listYoungEvents({
@@ -89,7 +92,10 @@ describe("Young public date filters and bounded organizer summaries", () => {
       ]);
     });
   });
-  it("young-event.unknown-date-results", async ({ catalog, nodeRuntime }) => {
+  it("young-event.unknown-date-results", { tags: ["@Young/Service"] }, async ({
+    catalog,
+    nodeRuntime,
+  }) => {
     await nodeRuntime.run(async () => {
       const { organizerId, id } = catalog;
       const page = await listYoungEvents({
@@ -138,10 +144,9 @@ describe("Young public date filters and bounded organizer summaries", () => {
       expect(activityUnknown.pagination.total).toBe(1);
     });
   });
-  it("returns counts without embedding the full history", async ({
-    catalog,
-    nodeRuntime,
-  }) => {
+  it("returns counts without embedding the full history", {
+    tags: ["@Young/Service"],
+  }, async ({ catalog, nodeRuntime }) => {
     await nodeRuntime.run(async () => {
       const { organizerId } = catalog;
       const organizer = await getYoungOrganizer(organizerId);

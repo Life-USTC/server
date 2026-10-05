@@ -3,7 +3,10 @@ import { restWriteScope } from "@/lib/oauth/scope-registry";
 import { graphqlMutationTest as it } from "../shared/graphql-mutation-fixture";
 
 describe("remaining GraphQL and MCP mutation parity", () => {
-  it("graphql.upload-ownership", async ({ graphql, protocolRuntime }) => {
+  it("graphql.upload-ownership", { tags: ["@Upload/GraphQL"] }, async ({
+    graphql,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { signToken, execute, fixturePrisma, otherUserId, bucket } =
         graphql;

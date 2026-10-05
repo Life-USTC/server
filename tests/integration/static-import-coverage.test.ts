@@ -5,7 +5,9 @@ import {
 } from "../shared/static-import-process-fixture";
 
 describe("static import source coverage", () => {
-  it("section.empty-semester-retirement", async ({
+  it("section.empty-semester-retirement", {
+    tags: ["@StaticImport/Runtime"],
+  }, async ({
     isolatedDatabase: { owner: prisma },
     protocolRuntime,
     staticImportProcess,

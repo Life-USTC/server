@@ -152,7 +152,9 @@ const test = isolatedDatabaseTest.extend<{
 });
 
 describe("expired auth record cleanup", () => {
-  test("uses a locked-down security-definer function with bounded batches", async ({
+  test("uses a locked-down security-definer function with bounded batches", {
+    tags: ["@Account/Permissions"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma, maintenance: maintenancePrisma },
     records: { cutoff },
   }) => {
@@ -199,7 +201,9 @@ describe("expired auth record cleanup", () => {
     }
   });
 
-  test("rejects a future cutoff before deleting expired or future records", async ({
+  test("rejects a future cutoff before deleting expired or future records", {
+    tags: ["@Account/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma, maintenance: maintenancePrisma },
     records: { marker },
   }) => {
@@ -230,7 +234,9 @@ describe("expired auth record cleanup", () => {
     ).toBe(2);
   });
 
-  test("runs concurrently in bounded, idempotent batches while preserving boundary and replay-detection rows", async ({
+  test("runs concurrently in bounded, idempotent batches while preserving boundary and replay-detection rows", {
+    tags: ["@Account/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma, maintenance: maintenancePrisma },
     records: { marker, cutoff },
   }) => {

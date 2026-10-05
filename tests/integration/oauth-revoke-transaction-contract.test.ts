@@ -96,64 +96,68 @@ async function material(
   ]);
   return { consents, access, refresh, devices, usage };
 }
-test("oauth.authorization-management.ownership-scoped-transaction", async ({
-  revocation,
-  isolatedDatabase: { owner: db },
-  nodeRuntime,
-}) =>
-  nodeRuntime.run(async () => {
-    const { users, clients, pairs, consents } = revocation;
-    const before = await Promise.all(pairs.map((pair) => material(db, pair)));
-    expect(await revokeUserOAuthAuthorization(users[0], consents[1])).toEqual({
-      ok: false,
-      reason: "not_found",
-    });
-    // A real database enum failure occurs at the final audit insert inside the transaction.
-    await expect(
-      revokeUserOAuthAuthorization(users[0], consents[0], {
-        channel: "invalid-audit-channel" as "web",
-      }),
-    ).rejects.toThrow();
-    expect(await Promise.all(pairs.map((pair) => material(db, pair)))).toEqual(
-      before,
-    );
-    expect(
-      await db.auditLog.count({
+test(
+  "oauth.authorization-management.ownership-scoped-transaction",
+  { tags: ["@OAuth/Service"] },
+  async ({ revocation, isolatedDatabase: { owner: db }, nodeRuntime }) =>
+    nodeRuntime.run(async () => {
+      const { users, clients, pairs, consents } = revocation;
+      const before = await Promise.all(pairs.map((pair) => material(db, pair)));
+      expect(await revokeUserOAuthAuthorization(users[0], consents[1])).toEqual(
+        {
+          ok: false,
+          reason: "not_found",
+        },
+      );
+      // A real database enum failure occurs at the final audit insert inside the transaction.
+      await expect(
+        revokeUserOAuthAuthorization(users[0], consents[0], {
+          channel: "invalid-audit-channel" as "web",
+        }),
+      ).rejects.toThrow();
+      expect(
+        await Promise.all(pairs.map((pair) => material(db, pair))),
+      ).toEqual(before);
+      expect(
+        await db.auditLog.count({
+          where: {
+            oauthClientId: clients[0],
+            action: "oauth_authorization_revoke",
+          },
+        }),
+      ).toBe(0);
+      expect(await revokeUserOAuthAuthorization(users[0], consents[0])).toEqual(
+        {
+          ok: true,
+          deleted: {
+            accessTokens: 1,
+            consents: 1,
+            deviceCodes: 2,
+            refreshTokens: 1,
+          },
+        },
+      );
+      expect(await material(db, pairs[0])).toEqual({
+        consents: [],
+        access: [],
+        refresh: [],
+        devices: [],
+        usage: [],
+      });
+      expect(await material(db, pairs[1])).toEqual(before[1]);
+      expect(await material(db, pairs[2])).toEqual(before[2]);
+      const audit = await db.auditLog.findMany({
         where: {
           oauthClientId: clients[0],
           action: "oauth_authorization_revoke",
         },
-      }),
-    ).toBe(0);
-    expect(await revokeUserOAuthAuthorization(users[0], consents[0])).toEqual({
-      ok: true,
-      deleted: {
-        accessTokens: 1,
-        consents: 1,
-        deviceCodes: 2,
-        refreshTokens: 1,
-      },
-    });
-    expect(await material(db, pairs[0])).toEqual({
-      consents: [],
-      access: [],
-      refresh: [],
-      devices: [],
-      usage: [],
-    });
-    expect(await material(db, pairs[1])).toEqual(before[1]);
-    expect(await material(db, pairs[2])).toEqual(before[2]);
-    const audit = await db.auditLog.findMany({
-      where: {
-        oauthClientId: clients[0],
-        action: "oauth_authorization_revoke",
-      },
-    });
-    expect(audit).toEqual([
-      expect.objectContaining({
-        subjectUserId: users[0],
-        targetId: consents[0],
-        oauthGrantId: before[0].consents[0].grantId,
-      }),
-    ]);
-  }));
+      });
+      expect(audit).toEqual([
+        expect.objectContaining({
+          subjectUserId: users[0],
+          targetId: consents[0],
+          oauthGrantId: before[0].consents[0].grantId,
+        }),
+      ]);
+    }),
+);

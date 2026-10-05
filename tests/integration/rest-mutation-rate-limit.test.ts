@@ -59,11 +59,9 @@ async function sessionCookie(token: string) {
   return `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${btoa(String.fromCharCode(...signature))}`)}`;
 }
 
-it("openapi.authenticated-mutation-rate-limits", async ({
-  isolatedDatabase,
-  protocolRuntime,
-  rateLimitCalls,
-}) => {
+it("openapi.authenticated-mutation-rate-limits", {
+  tags: ["@OpenAPI/REST"],
+}, async ({ isolatedDatabase, protocolRuntime, rateLimitCalls }) => {
   await protocolRuntime.run(async () => {
     const nonce = crypto.randomUUID();
     const clientId = `rest-mutation-${nonce}`;

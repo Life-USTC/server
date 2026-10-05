@@ -2,10 +2,9 @@ import { expect } from "vitest";
 import { setYoungEventSubscription } from "@/features/young/server/young-subscription-service";
 import { workspaceRuntimeTest as it } from "../shared/workspace-state-fixture";
 
-it("maintenance can only discover recipients through its bounded function", async ({
-  isolatedDatabase,
-  workspaceRuntime,
-}) => {
+it("maintenance can only discover recipients through its bounded function", {
+  tags: ["@Young/Permissions"],
+}, async ({ isolatedDatabase, workspaceRuntime }) => {
   const { owner: db, maintenance, app } = isolatedDatabase;
   const userId = `young-recipient-${crypto.randomUUID()}`;
   const youngId = `recipient-${crypto.randomUUID()}`;

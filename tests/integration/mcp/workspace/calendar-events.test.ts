@@ -42,6 +42,7 @@ const toolTest = isolatedMcpTest.extend(
 describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () => {
   toolTest(
     "workspace_schedule_list 接受裸日期字符串（无时区偏移）",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, calendar, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -82,6 +83,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_exam_list 接受裸日期字符串",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, calendar, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -103,6 +105,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 接受裸日期字符串",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, calendar, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -143,6 +146,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 将同日裸日期范围视为完整上海天时区日",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, calendar, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -175,6 +179,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 遵守精确包含的 dateTo 边界",
+    { tags: ["@Calendar/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -224,6 +229,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 在精确包含的 dateTo 边界包含 todo",
+    { tags: ["@Calendar/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -266,6 +272,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 包含与精确窗口重叠的定时事件",
+    { tags: ["@Calendar/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -312,6 +319,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 为精确窗口放宽基于日期的查询",
+    { tags: ["@Calendar/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -356,6 +364,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 使无时间考试在当天保持可见",
+    { tags: ["@Calendar/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -406,6 +415,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "workspace_calendar_event_list 对无 startTime 的考试尊重 endTime",
+    { tags: ["@Calendar/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -450,6 +460,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   toolTest(
     "对无效日期字符串返回描述性错误",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{

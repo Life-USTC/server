@@ -88,10 +88,9 @@ const it = nodeProtocolTest.extend(
 );
 
 describe("personal subscription kinds", () => {
-  it("subscription.kind-owner-existing-only", async ({
-    subscription,
-    protocolRuntime,
-  }) => {
+  it("subscription.kind-owner-existing-only", {
+    tags: ["@Subscription/Service"],
+  }, async ({ subscription, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { userIds, sectionJwId, sectionId } = subscription;
       expect(
@@ -154,7 +153,10 @@ describe("personal subscription kinds", () => {
     });
   });
 
-  it("subscription.ta-calendar", async ({ subscription, protocolRuntime }) => {
+  it("subscription.ta-calendar", { tags: ["@Subscription/Service"] }, async ({
+    subscription,
+    protocolRuntime,
+  }) => {
     await protocolRuntime.run(async () => {
       const { userIds, sectionId, sectionJwId } = subscription;
       await appendUserSectionSubscriptions({
@@ -203,7 +205,10 @@ describe("personal subscription kinds", () => {
   });
 });
 
-it("subscription.personal-kind", async ({ subscription, protocolRuntime }) => {
+it("subscription.personal-kind", { tags: ["@Subscription/Service"] }, async ({
+  subscription,
+  protocolRuntime,
+}) => {
   await protocolRuntime.run(async () => {
     const { db, userIds, sectionId } = subscription;
     const before = await db.userSectionSubscription.findUnique({
@@ -238,6 +243,7 @@ describe.each(["regular", "auditor", "teaching_assistant"] as const)(
   (kind) => {
     it.for(["append", "batch add", "code import"] as const)(
       "%s preserves the existing kind and creation timestamp",
+      { tags: ["@Subscription/Service"] },
       async (operation, { subscription, protocolRuntime }) => {
         await protocolRuntime.run(async () => {
           const { db, userIds, sectionId, semesterId, sectionCode } =

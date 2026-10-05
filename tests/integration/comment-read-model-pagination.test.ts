@@ -11,6 +11,7 @@ import { commentPaginationTest } from "../shared/comment-pagination-contract-fix
 describe("comment root pagination read model", () => {
   commentPaginationTest(
     "comment.thread-pagination",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { sectionId } = pagination;
@@ -47,6 +48,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.visibility-modes",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { sectionId, ownerId, otherUserId, adminId, marker } = pagination;
@@ -152,6 +154,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.thread-ancestry-privacy",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { testPrisma, sectionId, marker } = pagination;
@@ -301,6 +304,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.thread-root-order",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { testPrisma, sectionId, marker } = pagination;
@@ -411,6 +415,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.thread-preview-bound",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { testPrisma, sectionId, marker } = pagination;
@@ -493,6 +498,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.thread-continuation-bound",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { testPrisma, sectionId, marker } = pagination;
@@ -616,6 +622,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.reply-cursor-validation",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { testPrisma, sectionId, marker } = pagination;
@@ -653,6 +660,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.thread-deleted-leaves",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { testPrisma, sectionId, marker } = pagination;
@@ -787,6 +795,7 @@ describe("comment root pagination read model", () => {
 
   commentPaginationTest(
     "comment.thread-focused-ancestry",
+    { tags: ["@Comment/Service"] },
     async ({ pagination, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { testPrisma, sectionId, marker } = pagination;

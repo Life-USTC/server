@@ -5,7 +5,9 @@ import type { BusStaticPayload } from "@/features/bus/lib/bus-types";
 import { busAuditTest as it } from "../shared/bus-audit-fixture";
 
 // Own the global fetch stub in a one-case file; Vitest isolates file globals.
-it("audit.action-admin-bus-import", async ({ bus }) => {
+it("audit.action-admin-bus-import", { tags: ["@Admin/Web"] }, async ({
+  bus,
+}) => {
   const { db, marker, userId, event, run } = bus;
   const numeric = 1700000000 + Math.floor(Math.random() * 100000000);
   const campuses = [0, 1].map((index) => ({

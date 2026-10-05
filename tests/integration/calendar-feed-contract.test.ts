@@ -102,7 +102,10 @@ const it = nodeProtocolTest.extend(
   },
 );
 
-it("calendar.feed-auth-before-cache", async ({ feed, expect }) => {
+it("calendar.feed-auth-before-cache", { tags: ["@Calendar/ICS"] }, async ({
+  feed,
+  expect,
+}) => {
   await feed.run(async () => {
     const { userId, token, db, cacheRead, read } = feed;
     const first = await read(token);
@@ -133,7 +136,10 @@ it("calendar.feed-auth-before-cache", async ({ feed, expect }) => {
   });
 });
 
-it("calendar.personal-feed-http-cache", async ({ feed, expect }) => {
+it("calendar.personal-feed-http-cache", { tags: ["@Calendar/ICS"] }, async ({
+  feed,
+  expect,
+}) => {
   await feed.run(async () => {
     const { token, read } = feed;
     const first = await read(token);
@@ -150,7 +156,10 @@ it("calendar.personal-feed-http-cache", async ({ feed, expect }) => {
   });
 });
 
-it("ical.feed-cold-miss", async ({ feed, expect }) => {
+it("ical.feed-cold-miss", { tags: ["@Calendar/ICS"] }, async ({
+  feed,
+  expect,
+}) => {
   await feed.run(async () => {
     // This private UUID has never been requested, so its first request is cold.
     const { userId, token, read } = feed;

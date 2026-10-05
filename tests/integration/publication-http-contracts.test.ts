@@ -3,7 +3,9 @@ import { postPublicationIngestionBatchRoute } from "@/lib/api/routes/publication
 import { graphqlSchema } from "@/lib/graphql/schema";
 import { publicationHttpTest as it } from "./publication-http-fixture";
 
-it("publications.service-auth", async ({ http }) => {
+it("publications.service-auth", { tags: ["@Publication/REST"] }, async ({
+  http,
+}) => {
   return http.run(async () => {
     const { batch, post, db, secret } = http;
     const payload = batch("auth");
@@ -34,7 +36,10 @@ it("publications.service-auth", async ({ http }) => {
   });
 });
 
-it("publications.batch-size", { timeout: 30_000 }, async ({ http }) => {
+it("publications.batch-size", {
+  tags: ["@Publication/REST"],
+  timeout: 30_000,
+}, async ({ http }) => {
   return http.run(async () => {
     const { batch, post, db, origin, secret } = http;
     const payload = batch("body-limit");
@@ -85,7 +90,9 @@ it("publications.batch-size", { timeout: 30_000 }, async ({ http }) => {
   });
 });
 
-it("publications.public-read", async ({ http }) => {
+it("publications.public-read", { tags: ["@Publication/REST"] }, async ({
+  http,
+}) => {
   return http.run(async () => {
     const { batch, post, db, marker, origin } = http;
     const payload = batch("public");
@@ -145,7 +152,9 @@ it("publications.public-read", async ({ http }) => {
   });
 });
 
-it("publications.public-list-filters", async ({ http }) => {
+it("publications.public-list-filters", { tags: ["@Publication/REST"] }, async ({
+  http,
+}) => {
   return http.run(async () => {
     const { batch, post, marker, origin } = http;
     const payload = batch("filters");
@@ -223,7 +232,9 @@ it("publications.public-list-filters", async ({ http }) => {
   });
 });
 
-it("publications.batch-idempotency", async ({ http }) => {
+it("publications.batch-idempotency", { tags: ["@Publication/REST"] }, async ({
+  http,
+}) => {
   return http.run(async () => {
     const { batch, post, db } = http;
     const payload = batch("idempotency");
@@ -255,10 +266,9 @@ it("publications.batch-idempotency", async ({ http }) => {
   });
 });
 
-it("publications.read-transport-boundary", async ({
-  http,
-  publicationMcp: clients,
-}) => {
+it("publications.read-transport-boundary", {
+  tags: ["@Publication/REST"],
+}, async ({ http, publicationMcp: clients }) => {
   return http.run(async () => {
     const { batch, post, origin } = http;
     const payload = batch("transport");
@@ -315,7 +325,9 @@ it("publications.read-transport-boundary", async ({
   });
 });
 
-it("publications.public-cache", async ({ http }) => {
+it("publications.public-cache", { tags: ["@Publication/REST"] }, async ({
+  http,
+}) => {
   return http.run(async () => {
     const { batch, post, marker, origin } = http;
     const payload = batch("json-cache");

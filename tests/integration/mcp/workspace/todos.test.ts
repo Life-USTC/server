@@ -18,6 +18,7 @@ function seedTodo(db: TestPrismaClient, userId: string) {
 describe("todo CRUD — workspace_todo_update 返回更新后的实体", () => {
   toolTest(
     "workspace_todo_update 返回更新后的 todo 实体（不仅 success: true）",
+    { tags: ["@Todo/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -74,6 +75,7 @@ describe("todo CRUD — workspace_todo_update 返回更新后的实体", () => {
 
   toolTest(
     "workspace_todo_update 校验规范化内容长度",
+    { tags: ["@Todo/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -112,6 +114,7 @@ describe("todo CRUD — workspace_todo_update 返回更新后的实体", () => {
 
   toolTest(
     "workspace_todo_update 在内容显式为 null 时清空内容",
+    { tags: ["@Todo/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -149,6 +152,7 @@ describe("todo CRUD — workspace_todo_update 返回更新后的实体", () => {
 
   toolTest(
     "workspace_todo_delete 删除 todo",
+    { tags: ["@Todo/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -170,6 +174,7 @@ describe("todo CRUD — workspace_todo_update 返回更新后的实体", () => {
 
   toolTest(
     "workspace_todo_create 返回新 todo id",
+    { tags: ["@Todo/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,

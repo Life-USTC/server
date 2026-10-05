@@ -3,9 +3,9 @@ import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { graphqlViewerTest as it } from "../shared/graphql-viewer-fixture";
 
 describe("GraphQL Viewer integration", () => {
-  it("hydrates every nested Schedule Teacher field without a fallback query", async ({
-    viewer: viewerCase,
-  }) => {
+  it("hydrates every nested Schedule Teacher field without a fallback query", {
+    tags: ["@Catalog/GraphQL"],
+  }, async ({ viewer: viewerCase }) => {
     await viewerCase.run(async () => {
       const { execute, sessionCookie } = viewerCase;
       const { payload } = await execute(

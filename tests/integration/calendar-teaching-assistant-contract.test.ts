@@ -36,10 +36,9 @@ const it = nodeProtocolTest.extend<{ clock: undefined }>({
   ],
 });
 
-it("calendar.teaching-assistant-homework", async ({
-  isolatedDatabase: { owner: db },
-  protocolRuntime,
-}) => {
+it("calendar.teaching-assistant-homework", {
+  tags: ["@Calendar/Service"],
+}, async ({ isolatedDatabase: { owner: db }, protocolRuntime }) => {
   await protocolRuntime.run(async () => {
     const { user } = await db.$transaction(async (tx) => {
       const marker = crypto.randomUUID();

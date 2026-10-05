@@ -7,7 +7,7 @@ import { restWriteScope } from "@/lib/oauth/scope-registry";
 import { graphqlMutationTest as it } from "../shared/graphql-mutation-fixture";
 
 describe("remaining GraphQL and MCP mutation parity", () => {
-  it("graphql.upload-workflow-boundary", async ({
+  it("graphql.upload-workflow-boundary", { tags: ["@Upload/GraphQL"] }, async ({
     graphql,
     protocolRuntime,
   }) => {

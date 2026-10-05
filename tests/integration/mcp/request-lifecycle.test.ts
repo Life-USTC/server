@@ -5,6 +5,7 @@ import { isolatedMcpTest } from "./_harness/isolated-context";
 
 isolatedMcpTest(
   "MCP session disposal rejects acquisition after delayed actor creation",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, mcpSessions, isolatedDatabase, expect, signal }) =>
     mcpWorkflow.run(async () => {
       const created = createDeferred();
@@ -44,6 +45,7 @@ isolatedMcpTest(
 for (const authenticated of [true, false]) {
   isolatedMcpTest(
     `MCP ${authenticated ? "authenticated" : "anonymous"} close waits for the server's delayed database write`,
+    { tags: ["@MCP/MCP"] },
     async ({ mcpWorkflow, mcpSessions, isolatedDatabase, expect, signal }) =>
       mcpWorkflow.run(async () => {
         const userId = "delayed-mcp-handler";

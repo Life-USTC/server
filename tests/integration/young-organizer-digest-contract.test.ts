@@ -1,7 +1,7 @@
 import { refreshYoungNotifications } from "@/features/young/server/young-notification-service";
 import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
-it("young-workspace.digest", async ({
+it("young-workspace.digest", { tags: ["@Young/Service"] }, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,
   expect,

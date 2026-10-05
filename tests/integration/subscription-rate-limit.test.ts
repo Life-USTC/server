@@ -116,11 +116,10 @@ const it = nodeProtocolTest
     },
   });
 
-it("subscription.per-user-rate-limit", { timeout: 60_000 }, async ({
-  isolatedDatabase,
-  protocolRuntime,
-  limiterPlatform,
-}) => {
+it("subscription.per-user-rate-limit", {
+  tags: ["@Subscription/REST"],
+  timeout: 60_000,
+}, async ({ isolatedDatabase, protocolRuntime, limiterPlatform }) => {
   await protocolRuntime.run(async () => {
     const db = isolatedDatabase.owner;
     const { batch } = await limiterPlatform.initialize();

@@ -176,7 +176,9 @@ const it = nodeProtocolTest.extend(
 );
 
 describe("public profile contribution aggregation", () => {
-  it("user.public-comment-contribution-privacy", async ({
+  it("user.public-comment-contribution-privacy", {
+    tags: ["@User/Service"],
+  }, async ({
     profile: contributionFixture,
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
@@ -246,7 +248,9 @@ describe("public profile contribution aggregation", () => {
     });
   });
 
-  it("user.public-upload-contribution-privacy", async ({
+  it("user.public-upload-contribution-privacy", {
+    tags: ["@User/Service"],
+  }, async ({
     profile: contributionFixture,
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
@@ -347,7 +351,9 @@ describe("public profile contribution aggregation", () => {
     });
   });
 
-  it("user.private-workspace-profile-exclusion", async ({
+  it("user.private-workspace-profile-exclusion", {
+    tags: ["@User/Service"],
+  }, async ({
     profile: contributionFixture,
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
@@ -390,11 +396,9 @@ describe("public profile contribution aggregation", () => {
     });
   });
 
-  it("returns one aggregate row per Shanghai day across public contribution sources", async ({
-    profile: contributionFixture,
-    protocolRuntime,
-    expect,
-  }) => {
+  it("returns one aggregate row per Shanghai day across public contribution sources", {
+    tags: ["@User/Service"],
+  }, async ({ profile: contributionFixture, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const { userId, startAt } = contributionFixture;
       await expect(
@@ -426,11 +430,9 @@ describe("public profile contribution aggregation", () => {
     });
   });
 
-  it("isolates comment contribution aggregates between profile owners", async ({
-    profile: contributionFixture,
-    protocolRuntime,
-    expect,
-  }) => {
+  it("isolates comment contribution aggregates between profile owners", {
+    tags: ["@User/Service"],
+  }, async ({ profile: contributionFixture, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const { otherUserId, startAt } = contributionFixture;
       await expect(
@@ -450,7 +452,7 @@ describe("public profile contribution aggregation", () => {
     });
   });
 
-  it("user.public-contribution-window", async ({
+  it("user.public-contribution-window", { tags: ["@User/Service"] }, async ({
     profile: contributionFixture,
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
