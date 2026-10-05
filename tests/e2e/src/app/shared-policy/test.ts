@@ -36,33 +36,42 @@ async function setLocale(
   ).toBe(locale);
 }
 
-async function catalogPages(page: Page) {
-  await gotoAndWaitForReady(
-    page,
-    `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
-  );
-  const teacherHref = await page
-    .locator('#main-content a[href^="/catalog/teachers/"]:visible')
-    .first()
-    .getAttribute("href");
-  expect(teacherHref).toBeTruthy();
-  return [
+async function catalogPages(
+  page: Page,
+  domains: readonly ("Course" | "Section" | "Teacher")[],
+) {
+  const pages = [
     {
+      domain: "Course",
       href: `/catalog/courses/${DEV_SEED.course.jwId}`,
       collection: "/catalog/courses",
       names: [DEV_SEED.course.nameCn, DEV_SEED.course.nameEn],
     },
     {
+      domain: "Section",
       href: `/catalog/sections/${DEV_SEED.section.jwId}`,
       collection: "/catalog/sections",
       names: [DEV_SEED.course.nameCn, DEV_SEED.course.nameEn],
     },
-    {
+  ].filter((entry) => domains.some((domain) => domain === entry.domain));
+  if (domains.includes("Teacher")) {
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
+    );
+    const teacherHref = await page
+      .locator('#main-content a[href^="/catalog/teachers/"]:visible')
+      .first()
+      .getAttribute("href");
+    expect(teacherHref).toBeTruthy();
+    pages.push({
+      domain: "Teacher",
       href: teacherHref as string,
       collection: "/catalog/teachers",
       names: [DEV_SEED.teacher.nameCn, DEV_SEED.teacher.nameEn],
-    },
-  ];
+    });
+  }
+  return pages;
 }
 
 async function openMobileMenu(page: Page) {
@@ -118,9 +127,7 @@ for (const domain of ["Course", "Teacher"] as const) {
     tag: `@${domain}/Web`,
   }, async ({ page, preferenceFlow, searchSection: _searchSection }) => {
     await preferenceFlow.run(async () => {
-      const pages = (await catalogPages(page)).filter(
-        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
-      );
+      const pages = await catalogPages(page, [domain]);
       for (const viewport of viewports) {
         await page.setViewportSize(viewport);
         for (const { href } of pages) {
@@ -143,9 +150,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
     searchSection: _searchSection,
   }) => {
     await preferenceFlow.run(async () => {
-      const pages = (await catalogPages(page)).filter(
-        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
-      );
+      const pages = await catalogPages(page, [domain]);
       for (const viewport of viewports) {
         await page.setViewportSize(viewport);
         for (const { href, collection } of pages) {
@@ -172,9 +177,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
     searchSection: _searchSection,
   }) => {
     await preferenceFlow.run(async () => {
-      const pages = (await catalogPages(page)).filter(
-        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
-      );
+      const pages = await catalogPages(page, [domain]);
       for (const [index, locale] of locales.entries()) {
         await setLocale(page, locale);
         for (const { href, collection, names } of pages) {
@@ -198,9 +201,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
   }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize(viewports[0]);
-      for (const { href, collection } of (await catalogPages(page)).filter(
-        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
-      )) {
+      for (const { href, collection } of await catalogPages(page, [domain])) {
         await gotoAndWaitForReady(page, href);
         const column = page.locator("[data-detail-reading-stream]");
         for (const id of [
@@ -232,9 +233,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
   }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize(viewports[0]);
-      for (const { href } of (await catalogPages(page)).filter(
-        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
-      )) {
+      for (const { href } of await catalogPages(page, [domain])) {
         await gotoAndWaitForReady(page, href);
         const aside = page.locator("[data-detail-scroll-container] aside");
         await expect(page.locator("#overview")).toBeVisible();
@@ -483,7 +482,7 @@ test("ui.public-legal-help-navigation", { tag: "@Site/Web" }, async ({
 }) => {
   await preferenceFlow.run(async () => {
     test.setTimeout(60_000);
-    const pages = await catalogPages(page);
+    const pages = await catalogPages(page, ["Course", "Section", "Teacher"]);
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
       for (const { href } of pages) {
