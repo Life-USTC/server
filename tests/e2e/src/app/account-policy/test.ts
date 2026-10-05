@@ -175,7 +175,7 @@ async function renameAccount(page: Page, newUsername: string) {
   ).toBeVisible();
 }
 
-test("cases.account.account-deletion-1", async ({
+test("cases.account.account-deletion-1", { tag: "@Account/Web" }, async ({
   page,
   request,
   isolatedWorker,
@@ -239,7 +239,7 @@ test("cases.account.account-deletion-1", async ({
   });
 });
 
-test("cases.account.account-deletion-2", async ({
+test("cases.account.account-deletion-2", { tag: "@Account/Web" }, async ({
   page,
   request,
   isolatedWorker,
@@ -293,12 +293,9 @@ test("cases.account.account-deletion-2", async ({
   );
 });
 
-test("cases.account.deleted-session-revocation", async ({
-  page,
-  request,
-  isolatedWorker,
-  calendarProtocolRun,
-}) => {
+test("cases.account.deleted-session-revocation", {
+  tag: "@Account/Web",
+}, async ({ page, request, isolatedWorker, calendarProtocolRun }) => {
   await calendarProtocolRun(
     async (io) => {
       const db = isolatedWorker.database.owner;
@@ -383,7 +380,7 @@ test("cases.account.deleted-session-revocation", async ({
   );
 });
 
-test("cases.account.username-change-2", async ({
+test("cases.account.username-change-2", { tag: "@Account/Web" }, async ({
   page,
   request,
   isolatedWorker,
@@ -523,7 +520,7 @@ test("cases.account.username-change-2", async ({
   );
 });
 
-test("cases.account.oauth-connection-error-2", async ({
+test("cases.account.oauth-connection-error-2", { tag: "@Account/Web" }, async ({
   page,
   request,
   isolatedWorker,

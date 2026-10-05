@@ -24,12 +24,9 @@ import {
 for (const transport of subscriptionTransports) {
   for (const role of ["regular", "suspended admin"] as const) {
     for (const action of ["add", "kind", "remove"] as const) {
-      test(`${transport}: ${role} ${action} preserves other owners`, async ({
-        page,
-        calendarProtocolRun,
-        oauthOwner,
-        createCalendar,
-      }) => {
+      test(`${transport}: ${role} ${action} preserves other owners`, {
+        tag: `@Subscription/${transport === "MCP bearer" && action !== "kind" ? "Web" : transport.split(" ")[0]}`,
+      }, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
         test.setTimeout(90_000);
         await runSubscriptionScenario(
           { page, calendarProtocolRun, oauthOwner, createCalendar },
@@ -98,12 +95,9 @@ for (const transport of subscriptionTransports) {
     }
   }
 
-  test(`${transport}: adding an existing personal subscription preserves memberships`, async ({
-    page,
-    calendarProtocolRun,
-    oauthOwner,
-    createCalendar,
-  }) => {
+  test(`${transport}: adding an existing personal subscription preserves memberships`, {
+    tag: `@Subscription/${transport.split(" ")[0]}`,
+  }, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
     test.setTimeout(90_000);
     await runSubscriptionScenario(
       { page, calendarProtocolRun, oauthOwner, createCalendar },
@@ -144,12 +138,9 @@ for (const transport of subscriptionTransports) {
   });
 
   for (const action of ["kind", "remove"] as const) {
-    test(`${transport}: ${action} of an absent personal subscription preserves memberships`, async ({
-      page,
-      calendarProtocolRun,
-      oauthOwner,
-      createCalendar,
-    }) => {
+    test(`${transport}: ${action} of an absent personal subscription preserves memberships`, {
+      tag: `@Subscription/${transport.split(" ")[0]}`,
+    }, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
       test.setTimeout(90_000);
       await runSubscriptionScenario(
         { page, calendarProtocolRun, oauthOwner, createCalendar },
@@ -179,12 +170,9 @@ for (const transport of subscriptionTransports) {
 
 for (const role of ["regular", "suspended admin"] as const) {
   for (const action of ["add", "remove"] as const) {
-    test(`Web: ${role} ${action} refreshes the section subscription state`, async ({
-      page,
-      calendarProtocolRun,
-      oauthOwner,
-      createCalendar,
-    }) => {
+    test(`Web: ${role} ${action} refreshes the section subscription state`, {
+      tag: "@Subscription/Web",
+    }, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
       let sectionJwId = 0;
       const writes: string[] = [];
       await calendarProtocolRun(

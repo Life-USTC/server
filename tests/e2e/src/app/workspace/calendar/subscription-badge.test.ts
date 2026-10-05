@@ -6,7 +6,9 @@ import {
 } from "../../account-policy/semester-presentation-fixture";
 
 for (const locale of ["zh-CN", "en-US"]) {
-  test(`calendar.subscription-badges: ${locale}`, async ({
+  test(`calendar.subscription-badges: ${locale}`, {
+    tag: "@Calendar/Web",
+  }, async ({
     page,
     calendar: fixture,
     isolatedWorker,

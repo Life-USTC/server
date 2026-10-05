@@ -122,7 +122,10 @@ test.describe("校车面板标签页", () => {
     );
   });
 
-  test("bus.public-no-signin", async ({ preferenceFlow, page }) => {
+  test("bus.public-no-signin", { tag: "@Bus/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       const response = await gotoAndWaitForReady(page, "/catalog/bus");
 
@@ -138,7 +141,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("旧版查询标签永久重定向并保留其他状态", async ({
+  test("旧版查询标签永久重定向并保留其他状态", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
   }) => {
@@ -155,7 +158,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.public-responsive-planner", async ({ preferenceFlow, page }) => {
+  test("bus.public-responsive-planner", { tag: "@Bus/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
@@ -201,7 +207,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.public-version-metadata-omitted", async ({
+  test("bus.public-version-metadata-omitted", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
     baseURL,
@@ -244,7 +250,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("登录校车面板 SSR 渲染服务端时刻表数据", async ({
+  test("登录校车面板 SSR 渲染服务端时刻表数据", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
     account: _account,
@@ -267,7 +273,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("匿名校车面板 SSR 渲染公共时刻表数据", async ({
+  test("匿名校车面板 SSR 渲染公共时刻表数据", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
   }) => {
@@ -287,7 +293,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.mobile-full-timetable", async ({ preferenceFlow, page }) => {
+  test("bus.mobile-full-timetable", { tag: "@Bus/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/catalog/bus");
@@ -325,10 +334,9 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("默认站点对按下一班可用校车排序显示所有适用线路", async ({
-    preferenceFlow,
-    page,
-  }) => {
+  test("默认站点对按下一班可用校车排序显示所有适用线路", {
+    tag: "@Bus/Web",
+  }, async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
@@ -348,7 +356,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("反向交换方向并重新计算适用线路", async ({ preferenceFlow, page }) => {
+  test("反向交换方向并重新计算适用线路", { tag: "@Bus/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
@@ -383,7 +394,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("选择东区到南区缩小为直达线路", async ({ preferenceFlow, page }) => {
+  test("选择东区到南区缩小为直达线路", { tag: "@Bus/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
@@ -399,7 +413,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("已发车切换保持时刻表可见且可切换", async ({ preferenceFlow, page }) => {
+  test("已发车切换保持时刻表可见且可切换", { tag: "@Bus/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
@@ -419,7 +436,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("工作日/周日切换更新所选线路时刻表", async ({
+  test("工作日/周日切换更新所选线路时刻表", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
   }) => {
@@ -450,7 +467,10 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("bus.primary-route-action-size", async ({ preferenceFlow, page }) => {
+  test("bus.primary-route-action-size", { tag: "@Bus/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       for (const width of [280, 320]) {
         await page.setViewportSize({ width, height: 900 });
@@ -489,7 +509,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("280px 登录规划器与时刻表保持在页面宽度内", async ({
+  test("280px 登录规划器与时刻表保持在页面宽度内", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
     account: _account,
@@ -510,7 +530,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("登录规划器自动保存到校车偏好设置", async ({
+  test("登录规划器自动保存到校车偏好设置", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
     busPreferences,
@@ -587,7 +607,7 @@ test.describe("校车面板标签页", () => {
   });
 });
 
-test("页面契约", async ({ preferenceFlow, page }) => {
+test("页面契约", { tag: "@Bus/Web" }, async ({ preferenceFlow, page }) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, { routePath: "/catalog/bus" });
   }, "consume");

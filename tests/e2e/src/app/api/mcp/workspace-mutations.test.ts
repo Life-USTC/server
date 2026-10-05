@@ -5,9 +5,9 @@ import { test } from "./_fixture";
 import { parseTextContent } from "./helpers";
 
 for (const completed of [true, false]) {
-  test(`MCP homework ${completed ? "completion" : "reopening"} commits independently`, async ({
-    mcpRun,
-  }) => {
+  test(`MCP homework ${completed ? "completion" : "reopening"} commits independently`, {
+    tag: "@Homework/MCP",
+  }, async ({ mcpRun }) => {
     await mcpRun(
       {
         calls: [
@@ -121,7 +121,9 @@ async function arrangeUntouchedTodo(
   });
 }
 
-test("MCP todo create commits independently", async ({ mcpRun }) => {
+test("MCP todo create commits independently", { tag: "@Todo/MCP" }, async ({
+  mcpRun,
+}) => {
   await mcpRun(
     {
       calls: [["workspace_todo_create", "workspace.todo", "write"]],
@@ -163,7 +165,9 @@ test("MCP todo create commits independently", async ({ mcpRun }) => {
   );
 });
 
-test("MCP todo update commits independently", async ({ mcpRun }) => {
+test("MCP todo update commits independently", { tag: "@Todo/MCP" }, async ({
+  mcpRun,
+}) => {
   await mcpRun(
     {
       calls: [["workspace_todo_update", "workspace.todo", "write"]],
@@ -210,7 +214,9 @@ test("MCP todo update commits independently", async ({ mcpRun }) => {
   );
 });
 
-test("MCP todo delete commits independently", async ({ mcpRun }) => {
+test("MCP todo delete commits independently", { tag: "@Todo/MCP" }, async ({
+  mcpRun,
+}) => {
   await mcpRun(
     {
       calls: [["workspace_todo_delete", "workspace.todo", "write"]],
@@ -246,9 +252,9 @@ test("MCP todo delete commits independently", async ({ mcpRun }) => {
   );
 });
 
-test("MCP importing an existing subscription preserves its complete membership", async ({
-  mcpRun,
-}) => {
+test("MCP importing an existing subscription preserves its complete membership", {
+  tag: "@Subscription/MCP",
+}, async ({ mcpRun }) => {
   await mcpRun(
     {
       calls: [

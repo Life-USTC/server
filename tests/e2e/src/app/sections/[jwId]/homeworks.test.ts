@@ -29,7 +29,7 @@ import {
 } from "./_helpers";
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
-  test("homework.section-style-guide", async ({
+  test("homework.section-style-guide", { tag: "@Homework/Web" }, async ({
     sectionRun,
     page,
     section,
@@ -134,13 +134,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("移动端班级作业长标题和说明保持对话框可用", async ({
-    sectionRun,
-    page,
-    section,
-    account,
-    isolatedWorker,
-  }) => {
+  test("移动端班级作业长标题和说明保持对话框可用", {
+    tag: "@Homework/Web",
+  }, async ({ sectionRun, page, section, account, isolatedWorker }) => {
     await sectionRun(async () => {
       test.setTimeout(90_000);
       await page.setViewportSize({ width: 320, height: 568 });
@@ -228,7 +224,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("班级作业区块默认以列表展示", async ({
+  test("班级作业区块默认以列表展示", { tag: "@Homework/Web" }, async ({
     sectionRun,
     page,
     section,
@@ -262,12 +258,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({
-    sectionRun,
-    page,
-    section,
-    homeworks,
-  }) => {
+  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", {
+    tag: "@Homework/Web",
+  }, async ({ sectionRun, page, section, homeworks }) => {
     await sectionRun(async () => {
       await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
 
@@ -289,12 +282,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("移动端作业详情弹窗纵向排布且不产生横向溢出", async ({
-    sectionRun,
-    page,
-    section,
-    homeworks,
-  }) => {
+  test("移动端作业详情弹窗纵向排布且不产生横向溢出", {
+    tag: "@Homework/Web",
+  }, async ({ sectionRun, page, section, homeworks }) => {
     await sectionRun(async () => {
       await page.setViewportSize({ height: 844, width: 390 });
       await jumpToSection(page, section.path, /作业|Homework/i, "#homework");
@@ -315,7 +305,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("已登录用户可创建作业并看到默认状态", async ({
+  test("已登录用户可创建作业并看到默认状态", { tag: "@Homework/Web" }, async ({
     sectionRun,
     page,
     section,
@@ -393,13 +383,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("已登录用户可完成预置作业且刷新后保留完成状态", async ({
-    sectionRun,
-    page,
-    section,
-    account,
-    isolatedWorker,
-  }) => {
+  test("已登录用户可完成预置作业且刷新后保留完成状态", {
+    tag: "@Homework/Web",
+  }, async ({ sectionRun, page, section, account, isolatedWorker }) => {
     await sectionRun(
       async () => {
         const db = isolatedWorker.database.owner;
@@ -496,13 +482,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("已登录用户可删除预置作业且刷新后不再显示", async ({
-    sectionRun,
-    page,
-    section,
-    account,
-    isolatedWorker,
-  }) => {
+  test("已登录用户可删除预置作业且刷新后不再显示", {
+    tag: "@Homework/Web",
+  }, async ({ sectionRun, page, section, account, isolatedWorker }) => {
     await sectionRun(
       async () => {
         const db = isolatedWorker.database.owner;
@@ -565,13 +547,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("可编辑班级作业的截止日期、说明、重要和组队标记", async ({
-    sectionRun,
-    page,
-    section,
-    account,
-    isolatedWorker,
-  }) => {
+  test("可编辑班级作业的截止日期、说明、重要和组队标记", {
+    tag: "@Homework/Web",
+  }, async ({ sectionRun, page, section, account, isolatedWorker }) => {
     await sectionRun(
       async () => {
         const db = isolatedWorker.database.owner;
@@ -704,7 +682,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("作业评论永久链接打开目标评论", async ({
+  test("作业评论永久链接打开目标评论", { tag: "@Homework/Web" }, async ({
     sectionRun,
     page,
     section,
@@ -762,13 +740,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   });
 });
 
-test("homework.section-completed-deadline-display", async ({
-  sectionRun,
-  page,
-  section,
-  account,
-  isolatedWorker,
-}) => {
+test("homework.section-completed-deadline-display", {
+  tag: "@Homework/Web",
+}, async ({ sectionRun, page, section, account, isolatedWorker }) => {
   await sectionRun(async () => {
     const db = isolatedWorker.database.owner;
     const homeworks = await db.$transaction(async (tx) => {
@@ -843,7 +817,7 @@ test("homework.section-completed-deadline-display", async ({
   });
 });
 
-test("取消预置作业的完成状态会恢复截止提醒", async ({
+test("取消预置作业的完成状态会恢复截止提醒", { tag: "@Homework/Web" }, async ({
   sectionRun,
   page,
   section,

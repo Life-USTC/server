@@ -7,17 +7,15 @@ import { test } from "../../../utils/publication-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/news 新闻与通知预览", () => {
-  test("页面契约", async ({ browseRun, page }) => {
+  test("页面契约", { tag: "@Publication/Web" }, async ({ browseRun, page }) => {
     await browseRun(async () => {
       await assertPageContract(page, { routePath: "/news" });
     });
   });
 
-  test("支持来源多选筛选并明确显示新闻类型", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("支持来源多选筛选并明确显示新闻类型", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       await gotoAndWaitForReady(
         page,
@@ -111,11 +109,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("高级筛选应用当前搜索草稿并重置页码", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("高级筛选应用当前搜索草稿并重置页码", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       await gotoAndWaitForReady(
         page,
@@ -150,11 +146,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("浏览器返回关闭筛选并恢复网址中的已应用条件", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("浏览器返回关闭筛选并恢复网址中的已应用条件", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       await gotoAndWaitForReady(
         page,
@@ -198,7 +192,7 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("支持按组织层级聚合筛选", async ({
+  test("支持按组织层级聚合筛选", { tag: "@Publication/Web" }, async ({
     browseRun,
     page,
     publication: fixture,
@@ -240,11 +234,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("分页使用键盘链接导航并保留筛选条件", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("分页使用键盘链接导航并保留筛选条件", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
       await gotoAndWaitForReady(page, `/news?${sourceQuery}`);
@@ -301,11 +293,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("从详情返回保留筛选和分页，可逐项移除筛选", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("从详情返回保留筛选和分页，可逐项移除筛选", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       const listHref = `/news?type=news&source=${encodeURIComponent(fixture.sourceId)}&page=2`;
       await gotoAndWaitForReady(page, listHref);
@@ -345,7 +335,11 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("ui.list-table-7", async ({ browseRun, page, publication: fixture }) => {
+  test("ui.list-table-7", { tag: "@Publication/Web" }, async ({
+    browseRun,
+    page,
+    publication: fixture,
+  }) => {
     await browseRun(async () => {
       for (const width of [390, 1280]) {
         await page.setViewportSize({ width, height: 844 });
@@ -431,11 +425,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("移动端默认首屏能看到文章且长摘要不撑宽页面", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("移动端默认首屏能看到文章且长摘要不撑宽页面", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(
@@ -454,11 +446,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("越界页重定向到保留筛选条件的最后一页", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("越界页重定向到保留筛选条件的最后一页", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
       await gotoAndWaitForReady(page, `/news?${sourceQuery}&page=9999`);
@@ -477,7 +467,7 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("详情页显示正文和来源链接", async ({
+  test("详情页显示正文和来源链接", { tag: "@Publication/Web" }, async ({
     browseRun,
     page,
     publication: fixture,
@@ -536,11 +526,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("本站图片接口读取缓存并支持条件请求", async ({
-    run,
-    request,
-    publication: fixture,
-  }) => {
+  test("本站图片接口读取缓存并支持条件请求", {
+    tag: "@Publication/Web",
+  }, async ({ run, request, publication: fixture }) => {
     await run(async () => {
       const response = await request.get(fixture.imageUrl);
       expect(response.status()).toBe(200);
@@ -564,11 +552,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("移动端新闻详情保持正文可读且无横向溢出", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("移动端新闻详情保持正文可读且无横向溢出", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, `/news/${fixture.id}`, {
@@ -611,7 +597,10 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("详情页无效 id 返回 404", async ({ browseRun, page }) => {
+  test("详情页无效 id 返回 404", { tag: "@Publication/Web" }, async ({
+    browseRun,
+    page,
+  }) => {
     await browseRun(async () => {
       const response = await gotoAndWaitForReady(
         page,

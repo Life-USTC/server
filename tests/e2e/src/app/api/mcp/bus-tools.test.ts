@@ -8,7 +8,7 @@ import { test } from "./_fixture";
 import { parseTextContent } from "./helpers";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
-  test("种子工具：校车时刻与线路", async ({ mcpRun }) => {
+  test("种子工具：校车时刻与线路", { tag: "@Bus/MCP" }, async ({ mcpRun }) => {
     await mcpRun(
       {
         calls: [

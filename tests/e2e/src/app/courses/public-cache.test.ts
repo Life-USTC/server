@@ -2,13 +2,9 @@ import { expect } from "@playwright/test";
 import { withCommunityFlow } from "../../../utils/community-flow";
 import { test } from "../../../utils/owned-worker";
 
-test("signed-in catalog documents remain public while the private shell resolves the viewer", async ({
-  page,
-  browser,
-  request: observer,
-  isolatedWorker,
-  run,
-}) => {
+test("signed-in catalog documents remain public while the private shell resolves the viewer", {
+  tag: "@Catalog/Web",
+}, async ({ page, browser, request: observer, isolatedWorker, run }) => {
   await run(async () => {
     const actor = await isolatedWorker.createActor();
     await withCommunityFlow(

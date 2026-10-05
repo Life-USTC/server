@@ -7,7 +7,7 @@ import { test } from "../../../../../utils/public-worker";
 import { assertPageContract } from "../../../_shared/page-contract";
 
 test.describe("/e2e/oauth/callback 回调页", () => {
-  test("页面契约", async ({ page, publicFlow }) => {
+  test("页面契约", { tag: "@OAuth/Web" }, async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/e2e/oauth/callback",
@@ -15,7 +15,10 @@ test.describe("/e2e/oauth/callback 回调页", () => {
     });
   });
 
-  test("捕获回调查询参数", async ({ page, publicFlow }) => {
+  test("捕获回调查询参数", { tag: "@OAuth/Web" }, async ({
+    page,
+    publicFlow,
+  }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(
         page,

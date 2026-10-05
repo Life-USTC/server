@@ -8,11 +8,13 @@ import { test } from "../../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
-test("/account/settings 别名路由需要登录", async ({ page }) => {
+test("/account/settings 别名路由需要登录", { tag: "@Account/Web" }, async ({
+  page,
+}) => {
   await expectRequiresSignIn(page, "/account/settings/profile");
 });
 
-test("/account/settings/profile 别名路由生效", async ({
+test("/account/settings/profile 别名路由生效", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   account: _account,
@@ -28,9 +30,9 @@ test("/account/settings/profile 别名路由生效", async ({
   });
 });
 
-test("legacy query settings tabs 的 GET/HEAD 永久跳转到语义分区", async ({
-  page,
-}) => {
+test("legacy query settings tabs 的 GET/HEAD 永久跳转到语义分区", {
+  tag: "@Account/Web",
+}, async ({ page }) => {
   for (const [tab, path] of [
     ["profile", "/account/settings/profile"],
     ["accounts", "/account/settings/accounts"],
@@ -53,7 +55,7 @@ test("legacy query settings tabs 的 GET/HEAD 永久跳转到语义分区", asyn
   }
 });
 
-test("/account/settings 无效别名返回 404", async ({
+test("/account/settings 无效别名返回 404", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   account: _account,

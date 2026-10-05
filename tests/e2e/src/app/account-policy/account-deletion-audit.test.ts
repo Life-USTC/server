@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { test } from "../api/mcp/_fixture";
 
-test("audit.action-account-delete", async ({
+test("audit.action-account-delete", { tag: "@Account/Web" }, async ({
   page,
   isolatedWorker,
   calendarProtocolRun,

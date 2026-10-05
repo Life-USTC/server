@@ -38,13 +38,13 @@ import {
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/danger 危险区设置", () => {
-  test("需要登录", async ({ accountRun, page }) => {
+  test("需要登录", { tag: "@Account/Web" }, async ({ accountRun, page }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await expectRequiresSignIn(page, "/account/settings/danger");
     });
   });
 
-  test("删除账号确认流程", async ({
+  test("删除账号确认流程", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -136,7 +136,7 @@ test.describe("/account/settings/danger 危险区设置", () => {
     });
   });
 
-  test("实际删除账号后退出登录并可重新登录", async ({
+  test("实际删除账号后退出登录并可重新登录", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -284,7 +284,11 @@ test.describe("/account/settings/danger 危险区设置", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  accountRun,
+  page,
+  account: _account,
+}) => {
   await accountRun({ writes: [], audits: [] }, async () => {
     await expectSettingsPage(page, "/account/settings/danger");
     await expect(

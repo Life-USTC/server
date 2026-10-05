@@ -7,12 +7,9 @@ import { verifyCountImport } from "../workspace/subscriptions/count-import-contr
 
 for (const count of [1, 2]) {
   for (const locale of ["en-us", "zh-cn"]) {
-    test(`welcome.import-count-copy ${locale} count=${count}`, async ({
-      page,
-      request,
-      isolatedWorker,
-      calendarProtocolRun,
-    }) => {
+    test(`welcome.import-count-copy ${locale} count=${count}`, {
+      tag: "@Account/Web",
+    }, async ({ page, request, isolatedWorker, calendarProtocolRun }) => {
       test.setTimeout(300_000);
       const db = isolatedWorker.database.owner;
       await calendarProtocolRun(async (io) => {

@@ -7,9 +7,9 @@ import {
   updateQuery,
 } from "./_ownership";
 
-test("todo ownership anonymous Web denies reads and writes", async ({
-  ownership: f,
-}) => {
+test("todo ownership anonymous Web denies reads and writes", {
+  tag: "@Todo/Web",
+}, async ({ ownership: f }) => {
   await f.run(
     async () => {
       const request = await f.anonymous();
@@ -42,9 +42,9 @@ test("todo ownership anonymous Web denies reads and writes", async ({
     { calendarRebuilds: 0 },
   );
 });
-test("todo ownership anonymous REST denies reads and writes", async ({
-  ownership: f,
-}) => {
+test("todo ownership anonymous REST denies reads and writes", {
+  tag: "@Todo/REST",
+}, async ({ ownership: f }) => {
   await f.run(
     async () => {
       const request = await f.anonymous();
@@ -65,9 +65,9 @@ test("todo ownership anonymous REST denies reads and writes", async ({
     { calendarRebuilds: 0 },
   );
 });
-test("todo ownership anonymous GraphQL denies reads and writes", async ({
-  ownership: f,
-}) => {
+test("todo ownership anonymous GraphQL denies reads and writes", {
+  tag: "@Todo/GraphQL",
+}, async ({ ownership: f }) => {
   await f.run(
     async () => {
       const request = await f.anonymous();
@@ -89,9 +89,9 @@ test("todo ownership anonymous GraphQL denies reads and writes", async ({
     { calendarRebuilds: 0 },
   );
 });
-test("todo ownership anonymous MCP denies reads and writes", async ({
-  ownership: f,
-}) => {
+test("todo ownership anonymous MCP denies reads and writes", {
+  tag: "@Todo/MCP",
+}, async ({ ownership: f }) => {
   await f.run(
     async () => {
       const request = await f.anonymous();

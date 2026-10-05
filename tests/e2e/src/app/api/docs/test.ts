@@ -20,7 +20,10 @@ async function waitForSectionsReference(page: Page) {
 }
 
 test.describe("/api/docs 页面", () => {
-  test("接口契约", async ({ page, preferenceFlow }) => {
+  test("接口契约", { tag: "@OpenAPI/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/api/docs/tag/catalog-section",
@@ -28,7 +31,10 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("渲染 API 参考容器", async ({ page, preferenceFlow }) => {
+  test("渲染 API 参考容器", { tag: "@OpenAPI/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
         waitUntil: "load",
@@ -37,7 +43,7 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("openapi.api-docs-mobile-navigation", async ({
+  test("openapi.api-docs-mobile-navigation", { tag: "@OpenAPI/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -121,7 +127,7 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("openapi.api-docs-desktop-navigation", async ({
+  test("openapi.api-docs-desktop-navigation", { tag: "@OpenAPI/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -155,7 +161,10 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("使用路径导航而非哈希导航", async ({ page, preferenceFlow }) => {
+  test("使用路径导航而非哈希导航", { tag: "@OpenAPI/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
         waitUntil: "load",
@@ -169,7 +178,10 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("根路径重定向到第一个路由分组", async ({ page, preferenceFlow }) => {
+  test("根路径重定向到第一个路由分组", { tag: "@OpenAPI/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.goto("/api/docs");
       await expect(page).toHaveURL(/\/api\/docs\/tag\/catalog-section$/);
@@ -178,7 +190,10 @@ test.describe("/api/docs 页面", () => {
 });
 
 test.describe("/api-docs 页面", () => {
-  test("重定向到 /api/docs", async ({ page, preferenceFlow }) => {
+  test("重定向到 /api/docs", { tag: "@OpenAPI/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.goto("/api-docs");
       await expect(page).toHaveURL(/\/api\/docs\/tag\/catalog-section$/);
@@ -186,7 +201,10 @@ test.describe("/api-docs 页面", () => {
   });
 });
 
-test("页面契约 /api/docs", async ({ page, preferenceFlow }) => {
+test("页面契约 /api/docs", { tag: "@OpenAPI/Web" }, async ({
+  page,
+  preferenceFlow,
+}) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, { routePath: "/api/docs" });
   });

@@ -162,9 +162,10 @@ export function subscribedCourseLink(page: Page, fixture: SubscriptionFixture) {
     .filter({ visible: true });
 }
 
-export async function expectSubscribedWebProjections(
+export async function expectSubscribedWebProjection(
   page: Page,
   fixture: SubscriptionFixture,
+  domain: "Subscription" | "Calendar" | "Overview",
   foreign?: SubscriptionFixture,
 ) {
   const expectOwnerIsolation = async () => {
@@ -179,53 +180,59 @@ export async function expectSubscribedWebProjections(
       foreign.young.name,
     );
   };
-  await gotoAndWaitForReady(
-    page,
-    foreign
-      ? `/workspace/subscriptions?userId=${foreign.users[0].id}`
-      : "/workspace/subscriptions",
-  );
-  if (foreign) {
-    await expect(
-      page.locator(
-        `a[data-testid="subscription-course-link"][href="/catalog/sections/${foreign.section.jwId}"]`,
-      ),
-    ).toHaveCount(0);
+  if (domain === "Subscription") {
+    await gotoAndWaitForReady(
+      page,
+      foreign
+        ? `/workspace/subscriptions?userId=${foreign.users[0].id}`
+        : "/workspace/subscriptions",
+    );
+    if (foreign) {
+      await expect(
+        page.locator(
+          `a[data-testid="subscription-course-link"][href="/catalog/sections/${foreign.section.jwId}"]`,
+        ),
+      ).toHaveCount(0);
+    }
+    await expect(subscribedCourseLink(page, fixture)).toHaveText(
+      String(fixture.course.nameEn),
+    );
+    await expectOwnerIsolation();
   }
-  await expect(subscribedCourseLink(page, fixture)).toHaveText(
-    String(fixture.course.nameEn),
-  );
-  await expectOwnerIsolation();
-  await gotoAndWaitForReady(page, fixture.academicUrl());
-  const calendar = page
-    .locator(
-      `#main-content a[href="/catalog/sections/${fixture.section.jwId}"]`,
-    )
-    .filter({ visible: true });
-  await expect(calendar.first()).toContainText(String(fixture.course.nameEn));
-  await expect(page.locator("#main-content")).toContainText("09:00");
-  await expect(
-    page
-      .getByText(fixture.todo.title, { exact: true })
-      .filter({ visible: true })
-      .first(),
-  ).toBeVisible();
-  await expect(
-    page
-      .getByText(fixture.young.name, { exact: true })
-      .filter({ visible: true })
-      .first(),
-  ).toBeVisible();
-  await expectOwnerIsolation();
-  await gotoAndWaitForReady(page, subscriptionOverviewUrl);
-  const focus = page.getByTestId("workspace-overview-focus");
-  await expect(focus.getByRole("link")).toHaveAttribute(
-    "href",
-    `/catalog/sections/${fixture.section.jwId}`,
-  );
-  await expect(focus).toContainText(String(fixture.course.nameEn));
-  await expect(focus).toContainText("09:00-10:00");
-  await expectOwnerIsolation();
+  if (domain === "Calendar") {
+    await gotoAndWaitForReady(page, fixture.academicUrl());
+    const calendar = page
+      .locator(
+        `#main-content a[href="/catalog/sections/${fixture.section.jwId}"]`,
+      )
+      .filter({ visible: true });
+    await expect(calendar.first()).toContainText(String(fixture.course.nameEn));
+    await expect(page.locator("#main-content")).toContainText("09:00");
+    await expect(
+      page
+        .getByText(fixture.todo.title, { exact: true })
+        .filter({ visible: true })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByText(fixture.young.name, { exact: true })
+        .filter({ visible: true })
+        .first(),
+    ).toBeVisible();
+    await expectOwnerIsolation();
+  }
+  if (domain === "Overview") {
+    await gotoAndWaitForReady(page, subscriptionOverviewUrl);
+    const focus = page.getByTestId("workspace-overview-focus");
+    await expect(focus.getByRole("link")).toHaveAttribute(
+      "href",
+      `/catalog/sections/${fixture.section.jwId}`,
+    );
+    await expect(focus).toContainText(String(fixture.course.nameEn));
+    await expect(focus).toContainText("09:00-10:00");
+    await expectOwnerIsolation();
+  }
 }
 
 export async function expectIndependentCalendarItems(

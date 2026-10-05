@@ -39,7 +39,7 @@ import { absoluteTestUrl } from "../../../utils/request-url";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/courses 课程目录", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     searchCourse: _searchCourse,
@@ -51,7 +51,7 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("SSR 输出包含搜索查询", async ({
+  test("SSR 输出包含搜索查询", { tag: "@Catalog/Web" }, async ({
     baseURL,
     preferenceFlow,
     searchCourse: _searchCourse,
@@ -71,11 +71,9 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("无匹配课程时显示明确空状态且不渲染结果链接", async ({
-    page,
-    preferenceFlow,
-    searchCourse: _searchCourse,
-  }) => {
+  test("无匹配课程时显示明确空状态且不渲染结果链接", {
+    tag: "@Catalog/Web",
+  }, async ({ page, preferenceFlow, searchCourse: _searchCourse }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -94,7 +92,7 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("目录链接悬停时不预取 __data.json", async ({
+  test("目录链接悬停时不预取 __data.json", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     searchCourse: _searchCourse,
@@ -123,7 +121,7 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("语言切换正常工作", async ({
+  test("语言切换正常工作", { tag: "@Catalog/Web" }, async ({
     page,
     baseURL,
     preferenceFlow,
@@ -181,7 +179,7 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("移动端卡片可点击并导航到详情", async ({
+  test("移动端卡片可点击并导航到详情", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     searchCourse: _searchCourse,
@@ -227,11 +225,9 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("280 至 1440 像素通过筛选面板提供课程高级筛选", async ({
-    page,
-    preferenceFlow,
-    searchCourse: _searchCourse,
-  }) => {
+  test("280 至 1440 像素通过筛选面板提供课程高级筛选", {
+    tag: "@Catalog/Web",
+  }, async ({ page, preferenceFlow, searchCourse: _searchCourse }) => {
     await preferenceFlow.run(async () => {
       for (const width of [280, 320, 375, 1024, 1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
@@ -250,6 +246,7 @@ test.describe("/catalog/courses 课程目录", () => {
 
   catalogTest(
     "桌面表格截断溢出文本",
+    { tag: "@Catalog/Web" },
     async ({ page, isolatedWorker, catalogFlow }, testInfo) => {
       await catalogFlow.run(
         async () => {
@@ -346,6 +343,7 @@ test.describe("/catalog/courses 课程目录", () => {
 
   catalogTest(
     "分页提供上一页、页码和下一页并写入浏览历史",
+    { tag: "@Catalog/Web" },
     async ({ page, isolatedWorker, catalogFlow }, testInfo) => {
       await catalogFlow.run(
         async () => {
@@ -412,7 +410,7 @@ test.describe("/catalog/courses 课程目录", () => {
     },
   );
 
-  test("搜索和清除按钮", async ({
+  test("搜索和清除按钮", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     searchCourse: _searchCourse,
@@ -443,7 +441,7 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("按种子维度筛选保留结果", async ({
+  test("按种子维度筛选保留结果", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     searchCourse: _searchCourse,

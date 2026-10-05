@@ -6,7 +6,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("可以创建新作业", async ({
+  test("可以创建新作业", { tag: "@Homework/Web" }, async ({
     page,
     academic,
     account,
@@ -103,11 +103,9 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("homework.workspace-style-guide-omitted", async ({
-    page,
-    academic: _academic,
-    homeworkRun,
-  }) => {
+  test("homework.workspace-style-guide-omitted", {
+    tag: "@Homework/Web",
+  }, async ({ page, academic: _academic, homeworkRun }) => {
     await homeworkRun(
       async () => {
         const localeResponse = await page.request.post(
@@ -147,13 +145,9 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("创建作业时可设置重要、组队、截止日期和说明", async ({
-    page,
-    academic,
-    account,
-    homeworkRun,
-    storedHomeworks,
-  }) => {
+  test("创建作业时可设置重要、组队、截止日期和说明", {
+    tag: "@Homework/Web",
+  }, async ({ page, academic, account, homeworkRun, storedHomeworks }) => {
     await homeworkRun(
       async () => {
         test.setTimeout(60_000);

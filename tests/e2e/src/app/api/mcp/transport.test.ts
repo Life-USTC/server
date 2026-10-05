@@ -31,7 +31,7 @@ async function readMcpJsonRpcResponse(response: APIResponse) {
 }
 
 test.describe("/api/mcp - 传输与授权", () => {
-  test("/api/mcp 未认证时可以初始化", async ({
+  test("/api/mcp 未认证时可以初始化", { tag: "@MCP/MCP" }, async ({
     isolatedWorker,
     calendarProtocolRun,
   }) => {
@@ -73,10 +73,9 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 未认证时可以调用公开 catalog 工具", async ({
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("/api/mcp 未认证时可以调用公开 catalog 工具", {
+    tag: "@Catalog/MCP",
+  }, async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const now = Date.now();
       const semester = await isolatedWorker.database.owner.semester.create({
@@ -135,10 +134,9 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 未认证调用私有工具时返回 OAuth bearer challenge", async ({
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("/api/mcp 未认证调用私有工具时返回 OAuth bearer challenge", {
+    tag: "@MCP/MCP",
+  }, async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const response = await request.post("/api/mcp", {
         data: {
@@ -164,11 +162,9 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 在认证后拒绝超过 64 KiB 的请求体", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("/api/mcp 在认证后拒绝超过 64 KiB 的请求体", {
+    tag: "@MCP/MCP",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -223,11 +219,9 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 在认证后拒绝超过 50 条消息的 JSON-RPC batch", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("/api/mcp 在认证后拒绝超过 50 条消息的 JSON-RPC batch", {
+    tag: "@MCP/MCP",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -275,10 +269,9 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp stateless transport does not hold a GET SSE stream", async ({
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("/api/mcp stateless transport does not hold a GET SSE stream", {
+    tag: "@MCP/MCP",
+  }, async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const response = await request.get("/api/mcp", {
         headers: {
@@ -298,11 +291,9 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 支持受信任浏览器来源的预检和 transport CORS headers", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("/api/mcp 支持受信任浏览器来源的预检和 transport CORS headers", {
+    tag: "@MCP/MCP",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -386,7 +377,7 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 拒绝外部 Origin header", async ({
+  test("/api/mcp 拒绝外部 Origin header", { tag: "@MCP/MCP" }, async ({
     page,
     isolatedWorker,
     calendarProtocolRun,
@@ -466,11 +457,9 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 缺少 feature scope 时返回 insufficient_scope", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("/api/mcp 缺少 feature scope 时返回 insufficient_scope", {
+    tag: "@MCP/MCP",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;

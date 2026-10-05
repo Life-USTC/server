@@ -14,24 +14,29 @@ for (const role of roles)
     const modeTest = mode === "oauth" ? browserTest : test;
     modeTest.describe(`todo ownership GraphQL ${mode} ${role}`, () => {
       modeTest.use({ ownerRole: role });
-      modeTest("consumer returns only owned rows", async ({ ownership: f }) => {
-        await f.run(
-          async () => {
-            const request = await f.request(mode, "graphql");
-            const result = await f.graphql(request, listQuery);
-            expect(result.errors).toBeUndefined();
-            expect(
-              result.data.workspace.todos.items.map(
-                (todo: { id: string }) => todo.id,
-              ),
-            ).toEqual([f.actor.todo.id]);
-            await f.unchanged();
-          },
-          { calendarRebuilds: 0 },
-        );
-      });
+      modeTest(
+        "consumer returns only owned rows",
+        { tag: "@Todo/GraphQL" },
+        async ({ ownership: f }) => {
+          await f.run(
+            async () => {
+              const request = await f.request(mode, "graphql");
+              const result = await f.graphql(request, listQuery);
+              expect(result.errors).toBeUndefined();
+              expect(
+                result.data.workspace.todos.items.map(
+                  (todo: { id: string }) => todo.id,
+                ),
+              ).toEqual([f.actor.todo.id]);
+              await f.unchanged();
+            },
+            { calendarRebuilds: 0 },
+          );
+        },
+      );
       modeTest(
         "foreign update and delete are rejected without effects",
+        { tag: "@Todo/GraphQL" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -51,6 +56,7 @@ for (const role of roles)
       );
       modeTest(
         "owner create persists authenticated ownership",
+        { tag: "@Todo/GraphQL" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -88,6 +94,7 @@ for (const role of roles)
       );
       modeTest(
         "owner update preserves authenticated ownership",
+        { tag: "@Todo/GraphQL" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -126,6 +133,7 @@ for (const role of roles)
       );
       modeTest(
         "owner delete removes an independently prepared todo",
+        { tag: "@Todo/GraphQL" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -154,6 +162,7 @@ for (const role of roles)
       );
       modeTest(
         "mixed-owner batch completion changes only owned row",
+        { tag: "@Todo/GraphQL" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -195,6 +204,7 @@ for (const role of roles)
       );
       modeTest(
         "mixed-owner batch deletion removes only owned row",
+        { tag: "@Todo/GraphQL" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {

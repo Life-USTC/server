@@ -22,12 +22,9 @@ async function setLocale(
   expect(await response.json()).toEqual({ success: true });
 }
 
-test("subscription.subscription-language", async ({
-  page,
-  presentation,
-  isolatedWorker,
-  catalogSubscriptionRun,
-}) => {
+test("subscription.subscription-language", {
+  tag: "@Subscription/Web",
+}, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
   const { user, sections } = presentation;
   await catalogSubscriptionRun(
     user,
@@ -118,12 +115,9 @@ test("subscription.subscription-language", async ({
   );
 });
 
-test("subscription.quick-add-result-bound", async ({
-  page,
-  presentation,
-  isolatedWorker,
-  catalogSubscriptionRun,
-}) => {
+test("subscription.quick-add-result-bound", {
+  tag: "@Subscription/Web",
+}, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
   const { user, sections, course } = presentation;
   await catalogSubscriptionRun(
     user,
@@ -175,12 +169,9 @@ test("subscription.quick-add-result-bound", async ({
   );
 });
 
-test("subscription.kind-web-editor-location", async ({
-  page,
-  presentation,
-  isolatedWorker,
-  catalogSubscriptionRun,
-}) => {
+test("subscription.kind-web-editor-location", {
+  tag: "@Subscription/Web",
+}, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
   const { user, sections } = presentation;
   await catalogSubscriptionRun(
     user,
@@ -249,12 +240,9 @@ test("subscription.kind-web-editor-location", async ({
   );
 });
 
-test("subscribed-sections.grouped-by-semester", async ({
-  page,
-  presentation,
-  isolatedWorker,
-  catalogSubscriptionRun,
-}) => {
+test("subscribed-sections.grouped-by-semester", {
+  tag: "@Subscription/Web",
+}, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
   const { user, sections, semesters } = presentation;
   await catalogSubscriptionRun(
     user,
@@ -309,68 +297,67 @@ test("subscribed-sections.grouped-by-semester", async ({
   );
 });
 
-test("subscribed-sections.section-codes-promoted", async ({
-  page,
-  presentation,
-  isolatedWorker,
-  catalogSubscriptionRun,
-}, testInfo) => {
-  const { user, sections, course, teacher } = presentation;
-  await catalogSubscriptionRun(
-    user,
-    { calendarMessages: [], calendarTokenCreated: true },
-    async () => {
-      await page
-        .context()
-        .addCookies([
-          (await isolatedWorker.createSession(user.id)).cookie,
-          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-        ]);
-      for (const width of widths) {
-        await open(page, width);
-        await page.screenshot({
-          path: testInfo.outputPath(`subscription-codes-${width}.png`),
-          fullPage: true,
-        });
-      }
-      for (const width of widths) {
-        await open(page, width);
-        for (const section of sections) {
-          const link = page
-            .locator(
-              `a[data-testid="subscription-course-link"][href="/catalog/sections/${section.jwId}"]`,
-            )
-            .filter({ visible: true });
-          const item = link.locator(
-            'xpath=ancestor::*[self::tr or @data-slot="item"][1]',
-          );
-          await expect(link).toContainText(course.nameCn);
-          await expect(item).toContainText(teacher.nameCn);
-          await expect(
-            item.getByText(section.code, { exact: true }),
-          ).toBeVisible();
-          expect(
-            await item
-              .getByText(section.code, { exact: true })
-              .evaluate((code) => getComputedStyle(code).fontFamily),
-          ).toContain("monospace");
+test(
+  "subscribed-sections.section-codes-promoted",
+  { tag: "@Subscription/Web" },
+  async (
+    { page, presentation, isolatedWorker, catalogSubscriptionRun },
+    testInfo,
+  ) => {
+    const { user, sections, course, teacher } = presentation;
+    await catalogSubscriptionRun(
+      user,
+      { calendarMessages: [], calendarTokenCreated: true },
+      async () => {
+        await page
+          .context()
+          .addCookies([
+            (await isolatedWorker.createSession(user.id)).cookie,
+            { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+          ]);
+        for (const width of widths) {
+          await open(page, width);
+          await page.screenshot({
+            path: testInfo.outputPath(`subscription-codes-${width}.png`),
+            fullPage: true,
+          });
         }
-        expect(
-          await page.evaluate(
-            () => document.documentElement.scrollWidth <= innerWidth,
-          ),
-        ).toBe(true);
-      }
-    },
-  );
-});
+        for (const width of widths) {
+          await open(page, width);
+          for (const section of sections) {
+            const link = page
+              .locator(
+                `a[data-testid="subscription-course-link"][href="/catalog/sections/${section.jwId}"]`,
+              )
+              .filter({ visible: true });
+            const item = link.locator(
+              'xpath=ancestor::*[self::tr or @data-slot="item"][1]',
+            );
+            await expect(link).toContainText(course.nameCn);
+            await expect(item).toContainText(teacher.nameCn);
+            await expect(
+              item.getByText(section.code, { exact: true }),
+            ).toBeVisible();
+            expect(
+              await item
+                .getByText(section.code, { exact: true })
+                .evaluate((code) => getComputedStyle(code).fontFamily),
+            ).toContain("monospace");
+          }
+          expect(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= innerWidth,
+            ),
+          ).toBe(true);
+        }
+      },
+    );
+  },
+);
 
-test("subscribed-sections.sidebar-summary-only", async ({
-  page,
-  presentation,
-  isolatedWorker,
-  catalogSubscriptionRun,
-}) => {
+test("subscribed-sections.sidebar-summary-only", {
+  tag: "@Subscription/Web",
+}, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
   const { user, sections } = presentation;
   await catalogSubscriptionRun(
     user,

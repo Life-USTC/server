@@ -115,11 +115,88 @@ async function createFixture(db: Prisma.TransactionClient) {
         }),
       );
     }
-    return { campuses, routes, version, users, raw };
+    const trips = await db.busTrip.findMany({
+      where: { versionId: version.id },
+    });
+    return { campuses, routes, version, users, raw, trips };
   })();
 }
 
 type Fixture = Awaited<ReturnType<typeof createFixture>>;
+// The manually specified fixture timetable is the oracle for each independent reader.
+// Generated database IDs identify arranged rows; no product response supplies expectations.
+function expectedTimetable(fixture: Fixture) {
+  const campuses = fixture.campuses.map(
+    ({ id, nameCn, latitude, longitude }) => ({
+      id,
+      nameCn,
+      nameEn: null,
+      namePrimary: nameCn,
+      nameSecondary: null,
+      latitude,
+      longitude,
+    }),
+  );
+  const routes = fixture.routes.map(({ id, campuses: stops }) => ({
+    id,
+    nameCn: `审计线路${id}`,
+    nameEn: null,
+    descriptionPrimary: `${stops[0].name} -> ${stops[1].name}`,
+    descriptionSecondary: null,
+    stops: stops.map(({ id: campusId }, index) => {
+      const campus = campuses.find(({ id }) => id === campusId);
+      if (!campus) throw new Error("Missing arranged bus campus");
+      return { stopOrder: index + 1, campus };
+    }),
+  }));
+  const trips = (
+    [
+      ["weekday", 0, 0, "08:00", "08:20", 480, 500],
+      ["weekday", 0, 1, "20:00", "20:20", 1200, 1220],
+      ["weekday", 1, 0, "09:00", "09:20", 540, 560],
+      ["saturday", 1, 0, "10:00", "10:20", 600, 620],
+    ] as const
+  ).map(
+    ([
+      dayType,
+      routeIndex,
+      position,
+      departureTime,
+      arrivalTime,
+      departureMinutes,
+      arrivalMinutes,
+    ]) => {
+      const route = routes[routeIndex];
+      const row = fixture.trips.find(
+        (trip) =>
+          trip.routeId === route.id &&
+          trip.dayType === dayType &&
+          trip.position === position,
+      );
+      if (!row) throw new Error("Missing arranged bus trip");
+      return {
+        id: row.id,
+        routeId: route.id,
+        dayType,
+        position,
+        departureTime,
+        arrivalTime,
+        departureMinutes,
+        arrivalMinutes,
+        stopTimes: route.stops.map(({ campus, stopOrder }, index) => ({
+          stopOrder,
+          campusId: campus.id,
+          campusName: campus.namePrimary,
+          time: index === 0 ? departureTime : arrivalTime,
+          minutesSinceMidnight: index === 0 ? departureMinutes : arrivalMinutes,
+          isPassThrough: false,
+        })),
+      };
+    },
+  );
+  return { campuses, routes, trips };
+}
+
 type BusPlan = {
   tools: string[];
   graphql: number;
@@ -364,307 +441,360 @@ async function call<Result>(
 const timetableUrl = (versionKey: string) =>
   `/api/catalog/bus?versionKey=${encodeURIComponent(versionKey)}&locale=en-us`;
 
-test("bus.raw-data-returned", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-}) => {
-  await calendarProtocolRun((io) =>
-    withFixture(
-      page,
-      io,
-      oauthOwner,
-      {
-        tools: ["catalog_bus_timetable_get"],
-        graphql: 6,
-        reads: 3,
-        sessions: 3,
-      },
-      async (fixture, client, session) => {
-        const request = io.request;
-        const response = await request.get(timetableUrl(fixture.version.key));
-        expect(response.status()).toBe(200);
-        const anonymous = (await response.json()) as BusTimetableData;
-        expect(anonymous.preferences).toBeNull();
-        expect(anonymous.routes.map(({ id }) => id)).toEqual(
-          fixture.routes.map(({ id }) => id),
-        );
-        expect(
-          anonymous.routes.map(({ stops }) =>
-            stops.map(({ campus }) => campus.id),
-          ),
-        ).toEqual(
-          fixture.routes.map(({ campuses }) => campuses.map(({ id }) => id)),
-        );
-        expect(
-          anonymous.trips.map(({ dayType, routeId, stopTimes }) => ({
-            dayType,
-            routeId,
-            times: stopTimes.map(({ time }) => time),
-          })),
-        ).toEqual([
-          {
-            dayType: "weekday",
-            routeId: fixture.routes[0].id,
-            times: ["08:00", "08:20"],
-          },
-          {
-            dayType: "weekday",
-            routeId: fixture.routes[0].id,
-            times: ["20:00", "20:20"],
-          },
-          {
-            dayType: "weekday",
-            routeId: fixture.routes[1].id,
-            times: ["09:00", "09:20"],
-          },
-          {
-            dayType: "saturday",
-            routeId: fixture.routes[1].id,
-            times: ["10:00", "10:20"],
-          },
-        ]);
-        const full = await call<BusTimetableData>(
-          client,
-          "catalog_bus_timetable_get",
-          { versionKey: fixture.version.key, locale: "en-us", mode: "full" },
-        );
-        expect(full.routes).toEqual(anonymous.routes);
-        expect(full.trips).toEqual(anonymous.trips);
-        expect(full.campuses).toEqual(anonymous.campuses);
-        for (const route of fixture.routes) {
-          for (const pageNumber of [1, 2, 3]) {
-            const response = await page.request.post("/api/graphql", {
+for (const method of ["REST", "GraphQL", "MCP"] as const) {
+  test(`bus.raw-data-returned ${method}`, { tag: `@Bus/${method}` }, async ({
+    page,
+    oauthOwner,
+    calendarProtocolRun,
+  }) => {
+    await calendarProtocolRun((io) =>
+      withFixture(
+        page,
+        io,
+        oauthOwner,
+        {
+          tools: method === "MCP" ? ["catalog_bus_timetable_get"] : [],
+          graphql: method === "GraphQL" ? 6 : 0,
+          reads: method === "REST" ? 3 : 0,
+          sessions: method === "REST" ? 3 : 1,
+        },
+        async (fixture, client, session) => {
+          const request = io.request;
+          const expected = expectedTimetable(fixture);
+          if (method === "REST") {
+            const response = await request.get(
+              timetableUrl(fixture.version.key),
+            );
+            expect(response.status()).toBe(200);
+            const anonymous = (await response.json()) as BusTimetableData;
+            expect(anonymous.preferences).toBeNull();
+            expect(anonymous.routes.map(({ id }) => id)).toEqual(
+              fixture.routes.map(({ id }) => id),
+            );
+            expect(
+              anonymous.routes.map(({ stops }) =>
+                stops.map(({ campus }) => campus.id),
+              ),
+            ).toEqual(
+              fixture.routes.map(({ campuses }) =>
+                campuses.map(({ id }) => id),
+              ),
+            );
+            expect(
+              anonymous.trips.map(({ dayType, routeId, stopTimes }) => ({
+                dayType,
+                routeId,
+                times: stopTimes.map(({ time }) => time),
+              })),
+            ).toEqual([
+              {
+                dayType: "weekday",
+                routeId: fixture.routes[0].id,
+                times: ["08:00", "08:20"],
+              },
+              {
+                dayType: "weekday",
+                routeId: fixture.routes[0].id,
+                times: ["20:00", "20:20"],
+              },
+              {
+                dayType: "weekday",
+                routeId: fixture.routes[1].id,
+                times: ["09:00", "09:20"],
+              },
+              {
+                dayType: "saturday",
+                routeId: fixture.routes[1].id,
+                times: ["10:00", "10:20"],
+              },
+            ]);
+            expect(anonymous.routes).toEqual(expected.routes);
+            expect(anonymous.trips).toEqual(expected.trips);
+            expect(anonymous.campuses).toEqual(expected.campuses);
+          }
+          const anonymous = expected;
+          if (method === "MCP") {
+            const full = await call<BusTimetableData>(
+              client,
+              "catalog_bus_timetable_get",
+              {
+                versionKey: fixture.version.key,
+                locale: "en-us",
+                mode: "full",
+              },
+            );
+            expect(full.routes).toEqual(anonymous.routes);
+            expect(full.trips).toEqual(anonymous.trips);
+            expect(full.campuses).toEqual(anonymous.campuses);
+          }
+          if (method === "GraphQL")
+            for (const route of fixture.routes) {
+              for (const pageNumber of [1, 2, 3]) {
+                const response = await page.request.post("/api/graphql", {
+                  headers: { Origin: oauthOwner.worker.origin },
+                  data: {
+                    query: `query($route:Int!,$version:String!,$page:PageInput!){catalog{busTimetable(routeId:$route,versionKey:$version,page:$page){route{id stops{campusId}} weekday{position stopTimes{time}} saturday{position stopTimes{time}} sunday{position stopTimes{time}} weekdayPageInfo{page pageSize total totalPages} saturdayPageInfo{page pageSize total totalPages} sundayPageInfo{page pageSize total totalPages}}}}`,
+                    variables: {
+                      route: route.id,
+                      version: fixture.version.key,
+                      page: { page: pageNumber, pageSize: 1 },
+                    },
+                  },
+                });
+                expect(response.status()).toBe(200);
+                const graph = await response.json();
+                expect(graph.errors).toBeUndefined();
+                const timetable = graph.data.catalog.busTimetable;
+                expect(timetable.route.id).toBe(route.id);
+                expect(
+                  timetable.route.stops.map(
+                    (stop: { campusId: number }) => stop.campusId,
+                  ),
+                ).toEqual(route.campuses.map((campus) => campus.id));
+                for (const day of ["weekday", "saturday", "sunday"] as const) {
+                  const trips = anonymous.trips.filter(
+                    (trip) => trip.routeId === route.id && trip.dayType === day,
+                  );
+                  expect(timetable[`${day}PageInfo`]).toEqual({
+                    page: pageNumber,
+                    pageSize: 1,
+                    total: trips.length,
+                    totalPages: Math.max(1, trips.length),
+                  });
+                  expect(
+                    timetable[day].map(
+                      (trip: {
+                        position: number;
+                        stopTimes: { time: string | null }[];
+                      }) => ({
+                        position: trip.position,
+                        times: trip.stopTimes.map((stop) => stop.time),
+                      }),
+                    ),
+                  ).toEqual(
+                    trips.slice(pageNumber - 1, pageNumber).map((trip) => ({
+                      position: trip.position,
+                      times: trip.stopTimes.map((stop) => stop.time),
+                    })),
+                  );
+                }
+              }
+            }
+          if (method === "REST")
+            for (const index of [0, 1]) {
+              await session(fixture.users[index].id);
+              const response = await page.request.get(
+                timetableUrl(fixture.version.key),
+              );
+              expect(response.status()).toBe(200);
+              const body = (await response.json()) as BusTimetableData;
+              expect(body.preferences).toMatchObject({
+                preferredOriginCampusId: fixture.campuses[index].id,
+                preferredDestinationCampusId: fixture.campuses[index + 1].id,
+                showDepartedTrips: index === 0,
+              });
+              expect(body.routes).toEqual(anonymous.routes);
+              expect(body.trips).toEqual(anonymous.trips);
+            }
+        },
+      ),
+    );
+  });
+}
+for (const method of ["REST", "GraphQL", "MCP"] as const) {
+  test(`bus.version-key-boundary ${method}`, { tag: `@Bus/${method}` }, async ({
+    page,
+    oauthOwner,
+    calendarProtocolRun,
+  }) => {
+    await calendarProtocolRun((io) =>
+      withFixture(
+        page,
+        io,
+        oauthOwner,
+        {
+          tools:
+            method === "MCP" ? Array(11).fill("catalog_bus_timetable_get") : [],
+          graphql: method === "GraphQL" ? 11 : 0,
+          reads: method === "REST" ? 11 : 0,
+          sessions: 1,
+        },
+        async (fixture, client) => {
+          const request = io.request;
+          const graph = (versionKey: string) =>
+            page.request.post("/api/graphql", {
               headers: { Origin: oauthOwner.worker.origin },
               data: {
-                query: `query($route:Int!,$version:String!,$page:PageInput!){catalog{busTimetable(routeId:$route,versionKey:$version,page:$page){route{id stops{campusId}} weekday{position stopTimes{time}} saturday{position stopTimes{time}} sunday{position stopTimes{time}} weekdayPageInfo{page pageSize total totalPages} saturdayPageInfo{page pageSize total totalPages} sundayPageInfo{page pageSize total totalPages}}}}`,
-                variables: {
-                  route: route.id,
-                  version: fixture.version.key,
-                  page: { page: pageNumber, pageSize: 1 },
-                },
+                query:
+                  "query($routeId:Int!,$key:String){catalog{busTimetable(routeId:$routeId,versionKey:$key){route{id} weekday{position}}}}",
+                variables: { routeId: fixture.routes[0].id, key: versionKey },
               },
             });
-            expect(response.status()).toBe(200);
-            const graph = await response.json();
-            expect(graph.errors).toBeUndefined();
-            const timetable = graph.data.catalog.busTimetable;
-            expect(timetable.route.id).toBe(route.id);
-            expect(
-              timetable.route.stops.map(
-                (stop: { campusId: number }) => stop.campusId,
-              ),
-            ).toEqual(route.campuses.map((campus) => campus.id));
-            for (const day of ["weekday", "saturday", "sunday"] as const) {
-              const trips = anonymous.trips.filter(
-                (trip) => trip.routeId === route.id && trip.dayType === day,
-              );
-              expect(timetable[`${day}PageInfo`]).toEqual({
-                page: pageNumber,
-                pageSize: 1,
-                total: trips.length,
-                totalPages: Math.max(1, trips.length),
-              });
+          for (const versionKey of [
+            fixture.version.key,
+            ` \t${fixture.version.key}\n `,
+          ]) {
+            if (method === "REST")
               expect(
-                timetable[day].map(
-                  (trip: {
-                    position: number;
-                    stopTimes: { time: string | null }[];
-                  }) => ({
-                    position: trip.position,
-                    times: trip.stopTimes.map((stop) => stop.time),
-                  }),
-                ),
-              ).toEqual(
-                trips.slice(pageNumber - 1, pageNumber).map((trip) => ({
-                  position: trip.position,
-                  times: trip.stopTimes.map((stop) => stop.time),
-                })),
-              );
+                (await request.get(timetableUrl(versionKey))).status(),
+              ).toBe(200);
+            if (method === "GraphQL") {
+              const gql = await graph(versionKey);
+              expect(gql.status()).toBe(200);
+              expect(await gql.json()).toMatchObject({
+                data: {
+                  catalog: {
+                    busTimetable: { route: { id: fixture.routes[0].id } },
+                  },
+                },
+              });
+            }
+            if (method === "MCP")
+              expect(
+                (
+                  await call<BusTimetableData>(
+                    client,
+                    "catalog_bus_timetable_get",
+                    {
+                      versionKey,
+                      mode: "full",
+                    },
+                  )
+                ).version?.key,
+              ).toBe(fixture.version.key);
+          }
+          for (const versionKey of [
+            "",
+            " \t\n ",
+            "_bad",
+            "-bad",
+            ".bad",
+            "a/b",
+            "a b",
+            "校车",
+            "x".repeat(121),
+          ]) {
+            if (method === "REST")
+              expect(
+                (await request.get(timetableUrl(versionKey))).status(),
+              ).toBe(400);
+            if (method === "GraphQL") {
+              const gql = await graph(versionKey);
+              const body = await gql.json();
+              expect(body.errors?.[0].extensions.code).toBe("BAD_USER_INPUT");
+            }
+            if (method === "MCP") {
+              const mcp = await client.callTool({
+                name: "catalog_bus_timetable_get",
+                arguments: { versionKey },
+              });
+              expect(mcp.isError).toBe(true);
             }
           }
-        }
-        for (const index of [0, 1]) {
-          await session(fixture.users[index].id);
-          const response = await page.request.get(
-            timetableUrl(fixture.version.key),
-          );
-          expect(response.status()).toBe(200);
-          const body = (await response.json()) as BusTimetableData;
-          expect(body.preferences).toMatchObject({
-            preferredOriginCampusId: fixture.campuses[index].id,
-            preferredDestinationCampusId: fixture.campuses[index + 1].id,
-            showDepartedTrips: index === 0,
-          });
-          expect(body.routes).toEqual(anonymous.routes);
-          expect(body.trips).toEqual(anonymous.trips);
-        }
-      },
-    ),
-  );
-});
-
-test("bus.version-key-boundary", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-}) => {
-  await calendarProtocolRun((io) =>
-    withFixture(
-      page,
-      io,
-      oauthOwner,
-      {
-        tools: Array(11).fill("catalog_bus_timetable_get"),
-        graphql: 11,
-        reads: 11,
-        sessions: 1,
-      },
-      async (fixture, client) => {
-        const request = io.request;
-        const graph = (versionKey: string) =>
-          page.request.post("/api/graphql", {
-            headers: { Origin: oauthOwner.worker.origin },
-            data: {
-              query:
-                "query($routeId:Int!,$key:String){catalog{busTimetable(routeId:$routeId,versionKey:$key){route{id} weekday{position}}}}",
-              variables: { routeId: fixture.routes[0].id, key: versionKey },
-            },
-          });
-        for (const versionKey of [
-          fixture.version.key,
-          ` \t${fixture.version.key}\n `,
-        ]) {
-          expect((await request.get(timetableUrl(versionKey))).status()).toBe(
-            200,
-          );
-          const gql = await graph(versionKey);
-          expect(gql.status()).toBe(200);
-          expect(await gql.json()).toMatchObject({
-            data: {
-              catalog: {
-                busTimetable: { route: { id: fixture.routes[0].id } },
-              },
-            },
-          });
-          expect(
-            (
-              await call<BusTimetableData>(
-                client,
-                "catalog_bus_timetable_get",
-                {
-                  versionKey,
-                  mode: "full",
+        },
+      ),
+    );
+  });
+}
+for (const method of ["REST", "GraphQL", "MCP"] as const) {
+  test(`bus.current-version-only ${method}`, { tag: `@Bus/${method}` }, async ({
+    page,
+    oauthOwner,
+    calendarProtocolRun,
+  }) => {
+    await calendarProtocolRun((io) =>
+      withFixture(
+        page,
+        io,
+        oauthOwner,
+        {
+          tools:
+            method === "MCP"
+              ? ["catalog_bus_route_list", "catalog_bus_timetable_get"]
+              : [],
+          graphql: method === "GraphQL" ? 2 : 0,
+          reads: method === "REST" ? 1 : 0,
+          sessions: 1,
+        },
+        async (fixture, client) => {
+          const request = io.request;
+          if (method === "REST") {
+            const response = await request.get("/api/catalog/bus?locale=en-us");
+            expect(response.status()).toBe(200);
+            const current = (await response.json()) as BusTimetableData;
+            expect(current.routes.length).toBeGreaterThan(0);
+            expect(current.routes.map(({ id }) => id)).toEqual([
+              facts.bus.routeId,
+            ]);
+          }
+          const current = { routes: [{ id: facts.bus.routeId }] };
+          if (method === "MCP") {
+            const listed = await call<{ routes: { id: number }[] }>(
+              client,
+              "catalog_bus_route_list",
+              { locale: "en-us" },
+            );
+            expect(listed.routes.map(({ id }) => id)).toEqual(
+              current.routes.map(({ id }) => id),
+            );
+            for (const route of fixture.routes)
+              expect(listed.routes.map(({ id }) => id)).not.toContain(route.id);
+          }
+          if (method === "GraphQL") {
+            const collected: number[] = [];
+            const totalPages = Math.max(
+              1,
+              Math.ceil(current.routes.length / 2),
+            );
+            for (
+              let pageNumber = 1;
+              pageNumber <= totalPages + 1;
+              pageNumber++
+            ) {
+              const response = await page.request.post("/api/graphql", {
+                headers: { Origin: oauthOwner.worker.origin },
+                data: {
+                  query:
+                    "query($page:PageInput!){catalog{busRoutes(page:$page){items{id} pageInfo{page pageSize total totalPages}}}}",
+                  variables: { page: { page: pageNumber, pageSize: 2 } },
                 },
-              )
-            ).version?.key,
-          ).toBe(fixture.version.key);
-        }
-        for (const versionKey of [
-          "",
-          " \t\n ",
-          "_bad",
-          "-bad",
-          ".bad",
-          "a/b",
-          "a b",
-          "校车",
-          "x".repeat(121),
-        ]) {
-          expect((await request.get(timetableUrl(versionKey))).status()).toBe(
-            400,
-          );
-          const gql = await graph(versionKey);
-          const body = await gql.json();
-          expect(body.errors?.[0].extensions.code).toBe("BAD_USER_INPUT");
-          const mcp = await client.callTool({
-            name: "catalog_bus_timetable_get",
-            arguments: { versionKey },
-          });
-          expect(mcp.isError).toBe(true);
-        }
-      },
-    ),
-  );
-});
-
-test("bus.current-version-only", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-}) => {
-  await calendarProtocolRun((io) =>
-    withFixture(
-      page,
-      io,
-      oauthOwner,
-      {
-        tools: ["catalog_bus_route_list", "catalog_bus_timetable_get"],
-        graphql: 2,
-        reads: 1,
-        sessions: 1,
-      },
-      async (fixture, client) => {
-        const request = io.request;
-        const response = await request.get("/api/catalog/bus?locale=en-us");
-        expect(response.status()).toBe(200);
-        const current = (await response.json()) as BusTimetableData;
-        expect(current.routes.length).toBeGreaterThan(0);
-        expect(current.routes.map(({ id }) => id)).toEqual([facts.bus.routeId]);
-        const listed = await call<{ routes: { id: number }[] }>(
-          client,
-          "catalog_bus_route_list",
-          { locale: "en-us" },
-        );
-        expect(listed.routes.map(({ id }) => id)).toEqual(
-          current.routes.map(({ id }) => id),
-        );
-        for (const route of fixture.routes)
-          expect(listed.routes.map(({ id }) => id)).not.toContain(route.id);
-        const collected: number[] = [];
-        const totalPages = Math.max(1, Math.ceil(current.routes.length / 2));
-        for (let pageNumber = 1; pageNumber <= totalPages + 1; pageNumber++) {
-          const response = await page.request.post("/api/graphql", {
-            headers: { Origin: oauthOwner.worker.origin },
-            data: {
-              query:
-                "query($page:PageInput!){catalog{busRoutes(page:$page){items{id} pageInfo{page pageSize total totalPages}}}}",
-              variables: { page: { page: pageNumber, pageSize: 2 } },
-            },
-          });
-          expect(response.status()).toBe(200);
-          const graph = await response.json();
-          expect(graph.errors).toBeUndefined();
-          const result = graph.data.catalog.busRoutes;
-          expect(result.pageInfo).toEqual({
-            page: pageNumber,
-            pageSize: 2,
-            total: current.routes.length,
-            totalPages,
-          });
-          const ids = result.items.map((route: { id: number }) => route.id);
-          expect(ids).toEqual(
-            current.routes
-              .slice((pageNumber - 1) * 2, pageNumber * 2)
-              .map((route) => route.id),
-          );
-          collected.push(...ids);
-        }
-        expect(collected).toEqual(listed.routes.map((route) => route.id));
-        const historical = await call<BusTimetableData>(
-          client,
-          "catalog_bus_timetable_get",
-          { versionKey: fixture.version.key, mode: "full" },
-        );
-        expect(historical.routes.map(({ id }) => id)).toEqual(
-          fixture.routes.map(({ id }) => id),
-        );
-      },
-    ),
-  );
-});
-
-test("bus.canonical-compact-mode", async ({
+              });
+              expect(response.status()).toBe(200);
+              const graph = await response.json();
+              expect(graph.errors).toBeUndefined();
+              const result = graph.data.catalog.busRoutes;
+              expect(result.pageInfo).toEqual({
+                page: pageNumber,
+                pageSize: 2,
+                total: current.routes.length,
+                totalPages,
+              });
+              const ids = result.items.map((route: { id: number }) => route.id);
+              expect(ids).toEqual(
+                current.routes
+                  .slice((pageNumber - 1) * 2, pageNumber * 2)
+                  .map((route) => route.id),
+              );
+              collected.push(...ids);
+            }
+            expect(collected).toEqual([facts.bus.routeId]);
+          }
+          if (method === "MCP") {
+            const historical = await call<BusTimetableData>(
+              client,
+              "catalog_bus_timetable_get",
+              { versionKey: fixture.version.key, mode: "full" },
+            );
+            expect(historical.routes.map(({ id }) => id)).toEqual(
+              fixture.routes.map(({ id }) => id),
+            );
+          }
+        },
+      ),
+    );
+  });
+}
+test("bus.canonical-compact-mode", { tag: "@Bus/MCP" }, async ({
   page,
   oauthOwner,
   calendarProtocolRun,

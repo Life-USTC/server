@@ -12,11 +12,13 @@ import { test } from "./_fixture";
 test.describe.configure({ mode: "parallel" });
 test.use({ locale: "en-US" });
 
-test("/admin/bus 未登录重定向到登录页", async ({ page }) => {
+test("/admin/bus 未登录重定向到登录页", { tag: "@Bus/Web" }, async ({
+  page,
+}) => {
   await expectRequiresSignIn(page, "/admin/bus");
 });
 
-test("/admin/bus 普通用户访问返回 403", async ({
+test("/admin/bus 普通用户访问返回 403", { tag: "@Bus/Web" }, async ({
   pageRun,
   page,
   isolatedWorker,
@@ -36,7 +38,7 @@ test("/admin/bus 普通用户访问返回 403", async ({
   );
 });
 
-test("/admin/bus 显示所有必需的版本字段", async ({
+test("/admin/bus 显示所有必需的版本字段", { tag: "@Bus/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -68,7 +70,7 @@ test("/admin/bus 显示所有必需的版本字段", async ({
   );
 });
 
-test("/admin/bus 版本表格包含班次数量", async ({
+test("/admin/bus 版本表格包含班次数量", { tag: "@Bus/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -93,7 +95,7 @@ test("/admin/bus 版本表格包含班次数量", async ({
   );
 });
 
-test("/admin/bus 主导航入口可见且可跳转", async ({
+test("/admin/bus 主导航入口可见且可跳转", { tag: "@Bus/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -120,7 +122,7 @@ test("/admin/bus 主导航入口可见且可跳转", async ({
   );
 });
 
-test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
+test("/admin/bus 激活版本受保护且导入弹窗可打开", { tag: "@Bus/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -162,7 +164,7 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
 for (const initiallyActive of [0, 1])
   test.describe(`isolated active state ${initiallyActive}`, () => {
     test.use({ initiallyActive });
-    test("/admin/bus 激活非当前版本需要二次确认", async ({
+    test("/admin/bus 激活非当前版本需要二次确认", { tag: "@Bus/Web" }, async ({
       adminFlow,
       run,
       page,
@@ -256,7 +258,7 @@ for (const initiallyActive of [0, 1])
     });
   });
 
-test("/admin/bus 移动端首条版本操作可达", async ({
+test("/admin/bus 移动端首条版本操作可达", { tag: "@Bus/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -298,7 +300,13 @@ test("/admin/bus 移动端首条版本操作可达", async ({
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, admin, busState }) => {
+test("页面契约", { tag: "@Bus/Web" }, async ({
+  adminFlow,
+  run,
+  page,
+  admin,
+  busState,
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {

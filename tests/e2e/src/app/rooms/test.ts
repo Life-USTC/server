@@ -81,13 +81,19 @@ async function mockRoomMap(page: Page) {
 }
 
 test.describe("/catalog/rooms 教室地图", () => {
-  test("页面契约", async ({ page, preferenceFlow }) => {
+  test("页面契约", { tag: "@Catalog/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await assertPageContract(page, { routePath: "/catalog/rooms" });
     });
   });
 
-  test("room-map.expanded-map-view", async ({ page, preferenceFlow }) => {
+  test("room-map.expanded-map-view", { tag: "@Catalog/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await mockRoomMap(page);
       for (const width of [1280, 390]) {
@@ -114,7 +120,7 @@ test.describe("/catalog/rooms 教室地图", () => {
     });
   });
 
-  test("room-map.web", async ({
+  test("room-map.web", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     roomSchedule: _roomSchedule,
@@ -144,7 +150,7 @@ test.describe("/catalog/rooms 教室地图", () => {
       await expect(trigger).toBeFocused();
     });
   });
-  test("room-map.keyboard-map-access", async ({
+  test("room-map.keyboard-map-access", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     roomSchedule: _roomSchedule,
@@ -167,7 +173,10 @@ test.describe("/catalog/rooms 教室地图", () => {
     });
   });
 
-  test("移动端点击房间后打开地图", async ({ page, preferenceFlow }) => {
+  test("移动端点击房间后打开地图", { tag: "@Catalog/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await mockRoomMap(page);
@@ -187,7 +196,10 @@ test.describe("/catalog/rooms 教室地图", () => {
       );
     });
   });
-  test("网络失败后再次查询同一教室会重试", async ({ page, preferenceFlow }) => {
+  test("网络失败后再次查询同一教室会重试", { tag: "@Catalog/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       let requests = 0;
       await page.route("**/api/catalog/rooms/**/map", async (route) => {

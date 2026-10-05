@@ -99,7 +99,7 @@ const visibleRows = (page: Page, width: number) =>
         .getByRole("row")
         .filter({ has: page.locator('a[href^="/catalog/sections/"]') });
 
-test("exam.attached-to-section", async ({
+test("exam.attached-to-section", { tag: "@Exam/Web" }, async ({
   page,
   examData: data,
   calendarRun,
@@ -134,7 +134,7 @@ test("exam.attached-to-section", async ({
   );
 });
 
-test("exam.semester-required", async ({
+test("exam.semester-required", { tag: "@Exam/Web" }, async ({
   page,
   examData: data,
   calendarRun,
@@ -168,7 +168,7 @@ test("exam.semester-required", async ({
   );
 });
 
-test("exam.read-only", async ({
+test("exam.read-only", { tag: "@Exam/Web" }, async ({
   page,
   examData: data,
   calendarRun,
@@ -218,7 +218,7 @@ test("exam.read-only", async ({
   );
 });
 
-test("exam.mobile-toolbar-priority", async ({
+test("exam.mobile-toolbar-priority", { tag: "@Exam/Web" }, async ({
   page,
   examData: data,
   calendarRun,
@@ -246,7 +246,7 @@ test("exam.mobile-toolbar-priority", async ({
   );
 });
 
-test("exam.mobile-display-overflow", async ({
+test("exam.mobile-display-overflow", { tag: "@Exam/Web" }, async ({
   page,
   examData: data,
   calendarRun,
@@ -317,7 +317,7 @@ test("exam.mobile-display-overflow", async ({
   );
 });
 
-test("exam.mobile-toolbar-targets", async ({
+test("exam.mobile-toolbar-targets", { tag: "@Exam/Web" }, async ({
   page,
   examData: data,
   calendarRun,

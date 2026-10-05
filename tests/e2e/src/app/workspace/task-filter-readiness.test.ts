@@ -77,6 +77,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
   if (tab === "todos") {
     todoTest(
       `ui.workspace-filters-and-empty-states-2 (${tab})`,
+      { tag: "@Todo/Web" },
       async ({ page, todoRun }) => {
         await todoRun(() => verify(page), { calendarMessages: [] });
       },
@@ -84,6 +85,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
   } else {
     academicTest(
       `ui.workspace-filters-and-empty-states-2 (${tab})`,
+      { tag: `@${tab === "exams" ? "Exam" : "Homework"}/Web` },
       async ({ page, academic: _academic, homeworkRun }) => {
         await homeworkRun(() => verify(page), {
           calendarMessages: [],

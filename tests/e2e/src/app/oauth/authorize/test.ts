@@ -40,7 +40,7 @@ function buildAuthorizeApiUrl(params: Record<string, string>) {
   return `/api/auth/oauth2/authorize?${new URLSearchParams(params).toString()}`;
 }
 
-test("/oauth/authorize 未登录时重定向到登录页", async ({
+test("/oauth/authorize 未登录时重定向到登录页", { tag: "@OAuth/Web" }, async ({
   oauthRun,
   page,
   request,
@@ -67,7 +67,7 @@ test("/oauth/authorize 未登录时重定向到登录页", async ({
   });
 });
 
-test("/oauth/authorize 登录后恢复原授权请求", async ({
+test("/oauth/authorize 登录后恢复原授权请求", { tag: "@OAuth/Web" }, async ({
   oauthRun,
   page,
   request,
@@ -107,7 +107,7 @@ test("/oauth/authorize 登录后恢复原授权请求", async ({
   });
 });
 
-test("/oauth/authorize 无效客户端展示错误", async ({
+test("/oauth/authorize 无效客户端展示错误", { tag: "@OAuth/Web" }, async ({
   oauthRun,
   page,
   actor: _actor,
@@ -137,7 +137,7 @@ test("/oauth/authorize 无效客户端展示错误", async ({
   });
 });
 
-test("/oauth/authorize 拒绝授权时带 error 回跳", async ({
+test("/oauth/authorize 拒绝授权时带 error 回跳", { tag: "@OAuth/Web" }, async ({
   oauthRun,
   page,
   request,
@@ -188,7 +188,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({
   );
 });
 
-test("oauth.user-consent-framing", async ({
+test("oauth.user-consent-framing", { tag: "@OAuth/Web" }, async ({
   oauthRun,
   page,
   request,
@@ -290,13 +290,13 @@ test("oauth.user-consent-framing", async ({
   );
 });
 
-test("页面契约", async ({ oauthRun, page }) => {
+test("页面契约", { tag: "@OAuth/Web" }, async ({ oauthRun, page }) => {
   await oauthRun(null, async () => {
     await assertPageContract(page, { routePath: "/oauth/authorize" });
   });
 });
 
-test("user.oauth-consent-loopback-continuation", async ({
+test("user.oauth-consent-loopback-continuation", { tag: "@OAuth/Web" }, async ({
   oauthRun,
   page,
   request,
@@ -357,7 +357,7 @@ test("user.oauth-consent-loopback-continuation", async ({
   );
 });
 
-test("oauth.auth-page-clarity", async ({
+test("oauth.auth-page-clarity", { tag: "@OAuth/Web" }, async ({
   oauthRun,
   page,
   actor: _actor,

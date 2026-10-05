@@ -73,9 +73,9 @@ function descriptionAudit(userId: string, descriptionId: string) {
   };
 }
 
-test("MCP section homework list consumes independently prepared state", async ({
-  mcpRun,
-}) => {
+test("MCP section homework list consumes independently prepared state", {
+  tag: "@Homework/MCP",
+}, async ({ mcpRun }) => {
   await mcpRun(
     {
       calls: [
@@ -126,9 +126,9 @@ test("MCP section homework list consumes independently prepared state", async ({
   );
 });
 
-test("MCP section homework create commits independently", async ({
-  mcpRun,
-}) => {
+test("MCP section homework create commits independently", {
+  tag: "@Homework/MCP",
+}, async ({ mcpRun }) => {
   await mcpRun(
     {
       calls: [
@@ -241,9 +241,9 @@ test("MCP section homework create commits independently", async ({
   );
 });
 
-test("MCP section homework update commits independently", async ({
-  mcpRun,
-}) => {
+test("MCP section homework update commits independently", {
+  tag: "@Homework/MCP",
+}, async ({ mcpRun }) => {
   await mcpRun(
     {
       calls: [
@@ -336,9 +336,9 @@ test("MCP section homework update commits independently", async ({
   );
 });
 
-test("MCP section homework description-only update preserves homework fields", async ({
-  mcpRun,
-}) => {
+test("MCP section homework description-only update preserves homework fields", {
+  tag: "@Homework/MCP",
+}, async ({ mcpRun }) => {
   await mcpRun(
     {
       calls: [
@@ -406,9 +406,9 @@ test("MCP section homework description-only update preserves homework fields", a
   );
 });
 
-test("MCP section homework no-change update preserves independently prepared state", async ({
-  mcpRun,
-}) => {
+test("MCP section homework no-change update preserves independently prepared state", {
+  tag: "@Homework/MCP",
+}, async ({ mcpRun }) => {
   await mcpRun(
     {
       calls: [
@@ -444,9 +444,9 @@ test("MCP section homework no-change update preserves independently prepared sta
   );
 });
 
-test("MCP section homework delete commits independently", async ({
-  mcpRun,
-}) => {
+test("MCP section homework delete commits independently", {
+  tag: "@Homework/MCP",
+}, async ({ mcpRun }) => {
   await mcpRun(
     {
       calls: [

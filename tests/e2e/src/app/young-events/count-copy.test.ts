@@ -53,12 +53,9 @@ async function createYoungCountFixture(
   return { ...identity, contextOrganizer };
 }
 for (const count of [0, 1, 2]) {
-  test(`young.localized-count-copy count=${count}`, async ({
-    page,
-    request,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test(`young.localized-count-copy count=${count}`, {
+    tag: "@Young/Web",
+  }, async ({ page, request, isolatedWorker, calendarProtocolRun }) => {
     test.setTimeout(300_000);
     const baseURL = isolatedWorker.origin;
     const db = isolatedWorker.database.owner;

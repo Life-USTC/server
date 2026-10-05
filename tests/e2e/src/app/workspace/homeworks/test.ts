@@ -37,7 +37,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("登录后显示独立作业及所有必填字段", async ({
+  test("登录后显示独立作业及所有必填字段", { tag: "@Homework/Web" }, async ({
     page,
     academic,
     homeworks,
@@ -85,7 +85,7 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("协作作业显示重要和团队徽章", async ({
+  test("协作作业显示重要和团队徽章", { tag: "@Homework/Web" }, async ({
     page,
     homeworks,
     homeworkRun,
@@ -115,7 +115,7 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("可在筛选标签之间切换", async ({
+  test("可在筛选标签之间切换", { tag: "@Homework/Web" }, async ({
     page,
     homeworkStates,
     homeworkRun,
@@ -143,11 +143,9 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({
-    page,
-    homeworks,
-    homeworkRun,
-  }) => {
+  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", {
+    tag: "@Homework/Web",
+  }, async ({ page, homeworks, homeworkRun }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
@@ -178,12 +176,9 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("作业详情链接到班级页面且不打开第二层详情", async ({
-    page,
-    academic,
-    homeworks,
-    homeworkRun,
-  }) => {
+  test("作业详情链接到班级页面且不打开第二层详情", {
+    tag: "@Homework/Web",
+  }, async ({ page, academic, homeworks, homeworkRun }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");

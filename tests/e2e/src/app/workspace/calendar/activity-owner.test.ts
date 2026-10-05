@@ -2,7 +2,7 @@ import { expect, type Route } from "@playwright/test";
 import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
 import { test } from "../../../../utils/calendar-presentation-fixture";
 
-test("calendar.activity-owner-transition", async ({
+test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
   page,
   calendar,
   calendarDb,

@@ -5,7 +5,7 @@ import { test as publicTest } from "../../../../utils/public-worker";
 
 test.describe.configure({ mode: "parallel" });
 
-test("/community/comments/[id] 页面契约", async ({
+test("/community/comments/[id] 页面契约", { tag: "@Comment/Web" }, async ({
   communityFlow,
   page,
   comment,
@@ -36,6 +36,7 @@ test("/community/comments/[id] 页面契约", async ({
 
 publicTest(
   "/community/comments/[id] 无效参数返回 404",
+  { tag: "@Comment/Web" },
   async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(
@@ -48,12 +49,9 @@ publicTest(
   },
 );
 
-test("/community/comments/[id] 公开评论为匿名读者重定向到目标页面", async ({
-  communityFlow,
-  page,
-  comment,
-  community,
-}) => {
+test("/community/comments/[id] 公开评论为匿名读者重定向到目标页面", {
+  tag: "@Comment/Web",
+}, async ({ communityFlow, page, comment, community }) => {
   await communityFlow.run(async () => {
     await page.context().clearCookies();
     await gotoAndWaitForReady(page, `/community/comments/${comment.id}`, {
@@ -69,12 +67,9 @@ test("/community/comments/[id] 公开评论为匿名读者重定向到目标页�
   }, {});
 });
 
-test("/community/comments/[id] 按目标解析到对应详情页锚点", async ({
-  communityFlow,
-  page,
-  account,
-  community,
-}) => {
+test("/community/comments/[id] 按目标解析到对应详情页锚点", {
+  tag: "@Comment/Web",
+}, async ({ communityFlow, page, account, community }) => {
   await communityFlow.run(async () => {
     // Known state: one comment per catalog target, seeded directly. The
     // canonical address differs per target, so each one is read on its own

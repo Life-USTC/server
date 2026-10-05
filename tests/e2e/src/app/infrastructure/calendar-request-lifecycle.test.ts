@@ -19,12 +19,9 @@ function calendarRange(request: Request, day: string) {
 }
 
 for (const failAfterRelease of [false, true]) {
-  test(`calendar cancellation ${failAfterRelease ? "reports the real old-range handler failure" : "joins the real old-range handler before closing its page"}`, async ({
-    calendar,
-    isolatedWorker,
-    page,
-    run,
-  }) => {
+  test(`calendar cancellation ${failAfterRelease ? "reports the real old-range handler failure" : "joins the real old-range handler before closing its page"}`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ calendar, isolatedWorker, page, run }) => {
     await run(async () => {
       const barrier = await calendarLifecycleBarrier(isolatedWorker.database);
       const finalization = observeCalendarFinalization(page, barrier);

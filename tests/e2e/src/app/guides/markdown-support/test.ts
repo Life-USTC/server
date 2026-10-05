@@ -12,7 +12,7 @@ import { test } from "../../../../utils/public-worker";
 import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/guides/markdown-support Markdown 支持页", () => {
-  test("页面契约", async ({ page, publicFlow }) => {
+  test("页面契约", { tag: "@Site/Web" }, async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
       await assertPageContract(page, {
         routePath: "/guides/markdown-support",
@@ -20,7 +20,10 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     });
   });
 
-  test("渲染 Markdown 指南，包含代码块与表格", async ({ page, publicFlow }) => {
+  test("渲染 Markdown 指南，包含代码块与表格", { tag: "@Site/Web" }, async ({
+    page,
+    publicFlow,
+  }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(page, "/guides/markdown-support", {
         waitUntil: "load",
@@ -36,10 +39,9 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     });
   });
 
-  test("桌面和移动端共享段落间距与首行缩进，图片和列表不缩进", async ({
-    page,
-    publicFlow,
-  }) => {
+  test("桌面和移动端共享段落间距与首行缩进，图片和列表不缩进", {
+    tag: "@Site/Web",
+  }, async ({ page, publicFlow }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(page, "/guides/markdown-support");
 
@@ -70,7 +72,10 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     });
   });
 
-  test("comment.markdown-font-csp", async ({ page, publicFlow }) => {
+  test("comment.markdown-font-csp", { tag: "@Site/Web" }, async ({
+    page,
+    publicFlow,
+  }) => {
     await publicFlow.run(async () => {
       const fontConsoleErrors: string[] = [];
       page.on("console", (message) => {

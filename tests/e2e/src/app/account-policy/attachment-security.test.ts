@@ -2,10 +2,9 @@ import { type APIRequestContext, expect } from "@playwright/test";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
 import { test } from "./attachment-security-fixture";
 
-test("cases.content-security.upload-attachment-download-1", async ({
-  page,
-  attachmentSecurityRun,
-}) => {
+test("cases.content-security.upload-attachment-download-1", {
+  tag: "@Upload/REST",
+}, async ({ page, attachmentSecurityRun }) => {
   await attachmentSecurityRun(async (f) => {
     const { marker, contents } = f;
     const upload = await createUploadedFileViaApi(page.request, {

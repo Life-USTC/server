@@ -52,7 +52,7 @@ const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 test.describe("/catalog/courses/[jwId] 课程详情", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -64,7 +64,10 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("无效参数返回 404", async ({ page, preferenceFlow }) => {
+  test("无效参数返回 404", { tag: "@Catalog/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/courses/999999999", {
         expectMainContent: false,
@@ -78,7 +81,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("显示课程名称、代码和基本信息", async ({
+  test("显示课程名称、代码和基本信息", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -98,7 +101,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("显示培养层次、课程类别和教学班类型", async ({
+  test("显示培养层次、课程类别和教学班类型", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -135,7 +138,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", async ({
+  test("详情流式布局包含主要锚点区块", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -157,7 +160,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("ui.detail-hero-5", async ({
+  test("ui.detail-hero-5", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -188,7 +191,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Description ─────────────────────────────────────────────────────────────
 
-  test("同路由导航重置目标范围内的简介状态", async ({
+  test("同路由导航重置目标范围内的简介状态", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -218,6 +221,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   communityTest(
     "登录用户可以编辑课程简介",
+    { tag: "@Description/Web" },
     async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
@@ -329,6 +333,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   communityTest(
     "登录用户发布的评论绑定到课程目标",
+    { tag: "@Comment/Web" },
     async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
@@ -391,7 +396,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("SSR 保留 sanitized Markdown 简介", async ({
+  test("SSR 保留 sanitized Markdown 简介", { tag: "@Catalog/Web" }, async ({
     preferenceFlow,
     detailCatalog: _detailCatalog,
     isolatedWorker,
@@ -414,7 +419,7 @@ test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
   });
 });
 
-test("页面契约", async ({
+test("页面契约", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   detailCatalog: _detailCatalog,

@@ -10,12 +10,9 @@ for (const viewport of [
   { width: 390, height: 844 },
 ]) {
   for (const action of ["complete", "delete"] as const) {
-    test(`todo ${action} updates filters and calendar ${viewport.width}`, async ({
-      todoActor,
-      todoRun,
-      page,
-      todoState,
-    }) => {
+    test(`todo ${action} updates filters and calendar ${viewport.width}`, {
+      tag: "@Todo/Web",
+    }, async ({ todoActor, todoRun, page, todoState }) => {
       await todoRun(
         async (effects) => {
           test.setTimeout(90_000);

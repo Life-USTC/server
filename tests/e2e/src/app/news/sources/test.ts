@@ -4,17 +4,15 @@ import { test } from "../../../../utils/publication-fixture";
 import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/news/sources 来源目录", () => {
-  test("页面契约", async ({ browseRun, page }) => {
+  test("页面契约", { tag: "@Publication/Web" }, async ({ browseRun, page }) => {
     await browseRun(async () => {
       await assertPageContract(page, { routePath: "/news/sources" });
     });
   });
 
-  test("按组织层级分组并显示各来源的内容数", async ({
-    browseRun,
-    page,
-    publication: fixture,
-  }) => {
+  test("按组织层级分组并显示各来源的内容数", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       await gotoAndWaitForReady(page, "/news/sources");
 
@@ -56,7 +54,7 @@ test.describe("/news/sources 来源目录", () => {
     });
   });
 
-  test("来源条目链接到该来源的列表筛选", async ({
+  test("来源条目链接到该来源的列表筛选", { tag: "@Publication/Web" }, async ({
     browseRun,
     page,
     publication: fixture,
@@ -94,7 +92,7 @@ test.describe("/news/sources 来源目录", () => {
     });
   });
 
-  test("REST 来源目录与页面显示一致", async ({
+  test("REST 来源目录与页面显示一致", { tag: "@Publication/REST" }, async ({
     run,
     request,
     publication: fixture,

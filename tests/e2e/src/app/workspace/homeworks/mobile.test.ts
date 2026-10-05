@@ -6,7 +6,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("homework.mobile-toolbar-priority", async ({
+  test("homework.mobile-toolbar-priority", { tag: "@Homework/Web" }, async ({
     page,
     homeworks: _homeworks,
     homeworkRun,
@@ -77,11 +77,9 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("移动端新建作业保留内部滚动和可见底部操作", async ({
-    page,
-    academic: _academic,
-    homeworkRun,
-  }) => {
+  test("移动端新建作业保留内部滚动和可见底部操作", {
+    tag: "@Homework/Web",
+  }, async ({ page, academic: _academic, homeworkRun }) => {
     await homeworkRun(
       async () => {
         await page.setViewportSize({ height: 568, width: 320 });
@@ -169,12 +167,9 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("移动端作业详情长内容保持底部操作可达", async ({
-    page,
-    academic,
-    homeworkRun,
-    storedHomeworks,
-  }) => {
+  test("移动端作业详情长内容保持底部操作可达", {
+    tag: "@Homework/Web",
+  }, async ({ page, academic, homeworkRun, storedHomeworks }) => {
     await homeworkRun(
       async () => {
         test.setTimeout(90_000);

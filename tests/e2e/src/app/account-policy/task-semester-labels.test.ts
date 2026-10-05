@@ -153,30 +153,30 @@ async function assertTaskSemesterLabels(
   });
 }
 
-test("cases.semester.cross-semester-browsing-3", async ({
-  page,
-  isolatedWorker,
-  calendarProtocolRun,
-}, testInfo) => {
-  await assertTaskSemesterLabels(
-    page,
-    "homeworks",
-    testInfo,
-    isolatedWorker,
-    calendarProtocolRun,
-  );
-});
+test(
+  "cases.semester.cross-semester-browsing-3",
+  { tag: "@Homework/Web" },
+  async ({ page, isolatedWorker, calendarProtocolRun }, testInfo) => {
+    await assertTaskSemesterLabels(
+      page,
+      "homeworks",
+      testInfo,
+      isolatedWorker,
+      calendarProtocolRun,
+    );
+  },
+);
 
-test("cases.semester.cross-semester-browsing-4", async ({
-  page,
-  isolatedWorker,
-  calendarProtocolRun,
-}, testInfo) => {
-  await assertTaskSemesterLabels(
-    page,
-    "exams",
-    testInfo,
-    isolatedWorker,
-    calendarProtocolRun,
-  );
-});
+test(
+  "cases.semester.cross-semester-browsing-4",
+  { tag: "@Todo/Web" },
+  async ({ page, isolatedWorker, calendarProtocolRun }, testInfo) => {
+    await assertTaskSemesterLabels(
+      page,
+      "exams",
+      testInfo,
+      isolatedWorker,
+      calendarProtocolRun,
+    );
+  },
+);

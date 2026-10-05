@@ -21,6 +21,8 @@ function eventLink(page: Page, fixture: YoungBrowseFixture, index: number) {
     .locator(`a[href="${root}/${fixture.eventIds[index]}"]:visible`)
     .first();
 }
+// Browse links still carry their return context; the detail page no longer
+// renders an in-page back link, so the browser history returns to the list.
 async function returnFromDetail(
   page: Page,
   fixture: YoungBrowseFixture,
@@ -34,12 +36,20 @@ async function returnFromDetail(
   expect(new URL(page.url()).searchParams.get("returnTo")).toBe(
     new URL(origin).pathname + new URL(origin).search,
   );
-  await page
-    .getByRole("link", {
+  await expect(
+    page.getByRole("link", {
       name: /返回活动列表|Back to all events|返回日历|Back to calendar|返回主办方|Back to organizers/,
-    })
-    .click();
+    }),
+  ).toHaveCount(0);
+  await page.goBack();
   await expect(page).toHaveURL(origin);
+}
+async function openYoungSidebar(page: Page) {
+  const sidebar = page.getByTestId("young-sidebar");
+  if (!(await sidebar.isVisible()))
+    await page.locator('[data-slot="sidebar-trigger"]').click();
+  await expect(sidebar).toBeVisible();
+  return sidebar;
 }
 function sharedContext(page: Page, expected: Record<string, string>) {
   expect(Object.fromEntries(new URL(page.url()).searchParams)).toMatchObject(
@@ -47,7 +57,7 @@ function sharedContext(page: Page, expected: Record<string, string>) {
   );
 }
 
-test("young-event.web-browse-context", async ({
+test("young-event.web-browse-context", { tag: "@Young/Web" }, async ({
   page,
   fixture,
   preferenceFlow,
@@ -69,11 +79,11 @@ test("young-event.web-browse-context", async ({
         `${root}?${new URLSearchParams(filters)}`,
       );
       await returnFromDetail(page, fixture, 0);
-      await page
-        .getByTestId("young-browse-nav")
-        .getByRole("link", { name: /^(日历|Calendar)$/ })
-        .click();
       sharedContext(page, filters);
+      await expect(
+        page.locator("#main-content").getByRole("searchbox"),
+      ).toBeVisible();
+      await expect(eventLink(page, fixture, 0)).toBeVisible();
       const calendarUrl = new URL(page.url());
       calendarUrl.pathname = `${root}/calendar`;
       calendarUrl.searchParams.set("date", "2035-09-15");
@@ -83,18 +93,31 @@ test("young-event.web-browse-context", async ({
         calendarUrl.pathname + calendarUrl.search,
       );
       await returnFromDetail(page, fixture, 0);
-      await page
-        .getByTestId("young-browse-nav")
-        .getByRole("link", {
-          name: /^(活动名称|Event name|活动|Events|Event)$/,
-        })
-        .click();
-      sharedContext(page, filters);
       await gotoAndWaitForReady(
         page,
         `${root}/organizers/${fixture.organizerIds[0]}?page=1`,
       );
       await returnFromDetail(page, fixture, 0);
+      await gotoAndWaitForReady(
+        page,
+        `${root}?${new URLSearchParams(filters)}`,
+      );
+      const sidebar = await openYoungSidebar(page);
+      await sidebar
+        .getByRole("link", { name: /^(活动日历|Event calendar)$/ })
+        .click();
+      await expect(page).toHaveURL(/\/catalog\/young-events\/calendar$/);
+      await expect(
+        page.locator("#main-content").getByRole("searchbox"),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: /更多筛选|More filters/ }),
+      ).toHaveCount(0);
+      const listNav = await openYoungSidebar(page);
+      await listNav
+        .getByRole("link", { name: /^(活动列表|Activity list)$/ })
+        .click();
+      await expect(page).toHaveURL(/\/catalog\/young-events$/);
       for (const timeBasis of ["activity", "registration"]) {
         await gotoAndWaitForReady(
           page,
@@ -127,7 +150,7 @@ test("young-event.web-browse-context", async ({
   });
 });
 
-test("young-event.web-organizer-order", async ({
+test("young-event.web-organizer-order", { tag: "@Young/Web" }, async ({
   page,
   fixture,
   preferenceFlow,
@@ -174,93 +197,110 @@ test("young-event.web-organizer-order", async ({
   });
 });
 
-test("young-event.fixed-browse-filter-options", async ({
-  page,
-  fixture,
-  preferenceFlow,
-}, testInfo) => {
-  await preferenceFlow.run(async () => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(
-      page,
-      `${root}?${new URLSearchParams({ search: fixture.search })}`,
-    );
-    await expect(eventLink(page, fixture, 7)).toContainText("未知模块");
-    await expect(eventLink(page, fixture, 7)).toContainText("未知级别");
-    for (const view of ["events", "calendar"]) {
-      const prefix = view === "events" ? "young-event" : "young-calendar";
-      const path = view === "events" ? root : `${root}/calendar`;
-      const context = {
-        search: fixture.search,
-        module: "未知模块",
-        activityLevel: "未知级别",
-        ...(view === "calendar" ? { date: "2035-09-15", view: "day" } : {}),
-      };
+test(
+  "young-event.fixed-browse-filter-options",
+  { tag: "@Young/Web" },
+  async ({ page, fixture, preferenceFlow }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(
         page,
-        `${path}?${new URLSearchParams(context)}`,
+        `${root}?${new URLSearchParams({ search: fixture.search })}`,
       );
-      const applied = page.getByRole("group", {
-        name: /已选条件|Applied filters/,
-      });
-      await expect(applied).toContainText("未知模块");
-      await expect(applied).toContainText("未知级别");
-      await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
-      const dialog = page.getByRole("dialog");
-      const module = dialog.locator(`#${prefix}-module`);
-      const level = dialog.locator(`#${prefix}-activity-level`);
-      await page.screenshot({
-        path: testInfo.outputPath(`unknown-filter-context-${view}.png`),
-      });
-      expect(
-        await module
-          .locator("option:not([disabled])")
-          .evaluateAll((options) =>
-            options.map((option) => (option as HTMLOptionElement).value),
-          ),
-      ).toEqual(["", "德", "智", "体", "美", "劳"]);
-      expect(
-        await level
-          .locator("option:not([disabled])")
-          .evaluateAll((options) =>
-            options.map((option) => (option as HTMLOptionElement).value),
-          ),
-      ).toEqual(["", "班级", "院级", "校级", "省级", "国家级"]);
-      await expect(module).toHaveValue("未知模块");
-      await expect(level).toHaveValue("未知级别");
-      await dialog.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-      await expect(dialog).toBeHidden();
-      sharedContext(page, context);
-      const primarySearch = `${fixture.search} 07`;
-      await page.getByRole("searchbox").fill(primarySearch);
-      await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-      await expect(page).toHaveURL(
-        (url) => url.searchParams.get("search") === primarySearch,
-      );
-      sharedContext(page, { ...context, search: primarySearch });
-      await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
-      await expect(dialog).toBeVisible();
-      await module.selectOption("智");
-      await level.selectOption("校级");
-      await dialog.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-      await expect(page).toHaveURL(
-        (url) =>
-          url.searchParams.get("module") === "智" &&
-          url.searchParams.get("activityLevel") === "校级",
-      );
+      await expect(eventLink(page, fixture, 7)).toContainText("未知模块");
+      await expect(eventLink(page, fixture, 7)).toContainText("未知级别");
+      // The calendar consumes the same filters from the URL but owns no filter UI.
       await gotoAndWaitForReady(
         page,
-        `${path}?${new URLSearchParams(context)}`,
+        `${root}/calendar?${new URLSearchParams({
+          search: fixture.search,
+          module: "未知模块",
+          activityLevel: "未知级别",
+          date: "2035-09-15",
+          view: "day",
+        })}`,
       );
-      await applied.getByRole("link", { name: /未知模块/ }).click();
-      await expect(page).toHaveURL((url) => !url.searchParams.has("module"));
-      expect(new URL(page.url()).searchParams.get("activityLevel")).toBe(
-        "未知级别",
-      );
-      await applied.getByRole("link", { name: /未知级别/ }).click();
-      await expect(page).toHaveURL(
-        (url) => !url.searchParams.has("activityLevel"),
-      );
-    }
-  });
-});
+      await expect(
+        page.getByRole("button", { name: /更多筛选|More filters/ }),
+      ).toHaveCount(0);
+      {
+        const prefix = "young-event";
+        const path = root;
+        const context = {
+          search: fixture.search,
+          module: "未知模块",
+          activityLevel: "未知级别",
+        };
+        await gotoAndWaitForReady(
+          page,
+          `${path}?${new URLSearchParams(context)}`,
+        );
+        const applied = page.getByRole("group", {
+          name: /已选条件|Applied filters/,
+        });
+        await expect(applied).toContainText("未知模块");
+        await expect(applied).toContainText("未知级别");
+        await page
+          .getByRole("button", { name: /更多筛选|More filters/ })
+          .click();
+        const dialog = page.getByRole("dialog");
+        const module = dialog.locator(`#${prefix}-module`);
+        const level = dialog.locator(`#${prefix}-activity-level`);
+        await page.screenshot({
+          path: testInfo.outputPath("unknown-filter-context-events.png"),
+        });
+        expect(
+          await module
+            .locator("option:not([disabled])")
+            .evaluateAll((options) =>
+              options.map((option) => (option as HTMLOptionElement).value),
+            ),
+        ).toEqual(["", "德", "智", "体", "美", "劳"]);
+        expect(
+          await level
+            .locator("option:not([disabled])")
+            .evaluateAll((options) =>
+              options.map((option) => (option as HTMLOptionElement).value),
+            ),
+        ).toEqual(["", "班级", "院级", "校级", "省级", "国家级"]);
+        await expect(module).toHaveValue("未知模块");
+        await expect(level).toHaveValue("未知级别");
+        await dialog.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await expect(dialog).toBeHidden();
+        sharedContext(page, context);
+        const primarySearch = `${fixture.search} 07`;
+        await page.getByRole("searchbox").fill(primarySearch);
+        await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await expect(page).toHaveURL(
+          (url) => url.searchParams.get("search") === primarySearch,
+        );
+        sharedContext(page, { ...context, search: primarySearch });
+        await page
+          .getByRole("button", { name: /更多筛选|More filters/ })
+          .click();
+        await expect(dialog).toBeVisible();
+        await module.selectOption("智");
+        await level.selectOption("校级");
+        await dialog.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await expect(page).toHaveURL(
+          (url) =>
+            url.searchParams.get("module") === "智" &&
+            url.searchParams.get("activityLevel") === "校级",
+        );
+        await gotoAndWaitForReady(
+          page,
+          `${path}?${new URLSearchParams(context)}`,
+        );
+        await applied.getByRole("link", { name: /未知模块/ }).click();
+        await expect(page).toHaveURL((url) => !url.searchParams.has("module"));
+        expect(new URL(page.url()).searchParams.get("activityLevel")).toBe(
+          "未知级别",
+        );
+        await applied.getByRole("link", { name: /未知级别/ }).click();
+        await expect(page).toHaveURL(
+          (url) => !url.searchParams.has("activityLevel"),
+        );
+      }
+    });
+  },
+);

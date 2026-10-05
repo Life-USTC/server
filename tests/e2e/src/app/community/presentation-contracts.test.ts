@@ -8,11 +8,9 @@ import { waitForUiSettled } from "../../../utils/page-ready";
 
 test.describe.configure({ mode: "parallel" });
 
-test("description.public-web-personal-overlay", async ({
-  communityFlow,
-  page,
-  presentation: { targets },
-}) => {
+test("description.public-web-personal-overlay", {
+  tag: "@Account/Web",
+}, async ({ communityFlow, page, presentation: { targets } }) => {
   await communityFlow.run(async () => {
     const anonymous = await communityFlow.newContext({
       javaScriptEnabled: false,
@@ -80,7 +78,7 @@ test("description.public-web-personal-overlay", async ({
   }, {});
 });
 
-test("description.supplement-not-comment", async ({
+test("description.supplement-not-comment", { tag: "@Account/Web" }, async ({
   communityFlow,
   page,
   account,
@@ -103,7 +101,7 @@ test("description.supplement-not-comment", async ({
   }, {});
 });
 
-test("description.platform-maintained", async ({
+test("description.platform-maintained", { tag: "@Account/Web" }, async ({
   communityFlow,
   page,
   account,
@@ -124,7 +122,7 @@ test("description.platform-maintained", async ({
   }, {});
 });
 
-test("description.web-markdown-hydration", async ({
+test("description.web-markdown-hydration", { tag: "@Account/Web" }, async ({
   communityFlow,
   page,
   presentation: { targets },
@@ -156,7 +154,7 @@ test("description.web-markdown-hydration", async ({
   }, {});
 });
 
-test("comment.web-markdown-hydration", async ({
+test("comment.web-markdown-hydration", { tag: "@Account/Web" }, async ({
   communityFlow,
   page,
   presentation: { targets },

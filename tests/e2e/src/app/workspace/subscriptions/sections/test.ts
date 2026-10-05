@@ -87,11 +87,9 @@ async function assertDialogViewportSafe(
 }
 test.describe("仪表盘教学班订阅", () => {
   test.describe.configure({ mode: "parallel" });
-  test("旧版 /workspace/subscriptions/sections 重定向到教学班订阅页面", async ({
-    page,
-    account: _account,
-    subscriptionRun,
-  }) => {
+  test("旧版 /workspace/subscriptions/sections 重定向到教学班订阅页面", {
+    tag: "@Subscription/Web",
+  }, async ({ page, account: _account, subscriptionRun }) => {
     await subscriptionRun(async () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       await gotoAndWaitForReady(page, "/workspace/subscriptions/sections");
@@ -100,6 +98,7 @@ test.describe("仪表盘教学班订阅", () => {
   });
   anonymousTest(
     "未登录旧 subscriptions tab 重定向到语义路径",
+    { tag: "@Subscription/Web" },
     async ({ request, run }) => {
       await run(async () => {
         const response = await request.get(
@@ -113,12 +112,9 @@ test.describe("仪表盘教学班订阅", () => {
       });
     },
   );
-  test("登录后显示独立教学班订阅、必填字段和英文单复数文案", async ({
-    page,
-    subscriptions: catalog,
-    baseURL,
-    subscriptionRun,
-  }) => {
+  test("登录后显示独立教学班订阅、必填字段和英文单复数文案", {
+    tag: "@Subscription/Web",
+  }, async ({ page, subscriptions: catalog, baseURL, subscriptionRun }) => {
     await subscriptionRun(async () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -201,11 +197,9 @@ test.describe("仪表盘教学班订阅", () => {
       ).toHaveCount(0);
     });
   });
-  test("超宽屏按时间倒序分表并渐进增强为瀑布流", async ({
-    page,
-    subscriptions: catalog,
-    subscriptionRun,
-  }) => {
+  test("超宽屏按时间倒序分表并渐进增强为瀑布流", {
+    tag: "@Subscription/Web",
+  }, async ({ page, subscriptions: catalog, subscriptionRun }) => {
     await subscriptionRun(async () => {
       await page.setViewportSize({ height: 1000, width: 1700 });
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -232,7 +226,7 @@ test.describe("仪表盘教学班订阅", () => {
       ).toBe(true);
     });
   });
-  test("空状态提供发现操作", async ({
+  test("空状态提供发现操作", { tag: "@Subscription/Web" }, async ({
     page,
     account: _account,
     subscriptionRun,
@@ -264,11 +258,9 @@ test.describe("仪表盘教学班订阅", () => {
       ).toBeVisible();
     });
   });
-  test("移动端订阅列表与操作区不产生页面级横向滚动", async ({
-    page,
-    subscriptions: catalog,
-    subscriptionRun,
-  }) => {
+  test("移动端订阅列表与操作区不产生页面级横向滚动", {
+    tag: "@Subscription/Web",
+  }, async ({ page, subscriptions: catalog, subscriptionRun }) => {
     await subscriptionRun(async () => {
       await page.setViewportSize({ height: 844, width: 390 });
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -300,7 +292,7 @@ test.describe("仪表盘教学班订阅", () => {
       ).toHaveCount(0);
     });
   });
-  test("课程名称链接到教学班主页", async ({
+  test("课程名称链接到教学班主页", { tag: "@Subscription/Web" }, async ({
     page,
     subscriptions: catalog,
     subscriptionRun,
@@ -322,7 +314,7 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(page.getByRole("dialog")).toHaveCount(0);
     });
   });
-  test("取消订阅操作确认后移除订阅", async ({
+  test("取消订阅操作确认后移除订阅", { tag: "@Subscription/Web" }, async ({
     page,
     subscriptions: catalog,
     account,
@@ -391,7 +383,7 @@ test.describe("仪表盘教学班订阅", () => {
       ).toHaveCount(0);
     });
   });
-  test("复制日历链接生成有效的 iCal URL", async ({
+  test("复制日历链接生成有效的 iCal URL", { tag: "@Subscription/Web" }, async ({
     page,
     subscriptions: _catalog,
     subscriptionRun,
@@ -424,7 +416,7 @@ test.describe("仪表盘教学班订阅", () => {
       expect(calendarBody).toContain("BEGIN:VCALENDAR");
     });
   });
-  test("批量导入打开确认对话框并可取消", async ({
+  test("批量导入打开确认对话框并可取消", { tag: "@Subscription/Web" }, async ({
     page,
     catalog,
     account,
@@ -479,7 +471,9 @@ test.describe("仪表盘教学班订阅", () => {
       expect(await storedSectionSubscriptions(account.id)).toEqual([]);
     });
   });
-  test("单个添加弹窗可按课程名和教师名搜索并直接关注", async ({
+  test("单个添加弹窗可按课程名和教师名搜索并直接关注", {
+    tag: "@Subscription/Web",
+  }, async ({
     page,
     catalog,
     account,
@@ -693,7 +687,9 @@ test.describe("仪表盘教学班订阅", () => {
     });
   });
   for (const width of [1280, 390]) {
-    test(`subscription.web-quick-add-selection (${width}px)`, async ({
+    test(`subscription.web-quick-add-selection (${width}px)`, {
+      tag: "@Subscription/Web",
+    }, async ({
       page,
       catalog,
       account,
@@ -794,11 +790,9 @@ test.describe("仪表盘教学班订阅", () => {
       });
     });
   }
-  test("单个添加弹窗在 320×568 视口保持关闭控件和操作区可达", async ({
-    page,
-    account: _account,
-    subscriptionRun,
-  }) => {
+  test("单个添加弹窗在 320×568 视口保持关闭控件和操作区可达", {
+    tag: "@Subscription/Web",
+  }, async ({ page, account: _account, subscriptionRun }) => {
     await subscriptionRun(async () => {
       await page.setViewportSize({ height: 568, width: 320 });
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -815,11 +809,9 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(quickAddDialog).not.toBeVisible();
     });
   });
-  test("单个添加弹窗在无匹配结果时保留搜索上下文", async ({
-    page,
-    account: _account,
-    subscriptionRun,
-  }) => {
+  test("单个添加弹窗在无匹配结果时保留搜索上下文", {
+    tag: "@Subscription/Web",
+  }, async ({ page, account: _account, subscriptionRun }) => {
     await subscriptionRun(async () => {
       await page.setViewportSize({ height: 844, width: 390 });
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
@@ -861,7 +853,7 @@ test.describe("仪表盘教学班订阅", () => {
       ).toHaveValue("DEVXX000.99");
     });
   });
-  test("批量导入可确认并显示成功", async ({
+  test("批量导入可确认并显示成功", { tag: "@Subscription/Web" }, async ({
     page,
     catalog,
     account,
@@ -935,7 +927,7 @@ for (const routePath of [
   "/workspace/subscriptions",
   "/workspace/subscriptions/sections",
 ]) {
-  test(`页面契约 ${routePath}`, async ({
+  test(`页面契约 ${routePath}`, { tag: "@Subscription/Web" }, async ({
     page,
     account: _account,
     subscriptionRun,

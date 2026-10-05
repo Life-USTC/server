@@ -26,7 +26,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 test.describe("仪表盘考试", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("登录后显示考试筛选工具栏和列表", async ({
+  test("登录后显示考试筛选工具栏和列表", { tag: "@Exam/Web" }, async ({
     page,
     pastExam: _pastExam,
     homeworkRun,
@@ -71,7 +71,7 @@ test.describe("仪表盘考试", () => {
     );
   });
 
-  test("考试列表显示必填字段", async ({
+  test("考试列表显示必填字段", { tag: "@Exam/Web" }, async ({
     page,
     academic,
     pastExam: _pastExam,
@@ -134,7 +134,7 @@ test.describe("仪表盘考试", () => {
     );
   });
 
-  test("考试列表链接到班级详情页", async ({
+  test("考试列表链接到班级详情页", { tag: "@Exam/Web" }, async ({
     page,
     pastExam: _pastExam,
     homeworkRun,
@@ -163,11 +163,9 @@ test.describe("仪表盘考试", () => {
     );
   });
 
-  test("已完成筛选显示过往考试，未完成显示即将到来", async ({
-    page,
-    pastExam: _pastExam,
-    homeworkRun,
-  }) => {
+  test("已完成筛选显示过往考试，未完成显示即将到来", {
+    tag: "@Exam/Web",
+  }, async ({ page, pastExam: _pastExam, homeworkRun }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/exams");

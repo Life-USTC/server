@@ -19,11 +19,9 @@ import {
 import { oauthProtocolChecks, prepareProtocolAccount } from "./protocol-checks";
 
 test.describe("/api/mcp - OAuth token 资源绑定", () => {
-  test("授权码已绑定 resource 时 token exchange 可省略 resource", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("授权码已绑定 resource 时 token exchange 可省略 resource", {
+    tag: "@OAuth/OAuth",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -76,11 +74,9 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     });
   });
 
-  test("同一客户端增权后签发精确绑定且包含累计 scope 的 MCP token", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("同一客户端增权后签发精确绑定且包含累计 scope 的 MCP token", {
+    tag: "@OAuth/OAuth",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -167,11 +163,9 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     });
   });
 
-  test("MCP resource JWT 被受保护 REST 路由拒绝", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("MCP resource JWT 被受保护 REST 路由拒绝", {
+    tag: "@OAuth/REST",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -209,11 +203,9 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     });
   });
 
-  test("无 resource 的 MCP refresh token 可刷新为可用的 MCP access token", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("无 resource 的 MCP refresh token 可刷新为可用的 MCP access token", {
+    tag: "@OAuth/OAuth",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -302,11 +294,9 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     });
   });
 
-  test("无 resource 的 MCP refresh token 不能省略 resource 来签发 MCP access token", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("无 resource 的 MCP refresh token 不能省略 resource 来签发 MCP access token", {
+    tag: "@OAuth/OAuth",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
@@ -385,11 +375,9 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     });
   });
 
-  test("仅 REST 的 refresh token 不能省略 resource 来签发 MCP access token", async ({
-    page,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test("仅 REST 的 refresh token 不能省略 resource 来签发 MCP access token", {
+    tag: "@OAuth/OAuth",
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;

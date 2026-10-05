@@ -12,11 +12,9 @@ import {
 const subscribeName = /订阅教学班|Subscribe to section/i;
 const unsubscribeName = /取消订阅|Unsubscribe from section/i;
 
-test("匿名订阅入口说明非选课含义并要求登录", async ({
-  sectionRun,
-  page,
-  section,
-}) => {
+test("匿名订阅入口说明非选课含义并要求登录", {
+  tag: "@Subscription/Web",
+}, async ({ sectionRun, page, section }) => {
   await sectionRun({ writes: [], calendar: null }, async () => {
     await gotoAndWaitForReady(page, section.path);
     await expect(
@@ -42,12 +40,9 @@ test("匿名订阅入口说明非选课含义并要求登录", async ({
   });
 });
 
-test("section.retired-detail-presentation", async ({
-  sectionRun,
-  page,
-  section,
-  isolatedWorker,
-}) => {
+test("section.retired-detail-presentation", {
+  tag: "@Subscription/Web",
+}, async ({ sectionRun, page, section, isolatedWorker }) => {
   await sectionRun({ writes: [], calendar: null }, async () => {
     await isolatedWorker.database.owner.section.update({
       where: { id: section.id },
@@ -70,12 +65,9 @@ test("section.retired-detail-presentation", async ({
   });
 });
 
-test("已订阅用户仍可取消订阅已退役教学班", async ({
-  sectionRun,
-  page,
-  memberSection: section,
-  isolatedWorker,
-}) => {
+test("已订阅用户仍可取消订阅已退役教学班", {
+  tag: "@Subscription/Web",
+}, async ({ sectionRun, page, memberSection: section, isolatedWorker }) => {
   await sectionRun(
     {
       writes: [

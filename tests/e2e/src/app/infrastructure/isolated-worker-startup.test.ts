@@ -222,9 +222,9 @@ for (const phase of [
 ] as const) {
   test.describe(phase, () => {
     test.use({ phase });
-    test(`private Worker native ${phase} before readiness stops cleanly`, async ({
-      nativeWorker,
-    }) => {
+    test(`private Worker native ${phase} before readiness stops cleanly`, {
+      tag: "@Infrastructure/Runtime",
+    }, async ({ nativeWorker }) => {
       expect(await nativeWorker.exited).toEqual({ code: 0, signal: null });
       expect(nativeWorker.ready()).toBe(false);
       expect(nativeWorker.log()).not.toMatch(

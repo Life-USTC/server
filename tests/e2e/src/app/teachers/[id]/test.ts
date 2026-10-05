@@ -83,7 +83,7 @@ async function jumpToTeacherSection(
 }
 
 test.describe("/catalog/teachers/[id] 教师详情页", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -95,7 +95,10 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("无效参数返回 404", async ({ page, preferenceFlow }) => {
+  test("无效参数返回 404", { tag: "@Catalog/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/teachers/999999999", {
         expectMainContent: false,
@@ -109,7 +112,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("标题中显示教师主名称", async ({
+  test("标题中显示教师主名称", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -136,7 +139,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("常规界面不显示内部教师 ID", async ({
+  test("常规界面不显示内部教师 ID", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -152,7 +155,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("基本信息中显示院系、职称与邮箱", async ({
+  test("基本信息中显示院系、职称与邮箱", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -180,13 +183,9 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("catalog.consume-course-teacher-section-identity", async ({
-    page,
-    preferenceFlow,
-    detailCatalog,
-    isolatedWorker,
-    run,
-  }) => {
+  test("catalog.consume-course-teacher-section-identity", {
+    tag: "@Catalog/Web",
+  }, async ({ page, preferenceFlow, detailCatalog, isolatedWorker, run }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
       const { course, teacher, section, semester, campus } = detailCatalog;
@@ -326,7 +325,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", async ({
+  test("详情流式布局包含主要锚点区块", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -348,7 +347,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("移动端教师标题与流式区块保持紧凑", async ({
+  test("移动端教师标题与流式区块保持紧凑", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -372,6 +371,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   communityTest(
     "已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）",
+    { tag: "@Description/Web" },
     async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
@@ -465,6 +465,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   communityTest(
     "已登录用户发布的评论绑定到教师目标",
+    { tag: "@Comment/Web" },
     async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
@@ -546,7 +547,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   );
 });
 
-test("页面契约", async ({
+test("页面契约", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   detailCatalog: _detailCatalog,

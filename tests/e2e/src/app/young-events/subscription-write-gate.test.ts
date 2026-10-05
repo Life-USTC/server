@@ -84,7 +84,7 @@ const test = workerTest.extend<{
   },
 });
 
-test("young-event.subscription-write-gate", async ({
+test("young-event.subscription-write-gate", { tag: "@Young/Web" }, async ({
   page,
   isolatedWorker,
   gate,

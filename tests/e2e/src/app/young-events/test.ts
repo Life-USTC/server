@@ -9,7 +9,7 @@
  * ## UI/UX Elements
  * - Search input (searchbox) with submit and clear buttons
  * - Signup status and category selects (native comboboxes)
- * - Desktop table / mobile item list with links to /catalog/young-events/{youngId}
+ * - Date-grouped rows with links to /catalog/young-events/{youngId}
  * - URL-driven pagination
  * - Empty state when no events match
  *
@@ -34,7 +34,7 @@ import { test } from "../../../utils/young-public-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/young-events 第二课堂活动", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
@@ -46,7 +46,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("SSR 输出包含搜索查询", async ({
+  test("SSR 输出包含搜索查询", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
@@ -64,7 +64,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("搜索、报名状态筛选与清除按钮", async ({
+  test("搜索、报名状态筛选与清除按钮", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
@@ -110,7 +110,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("筛选面板保值并在日历与详情之间保留上下文", async ({
+  test("筛选面板保值，详情可返回，边栏进入日历", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
@@ -156,21 +156,28 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       ).toHaveCount(0);
       await page.goBack();
       await expect(page).toHaveURL(browseUrl);
-      await page
-        .getByTestId("young-browse-nav")
-        .getByRole("link", { name: /^(日历|Calendar)$/ })
+      const youngNav = page.getByTestId("young-sidebar");
+      await expect(youngNav).toBeVisible();
+      await expect(page.getByTestId("young-sidebar-back")).toHaveAttribute(
+        "href",
+        "/",
+      );
+      await expect(
+        youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(
+        youngNav.getByRole("link", {
+          name: new RegExp(DEV_SEED.youngEvent.name),
+        }),
+      ).toHaveCount(0);
+      await youngNav
+        .getByRole("link", { name: /^(?:活动日历|Event calendar)$/ })
         .click();
-      await expect(page).toHaveURL(/calendar\?/);
-      expect(new URL(page.url()).searchParams.get("search")).toBe(
-        DEV_SEED.youngEvent.name,
-      );
-      expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
-        "dev-scenario-young-organizer",
-      );
+      await expect(page).toHaveURL(/\/catalog\/young-events\/calendar$/);
     });
   });
 
-  test("手机日历从所选日期开始并可展开此前日期", async ({
+  test("手机日历从所选日期开始并可展开此前日期", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -199,7 +206,10 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("无匹配活动时显示明确空状态", async ({ page, preferenceFlow }) => {
+  test("无匹配活动时显示明确空状态", { tag: "@Young/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -215,7 +225,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("日历和主办方页面保留公开深链接", async ({
+  test("日历和主办方页面保留公开深链接", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
@@ -250,11 +260,9 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
 });
 
 for (const width of [1280, 390]) {
-  test(`advanced filter sheet isolates canceled drafts and submits the current search at ${width}px`, async ({
-    page,
-    preferenceFlow,
-    youngPublicState: _youngPublicState,
-  }) => {
+  test(`advanced filter sheet isolates canceled drafts and submits the current search at ${width}px`, {
+    tag: "@Young/Web",
+  }, async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width, height: 844 });
       await gotoAndWaitForReady(
@@ -302,42 +310,10 @@ for (const width of [1280, 390]) {
   });
 }
 
-test("calendar sheet preserves selected dates and unsubmitted primary filters", async ({
-  page,
-  preferenceFlow,
-}) => {
-  await preferenceFlow.run(async () => {
-    await gotoAndWaitForReady(
-      page,
-      "/catalog/young-events/calendar?view=week&date=2035-09-15&category=sport",
-    );
-    await page.getByRole("searchbox").fill("calendar draft");
-    await page.locator("#young-calendar-active").selectOption("false");
-    await page
-      .locator("#young-calendar-time-basis")
-      .selectOption("registration");
-    await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
-    const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
-    await sheet.locator("#young-calendar-module").selectOption("智");
-    await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-    await expect(page).toHaveURL(
-      (url) => url.searchParams.get("module") === "智",
-    );
-    const params = new URL(page.url()).searchParams;
-    expect(Object.fromEntries(params)).toMatchObject({
-      view: "week",
-      date: "2035-09-15",
-      search: "calendar draft",
-      active: "false",
-      timeBasis: "registration",
-      category: "sport",
-    });
-  });
-});
-
 for (const width of [1280, 390]) {
   privateTest(
     `calendar has all pages, day drilldown, and independent registration times at ${width}px`,
+    { tag: "@Young/Web" },
     async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
       await run(async () => {
         const db = isolatedWorker.database.owner;
@@ -377,7 +353,9 @@ for (const width of [1280, 390]) {
           );
           const root = page.getByTestId("young-calendar");
           if (width > 700)
-            await root.getByRole("link", { name: "+101", exact: true }).click();
+            await root
+              .getByRole("link", { name: /^(?:还有 103 场|103 more)$/ })
+              .click();
           else await root.getByRole("link", { name: /^(日|Day)$/ }).click();
           await expect(page).toHaveURL(/view=day/);
           await expect(
@@ -387,16 +365,18 @@ for (const width of [1280, 390]) {
           ).toBeVisible();
           await root.getByRole("link", { name: /^(周|Week)$/ }).click();
           await expect(page).toHaveURL(/view=week/);
-          await page
-            .locator("#young-calendar-time-basis")
-            .selectOption("registration");
-          await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-          await expect(page).toHaveURL(/timeBasis=registration/);
+          // The calendar keeps filters in its own links; it no longer renders
+          // filter controls, so the registration basis arrives through the URL.
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/young-events/calendar?view=week&date=2035-09-15&organizerId=${marker}&timeBasis=registration`,
+          );
           await expect(
             root.getByRole("link", { name: /^(日|Day)$/ }),
           ).toHaveAttribute("href", /timeBasis=registration/);
           await root.getByRole("link", { name: /^(日|Day)$/ }).click();
           await expect(page).toHaveURL(/view=day/);
+          await expect(page).toHaveURL(/timeBasis=registration/);
           await expect(
             root
               .getByRole("link", { name: /Calendar activity/ })
@@ -440,6 +420,7 @@ for (const width of [1280, 390]) {
 for (const status of [200, 401]) {
   privateTest(
     `calendar conflicts resolve independently of unavailable shell navigation (${status})`,
+    { tag: "@Young/Web" },
     async ({ page, isolatedWorker, preferenceFlow, run }) => {
       await run(async () => {
         const viewer = await preferenceFlow.prepare(() =>

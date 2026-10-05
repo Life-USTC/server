@@ -8,12 +8,9 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test } from "../../api/mcp/_fixture";
 
 for (const count of [0, 1, 2]) {
-  test(`subscriptions.search-count-copy count=${count}`, async ({
-    page,
-    request,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test(`subscriptions.search-count-copy count=${count}`, {
+    tag: "@Subscription/Web",
+  }, async ({ page, request, isolatedWorker, calendarProtocolRun }) => {
     test.setTimeout(300_000);
     const baseURL = isolatedWorker.origin;
     const db = isolatedWorker.database.owner;

@@ -7,6 +7,7 @@ for (const role of roles)
     for (const width of [1280, 390])
       browserTest(
         `consumer hides foreign rows at ${width}px`,
+        { tag: "@Todo/Web" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -38,6 +39,7 @@ for (const role of roles)
       );
     browserTest(
       "mobile owner create persists authenticated ownership",
+      { tag: "@Todo/Web" },
       async ({ ownership: f }) => {
         await f.run(
           async () => {
@@ -92,6 +94,7 @@ for (const role of roles)
     );
     browserTest(
       "mobile owner update preserves authenticated ownership",
+      { tag: "@Todo/Web" },
       async ({ ownership: f }) => {
         await f.run(
           async () => {
@@ -155,6 +158,7 @@ for (const role of roles)
     );
     browserTest(
       "mobile owner delete removes an independently prepared todo",
+      { tag: "@Todo/Web" },
       async ({ ownership: f }) => {
         await f.run(
           async () => {
@@ -200,9 +204,9 @@ for (const role of roles)
         );
       },
     );
-    test("forged foreign Web update is rejected without effects", async ({
-      ownership: f,
-    }) => {
+    test("forged foreign Web update is rejected without effects", {
+      tag: "@Todo/Web",
+    }, async ({ ownership: f }) => {
       await f.run(
         async () => {
           const request = await f.request("cookie", "rest");

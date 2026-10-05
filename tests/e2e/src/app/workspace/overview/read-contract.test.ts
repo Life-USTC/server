@@ -16,115 +16,134 @@ type OverviewResult = {
   overview: { upcomingExamsCount: number };
   samples: { upcomingExams: { id: number }[] };
 };
-test("overview.upcoming-exam-counts", async ({
-  page,
-  createCalendar,
-  calendarProtocolRun,
-  oauthOwner,
-  isolatedWorker,
-}) => {
-  await calendarProtocolRun(async (io) => {
-    const db = isolatedWorker.database.owner;
-    const fixture = await createCalendar();
-    const reader = await prepareCalendarRead(page, oauthOwner, io, fixture, {
-      name: "overview-contract",
-      scopes: ["workspace.overview:read", "workspace.schedule:read"],
-      tools: [["workspace_overview_get", "workspace.overview"]],
-      usage: [["workspace.overview", 1]],
-    });
-    await reader.authorize();
-    const { call } = reader;
-    const now = new Date();
-    const today = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Shanghai",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now);
-    const todayDate = new Date(`${today}T00:00:00Z`);
-    const exams = await db.$transaction(async (tx) => {
-      await tx.exam.deleteMany({ where: { sectionId: fixture.section.id } });
-      const records = [];
-      for (const [index, values] of [
-        {
-          examDate: new Date(todayDate.getTime() - 86400000),
-          startTime: 900,
-          endTime: 1000,
-        },
-        { examDate: null, startTime: 900, endTime: 1000 },
-        { examDate: todayDate, startTime: null, endTime: null },
-        { examDate: todayDate, startTime: 0, endTime: 2359 },
-        { examDate: todayDate, startTime: 2359, endTime: null },
-        {
-          examDate: new Date(todayDate.getTime() + 86400000),
-          startTime: 900,
-          endTime: 1000,
-        },
-      ].entries()) {
-        records.push(
-          await tx.exam.create({
-            data: {
-              sectionId: fixture.section.id,
-              jwId: fixture.section.jwId + index + 200,
-              examMode: `exam-count-${index}`,
-              ...values,
-            },
-          }),
+for (const method of ["Web", "REST", "GraphQL", "MCP"] as const) {
+  test(`overview.upcoming-exam-counts ${method}`, {
+    tag: `@Overview/${method}`,
+  }, async ({
+    page,
+    createCalendar,
+    calendarProtocolRun,
+    oauthOwner,
+    isolatedWorker,
+  }) => {
+    await calendarProtocolRun(async (io) => {
+      const db = isolatedWorker.database.owner;
+      const fixture = await createCalendar();
+      const reader = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+        name: "overview-contract",
+        scopes: ["workspace.overview:read", "workspace.schedule:read"],
+        tools:
+          method === "MCP"
+            ? [["workspace_overview_get", "workspace.overview"]]
+            : [],
+        usage: method === "MCP" ? [["workspace.overview", 1]] : [],
+      });
+      await reader.authorize();
+      const { call } = reader;
+      const now = new Date();
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(now);
+      const todayDate = new Date(`${today}T00:00:00Z`);
+      const exams = await db.$transaction(async (tx) => {
+        await tx.exam.deleteMany({ where: { sectionId: fixture.section.id } });
+        const records = [];
+        for (const [index, values] of [
+          {
+            examDate: new Date(todayDate.getTime() - 86400000),
+            startTime: 900,
+            endTime: 1000,
+          },
+          { examDate: null, startTime: 900, endTime: 1000 },
+          { examDate: todayDate, startTime: null, endTime: null },
+          { examDate: todayDate, startTime: 0, endTime: 2359 },
+          { examDate: todayDate, startTime: 2359, endTime: null },
+          {
+            examDate: new Date(todayDate.getTime() + 86400000),
+            startTime: 900,
+            endTime: 1000,
+          },
+        ].entries()) {
+          records.push(
+            await tx.exam.create({
+              data: {
+                sectionId: fixture.section.id,
+                jwId: fixture.section.jwId + index + 200,
+                examMode: `exam-count-${index}`,
+                ...values,
+              },
+            }),
+          );
+        }
+        return records;
+      });
+      const expectedState = await readCalendarState(db);
+      // Shell bootstrap accepts no request time and uses the actual Worker clock.
+      // Crossing Shanghai midnight here remains a limit of this current-day case;
+      // the shell's original four-exam assertion must still hold.
+      if (method === "Web") {
+        const shell = await page.request.get("/_internal/shell-bootstrap");
+        expect(shell.status()).toBe(200);
+        expect((await shell.json()).navigation.examsCount).toBe(4);
+      }
+      if (method === "REST") {
+        const rest = await page.request.get(
+          `/api/workspace/overview?atTime=${encodeURIComponent(now.toISOString())}&limit=10`,
+        );
+        expect(rest.status()).toBe(200);
+        const overview = await rest.json();
+        expect(overview.counts.upcomingExams).toBe(4);
+        expect(
+          overview.exams.items.map((exam: { id: number }) => exam.id).sort(),
+        ).toEqual(
+          exams
+            .slice(2)
+            .map((exam) => exam.id)
+            .sort(),
         );
       }
-      return records;
+      if (method === "MCP") {
+        const mcp = await call<OverviewResult>("workspace_overview_get", {
+          atTime: now.toISOString(),
+          limit: 10,
+          mode: "full",
+        });
+        expect(mcp.overview.upcomingExamsCount).toBe(4);
+        expect(
+          mcp.samples.upcomingExams
+            .map((exam: { id: number }) => exam.id)
+            .sort(),
+        ).toEqual(
+          exams
+            .slice(2)
+            .map((exam) => exam.id)
+            .sort(),
+        );
+      }
+      if (method === "GraphQL") {
+        const gql = await page.request.post("/api/graphql", {
+          headers: { origin: isolatedWorker.origin },
+          data: {
+            query:
+              "query($atTime: DateTime!) { workspace { overview(atTime: $atTime) { upcomingExams } } }",
+            variables: { atTime: now.toISOString() },
+          },
+        });
+        const graph = await gql.json();
+        expect(graph.errors).toBeUndefined();
+        expect(graph.data.workspace.overview.upcomingExams).toBe(4);
+      }
+      return reader.checks(expectedState);
     });
-    const expectedState = await readCalendarState(db);
-    // Shell bootstrap accepts no request time and uses the actual Worker clock.
-    // Crossing Shanghai midnight here remains a limit of this current-day case;
-    // the shell's original four-exam assertion must still hold.
-    const shell = await page.request.get("/_internal/shell-bootstrap");
-    expect(shell.status()).toBe(200);
-    expect((await shell.json()).navigation.examsCount).toBe(4);
-    const rest = await page.request.get(
-      `/api/workspace/overview?atTime=${encodeURIComponent(now.toISOString())}&limit=10`,
-    );
-    expect(rest.status()).toBe(200);
-    const overview = await rest.json();
-    expect(overview.counts.upcomingExams).toBe(4);
-    expect(
-      overview.exams.items.map((exam: { id: number }) => exam.id).sort(),
-    ).toEqual(
-      exams
-        .slice(2)
-        .map((exam) => exam.id)
-        .sort(),
-    );
-    const mcp = await call<OverviewResult>("workspace_overview_get", {
-      atTime: now.toISOString(),
-      limit: 10,
-      mode: "full",
-    });
-    expect(mcp.overview.upcomingExamsCount).toBe(4);
-    expect(
-      mcp.samples.upcomingExams.map((exam: { id: number }) => exam.id).sort(),
-    ).toEqual(
-      exams
-        .slice(2)
-        .map((exam) => exam.id)
-        .sort(),
-    );
-    const gql = await page.request.post("/api/graphql", {
-      headers: { origin: isolatedWorker.origin },
-      data: {
-        query:
-          "query($atTime: DateTime!) { workspace { overview(atTime: $atTime) { upcomingExams } } }",
-        variables: { atTime: now.toISOString() },
-      },
-    });
-    const graph = await gql.json();
-    expect(graph.errors).toBeUndefined();
-    expect(graph.data.workspace.overview.upcomingExams).toBe(4);
-    return reader.checks(expectedState);
   });
-});
+}
 
-test("overview.focused-extracts-share-window", async ({
+test("overview.focused-extracts-share-window", {
+  tag: "@Overview/MCP",
+}, async ({
   page,
   createCalendar,
   calendarProtocolRun,
@@ -260,90 +279,101 @@ test("overview.focused-extracts-share-window", async ({
   });
 });
 
-test("overview.compact-operational-fields", async ({
-  page,
-  createCalendar,
-  calendarProtocolRun,
-  oauthOwner,
-}) => {
-  await calendarProtocolRun(async (io) => {
-    const fixture = await createCalendar();
-    const expectedState = await readCalendarState(
-      oauthOwner.worker.database.owner,
-    );
-    const reader = await prepareCalendarRead(page, oauthOwner, io, fixture, {
-      name: "overview-contract",
-      scopes: ["workspace.overview:read", "workspace.schedule:read"],
-      tools: [["workspace_overview_get", "workspace.overview"]],
-      usage: [["workspace.overview", 1]],
-    });
-    await reader.authorize();
-    const { call } = reader;
-    const result = await call<{
-      overview: unknown;
-      samples: {
-        dueTodos: unknown[];
-        dueHomeworks: unknown[];
-        upcomingExams: unknown[];
-      };
-    }>("workspace_overview_get", {
-      atTime: "2026-04-29T09:30:00+08:00",
-      locale: "en-us",
-    });
-    expect(result.samples.dueTodos).toHaveLength(1);
-    expect(result.samples.dueHomeworks).toHaveLength(1);
-    expect(result.samples.upcomingExams).toHaveLength(1);
-    expect(result.samples.dueTodos[0]).toMatchObject({
-      id: fixture.todo.id,
-      title: fixture.todo.title,
-      priority: fixture.todo.priority,
-    });
-    expect(result.samples.dueHomeworks[0]).toMatchObject({
-      id: fixture.homework.id,
-      title: fixture.homework.title,
-      section: { jwId: fixture.section.jwId },
-    });
-    expect(result.samples.upcomingExams[0]).toMatchObject({
-      startTime: 1300,
-      endTime: 1400,
-      section: { jwId: fixture.section.jwId },
-    });
-    const inspect = (value: unknown) => {
-      if (Array.isArray(value)) {
-        value.forEach(inspect);
-        return;
-      }
-      if (!value || typeof value !== "object") return;
-      for (const [key, child] of Object.entries(value)) {
-        expect(
-          ["createdAt", "updatedAt", "deletedAt", "retiredAt", "lastEditedAt"],
-          key,
-        ).not.toContain(key);
-        if (key === "section" && child && typeof child === "object") {
-          expect(child).not.toHaveProperty("schedules");
-          expect(child).not.toHaveProperty("exams");
-          expect(child).not.toHaveProperty("homeworks");
-        }
-        inspect(child);
-      }
-    };
-    inspect(result);
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 1000 });
-      await page.goto(
-        "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00",
+for (const method of ["Web", "MCP"] as const) {
+  test(`overview.compact-operational-fields ${method}`, {
+    tag: `@Overview/${method}`,
+  }, async ({ page, createCalendar, calendarProtocolRun, oauthOwner }) => {
+    await calendarProtocolRun(async (io) => {
+      const fixture = await createCalendar();
+      const expectedState = await readCalendarState(
+        oauthOwner.worker.database.owner,
       );
-      const focus = page.getByTestId("workspace-overview-focus");
-      await expect(focus.getByRole("link")).toBeVisible();
-      await expect(focus).not.toContainText(
-        /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
-      );
+      const reader = await prepareCalendarRead(page, oauthOwner, io, fixture, {
+        name: "overview-contract",
+        scopes: ["workspace.overview:read", "workspace.schedule:read"],
+        tools:
+          method === "MCP"
+            ? [["workspace_overview_get", "workspace.overview"]]
+            : [],
+        usage: method === "MCP" ? [["workspace.overview", 1]] : [],
+      });
+      await reader.authorize();
+      const { call } = reader;
+      if (method === "MCP") {
+        const result = await call<{
+          overview: unknown;
+          samples: {
+            dueTodos: unknown[];
+            dueHomeworks: unknown[];
+            upcomingExams: unknown[];
+          };
+        }>("workspace_overview_get", {
+          atTime: "2026-04-29T09:30:00+08:00",
+          locale: "en-us",
+        });
+        expect(result.samples.dueTodos).toHaveLength(1);
+        expect(result.samples.dueHomeworks).toHaveLength(1);
+        expect(result.samples.upcomingExams).toHaveLength(1);
+        expect(result.samples.dueTodos[0]).toMatchObject({
+          id: fixture.todo.id,
+          title: fixture.todo.title,
+          priority: fixture.todo.priority,
+        });
+        expect(result.samples.dueHomeworks[0]).toMatchObject({
+          id: fixture.homework.id,
+          title: fixture.homework.title,
+          section: { jwId: fixture.section.jwId },
+        });
+        expect(result.samples.upcomingExams[0]).toMatchObject({
+          startTime: 1300,
+          endTime: 1400,
+          section: { jwId: fixture.section.jwId },
+        });
+        const inspect = (value: unknown) => {
+          if (Array.isArray(value)) {
+            value.forEach(inspect);
+            return;
+          }
+          if (!value || typeof value !== "object") return;
+          for (const [key, child] of Object.entries(value)) {
+            expect(
+              [
+                "createdAt",
+                "updatedAt",
+                "deletedAt",
+                "retiredAt",
+                "lastEditedAt",
+              ],
+              key,
+            ).not.toContain(key);
+            if (key === "section" && child && typeof child === "object") {
+              expect(child).not.toHaveProperty("schedules");
+              expect(child).not.toHaveProperty("exams");
+              expect(child).not.toHaveProperty("homeworks");
+            }
+            inspect(child);
+          }
+        };
+        inspect(result);
+      }
+      if (method === "Web")
+        for (const width of [1280, 390]) {
+          await page.setViewportSize({ width, height: 1000 });
+          await page.goto(
+            "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00",
+          );
+          const focus = page.getByTestId("workspace-overview-focus");
+          await expect(focus.getByRole("link")).toBeVisible();
+          await expect(focus).not.toContainText(
+            /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
+          );
 
-      const summaries = page.getByTestId("workspace-overview-summaries");
-      await expect(summaries).not.toContainText(
-        /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
-      );
-    }
-    return reader.checks(expectedState);
+          const summaries = page.getByTestId("workspace-overview-summaries");
+          await expect(summaries).not.toContainText(
+            /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
+          );
+        }
+      return reader.checks(expectedState);
+    });
   });
-});
+}

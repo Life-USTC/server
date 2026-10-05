@@ -6,11 +6,9 @@ import type { AuditAction } from "@/generated/prisma/client";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { type AccountAudit, test } from "./account-audit-fixture";
 
-test("audit.action-account-calendar-token-create", async ({
-  accountAuditRun,
-  page,
-  accountAudit: fixture,
-}) => {
+test("audit.action-account-calendar-token-create", {
+  tag: "@Calendar/Web",
+}, async ({ accountAuditRun, page, accountAudit: fixture }) => {
   await accountAuditRun(
     {
       browser: [],
@@ -45,11 +43,9 @@ test("audit.action-account-calendar-token-create", async ({
   );
 });
 
-test("audit.action-account-calendar-token-rotate", async ({
-  accountAuditRun,
-  page,
-  accountAudit: fixture,
-}) => {
+test("audit.action-account-calendar-token-rotate", {
+  tag: "@Calendar/Web",
+}, async ({ accountAuditRun, page, accountAudit: fixture }) => {
   await accountAuditRun(
     {
       browser: [],
@@ -173,7 +169,7 @@ async function expectPasskeyAudit(
     expect(serialized).not.toContain(secret);
 }
 
-test("audit.action-account-passkey-create", async ({
+test("audit.action-account-passkey-create", { tag: "@Account/Web" }, async ({
   accountAuditRun,
   accountAudit: fixture,
   passkeyAudit,
@@ -201,7 +197,7 @@ test("audit.action-account-passkey-create", async ({
   );
 });
 
-test("audit.action-account-passkey-update", async ({
+test("audit.action-account-passkey-update", { tag: "@Account/Web" }, async ({
   accountAuditRun,
   page,
   accountAudit: fixture,
@@ -248,7 +244,7 @@ test("audit.action-account-passkey-update", async ({
   );
 });
 
-test("audit.action-account-passkey-delete", async ({
+test("audit.action-account-passkey-delete", { tag: "@Account/Web" }, async ({
   accountAuditRun,
   page,
   accountAudit: fixture,
@@ -307,7 +303,7 @@ test("audit.action-account-passkey-delete", async ({
   );
 });
 
-test("audit.action-account-sign-in", async ({
+test("audit.action-account-sign-in", { tag: "@Account/Web" }, async ({
   accountAuditRun,
   page,
   accountAudit: fixture,
@@ -375,7 +371,7 @@ test("audit.action-account-sign-in", async ({
   );
 });
 
-test("audit.auth-hook-failure-isolation", async ({
+test("audit.auth-hook-failure-isolation", { tag: "@Account/OAuth" }, async ({
   accountAuditRun,
   page,
   accountAudit: fixture,
@@ -485,7 +481,7 @@ test("audit.auth-hook-failure-isolation", async ({
   );
 });
 
-test("audit.action-account-session-revoke", async ({
+test("audit.action-account-session-revoke", { tag: "@Account/Web" }, async ({
   accountAuditRun,
   page,
   accountAudit: fixture,
@@ -544,7 +540,7 @@ test("audit.action-account-session-revoke", async ({
   );
 });
 
-test("audit.action-account-credential-update", async ({
+test("audit.action-account-credential-update", { tag: "@Account/Web" }, async ({
   accountAuditRun,
   page,
   accountAudit: fixture,

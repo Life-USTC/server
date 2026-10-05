@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { adminWriteChecks } from "../../../utils/admin-fixture";
 import { test } from "./admin-audit-fixture";
 
-test("audit.action-admin-user-suspend", async ({
+test("audit.action-admin-user-suspend", { tag: "@Account/REST" }, async ({
   page,
   audit: f,
   auditFlow,
@@ -83,7 +83,7 @@ test("audit.action-admin-user-suspend", async ({
   );
 });
 
-test("audit.action-admin-user-unsuspend", async ({
+test("audit.action-admin-user-unsuspend", { tag: "@Account/REST" }, async ({
   page,
   audit: f,
   auditFlow,
@@ -142,7 +142,7 @@ test("audit.action-admin-user-unsuspend", async ({
   );
 });
 
-test("audit.action-admin-comment-moderate", async ({
+test("audit.action-admin-comment-moderate", { tag: "@Comment/REST" }, async ({
   page,
   audit: f,
   auditFlow,
@@ -226,7 +226,7 @@ test("audit.action-admin-comment-moderate", async ({
   );
 });
 
-test("audit.action-admin-user-role-update", async ({
+test("audit.action-admin-user-role-update", { tag: "@Account/REST" }, async ({
   page,
   audit: f,
   auditFlow,
@@ -282,12 +282,9 @@ test("audit.action-admin-user-role-update", async ({
   );
 });
 
-test("audit.action-admin-user-profile-update", async ({
-  page,
-  audit: f,
-  auditFlow,
-  run,
-}) => {
+test("audit.action-admin-user-profile-update", {
+  tag: "@Account/REST",
+}, async ({ page, audit: f, auditFlow, run }) => {
   await run(() =>
     auditFlow.run(
       async () => {
@@ -344,12 +341,9 @@ test("audit.action-admin-user-profile-update", async ({
   );
 });
 
-test("audit.action-admin-description-moderate", async ({
-  page,
-  audit: f,
-  auditFlow,
-  run,
-}) => {
+test("audit.action-admin-description-moderate", {
+  tag: "@Description/REST",
+}, async ({ page, audit: f, auditFlow, run }) => {
   await run(() =>
     auditFlow.run(
       async () => {
@@ -427,7 +421,7 @@ test("audit.action-admin-description-moderate", async ({
   );
 });
 
-test("audit.action-admin-bus-version-delete", async ({
+test("audit.action-admin-bus-version-delete", { tag: "@Bus/Web" }, async ({
   page,
   audit: f,
   auditFlow,

@@ -22,7 +22,11 @@ import { test } from "../../../../../utils/account-fixture";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 
 test.describe("/community/users/[identifier] by ID", () => {
-  test("页面契约", async ({ accountRun, page, account }) => {
+  test("页面契约", { tag: "@Account/Web" }, async ({
+    accountRun,
+    page,
+    account,
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.context().clearCookies();
       const response = await gotoAndWaitForReady(
@@ -46,7 +50,7 @@ test.describe("/community/users/[identifier] by ID", () => {
     });
   });
 
-  test("ID 地址直接解析资料且不显示内部 ID", async ({
+  test("ID 地址直接解析资料且不显示内部 ID", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -91,12 +95,9 @@ test.describe("/community/users/[identifier] by ID", () => {
     });
   });
 
-  test("无用户名资料保留 ID 地址但不渲染 raw ID", async ({
-    accountRun,
-    page,
-    account,
-    isolatedWorker,
-  }) => {
+  test("无用户名资料保留 ID 地址但不渲染 raw ID", {
+    tag: "@Account/Web",
+  }, async ({ accountRun, page, account, isolatedWorker }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await isolatedWorker.database.owner.user.update({
         where: { id: account.id },
@@ -127,11 +128,9 @@ test.describe("/community/users/[identifier] by ID", () => {
     });
   });
 
-  test("贡献热力图在移动端可滚动并支持键盘和触摸选择", async ({
-    accountRun,
-    page,
-    account,
-  }) => {
+  test("贡献热力图在移动端可滚动并支持键盘和触摸选择", {
+    tag: "@Account/Web",
+  }, async ({ accountRun, page, account }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.context().clearCookies();
       await page.setViewportSize({ width: 390, height: 844 });
@@ -191,7 +190,9 @@ test.describe("/community/users/[identifier] by ID", () => {
     });
   });
 
-  test("不存在的用户 ID 返回 404", async ({ page }) => {
+  test("不存在的用户 ID 返回 404", { tag: "@Account/Web" }, async ({
+    page,
+  }) => {
     await gotoAndWaitForReady(page, "/community/users/non-existing-user-id", {
       expectMainContent: false,
     });

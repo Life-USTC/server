@@ -17,7 +17,11 @@ import { showWeatherFixture } from "../../../utils/weather-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/weather", () => {
-  test("页面契约", async ({ page, preferenceFlow, request }) => {
+  test("页面契约", { tag: "@Weather/Web" }, async ({
+    page,
+    preferenceFlow,
+    request,
+  }) => {
     await preferenceFlow.run(async () => {
       await preferenceFlow.prepare(() => arrangeWeatherCache(request));
       await assertPageContract(page, {
@@ -26,7 +30,7 @@ test.describe("/catalog/weather", () => {
     });
   });
 
-  test("weather.two-locations-only", async ({
+  test("weather.two-locations-only", { tag: "@Weather/Web" }, async ({
     page,
     preferenceFlow,
     isolatedWorker,
@@ -66,10 +70,9 @@ test.describe("/catalog/weather", () => {
 });
 
 for (const width of [1280, 390]) {
-  test(`逐小时预报支持边缘悬停和键盘浏览 ${width}`, async ({
-    page,
-    preferenceFlow,
-  }) => {
+  test(`逐小时预报支持边缘悬停和键盘浏览 ${width}`, {
+    tag: "@Weather/Web",
+  }, async ({ page, preferenceFlow }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width, height: 900 });
       const snapshot = await showWeatherFixture(page);
@@ -128,18 +131,19 @@ for (const width of [1280, 390]) {
   });
 }
 
-test("weather.missing-current-display", async ({
-  page,
-  preferenceFlow,
-}, testInfo) => {
-  await preferenceFlow.run(async () => {
-    await showWeatherFixture(page, null);
-    await page.screenshot({
-      path: testInfo.outputPath("weather-missing-current.png"),
-      fullPage: true,
+test(
+  "weather.missing-current-display",
+  { tag: "@Weather/Web" },
+  async ({ page, preferenceFlow }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      await showWeatherFixture(page, null);
+      await page.screenshot({
+        path: testInfo.outputPath("weather-missing-current.png"),
+        fullPage: true,
+      });
+      await expect(page.getByTestId("weather-temperature").first()).toHaveText(
+        "—",
+      );
     });
-    await expect(page.getByTestId("weather-temperature").first()).toHaveText(
-      "—",
-    );
-  });
-});
+  },
+);

@@ -12,7 +12,7 @@ function surface(page: Page, width: number) {
 }
 
 for (const width of widths) {
-  test(`todo.mobile-toolbar-priority ${width}`, async ({
+  test(`todo.mobile-toolbar-priority ${width}`, { tag: "@Todo/Web" }, async ({
     todoRun,
     page,
     todos: _todos,
@@ -61,7 +61,7 @@ for (const width of widths) {
 
 for (const locale of ["zh-CN", "en-US"] as const) {
   for (const width of widths) {
-    test(`todo.web-detail ${locale}/${width}`, async ({
+    test(`todo.web-detail ${locale}/${width}`, { tag: "@Todo/Web" }, async ({
       todoRun,
       page,
       baseURL,
@@ -137,7 +137,11 @@ for (const locale of ["zh-CN", "en-US"] as const) {
 }
 
 for (const width of widths) {
-  test(`todo.web-list-state ${width}`, async ({ todoRun, page, todoState }) => {
+  test(`todo.web-list-state ${width}`, { tag: "@Todo/Web" }, async ({
+    todoRun,
+    page,
+    todoState,
+  }) => {
     await todoRun(
       async () => {
         await todoState.seed([{ title: "Known incomplete todo" }]);
@@ -184,7 +188,7 @@ for (const width of widths) {
 }
 
 for (const width of widths) {
-  test(`todo.web-due-order ${width}`, async ({
+  test(`todo.web-due-order ${width}`, { tag: "@Todo/Web" }, async ({
     todoActor,
     todoRun,
     page,
@@ -290,7 +294,7 @@ for (const width of widths) {
     );
   });
 
-  test(`todo.web-deadline-edit-order ${width}`, async ({
+  test(`todo.web-deadline-edit-order ${width}`, { tag: "@Todo/Web" }, async ({
     todoActor,
     todoRun,
     page,
