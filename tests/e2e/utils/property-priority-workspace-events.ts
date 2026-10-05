@@ -39,6 +39,12 @@ async function checkEvent(
   const scope = page
     .getByTestId(grid ? "workspace-calendar-grid" : "calendar-agenda")
     .filter({ visible: true });
+  // Activity results rebuild the calendar, including dates without activities.
+  // Wait for that render before scrolling to and measuring an event's fields.
+  await expect(scope).toBeVisible();
+  const calendar = scope.locator("xpath=ancestor::section[1]");
+  await expect(calendar.getByRole("status")).toHaveCount(0);
+  await expect(calendar.getByRole("alert")).toHaveCount(0);
   const courseName = local(data.catalog.courses[0], locale);
   const title =
     kind === "activity"
