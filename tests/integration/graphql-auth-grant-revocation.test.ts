@@ -14,83 +14,100 @@ import {
 } from "../shared/graphql-auth-contract-fixture";
 
 describe("GraphQL OAuth resource isolation", () => {
-  graphqlAuthTest(
-    "rejects the same REST, GraphQL, and MCP JWTs immediately after revocation",
-    async ({
-      authorization: { fixturePrisma, clientId, userId, grant, signToken },
-      oauthRuntime,
-    }) => {
-      await oauthRuntime.run(async () => {
-        const [graphqlToken, mcpToken, restToken] = await Promise.all([
-          signToken(getOAuthGraphqlResourceUrl()),
-          signToken(getOAuthMcpResourceUrl()),
-          signToken(getOAuthRestAudienceUrls()[0] as string),
-        ]);
+  for (const method of ["REST", "GraphQL", "MCP"] as const) {
+    graphqlAuthTest(
+      `rejects ${method} JWTs immediately after revocation`,
+      { tags: [`@OAuth/${method}`] },
+      async ({
+        authorization: { fixturePrisma, clientId, userId, grant, signToken },
+        oauthRuntime,
+      }) => {
+        await oauthRuntime.run(async () => {
+          const [graphqlToken, mcpToken, restToken] = await Promise.all([
+            signToken(getOAuthGraphqlResourceUrl()),
+            signToken(getOAuthMcpResourceUrl()),
+            signToken(getOAuthRestAudienceUrls()[0] as string),
+          ]);
 
-        await expect(
-          resolveGraphqlPrincipal(
-            new Request(getOAuthGraphqlResourceUrl(), {
-              headers: { authorization: `Bearer ${graphqlToken}` },
-            }),
-          ),
-        ).resolves.toMatchObject({ kind: "oauth", userId });
-        await expect(
-          resolveScopedApiUserId(
-            new Request(getOAuthRestAudienceUrls()[0] as string, {
-              headers: { authorization: `Bearer ${restToken}` },
-            }),
-            { action: "read", feature: "account.profile" },
-          ),
-        ).resolves.toBe(userId);
-        await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({
-          clientId,
-          extra: { userId },
+          if (method === "GraphQL") {
+            await expect(
+              resolveGraphqlPrincipal(
+                new Request(getOAuthGraphqlResourceUrl(), {
+                  headers: { authorization: `Bearer ${graphqlToken}` },
+                }),
+              ),
+            ).resolves.toMatchObject({ kind: "oauth", userId });
+          }
+          if (method === "REST") {
+            await expect(
+              resolveScopedApiUserId(
+                new Request(getOAuthRestAudienceUrls()[0] as string, {
+                  headers: { authorization: `Bearer ${restToken}` },
+                }),
+                { action: "read", feature: "account.profile" },
+              ),
+            ).resolves.toBe(userId);
+          }
+          if (method === "MCP") {
+            await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({
+              clientId,
+              extra: { userId },
+            });
+          }
+          await expect(
+            revokeUserOAuthAuthorization(userId, grant.consentId),
+          ).resolves.toMatchObject({ ok: true });
+          const replacementConsent = await fixturePrisma.oAuthConsent.create({
+            data: {
+              clientId,
+              scopes: [restReadScope("account.profile")],
+              userId,
+            },
+            select: { grantId: true, id: true },
+          });
+          grant.consentId = replacementConsent.id;
+          grant.grantId = replacementConsent.grantId;
+
+          if (method === "GraphQL") {
+            await expect(
+              resolveGraphqlPrincipal(
+                new Request(getOAuthGraphqlResourceUrl(), {
+                  headers: { authorization: `Bearer ${graphqlToken}` },
+                }),
+              ),
+            ).rejects.toMatchObject({ code: "UNAUTHENTICATED", status: 401 });
+          }
+          if (method === "REST") {
+            await expect(
+              resolveScopedApiUserId(
+                new Request(getOAuthRestAudienceUrls()[0] as string, {
+                  headers: { authorization: `Bearer ${restToken}` },
+                }),
+                { action: "read", feature: "account.profile" },
+              ),
+            ).resolves.toBeNull();
+          }
+          if (method === "MCP") {
+            await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({
+              diagnostics: { authFailureKind: "inactive_oauth_grant" },
+              error: "invalid_token",
+              status: 401,
+            });
+          }
+          if (method === "GraphQL") {
+            const replacementToken = await signToken(
+              getOAuthGraphqlResourceUrl(),
+            );
+            await expect(
+              resolveGraphqlPrincipal(
+                new Request(getOAuthGraphqlResourceUrl(), {
+                  headers: { authorization: `Bearer ${replacementToken}` },
+                }),
+              ),
+            ).resolves.toMatchObject({ kind: "oauth", userId });
+          }
         });
-
-        await expect(
-          revokeUserOAuthAuthorization(userId, grant.consentId),
-        ).resolves.toMatchObject({ ok: true });
-        const replacementConsent = await fixturePrisma.oAuthConsent.create({
-          data: {
-            clientId,
-            scopes: [restReadScope("account.profile")],
-            userId,
-          },
-          select: { grantId: true, id: true },
-        });
-        grant.consentId = replacementConsent.id;
-        grant.grantId = replacementConsent.grantId;
-
-        await expect(
-          resolveGraphqlPrincipal(
-            new Request(getOAuthGraphqlResourceUrl(), {
-              headers: { authorization: `Bearer ${graphqlToken}` },
-            }),
-          ),
-        ).rejects.toMatchObject({ code: "UNAUTHENTICATED", status: 401 });
-        await expect(
-          resolveScopedApiUserId(
-            new Request(getOAuthRestAudienceUrls()[0] as string, {
-              headers: { authorization: `Bearer ${restToken}` },
-            }),
-            { action: "read", feature: "account.profile" },
-          ),
-        ).resolves.toBeNull();
-        await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({
-          diagnostics: { authFailureKind: "inactive_oauth_grant" },
-          error: "invalid_token",
-          status: 401,
-        });
-
-        const replacementToken = await signToken(getOAuthGraphqlResourceUrl());
-        await expect(
-          resolveGraphqlPrincipal(
-            new Request(getOAuthGraphqlResourceUrl(), {
-              headers: { authorization: `Bearer ${replacementToken}` },
-            }),
-          ),
-        ).resolves.toMatchObject({ kind: "oauth", userId });
-      });
-    },
-  );
+      },
+    );
+  }
 });

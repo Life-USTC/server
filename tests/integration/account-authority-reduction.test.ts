@@ -103,7 +103,9 @@ async function settingsRevoke(
 }
 
 describe("account authority reduction boundaries", () => {
-  it("user.session-revocation-valid-session", async ({
+  it("user.session-revocation-valid-session", {
+    tags: ["@Account/REST"],
+  }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
@@ -142,7 +144,7 @@ describe("account authority reduction boundaries", () => {
     });
   });
 
-  it("user.session-revocation-ownership", async ({
+  it("user.session-revocation-ownership", { tags: ["@Account/REST"] }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
@@ -164,7 +166,7 @@ describe("account authority reduction boundaries", () => {
     });
   });
 
-  it("user.session-revocation-origin", async ({
+  it("user.session-revocation-origin", { tags: ["@Account/REST"] }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
@@ -202,7 +204,9 @@ describe("account authority reduction boundaries", () => {
     });
   });
 
-  it("user.session-revocation-authoritative", async ({
+  it("user.session-revocation-authoritative", {
+    tags: ["@Account/REST"],
+  }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
@@ -234,129 +238,174 @@ describe("account authority reduction boundaries", () => {
     });
   });
 
-  it("oauth.authorization-revoke-valid-session", async ({
-    isolatedDatabase: { owner: fixtures },
-    protocolRuntime,
-    expect,
-  }) => {
-    await protocolRuntime.run(async () => {
-      const { actorRow, apiGrant, webGrant } = await fixtures.$transaction(
-        async (db) => {
+  for (const method of ["REST", "Web"] as const) {
+    it(`oauth.authorization-revoke-valid-session ${method}`, {
+      tags: [`@OAuth/${method}`],
+    }, async ({
+      isolatedDatabase: { owner: fixtures },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const { actorRow, apiGrant, webGrant } = await fixtures.$transaction(
+          async (db) => {
+            const userId = await user(db);
+            return {
+              actorRow: await session(db, userId),
+              apiGrant: await grant(db, userId),
+              webGrant: await grant(db, userId),
+            };
+          },
+        );
+        const actor = await signedSession(actorRow);
+        if (method === "REST") {
+          const response = await protocolRuntime.request(() =>
+            authPostRoute(
+              request("/oauth2/delete-consent", actor.cookie, {
+                id: apiGrant.id,
+              }),
+            ),
+          );
+          expect(response.status).toBe(200);
+          expect(
+            await fixtures.oAuthConsent.findUnique({
+              where: { id: apiGrant.id },
+            }),
+          ).toBeNull();
+        }
+        if (method === "Web") {
+          await expect(
+            protocolRuntime.request(() =>
+              settingsRevoke(actor.cookie, webGrant.id),
+            ),
+          ).rejects.toMatchObject({
+            status: 303,
+            location:
+              "/account/settings/authorizations?message=AuthorizationRevoked",
+          });
+          expect(
+            await fixtures.oAuthConsent.findUnique({
+              where: { id: webGrant.id },
+            }),
+          ).toBeNull();
+        }
+      });
+    });
+  }
+
+  for (const method of ["REST", "Web"] as const) {
+    it(`oauth.authorization-reduction-ownership ${method}`, {
+      tags: [`@OAuth/${method}`],
+    }, async ({
+      isolatedDatabase: { owner: fixtures },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const { actorRow, otherGrant } = await fixtures.$transaction(
+          async (db) => ({
+            actorRow: await session(db, await user(db)),
+            otherGrant: await grant(db, await user(db)),
+          }),
+        );
+        const actor = await signedSession(actorRow);
+        if (method === "REST") {
+          for (const path of [
+            "/oauth2/delete-consent",
+            "/oauth2/update-consent",
+          ]) {
+            const response = await protocolRuntime.request(() =>
+              authPostRoute(
+                request(path, actor.cookie, {
+                  id: otherGrant.id,
+                  update: { scopes: [] },
+                }),
+              ),
+            );
+            expect(response.status).toBe(404);
+          }
+        }
+        if (method === "Web") {
+          expect(
+            await protocolRuntime.request(() =>
+              settingsRevoke(actor.cookie, otherGrant.id),
+            ),
+          ).toMatchObject({
+            status: 404,
+          });
+        }
+        expect(
+          await fixtures.oAuthConsent.findUnique({
+            where: { id: otherGrant.id },
+          }),
+        ).toMatchObject({
+          grantId: otherGrant.grantId,
+          scopes: ["profile", "email"],
+        });
+      });
+    });
+  }
+
+  for (const method of ["REST", "Web"] as const) {
+    it(`oauth.authorization-reduction-origin ${method}`, {
+      tags: [`@OAuth/${method}`],
+    }, async ({
+      isolatedDatabase: { owner: fixtures },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const { actorRow, owned } = await fixtures.$transaction(async (db) => {
           const userId = await user(db);
           return {
+            userId,
             actorRow: await session(db, userId),
-            apiGrant: await grant(db, userId),
-            webGrant: await grant(db, userId),
+            owned: await grant(db, userId),
           };
-        },
-      );
-      const actor = await signedSession(actorRow);
-      const response = await protocolRuntime.request(() =>
-        authPostRoute(
-          request("/oauth2/delete-consent", actor.cookie, { id: apiGrant.id }),
-        ),
-      );
-      expect(response.status).toBe(200);
-      expect(
-        await fixtures.oAuthConsent.findUnique({ where: { id: apiGrant.id } }),
-      ).toBeNull();
-      await expect(
-        protocolRuntime.request(() =>
-          settingsRevoke(actor.cookie, webGrant.id),
-        ),
-      ).rejects.toMatchObject({
-        status: 303,
-        location:
-          "/account/settings/authorizations?message=AuthorizationRevoked",
-      });
-      expect(
-        await fixtures.oAuthConsent.findUnique({ where: { id: webGrant.id } }),
-      ).toBeNull();
-    });
-  });
-
-  it("oauth.authorization-reduction-ownership", async ({
-    isolatedDatabase: { owner: fixtures },
-    protocolRuntime,
-    expect,
-  }) => {
-    await protocolRuntime.run(async () => {
-      const { actorRow, otherGrant } = await fixtures.$transaction(
-        async (db) => ({
-          actorRow: await session(db, await user(db)),
-          otherGrant: await grant(db, await user(db)),
-        }),
-      );
-      const actor = await signedSession(actorRow);
-      for (const path of ["/oauth2/delete-consent", "/oauth2/update-consent"]) {
-        const response = await protocolRuntime.request(() =>
-          authPostRoute(
-            request(path, actor.cookie, {
-              id: otherGrant.id,
-              update: { scopes: [] },
-            }),
-          ),
-        );
-        expect(response.status).toBe(404);
-      }
-      expect(
-        await protocolRuntime.request(() =>
-          settingsRevoke(actor.cookie, otherGrant.id),
-        ),
-      ).toMatchObject({
-        status: 404,
-      });
-      expect(
-        await fixtures.oAuthConsent.findUnique({
-          where: { id: otherGrant.id },
-        }),
-      ).toMatchObject({
-        grantId: otherGrant.grantId,
-        scopes: ["profile", "email"],
-      });
-    });
-  });
-
-  it("oauth.authorization-reduction-origin", async ({
-    isolatedDatabase: { owner: fixtures },
-    protocolRuntime,
-    expect,
-  }) => {
-    await protocolRuntime.run(async () => {
-      const { actorRow, owned } = await fixtures.$transaction(async (db) => {
-        const userId = await user(db);
-        return {
-          userId,
-          actorRow: await session(db, userId),
-          owned: await grant(db, userId),
-        };
-      });
-      const actor = await signedSession(actorRow);
-      for (const path of ["/oauth2/delete-consent", "/oauth2/update-consent"]) {
-        const response = await protocolRuntime.request(() =>
-          authPostRoute(
-            request(
-              path,
-              actor.cookie,
-              { id: owned.id, update: { scopes: [] } },
-              "https://untrusted.example",
+        });
+        const actor = await signedSession(actorRow);
+        if (method === "REST") {
+          for (const path of [
+            "/oauth2/delete-consent",
+            "/oauth2/update-consent",
+          ]) {
+            const response = await protocolRuntime.request(() =>
+              authPostRoute(
+                request(
+                  path,
+                  actor.cookie,
+                  { id: owned.id, update: { scopes: [] } },
+                  "https://untrusted.example",
+                ),
+              ),
+            );
+            expect(response.status).toBe(403);
+          }
+        }
+        if (method === "Web") {
+          await expect(
+            protocolRuntime.request(() =>
+              settingsRevoke(
+                actor.cookie,
+                owned.id,
+                "https://untrusted.example",
+              ),
             ),
-          ),
-        );
-        expect(response.status).toBe(403);
-      }
-      await expect(
-        protocolRuntime.request(() =>
-          settingsRevoke(actor.cookie, owned.id, "https://untrusted.example"),
-        ),
-      ).rejects.toMatchObject({ status: 403 });
-      expect(
-        await fixtures.oAuthConsent.findUnique({ where: { id: owned.id } }),
-      ).toMatchObject({ grantId: owned.grantId, scopes: ["profile", "email"] });
+          ).rejects.toMatchObject({ status: 403 });
+        }
+        expect(
+          await fixtures.oAuthConsent.findUnique({ where: { id: owned.id } }),
+        ).toMatchObject({
+          grantId: owned.grantId,
+          scopes: ["profile", "email"],
+        });
+      });
     });
-  });
+  }
 
-  it("oauth.authorization-reduction-authoritative", async ({
+  it("oauth.authorization-reduction-authoritative", {
+    tags: ["@OAuth/REST"],
+  }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
@@ -410,7 +459,9 @@ describe("account authority reduction boundaries", () => {
     });
   });
 
-  it("oauth.authorization-reduce-valid-session", async ({
+  it("oauth.authorization-reduce-valid-session", {
+    tags: ["@OAuth/REST"],
+  }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
@@ -461,7 +512,9 @@ describe("account authority reduction boundaries", () => {
     });
   });
 
-  it("oauth.authorization-reduce-no-expansion", async ({
+  it("oauth.authorization-reduce-no-expansion", {
+    tags: ["@OAuth/REST"],
+  }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
@@ -492,7 +545,9 @@ describe("account authority reduction boundaries", () => {
     });
   });
 
-  it("oauth.authorization-reduce-concurrent", async ({
+  it("oauth.authorization-reduce-concurrent", {
+    tags: ["@OAuth/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixtures },
     protocolRuntime,
     expect,
