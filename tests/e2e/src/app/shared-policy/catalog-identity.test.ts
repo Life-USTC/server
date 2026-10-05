@@ -48,6 +48,8 @@ async function createFixture(db: TestPrismaClient) {
   });
 }
 
+type IdentityFixture = Awaited<ReturnType<typeof createFixture>>;
+
 async function createMultipleSectionsFixture(db: TestPrismaClient) {
   const fixture = await createFixture(db);
   return db.$transaction(async (db) => {
@@ -75,139 +77,83 @@ async function createMultipleSectionsFixture(db: TestPrismaClient) {
   });
 }
 
-test("mobile courses cards retain list and link semantics", {
-  tag: "@Course/Web",
-}, async ({ preferenceFlow, isolatedWorker, page }) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    await page.setViewportSize({ width: 390, height: 844 });
-    expect(
-      (
-        await preferenceFlow.http(() =>
-          page.request.post("/api/account/preferences", {
-            headers: preferenceFlow.headers,
-            data: { locale: "zh-cn" },
-          }),
-        )
-      ).status(),
-    ).toBe(200);
-    const route = "courses";
-    const search = fixture.course.code;
-    const name = fixture.course.nameCn;
-    const destination = fixture.course.jwId;
-    await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
-    const item = page
-      .getByRole("listitem")
-      .filter({ has: page.getByText(name, { exact: true }) })
-      .filter({ visible: true });
-    await expect(item).toHaveCount(1);
-    const link = item.getByRole("link");
-    await expect(link).toHaveCount(1);
-    await expect(link).toHaveAccessibleName(new RegExp(name));
-    await expect(link).toHaveAttribute(
-      "href",
-      `/catalog/${route}/${destination}`,
-    );
-    await link.focus();
-    await expect(link).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(
-      new RegExp(`/catalog/${route}/${destination}$`),
-    );
+for (const { domain, route, select } of [
+  {
+    domain: "Course",
+    route: "courses",
+    select: ({ course }: IdentityFixture) => ({
+      search: course.code,
+      name: course.nameCn,
+      destination: course.jwId,
+    }),
+  },
+  {
+    domain: "Section",
+    route: "sections",
+    select: ({ course, section }: IdentityFixture) => ({
+      search: course.code,
+      name: course.nameCn,
+      destination: section.jwId,
+    }),
+  },
+  {
+    domain: "Teacher",
+    route: "teachers",
+    select: ({ teacher }: IdentityFixture) => {
+      if (!teacher.code)
+        throw new Error("Teacher fixture must have a public code");
+      return {
+        search: teacher.code,
+        name: teacher.nameCn,
+        destination: teacher.id,
+      };
+    },
+  },
+] as const) {
+  test(`mobile ${route} cards retain list and link semantics`, {
+    tag: `@${domain}/Web`,
+  }, async ({ preferenceFlow, isolatedWorker, page }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      await page.setViewportSize({ width: 390, height: 844 });
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale: "zh-cn" },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      const { search, name, destination } = select(fixture);
+      await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
+      const item = page
+        .getByRole("listitem")
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .filter({ visible: true });
+      await expect(item).toHaveCount(1);
+      const link = item.getByRole("link");
+      await expect(link).toHaveCount(1);
+      await expect(link).toHaveAccessibleName(new RegExp(name));
+      await expect(link).toHaveAttribute(
+        "href",
+        `/catalog/${route}/${destination}`,
+      );
+      await link.focus();
+      await expect(link).toBeFocused();
+      const expectSectionDetailReady =
+        route === "sections"
+          ? observeSectionDetailNavigation(page, preferenceFlow, destination)
+          : undefined;
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/${route}/${destination}$`),
+      );
+      if (expectSectionDetailReady) await expectSectionDetailReady();
+    });
   });
-});
-
-test("mobile sections cards retain list and link semantics", {
-  tag: "@Section/Web",
-}, async ({ preferenceFlow, isolatedWorker, page }) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    await page.setViewportSize({ width: 390, height: 844 });
-    expect(
-      (
-        await preferenceFlow.http(() =>
-          page.request.post("/api/account/preferences", {
-            headers: preferenceFlow.headers,
-            data: { locale: "zh-cn" },
-          }),
-        )
-      ).status(),
-    ).toBe(200);
-    const route = "sections";
-    const search = fixture.course.code;
-    const name = fixture.course.nameCn;
-    const destination = fixture.section.jwId;
-    await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
-    const item = page
-      .getByRole("listitem")
-      .filter({ has: page.getByText(name, { exact: true }) })
-      .filter({ visible: true });
-    await expect(item).toHaveCount(1);
-    const link = item.getByRole("link");
-    await expect(link).toHaveCount(1);
-    await expect(link).toHaveAccessibleName(new RegExp(name));
-    await expect(link).toHaveAttribute(
-      "href",
-      `/catalog/${route}/${destination}`,
-    );
-    await link.focus();
-    await expect(link).toBeFocused();
-    const expectSectionDetailReady = observeSectionDetailNavigation(
-      page,
-      preferenceFlow,
-      destination,
-    );
-    await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(
-      new RegExp(`/catalog/${route}/${destination}$`),
-    );
-    await expectSectionDetailReady();
-  });
-});
-
-test("mobile teachers cards retain list and link semantics", {
-  tag: "@Teacher/Web",
-}, async ({ preferenceFlow, isolatedWorker, page }) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    await page.setViewportSize({ width: 390, height: 844 });
-    expect(
-      (
-        await preferenceFlow.http(() =>
-          page.request.post("/api/account/preferences", {
-            headers: preferenceFlow.headers,
-            data: { locale: "zh-cn" },
-          }),
-        )
-      ).status(),
-    ).toBe(200);
-    if (!fixture.teacher.code)
-      throw new Error("Teacher fixture must have a public code");
-    const route = "teachers";
-    const search = fixture.teacher.code;
-    const name = fixture.teacher.nameCn;
-    const destination = fixture.teacher.id;
-    await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
-    const item = page
-      .getByRole("listitem")
-      .filter({ has: page.getByText(name, { exact: true }) })
-      .filter({ visible: true });
-    await expect(item).toHaveCount(1);
-    const link = item.getByRole("link");
-    await expect(link).toHaveCount(1);
-    await expect(link).toHaveAccessibleName(new RegExp(name));
-    await expect(link).toHaveAttribute(
-      "href",
-      `/catalog/${route}/${destination}`,
-    );
-    await link.focus();
-    await expect(link).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(
-      new RegExp(`/catalog/${route}/${destination}$`),
-    );
-  });
-});
+}
 
 test("ui.global-search-results-1", { tag: "@Search/Web" }, async ({
   preferenceFlow,
@@ -696,146 +642,117 @@ test(
   },
 );
 
-test("ui.data-table-cells-3 Course", { tag: "@Course/Web" }, async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 900 });
-      for (const [path, code] of [
-        [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
-        [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
-        [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
-      ]) {
-        await gotoAndWaitForReady(page, path);
-        const label = page
-          .locator("#main-content")
-          .getByText(code, { exact: true })
-          .filter({ visible: true });
-        await expect(label.first()).toBeVisible();
-        const presentations = await label.evaluateAll((elements) =>
-          elements.map((element) => ({
-            family: getComputedStyle(element).fontFamily,
-            inBadge: element.closest('[data-slot="badge"]') !== null,
-          })),
-        );
-        for (const presentation of presentations) {
-          expect(presentation.family).toMatch(/monospace|mono/i);
-          expect(presentation.inBadge).toBe(false);
+for (const { domain, select } of [
+  {
+    domain: "Course",
+    select: (fixture: IdentityFixture) => [
+      [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
+      [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
+      [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
+    ],
+  },
+  {
+    domain: "Section",
+    select: (fixture: IdentityFixture) => [
+      [
+        `/catalog/sections?search=${fixture.section.code}`,
+        fixture.section.code,
+      ],
+      [`/catalog/sections/${fixture.section.jwId}`, fixture.section.code],
+    ],
+  },
+  {
+    domain: "Teacher",
+    select: (fixture: IdentityFixture) => [
+      [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
+    ],
+  },
+] as const) {
+  test(`ui.data-table-cells-3 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    preferenceFlow,
+    isolatedWorker,
+    page,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        for (const [path, code] of select(fixture)) {
+          await gotoAndWaitForReady(page, path);
+          const label = page
+            .locator("#main-content")
+            .getByText(code, { exact: true })
+            .filter({ visible: true });
+          await expect(label.first()).toBeVisible();
+          const presentations = await label.evaluateAll((elements) =>
+            elements.map((element) => ({
+              family: getComputedStyle(element).fontFamily,
+              inBadge: element.closest('[data-slot="badge"]') !== null,
+            })),
+          );
+          for (const presentation of presentations) {
+            expect(presentation.family).toMatch(/monospace|mono/i);
+            expect(presentation.inBadge).toBe(false);
+          }
         }
       }
-    }
+    });
   });
-});
+}
 
-test("ui.data-table-cells-3 Section", { tag: "@Section/Web" }, async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 900 });
-      for (const [path, code] of [
-        [
-          `/catalog/sections?search=${fixture.section.code}`,
-          fixture.section.code,
-        ],
-        [`/catalog/sections/${fixture.section.jwId}`, fixture.section.code],
-      ]) {
-        await gotoAndWaitForReady(page, path);
-        const label = page
-          .locator("#main-content")
-          .getByText(code, { exact: true })
-          .filter({ visible: true });
-        await expect(label.first()).toBeVisible();
-        const presentations = await label.evaluateAll((elements) =>
-          elements.map((element) => ({
-            family: getComputedStyle(element).fontFamily,
-            inBadge: element.closest('[data-slot="badge"]') !== null,
-          })),
-        );
-        for (const presentation of presentations) {
-          expect(presentation.family).toMatch(/monospace|mono/i);
-          expect(presentation.inBadge).toBe(false);
-        }
-      }
-    }
-  });
-});
-
-test("ui.data-table-cells-3 Teacher", { tag: "@Teacher/Web" }, async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 900 });
-      for (const [path, code] of [
-        [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
-      ]) {
-        await gotoAndWaitForReady(page, path);
-        const label = page
-          .locator("#main-content")
-          .getByText(code, { exact: true })
-          .filter({ visible: true });
-        await expect(label.first()).toBeVisible();
-        const presentations = await label.evaluateAll((elements) =>
-          elements.map((element) => ({
-            family: getComputedStyle(element).fontFamily,
-            inBadge: element.closest('[data-slot="badge"]') !== null,
-          })),
-        );
-        for (const presentation of presentations) {
-          expect(presentation.family).toMatch(/monospace|mono/i);
-          expect(presentation.inBadge).toBe(false);
-        }
-      }
-    }
-  });
-});
-
-test("permission-ui.identity-4 Course Web", { tag: "@Course/Web" }, async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    const { course, teacher, section, user } = fixture;
-    const forbidden = [
-      course.id,
-      course.jwId,
-      teacher.id,
-      teacher.jwId,
-      section.id,
-      section.jwId,
-      user.id,
-    ].map(String);
-    for (const locale of ["zh-cn", "en-us"]) {
-      expect(
-        (
-          await preferenceFlow.http(() =>
-            page.request.post("/api/account/preferences", {
-              headers: preferenceFlow.headers,
-              data: { locale },
-            }),
-          )
-        ).status(),
-      ).toBe(200);
-      for (const [path, name, code] of [
-        [
-          `/catalog/courses/${course.jwId}`,
-          locale === "zh-cn" ? course.nameCn : course.nameEn,
-          course.code,
-        ],
-      ]) {
+for (const { domain, select } of [
+  {
+    domain: "Course",
+    select: ({ course }: IdentityFixture, locale: string) => [
+      `/catalog/courses/${course.jwId}`,
+      locale === "zh-cn" ? course.nameCn : course.nameEn,
+      course.code,
+    ],
+  },
+  {
+    domain: "Section",
+    select: ({ course, section }: IdentityFixture, locale: string) => [
+      `/catalog/sections/${section.jwId}`,
+      locale === "zh-cn" ? course.nameCn : course.nameEn,
+      section.code,
+    ],
+  },
+  {
+    domain: "Teacher",
+    select: ({ teacher, section }: IdentityFixture, locale: string) => [
+      `/catalog/teachers/${teacher.id}`,
+      locale === "zh-cn" ? teacher.nameCn : teacher.nameEn,
+      section.code,
+    ],
+  },
+] as const) {
+  test(`permission-ui.identity-4 ${domain} Web`, {
+    tag: `@${domain}/Web`,
+  }, async ({ preferenceFlow, isolatedWorker, page }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      const { course, teacher, section, user } = fixture;
+      const forbidden = [
+        course.id,
+        course.jwId,
+        teacher.id,
+        teacher.jwId,
+        section.id,
+        section.jwId,
+        user.id,
+      ].map(String);
+      for (const locale of ["zh-cn", "en-us"]) {
+        expect(
+          (
+            await preferenceFlow.http(() =>
+              page.request.post("/api/account/preferences", {
+                headers: preferenceFlow.headers,
+                data: { locale },
+              }),
+            )
+          ).status(),
+        ).toBe(200);
+        const [path, name, code] = select(fixture, locale);
         if (!path || !name || !code)
           throw new Error("Incomplete identity fixture");
         await gotoAndWaitForReady(page, path);
@@ -848,111 +765,9 @@ test("permission-ui.identity-4 Course Web", { tag: "@Course/Web" }, async ({
         for (const id of forbidden)
           expect(await page.title()).not.toContain(id);
       }
-    }
+    });
   });
-});
-
-test("permission-ui.identity-4 Section Web", { tag: "@Section/Web" }, async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    const { course, teacher, section, user } = fixture;
-    const forbidden = [
-      course.id,
-      course.jwId,
-      teacher.id,
-      teacher.jwId,
-      section.id,
-      section.jwId,
-      user.id,
-    ].map(String);
-    for (const locale of ["zh-cn", "en-us"]) {
-      expect(
-        (
-          await preferenceFlow.http(() =>
-            page.request.post("/api/account/preferences", {
-              headers: preferenceFlow.headers,
-              data: { locale },
-            }),
-          )
-        ).status(),
-      ).toBe(200);
-      for (const [path, name, code] of [
-        [
-          `/catalog/sections/${section.jwId}`,
-          locale === "zh-cn" ? course.nameCn : course.nameEn,
-          section.code,
-        ],
-      ]) {
-        if (!path || !name || !code)
-          throw new Error("Incomplete identity fixture");
-        await gotoAndWaitForReady(page, path);
-        await expect(page.getByRole("heading", { level: 1 })).toContainText(
-          name,
-        );
-        await expect(page.locator("#main-content")).toContainText(code);
-        const visible = await page.locator("#main-content").innerText();
-        for (const id of forbidden) expect(visible).not.toContain(id);
-        for (const id of forbidden)
-          expect(await page.title()).not.toContain(id);
-      }
-    }
-  });
-});
-
-test("permission-ui.identity-4 Teacher Web", { tag: "@Teacher/Web" }, async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    const { course, teacher, section, user } = fixture;
-    const forbidden = [
-      course.id,
-      course.jwId,
-      teacher.id,
-      teacher.jwId,
-      section.id,
-      section.jwId,
-      user.id,
-    ].map(String);
-    for (const locale of ["zh-cn", "en-us"]) {
-      expect(
-        (
-          await preferenceFlow.http(() =>
-            page.request.post("/api/account/preferences", {
-              headers: preferenceFlow.headers,
-              data: { locale },
-            }),
-          )
-        ).status(),
-      ).toBe(200);
-      for (const [path, name, code] of [
-        [
-          `/catalog/teachers/${teacher.id}`,
-          locale === "zh-cn" ? teacher.nameCn : teacher.nameEn,
-          section.code,
-        ],
-      ]) {
-        if (!path || !name || !code)
-          throw new Error("Incomplete identity fixture");
-        await gotoAndWaitForReady(page, path);
-        await expect(page.getByRole("heading", { level: 1 })).toContainText(
-          name,
-        );
-        await expect(page.locator("#main-content")).toContainText(code);
-        const visible = await page.locator("#main-content").innerText();
-        for (const id of forbidden) expect(visible).not.toContain(id);
-        for (const id of forbidden)
-          expect(await page.title()).not.toContain(id);
-      }
-    }
-  });
-});
+}
 
 test("permission-ui.identity-4 Account Web", { tag: "@Account/Web" }, async ({
   preferenceFlow,
