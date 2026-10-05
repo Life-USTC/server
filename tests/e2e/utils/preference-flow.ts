@@ -65,6 +65,9 @@ export async function withPreferenceFlow(
   const origin = isolatedWorker.origin;
   const db = isolatedWorker.database.owner;
   const secret = { "x-test-storage-secret": "local-test-storage-observer" };
+  // Probe calls span browser work; do not retain a socket across the Worker's
+  // idle-connection timeout. Keep this header off browser requests.
+  const probeOptions = { headers: { ...secret, Connection: "close" } };
   const probeId = crypto.randomUUID();
   const probePath = "/__test/community-effects?id=" + probeId;
   const headers = { ...secret, "x-test-community-probe": probeId };
@@ -306,7 +309,7 @@ export async function withPreferenceFlow(
       }
       if (registered) {
         try {
-          const response = await observer.get(probePath, { headers: secret });
+          const response = await observer.get(probePath, probeOptions);
           expect(response.status()).toBe(200);
           const observation = await response.json();
           expect(observation.backgroundErrors).toEqual([]);
@@ -333,7 +336,7 @@ export async function withPreferenceFlow(
         }
         try {
           expect(
-            (await observer.delete(probePath, { headers: secret })).status(),
+            (await observer.delete(probePath, probeOptions)).status(),
           ).toBe(204);
         } catch (error) {
           remember(error);
@@ -366,9 +369,7 @@ export async function withPreferenceFlow(
               mode = kind;
               try {
                 expect(
-                  (
-                    await observer.post(probePath, { headers: secret })
-                  ).status(),
+                  (await observer.post(probePath, probeOptions)).status(),
                 ).toBe(201);
                 registered = true;
                 open();
