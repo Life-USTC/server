@@ -107,7 +107,11 @@ async function insideHorizontalViewport(link: Locator, viewport: Locator) {
   expect(item.x + item.width).toBeLessThanOrEqual(region.x + region.width + 1);
 }
 
-test("ui.context-tabs-3", async ({ page, isolatedWorker, navigationRun }) => {
+test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
+  page,
+  isolatedWorker,
+  navigationRun,
+}) => {
   await navigationRun(async () => {
     const data = await fixture(isolatedWorker.database.owner);
     await identify(page, isolatedWorker, data.users[1].id);
@@ -193,7 +197,7 @@ test("ui.context-tabs-3", async ({ page, isolatedWorker, navigationRun }) => {
   });
 });
 
-test("ui.navigation-landmarks-6", async ({
+test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
   page,
   isolatedWorker,
   navigationRun,

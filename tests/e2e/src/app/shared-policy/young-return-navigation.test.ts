@@ -14,7 +14,7 @@ function destination(value: string | null) {
   return { path: url.pathname, params: [...url.searchParams.entries()].sort() };
 }
 
-test("ui.navigation-landmarks-7", async ({
+test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
   browseRun,
   page,
   baseURL,

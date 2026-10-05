@@ -90,7 +90,7 @@ async function assertReadingOrder(page: Page, items: readonly string[]) {
   }
 }
 
-test("ui.detail-two-column-stream-2", async ({
+test("ui.detail-two-column-stream-2", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -113,7 +113,7 @@ test("ui.detail-two-column-stream-2", async ({
   });
 });
 
-test("ui.detail-two-column-stream-3", async ({
+test("ui.detail-two-column-stream-3", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -136,7 +136,7 @@ test("ui.detail-two-column-stream-3", async ({
   });
 });
 
-test("ui.detail-hero-2", async ({
+test("ui.detail-hero-2", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -161,7 +161,7 @@ test("ui.detail-hero-2", async ({
   });
 });
 
-test("ui.detail-hero-3", async ({
+test("ui.detail-hero-3", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -182,7 +182,7 @@ test("ui.detail-hero-3", async ({
   });
 });
 
-test("ui.layout-principles-1", async ({
+test("ui.layout-principles-1", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -212,7 +212,7 @@ test("ui.layout-principles-1", async ({
   });
 });
 
-test("ui.layout-principles-2", async ({
+test("ui.layout-principles-2", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -235,68 +235,91 @@ test("ui.layout-principles-2", async ({
 });
 
 for (const [index, locale] of locales.entries()) {
-  taskFilterTest(
-    `workspace branch identities ${locale}/${viewports[index].width}`,
-    async ({ page, isolatedWorker, taskFilterRun }) => {
-      taskFilterTest.setTimeout(90_000);
-      await taskFilterRun(
-        async ({ checkpoint }) => {
-          // Locale is browser state; this consumer does not exercise its editor.
-          await page.context().addCookies([
-            {
-              name: "NEXT_LOCALE",
-              value: locale,
-              url: isolatedWorker.origin,
-            },
-          ]);
-          await page.setViewportSize(viewports[index]);
-          for (const [tab, titles] of Object.entries(workspace)) {
-            await taskFilterTest.step(
-              `${tab}: heading, landmark and title`,
-              async () => {
-                const route = `/workspace/${tab}`;
-                const response = await gotoAndWaitForReady(page, route);
-                expect(response?.status()).toBe(200);
-                expect(response?.headers()["content-language"]).toBe(locale);
-                expect(response?.headers()["cache-control"]).toBe(
-                  "private, no-store",
-                );
-                expect(
-                  response?.headers()["cloudflare-cdn-cache-control"],
-                ).toBe("no-store");
-                await expect(page).toHaveURL(
-                  new URL(route, isolatedWorker.origin).href,
-                );
-                await expect(page.locator("html")).toHaveAttribute(
-                  "lang",
-                  locale,
-                );
-                await expect(
-                  page.getByRole("heading", { level: 1 }),
-                ).toHaveCount(1);
-                await expect(
-                  page.getByRole("heading", { level: 1 }),
-                ).toHaveText(titles[index]);
-                await expect(page.getByRole("main")).toHaveCount(1);
-                await expect(page.getByRole("main")).toHaveAccessibleName(
-                  titles[index],
-                );
-                await expect(page).toHaveTitle(`${titles[index]} - Life@USTC`);
-                await checkpoint(`${locale}/${tab}`, {
-                  calendarMessages: [],
-                  calendarTokenCreated: tab !== "overview",
-                });
+  for (const [domain, tab] of [
+    ["Overview", "overview"],
+    ["Calendar", "calendar"],
+    ["Homework", "homeworks"],
+    ["Todo", "todos"],
+    ["Exam", "exams"],
+    ["Subscription", "subscriptions"],
+  ] as const) {
+    taskFilterTest(
+      `workspace branch identities ${locale}/${viewports[index].width} ${domain}`,
+      { tag: `@${domain}/Web` },
+      async ({ page, isolatedWorker, taskFilterRun }) => {
+        taskFilterTest.setTimeout(90_000);
+        await taskFilterRun(
+          async ({ checkpoint }) => {
+            // Locale is browser state; this consumer does not exercise its editor.
+            await page.context().addCookies([
+              {
+                name: "NEXT_LOCALE",
+                value: locale,
+                url: isolatedWorker.origin,
               },
-            );
-          }
-        },
-        { calendarMessages: [], calendarTokenCreated: true },
-      );
-    },
-  );
+            ]);
+            await page.setViewportSize(viewports[index]);
+            for (const titles of [workspace[tab]]) {
+              await taskFilterTest.step(
+                `${tab}: heading, landmark and title`,
+                async () => {
+                  const route = `/workspace/${tab}`;
+                  const response = await gotoAndWaitForReady(page, route);
+                  expect(response?.status()).toBe(200);
+                  expect(response?.headers()["content-language"]).toBe(locale);
+                  expect(response?.headers()["cache-control"]).toBe(
+                    "private, no-store",
+                  );
+                  expect(
+                    response?.headers()["cloudflare-cdn-cache-control"],
+                  ).toBe("no-store");
+                  await expect(page).toHaveURL(
+                    new URL(route, isolatedWorker.origin).href,
+                  );
+                  await expect(page.locator("html")).toHaveAttribute(
+                    "lang",
+                    locale,
+                  );
+                  await expect(
+                    page.getByRole("heading", { level: 1 }),
+                  ).toHaveCount(1);
+                  await expect(
+                    page.getByRole("heading", { level: 1 }),
+                  ).toHaveText(titles[index]);
+                  await expect(page.getByRole("main")).toHaveCount(1);
+                  await expect(page.getByRole("main")).toHaveAccessibleName(
+                    titles[index],
+                  );
+                  await expect(page).toHaveTitle(
+                    `${titles[index]} - Life@USTC`,
+                  );
+                  await checkpoint(`${locale}/${tab}`, {
+                    calendarMessages: [],
+                    calendarTokenCreated: [
+                      "calendar",
+                      "exams",
+                      "subscriptions",
+                    ].includes(tab),
+                  });
+                },
+              );
+            }
+          },
+          {
+            calendarMessages: [],
+            calendarTokenCreated: [
+              "calendar",
+              "exams",
+              "subscriptions",
+            ].includes(tab),
+          },
+        );
+      },
+    );
+  }
 }
 
-test("ui.navigation-landmarks-1", async ({
+test("ui.navigation-landmarks-1", { tag: "@Site/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -316,68 +339,79 @@ test("ui.navigation-landmarks-1", async ({
   });
 });
 
-taskFilterTest("ui.navigation-landmarks-2", async ({ page, taskFilterRun }) => {
-  await taskFilterRun(
-    async ({ headers, checkpoint }) => {
-      await page.setViewportSize(viewports[1]);
-      await gotoAndWaitForReady(page, "/workspace/overview");
-      for (const locale of locales) {
-        await setLocale(page, locale, headers);
+taskFilterTest(
+  "ui.navigation-landmarks-2",
+  { tag: "@Site/Web" },
+  async ({ page, taskFilterRun }) => {
+    await taskFilterRun(
+      async ({ headers, checkpoint }) => {
+        await page.setViewportSize(viewports[1]);
         await gotoAndWaitForReady(page, "/workspace/overview");
-        await expect(
-          page.getByRole("navigation", {
-            name:
-              locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
-            exact: true,
-          }),
-        ).toBeVisible();
-        await openMobileMenu(page);
-        await expect(
-          page.getByRole("navigation", {
-            name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
-            exact: true,
-          }),
-        ).toBeVisible();
-      }
-      await checkpoint("mobile navigation has no calendar side effects", {
-        calendarMessages: [],
-        calendarTokenCreated: false,
-      });
-    },
-    { calendarMessages: [], calendarTokenCreated: false },
-  );
-});
+        for (const locale of locales) {
+          await setLocale(page, locale, headers);
+          await gotoAndWaitForReady(page, "/workspace/overview");
+          await expect(
+            page.getByRole("navigation", {
+              name:
+                locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
+              exact: true,
+            }),
+          ).toBeVisible();
+          await openMobileMenu(page);
+          await expect(
+            page.getByRole("navigation", {
+              name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+              exact: true,
+            }),
+          ).toBeVisible();
+        }
+        await checkpoint("mobile navigation has no calendar side effects", {
+          calendarMessages: [],
+          calendarTokenCreated: false,
+        });
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
+  },
+);
 
-taskFilterTest("ui.navigation-landmarks-3", async ({ page, taskFilterRun }) => {
-  await taskFilterRun(
-    async ({ checkpoint }) => {
-      await gotoAndWaitForReady(page, "/workspace/overview");
-      for (const viewport of viewports) {
-        await page.setViewportSize(viewport);
-        for (const href of [
-          "/workspace/todos",
-          "/catalog/courses",
-          "/account/settings/preferences",
-        ]) {
-          await gotoAndWaitForReady(page, href);
-          if (viewport.width < 768) await openMobileMenu(page);
-          for (const nav of await page.getByRole("navigation").all()) {
-            expect(
-              await nav.locator('[aria-current="page"]').count(),
-            ).toBeLessThanOrEqual(1);
+taskFilterTest(
+  "ui.navigation-landmarks-3",
+  { tag: "@Site/Web" },
+  async ({ page, taskFilterRun }) => {
+    await taskFilterRun(
+      async ({ checkpoint }) => {
+        await gotoAndWaitForReady(page, "/workspace/overview");
+        for (const viewport of viewports) {
+          await page.setViewportSize(viewport);
+          for (const href of [
+            "/workspace/todos",
+            "/catalog/courses",
+            "/account/settings/preferences",
+          ]) {
+            await gotoAndWaitForReady(page, href);
+            if (viewport.width < 768) await openMobileMenu(page);
+            for (const nav of await page.getByRole("navigation").all()) {
+              expect(
+                await nav.locator('[aria-current="page"]').count(),
+              ).toBeLessThanOrEqual(1);
+            }
           }
         }
-      }
-      await checkpoint("navigation does not create a personal calendar token", {
-        calendarMessages: [],
-        calendarTokenCreated: false,
-      });
-    },
-    { calendarMessages: [], calendarTokenCreated: false },
-  );
-});
+        await checkpoint(
+          "navigation does not create a personal calendar token",
+          {
+            calendarMessages: [],
+            calendarTokenCreated: false,
+          },
+        );
+      },
+      { calendarMessages: [], calendarTokenCreated: false },
+    );
+  },
+);
 
-test("ui.footer-navigation-landmark", async ({
+test("ui.footer-navigation-landmark", { tag: "@Site/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -397,7 +431,7 @@ test("ui.footer-navigation-landmark", async ({
   });
 });
 
-test("ui.workspace-footer-policy-1", async ({
+test("ui.workspace-footer-policy-1", { tag: "@Site/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -426,7 +460,7 @@ test("ui.workspace-footer-policy-1", async ({
   });
 });
 
-test("ui.public-legal-help-navigation", async ({
+test("ui.public-legal-help-navigation", { tag: "@Site/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -454,15 +488,78 @@ test("ui.public-legal-help-navigation", async ({
   });
 });
 
-taskFilterTest(
-  "ui.workspace-filters-and-empty-states-3",
-  async ({ page, taskFilterState, taskFilterRun }) => {
-    await taskFilterState(false);
-    await taskFilterRun(
-      async () => {
-        for (const viewport of viewports) {
-          await page.setViewportSize(viewport);
-          for (const tab of ["homeworks", "todos", "exams"]) {
+for (const [domain, tab] of [
+  ["Homework", "homeworks"],
+  ["Todo", "todos"],
+  ["Exam", "exams"],
+] as const) {
+  taskFilterTest(
+    `ui.workspace-filters-and-empty-states-3 ${domain}`,
+    { tag: `@${domain}/Web` },
+    async ({ page, taskFilterState, taskFilterRun }) => {
+      await taskFilterState(false);
+      await taskFilterRun(
+        async () => {
+          for (const viewport of viewports) {
+            await page.setViewportSize(viewport);
+            {
+              await gotoAndWaitForReady(page, `/workspace/${tab}`);
+              const clear = page
+                .getByRole("button", { name: /清除筛选|Clear filter/i })
+                .filter({ visible: true });
+              const empty = page
+                .locator('[data-slot="empty"]')
+                .filter({ has: clear });
+              await expect(empty).toBeVisible();
+              await expect(empty.locator("svg, img")).toHaveCount(0);
+              expect(
+                await empty.evaluate((node) => ({
+                  background: getComputedStyle(node).backgroundColor,
+                  align: getComputedStyle(node).textAlign,
+                })),
+              ).toEqual({ background: "rgba(0, 0, 0, 0)", align: "left" });
+              const description = empty.locator(
+                '[data-slot="empty-description"]',
+              );
+              await expect(description).toBeVisible();
+              const descriptionBox = await description.boundingBox();
+              const clearBox = await clear.boundingBox();
+              if (!descriptionBox || !clearBox)
+                throw new Error("Missing empty-state geometry");
+              expect(clearBox.y).toBeGreaterThan(
+                descriptionBox.y + descriptionBox.height,
+              );
+              expect(
+                await clear.evaluate((node) =>
+                  Number.parseFloat(getComputedStyle(node).borderTopWidth),
+                ),
+              ).toBeGreaterThan(0);
+              if (viewport.width >= 768)
+                await expect(
+                  page.getByRole("columnheader").first(),
+                ).toBeVisible();
+            }
+          }
+        },
+        { calendarMessages: [], calendarTokenCreated: tab === "exams" },
+      );
+    },
+  );
+}
+
+for (const [domain, tab] of [
+  ["Homework", "homeworks"],
+  ["Todo", "todos"],
+  ["Exam", "exams"],
+] as const) {
+  taskFilterTest(
+    `ui.workspace-filters-and-empty-states-5 ${domain}`,
+    { tag: `@${domain}/Web` },
+    async ({ page, taskFilterState, taskFilterRun }) => {
+      const fixture = await taskFilterState(false);
+      await taskFilterRun(
+        async () => {
+          {
             await gotoAndWaitForReady(page, `/workspace/${tab}`);
             const clear = page
               .getByRole("button", { name: /清除筛选|Clear filter/i })
@@ -470,86 +567,37 @@ taskFilterTest(
             const empty = page
               .locator('[data-slot="empty"]')
               .filter({ has: clear });
-            await expect(empty).toBeVisible();
-            await expect(empty.locator("svg, img")).toHaveCount(0);
-            expect(
-              await empty.evaluate((node) => ({
-                background: getComputedStyle(node).backgroundColor,
-                align: getComputedStyle(node).textAlign,
-              })),
-            ).toEqual({ background: "rgba(0, 0, 0, 0)", align: "left" });
-            const description = empty.locator(
-              '[data-slot="empty-description"]',
+            await expect(empty.locator('[data-slot="empty-title"]')).toHaveText(
+              /.+/,
             );
-            await expect(description).toBeVisible();
-            const descriptionBox = await description.boundingBox();
-            const clearBox = await clear.boundingBox();
-            if (!descriptionBox || !clearBox)
-              throw new Error("Missing empty-state geometry");
-            expect(clearBox.y).toBeGreaterThan(
-              descriptionBox.y + descriptionBox.height,
-            );
-            expect(
-              await clear.evaluate((node) =>
-                Number.parseFloat(getComputedStyle(node).borderTopWidth),
-              ),
-            ).toBeGreaterThan(0);
-            if (viewport.width >= 768)
-              await expect(
-                page.getByRole("columnheader").first(),
-              ).toBeVisible();
+            await expect(
+              empty.locator('[data-slot="empty-description"]'),
+            ).toHaveText(/.+/);
+            await clear.click();
+            await expect(
+              page.locator('[data-slot="toggle-group"] [aria-checked="true"]'),
+            ).toHaveAttribute("data-value", "all");
+            await expect(clear).toHaveCount(0);
+            await expect(
+              page
+                .locator(
+                  tab === "exams"
+                    ? '[data-testid="room-map-preview"]'
+                    : "#main-content",
+                )
+                .filter({
+                  hasText:
+                    fixture.completedTitle[
+                      tab as keyof typeof fixture.completedTitle
+                    ],
+                })
+                .filter({ visible: true })
+                .first(),
+            ).toBeVisible();
           }
-        }
-      },
-      { calendarMessages: [], calendarTokenCreated: true },
-    );
-  },
-);
-
-taskFilterTest(
-  "ui.workspace-filters-and-empty-states-5",
-  async ({ page, taskFilterState, taskFilterRun }) => {
-    const fixture = await taskFilterState(false);
-    await taskFilterRun(
-      async () => {
-        for (const tab of ["homeworks", "todos", "exams"]) {
-          await gotoAndWaitForReady(page, `/workspace/${tab}`);
-          const clear = page
-            .getByRole("button", { name: /清除筛选|Clear filter/i })
-            .filter({ visible: true });
-          const empty = page
-            .locator('[data-slot="empty"]')
-            .filter({ has: clear });
-          await expect(empty.locator('[data-slot="empty-title"]')).toHaveText(
-            /.+/,
-          );
-          await expect(
-            empty.locator('[data-slot="empty-description"]'),
-          ).toHaveText(/.+/);
-          await clear.click();
-          await expect(
-            page.locator('[data-slot="toggle-group"] [aria-checked="true"]'),
-          ).toHaveAttribute("data-value", "all");
-          await expect(clear).toHaveCount(0);
-          await expect(
-            page
-              .locator(
-                tab === "exams"
-                  ? '[data-testid="room-map-preview"]'
-                  : "#main-content",
-              )
-              .filter({
-                hasText:
-                  fixture.completedTitle[
-                    tab as keyof typeof fixture.completedTitle
-                  ],
-              })
-              .filter({ visible: true })
-              .first(),
-          ).toBeVisible();
-        }
-      },
-      { calendarMessages: [], calendarTokenCreated: true },
-    );
-  },
-);
+        },
+        { calendarMessages: [], calendarTokenCreated: tab === "exams" },
+      );
+    },
+  );
+}

@@ -37,7 +37,7 @@ const test = busTest.extend<{ busUsers: User[] }>({
   },
 });
 
-test("bus.public-web-personal-overlay", async ({
+test("bus.public-web-personal-overlay", { tag: "@Bus/Web" }, async ({
   preferenceFlow,
   baseURL,
   busUsers: users,

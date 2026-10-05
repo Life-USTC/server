@@ -35,7 +35,7 @@ async function signIn(page: Page, worker: IsolatedWorker, userId: string) {
   ).toBe(200);
 }
 
-test("ui.shell-layout-1", async ({ page }) => {
+test("ui.shell-layout-1", { tag: "@Site/Web" }, async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 400 });
   await gotoAndWaitForReady(page, "/terms");
   const sidebar = page
@@ -78,7 +78,7 @@ test("ui.shell-layout-1", async ({ page }) => {
   );
 });
 
-test("ui.shell-layout-5", async ({
+test("ui.shell-layout-5", { tag: "@Site/Web" }, async ({
   accountRun,
   page,
   shellUser,
@@ -130,7 +130,7 @@ test("ui.shell-layout-5", async ({
   );
 });
 
-test("ui.shell-layout-7", async ({ page }) => {
+test("ui.shell-layout-7", { tag: "@Site/Web" }, async ({ page }) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ["/", "/catalog/courses", "/terms"]) {
@@ -148,7 +148,7 @@ test("ui.shell-layout-7", async ({ page }) => {
   }
 });
 
-test("ui.workspace-footer-policy-2", async ({
+test("ui.workspace-footer-policy-2", { tag: "@Site/Web" }, async ({
   accountRun,
   page,
   shellUser,
@@ -216,7 +216,7 @@ test("ui.workspace-footer-policy-2", async ({
   );
 });
 
-test("ui.shell-layout-4", async ({
+test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
   accountRun,
   page,
   shellUser,
@@ -313,7 +313,7 @@ test("ui.shell-layout-4", async ({
   );
 });
 
-test("ui.navigation-landmarks-5", async ({ page }) => {
+test("ui.navigation-landmarks-5", { tag: "@Site/Web" }, async ({ page }) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const [href, name] of [
@@ -340,7 +340,7 @@ test("ui.navigation-landmarks-5", async ({ page }) => {
   }
 });
 
-test("ui.shell-layout-3", async ({ page }) => {
+test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await gotoAndWaitForReady(page, "/");

@@ -8,6 +8,7 @@ import { graphqlHomeworkTest } from "../shared/graphql-homework-contract-fixture
 describe("GraphQL completion batch boundaries", () => {
   graphqlHomeworkTest.for([1, 100])(
     "accepts %s items and persists every completion",
+    { tags: ["@Homework/GraphQL"] },
     expectCompletionBatchPersisted,
   );
 
@@ -18,6 +19,7 @@ describe("GraphQL completion batch boundaries", () => {
     { name: "normalized duplicate", count: 2 },
   ])(
     "rejects $name batches without changing existing completion",
+    { tags: ["@Homework/GraphQL"] },
     expectCompletionBatchRejected,
   );
 

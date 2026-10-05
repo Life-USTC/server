@@ -134,6 +134,7 @@ describe("self-hosted observability event store", () => {
 
   it.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     "allows only administrators to read event rows through the app RLS role",
+    { tags: ["@Database/Permissions"] },
     async ({ isolatedDatabase, workspaceRuntime }) => {
       const { owner: fixturePrisma } = isolatedDatabase;
       await workspaceRuntime.run(async () => {

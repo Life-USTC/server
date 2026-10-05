@@ -139,14 +139,15 @@ function expectedTimetable(fixture: Fixture) {
   );
   const routes = fixture.routes.map(({ id, campuses: stops }) => ({
     id,
-    nameCn: `审计线路${id}`,
-    nameEn: null,
+    // The selected version's raw topology owns names and zero-based stop order.
+    nameCn: `${stops[0].name} -> ${stops[1].name}`,
+    nameEn: `${stops[0].name} to ${stops[1].name}`,
     descriptionPrimary: `${stops[0].name} -> ${stops[1].name}`,
     descriptionSecondary: null,
     stops: stops.map(({ id: campusId }, index) => {
       const campus = campuses.find(({ id }) => id === campusId);
       if (!campus) throw new Error("Missing arranged bus campus");
-      return { stopOrder: index + 1, campus };
+      return { stopOrder: index, campus };
     }),
   }));
   const trips = (

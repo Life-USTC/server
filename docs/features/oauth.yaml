@@ -589,8 +589,8 @@ requirements:
       resumes only with the valid database connection.
     - Only an explicit skipConsent marker bypasses consent and an absent user still fails.
     test:
-      file: tests/integration/oauth-active-grant-contract.test.ts
-      name: oauth.authorization-management.active-user-grant-enforcement
+      file: tests/integration/oauth-active-grant-rest.test.ts
+      name: oauth.authorization-management.active-user-grant-enforcement REST
 - id: oauth.authorization-management.refresh-revocation-race
   category: consistency
   rule: Refresh exchange verifies the hashed token row and exact grant generation before delegation, preserves

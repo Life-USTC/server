@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { defineConfig } from "vitest/config";
+import { testTags } from "./tests/ci/test-tags";
 import { sharedAlias } from "./vitest.base";
 
 dotenv.config();
@@ -20,7 +21,8 @@ export default defineConfig({
     include: ["tests/integration/**/*.test.ts"],
     // REST contracts run under Playwright with a real Worker, not Vitest.
     exclude: ["tests/integration/rest/**"],
-    // Keep per-shard resource use bounded; test fixtures own mutable state.
+    tags: testTags,
+    // Keep per-job resource use bounded; test fixtures own mutable state.
     fileParallelism: false,
   },
 });

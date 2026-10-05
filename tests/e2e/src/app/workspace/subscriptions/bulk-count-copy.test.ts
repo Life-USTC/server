@@ -113,6 +113,7 @@ for (const count of [1, 2]) {
         ).toBeVisible();
 
         return observation.checks({
+          sessionRefreshed: true,
           feedTokenCreated: true,
           subscriptions: f.sections.map((section) => ({
             userId: f.owner.id,

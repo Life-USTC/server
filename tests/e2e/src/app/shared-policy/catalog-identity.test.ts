@@ -48,11 +48,9 @@ async function createFixture(db: TestPrismaClient) {
   });
 }
 
-test("mobile catalog cards retain list and link semantics", async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
+test("mobile catalog cards retain list and link semantics", {
+  tag: "@Catalog/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
   await preferenceFlow.run(async () => {
     const fixture = await createFixture(isolatedWorker.database.owner);
     await page.setViewportSize({ width: 390, height: 844 });
@@ -116,7 +114,7 @@ test("mobile catalog cards retain list and link semantics", async ({
   });
 });
 
-test("ui.global-search-results-1", async ({
+test("ui.global-search-results-1", { tag: "@Search/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -194,7 +192,7 @@ test("ui.global-search-results-1", async ({
   });
 });
 
-test("ui.global-search-results-2", async ({
+test("ui.global-search-results-2", { tag: "@Search/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -316,7 +314,7 @@ test("ui.global-search-results-2", async ({
   });
 });
 
-test("ui.global-search-results-3", async ({
+test("ui.global-search-results-3", { tag: "@Search/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -354,254 +352,256 @@ test("ui.global-search-results-3", async ({
   });
 });
 
-test("ui.global-search-results-4", async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}, testInfo) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    const marker = crypto.randomUUID().slice(0, 8);
-    const department = await isolatedWorker.database.owner.$transaction((db) =>
-      db.department.create({
-        data: {
-          code: `DEPT-${marker}`,
-          nameCn: `测试院系 ${marker}`,
-          nameEn: `Test department ${marker}`,
-        },
-      }),
-    );
+test(
+  "ui.global-search-results-4",
+  { tag: "@Search/Web" },
+  async ({ preferenceFlow, isolatedWorker, page }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      const marker = crypto.randomUUID().slice(0, 8);
+      const department = await isolatedWorker.database.owner.$transaction(
+        (db) =>
+          db.department.create({
+            data: {
+              code: `DEPT-${marker}`,
+              nameCn: `测试院系 ${marker}`,
+              nameEn: `Test department ${marker}`,
+            },
+          }),
+      );
 
-    const withDepartment = await isolatedWorker.database.owner.$transaction(
-      (db) =>
-        db.teacher.update({
-          where: { id: fixture.teacher.id },
+      const withDepartment = await isolatedWorker.database.owner.$transaction(
+        (db) =>
+          db.teacher.update({
+            where: { id: fixture.teacher.id },
+            data: {
+              departmentId: department.id,
+              nameCn: `教师 ${marker} 甲`,
+              nameEn: `Teacher ${marker} A`,
+            },
+          }),
+      );
+      const codeOnly = await isolatedWorker.database.owner.$transaction((db) =>
+        db.teacher.create({
           data: {
-            departmentId: department.id,
-            nameCn: `教师 ${marker} 甲`,
-            nameEn: `Teacher ${marker} A`,
+            id: fixture.teacher.id + 6,
+            jwId: fixture.teacher.jwId + 6,
+            code: `TC-${marker}`,
+            nameCn: `教师 ${marker} 乙`,
+            nameEn: `Teacher ${marker} B`,
           },
         }),
-    );
-    const codeOnly = await isolatedWorker.database.owner.$transaction((db) =>
-      db.teacher.create({
-        data: {
-          id: fixture.teacher.id + 6,
-          jwId: fixture.teacher.jwId + 6,
-          code: `TC-${marker}`,
-          nameCn: `教师 ${marker} 乙`,
-          nameEn: `Teacher ${marker} B`,
-        },
-      }),
-    );
+      );
 
-    const noContext = await isolatedWorker.database.owner.$transaction((db) =>
-      db.teacher.create({
-        data: {
-          id: fixture.teacher.id + 8,
-          jwId: fixture.teacher.jwId + 8,
-          code: "",
-          nameCn: `教师 ${marker} 丙`,
-          nameEn: `Teacher ${marker} C`,
-        },
-      }),
-    );
+      const noContext = await isolatedWorker.database.owner.$transaction((db) =>
+        db.teacher.create({
+          data: {
+            id: fixture.teacher.id + 8,
+            jwId: fixture.teacher.jwId + 8,
+            code: "",
+            nameCn: `教师 ${marker} 丙`,
+            nameEn: `Teacher ${marker} C`,
+          },
+        }),
+      );
 
-    for (const locale of ["zh-cn", "en-us"]) {
-      expect(
-        (
-          await preferenceFlow.http(() =>
-            page.request.post("/api/account/preferences", {
-              headers: preferenceFlow.headers,
-              data: { locale },
-            }),
-          )
-        ).status(),
-      ).toBe(200);
-      await gotoAndWaitForReady(page, `/search?q=${marker}`);
-      for (const teacher of [withDepartment, codeOnly, noContext]) {
-        const name = locale === "zh-cn" ? teacher.nameCn : teacher.nameEn;
+      for (const locale of ["zh-cn", "en-us"]) {
+        expect(
+          (
+            await preferenceFlow.http(() =>
+              page.request.post("/api/account/preferences", {
+                headers: preferenceFlow.headers,
+                data: { locale },
+              }),
+            )
+          ).status(),
+        ).toBe(200);
+        await gotoAndWaitForReady(page, `/search?q=${marker}`);
+        for (const teacher of [withDepartment, codeOnly, noContext]) {
+          const name = locale === "zh-cn" ? teacher.nameCn : teacher.nameEn;
+          if (!name)
+            throw new Error(
+              "Teacher fixture must provide both localized names",
+            );
+          const context =
+            teacher.id === withDepartment.id
+              ? locale === "zh-cn"
+                ? department.nameCn
+                : department.nameEn
+              : teacher.code;
+          const result = page
+            .getByRole("option")
+            .filter({ has: page.getByText(name, { exact: true }) });
+          if (locale === "en-us" && teacher.id === withDepartment.id)
+            await page.screenshot({
+              path: testInfo.outputPath("teacher-search-context.png"),
+              fullPage: true,
+            });
+          await expect(result).toHaveCount(1);
+          const visible = await result.innerText();
+          expect(visible.trim()).toBe(context ? `${name}\n${context}` : name);
+          expect(visible).not.toContain(String(teacher.id));
+          expect(visible).not.toContain(String(teacher.jwId));
+        }
+        const name =
+          locale === "zh-cn" ? withDepartment.nameCn : withDepartment.nameEn;
         if (!name)
           throw new Error("Teacher fixture must provide both localized names");
-        const context =
-          teacher.id === withDepartment.id
-            ? locale === "zh-cn"
-              ? department.nameCn
-              : department.nameEn
-            : teacher.code;
-        const result = page
+        await page
           .getByRole("option")
-          .filter({ has: page.getByText(name, { exact: true }) });
-        if (locale === "en-us" && teacher.id === withDepartment.id)
-          await page.screenshot({
-            path: testInfo.outputPath("teacher-search-context.png"),
-            fullPage: true,
-          });
-        await expect(result).toHaveCount(1);
-        const visible = await result.innerText();
-        expect(visible.trim()).toBe(context ? `${name}\n${context}` : name);
-        expect(visible).not.toContain(String(teacher.id));
-        expect(visible).not.toContain(String(teacher.jwId));
+          .filter({ has: page.getByText(name, { exact: true }) })
+          .click();
+        await expect(page).toHaveURL(
+          new RegExp(`/catalog/teachers/${withDepartment.id}$`),
+        );
       }
-      const name =
-        locale === "zh-cn" ? withDepartment.nameCn : withDepartment.nameEn;
-      if (!name)
-        throw new Error("Teacher fixture must provide both localized names");
-      await page
-        .getByRole("option")
-        .filter({ has: page.getByText(name, { exact: true }) })
-        .click();
-      await expect(page).toHaveURL(
-        new RegExp(`/catalog/teachers/${withDepartment.id}$`),
-      );
-    }
-  });
-});
+    });
+  },
+);
 
-test("ui.data-table-cells-2", async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-  baseURL,
-}, testInfo) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    const courseName =
-      "Complete course title with extensive catalog context and a distinguishing final phrase";
-    const teacherName =
-      "Complete teacher name with extensive catalog context and a distinguishing final phrase";
-    const sectionCode = `${fixture.section.code}-COMPLETE-PUBLIC-SECTION-CODE-END`;
-    const values = [courseName, sectionCode, teacherName];
-    const path = `/catalog/sections?search=${fixture.course.code}`;
-    const touchContext = await preferenceFlow.newContext({
-      baseURL,
-      hasTouch: true,
-      viewport: { width: 1280, height: 900 },
-    });
-    await isolatedWorker.database.owner.$transaction(async (db) => {
-      await db.course.update({
-        where: { id: fixture.course.id },
-        data: { nameCn: courseName, nameEn: courseName },
+test(
+  "ui.data-table-cells-2",
+  { tag: "@Catalog/Web" },
+  async ({ preferenceFlow, isolatedWorker, page, baseURL }, testInfo) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      const courseName =
+        "Complete course title with extensive catalog context and a distinguishing final phrase";
+      const teacherName =
+        "Complete teacher name with extensive catalog context and a distinguishing final phrase";
+      const sectionCode = `${fixture.section.code}-COMPLETE-PUBLIC-SECTION-CODE-END`;
+      const values = [courseName, sectionCode, teacherName];
+      const path = `/catalog/sections?search=${fixture.course.code}`;
+      const touchContext = await preferenceFlow.newContext({
+        baseURL,
+        hasTouch: true,
+        viewport: { width: 1280, height: 900 },
       });
-      await db.teacher.update({
-        where: { id: fixture.teacher.id },
-        data: { nameCn: teacherName, nameEn: teacherName },
+      await isolatedWorker.database.owner.$transaction(async (db) => {
+        await db.course.update({
+          where: { id: fixture.course.id },
+          data: { nameCn: courseName, nameEn: courseName },
+        });
+        await db.teacher.update({
+          where: { id: fixture.teacher.id },
+          data: { nameCn: teacherName, nameEn: teacherName },
+        });
+        await db.section.update({
+          where: { id: fixture.section.id },
+          data: { code: sectionCode },
+        });
       });
-      await db.section.update({
-        where: { id: fixture.section.id },
-        data: { code: sectionCode },
-      });
-    });
-    const touchPage = await preferenceFlow.newPage(touchContext);
-    for (const width of [1280, 390]) {
-      await touchPage.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(touchPage, path, {
+      const touchPage = await preferenceFlow.newPage(touchContext);
+      for (const width of [1280, 390]) {
+        await touchPage.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(touchPage, path, {
+          browserHealth: {},
+          expectMeaningfulContent: true,
+        });
+        expect(
+          await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
+        ).toBe(true);
+        await touchPage.screenshot({
+          path: testInfo.outputPath(`truncation-touch-${width}.png`),
+          fullPage: true,
+        });
+        for (const value of values) {
+          const text = touchPage
+            .locator("#main-content")
+            .getByText(value, { exact: width !== 390 || value !== teacherName })
+            .filter({ visible: true });
+          await expect(text).toHaveCount(1);
+          const geometry = await text.evaluate((element) => ({
+            width: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+            height: element.clientHeight,
+            scrollHeight: element.scrollHeight,
+          }));
+          expect(
+            geometry.scrollWidth,
+            `Touch value is horizontally clipped: ${value}`,
+          ).toBeLessThanOrEqual(geometry.width + 1);
+          expect(
+            geometry.scrollHeight,
+            `Touch value is vertically clipped: ${value}`,
+          ).toBeLessThanOrEqual(geometry.height + 1);
+        }
+        expect(
+          await touchPage.evaluate(
+            () =>
+              document.documentElement.scrollWidth <=
+              document.documentElement.clientWidth,
+          ),
+        ).toBe(true);
+      }
+      const expectSectionDetailReady = observeSectionDetailNavigation(
+        touchPage,
+        preferenceFlow,
+        fixture.section.jwId,
+      );
+      await touchPage
+        .getByRole("link")
+        .filter({ has: touchPage.getByText(courseName, { exact: true }) })
+        .tap();
+      await expect(touchPage).toHaveURL(
+        new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
+      );
+      await expectSectionDetailReady();
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await gotoAndWaitForReady(page, path, {
         browserHealth: {},
         expectMeaningfulContent: true,
       });
-      expect(
-        await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
-      ).toBe(true);
-      await touchPage.screenshot({
-        path: testInfo.outputPath(`truncation-touch-${width}.png`),
+      for (const value of values) {
+        const text = page
+          .locator('#main-content [data-slot="truncated-text"]')
+          .filter({ hasText: value, visible: true });
+        expect(
+          await text.evaluate(
+            (element) => element.scrollWidth > element.clientWidth,
+          ),
+        ).toBe(true);
+        await text.hover();
+        const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
+        await expect(tooltip).toHaveText(value);
+        await page.keyboard.press("Escape");
+        await expect(tooltip).toHaveCount(0);
+      }
+      const link = page
+        .getByRole("link", { name: courseName, exact: true })
+        .filter({ visible: true });
+      await link.focus();
+      for (const value of values) {
+        const focused = page.locator(":focus");
+        await expect(focused).toContainText(value);
+        await expect(
+          page.locator('[data-slot="tooltip-content"]:visible'),
+        ).toHaveText(value);
+        expect(await focused.ariaSnapshot()).toContain(value);
+        await page.keyboard.press("Escape");
+        await expect(
+          page.locator('[data-slot="tooltip-content"]:visible'),
+        ).toHaveCount(0);
+        await page.keyboard.press("Tab");
+      }
+      const code = page
+        .locator("#main-content")
+        .getByText(sectionCode, { exact: true })
+        .filter({ visible: true });
+      await code.hover();
+      await expect(
+        page.locator('[data-slot="tooltip-content"]:visible'),
+      ).toHaveText(sectionCode);
+      await page.screenshot({
+        path: testInfo.outputPath("truncation-pointer.png"),
         fullPage: true,
       });
-      for (const value of values) {
-        const text = touchPage
-          .locator("#main-content")
-          .getByText(value, { exact: width !== 390 || value !== teacherName })
-          .filter({ visible: true });
-        await expect(text).toHaveCount(1);
-        const geometry = await text.evaluate((element) => ({
-          width: element.clientWidth,
-          scrollWidth: element.scrollWidth,
-          height: element.clientHeight,
-          scrollHeight: element.scrollHeight,
-        }));
-        expect(
-          geometry.scrollWidth,
-          `Touch value is horizontally clipped: ${value}`,
-        ).toBeLessThanOrEqual(geometry.width + 1);
-        expect(
-          geometry.scrollHeight,
-          `Touch value is vertically clipped: ${value}`,
-        ).toBeLessThanOrEqual(geometry.height + 1);
-      }
-      expect(
-        await touchPage.evaluate(
-          () =>
-            document.documentElement.scrollWidth <=
-            document.documentElement.clientWidth,
-        ),
-      ).toBe(true);
-    }
-    const expectSectionDetailReady = observeSectionDetailNavigation(
-      touchPage,
-      preferenceFlow,
-      fixture.section.jwId,
-    );
-    await touchPage
-      .getByRole("link")
-      .filter({ has: touchPage.getByText(courseName, { exact: true }) })
-      .tap();
-    await expect(touchPage).toHaveURL(
-      new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
-    );
-    await expectSectionDetailReady();
-
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await gotoAndWaitForReady(page, path, {
-      browserHealth: {},
-      expectMeaningfulContent: true,
     });
-    for (const value of values) {
-      const text = page
-        .locator('#main-content [data-slot="truncated-text"]')
-        .filter({ hasText: value, visible: true });
-      expect(
-        await text.evaluate(
-          (element) => element.scrollWidth > element.clientWidth,
-        ),
-      ).toBe(true);
-      await text.hover();
-      const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
-      await expect(tooltip).toHaveText(value);
-      await page.keyboard.press("Escape");
-      await expect(tooltip).toHaveCount(0);
-    }
-    const link = page
-      .getByRole("link", { name: courseName, exact: true })
-      .filter({ visible: true });
-    await link.focus();
-    for (const value of values) {
-      const focused = page.locator(":focus");
-      await expect(focused).toContainText(value);
-      await expect(
-        page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toHaveText(value);
-      expect(await focused.ariaSnapshot()).toContain(value);
-      await page.keyboard.press("Escape");
-      await expect(
-        page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toHaveCount(0);
-      await page.keyboard.press("Tab");
-    }
-    const code = page
-      .locator("#main-content")
-      .getByText(sectionCode, { exact: true })
-      .filter({ visible: true });
-    await code.hover();
-    await expect(
-      page.locator('[data-slot="tooltip-content"]:visible'),
-    ).toHaveText(sectionCode);
-    await page.screenshot({
-      path: testInfo.outputPath("truncation-pointer.png"),
-      fullPage: true,
-    });
-  });
-});
+  },
+);
 
-test("ui.data-table-cells-3", async ({
+test("ui.data-table-cells-3", { tag: "@Catalog/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -642,7 +642,7 @@ test("ui.data-table-cells-3", async ({
   });
 });
 
-test("permission-ui.identity-4", async ({
+test("permission-ui.identity-4", { tag: "@Catalog/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -737,11 +737,9 @@ test("permission-ui.identity-4", async ({
   });
 });
 
-test("cases.missing-data.section-missing-teacher-location-or-exam-1", async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
+test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
+  tag: "@Catalog/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
   await preferenceFlow.run(async () => {
     const fixture = await createFixture(isolatedWorker.database.owner);
     await isolatedWorker.database.owner.$transaction((db) =>
@@ -804,7 +802,7 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", async ({
   });
 });
 
-test("cases.missing-data.ical-no-events-1", async ({
+test("cases.missing-data.ical-no-events-1", { tag: "@Calendar/ICS" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -905,90 +903,100 @@ test("cases.missing-data.ical-no-events-1", async ({
   });
 });
 
-test("cases.missing-data.homework-no-due-date-1", async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
-  await preferenceFlow.run(async () => {
-    const fixture = await createFixture(isolatedWorker.database.owner);
-    const homework = await isolatedWorker.database.owner.$transaction(
-      async (db) => {
-        await db.userSectionSubscription.create({
-          data: { userId: fixture.user.id, sectionId: fixture.section.id },
-        });
-        return db.homework.create({
-          data: {
-            sectionId: fixture.section.id,
-            createdById: fixture.user.id,
-            title: "Undated homework stays reachable",
-            publishedAt: new Date("2026-01-01T00:00:00Z"),
-            submissionDueAt: null,
-          },
-        });
-      },
-    );
-    await page
-      .context()
-      .addCookies([
-        (await isolatedWorker.createSession(fixture.user.id)).cookie,
-      ]);
-    await gotoAndWaitForReady(page, "/workspace/homeworks");
-    await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
-    const row = page.getByRole("row").filter({ hasText: homework.title });
-    await expect(row).toBeVisible();
-    await expect(row).toContainText(/日期待定|Date TBD/i);
-    const list = await preferenceFlow.http(() =>
-      page.request.get("/api/workspace/homeworks", {
-        headers: preferenceFlow.headers,
-      }),
-    );
-    expect(list.status()).toBe(200);
-    const body = await list.json();
-    expect(body.data).toEqual([
-      expect.objectContaining({ id: homework.id, submissionDueAt: null }),
-    ]);
-    for (const atTime of [
-      "2026-04-29T08:00:00+08:00",
-      "2026-10-01T08:00:00+08:00",
-    ]) {
-      for (const homeworkWindowDays of [1, 7]) {
-        const overview = await preferenceFlow.http(() =>
+for (const [domain, method] of [
+  ["Homework", "Web"],
+  ["Homework", "REST"],
+  ["Overview", "REST"],
+] as const) {
+  test(`cases.missing-data.homework-no-due-date-1 ${domain}/${method}`, {
+    tag: `@${domain}/${method}`,
+  }, async ({ preferenceFlow, isolatedWorker, page }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      const homework = await isolatedWorker.database.owner.$transaction(
+        async (db) => {
+          await db.userSectionSubscription.create({
+            data: { userId: fixture.user.id, sectionId: fixture.section.id },
+          });
+          return db.homework.create({
+            data: {
+              sectionId: fixture.section.id,
+              createdById: fixture.user.id,
+              title: "Undated homework stays reachable",
+              publishedAt: new Date("2026-01-01T00:00:00Z"),
+              submissionDueAt: null,
+            },
+          });
+        },
+      );
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(fixture.user.id)).cookie,
+        ]);
+      if (method === "Web") {
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
+        await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
+        const row = page.getByRole("row").filter({ hasText: homework.title });
+        await expect(row).toBeVisible();
+        await expect(row).toContainText(/日期待定|Date TBD/i);
+      }
+      if (domain === "Homework" && method === "REST") {
+        const list = await preferenceFlow.http(() =>
+          page.request.get("/api/workspace/homeworks", {
+            headers: preferenceFlow.headers,
+          }),
+        );
+        expect(list.status()).toBe(200);
+        const body = await list.json();
+        expect(body.data).toEqual([
+          expect.objectContaining({ id: homework.id, submissionDueAt: null }),
+        ]);
+      }
+      if (domain === "Overview") {
+        for (const atTime of [
+          "2026-04-29T08:00:00+08:00",
+          "2026-10-01T08:00:00+08:00",
+        ]) {
+          for (const homeworkWindowDays of [1, 7]) {
+            const overview = await preferenceFlow.http(() =>
+              page.request.get(
+                `/api/workspace/overview?${new URLSearchParams({ atTime, homeworkWindowDays: String(homeworkWindowDays) })}`,
+                { headers: preferenceFlow.headers },
+              ),
+            );
+            expect(overview.status()).toBe(200);
+            expect(await overview.json()).toMatchObject({
+              counts: { pendingHomeworks: 1, dueSoonHomeworks: 0 },
+              homeworks: { total: 0, items: [] },
+            });
+          }
+        }
+      }
+      if (domain === "Homework" && method === "REST") {
+        const sectionList = await preferenceFlow.http(() =>
           page.request.get(
-            `/api/workspace/overview?${new URLSearchParams({ atTime, homeworkWindowDays: String(homeworkWindowDays) })}`,
+            `/api/community/section-homeworks?sectionId=${fixture.section.id}`,
             { headers: preferenceFlow.headers },
           ),
         );
-        expect(overview.status()).toBe(200);
-        expect(await overview.json()).toMatchObject({
-          counts: { pendingHomeworks: 1, dueSoonHomeworks: 0 },
-          homeworks: { total: 0, items: [] },
-        });
+        expect(sectionList.status()).toBe(200);
+        expect(JSON.stringify(await sectionList.json())).toContain(homework.id);
       }
-    }
-    const sectionList = await preferenceFlow.http(() =>
-      page.request.get(
-        `/api/community/section-homeworks?sectionId=${fixture.section.id}`,
-        { headers: preferenceFlow.headers },
-      ),
-    );
-    expect(sectionList.status()).toBe(200);
-    expect(JSON.stringify(await sectionList.json())).toContain(homework.id);
-    expect(
-      (
-        await isolatedWorker.database.owner.$transaction((db) =>
-          db.homework.findUniqueOrThrow({ where: { id: homework.id } }),
-        )
-      ).submissionDueAt,
-    ).toBeNull();
+      expect(
+        (
+          await isolatedWorker.database.owner.$transaction((db) =>
+            db.homework.findUniqueOrThrow({ where: { id: homework.id } }),
+          )
+        ).submissionDueAt,
+      ).toBeNull();
+    });
   });
-});
+}
 
-test("cases.disambiguation.duplicate-course-names-1", async ({
-  preferenceFlow,
-  isolatedWorker,
-  page,
-}) => {
+test("cases.disambiguation.duplicate-course-names-1", {
+  tag: "@Catalog/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
   await preferenceFlow.run(async () => {
     const fixture = await createFixture(isolatedWorker.database.owner);
     const second = await isolatedWorker.database.owner.$transaction((db) =>
@@ -1057,6 +1065,7 @@ test("cases.disambiguation.duplicate-course-names-1", async ({
 
 subscriptionTest(
   "cases.disambiguation.multiple-sections-same-course-1",
+  { tag: "@Catalog/Web" },
   async ({ page, isolatedWorker, run, catalogSubscriptionRun }, testInfo) => {
     subscriptionTest.setTimeout(60_000);
     const db = isolatedWorker.database.owner;

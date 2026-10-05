@@ -483,7 +483,8 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
           expect(joined).toEqual(spec.expected);
           expect(new Set(joined).size).toBe(spec.expected.length);
         }
-        expect(await db.jwks.count()).toBe(1);
+        // REST and GraphQL issue signed tokens; the in-process MCP client does not.
+        expect(await db.jwks.count()).toBe(method === "MCP" ? 0 : 1);
       }),
   );
 }

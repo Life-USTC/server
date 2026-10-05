@@ -2,7 +2,11 @@ import { expect } from "@playwright/test";
 import { test } from "../../../utils/owned-page";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
-test("ui.settings-navigation-5", async ({ page, pageRun, isolatedWorker }) => {
+test("ui.settings-navigation-5", { tag: "@OAuth/Web" }, async ({
+  page,
+  pageRun,
+  isolatedWorker,
+}) => {
   await pageRun(
     async () => {
       const db = isolatedWorker.database.owner;

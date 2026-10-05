@@ -17,7 +17,7 @@ async function reachable(locator: Locator) {
   await expect(locator).toBeInViewport();
 }
 
-test("ui.detail-two-column-stream-4", async ({
+test("ui.detail-two-column-stream-4", { tag: "@Catalog/Web" }, async ({
   page,
   isolatedWorker,
   run,

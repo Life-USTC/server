@@ -44,10 +44,12 @@ export async function prepareCountObservation(
   return {
     checks({
       feedTokenCreated,
+      sessionRefreshed,
       subscriptions,
       writes,
     }: {
       feedTokenCreated: boolean;
+      sessionRefreshed: boolean;
       subscriptions: { userId: string; sectionId: number; kind: "regular" }[];
       writes: [string, string, number][];
     }): CalendarProtocolChecks {
@@ -90,7 +92,11 @@ export async function prepareCountObservation(
               updatedAt: expect.any(Date),
             })),
           );
-          for (const [index, session] of finalSessions.entries()) {
+          if (!sessionRefreshed) expect(finalSessions).toEqual(sessions);
+          for (const [index, session] of (sessionRefreshed
+            ? finalSessions
+            : []
+          ).entries()) {
             const expiryClock = session.expires.getTime() - 30 * 86400_000;
             for (const time of [expiryClock, session.updatedAt.getTime()]) {
               expect(time).toBeGreaterThanOrEqual(sessionStarted);

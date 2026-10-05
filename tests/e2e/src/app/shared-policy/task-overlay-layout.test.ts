@@ -59,7 +59,7 @@ async function bounds(locator: Locator) {
   return box;
 }
 
-test("homework.mobile-status-controls", async ({
+test("homework.mobile-status-controls", { tag: "@Homework/Web" }, async ({
   page,
   calendar,
   calendarDb,
@@ -113,150 +113,162 @@ test("homework.mobile-status-controls", async ({
   );
 });
 
-test("ui.layout-principles-5", async ({
-  page,
-  calendar,
-  calendarDb,
-  calendarRun,
-}) => {
-  await calendarRun(
-    async () => {
-      const data = await fixture(page, calendar, calendarDb);
-      for (const width of [1280, 390, 320]) {
-        await page.setViewportSize({ width, height: 700 });
-        for (const kind of ["homework", "todo"] as const) {
-          const title =
-            kind === "homework" ? data.homework.title : data.todo.title;
-          await page.goto(
-            kind === "homework" ? "/workspace/homeworks" : "/workspace/todos",
-          );
-          const surface =
-            kind === "homework"
-              ? page.getByTestId(
-                  width >= 768
-                    ? "workspace-homeworks-list"
-                    : "workspace-homeworks-cards",
-                )
-              : width >= 768
-                ? page.getByRole("table")
-                : page.getByTestId("workspace-todos-cards");
-          await surface
-            .getByRole("button", { name: title, exact: true })
-            .click();
-          const dialog = page.getByRole("dialog", { name: title, exact: true });
-          await expect(dialog).toBeVisible();
-          const heading = dialog.getByRole("heading", {
-            name: title,
-            exact: true,
-          });
-          const scroll = dialog.locator('[data-slot="scroll-area-viewport"]');
-          await expect(scroll).toHaveCount(1);
-          const summary = dialog.getByTestId(
-            kind === "homework"
-              ? "homework-deadline-summary"
-              : "todo-detail-summary",
-          );
-          const due = summary.locator(":scope > p").nth(1);
-          const relative = summary.locator(":scope > p").nth(2);
-          const facts =
-            kind === "homework"
-              ? dialog.getByTestId("homework-secondary-details")
-              : summary.getByRole("table");
-          const reading = dialog.getByText(
-            "Reading paragraph 0: independently verifiable task instructions.",
-            { exact: true },
-          );
-          await expect(due).toHaveText(
-            kind === "homework" ? "1/3/99, 12:30 PM" : "Jan 3, 2099, 12:30 PM",
-          );
-          await expect(relative).toContainText(/left/);
-          // Compare only the two deadline values in this summary, in one
-          // rendered sample. The dialog title is not their local style baseline.
-          const deadlineStyles = await summary
-            .locator(":scope > p")
-            .evaluateAll(async (paragraphs) => {
-              await document.fonts.ready;
-              return paragraphs.slice(1, 3).map((paragraph) => {
-                const style = getComputedStyle(paragraph);
-                return {
-                  size: Number.parseFloat(style.fontSize),
-                  weight: Number.parseInt(style.fontWeight, 10),
-                  color: style.color,
-                };
-              });
+for (const [domain, kind] of [
+  ["Homework", "homework"],
+  ["Todo", "todo"],
+] as const) {
+  test(`ui.layout-principles-5 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    calendar,
+    calendarDb,
+    calendarRun,
+  }) => {
+    await calendarRun(
+      async () => {
+        const data = await fixture(page, calendar, calendarDb);
+        for (const width of [1280, 390, 320]) {
+          await page.setViewportSize({ width, height: 700 });
+          {
+            const title =
+              kind === "homework" ? data.homework.title : data.todo.title;
+            await page.goto(
+              kind === "homework" ? "/workspace/homeworks" : "/workspace/todos",
+            );
+            const surface =
+              kind === "homework"
+                ? page.getByTestId(
+                    width >= 768
+                      ? "workspace-homeworks-list"
+                      : "workspace-homeworks-cards",
+                  )
+                : width >= 768
+                  ? page.getByRole("table")
+                  : page.getByTestId("workspace-todos-cards");
+            await surface
+              .getByRole("button", { name: title, exact: true })
+              .click();
+            const dialog = page.getByRole("dialog", {
+              name: title,
+              exact: true,
             });
-          expect(deadlineStyles).toHaveLength(2);
-          const [dueStyle, relativeStyle] = deadlineStyles;
-          expect(relativeStyle.size).toBeLessThanOrEqual(dueStyle.size);
-          expect(relativeStyle.weight).toBeLessThanOrEqual(dueStyle.weight);
-          expect(
-            relativeStyle.size < dueStyle.size ||
-              relativeStyle.weight < dueStyle.weight ||
-              relativeStyle.color !== dueStyle.color,
-            "relative urgency must retain distinct supporting emphasis",
-          ).toBe(true);
-          const parts = await Promise.all(
-            [due, relative, facts, reading].map(bounds),
-          );
-          for (let index = 1; index < parts.length; index++) {
-            expect(parts[index].y).toBeGreaterThanOrEqual(
-              parts[index - 1].y + parts[index - 1].height - 1,
+            await expect(dialog).toBeVisible();
+            const heading = dialog.getByRole("heading", {
+              name: title,
+              exact: true,
+            });
+            const scroll = dialog.locator('[data-slot="scroll-area-viewport"]');
+            await expect(scroll).toHaveCount(1);
+            const summary = dialog.getByTestId(
+              kind === "homework"
+                ? "homework-deadline-summary"
+                : "todo-detail-summary",
             );
-            expect(Math.abs(parts[index].x - parts[0].x)).toBeLessThanOrEqual(
-              1,
+            const due = summary.locator(":scope > p").nth(1);
+            const relative = summary.locator(":scope > p").nth(2);
+            const facts =
+              kind === "homework"
+                ? dialog.getByTestId("homework-secondary-details")
+                : summary.getByRole("table");
+            const reading = dialog.getByText(
+              "Reading paragraph 0: independently verifiable task instructions.",
+              { exact: true },
             );
-          }
-          const initialHeading = await bounds(heading);
-          const footer = dialog.locator('[data-slot="dialog-footer"]');
-          await expect(heading).toBeInViewport();
-          await expect(footer).toBeInViewport();
-          expect(
-            await scroll.evaluate(
-              (node) => node.scrollHeight - node.clientHeight,
-            ),
-          ).toBeGreaterThan(500);
-          await scroll.hover();
-          await page.mouse.wheel(0, 1200);
-          await expect
-            .poll(() => scroll.evaluate((node) => node.scrollTop))
-            .toBeGreaterThan(500);
-          await expect(heading).toBeInViewport();
-          expect((await bounds(heading)).y).toBe(initialHeading.y);
-          const end = dialog.getByText("Reading end marker.", { exact: true });
-          await end.scrollIntoViewIfNeeded();
-          await expect(end).toBeInViewport();
-          if (kind === "homework") {
-            const discussion = dialog
-              .getByTestId("homework-discussion")
-              .getByRole("heading", {
-                name: "Homework discussion",
-                exact: true,
+            await expect(due).toHaveText(
+              kind === "homework"
+                ? "1/3/99, 12:30 PM"
+                : "Jan 3, 2099, 12:30 PM",
+            );
+            await expect(relative).toContainText(/left/);
+            // Compare only the two deadline values in this summary, in one
+            // rendered sample. The dialog title is not their local style baseline.
+            const deadlineStyles = await summary
+              .locator(":scope > p")
+              .evaluateAll(async (paragraphs) => {
+                await document.fonts.ready;
+                return paragraphs.slice(1, 3).map((paragraph) => {
+                  const style = getComputedStyle(paragraph);
+                  return {
+                    size: Number.parseFloat(style.fontSize),
+                    weight: Number.parseInt(style.fontWeight, 10),
+                    color: style.color,
+                  };
+                });
               });
-            await discussion.scrollIntoViewIfNeeded();
-            await expect(discussion).toBeInViewport();
-            expect((await bounds(discussion)).y).toBeGreaterThan(
-              (await bounds(end)).y,
+            expect(deadlineStyles).toHaveLength(2);
+            const [dueStyle, relativeStyle] = deadlineStyles;
+            expect(relativeStyle.size).toBeLessThanOrEqual(dueStyle.size);
+            expect(relativeStyle.weight).toBeLessThanOrEqual(dueStyle.weight);
+            expect(
+              relativeStyle.size < dueStyle.size ||
+                relativeStyle.weight < dueStyle.weight ||
+                relativeStyle.color !== dueStyle.color,
+              "relative urgency must retain distinct supporting emphasis",
+            ).toBe(true);
+            const parts = await Promise.all(
+              [due, relative, facts, reading].map(bounds),
             );
+            for (let index = 1; index < parts.length; index++) {
+              expect(parts[index].y).toBeGreaterThanOrEqual(
+                parts[index - 1].y + parts[index - 1].height - 1,
+              );
+              expect(Math.abs(parts[index].x - parts[0].x)).toBeLessThanOrEqual(
+                1,
+              );
+            }
+            const initialHeading = await bounds(heading);
+            const footer = dialog.locator('[data-slot="dialog-footer"]');
+            await expect(heading).toBeInViewport();
+            await expect(footer).toBeInViewport();
+            expect(
+              await scroll.evaluate(
+                (node) => node.scrollHeight - node.clientHeight,
+              ),
+            ).toBeGreaterThan(500);
+            await scroll.hover();
+            await page.mouse.wheel(0, 1200);
+            await expect
+              .poll(() => scroll.evaluate((node) => node.scrollTop))
+              .toBeGreaterThan(500);
+            await expect(heading).toBeInViewport();
+            expect((await bounds(heading)).y).toBe(initialHeading.y);
+            const end = dialog.getByText("Reading end marker.", {
+              exact: true,
+            });
+            await end.scrollIntoViewIfNeeded();
+            await expect(end).toBeInViewport();
+            if (kind === "homework") {
+              const discussion = dialog
+                .getByTestId("homework-discussion")
+                .getByRole("heading", {
+                  name: "Homework discussion",
+                  exact: true,
+                });
+              await discussion.scrollIntoViewIfNeeded();
+              await expect(discussion).toBeInViewport();
+              expect((await bounds(discussion)).y).toBeGreaterThan(
+                (await bounds(end)).y,
+              );
+            }
+            await expect(heading).toBeInViewport();
+            expect((await bounds(heading)).y).toBe(initialHeading.y);
+            await expect(footer).toBeInViewport();
+            for (const action of await footer.getByRole("button").all()) {
+              await expect(action).toBeEnabled();
+              await action.focus();
+              await expect(action).toBeFocused();
+              await expect(action).toBeInViewport();
+            }
+            expect(
+              await dialog.evaluate(
+                (node) => node.scrollWidth <= node.clientWidth,
+              ),
+            ).toBe(true);
+            await page.keyboard.press("Escape");
+            await expect(dialog).toBeHidden();
           }
-          await expect(heading).toBeInViewport();
-          expect((await bounds(heading)).y).toBe(initialHeading.y);
-          await expect(footer).toBeInViewport();
-          for (const action of await footer.getByRole("button").all()) {
-            await expect(action).toBeEnabled();
-            await action.focus();
-            await expect(action).toBeFocused();
-            await expect(action).toBeInViewport();
-          }
-          expect(
-            await dialog.evaluate(
-              (node) => node.scrollWidth <= node.clientWidth,
-            ),
-          ).toBe(true);
-          await page.keyboard.press("Escape");
-          await expect(dialog).toBeHidden();
         }
-      }
-    },
-    { accountIndex: 0, calendarTokenCreated: false },
-  );
-});
+      },
+      { accountIndex: 0, calendarTokenCreated: false },
+    );
+  });
+}

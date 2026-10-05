@@ -44,6 +44,7 @@ export async function checkWorkspaceTaskPriorityViews(
   data: WorkspacePriorityFixture,
   locale: Locale,
   width: number,
+  domain: "Todo" | "Homework" | "Exam",
 ) {
   const { todo, homework, catalog, section, exam, batch } = data;
   const main = page.locator("#main-content");
@@ -67,241 +68,248 @@ export async function checkWorkspaceTaskPriorityViews(
     attribute: "aria-label",
   });
 
-  await gotoAndWaitForReady(page, "/workspace/todos");
-  const todoRow =
-    width >= 768
-      ? main.getByRole("row").filter({ hasText: todo.title })
-      : main
-          .getByTestId("workspace-todos-cards")
-          .locator('[data-slot="item"]')
-          .filter({ hasText: todo.title });
-  const todoTitle = todoRow.getByRole("button", {
-    name: todo.title,
-    exact: true,
-  });
-  if (width >= 768) await todoRow.hover();
-  await assertPriorityView({
-    scope: todoRow,
-    identity: todoTitle,
-    primary: {
-      "todo.title": field(todoTitle, todo.title),
-      "todo.dueAt": text(todoRow, "11:45"),
-      "todo.completed": completion(todoRow),
-    },
-    secondary: { "todo.priority": text(todoRow, high) },
-    tertiary: todoInternal,
-  });
-
-  await todoTitle.click();
-  const todoDialog = page.getByRole("dialog", {
-    name: todo.title,
-    exact: true,
-  });
-  await assertPriorityView({
-    scope: todoDialog,
-    identity: todoDialog.getByRole("heading", {
+  if (domain === "Todo") {
+    await gotoAndWaitForReady(page, "/workspace/todos");
+    const todoRow =
+      width >= 768
+        ? main.getByRole("row").filter({ hasText: todo.title })
+        : main
+            .getByTestId("workspace-todos-cards")
+            .locator('[data-slot="item"]')
+            .filter({ hasText: todo.title });
+    const todoTitle = todoRow.getByRole("button", {
       name: todo.title,
       exact: true,
-    }),
-    primary: {
-      "todo.title": text(todoDialog, todo.title),
-      "todo.dueAt": text(
-        todoDialog.getByTestId("todo-detail-summary"),
-        "11:45",
-      ),
-      "todo.completed": text(
-        todoDialog.getByTestId("todo-detail-summary"),
-        /^(未完成|待处理|Incomplete|Pending)$/i,
-      ),
-    },
-    secondary: {
-      "todo.priority": text(
-        todoDialog.getByTestId("todo-detail-summary"),
-        high,
-      ),
-      "todo.content": text(todoDialog, todo.content ?? ""),
-    },
-    tertiary: todoInternal,
-  });
-  await todoDialog.getByRole("button", { name: edit }).click();
-  const editor = page.getByRole("dialog", { name: edit });
-  await assertPriorityView({
-    scope: editor,
-    identity: editor.getByRole("heading", { name: edit }),
-    primary: { "todo.title": input(editor, "title", todo.title) },
-    secondary: {
-      "todo.priority": input(editor, "priority", "high"),
-      "todo.content": {
-        locator: editor.locator("textarea"),
-        expected: todo.content ?? "",
-        input: true,
+    });
+    if (width >= 768) await todoRow.hover();
+    await assertPriorityView({
+      scope: todoRow,
+      identity: todoTitle,
+      primary: {
+        "todo.title": field(todoTitle, todo.title),
+        "todo.dueAt": text(todoRow, "11:45"),
+        "todo.completed": completion(todoRow),
       },
-      "todo.dueAt": input(editor, "dueAt", `${data.today}T11:45`),
-    },
-    tertiary: {},
-  });
-  await page.keyboard.press("Escape");
+      secondary: { "todo.priority": text(todoRow, high) },
+      tertiary: todoInternal,
+    });
 
-  await gotoAndWaitForReady(page, "/workspace/homeworks");
-  const homeworkRow =
-    width >= 768
-      ? main
-          .getByTestId("workspace-homeworks-list")
-          .getByRole("row")
-          .filter({ hasText: homework.title })
-      : main
-          .getByTestId("workspace-homeworks-cards")
-          .locator('[data-slot="item"]')
-          .filter({ hasText: homework.title });
-  const homeworkTitle = homeworkRow.getByRole("button", {
-    name: homework.title,
-    exact: true,
-  });
-  if (width >= 768) await homeworkRow.hover();
-  const homeworkPrimary: Record<string, PriorityField> = {
-    "homework.title": field(homeworkTitle, homework.title),
-    "homework.submissionDueAt": text(homeworkRow, "12:30"),
-    "homework.completed": completion(homeworkRow),
-  };
-  await assertPriorityView({
-    scope: homeworkRow,
-    identity: homeworkTitle,
-    primary: homeworkPrimary,
-    secondary: {
-      "section.course.namePrimary": text(homeworkRow, courseName),
-      "homework.isMajor": text(homeworkRow, major),
-      "homework.requiresTeam": text(homeworkRow, team),
-    },
-    tertiary: homeworkInternal,
-  });
-  await assertPriorityView({
-    scope: homeworkRow,
-    identity: homeworkTitle,
-    primary: homeworkPrimary,
-    secondary: {},
-    tertiary: {},
-  });
-  await homeworkTitle.click();
-  async function checkHomeworkDetail() {
-    const dialog = page.getByRole("dialog", {
-      name: homework.title,
+    await todoTitle.click();
+    const todoDialog = page.getByRole("dialog", {
+      name: todo.title,
       exact: true,
     });
-    const secondary = dialog.getByTestId("homework-secondary-details");
     await assertPriorityView({
-      scope: dialog,
-      identity: dialog.getByRole("heading", {
-        name: homework.title,
+      scope: todoDialog,
+      identity: todoDialog.getByRole("heading", {
+        name: todo.title,
         exact: true,
       }),
       primary: {
-        "homework.title": text(dialog, homework.title),
-        "homework.submissionDueAt": text(
-          dialog.getByTestId("homework-deadline-summary"),
-          "12:30",
+        "todo.title": text(todoDialog, todo.title),
+        "todo.dueAt": text(
+          todoDialog.getByTestId("todo-detail-summary"),
+          "11:45",
         ),
-        "homework.completed": text(
-          secondary,
-          /未完成|待处理|Pending|Incomplete/i,
+        "todo.completed": text(
+          todoDialog.getByTestId("todo-detail-summary"),
+          /^(未完成|待处理|Incomplete|Pending)$/i,
         ),
       },
       secondary: {
-        "homework.isMajor": text(secondary, major),
-        "homework.requiresTeam": text(secondary, team),
-        "homework.publishedAt": text(secondary, /0?9:10/),
-        "homework.submissionStartAt": text(secondary, "10:20"),
-        "homework.description.content": text(
-          dialog,
-          `Instructions ${catalog.marker}`,
+        "todo.priority": text(
+          todoDialog.getByTestId("todo-detail-summary"),
+          high,
         ),
+        "todo.content": text(todoDialog, todo.content ?? ""),
       },
-      tertiary: homeworkInternal,
+      tertiary: todoInternal,
+    });
+    await todoDialog.getByRole("button", { name: edit }).click();
+    const editor = page.getByRole("dialog", { name: edit });
+    await assertPriorityView({
+      scope: editor,
+      identity: editor.getByRole("heading", { name: edit }),
+      primary: { "todo.title": input(editor, "title", todo.title) },
+      secondary: {
+        "todo.priority": input(editor, "priority", "high"),
+        "todo.content": {
+          locator: editor.locator("textarea"),
+          expected: todo.content ?? "",
+          input: true,
+        },
+        "todo.dueAt": input(editor, "dueAt", `${data.today}T11:45`),
+      },
+      tertiary: {},
     });
     await page.keyboard.press("Escape");
   }
-  await checkHomeworkDetail();
-  await gotoAndWaitForReady(
-    page,
-    `/catalog/sections/${section.jwId}?homeworkId=${homework.id}#homework`,
-  );
-  // The deep link opens the dialog after the section viewer data arrives.
-  await checkHomeworkDetail();
+  if (domain === "Homework") {
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
+    const homeworkRow =
+      width >= 768
+        ? main
+            .getByTestId("workspace-homeworks-list")
+            .getByRole("row")
+            .filter({ hasText: homework.title })
+        : main
+            .getByTestId("workspace-homeworks-cards")
+            .locator('[data-slot="item"]')
+            .filter({ hasText: homework.title });
+    const homeworkTitle = homeworkRow.getByRole("button", {
+      name: homework.title,
+      exact: true,
+    });
+    if (width >= 768) await homeworkRow.hover();
+    const homeworkPrimary: Record<string, PriorityField> = {
+      "homework.title": field(homeworkTitle, homework.title),
+      "homework.submissionDueAt": text(homeworkRow, "12:30"),
+      "homework.completed": completion(homeworkRow),
+    };
+    await assertPriorityView({
+      scope: homeworkRow,
+      identity: homeworkTitle,
+      primary: homeworkPrimary,
+      secondary: {
+        "section.course.namePrimary": text(homeworkRow, courseName),
+        "homework.isMajor": text(homeworkRow, major),
+        "homework.requiresTeam": text(homeworkRow, team),
+      },
+      tertiary: homeworkInternal,
+    });
+    await assertPriorityView({
+      scope: homeworkRow,
+      identity: homeworkTitle,
+      primary: homeworkPrimary,
+      secondary: {},
+      tertiary: {},
+    });
+    await homeworkTitle.click();
+    async function checkHomeworkDetail() {
+      const dialog = page.getByRole("dialog", {
+        name: homework.title,
+        exact: true,
+      });
+      const secondary = dialog.getByTestId("homework-secondary-details");
+      await assertPriorityView({
+        scope: dialog,
+        identity: dialog.getByRole("heading", {
+          name: homework.title,
+          exact: true,
+        }),
+        primary: {
+          "homework.title": text(dialog, homework.title),
+          "homework.submissionDueAt": text(
+            dialog.getByTestId("homework-deadline-summary"),
+            "12:30",
+          ),
+          "homework.completed": text(
+            secondary,
+            /未完成|待处理|Pending|Incomplete/i,
+          ),
+        },
+        secondary: {
+          "homework.isMajor": text(secondary, major),
+          "homework.requiresTeam": text(secondary, team),
+          "homework.publishedAt": text(secondary, /0?9:10/),
+          "homework.submissionStartAt": text(secondary, "10:20"),
+          "homework.description.content": text(
+            dialog,
+            `Instructions ${catalog.marker}`,
+          ),
+        },
+        tertiary: homeworkInternal,
+      });
+      await page.keyboard.press("Escape");
+    }
+    await checkHomeworkDetail();
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/sections/${section.jwId}?homeworkId=${homework.id}#homework`,
+    );
+    // The deep link opens the dialog after the section viewer data arrives.
+    await checkHomeworkDetail();
+  }
+  if (domain === "Exam") {
+    await gotoAndWaitForReady(page, "/workspace/exams");
+    const examRow =
+      width >= 768
+        ? main.getByRole("row").filter({ hasText: courseName })
+        : main
+            .getByTestId("workspace-exams-cards")
+            .locator('[data-slot="item"]')
+            .filter({ hasText: courseName });
+    const examTitle = examRow.getByRole("link", {
+      name: courseName,
+      exact: true,
+    });
+    const examCountLabel = locale === "en-us" ? "People: 23" : "人数: 23";
+    if (width >= 768) await examRow.locator("summary").click();
+    await assertPriorityView({
+      scope: examRow,
+      identity: examTitle,
+      primary: {
+        "section.course.namePrimary": field(examTitle, courseName),
+        "exam.examDate": text(examRow, data.tomorrow),
+        "exam.startTime": text(examRow, "14:00"),
+        "exam.endTime": text(examRow, "16:00"),
+        "exam.completed": text(examRow, /^(未结束|即将到来|Upcoming)$/i),
+      },
+      secondary: {
+        "section.semester.nameCn": text(
+          examRow,
+          locale === "en-us" ? "Fall 2026" : "2026年秋季学期",
+        ),
+        "exam.examMode": text(examRow, exam.examMode ?? ""),
+        "exam.examBatch.namePrimary": text(examRow, localized(batch, locale)),
+        "exam.examType": text(examRow, locale === "en-us" ? "Final" : "期末"),
+        "exam.examTakeCount": field(
+          examRow.getByText(examCountLabel, { exact: true }),
+          examCountLabel,
+        ),
+        "exam.examRooms.namePrimary": text(
+          examRow,
+          `ExamRoom-${catalog.marker}`.toUpperCase(),
+        ),
+      },
+      tertiary: {
+        "exam.id": internal(exam.id),
+        "exam.examBatch.id": internal(batch.id),
+      },
+    });
 
-  await gotoAndWaitForReady(page, "/workspace/exams");
-  const examRow =
-    width >= 768
-      ? main.getByRole("row").filter({ hasText: courseName })
-      : main
-          .getByTestId("workspace-exams-cards")
-          .locator('[data-slot="item"]')
-          .filter({ hasText: courseName });
-  const examTitle = examRow.getByRole("link", {
-    name: courseName,
-    exact: true,
-  });
-  const examCountLabel = locale === "en-us" ? "People: 23" : "人数: 23";
-  if (width >= 768) await examRow.locator("summary").click();
-  await assertPriorityView({
-    scope: examRow,
-    identity: examTitle,
-    primary: {
-      "section.course.namePrimary": field(examTitle, courseName),
-      "exam.examDate": text(examRow, data.tomorrow),
-      "exam.startTime": text(examRow, "14:00"),
-      "exam.endTime": text(examRow, "16:00"),
-      "exam.completed": text(examRow, /^(未结束|即将到来|Upcoming)$/i),
-    },
-    secondary: {
-      "section.semester.nameCn": text(
-        examRow,
-        locale === "en-us" ? "Fall 2026" : "2026年秋季学期",
-      ),
-      "exam.examMode": text(examRow, exam.examMode ?? ""),
-      "exam.examBatch.namePrimary": text(examRow, localized(batch, locale)),
-      "exam.examType": text(examRow, locale === "en-us" ? "Final" : "期末"),
-      "exam.examTakeCount": field(
-        examRow.getByText(examCountLabel, { exact: true }),
-        examCountLabel,
-      ),
-      "exam.examRooms.namePrimary": text(
-        examRow,
-        `ExamRoom-${catalog.marker}`.toUpperCase(),
-      ),
-    },
-    tertiary: {
-      "exam.id": internal(exam.id),
-      "exam.examBatch.id": internal(batch.id),
-    },
-  });
-
-  await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}#exams`);
-  const sectionExam = main
-    .getByTestId("section-exams-list")
-    .getByRole("row")
-    .filter({ hasText: exam.examMode ?? "" });
-  const date = sectionExam.getByRole("cell").nth(1);
-  await assertPriorityView({
-    scope: sectionExam,
-    identity: date,
-    primary: {
-      "exam.examDate": field(
-        date,
-        new RegExp(String(Number(data.tomorrow.slice(8, 10)))),
-      ),
-      "exam.startTime": text(sectionExam, "14:00"),
-      "exam.endTime": text(sectionExam, "16:00"),
-    },
-    secondary: {
-      "exam.examMode": text(sectionExam, exam.examMode ?? ""),
-      "exam.examBatch.namePrimary": text(sectionExam, localized(batch, locale)),
-      "exam.examRooms.namePrimary": text(
-        sectionExam,
-        `ExamRoom-${catalog.marker}`.toUpperCase(),
-      ),
-    },
-    tertiary: {
-      "exam.id": internal(exam.id),
-      "exam.examBatch.id": internal(batch.id),
-    },
-  });
+    await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}#exams`);
+    const sectionExam = main
+      .getByTestId("section-exams-list")
+      .getByRole("row")
+      .filter({ hasText: exam.examMode ?? "" });
+    const date = sectionExam.getByRole("cell").nth(1);
+    await assertPriorityView({
+      scope: sectionExam,
+      identity: date,
+      primary: {
+        "exam.examDate": field(
+          date,
+          new RegExp(String(Number(data.tomorrow.slice(8, 10)))),
+        ),
+        "exam.startTime": text(sectionExam, "14:00"),
+        "exam.endTime": text(sectionExam, "16:00"),
+      },
+      secondary: {
+        "exam.examMode": text(sectionExam, exam.examMode ?? ""),
+        "exam.examBatch.namePrimary": text(
+          sectionExam,
+          localized(batch, locale),
+        ),
+        "exam.examRooms.namePrimary": text(
+          sectionExam,
+          `ExamRoom-${catalog.marker}`.toUpperCase(),
+        ),
+      },
+      tertiary: {
+        "exam.id": internal(exam.id),
+        "exam.examBatch.id": internal(batch.id),
+      },
+    });
+  }
 }

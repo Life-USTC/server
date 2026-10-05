@@ -8,26 +8,30 @@ when changing behavior: `$life-ustc-implement`.
 | Unit | `tests/unit/` | `bunx vitest run --coverage`; files run in parallel with isolated mocks |
 | Integration | `tests/integration/` | `bun run integration:test:parallel`; four independent PostgreSQL shards, serial files within each |
 | RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job and the default local parallel runner enable all role-test gates against the production bootstrap |
-| HTTP | `tests/integration/rest/` | `bun run rest:test`; eight CI shards with two workers each; each case owns its database and real Worker |
-| Browser | `tests/e2e/` | 16 Chromium CI shards and one Mobile Chrome job, two workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
+| HTTP | `tests/integration/rest/` | `bun run rest:test`; domain/method CI jobs with two workers each; each case owns its database and real Worker |
+| Browser | `tests/e2e/` | domain/method jobs including Chromium and Mobile Chrome, two workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
 
-CI static checks, unit coverage, integration shards, RLS, and the test build start
-independently. HTTP and browser jobs consume the single `test-build` artifact:
+CI collects each test's native `@Domain/Method` tag, for example
+`@Homework/REST` or `@Catalog/Web`, and runs one job per combination. A combination
+can execute Vitest, Worker request and browser contracts; those are execution
+engines, not additional ownership labels. Missing or multiple tags fail collection.
+Shared UI policies belong to the feature whose view they verify; site-wide shell
+and navigation policies use `Site/Web`. Split independent multi-domain or
+multi-entrypoint consumers into native cases with independently prepared state.
+Setup requests, external mutations used to stimulate a live view, and independent
+state observations do not change the owner of the behavior being verified.
+
+Source checks, unit coverage, role contracts, native inventory and the shared test
+build start independently. Domain jobs consume the `test-build` artifact:
 the application plus immutable compiled Worker code in `.svelte-kit/test-worker`.
-Local `e2e:test:local` owns one temporary PostgreSQL service; native Playwright
-workers schedule the isolated cases. `e2e:test` and `rest:test` invoke Playwright directly after database setup
-and `bun run build` followed by `bun run build:test-worker` (see root `AGENTS.md`).
-The local launcher runs both builds automatically. Browser HTML reports and failure artifacts
-are under `playwright-report/` (or the explicit `E2E_REPORT_ROOT`).
-CI uses native `--fully-parallel --workers=2` so Playwright shards individual
-cases instead of keeping a long file on one runner. Chromium's 16 jobs are scoped
-by directory: 5 `Shared UI / Web`, 5 `Workspace / Web`, and 6 `Application / Web`
-shards for all remaining features and harnesses. CI names use
-`Scope / Verification / i/n`; mixed server and HTTP suites are
-`Application / Integration` and `Application / HTTP`. Each scope uses native
-sharding; no per-file assignments are maintained. Local defaults remain one
-worker with serial files; the same native options are available for reproduction.
-Visual projects remain in the separate opt-in visual job.
+Playwright jobs use native `--fully-parallel --workers=2`; Vitest files remain
+serial. Chromium and Mobile Chrome run in the same domain/method job; visual
+projects remain opt-in. Local defaults remain one Playwright worker.
+Local `e2e:test:local` owns one temporary PostgreSQL service; native workers
+schedule isolated cases. `e2e:test` and `rest:test` invoke Playwright directly after
+database setup and the application/Worker builds. Native reports remain under
+`playwright-report/` (or `E2E_REPORT_ROOT`).
+
 Coverage reports measure unit execution of `src/**/*.ts`; database and browser
 tests separately verify real permissions and transport behavior. Keep every
 layer enabled when changing orchestration.

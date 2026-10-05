@@ -88,6 +88,7 @@ for (const count of [0, 1, 2]) {
         }
       }
       return observation.checks({
+        sessionRefreshed: false,
         feedTokenCreated: false,
         subscriptions: [],
         writes: [],

@@ -78,17 +78,17 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  test-integration:
-    name: Application / Integration / ${{ matrix.index }}/4
+  test-plan:
+    name: Tests / Inventory
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        index: [1, 2, 3, 4]
-    env:
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.inventory.outputs.matrix }}
+    env: &worker-env
       AUTH_SECRET: e2e-dev-secret-not-for-production
-    # Every matrix job owns a separate service container and runner.
+      WEBHOOK_SECRET: e2e-ci-secret
+      WEBHOOK_LOGIN_ENABLED: "true"
+      NO_PROXY: 127.0.0.1,localhost,::1
     services: &test-database
       postgres:
         image: postgres:16
@@ -106,34 +106,48 @@ jobs:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
       - uses: ./.github/actions/setup-test-database
-      - run: bunx vitest run --config vitest.integration.config.ts --shard=${{ matrix.index }}/4
+      - id: inventory
+        name: Collect domain and verification combinations
+        run: bun tests/ci/test-matrix.ts
 
-  test-rest:
-    name: Application / HTTP / ${{ matrix.index }}/8
+  test-domain:
+    name: ${{ matrix.domain }} / ${{ matrix.method }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    needs: build-e2e-artifacts
+    needs: [test-plan, build-e2e-artifacts]
     strategy:
       fail-fast: false
-      matrix:
-        index: [1, 2, 3, 4, 5, 6, 7, 8]
-    env:
-      AUTH_SECRET: e2e-dev-secret-not-for-production
+      matrix: ${{ fromJSON(needs.test-plan.outputs.matrix) }}
+    env: *worker-env
     services: *test-database
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
+      - if: ${{ matrix.browser }}
+        run: bunx playwright install --with-deps chromium
       - &download-build
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: test-build
           path: .svelte-kit
       - uses: ./.github/actions/setup-test-database
-      - run: bunx playwright test --config playwright.api.config.ts --fully-parallel --workers=2 --shard=${{ matrix.index }}/8
+      - name: Service and in-process contracts
+        if: ${{ matrix.integration }}
+        env:
+          INTEGRATION_FILES: ${{ toJSON(matrix.integrationFiles) }}
+        run: |
+          mapfile -t files < <(jq -r '.[]' <<< "$INTEGRATION_FILES")
+          bunx vitest run --config vitest.integration.config.ts "${files[@]}" --tags-filter='@${{ matrix.domain }}/${{ matrix.method }}'
+      - name: Worker request contracts
+        if: ${{ matrix.http }}
+        run: bunx playwright test --config playwright.api.config.ts --fully-parallel --workers=2 --grep='@${{ matrix.domain }}/${{ matrix.method }}( |$)'
+      - name: Browser and consumer contracts
+        if: ${{ matrix.browser }}
+        run: bunx playwright test --project=chromium --project=mobile-chrome --fully-parallel --workers=2 --grep='@${{ matrix.domain }}/${{ matrix.method }}( |$)'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() }}
         with:
-          name: playwright-report-http-${{ matrix.index }}
+          name: playwright-report-${{ matrix.domain }}-${{ matrix.method }}
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 14
@@ -184,32 +198,20 @@ jobs:
           bunx vitest run \
             --config vitest.integration.config.ts \
             tests/integration/rls-database-contract.test.ts \
-            tests/integration/feature-event-store.test.ts
-          bunx vitest run \
-            --config vitest.integration.config.ts \
-            tests/integration/auth-runtime-contract.test.ts
-          AUTH_SECRET=rls-test-secret-at-least-32-bytes \
-            bunx vitest run \
-              --config vitest.integration.config.ts \
-              tests/integration/better-auth-update-user-security.test.ts
-          bunx vitest run \
-            --config vitest.integration.config.ts \
-            tests/integration/maintenance-runtime-contract.test.ts
-          bunx vitest run \
-            --config vitest.integration.config.ts \
-            tests/integration/function-owner-role-contract.test.ts
-          bunx vitest run \
-            --config vitest.integration.config.ts \
+            tests/integration/auth-runtime-contract.test.ts \
+            tests/integration/maintenance-runtime-contract.test.ts \
+            tests/integration/function-owner-role-contract.test.ts \
             tests/integration/*-rls.test.ts
+          bunx vitest run \
+            --config vitest.integration.config.ts \
+            --tags-filter=@Database/Permissions \
+            tests/integration/feature-event-store.test.ts
 
   build-e2e-artifacts:
     name: Application / Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env: &worker-env
-      WEBHOOK_SECRET: e2e-ci-secret
-      WEBHOOK_LOGIN_ENABLED: "true"
-      NO_PROXY: 127.0.0.1,localhost,::1
+    env: *worker-env
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
@@ -333,60 +335,6 @@ jobs:
           ')"
           test "${remaining_rows}" = "0"
 
-  test-e2e:
-    name: ${{ matrix.name }} / ${{ matrix.index }}/${{ matrix.total }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    needs: build-e2e-artifacts
-    strategy:
-      fail-fast: false
-      matrix:
-        group: [shared-ui, workspace, features]
-        index: [1, 2, 3, 4, 5, 6]
-        exclude:
-          - group: shared-ui
-            index: 6
-          - group: workspace
-            index: 6
-        include:
-          - group: shared-ui
-            project: chromium
-            name: Shared UI / Web
-            filter: tests/e2e/src/app/shared-policy/
-            total: 5
-          - group: workspace
-            project: chromium
-            name: Workspace / Web
-            filter: tests/e2e/src/app/workspace/
-            total: 5
-          - group: features
-            project: chromium
-            name: Application / Web
-            filter: '^(?!.*tests/e2e/src/app/(?:shared-policy|workspace)/)'
-            total: 6
-          - group: mobile
-            project: mobile-chrome
-            name: Application / Mobile web
-            filter: .
-            index: 1
-            total: 1
-    env: *worker-env
-    services: *test-database
-    steps:
-      - *checkout
-      - uses: ./.github/actions/setup-bun-env
-      - run: bunx playwright install --with-deps chromium
-      - *download-build
-      - uses: ./.github/actions/setup-test-database
-      - run: bunx playwright test '${{ matrix.filter }}' --project=${{ matrix.project }} --fully-parallel --workers=2 --shard=${{ matrix.index }}/${{ matrix.total }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: ${{ always() }}
-        with:
-          name: playwright-report-${{ matrix.project }}-${{ matrix.group }}-${{ matrix.index }}
-          path: playwright-report/
-          if-no-files-found: ignore
-          retention-days: 14
-
   test-visual-regression:
     name: Application / Visual (opt-in)
     if: ${{ vars.VISUAL_REGRESSION == '1' }}
@@ -415,7 +363,7 @@ jobs:
     name: Specification execution evidence / run
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-integration, test-rest, test-rls, test-e2e]
+    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-plan, test-domain, test-rls]
     if: ${{ always() }}
     permissions: {}
     steps:
@@ -423,4 +371,4 @@ jobs:
         env:
           JOB_RESULTS: ${{ toJSON(needs) }}
         run: |
-          jq -e 'type == "object" and length == 8 and all(.[]; .result == "success")' <<< "$JOB_RESULTS"
+          jq -e 'type == "object" and length == 7 and all(.[]; .result == "success")' <<< "$JOB_RESULTS"

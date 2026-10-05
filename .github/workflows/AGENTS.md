@@ -32,21 +32,18 @@ docs.
 - Preserve external job names used by protection. The aggregate gate always runs
   and rejects every non-success mandatory result; specifications run in
   `Source / Checks`.
-- Display CI jobs as `Scope / Verification`, followed by ` / i/n` for shards.
-  Use application scope for mixed contracts: `Application / Integration`,
-  `Application / HTTP`, and `Application / Web`. The Web complement includes
-  other application features and harness checks; the HTTP suite includes REST,
-  GraphQL, MCP and page requests. Keep browser engines in native project names
-  rather than mixing them into the scope. The protected aggregate retains its
-  externally required name, `Specification execution evidence / run`.
-- Browser jobs upload native HTML reports and failure diagnostics as CI artifacts.
-- CI runs Integration, HTTP and Web checks. Chromium uses directory scopes:
-  `Shared UI / Web` (5 shards), `Workspace / Web` (5), and `Application / Web`
-  (6) for all remaining features/harnesses. `Application / Mobile web` runs
-  the separate mobile project. The remaining Chromium scope
-  excludes only the first two directories so new test directories stay covered.
-  HTTP/browser jobs use native case sharding and two workers; keep local defaults
-  conservative and visual projects opt-in. Do not maintain a separate
-  file-to-shard registry or scheduler.
+- Name each business test job `Domain / Method`, for example `Homework / REST`
+  or `Catalog / MCP`. A native test has exactly one `@Domain/Method` tag.
+  Use the behavior under test as the owner; setup requests and independent
+  database observations do not create another verification method.
+- `Tests / Inventory` collects native Vitest and Playwright test metadata and
+  deduplicates the tags into a matrix. Missing or ambiguous ownership fails the
+  inventory. Do not maintain a file-to-job registry, numbered shards, or timing
+  scheduler. One combination runs all its applicable engines sequentially.
+- Role contracts remain in `Database / Permissions`; visual snapshots remain
+  opt-in. Chromium and Mobile Chrome cases share their domain's Web job.
+  Playwright uses two native workers; Vitest files remain serial. Keep local
+  defaults conservative, private case state, zero test retries and native reports.
+  The protected aggregate retains `Specification execution evidence / run`.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
   with inline `runs-on` / steps (no reusable-workflow delegation for that job).

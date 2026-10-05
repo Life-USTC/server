@@ -102,7 +102,7 @@ Run local checks and the complete CI workflow on the current PR head. Pushes to
 an open PR trigger CI automatically; wait for that run instead of dispatching
 a duplicate branch run. Verify its head SHA and every mandatory job: static
 checks, unit coverage, build/client budget, static-loader image, RLS, all
-integration/HTTP/browser shards, and the aggregate required-jobs gate.
+domain/method combinations, and the aggregate required-jobs gate.
 The protected check named Specification execution evidence aggregates mandatory
 native job outcomes. `Source / Checks` validates document structure separately; neither
 establishes requirement coverage. `bun run check` alone is insufficient.
