@@ -145,6 +145,21 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/subscriptions/bounds-contract.test.ts
       name: subscription.bounded-batch-input REST append
+- id: subscription.literal-code-matching
+  category: validation
+  rule: Subscription lookup matches complete section or course codes after trimming whitespace,
+    without case sensitivity. Percent signs and underscores are literal code characters, not wildcards.
+    A course code matches its sections within the selected semester.
+  acceptance:
+    given: An isolated catalog has distinct section codes, two sections in one course, and similar
+      codes that would match a wildcard pattern.
+    when: Authenticated REST preview receives a lowercase section or course code with surrounding whitespace.
+    then:
+    - Only the exact section or the matching course's sections are returned.
+    - Preview leaves all memberships unchanged.
+    test:
+      file: tests/integration/rest/calendar-subscriptions/code-matching.test.ts
+      name: subscription.literal-code-matching course
 - id: subscription.per-user-rate-limit
   category: validation
   rule: Subscription batch writes enforce the configured per-user request budget. Exhausting one owner’s

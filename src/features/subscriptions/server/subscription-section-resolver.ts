@@ -62,10 +62,10 @@ export async function resolveCalendarSubscriptionSections({
     where.push({
       semesterId: semester.id,
       ...(!includeRetired ? { retiredAt: null } : {}),
-      OR: requestedCodes.flatMap((code) => [
-        { code: { equals: code, mode: "insensitive" } },
-        { course: { code: { equals: code, mode: "insensitive" } } },
-      ]),
+      OR: [
+        { code: { in: requestedCodes, mode: "insensitive" } },
+        { course: { code: { in: requestedCodes, mode: "insensitive" } } },
+      ],
     });
   }
 
