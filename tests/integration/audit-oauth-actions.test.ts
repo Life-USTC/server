@@ -154,10 +154,9 @@ const it = nodeProtocolTest.extend(
     }),
 );
 
-it("audit.action-oauth-authorization-grant", async ({
-  authorization,
-  protocolRuntime,
-}) => {
+it("audit.action-oauth-authorization-grant", {
+  tags: ["@OAuth/Service"],
+}, async ({ authorization, protocolRuntime }) => {
   await protocolRuntime.run(async () => {
     const { db, userId, clientId, authorize, events, state } = authorization;
     const before = await state();
@@ -199,10 +198,9 @@ it("audit.action-oauth-authorization-grant", async ({
   });
 });
 
-it("audit.action-oauth-authorization-update", async ({
-  authorization,
-  protocolRuntime,
-}) => {
+it("audit.action-oauth-authorization-update", {
+  tags: ["@OAuth/Service"],
+}, async ({ authorization, protocolRuntime }) => {
   await protocolRuntime.run(async () => {
     const { db, userId, clientId, granted, tokenRows, state, events } =
       authorization;
@@ -253,10 +251,9 @@ it("audit.action-oauth-authorization-update", async ({
   });
 });
 
-it("audit.action-oauth-authorization-revoke", async ({
-  authorization,
-  protocolRuntime,
-}) => {
+it("audit.action-oauth-authorization-revoke", {
+  tags: ["@OAuth/Service"],
+}, async ({ authorization, protocolRuntime }) => {
   await protocolRuntime.run(async () => {
     const { userId, clientId, granted, tokenRows, state, events } =
       authorization;
@@ -321,7 +318,10 @@ it("audit.action-oauth-authorization-revoke", async ({
   });
 });
 
-it("audit.writer-1", async ({ authorization, protocolRuntime }) => {
+it("audit.writer-1", { tags: ["@Account/Service"] }, async ({
+  authorization,
+  protocolRuntime,
+}) => {
   await protocolRuntime.run(async () => {
     const { db, userId, granted, events } = authorization;
     const consent = await granted();

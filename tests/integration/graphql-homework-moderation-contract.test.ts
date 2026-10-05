@@ -8,6 +8,7 @@ describe("GraphQL homework CRUD mutations", () => {
     { name: "administrator", administrator: true, allowed: true },
   ])(
     "explicit moderation by $name",
+    { tags: ["@Homework/Service"] },
     async (
       { administrator, allowed },
       {
