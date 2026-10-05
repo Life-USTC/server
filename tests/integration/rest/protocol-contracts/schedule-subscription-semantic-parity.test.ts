@@ -70,7 +70,7 @@ const ids = (rows: { id: number }[]) => rows.map((row) => row.id);
 for (const transport of ["REST", "MCP"] as const)
   test(
     `interface-hierarchy.public-schedule-read-parity through ${transport}`,
-    { tag: `@Catalog/${transport}` },
+    { tag: `@Schedule/${transport}` },
     async ({ isolatedWorker, run }) =>
       run(async () => {
         const db = isolatedWorker.database.owner;

@@ -160,7 +160,7 @@ type Entry = {
 for (const method of ["Service", "REST"] as const) {
   contractTest(
     `schedule.teacher-participation-facts (${method})`,
-    { tags: [`@Catalog/${method}`] },
+    { tags: [`@Schedule/${method}`] },
     async ({ state, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { db, sectionId, teacherIds, facts, importMeeting, listRest } =
@@ -218,7 +218,7 @@ for (const method of ["Service", "REST"] as const) {
 for (const method of ["REST", "MCP"] as const) {
   contractTest(
     `schedule.teacher-participation-output (${method})`,
-    { tags: [`@Catalog/${method}`] },
+    { tags: [`@Schedule/${method}`] },
     async ({ state, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const { marker, client, sectionId, teacherIds, facts, listRest } =
@@ -282,7 +282,7 @@ for (const method of ["REST", "MCP"] as const) {
 }
 contractTest(
   "schedule.public-rest-locale-cache",
-  { tags: ["@Catalog/REST"] },
+  { tags: ["@Schedule/REST"] },
   async ({ state, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { listRest } = state;
@@ -313,7 +313,7 @@ contractTest(
 
 contractTest(
   "schedule.graphql-teacher-participation-output",
-  { tags: ["@Catalog/GraphQL"] },
+  { tags: ["@Schedule/GraphQL"] },
   async ({ state, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { marker, teacherIds, ownerId, otherId, facts } = state;

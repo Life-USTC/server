@@ -61,67 +61,89 @@ async function createSections(db: TestPrismaClient) {
   });
 }
 
-it("section.retired-read-semantics", { tags: ["@Catalog/Service"] }, async ({
-  isolatedDatabase: { owner: db },
-  protocolRuntime,
-  expect,
-}) => {
-  await protocolRuntime.run(async () => {
-    const { semester, course, teacher, user, active, retired } =
-      await createSections(db);
-    for (const reader of [listSections, listSectionSummaries]) {
-      for (const search of [undefined, course.nameCn]) {
-        const page = await reader({
-          filters: { semesterId: String(semester.id), search },
+for (const domain of [
+  "Section",
+  "Calendar",
+  "Course",
+  "Teacher",
+  "Subscription",
+] as const) {
+  it(`section.retired-read-semantics ${domain}`, {
+    tags: [`@${domain}/Service`],
+  }, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
+      const { semester, course, teacher, user, active, retired } =
+        await createSections(db);
+      if (domain === "Section") {
+        for (const reader of [listSections, listSectionSummaries]) {
+          for (const search of [undefined, course.nameCn]) {
+            const page = await reader({
+              filters: { semesterId: String(semester.id), search },
+              pagination: { page: 1, pageSize: 20 },
+            });
+            expect(page.data.map((item) => item.jwId)).toEqual([active.jwId]);
+            expect(page.pagination.total).toBe(1);
+          }
+        }
+        const matches = await findSectionCodeMatches(
+          [active.code, retired.code],
+          "zh-cn",
+          semester.id,
+        );
+        expect(matches?.matchedCodes).toEqual([active.code]);
+        expect(matches?.unmatchedCodes).toEqual([retired.code]);
+        expect(matches?.sections.map((item) => item.jwId)).toEqual([
+          active.jwId,
+        ]);
+        expect((await findSectionByJwId(retired.jwId))?.id).toBe(retired.id);
+        expect((await findSectionDetailByJwId(retired.jwId))?.id).toBe(
+          retired.id,
+        );
+      }
+      if (domain === "Calendar") {
+        expect((await getSectionForCalendar(retired.jwId))?.id).toBe(
+          retired.id,
+        );
+        expect(
+          (await getSectionsForCalendar([active.id, retired.id])).map(
+            (item) => item.id,
+          ),
+        ).toEqual([active.id]);
+        expect(
+          (await getUserCalendarRecord(user.id))?.sectionSubscriptions.map(
+            (item) => item.sectionId,
+          ),
+        ).toEqual([active.id]);
+      }
+      if (domain === "Course") {
+        expect(
+          (await getCoursePage(course.jwId))?.sections
+            .map((item) => item.jwId)
+            .sort(),
+        ).toEqual([active.jwId, retired.jwId].sort());
+      }
+      if (domain === "Teacher") {
+        expect(
+          (await getTeacherPage(teacher.id))?.sections
+            .map((item) => item.jwId)
+            .sort(),
+        ).toEqual([active.jwId, retired.jwId].sort());
+      }
+      if (domain === "Subscription") {
+        const subscriptions = await listSubscribedSectionPage(user.id, {
           pagination: { page: 1, pageSize: 20 },
         });
-        expect(page.data.map((item) => item.jwId)).toEqual([active.jwId]);
-        expect(page.pagination.total).toBe(1);
+        expect(subscriptions.data.map((item) => item.id).sort()).toEqual(
+          [active.id, retired.id].sort(),
+        );
+        expect(subscriptions.pagination.total).toBe(2);
       }
-    }
-    const matches = await findSectionCodeMatches(
-      [active.code, retired.code],
-      "zh-cn",
-      semester.id,
-    );
-    expect(matches?.matchedCodes).toEqual([active.code]);
-    expect(matches?.unmatchedCodes).toEqual([retired.code]);
-    expect(matches?.sections.map((item) => item.jwId)).toEqual([active.jwId]);
-    expect((await findSectionByJwId(retired.jwId))?.id).toBe(retired.id);
-    expect((await findSectionDetailByJwId(retired.jwId))?.id).toBe(retired.id);
-    expect((await getSectionForCalendar(retired.jwId))?.id).toBe(retired.id);
-    expect(
-      (await getSectionsForCalendar([active.id, retired.id])).map(
-        (item) => item.id,
-      ),
-    ).toEqual([active.id]);
-    expect(
-      (await getUserCalendarRecord(user.id))?.sectionSubscriptions.map(
-        (item) => item.sectionId,
-      ),
-    ).toEqual([active.id]);
-    expect(
-      (await getCoursePage(course.jwId))?.sections
-        .map((item) => item.jwId)
-        .sort(),
-    ).toEqual([active.jwId, retired.jwId].sort());
-    expect(
-      (await getTeacherPage(teacher.id))?.sections
-        .map((item) => item.jwId)
-        .sort(),
-    ).toEqual([active.jwId, retired.jwId].sort());
-    const subscriptions = await listSubscribedSectionPage(user.id, {
-      pagination: { page: 1, pageSize: 20 },
     });
-    expect(subscriptions.data.map((item) => item.id).sort()).toEqual(
-      [active.id, retired.id].sort(),
-    );
-    expect(subscriptions.pagination.total).toBe(2);
   });
-});
+}
 
 it("section.retired-subscription-mutations", {
-  tags: ["@Catalog/Service"],
+  tags: ["@Subscription/Service"],
 }, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const { user, active, retired } = await createSections(db);

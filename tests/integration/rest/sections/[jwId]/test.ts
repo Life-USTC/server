@@ -3,7 +3,7 @@ import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 import { test } from "../../_shared/catalog-reader-fixture";
 
-test("/api/catalog/sections/[jwId] 契约", { tag: "@Catalog/REST" }, async ({
+test("/api/catalog/sections/[jwId] 契约", { tag: "@Section/REST" }, async ({
   run,
   request,
 }) => {
@@ -15,7 +15,7 @@ test("/api/catalog/sections/[jwId] 契约", { tag: "@Catalog/REST" }, async ({
 });
 
 test("/api/catalog/sections/[jwId] 返回 teacherAssignments 与 exams", {
-  tag: "@Catalog/REST",
+  tag: "@Section/REST",
 }, async ({ run, request }) => {
   return run(async () => {
     const response = await request.get(
@@ -36,7 +36,7 @@ test("/api/catalog/sections/[jwId] 返回 teacherAssignments 与 exams", {
   });
 });
 
-test("班级详情包含全部 SectionDetail 字段", { tag: "@Catalog/REST" }, async ({
+test("班级详情包含全部 SectionDetail 字段", { tag: "@Section/REST" }, async ({
   run,
   request,
 }) => {

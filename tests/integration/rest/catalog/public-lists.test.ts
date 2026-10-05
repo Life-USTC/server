@@ -178,21 +178,21 @@ async function publicList(
 
 test(
   "course.public-list-cache",
-  { tag: "@Catalog/REST" },
+  { tag: "@Course/REST" },
   async ({ request, isolatedWorker, run }, testInfo) => {
     await run(() => publicList(request, "courses", isolatedWorker, testInfo));
   },
 );
 test(
   "section.public-list-cache",
-  { tag: "@Catalog/REST" },
+  { tag: "@Section/REST" },
   async ({ request, isolatedWorker, run }, testInfo) => {
     await run(() => publicList(request, "sections", isolatedWorker, testInfo));
   },
 );
 test(
   "teacher.public-list-cache",
-  { tag: "@Catalog/REST" },
+  { tag: "@Teacher/REST" },
   async ({ request, isolatedWorker, run }, testInfo) => {
     await run(() => publicList(request, "teachers", isolatedWorker, testInfo));
   },

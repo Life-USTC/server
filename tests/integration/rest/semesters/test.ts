@@ -24,13 +24,13 @@ import { assertApiContract } from "../_shared/api-contract";
 import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/semesters", () => {
-  test("契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
+  test("契约", { tag: "@Semester/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, { routePath: "/api/catalog/semesters" });
     });
   });
 
-  test("返回分页响应结构", { tag: "@Catalog/REST" }, async ({
+  test("返回分页响应结构", { tag: "@Semester/REST" }, async ({
     run,
     request,
   }) => {
@@ -56,7 +56,7 @@ test.describe("GET /api/catalog/semesters", () => {
     });
   });
 
-  test("列表包含 seed 学期", { tag: "@Catalog/REST" }, async ({
+  test("列表包含 seed 学期", { tag: "@Semester/REST" }, async ({
     run,
     request,
   }) => {
@@ -74,7 +74,7 @@ test.describe("GET /api/catalog/semesters", () => {
     });
   });
 
-  test("pageSize 参数控制页大小", { tag: "@Catalog/REST" }, async ({
+  test("pageSize 参数控制页大小", { tag: "@Semester/REST" }, async ({
     run,
     request,
   }) => {
@@ -90,7 +90,7 @@ test.describe("GET /api/catalog/semesters", () => {
     });
   });
 
-  test("学期项包含所有必需字段", { tag: "@Catalog/REST" }, async ({
+  test("学期项包含所有必需字段", { tag: "@Semester/REST" }, async ({
     run,
     request,
   }) => {
@@ -120,7 +120,7 @@ test.describe("GET /api/catalog/semesters", () => {
     });
   });
 
-  test("page 参数可翻页", { tag: "@Catalog/REST" }, async ({
+  test("page 参数可翻页", { tag: "@Semester/REST" }, async ({
     run,
     request,
   }) => {

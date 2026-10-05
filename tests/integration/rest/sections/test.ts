@@ -3,7 +3,7 @@ import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
 import { test } from "../_shared/catalog-reader-fixture";
 
-test("/api/catalog/sections", { tag: "@Catalog/REST" }, async ({
+test("/api/catalog/sections", { tag: "@Section/REST" }, async ({
   run,
   request,
 }) => {
@@ -12,7 +12,7 @@ test("/api/catalog/sections", { tag: "@Catalog/REST" }, async ({
   });
 });
 
-test("pageSize 参数控制班级列表页大小", { tag: "@Catalog/REST" }, async ({
+test("pageSize 参数控制班级列表页大小", { tag: "@Section/REST" }, async ({
   run,
   request,
 }) => {
@@ -29,7 +29,7 @@ test("pageSize 参数控制班级列表页大小", { tag: "@Catalog/REST" }, asy
 });
 
 test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", {
-  tag: "@Catalog/REST",
+  tag: "@Section/REST",
 }, async ({ run, request }) => {
   return run(async () => {
     const teacherResponse = await request.get(
@@ -56,7 +56,7 @@ test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", {
 });
 
 test("/api/catalog/sections 可按高级 search 语法检索 seed 班级", {
-  tag: "@Catalog/REST",
+  tag: "@Section/REST",
 }, async ({ run, request }) => {
   return run(async () => {
     const response = await request.get(
@@ -77,7 +77,7 @@ for (const [label, search] of [
   ["教师名称", DEV_SEED.teacher.nameCn],
 ] as const) {
   test(`/api/catalog/sections 普通搜索支持${label}并可限定学期`, {
-    tag: "@Catalog/REST",
+    tag: "@Section/REST",
   }, async ({ run, request }) => {
     return run(async () => {
       const response = await request.get(

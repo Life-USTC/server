@@ -27,7 +27,7 @@ async function graph(
 
 for (const method of ["REST", "GraphQL", "MCP"] as const) {
   it(`semester.list-order-pagination (${method})`, {
-    tags: [`@Catalog/${method}`],
+    tags: [`@Semester/${method}`],
   }, async ({ isolatedDatabase, protocolRuntime, publicCatalogMcp }) => {
     await protocolRuntime.run(async () => {
       await publicCatalogMcp.initialize();
@@ -111,14 +111,12 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
         observed.push(...ids);
         expect(ids).toEqual(slice);
         if (page > pages) expect(ids).toEqual([]);
-        {
-          expect(pagination).toEqual({
-            page,
-            pageSize,
-            total: expected.length,
-            totalPages: pages,
-          });
-        }
+        expect(pagination).toEqual({
+          page,
+          pageSize,
+          total: expected.length,
+          totalPages: pages,
+        });
       }
       const byId = new Map(all.map((row) => [row.id, row]));
       {

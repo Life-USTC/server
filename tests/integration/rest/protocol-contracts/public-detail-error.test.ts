@@ -174,7 +174,7 @@ const cases = [
 for (const transport of ["REST", "GraphQL", "MCP"] as const)
   for (const entry of cases) {
     test(`interface-hierarchy.public-detail-not-found-parity.${entry.field} through ${transport}`, {
-      tag: `@${entry.field === "user" ? "User" : entry.field.startsWith("young") ? "Young" : "Catalog"}/${transport}`,
+      tag: `@${{ course: "Course", section: "Section", teacher: "Teacher", youngEvent: "Young", youngOrganizer: "Young", user: "User" }[entry.field]}/${transport}`,
     }, async ({ run, h }) => {
       await run(async () => {
         if (entry.field === "youngEvent" || entry.field === "youngOrganizer") {

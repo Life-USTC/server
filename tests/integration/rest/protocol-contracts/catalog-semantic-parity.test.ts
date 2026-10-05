@@ -104,7 +104,9 @@ test.describe("interface-hierarchy.catalog-explicit-read-parity", () => {
     for (const kind of ["course", "teacher", "section"] as const)
       test(
         `${kind} prepared-state consumers through ${transport}`,
-        { tag: `@Catalog/${transport}` },
+        {
+          tag: `@${{ course: "Course", teacher: "Teacher", section: "Section" }[kind]}/${transport}`,
+        },
         async ({ isolatedWorker, run }) =>
           run(async () => {
             const db = isolatedWorker.database.owner;

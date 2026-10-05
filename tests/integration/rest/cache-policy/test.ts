@@ -33,7 +33,7 @@ for (const domain of ["Account", "Overview", "Comment", "Homework"] as const)
   });
 
 test("Catalog public API responses permit HTTP storage", {
-  tag: "@Catalog/REST",
+  tag: "@Course/REST",
 }, async ({ run, request, account }) => {
   await run(async () => {
     await signIn(request, account);

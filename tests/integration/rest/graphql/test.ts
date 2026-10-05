@@ -57,56 +57,55 @@ function expectGraphqlError(
   }
 }
 
-test("Cloudflare Worker serves the public GraphQL endpoint", {
-  tag: "@Catalog/GraphQL",
-}, async ({ graphql }) => {
-  await graphql.run(async () => {
-    const { request } = graphql;
-    const response = await request.post("/api/graphql", {
-      data: {
-        query: /* GraphQL */ `
-        query WorkerSmoke($courseJwId: Int!, $sectionJwId: Int!) {
+for (const domain of ["Course", "Section"] as const) {
+  test(`Cloudflare Worker serves the public GraphQL endpoint ${domain}`, {
+    tag: `@${domain}/GraphQL`,
+  }, async ({ graphql }) => {
+    await graphql.run(async () => {
+      const { request } = graphql;
+      const response = await request.post("/api/graphql", {
+        data: {
+          query: /* GraphQL */ `
+        query WorkerSmoke($jwId: Int!) {
           catalog {
-            course(jwId: $courseJwId) {
-              jwId
-              code
-            }
-            section(jwId: $sectionJwId) {
-              jwId
-              code
-              course {
-                jwId
-              }
-            }
+            ${domain === "Course" ? `course(jwId: $jwId) { jwId code }` : `section(jwId: $jwId) { jwId code course { jwId } }`}
           }
         }
       `,
-        variables: {
-          courseJwId: graphql.catalog.course.jwId,
-          sectionJwId: graphql.catalog.section.jwId,
+          variables: {
+            jwId:
+              domain === "Course"
+                ? graphql.catalog.course.jwId
+                : graphql.catalog.section.jwId,
+          },
         },
-      },
-    });
+      });
 
-    expect(response.status()).toBe(200);
-    expect(response.headers()["cache-control"]).toBe("no-store");
-    expect(await response.json()).toEqual({
-      data: {
-        catalog: {
-          course: {
-            jwId: graphql.catalog.course.jwId,
-            code: graphql.catalog.course.code,
-          },
-          section: {
-            jwId: graphql.catalog.section.jwId,
-            code: graphql.catalog.section.code,
-            course: { jwId: graphql.catalog.course.jwId },
+      expect(response.status()).toBe(200);
+      expect(response.headers()["cache-control"]).toBe("no-store");
+      expect(await response.json()).toEqual({
+        data: {
+          catalog: {
+            ...(domain === "Course"
+              ? {
+                  course: {
+                    jwId: graphql.catalog.course.jwId,
+                    code: graphql.catalog.course.code,
+                  },
+                }
+              : {
+                  section: {
+                    jwId: graphql.catalog.section.jwId,
+                    code: graphql.catalog.section.code,
+                    course: { jwId: graphql.catalog.course.jwId },
+                  },
+                }),
           },
         },
-      },
+      });
     });
   });
-});
+}
 
 test.describe("Cloudflare Worker authenticated GraphQL", () => {
   test("accepts a session cookie only from a trusted Origin", {

@@ -12,7 +12,17 @@ import { createCatalogContractFixture } from "../../../shared/catalog-contract-f
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-for (const domain of ["Catalog", "CatalogLink", "Young", "Bus"] as const)
+for (const domain of [
+  "Course",
+  "Section",
+  "Schedule",
+  "Teacher",
+  "Semester",
+  "CatalogMetadata",
+  "CatalogLink",
+  "Young",
+  "Bus",
+] as const)
   test(`rendering-and-cache.personal-overlays-9 ${domain}`, {
     tag: `@${domain}/REST`,
   }, async ({ isolatedWorker, request, run }) => {
@@ -141,18 +151,24 @@ for (const domain of ["Catalog", "CatalogLink", "Young", "Bus"] as const)
 
       const teacher = catalog.teachers[0];
       const paths = {
-        Catalog: [
+        Course: [
           "/api/catalog/courses",
           `/api/catalog/courses/${catalog.courses[0].jwId}`,
+        ],
+        Section: [
           "/api/catalog/sections",
           `/api/catalog/sections/${section.jwId}`,
+        ],
+        Schedule: [
           `/api/catalog/sections/${section.jwId}/schedules`,
           `/api/catalog/sections/${section.jwId}/schedule-groups`,
+        ],
+        Teacher: [
           "/api/catalog/teachers",
           `/api/catalog/teachers/${teacher.id}`,
-          "/api/catalog/semesters",
-          "/api/catalog/metadata",
         ],
+        Semester: ["/api/catalog/semesters"],
+        CatalogMetadata: ["/api/catalog/metadata"],
         CatalogLink: ["/api/catalog/links"],
         Young: ["/api/catalog/young-events", "/api/catalog/young-organizers"],
         Bus: ["/api/catalog/bus/routes"],
