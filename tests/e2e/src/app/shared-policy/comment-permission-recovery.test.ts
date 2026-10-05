@@ -57,11 +57,9 @@ test("comment.public-permission-recovery", { tag: "@Comment/Web" }, async ({
               if (route.request().method() !== "POST") return route.continue();
               writes++;
               if (!denyWrite) return route.fallback();
-              const response = await route.fetch({
-                headers: { ...route.request().headers(), cookie: "" },
-              });
-              expect(response.status()).toBe(401);
-              await route.fulfill({ response });
+              // The browser sends the anonymous request; successful writes use
+              // the fixture's persistence/effect observer via fallback above.
+              await route.continue();
             },
           );
           await page.goto(path);
@@ -103,24 +101,30 @@ test("comment.public-permission-recovery", { tag: "@Comment/Web" }, async ({
           const before = await db.comment.findMany({
             where: { userId: user.id },
           });
-          await observeAction(
-            () =>
-              page.waitForResponse(
-                (r) =>
-                  new URL(r.url()).pathname === "/api/community/comments" &&
-                  r.request().method() === "POST" &&
-                  r.status() === 401,
-              ),
-            () => post.click(),
-          );
-          await expect(post).toBeEnabled();
-          await expect(
-            page.getByRole("textbox", { name: "Comment body", exact: true }),
-          ).toHaveValue(body);
-          expect(
-            await db.comment.findMany({ where: { userId: user.id } }),
-          ).toEqual(before);
-          expect(writes).toBe(1);
+          const cookies = await page.context().cookies();
+          try {
+            await page.context().clearCookies();
+            await observeAction(
+              () =>
+                page.waitForResponse(
+                  (r) =>
+                    new URL(r.url()).pathname === "/api/community/comments" &&
+                    r.request().method() === "POST" &&
+                    r.status() === 401,
+                ),
+              () => post.click(),
+            );
+            await expect(post).toBeEnabled();
+            await expect(
+              page.getByRole("textbox", { name: "Comment body", exact: true }),
+            ).toHaveValue(body);
+            expect(
+              await db.comment.findMany({ where: { userId: user.id } }),
+            ).toEqual(before);
+            expect(writes).toBe(1);
+          } finally {
+            await page.context().addCookies(cookies);
+          }
           denyWrite = false;
           const response = await observeAction(
             () =>
