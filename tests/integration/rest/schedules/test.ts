@@ -32,13 +32,16 @@ import { assertApiContract } from "../_shared/api-contract";
 import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/schedules - 排课列表", () => {
-  test("契约", async ({ run, request }) => {
+  test("契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, { routePath: "/api/catalog/schedules" });
     });
   });
 
-  test("返回分页响应结构", async ({ run, request }) => {
+  test("返回分页响应结构", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/schedules");
       expect(response.status()).toBe(200);
@@ -60,7 +63,10 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("按 sectionId 过滤返回 seed 排课", async ({ run, request }) => {
+  test("按 sectionId 过滤返回 seed 排课", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const sectionId = await resolveSeedSectionId(request);
       const response = await request.get(
@@ -80,7 +86,10 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("排课包含嵌套关联", async ({ run, request }) => {
+  test("排课包含嵌套关联", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const sectionId = await resolveSeedSectionId(request);
       const response = await request.get(
@@ -142,7 +151,10 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("不匹配的 sectionId 返回空数据", async ({ run, request }) => {
+  test("不匹配的 sectionId 返回空数据", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get(
         "/api/catalog/schedules?sectionId=999999999",
@@ -157,7 +169,10 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("无效 dateFrom 返回 400", async ({ run, request }) => {
+  test("无效 dateFrom 返回 400", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get(
         "/api/catalog/schedules?dateFrom=not-a-date",
@@ -166,7 +181,10 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
     });
   });
 
-  test("pageSize 参数控制页大小", async ({ run, request }) => {
+  test("pageSize 参数控制页大小", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/schedules?pageSize=1");
       expect(response.status()).toBe(200);

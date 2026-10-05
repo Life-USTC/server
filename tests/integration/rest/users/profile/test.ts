@@ -9,7 +9,11 @@ import { authAccounts, test } from "../../_harness/auth";
 const BASE = "/api/community/users";
 
 test.describe("GET /api/community/users/[identifier]", () => {
-  test("契约", async ({ run, request, account: _account }) => {
+  test("契约", { tag: "@User/REST" }, async ({
+    run,
+    request,
+    account: _account,
+  }) => {
     await run(async () => {
       const response = await request.get(
         `/api/community/users/${authAccounts.user.username}`,
@@ -42,7 +46,11 @@ test.describe("GET /api/community/users/[identifier]", () => {
     });
   });
 
-  test("按用户名返回公开资料", async ({ run, request, account: _account }) => {
+  test("按用户名返回公开资料", { tag: "@User/REST" }, async ({
+    run,
+    request,
+    account: _account,
+  }) => {
     await run(async () => {
       const response = await request.get(
         `${BASE}/${authAccounts.user.username}`,
@@ -71,7 +79,7 @@ test.describe("GET /api/community/users/[identifier]", () => {
     });
   });
 
-  test("按 userId 返回同一用户", async ({
+  test("按 userId 返回同一用户", { tag: "@User/REST" }, async ({
     run,
     request,
     account: _account,
@@ -97,7 +105,7 @@ test.describe("GET /api/community/users/[identifier]", () => {
     });
   });
 
-  test("缺失用户返回 404", async ({ run, request }) => {
+  test("缺失用户返回 404", { tag: "@User/REST" }, async ({ run, request }) => {
     await run(async () => {
       const response = await request.get(`${BASE}/missing-e2e-user`);
       expect(response.status()).toBe(404);

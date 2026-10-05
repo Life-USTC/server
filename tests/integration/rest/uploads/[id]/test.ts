@@ -2,11 +2,9 @@ import { expect } from "@playwright/test";
 import { base, test } from "../_fixture";
 
 for (const method of ["patch", "delete"] as const) {
-  test(`anonymous upload ${method} returns JSON 401 without changing metadata or bytes`, async ({
-    run,
-    request,
-    uploadState,
-  }) => {
+  test(`anonymous upload ${method} returns JSON 401 without changing metadata or bytes`, {
+    tag: "@Upload/REST",
+  }, async ({ run, request, uploadState }) => {
     await run(async () => {
       const { db, knownUpload, bucket } = uploadState;
       const upload = await knownUpload();
@@ -28,11 +26,9 @@ for (const method of ["patch", "delete"] as const) {
   });
 
   for (const isAdmin of [false, true]) {
-    test(`non-owner ${isAdmin ? "admin" : "user"} cannot ${method} an upload`, async ({
-      run,
-      createActor,
-      uploadState,
-    }) => {
+    test(`non-owner ${isAdmin ? "admin" : "user"} cannot ${method} an upload`, {
+      tag: "@Upload/REST",
+    }, async ({ run, createActor, uploadState }) => {
       await run(async () => {
         const { db, knownUpload, bucket } = uploadState;
         const actor = await createActor({ isAdmin });
@@ -55,10 +51,9 @@ for (const method of ["patch", "delete"] as const) {
   }
 }
 
-test("rename changes only metadata and the subsequent download filename", async ({
-  run,
-  uploadState,
-}) => {
+test("rename changes only metadata and the subsequent download filename", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, knownUpload, bucket } = uploadState;
     const upload = await knownUpload();
@@ -87,10 +82,9 @@ test("rename changes only metadata and the subsequent download filename", async 
   });
 });
 
-test("empty rename leaves metadata and bytes unchanged", async ({
-  run,
-  uploadState,
-}) => {
+test("empty rename leaves metadata and bytes unchanged", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, knownUpload, bucket } = uploadState;
     const upload = await knownUpload();
@@ -110,10 +104,9 @@ test("empty rename leaves metadata and bytes unchanged", async ({
   });
 });
 
-test("delete removes the object and metadata, reports exact size and disappears from the list", async ({
-  run,
-  uploadState,
-}) => {
+test("delete removes the object and metadata, reports exact size and disappears from the list", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, other, knownUpload, bucket } = uploadState;
     const upload = await knownUpload();
@@ -144,7 +137,10 @@ test("delete removes the object and metadata, reports exact size and disappears 
   });
 });
 
-test("deleting an unknown upload returns 404", async ({ run, createActor }) => {
+test("deleting an unknown upload returns 404", { tag: "@Upload/REST" }, async ({
+  run,
+  createActor,
+}) => {
   await run(async () => {
     const owner = await createActor();
     expect(

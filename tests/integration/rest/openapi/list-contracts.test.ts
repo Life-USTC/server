@@ -4,7 +4,10 @@ import { createCatalogContractFixture } from "../../../shared/catalog-contract-f
 
 type Schema = { $ref?: string; properties?: Record<string, Schema> };
 
-test("openapi.paginated-list-envelope", async ({ run, isolatedWorker }) => {
+test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
+  run,
+  isolatedWorker,
+}) => {
   await run(async () => {
     // Comparing totals across pages requires an unchanged dataset, including
     // global admin lists. Other tests must not insert rows into this Worker.

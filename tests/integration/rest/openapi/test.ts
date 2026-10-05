@@ -22,13 +22,16 @@ import { test } from "../../../e2e/utils/owned-worker";
 import { assertApiContract } from "../_shared/api-contract";
 
 test.describe("GET /api/openapi - OpenAPI 规范", () => {
-  test("契约", async ({ run, request }) => {
+  test("契约", { tag: "@OpenAPI/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, { routePath: "/api/openapi" });
     });
   });
 
-  test("返回有效的 OpenAPI 3.0.0 规范", async ({ run, request }) => {
+  test("返回有效的 OpenAPI 3.0.0 规范", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/openapi");
       expect(response.status()).toBe(200);
@@ -43,7 +46,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     });
   });
 
-  test("规范包含已知 API 路径", async ({ run, request }) => {
+  test("规范包含已知 API 路径", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/openapi");
       expect(response.status()).toBe(200);
@@ -64,7 +70,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     });
   });
 
-  test("规范暴露生成客户端所需的具体 schema", async ({ run, request }) => {
+  test("规范暴露生成客户端所需的具体 schema", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/openapi");
       expect(response.status()).toBe(200);
@@ -102,7 +111,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     });
   });
 
-  test("请求体与重定向端点在规范中保持准确", async ({ run, request }) => {
+  test("请求体与重定向端点在规范中保持准确", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/openapi");
       expect(response.status()).toBe(200);
@@ -188,7 +200,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     });
   });
 
-  test("规范暴露认证安全元数据", async ({ run, request }) => {
+  test("规范暴露认证安全元数据", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/openapi", {
         headers: { "cache-control": "no-cache" },
@@ -271,7 +286,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     });
   });
 
-  test("静态 openapi.generated.json 可访问", async ({ run, request }) => {
+  test("静态 openapi.generated.json 可访问", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/openapi.generated.json");
       expect(response.status()).toBe(200);

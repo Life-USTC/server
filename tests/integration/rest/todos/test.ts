@@ -4,7 +4,10 @@ import { test } from "./_fixture";
 const base = "/api/workspace/todos";
 
 for (const method of ["get", "post"] as const) {
-  test(`anonymous ${method} returns JSON 401`, async ({ request, run }) => {
+  test(`anonymous ${method} returns JSON 401`, { tag: "@Todo/REST" }, async ({
+    request,
+    run,
+  }) => {
     await run(async () => {
       const response = await request[method](
         base,
@@ -17,11 +20,9 @@ for (const method of ["get", "post"] as const) {
   });
 }
 
-test("known todos expose complete fields, counts and only the current owner", async ({
-  createActor,
-  db,
-  run,
-}) => {
+test("known todos expose complete fields, counts and only the current owner", {
+  tag: "@Todo/REST",
+}, async ({ createActor, db, run }) => {
   await run(async () => {
     const owner = await createActor();
     const other = await createActor();
@@ -67,11 +68,9 @@ test("known todos expose complete fields, counts and only the current owner", as
   });
 });
 
-test("completed and limit filters consume independently prepared rows", async ({
-  createActor,
-  db,
-  run,
-}) => {
+test("completed and limit filters consume independently prepared rows", {
+  tag: "@Todo/REST",
+}, async ({ createActor, db, run }) => {
   await run(async () => {
     const owner = await createActor();
     await db.todo.createMany({
@@ -89,11 +88,9 @@ test("completed and limit filters consume independently prepared rows", async ({
   });
 });
 
-test("bare dueBefore uses its UTC date boundary", async ({
-  createActor,
-  db,
-  run,
-}) => {
+test("bare dueBefore uses its UTC date boundary", {
+  tag: "@Todo/REST",
+}, async ({ createActor, db, run }) => {
   await run(async () => {
     const owner = await createActor();
     const before = await db.todo.create({
@@ -121,7 +118,10 @@ test("bare dueBefore uses its UTC date boundary", async ({
 });
 
 for (const query of ["dueBefore=not-a-date", "limit=0"]) {
-  test(`rejects invalid query ${query}`, async ({ createActor, run }) => {
+  test(`rejects invalid query ${query}`, { tag: "@Todo/REST" }, async ({
+    createActor,
+    run,
+  }) => {
     await run(async () => {
       const owner = await createActor();
       const response = await owner.request.get(`${base}?${query}`);
@@ -131,7 +131,11 @@ for (const query of ["dueBefore=not-a-date", "limit=0"]) {
   });
 }
 
-test("openapi.todo-created-status", async ({ createActor, db, run }) => {
+test("openapi.todo-created-status", { tag: "@Todo/REST" }, async ({
+  createActor,
+  db,
+  run,
+}) => {
   await run(async () => {
     const owner = await createActor();
     const other = await createActor();

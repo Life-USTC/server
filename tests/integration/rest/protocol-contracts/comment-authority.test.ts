@@ -40,10 +40,9 @@ function operation(
 for (const transport of transports) {
   for (const authorIndex of [0, 1])
     for (const action of actions) {
-      test(`comment ${action} by author ${authorIndex} through ${transport}`, async ({
-        h,
-        community: c,
-      }) => {
+      test(`comment ${action} by author ${authorIndex} through ${transport}`, {
+        tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ h, community: c }) => {
         await c.run(async () => {
           const rows = await prepare(h);
           const actor = h.actors[authorIndex];
@@ -118,10 +117,9 @@ for (const transport of transports) {
       });
     }
   for (const authorIndex of [0, 1])
-    test(`comment foreign edit by author ${authorIndex} rejected through ${transport}`, async ({
-      h,
-      community: c,
-    }) => {
+    test(`comment foreign edit by author ${authorIndex} rejected through ${transport}`, {
+      tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ h, community: c }) => {
       await c.run(async () => {
         const rows = await prepare(h);
         const before = await snapshot(h);
@@ -140,10 +138,9 @@ for (const transport of transports) {
     });
   for (const status of ["deleted", "softbanned"] as const)
     for (const action of ["update", "reply", "react", "unreact"] as const) {
-      test(`comment ${status} ${action} rejected through ${transport}`, async ({
-        h,
-        community: c,
-      }) => {
+      test(`comment ${status} ${action} rejected through ${transport}`, {
+        tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ h, community: c }) => {
         await c.run(async () => {
           const actor = h.actors[0];
           const row = await h.db.comment.create({
@@ -174,10 +171,9 @@ for (const transport of transports) {
       });
     }
   for (const action of ["update", "reply"] as const)
-    test(`comment missing ${action} rejected through ${transport}`, async ({
-      h,
-      community: c,
-    }) => {
+    test(`comment missing ${action} rejected through ${transport}`, {
+      tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ h, community: c }) => {
       await c.run(async () => {
         await prepare(h);
         const before = await snapshot(h);
@@ -197,10 +193,9 @@ for (const transport of transports) {
     });
   for (const reason of ["anonymous", "read_scope", "suspended"] as const)
     for (const action of actions) {
-      test(`comment ${action} ${reason} rejected through ${transport}`, async ({
-        h,
-        community: c,
-      }) => {
+      test(`comment ${action} ${reason} rejected through ${transport}`, {
+        tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ h, community: c }) => {
         await c.run(async () => {
           const rows = await prepare(h);
           const actor = h.actors[0];
@@ -232,10 +227,9 @@ for (const transport of transports) {
 }
 for (const transport of ["rest", "graphql"] as const)
   for (const suspended of [false, true]) {
-    test(`comment cookie edit suspended=${suspended} through ${transport}`, async ({
-      h,
-      community: c,
-    }) => {
+    test(`comment cookie edit suspended=${suspended} through ${transport}`, {
+      tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ h, community: c }) => {
       await c.run(async () => {
         const rows = await prepare(h);
         const actor = h.actors[0];

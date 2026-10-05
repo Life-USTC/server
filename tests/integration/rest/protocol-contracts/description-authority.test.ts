@@ -30,10 +30,9 @@ async function prepare(h: ProtocolFixture, editorIndex = 1) {
 for (const transport of transports) {
   for (const authorIndex of [0, 1])
     for (const action of ["create", "edit"] as const) {
-      test(`description ${action} by editor ${authorIndex} through ${transport}`, async ({
-        h,
-        community: c,
-      }) => {
+      test(`description ${action} by editor ${authorIndex} through ${transport}`, {
+        tag: `@Description/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ h, community: c }) => {
         await c.run(async () => {
           const actor = h.actors[authorIndex];
           const previous =
@@ -96,10 +95,9 @@ for (const transport of transports) {
         });
       });
     }
-  test(`description internal section ID rejected through ${transport}`, async ({
-    h,
-    community: c,
-  }) => {
+  test(`description internal section ID rejected through ${transport}`, {
+    tag: `@Description/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ h, community: c }) => {
     await c.run(async () => {
       await prepare(h);
       const before = await snapshot(h);
@@ -117,10 +115,9 @@ for (const transport of transports) {
     });
   });
   for (const reason of ["anonymous", "read_scope", "suspended"] as const) {
-    test(`description ${reason} rejected through ${transport}`, async ({
-      h,
-      community: c,
-    }) => {
+    test(`description ${reason} rejected through ${transport}`, {
+      tag: `@Description/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ h, community: c }) => {
       await c.run(async () => {
         await prepare(h);
         const actor = h.actors[1];
@@ -148,10 +145,9 @@ for (const transport of transports) {
 }
 for (const transport of ["rest", "graphql"] as const)
   for (const suspended of [false, true]) {
-    test(`description cookie collaborative edit suspended=${suspended} through ${transport}`, async ({
-      h,
-      community: c,
-    }) => {
+    test(`description cookie collaborative edit suspended=${suspended} through ${transport}`, {
+      tag: `@Description/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ h, community: c }) => {
       await c.run(async () => {
         const original = await prepare(h, 0);
         const actor = h.actors[1];
@@ -188,50 +184,50 @@ for (const transport of ["rest", "graphql"] as const)
     });
   }
 
-test("description history retains six collaborative edits across entry points", async ({
-  h,
-  community: c,
-}) => {
-  await c.run(async () => {
-    const expected = [];
-    let descriptionId: string | undefined;
-    let previousContent: string | null = null;
-    for (const transport of transports)
-      for (const [index, actor] of h.actors.entries()) {
-        const content = `${transport} revision by editor ${index}`;
-        const result = successful(
-          transport,
-          await c.call(
+for (const transport of transports)
+  test(`description history retains six collaborative edits through ${transport}`, {
+    tag: `@Description/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ h, community: c }) => {
+    await c.run(async () => {
+      const expected = [];
+      let descriptionId: string | undefined;
+      let previousContent: string | null = null;
+      for (const revision of [0, 1, 2])
+        for (const [index, actor] of h.actors.entries()) {
+          const content = `${transport} revision ${revision} by editor ${index}`;
+          const result = successful(
             transport,
-            descriptionSet(h.section.jwId, content),
-            actor.tokens[transport],
-          ),
-        );
-        expect(result.updated).toBe(true);
-        if (descriptionId) expect(result.id).toBe(descriptionId);
-        else descriptionId = result.id;
-        expected.push({
-          editorId: actor.id,
-          previousContent,
-          nextContent: content,
-        });
-        previousContent = content;
-      }
-    expect(
-      await h.db.descriptionEdit.findMany({
-        where: { descriptionId },
-        orderBy: { createdAt: "asc" },
-        select: { editorId: true, previousContent: true, nextContent: true },
-      }),
-    ).toEqual(expected);
-    expect(expected).toHaveLength(6);
-    expect(await c.effects()).toEqual({
-      purges: Array.from({ length: 6 }, () => ({
-        outcome: "fulfilled",
-        result: { ok: true, tags: [] },
-      })),
-      messages: [],
-      backgroundErrors: [],
+            await c.call(
+              transport,
+              descriptionSet(h.section.jwId, content),
+              actor.tokens[transport],
+            ),
+          );
+          expect(result.updated).toBe(true);
+          if (descriptionId) expect(result.id).toBe(descriptionId);
+          else descriptionId = result.id;
+          expected.push({
+            editorId: actor.id,
+            previousContent,
+            nextContent: content,
+          });
+          previousContent = content;
+        }
+      expect(
+        await h.db.descriptionEdit.findMany({
+          where: { descriptionId },
+          orderBy: { createdAt: "asc" },
+          select: { editorId: true, previousContent: true, nextContent: true },
+        }),
+      ).toEqual(expected);
+      expect(expected).toHaveLength(6);
+      expect(await c.effects()).toEqual({
+        purges: Array.from({ length: 6 }, () => ({
+          outcome: "fulfilled",
+          result: { ok: true, tags: [] },
+        })),
+        messages: [],
+        backgroundErrors: [],
+      });
     });
   });
-});

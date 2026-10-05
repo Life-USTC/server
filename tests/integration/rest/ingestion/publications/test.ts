@@ -45,11 +45,9 @@ function payloadFor(suffix: string) {
   };
 }
 
-test("ingestion rejects requests without the dedicated secret", async ({
-  run,
-  request,
-  isolatedWorker,
-}) => {
+test("ingestion rejects requests without the dedicated secret", {
+  tag: "@Publication/REST",
+}, async ({ run, request, isolatedWorker }) => {
   await run(async () => {
     const response = await request.post(BASE, {
       data: payloadFor("unauthorized"),
@@ -65,11 +63,9 @@ test("ingestion rejects requests without the dedicated secret", async ({
   });
 });
 
-test("ingestion accepts the service secret and scopes ownership to its stable key", async ({
-  run,
-  request,
-  isolatedWorker,
-}) => {
+test("ingestion accepts the service secret and scopes ownership to its stable key", {
+  tag: "@Publication/REST",
+}, async ({ run, request, isolatedWorker }) => {
   await run(async () => {
     const payload = payloadFor("service-auth");
 
@@ -108,10 +104,9 @@ test("ingestion accepts the service secret and scopes ownership to its stable ke
   });
 });
 
-test("unchanged redelivery re-registers claims so missing bytes can be planned and uploaded", async ({
-  run,
-  request,
-}) => {
+test("unchanged redelivery re-registers claims so missing bytes can be planned and uploaded", {
+  tag: "@Publication/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const suffix = "redelivery";
     // Each case owns its Worker storage, including content-addressed objects.
@@ -189,10 +184,9 @@ test("unchanged redelivery re-registers claims so missing bytes can be planned a
   });
 });
 
-test("ingestion streams an object through the authenticated Worker R2 binding", async ({
-  run,
-  request,
-}) => {
+test("ingestion streams an object through the authenticated Worker R2 binding", {
+  tag: "@Publication/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const suffix = "streaming";
     // Each case owns its Worker storage, including content-addressed objects.

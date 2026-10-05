@@ -49,11 +49,9 @@ const test = baseTest.extend<{
   },
 });
 
-test("known events expose pagination, summary fields and public cache headers", async ({
-  request,
-  events,
-  run,
-}) => {
+test("known events expose pagination, summary fields and public cache headers", {
+  tag: "@Young/REST",
+}, async ({ request, events, run }) => {
   await run(async () => {
     const response = await request.get(
       `${base}?search=${encodeURIComponent(events.marker)}`,
@@ -80,11 +78,9 @@ test("known events expose pagination, summary fields and public cache headers", 
   });
 });
 
-test("active filter selects the known active event and excludes the ended event", async ({
-  request,
-  events,
-  run,
-}) => {
+test("active filter selects the known active event and excludes the ended event", {
+  tag: "@Young/REST",
+}, async ({ request, events, run }) => {
   await run(async () => {
     const response = await request.get(
       `${base}?active=true&search=${encodeURIComponent(events.marker)}`,
@@ -96,7 +92,10 @@ test("active filter selects the known active event and excludes the ended event"
   });
 });
 
-test("unmatched search returns an empty page", async ({ request, run }) => {
+test("unmatched search returns an empty page", { tag: "@Young/REST" }, async ({
+  request,
+  run,
+}) => {
   await run(async () => {
     const response = await request.get(
       `${base}?search=missing-${crypto.randomUUID()}`,
@@ -109,7 +108,9 @@ test("unmatched search returns an empty page", async ({ request, run }) => {
   });
 });
 
-test("invalid active parameter returns JSON 400", async ({ request, run }) => {
+test("invalid active parameter returns JSON 400", {
+  tag: "@Young/REST",
+}, async ({ request, run }) => {
   await run(async () => {
     const response = await request.get(`${base}?active=maybe`);
     expect(response.status()).toBe(400);
@@ -117,11 +118,9 @@ test("invalid active parameter returns JSON 400", async ({ request, run }) => {
   });
 });
 
-test("known detail exposes structured fields and sanitizes upstream rich text", async ({
-  request,
-  events,
-  run,
-}) => {
+test("known detail exposes structured fields and sanitizes upstream rich text", {
+  tag: "@Young/REST",
+}, async ({ request, events, run }) => {
   await run(async () => {
     const response = await request.get(`${base}/${events.activeId}`);
     expect(response.status()).toBe(200);
@@ -151,11 +150,9 @@ test("known detail exposes structured fields and sanitizes upstream rich text", 
 });
 
 for (const module of ["智", "劳"]) {
-  test(`module ${module} and activity level apply exact filters`, async ({
-    request,
-    events,
-    run,
-  }) => {
+  test(`module ${module} and activity level apply exact filters`, {
+    tag: "@Young/REST",
+  }, async ({ request, events, run }) => {
     await run(async () => {
       const query = new URLSearchParams({
         module,
@@ -174,10 +171,9 @@ for (const module of ["智", "劳"]) {
 }
 
 for (const suffix of ["", "/image"]) {
-  test(`unknown event ${suffix || "detail"} returns JSON 404`, async ({
-    request,
-    run,
-  }) => {
+  test(`unknown event ${suffix || "detail"} returns JSON 404`, {
+    tag: "@Young/REST",
+  }, async ({ request, run }) => {
     await run(async () => {
       const response = await request.get(
         `${base}/missing-${crypto.randomUUID()}${suffix}`,
@@ -188,11 +184,9 @@ for (const suffix of ["", "/image"]) {
   });
 }
 
-test("known ended event without a poster returns 404", async ({
-  request,
-  events,
-  run,
-}) => {
+test("known ended event without a poster returns 404", {
+  tag: "@Young/REST",
+}, async ({ request, events, run }) => {
   await run(async () => {
     const response = await request.get(`${base}/${events.endedId}/image`);
     expect(response.status()).toBe(404);
@@ -200,7 +194,10 @@ test("known ended event without a poster returns 404", async ({
   });
 });
 
-test("image proxy rejects path traversal", async ({ request, run }) => {
+test("image proxy rejects path traversal", { tag: "@Young/REST" }, async ({
+  request,
+  run,
+}) => {
   await run(async () => {
     const response = await request.get(
       `${base}/images/group1/..%2F..%2Fsecret.jpg`,

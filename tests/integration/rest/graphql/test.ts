@@ -57,9 +57,9 @@ function expectGraphqlError(
   }
 }
 
-test("Cloudflare Worker serves the public GraphQL endpoint", async ({
-  graphql,
-}) => {
+test("Cloudflare Worker serves the public GraphQL endpoint", {
+  tag: "@Catalog/GraphQL",
+}, async ({ graphql }) => {
   await graphql.run(async () => {
     const { request } = graphql;
     const response = await request.post("/api/graphql", {
@@ -109,9 +109,9 @@ test("Cloudflare Worker serves the public GraphQL endpoint", async ({
 });
 
 test.describe("Cloudflare Worker authenticated GraphQL", () => {
-  test("accepts a session cookie only from a trusted Origin", async ({
-    graphql,
-  }) => {
+  test("accepts a session cookie only from a trusted Origin", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
     await graphql.run(async () => {
       const { request, users } = graphql;
       const user = users.a;
@@ -140,9 +140,9 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
     });
   });
 
-  test("accepts a GraphQL audience bearer and rejects a wrong audience", async ({
-    graphql,
-  }) => {
+  test("accepts a GraphQL audience bearer and rejects a wrong audience", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
     await graphql.run(async () => {
       const { request } = graphql;
       const user = graphql.users.a;
@@ -198,9 +198,9 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
     });
   });
 
-  test("rejects a bearer without the selected field scope", async ({
-    graphql,
-  }) => {
+  test("rejects a bearer without the selected field scope", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
     await graphql.run(async () => {
       const { request, marker } = graphql;
       const user = graphql.users.a;
@@ -254,9 +254,9 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
     });
   });
 
-  test("keeps A/B reads and todo mutations isolated by bearer subject", async ({
-    graphql,
-  }) => {
+  test("keeps A/B reads and todo mutations isolated by bearer subject", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
     await graphql.run(async () => {
       const { request, marker } = graphql;
       const userA = graphql.users.a;

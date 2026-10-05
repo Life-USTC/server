@@ -3,7 +3,10 @@ import { assertApiContract } from "../../_shared/api-contract";
 import { test } from "../_fixture";
 
 test.describe.configure({ mode: "parallel" });
-test("/api/community/comments/[id] 接口契约", async ({ run, request }) => {
+test("/api/community/comments/[id] 接口契约", { tag: "@Comment/REST" }, async ({
+  run,
+  request,
+}) => {
   await run(async () => {
     await assertApiContract(request, {
       routePath: "/api/community/comments/[id]",
@@ -11,10 +14,9 @@ test("/api/community/comments/[id] 接口契约", async ({ run, request }) => {
   });
 });
 
-test("/api/community/comments/[id]/replies 接口契约", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments/[id]/replies 接口契约", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     await assertApiContract(request, {
       routePath: "/api/community/comments/[id]/replies",
@@ -22,10 +24,9 @@ test("/api/community/comments/[id]/replies 接口契约", async ({
   });
 });
 
-test("/api/community/comments/[id] GET 返回线程 focus 与 target 元数据", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments/[id] GET 返回线程 focus 与 target 元数据", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
 
@@ -59,10 +60,9 @@ test("/api/community/comments/[id] GET 返回线程 focus 与 target 元数据",
   });
 });
 
-test("/api/community/comments/[id] GET 不存在的 ID 返回 404", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments/[id] GET 不存在的 ID 返回 404", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(
       "/api/community/comments/00000000-0000-0000-0000-000000000000",
@@ -71,10 +71,9 @@ test("/api/community/comments/[id] GET 不存在的 ID 返回 404", async ({
   });
 });
 
-test("/api/community/comments/[id] GET 隐藏聚焦线程返回 404 且不泄露是否存在", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments/[id] GET 隐藏聚焦线程返回 404 且不泄露是否存在", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
     const content = "Private logged-in comment";
@@ -104,10 +103,9 @@ test("/api/community/comments/[id] GET 隐藏聚焦线程返回 404 且不泄露
   });
 });
 
-test("/api/community/comments/[id] PATCH 未登录返回 401", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments/[id] PATCH 未登录返回 401", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.patch(
       "/api/community/comments/00000000-0000-0000-0000-000000000000",
@@ -117,10 +115,9 @@ test("/api/community/comments/[id] PATCH 未登录返回 401", async ({
   });
 });
 
-test("/api/community/comments/[id] DELETE 未登录返回 401", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments/[id] DELETE 未登录返回 401", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.delete(
       "/api/community/comments/00000000-0000-0000-0000-000000000000",
@@ -129,10 +126,9 @@ test("/api/community/comments/[id] DELETE 未登录返回 401", async ({
   });
 });
 
-test("/api/community/comments/[id] PATCH 拒绝匿名可见性", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments/[id] PATCH 拒绝匿名可见性", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -159,10 +155,9 @@ test("/api/community/comments/[id] PATCH 拒绝匿名可见性", async ({
 });
 
 for (const method of ["PATCH", "DELETE"] as const) {
-  test(`/api/community/comments/[id] ${method} independently preserves other comments`, async ({
-    run,
-    commentState: { owner, other, db, comment },
-  }) => {
+  test(`/api/community/comments/[id] ${method} independently preserves other comments`, {
+    tag: "@Comment/REST",
+  }, async ({ run, commentState: { owner, other, db, comment } }) => {
     await run(async () => {
       const prepared = await comment({
         body: "Independently prepared comment",
@@ -248,10 +243,9 @@ for (const method of ["PATCH", "DELETE"] as const) {
   });
 }
 
-test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const adminContext = (await commentState.admin()).request;
 
@@ -271,10 +265,9 @@ test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async 
   });
 });
 
-test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -332,10 +325,9 @@ test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文
 
 for (const status of ["deleted", "softbanned"] as const)
   test.describe(status, () => {
-    test("/api/community/comments/[id] PATCH 对失效评论返回 403", async ({
-      run,
-      commentState,
-    }) => {
+    test("/api/community/comments/[id] PATCH 对失效评论返回 403", {
+      tag: "@Comment/REST",
+    }, async ({ run, commentState }) => {
       await run(async () => {
         const request = commentState.owner.request;
         const root = await commentState.comment({

@@ -3,7 +3,10 @@ import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 import { test } from "../../_shared/catalog-reader-fixture";
 
-test("/api/catalog/sections/[jwId] 契约", async ({ run, request }) => {
+test("/api/catalog/sections/[jwId] 契约", { tag: "@Catalog/REST" }, async ({
+  run,
+  request,
+}) => {
   return run(async () => {
     await assertApiContract(request, {
       routePath: "/api/catalog/sections/[jwId]",
@@ -11,10 +14,9 @@ test("/api/catalog/sections/[jwId] 契约", async ({ run, request }) => {
   });
 });
 
-test("/api/catalog/sections/[jwId] 返回 teacherAssignments 与 exams", async ({
-  run,
-  request,
-}) => {
+test("/api/catalog/sections/[jwId] 返回 teacherAssignments 与 exams", {
+  tag: "@Catalog/REST",
+}, async ({ run, request }) => {
   return run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${DEV_SEED.section.jwId}`,
@@ -34,7 +36,10 @@ test("/api/catalog/sections/[jwId] 返回 teacherAssignments 与 exams", async (
   });
 });
 
-test("班级详情包含全部 SectionDetail 字段", async ({ run, request }) => {
+test("班级详情包含全部 SectionDetail 字段", { tag: "@Catalog/REST" }, async ({
+  run,
+  request,
+}) => {
   return run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${DEV_SEED.section.jwId}`,

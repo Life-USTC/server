@@ -4,10 +4,9 @@ import { test } from "./_fixture";
 const authorization = "Bearer e2e-metrics-secret-not-for-production";
 
 test.describe("GET /metrics", () => {
-  test("rejects missing, query-string, cookie and wrong Bearer credentials", async ({
-    run,
-    request,
-  }) => {
+  test("rejects missing, query-string, cookie and wrong Bearer credentials", {
+    tag: "@Admin/REST",
+  }, async ({ run, request }) => {
     return run(async () => {
       const cases: NonNullable<Parameters<typeof request.get>[1]>[] = [
         {},
@@ -29,10 +28,9 @@ test.describe("GET /metrics", () => {
     });
   });
 
-  test("serves valid text metrics with session cookies ignored", async ({
-    run,
-    request,
-  }) => {
+  test("serves valid text metrics with session cookies ignored", {
+    tag: "@Admin/REST",
+  }, async ({ run, request }) => {
     return run(async () => {
       const response = await request.get("/metrics", {
         headers: {
@@ -67,7 +65,10 @@ test.describe("GET /metrics", () => {
     });
   });
 
-  test("does not accept writes", async ({ run, request }) => {
+  test("does not accept writes", { tag: "@Admin/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       expect(
         (

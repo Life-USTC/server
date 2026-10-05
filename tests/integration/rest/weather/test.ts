@@ -31,7 +31,11 @@ for (const [name, query, locationKey] of [
   ],
   ["GET /api/catalog/weather defaults to main campus", "", "ustc-main"],
 ] as const) {
-  test(name, async ({ request, isolatedWorker, run }) => {
+  test(name, { tag: "@Weather/REST" }, async ({
+    request,
+    isolatedWorker,
+    run,
+  }) => {
     await run(async () => {
       const snapshots = await arrangeWeatherCache(request);
       expect(
@@ -61,11 +65,9 @@ for (const [name, query, locationKey] of [
 }
 
 for (const locationKey of ["", "unknown-campus"]) {
-  test(`GET /api/catalog/weather rejects location ${JSON.stringify(locationKey)}`, async ({
-    request,
-    isolatedWorker,
-    run,
-  }) => {
+  test(`GET /api/catalog/weather rejects location ${JSON.stringify(locationKey)}`, {
+    tag: "@Weather/REST",
+  }, async ({ request, isolatedWorker, run }) => {
     await run(async () => {
       const snapshots = await arrangeWeatherCache(request);
       const response = await request.get(
@@ -82,11 +84,9 @@ for (const locationKey of ["", "unknown-campus"]) {
   });
 }
 
-test("weather fixture storage restricts authorization and exact location keys", async ({
-  request,
-  isolatedWorker,
-  run,
-}) => {
+test("weather fixture storage restricts authorization and exact location keys", {
+  tag: "@Weather/REST",
+}, async ({ request, isolatedWorker, run }) => {
   await run(async () => {
     const snapshots = await arrangeWeatherCache(request);
     const path = "/__test/storage/weather?locationKey=ustc-main";

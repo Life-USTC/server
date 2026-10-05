@@ -3,11 +3,9 @@ import { base, test } from "../_fixture";
 
 const path = `${base}/object`;
 
-test("anonymous object PUT returns JSON 401 without changing a reservation", async ({
-  run,
-  request,
-  uploadState,
-}) => {
+test("anonymous object PUT returns JSON 401 without changing a reservation", {
+  tag: "@Upload/REST",
+}, async ({ run, request, uploadState }) => {
   await run(async () => {
     const { db, pending, bucket } = uploadState;
     const reservation = await pending();
@@ -28,7 +26,10 @@ test("anonymous object PUT returns JSON 401 without changing a reservation", asy
   });
 });
 
-test("object PUT requires a key", async ({ run, createActor }) => {
+test("object PUT requires a key", { tag: "@Upload/REST" }, async ({
+  run,
+  createActor,
+}) => {
   await run(async () => {
     const owner = await createActor();
     const response = await owner.request.put(path, {
@@ -39,10 +40,9 @@ test("object PUT requires a key", async ({ run, createActor }) => {
   });
 });
 
-test("object PUT rejects another owner's key without changing its bytes or reservation", async ({
-  run,
-  uploadState,
-}) => {
+test("object PUT rejects another owner's key without changing its bytes or reservation", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, other, pending, bucket } = uploadState;
     const reservation = await pending({
@@ -68,10 +68,9 @@ test("object PUT rejects another owner's key without changing its bytes or reser
   });
 });
 
-test("object PUT stores exact bytes and metadata and settles its reservation lease", async ({
-  run,
-  uploadState,
-}) => {
+test("object PUT stores exact bytes and metadata and settles its reservation lease", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, pending, bucket } = uploadState;
     const reservation = await pending();
@@ -98,10 +97,9 @@ test("object PUT stores exact bytes and metadata and settles its reservation lea
 });
 
 for (const failure of ["expired", "exceeds reservation"] as const) {
-  test(`object PUT ${failure} preserves previous bytes and reservation state`, async ({
-    run,
-    uploadState,
-  }) => {
+  test(`object PUT ${failure} preserves previous bytes and reservation state`, {
+    tag: "@Upload/REST",
+  }, async ({ run, uploadState }) => {
     await run(async () => {
       const { db, owner, pending, bucket } = uploadState;
       const reservation = await pending({

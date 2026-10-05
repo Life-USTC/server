@@ -42,11 +42,9 @@ async function readCatalogState(db: TestPrismaClient) {
   };
 }
 
-test("interface-hierarchy.catalog-rest-relationship-projections", async ({
-  request,
-  isolatedWorker,
-  run,
-}) => {
+test("interface-hierarchy.catalog-rest-relationship-projections", {
+  tag: "@Catalog/REST",
+}, async ({ request, isolatedWorker, run }) => {
   await run(async () => {
     const db = isolatedWorker.database.owner;
     const before = await readCatalogState(db);

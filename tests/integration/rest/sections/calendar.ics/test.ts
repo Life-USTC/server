@@ -19,7 +19,9 @@ async function getSeedSectionId(request: APIRequestContext) {
   return sectionId as number;
 }
 
-test("/api/catalog/sections/calendar.ics 契约", async ({ run, request }) => {
+test("/api/catalog/sections/calendar.ics 契约", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request }) => {
   return run(async () => {
     await assertApiContract(request, {
       routePath: "/api/catalog/sections/calendar.ics",
@@ -27,10 +29,9 @@ test("/api/catalog/sections/calendar.ics 契约", async ({ run, request }) => {
   });
 });
 
-test("/api/catalog/sections/calendar.ics 返回日历文本", async ({
-  run,
-  request,
-}) => {
+test("/api/catalog/sections/calendar.ics 返回日历文本", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request }) => {
   return run(async () => {
     const sectionId = await getSeedSectionId(request);
 
@@ -44,10 +45,9 @@ test("/api/catalog/sections/calendar.ics 返回日历文本", async ({
   });
 });
 
-test("/api/catalog/sections/calendar.ics accepts exactly 50 unique IDs", async ({
-  run,
-  request,
-}) => {
+test("/api/catalog/sections/calendar.ics accepts exactly 50 unique IDs", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request }) => {
   return run(async () => {
     const sectionId = await getSeedSectionId(request);
     const unusedIds = Array.from(
@@ -65,10 +65,9 @@ test("/api/catalog/sections/calendar.ics accepts exactly 50 unique IDs", async (
   });
 });
 
-test("/api/catalog/sections/calendar.ics rejects 51 unique IDs", async ({
-  run,
-  request,
-}) => {
+test("/api/catalog/sections/calendar.ics rejects 51 unique IDs", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request }) => {
   return run(async () => {
     const ids = Array.from({ length: 51 }, (_, index) => index + 1);
     const response = await request.get(
@@ -82,11 +81,9 @@ test("/api/catalog/sections/calendar.ics rejects 51 unique IDs", async ({
   });
 });
 
-test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", async ({
-  run,
-  request,
-  baseURL,
-}) => {
+test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request, baseURL }) => {
   return run(async () => {
     const response = await request.get(
       "/api/catalog/sections/calendar.ics?sectionIds=3,1,3",
@@ -101,10 +98,9 @@ test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", async ({
   });
 });
 
-test("/api/catalog/sections/calendar.ics rejects malformed IDs", async ({
-  run,
-  request,
-}) => {
+test("/api/catalog/sections/calendar.ics rejects malformed IDs", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request }) => {
   return run(async () => {
     const response = await request.get(
       "/api/catalog/sections/calendar.ics?sectionIds=1,invalid,2",

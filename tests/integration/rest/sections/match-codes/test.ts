@@ -3,7 +3,10 @@ import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 import { test } from "../../_shared/catalog-reader-fixture";
 
-test("/api/catalog/sections/match-codes", async ({ run, request }) => {
+test("/api/catalog/sections/match-codes", { tag: "@Catalog/REST" }, async ({
+  run,
+  request,
+}) => {
   return run(async () => {
     await assertApiContract(request, {
       routePath: "/api/catalog/sections/match-codes",
@@ -11,10 +14,9 @@ test("/api/catalog/sections/match-codes", async ({ run, request }) => {
   });
 });
 
-test("/api/catalog/sections/match-codes 返回 matched 与 unmatched", async ({
-  run,
-  request,
-}) => {
+test("/api/catalog/sections/match-codes 返回 matched 与 unmatched", {
+  tag: "@Catalog/REST",
+}, async ({ run, request }) => {
   return run(async () => {
     const unknownCode = "ZZ9999.99";
     const response = await request.post("/api/catalog/sections/match-codes", {

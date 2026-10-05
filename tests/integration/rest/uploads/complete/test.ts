@@ -4,11 +4,9 @@ import { base, test } from "../_fixture";
 const path = `${base}/complete`;
 
 for (const payload of ["empty", "valid"] as const) {
-  test(`anonymous completion with ${payload} payload returns JSON 401 and preserves the object and reservation`, async ({
-    run,
-    request,
-    uploadState,
-  }) => {
+  test(`anonymous completion with ${payload} payload returns JSON 401 and preserves the object and reservation`, {
+    tag: "@Upload/REST",
+  }, async ({ run, request, uploadState }) => {
     await run(async () => {
       const { db, pending, bucket } = uploadState;
       const reservation = await pending({
@@ -37,10 +35,9 @@ for (const payload of ["empty", "valid"] as const) {
   });
 }
 
-test("completion rejects another owner's key without changing its state", async ({
-  run,
-  uploadState,
-}) => {
+test("completion rejects another owner's key without changing its state", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, other, pending, bucket } = uploadState;
     const reservation = await pending({
@@ -72,10 +69,9 @@ test("completion rejects another owner's key without changing its state", async 
 });
 
 for (const state of ["missing", "expired"] as const) {
-  test(`completion with ${state} reservation returns 400 and leaves R2 cleanup to its lifecycle`, async ({
-    run,
-    uploadState,
-  }) => {
+  test(`completion with ${state} reservation returns 400 and leaves R2 cleanup to its lifecycle`, {
+    tag: "@Upload/REST",
+  }, async ({ run, uploadState }) => {
     await run(async () => {
       const { db, owner, pending, bucket } = uploadState;
       const reservation = await pending({
@@ -106,10 +102,9 @@ for (const state of ["missing", "expired"] as const) {
   });
 }
 
-test("completion converts known uploaded state once and preserves the other owner's quota", async ({
-  run,
-  uploadState,
-}) => {
+test("completion converts known uploaded state once and preserves the other owner's quota", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, other, pending, knownUpload, bucket } = uploadState;
     const reservation = await pending({ phase: "uploaded", contents: "hello" });

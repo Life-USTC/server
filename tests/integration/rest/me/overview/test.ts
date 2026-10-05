@@ -4,7 +4,10 @@ import { test } from "../../calendar-subscriptions/_fixture";
 const base = "/api/workspace/overview";
 const atTime = "2026-04-29T12:00:00+08:00";
 
-test("anonymous overview returns JSON 401", async ({ run, request }) => {
+test("anonymous overview returns JSON 401", { tag: "@Overview/REST" }, async ({
+  run,
+  request,
+}) => {
   await run(async () => {
     const response = await request.get(base);
     expect(response.status()).toBe(401);
@@ -12,10 +15,9 @@ test("anonymous overview returns JSON 401", async ({ run, request }) => {
   });
 });
 
-test("overview counts known state independently of sample limits and excludes past or unknown exams", async ({
-  run,
-  calendarState,
-}) => {
+test("overview counts known state independently of sample limits and excludes past or unknown exams", {
+  tag: "@Overview/REST",
+}, async ({ run, calendarState }) => {
   await run(async () => {
     const { db, owner, other, section, second, scheduleGroupId } =
       calendarState;
@@ -198,10 +200,9 @@ test("overview counts known state independently of sample limits and excludes pa
   });
 });
 
-test("a new user's overview has zero counts and empty samples", async ({
-  run,
-  createActor,
-}) => {
+test("a new user's overview has zero counts and empty samples", {
+  tag: "@Overview/REST",
+}, async ({ run, createActor }) => {
   await run(async () => {
     const owner = await createActor();
     const response = await owner.request.get(
@@ -221,10 +222,9 @@ test("a new user's overview has zero counts and empty samples", async ({
   });
 });
 
-test("date-only overview anchor is the start of the Shanghai day", async ({
-  run,
-  createActor,
-}) => {
+test("date-only overview anchor is the start of the Shanghai day", {
+  tag: "@Overview/REST",
+}, async ({ run, createActor }) => {
   await run(async () => {
     const owner = await createActor();
     const response = await owner.request.get(
@@ -237,7 +237,10 @@ test("date-only overview anchor is the start of the Shanghai day", async ({
   });
 });
 
-test("invalid overview anchor returns 400", async ({ run, createActor }) => {
+test("invalid overview anchor returns 400", { tag: "@Overview/REST" }, async ({
+  run,
+  createActor,
+}) => {
   await run(async () => {
     const owner = await createActor();
     const response = await owner.request.get(`${base}?atTime=not-a-date`);

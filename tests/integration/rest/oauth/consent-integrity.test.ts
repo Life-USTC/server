@@ -131,53 +131,67 @@ const test = oauthTest.extend<{
   },
 });
 
-test("oauth.signed-consent-integrity", async ({ consent: state, run }) =>
-  run(async () => {
-    const { db, userId, origin, authorize, signed, policies, submit } = state;
-    for (const kind of [
-      "legacy",
-      "missing-name",
-      "duplicate-name",
-      "extra-name",
-      "tampered-scope",
-      "tampered-resource",
-      "tampered-claims",
-      "expired",
-      "bad-signature",
-    ] as const) {
-      const query = new URLSearchParams(signed);
-      query.delete("sig");
-      if (kind === "legacy") query.delete("ba_param");
-      if (kind === "missing-name") {
-        const names = query
-          .getAll("ba_param")
-          .filter((name) => name !== "scope");
-        query.delete("ba_param");
-        for (const name of names) query.append("ba_param", name);
+test(
+  "oauth.signed-consent-integrity",
+  { tag: "@OAuth/OAuth" },
+  async ({ consent: state, run }) =>
+    run(async () => {
+      const { db, userId, origin, authorize, signed, policies, submit } = state;
+      for (const kind of [
+        "legacy",
+        "missing-name",
+        "duplicate-name",
+        "extra-name",
+        "tampered-scope",
+        "tampered-resource",
+        "tampered-claims",
+        "expired",
+        "bad-signature",
+      ] as const) {
+        const query = new URLSearchParams(signed);
+        query.delete("sig");
+        if (kind === "legacy") query.delete("ba_param");
+        if (kind === "missing-name") {
+          const names = query
+            .getAll("ba_param")
+            .filter((name) => name !== "scope");
+          query.delete("ba_param");
+          for (const name of names) query.append("ba_param", name);
+        }
+        if (kind === "duplicate-name") query.append("ba_param", "scope");
+        if (kind === "extra-name") query.append("ba_param", "undeclared");
+        if (kind === "expired") query.set("exp", "1");
+        const canonical = new URLSearchParams(
+          [...query.entries()].sort(([ak, av], [bk, bv]) =>
+            ak < bk ? -1 : ak > bk ? 1 : av < bv ? -1 : av > bv ? 1 : 0,
+          ),
+        );
+        query.set(
+          "sig",
+          await makeSignature(
+            kind === "legacy" ? query.toString() : canonical.toString(),
+            signingSecret,
+          ),
+        );
+        if (kind === "tampered-scope")
+          query.set("scope", "profile email admin:write");
+        if (kind === "tampered-resource")
+          query.set("resource", `${origin}/api/graphql`);
+        if (kind === "tampered-claims")
+          query.set("claims", JSON.stringify({ userinfo: { email: null } }));
+        if (kind === "bad-signature") query.set("sig", "invalid");
+        expect(await submit(query), kind).toMatchObject({
+          status: 303,
+          location: "/error?error=consent_failed",
+        });
+        expect(await db.oAuthConsent.count({ where: { clientId } })).toBe(0);
+        expect(
+          await db.verificationToken.count({
+            where: { token: { contains: clientId } },
+          }),
+        ).toBe(0);
       }
-      if (kind === "duplicate-name") query.append("ba_param", "scope");
-      if (kind === "extra-name") query.append("ba_param", "undeclared");
-      if (kind === "expired") query.set("exp", "1");
-      const canonical = new URLSearchParams(
-        [...query.entries()].sort(([ak, av], [bk, bv]) =>
-          ak < bk ? -1 : ak > bk ? 1 : av < bv ? -1 : av > bv ? 1 : 0,
-        ),
-      );
-      query.set(
-        "sig",
-        await makeSignature(
-          kind === "legacy" ? query.toString() : canonical.toString(),
-          signingSecret,
-        ),
-      );
-      if (kind === "tampered-scope")
-        query.set("scope", "profile email admin:write");
-      if (kind === "tampered-resource")
-        query.set("resource", `${origin}/api/graphql`);
-      if (kind === "tampered-claims")
-        query.set("claims", JSON.stringify({ userinfo: { email: null } }));
-      if (kind === "bad-signature") query.set("sig", "invalid");
-      expect(await submit(query), kind).toMatchObject({
+      expect(await submit(signed, "profile admin:write")).toMatchObject({
         status: 303,
         location: "/error?error=consent_failed",
       });
@@ -187,56 +201,46 @@ test("oauth.signed-consent-integrity", async ({ consent: state, run }) =>
           where: { token: { contains: clientId } },
         }),
       ).toBe(0);
-    }
-    expect(await submit(signed, "profile admin:write")).toMatchObject({
-      status: 303,
-      location: "/error?error=consent_failed",
-    });
-    expect(await db.oAuthConsent.count({ where: { clientId } })).toBe(0);
-    expect(
-      await db.verificationToken.count({
+      const approval = await submit(signed);
+      expect(approval).toMatchObject({
+        status: 303,
+        location: expect.stringContaining(
+          "https://client.example/callback?code=",
+        ),
+      });
+      const consent = await db.oAuthConsent.findUniqueOrThrow({
+        where: { clientId_userId: { clientId, userId } },
+      });
+      expect(consent).toMatchObject({
+        scopes: ["openid", "profile"],
+        resources: [`${origin}/api/mcp`],
+        requestedUserInfoClaims: ["name"],
+      });
+      const codes = await db.verificationToken.findMany({
         where: { token: { contains: clientId } },
-      }),
-    ).toBe(0);
-    const approval = await submit(signed);
-    expect(approval).toMatchObject({
-      status: 303,
-      location: expect.stringContaining(
-        "https://client.example/callback?code=",
-      ),
-    });
-    const consent = await db.oAuthConsent.findUniqueOrThrow({
-      where: { clientId_userId: { clientId, userId } },
-    });
-    expect(consent).toMatchObject({
-      scopes: ["openid", "profile"],
-      resources: [`${origin}/api/mcp`],
-      requestedUserInfoClaims: ["name"],
-    });
-    const codes = await db.verificationToken.findMany({
-      where: { token: { contains: clientId } },
-    });
-    expect(codes).toHaveLength(1);
-    const code = new URL(approval.location).searchParams.get("code");
-    expect(code).toBeTruthy();
-    if (!code) throw new Error("Expected the actual approval redirect code");
-    expect(codes[0].identifier).toBe(
-      createHash("sha256").update(code).digest("base64url"),
-    );
-    const sessions = await db.session.findMany({
-      where: { userId },
-      select: { id: true },
-    });
-    expect(sessions).toHaveLength(1);
-    expect(JSON.parse(codes[0].token)).toMatchObject({
-      sessionId: sessions[0].id,
-      userId,
-      referenceId: consent.grantId,
-      query: {
-        scope: "openid profile",
-        resource: `${origin}/api/mcp`,
-        claims: authorize.get("claims"),
-      },
-    });
-    expect(await readResourcePolicies(db)).toEqual(policies);
-  }));
+      });
+      expect(codes).toHaveLength(1);
+      const code = new URL(approval.location).searchParams.get("code");
+      expect(code).toBeTruthy();
+      if (!code) throw new Error("Expected the actual approval redirect code");
+      expect(codes[0].identifier).toBe(
+        createHash("sha256").update(code).digest("base64url"),
+      );
+      const sessions = await db.session.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      expect(sessions).toHaveLength(1);
+      expect(JSON.parse(codes[0].token)).toMatchObject({
+        sessionId: sessions[0].id,
+        userId,
+        referenceId: consent.grantId,
+        query: {
+          scope: "openid profile",
+          resource: `${origin}/api/mcp`,
+          claims: authorize.get("claims"),
+        },
+      });
+      expect(await readResourcePolicies(db)).toEqual(policies);
+    }),
+);

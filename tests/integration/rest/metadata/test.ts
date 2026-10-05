@@ -38,13 +38,16 @@ const EXPECTED_KEYS = [
 ] as const;
 
 test.describe("GET /api/catalog/metadata - 元数据字典", () => {
-  test("契约", async ({ run, request }) => {
+  test("契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, { routePath: "/api/catalog/metadata" });
     });
   });
 
-  test("所有字典键存在且为数组", async ({ run, request }) => {
+  test("所有字典键存在且为数组", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/metadata");
       expect(response.status()).toBe(200);
@@ -57,10 +60,9 @@ test.describe("GET /api/catalog/metadata - 元数据字典", () => {
     });
   });
 
-  test("seed 数据严格匹配 schema 并按 locale 推导名称", async ({
-    run,
-    request,
-  }) => {
+  test("seed 数据严格匹配 schema 并按 locale 推导名称", {
+    tag: "@Catalog/REST",
+  }, async ({ run, request }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/metadata?locale=en-us");
       expect(response.status()).toBe(200);
@@ -80,7 +82,10 @@ test.describe("GET /api/catalog/metadata - 元数据字典", () => {
     });
   });
 
-  test("seed 授课语言存在", async ({ run, request }) => {
+  test("seed 授课语言存在", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/metadata");
       expect(response.status()).toBe(200);
@@ -95,7 +100,10 @@ test.describe("GET /api/catalog/metadata - 元数据字典", () => {
     });
   });
 
-  test("seed 课程分类存在", async ({ run, request }) => {
+  test("seed 课程分类存在", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/metadata");
       expect(response.status()).toBe(200);
@@ -110,7 +118,10 @@ test.describe("GET /api/catalog/metadata - 元数据字典", () => {
     });
   });
 
-  test("seed 校区及楼栋存在", async ({ run, request }) => {
+  test("seed 校区及楼栋存在", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/metadata");
       expect(response.status()).toBe(200);
