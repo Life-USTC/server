@@ -176,24 +176,24 @@ async function publicList(
     throw new AggregateError(errors, "Public list HTTP workflow failed");
 }
 
-test("course.public-list-cache", async ({
-  request,
-  isolatedWorker,
-  run,
-}, testInfo) => {
-  await run(() => publicList(request, "courses", isolatedWorker, testInfo));
-});
-test("section.public-list-cache", async ({
-  request,
-  isolatedWorker,
-  run,
-}, testInfo) => {
-  await run(() => publicList(request, "sections", isolatedWorker, testInfo));
-});
-test("teacher.public-list-cache", async ({
-  request,
-  isolatedWorker,
-  run,
-}, testInfo) => {
-  await run(() => publicList(request, "teachers", isolatedWorker, testInfo));
-});
+test(
+  "course.public-list-cache",
+  { tag: "@Catalog/REST" },
+  async ({ request, isolatedWorker, run }, testInfo) => {
+    await run(() => publicList(request, "courses", isolatedWorker, testInfo));
+  },
+);
+test(
+  "section.public-list-cache",
+  { tag: "@Catalog/REST" },
+  async ({ request, isolatedWorker, run }, testInfo) => {
+    await run(() => publicList(request, "sections", isolatedWorker, testInfo));
+  },
+);
+test(
+  "teacher.public-list-cache",
+  { tag: "@Catalog/REST" },
+  async ({ request, isolatedWorker, run }, testInfo) => {
+    await run(() => publicList(request, "teachers", isolatedWorker, testInfo));
+  },
+);

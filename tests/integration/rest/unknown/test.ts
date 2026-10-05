@@ -2,7 +2,10 @@ import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
 
 test.describe("未知 API 路由", () => {
-  test("GET 与非 GET 请求都返回 JSON 404", async ({ run, request }) => {
+  test("GET 与非 GET 请求都返回 JSON 404", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       for (const [path, method] of [
         ["/api/nonexistent", "GET"],

@@ -140,10 +140,9 @@ async function update(
   ).toBe(own?.completedAt.getTime() ?? null);
 }
 for (const transport of transports) {
-  test(`homework completion updates preserve both owners and shared entity through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`homework completion updates preserve both owners and shared entity through ${transport}`, {
+    tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const { homework } = await prepare(h);
       const original = await shared(h);
@@ -161,10 +160,9 @@ for (const transport of transports) {
       }
     });
   });
-  test(`homework completion authorization rejection preserves state through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`homework completion authorization rejection preserves state through ${transport}`, {
+    tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const { homework } = await prepare(h);
       const before = { entities: await shared(h), completions: await rows(h) };
@@ -188,10 +186,9 @@ for (const transport of transports) {
       }
     });
   });
-  test(`homework completion rejects deleted and missing targets without effects through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`homework completion rejects deleted and missing targets without effects through ${transport}`, {
+    tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const { deleted } = await prepare(h);
       const before = { entities: await shared(h), completions: await rows(h) };
@@ -213,10 +210,9 @@ for (const transport of transports) {
         }
     });
   });
-  test(`homework completion remains personal during suspension through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`homework completion remains personal during suspension through ${transport}`, {
+    tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const { homework } = await prepare(h);
       await h.db.userSuspension.create({
@@ -235,10 +231,9 @@ for (const transport of transports) {
       }
     });
   });
-  test(`homework completion replay preserves its original completion timestamp through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`homework completion replay preserves its original completion timestamp through ${transport}`, {
+    tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const { homework } = await prepare(h);
       const before = { entities: await shared(h), completions: await rows(h) };

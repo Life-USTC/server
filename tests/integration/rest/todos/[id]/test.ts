@@ -12,72 +12,77 @@ for (const method of ["PATCH", "DELETE"] as const) {
       { name: "admin owner", isAdmin: true, owns: true, status: 200 },
       { name: "other admin", isAdmin: true, owns: false, status: 404 },
     ]) {
-      test(
-        scenario.name,
-        async ({ createActor, request: anonymous, db, run }) => {
-          await run(async () => {
-            const actor = await createActor({ isAdmin: scenario.isAdmin });
-            const owner = scenario.owns ? actor : await createActor();
-            const caller =
-              scenario.name === "anonymous" ? anonymous : actor.request;
-            const sessionResponse = await caller.get("/api/auth/get-session");
-            expect(sessionResponse.status()).toBe(200);
-            const session = await sessionResponse.json();
-            if (scenario.name === "anonymous")
-              expect(session?.user).toBeUndefined();
-            else
-              expect(session.user).toMatchObject({
-                id: actor.id,
-                isAdmin: scenario.isAdmin,
-              });
-            expect(
-              await db.userSuspension.count({ where: { userId: actor.id } }),
-            ).toBe(0);
-            const before = await db.todo.create({
-              data: {
-                userId: owner.id,
-                title: "Owned todo",
-                priority: "medium",
-              },
+      test(scenario.name, { tag: "@Todo/REST" }, async ({
+        createActor,
+        request: anonymous,
+        db,
+        run,
+      }) => {
+        await run(async () => {
+          const actor = await createActor({ isAdmin: scenario.isAdmin });
+          const owner = scenario.owns ? actor : await createActor();
+          const caller =
+            scenario.name === "anonymous" ? anonymous : actor.request;
+          const sessionResponse = await caller.get("/api/auth/get-session");
+          expect(sessionResponse.status()).toBe(200);
+          const session = await sessionResponse.json();
+          if (scenario.name === "anonymous")
+            expect(session?.user).toBeUndefined();
+          else
+            expect(session.user).toMatchObject({
+              id: actor.id,
+              isAdmin: scenario.isAdmin,
             });
-            const response = await caller.fetch(
-              `/api/workspace/todos/${before.id}`,
-              {
-                method,
-                ...(method === "PATCH" ? { data: { completed: true } } : {}),
-              },
-            );
-            expect(response.status()).toBe(scenario.status);
-            expect(response.headers()["content-type"]).toContain(
-              "application/json",
-            );
-            const body = await response.json();
-            const after = await db.todo.findUnique({
-              where: { id: before.id },
-            });
-            if (scenario.status !== 200) {
-              expect(typeof body.error).toBe("string");
-              expect(after).toEqual(before);
-            } else if (method === "PATCH") {
-              expect(body).toMatchObject({
-                success: true,
-                todo: { id: before.id, completed: true },
-              });
-              expect(after).toMatchObject({
-                ...before,
-                completed: true,
-                updatedAt: expect.any(Date),
-              });
-            } else {
-              expect(body).toEqual({ success: true });
-              expect(after).toBeNull();
-            }
+          expect(
+            await db.userSuspension.count({ where: { userId: actor.id } }),
+          ).toBe(0);
+          const before = await db.todo.create({
+            data: {
+              userId: owner.id,
+              title: "Owned todo",
+              priority: "medium",
+            },
           });
-        },
-      );
+          const response = await caller.fetch(
+            `/api/workspace/todos/${before.id}`,
+            {
+              method,
+              ...(method === "PATCH" ? { data: { completed: true } } : {}),
+            },
+          );
+          expect(response.status()).toBe(scenario.status);
+          expect(response.headers()["content-type"]).toContain(
+            "application/json",
+          );
+          const body = await response.json();
+          const after = await db.todo.findUnique({
+            where: { id: before.id },
+          });
+          if (scenario.status !== 200) {
+            expect(typeof body.error).toBe("string");
+            expect(after).toEqual(before);
+          } else if (method === "PATCH") {
+            expect(body).toMatchObject({
+              success: true,
+              todo: { id: before.id, completed: true },
+            });
+            expect(after).toMatchObject({
+              ...before,
+              completed: true,
+              updatedAt: expect.any(Date),
+            });
+          } else {
+            expect(body).toEqual({ success: true });
+            expect(after).toBeNull();
+          }
+        });
+      });
     }
 
-    test("missing target returns 404", async ({ createActor, run }) => {
+    test("missing target returns 404", { tag: "@Todo/REST" }, async ({
+      createActor,
+      run,
+    }) => {
       await run(async () => {
         const { request } = await createActor();
         const response = await request.fetch(
@@ -92,10 +97,9 @@ for (const method of ["PATCH", "DELETE"] as const) {
       });
     });
 
-    test("anonymous malformed input still returns a JSON 401", async ({
-      request,
-      run,
-    }) => {
+    test("anonymous malformed input still returns a JSON 401", {
+      tag: "@Todo/REST",
+    }, async ({ request, run }) => {
       await run(async () => {
         const response = await request.fetch(
           "/api/workspace/todos/invalid-e2e",
@@ -114,11 +118,9 @@ for (const method of ["PATCH", "DELETE"] as const) {
   });
 }
 
-test("todo PATCH returns its public fields and persists the edited values", async ({
-  createActor,
-  db,
-  run,
-}) => {
+test("todo PATCH returns its public fields and persists the edited values", {
+  tag: "@Todo/REST",
+}, async ({ createActor, db, run }) => {
   await run(async () => {
     const actor = await createActor();
     const before = await db.todo.create({
@@ -156,11 +158,9 @@ test("todo PATCH returns its public fields and persists the edited values", asyn
   });
 });
 
-test("deleting a todo removes it from the owner's subsequent list", async ({
-  createActor,
-  db,
-  run,
-}) => {
+test("deleting a todo removes it from the owner's subsequent list", {
+  tag: "@Todo/REST",
+}, async ({ createActor, db, run }) => {
   await run(async () => {
     const { id: userId, request } = await createActor();
     const { id } = await db.todo.create({

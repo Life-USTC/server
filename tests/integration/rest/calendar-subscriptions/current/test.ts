@@ -3,10 +3,9 @@ import { test } from "../_fixture";
 
 const base = "/api/workspace/subscriptions/current";
 
-test("anonymous current subscription returns JSON 401", async ({
-  run,
-  request,
-}) => {
+test("anonymous current subscription returns JSON 401", {
+  tag: "@Subscription/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(base);
     expect(response.status()).toBe(401);
@@ -14,10 +13,9 @@ test("anonymous current subscription returns JSON 401", async ({
   });
 });
 
-test("known subscriptions expose only the owner's sections and hide feed credentials", async ({
-  run,
-  calendarState,
-}) => {
+test("known subscriptions expose only the owner's sections and hide feed credentials", {
+  tag: "@Subscription/REST",
+}, async ({ run, calendarState }) => {
   await run(async () => {
     const { db, owner, other, section, second } = calendarState;
     const secret = crypto.randomUUID();
@@ -51,10 +49,9 @@ test("known subscriptions expose only the owner's sections and hide feed credent
   });
 });
 
-test("a new user receives an empty subscription with no feed credential", async ({
-  run,
-  createActor,
-}) => {
+test("a new user receives an empty subscription with no feed credential", {
+  tag: "@Subscription/REST",
+}, async ({ run, createActor }) => {
   await run(async () => {
     const owner = await createActor();
     const response = await owner.request.get(base);

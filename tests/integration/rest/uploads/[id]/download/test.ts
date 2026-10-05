@@ -24,7 +24,7 @@ const test = uploadTest.extend<{ attachmentTarget: number }>({
 });
 const path = (id: string) => `${base}/${id}/download`;
 
-test("anonymous download returns JSON 401", async ({
+test("anonymous download returns JSON 401", { tag: "@Upload/REST" }, async ({
   run,
   request,
   uploadState,
@@ -37,10 +37,9 @@ test("anonymous download returns JSON 401", async ({
   });
 });
 
-test("known owned upload streams exact bytes with content type and filename", async ({
-  run,
-  uploadState,
-}) => {
+test("known owned upload streams exact bytes with content type and filename", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { owner, knownUpload } = uploadState;
     const upload = await knownUpload({
@@ -56,11 +55,9 @@ test("known owned upload streams exact bytes with content type and filename", as
 });
 
 for (const isAdmin of [false, true]) {
-  test(`non-owner ${isAdmin ? "admin" : "user"} cannot download an unattached upload`, async ({
-    run,
-    createActor,
-    uploadState,
-  }) => {
+  test(`non-owner ${isAdmin ? "admin" : "user"} cannot download an unattached upload`, {
+    tag: "@Upload/REST",
+  }, async ({ run, createActor, uploadState }) => {
     await run(async () => {
       const actor = await createActor({ isAdmin });
       const upload = await uploadState.knownUpload();
@@ -71,12 +68,9 @@ for (const isAdmin of [false, true]) {
 
 for (const deleted of [false, true]) {
   for (const isAdmin of [false, true]) {
-    test(`${isAdmin ? "admin" : "user"} ${deleted ? "cannot download deleted" : "can download public"} comment attachment`, async ({
-      run,
-      createActor,
-      uploadState,
-      attachmentTarget,
-    }) => {
+    test(`${isAdmin ? "admin" : "user"} ${deleted ? "cannot download deleted" : "can download public"} comment attachment`, {
+      tag: "@Upload/REST",
+    }, async ({ run, createActor, uploadState, attachmentTarget }) => {
       await run(async () => {
         const { db, owner, knownUpload, bucket } = uploadState;
         const actor = await createActor({ isAdmin });
@@ -107,10 +101,9 @@ for (const deleted of [false, true]) {
 }
 
 for (const missing of ["metadata", "storage object"] as const) {
-  test(`download returns 404 for missing ${missing}`, async ({
-    run,
-    uploadState,
-  }) => {
+  test(`download returns 404 for missing ${missing}`, {
+    tag: "@Upload/REST",
+  }, async ({ run, uploadState }) => {
     await run(async () => {
       const { db, owner, bucket, knownUpload } = uploadState;
       const upload = await knownUpload();

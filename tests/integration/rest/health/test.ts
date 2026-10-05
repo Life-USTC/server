@@ -13,10 +13,9 @@ import { test } from "../../../e2e/utils/owned-worker";
 const BASE = "/api/health";
 
 test.describe("GET /api/health 健康检查", () => {
-  test("API 契约：匿名访问返回 200 与 plain/text ok", async ({
-    run,
-    request,
-  }) => {
+  test("API 契约：匿名访问返回 200 与 plain/text ok", {
+    tag: "@OpenAPI/REST",
+  }, async ({ run, request }) => {
     return run(async () => {
       const response = await request.get(BASE);
 
@@ -28,7 +27,10 @@ test.describe("GET /api/health 健康检查", () => {
     });
   });
 
-  test("不支持非 GET 方法时返回 405", async ({ run, request }) => {
+  test("不支持非 GET 方法时返回 405", { tag: "@OpenAPI/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.post(BASE);
       expect(response.status()).toBe(405);

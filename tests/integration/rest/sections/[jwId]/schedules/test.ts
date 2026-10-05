@@ -1,11 +1,9 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../_shared/public-academic-fixture";
 
-test("/api/catalog/sections/[jwId]/schedules 契约", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedules 契约", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${academic.section.jwId}/schedules`,
@@ -17,11 +15,9 @@ test("/api/catalog/sections/[jwId]/schedules 契约", async ({
   });
 });
 
-test("/api/catalog/sections/[jwId]/schedules 返回排课明细", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedules 返回排课明细", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${academic.section.jwId}/schedules`,
@@ -69,11 +65,9 @@ test("/api/catalog/sections/[jwId]/schedules 返回排课明细", async ({
   });
 });
 
-test("/api/catalog/sections/[jwId]/schedules 支持日期窗口", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedules 支持日期窗口", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     const seedDate = academic.date;
     const response = await request.get(
@@ -94,11 +88,9 @@ test("/api/catalog/sections/[jwId]/schedules 支持日期窗口", async ({
   });
 });
 
-test("/api/catalog/sections/[jwId]/schedules 支持 limit", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedules 支持 limit", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${academic.section.jwId}/schedules?limit=1`,
@@ -110,11 +102,9 @@ test("/api/catalog/sections/[jwId]/schedules 支持 limit", async ({
   });
 });
 
-test("/api/catalog/sections/[jwId]/schedules 无效日期返回 400", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedules 无效日期返回 400", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${academic.section.jwId}/schedules?dateFrom=not-a-date`,
@@ -124,11 +114,9 @@ test("/api/catalog/sections/[jwId]/schedules 无效日期返回 400", async ({
   });
 });
 
-test("/api/catalog/sections/[jwId]/schedules 无效 limit 返回 400", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedules 无效 limit 返回 400", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     for (const limit of [0, 201]) {
       const response = await request.get(

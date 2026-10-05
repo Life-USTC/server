@@ -16,13 +16,16 @@ import { assertApiContract } from "../../../_shared/api-contract";
 import { base as BASE, test } from "../_fixture";
 
 test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
-  test("API 契约", async ({ run, request }) => {
+  test("API 契约", { tag: "@Comment/REST" }, async ({ run, request }) => {
     await run(async () => {
       await assertApiContract(request, { routePath: `${BASE}/[id]` });
     });
   });
 
-  test("未认证 PATCH 返回 401", async ({ run, request }) => {
+  test("未认证 PATCH 返回 401", { tag: "@Comment/REST" }, async ({
+    run,
+    request,
+  }) => {
     await run(async () => {
       const response = await request.patch(`${BASE}/nonexistent-id`, {
         data: { status: "softbanned" },
@@ -31,7 +34,10 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
     });
   });
 
-  test("非管理员 PATCH 返回 401", async ({ run, commentState }) => {
+  test("非管理员 PATCH 返回 401", { tag: "@Comment/REST" }, async ({
+    run,
+    commentState,
+  }) => {
     await run(async () => {
       const { owner, db, recent } = commentState;
       const response = await owner.request.patch(`${BASE}/${recent.id}`, {
@@ -45,7 +51,10 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
     });
   });
 
-  test("空请求体返回 400", async ({ run, commentState }) => {
+  test("空请求体返回 400", { tag: "@Comment/REST" }, async ({
+    run,
+    commentState,
+  }) => {
     await run(async () => {
       const { admin, db, recent } = commentState;
       const response = await admin.request.patch(`${BASE}/${recent.id}`, {
@@ -59,7 +68,10 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
     });
   });
 
-  test("管理员可管理评论并恢复状态", async ({ run, commentState }) => {
+  test("管理员可管理评论并恢复状态", { tag: "@Comment/REST" }, async ({
+    run,
+    commentState,
+  }) => {
     await run(async () => {
       const { admin, owner, db, recent } = commentState;
       const others = await db.comment.findMany({

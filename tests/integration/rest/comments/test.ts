@@ -27,7 +27,10 @@ type CommentListResponse<TComment = { body?: string; id?: string }> = {
     totalPages?: number;
   };
 };
-test("/api/community/comments 接口契约", async ({ run, commentState }) => {
+test("/api/community/comments 接口契约", { tag: "@Comment/REST" }, async ({
+  run,
+  commentState,
+}) => {
   await run(async () => {
     const prepared = await commentState.comment();
     const response = await commentState.anonymous.get(
@@ -42,10 +45,9 @@ test("/api/community/comments 接口契约", async ({ run, commentState }) => {
   });
 });
 
-test("/api/community/comments GET 返回 section 目标与已准备的评论", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET 返回 section 目标与已准备的评论", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
     const prepared = await commentState.comment();
@@ -67,10 +69,9 @@ test("/api/community/comments GET 返回 section 目标与已准备的评论", a
   });
 });
 
-test("/api/community/comments GET 接受公开 section JW id", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET 接受公开 section JW id", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
     const prepared = await commentState.comment();
@@ -89,10 +90,9 @@ test("/api/community/comments GET 接受公开 section JW id", async ({
   });
 });
 
-test("/api/community/comments GET 接受公开 youngId", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET 接受公开 youngId", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
 
@@ -107,10 +107,9 @@ test("/api/community/comments GET 接受公开 youngId", async ({
   });
 });
 
-test("/api/community/comments POST 支持 youngId 目标", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments POST 支持 youngId 目标", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -135,10 +134,9 @@ test("/api/community/comments POST 支持 youngId 目标", async ({
   });
 });
 
-test("/api/community/comments GET 拒绝未验证的 young-event targetId", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments GET 拒绝未验证的 young-event targetId", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(
       "/api/community/comments?targetType=young-event&targetId=1",
@@ -147,10 +145,9 @@ test("/api/community/comments GET 拒绝未验证的 young-event targetId", asyn
   });
 });
 
-test("/api/community/comments GET 对未知 youngId 返回 404", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments GET 对未知 youngId 返回 404", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(
       "/api/community/comments?targetType=young-event&youngId=missing-young-event",
@@ -159,10 +156,9 @@ test("/api/community/comments GET 对未知 youngId 返回 404", async ({
   });
 });
 
-test("/api/community/comments GET 无效 targetType 返回 400", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments GET 无效 targetType 返回 400", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(
       "/api/community/comments?targetType=invalid&targetId=1",
@@ -171,10 +167,9 @@ test("/api/community/comments GET 无效 targetType 返回 400", async ({
   });
 });
 
-test("/api/community/comments GET 不存在的目标返回 404", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments GET 不存在的目标返回 404", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(
       "/api/community/comments?targetType=section&targetId=2147483647",
@@ -183,10 +178,9 @@ test("/api/community/comments GET 不存在的目标返回 404", async ({
   });
 });
 
-test("/api/community/comments GET 按根评论分页并保留有界回复树", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET 按根评论分页并保留有界回复树", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
     const fixture = { sectionId: commentState.section.id };
@@ -234,10 +228,9 @@ test("/api/community/comments GET 按根评论分页并保留有界回复树", a
   });
 });
 
-test("/api/community/comments GET 限制回复负载并可继续分页", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET 限制回复负载并可继续分页", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
     const fixture = { sectionId: commentState.section.id };
@@ -323,10 +316,9 @@ test("/api/community/comments GET 限制回复负载并可继续分页", async (
   });
 });
 
-test("/api/community/comments GET section-teacher 空目标不会创建关系行", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET section-teacher 空目标不会创建关系行", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
 
@@ -359,10 +351,9 @@ test("/api/community/comments GET section-teacher 空目标不会创建关系行
   });
 });
 
-test("/api/community/comments GET section-teacher 保留 section id 并隔离 retired 关系", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET section-teacher 保留 section id 并隔离 retired 关系", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
 
@@ -412,10 +403,9 @@ test("/api/community/comments GET section-teacher 保留 section id 并隔离 re
   });
 });
 
-test("/api/community/comments GET 未关联的 section-teacher 目标返回 404", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments GET 未关联的 section-teacher 目标返回 404", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.anonymous;
     await commentState.db.section.update({
@@ -436,10 +426,9 @@ test("/api/community/comments GET 未关联的 section-teacher 目标返回 404"
   });
 });
 
-test("/api/community/comments POST 未登录返回 401", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments POST 未登录返回 401", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.post("/api/community/comments", {
       data: {
@@ -452,10 +441,9 @@ test("/api/community/comments POST 未登录返回 401", async ({
   });
 });
 
-test("/api/community/comments POST 拒绝匿名可见性", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments POST 拒绝匿名可见性", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -484,7 +472,10 @@ test("/api/community/comments POST 拒绝匿名可见性", async ({
   });
 });
 
-test("openapi.comment-created-status", async ({ run, commentState }) => {
+test("openapi.comment-created-status", { tag: "@Comment/REST" }, async ({
+  run,
+  commentState,
+}) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -517,10 +508,9 @@ test("openapi.comment-created-status", async ({ run, commentState }) => {
   });
 });
 
-test("/api/community/comments POST 接受公开 section JW id", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments POST 接受公开 section JW id", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -548,10 +538,9 @@ test("/api/community/comments POST 接受公开 section JW id", async ({
   });
 });
 
-test("/api/community/comments POST 拒绝格式错误的公开 section JW id 并回退 targetId", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments POST 拒绝格式错误的公开 section JW id 并回退 targetId", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -580,10 +569,9 @@ test("/api/community/comments POST 拒绝格式错误的公开 section JW id 并
   });
 });
 
-test("/api/community/comments POST 拒绝复用已上传附件", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments POST 拒绝复用已上传附件", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
 
@@ -635,10 +623,9 @@ test("/api/community/comments POST 拒绝复用已上传附件", async ({
   });
 });
 
-test("/api/community/comments POST 可创建回复评论", async ({
-  run,
-  commentState,
-}) => {
+test("/api/community/comments POST 可创建回复评论", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState }) => {
   await run(async () => {
     const request = commentState.owner.request;
     const prepared = await commentState.comment();
@@ -704,10 +691,9 @@ test("/api/community/comments POST 可创建回复评论", async ({
 
 for (const status of ["deleted", "softbanned"] as const)
   test.describe(status, () => {
-    test("/api/community/comments POST 拒绝对失效父评论回复", async ({
-      run,
-      commentState,
-    }) => {
+    test("/api/community/comments POST 拒绝对失效父评论回复", {
+      tag: "@Comment/REST",
+    }, async ({ run, commentState }) => {
       await run(async () => {
         const request = commentState.owner.request;
         const root = await commentState.comment({

@@ -7,7 +7,9 @@ import {
 
 const base = "/api/workspace/schedules";
 
-test("anonymous schedule read returns JSON 401", async ({ run, request }) => {
+test("anonymous schedule read returns JSON 401", {
+  tag: "@Subscription/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(base);
     expect(response.status()).toBe(401);
@@ -15,10 +17,9 @@ test("anonymous schedule read returns JSON 401", async ({ run, request }) => {
   });
 });
 
-test("known subscriptions return only their schedules with localized teacher details", async ({
-  run,
-  calendarState,
-}) => {
+test("known subscriptions return only their schedules with localized teacher details", {
+  tag: "@Subscription/REST",
+}, async ({ run, calendarState }) => {
   await run(async () => {
     const { db, owner, other, section, scheduleGroupId, teacherId } =
       calendarState;
@@ -90,7 +91,9 @@ test("known subscriptions return only their schedules with localized teacher det
   });
 });
 
-test("invalid schedule date returns 400", async ({ run, createActor }) => {
+test("invalid schedule date returns 400", {
+  tag: "@Subscription/REST",
+}, async ({ run, createActor }) => {
   await run(async () => {
     const owner = await createActor();
     const response = await owner.request.get(`${base}?dateFrom=not-a-date`);

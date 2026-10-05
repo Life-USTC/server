@@ -4,7 +4,10 @@ import { test } from "../../calendar-subscriptions/_fixture";
 
 const base = "/api/workspace/exams";
 
-test("anonymous exam read returns JSON 401", async ({ run, request }) => {
+test("anonymous exam read returns JSON 401", { tag: "@Exam/REST" }, async ({
+  run,
+  request,
+}) => {
   await run(async () => {
     const response = await request.get(base);
     expect(response.status()).toBe(401);
@@ -12,10 +15,9 @@ test("anonymous exam read returns JSON 401", async ({ run, request }) => {
   });
 });
 
-test("known exams paginate privately with section and semester context", async ({
-  run,
-  calendarState,
-}) => {
+test("known exams paginate privately with section and semester context", {
+  tag: "@Exam/REST",
+}, async ({ run, calendarState }) => {
   await run(async () => {
     const { db, owner, other, section } = calendarState;
     await db.userSectionSubscription.create({
@@ -71,10 +73,9 @@ test("known exams paginate privately with section and semester context", async (
   });
 });
 
-test("date filters include unknown dates only when requested", async ({
-  run,
-  calendarState,
-}) => {
+test("date filters include unknown dates only when requested", {
+  tag: "@Exam/REST",
+}, async ({ run, calendarState }) => {
   await run(async () => {
     const { db, owner, section } = calendarState;
     await db.userSectionSubscription.create({
@@ -108,7 +109,10 @@ for (const query of [
   "pageSize=101",
   "includeDateUnknown=invalid",
 ]) {
-  test(`exam read rejects ${query}`, async ({ run, createActor }) => {
+  test(`exam read rejects ${query}`, { tag: "@Exam/REST" }, async ({
+    run,
+    createActor,
+  }) => {
     await run(async () => {
       const owner = await createActor();
       const response = await owner.request.get(`${base}?${query}`);

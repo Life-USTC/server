@@ -186,222 +186,240 @@ const test = workerTest.extend<{
   },
 });
 
-test("oauth.client-validation-from-provider", async ({ state, run }) =>
-  run(async () => {
-    const { db, marker, create, registration } = state;
-    for (const [redirect, allowed] of [
-      ["https://client.example/callback", true],
-      ["http://127.0.0.1:14567/callback", true],
-      ["/relative", false],
-      ["javascript:alert(1)", false],
-      ["https://client.example/callback#fragment", false],
-      ["https://user:password@client.example/callback", false],
-    ] as const) {
-      const name = `${marker}-${crypto.randomUUID()}`;
-      const result = await create(name, redirect);
-      const dcr = await registration(name, redirect);
-      const dcrBody = dcr.body;
-      if (allowed) {
-        expect(result).toMatchObject({
-          createdClientName: name,
-          createdClientRedirectUris: [redirect],
-          createdClientSecret: null,
-        });
-        expect(dcr.status, JSON.stringify(dcrBody)).toBe(201);
-        expect(await db.oAuthClient.count({ where: { name } })).toBe(2);
-      } else {
+test(
+  "oauth.client-validation-from-provider",
+  { tag: "@OAuth/REST" },
+  async ({ state, run }) =>
+    run(async () => {
+      const { db, marker, create, registration } = state;
+      for (const [redirect, allowed] of [
+        ["https://client.example/callback", true],
+        ["http://127.0.0.1:14567/callback", true],
+        ["/relative", false],
+        ["javascript:alert(1)", false],
+        ["https://client.example/callback#fragment", false],
+        ["https://user:password@client.example/callback", false],
+      ] as const) {
+        const name = `${marker}-${crypto.randomUUID()}`;
+        const result = await create(name, redirect);
+        const dcr = await registration(name, redirect);
+        const dcrBody = dcr.body;
+        if (allowed) {
+          expect(result).toMatchObject({
+            createdClientName: name,
+            createdClientRedirectUris: [redirect],
+            createdClientSecret: null,
+          });
+          expect(dcr.status, JSON.stringify(dcrBody)).toBe(201);
+          expect(await db.oAuthClient.count({ where: { name } })).toBe(2);
+        } else {
+          expect("status" in result && result.status).toBe(400);
+          expect(dcr.status, JSON.stringify(dcrBody)).toBe(400);
+          expect(await db.oAuthClient.count({ where: { name } })).toBe(0);
+        }
+      }
+      for (const [name, method, scope] of [
+        ["", "none", "workspace.todo:read"],
+        [`${marker}-auth`, "unsupported", "workspace.todo:read"],
+        [`${marker}-scope`, "none", "admin:all"],
+      ]) {
+        const result = await create(
+          name,
+          "https://client.example/callback",
+          method,
+          undefined,
+          scope,
+        );
         expect("status" in result && result.status).toBe(400);
-        expect(dcr.status, JSON.stringify(dcrBody)).toBe(400);
         expect(await db.oAuthClient.count({ where: { name } })).toBe(0);
       }
-    }
-    for (const [name, method, scope] of [
-      ["", "none", "workspace.todo:read"],
-      [`${marker}-auth`, "unsupported", "workspace.todo:read"],
-      [`${marker}-scope`, "none", "admin:all"],
-    ]) {
-      const result = await create(
-        name,
-        "https://client.example/callback",
-        method,
-        undefined,
-        scope,
-      );
-      expect("status" in result && result.status).toBe(400);
-      expect(await db.oAuthClient.count({ where: { name } })).toBe(0);
-    }
-  }));
+    }),
+);
 
-test("oauth.trusted-clients-admin-backend", async ({ state, run }) =>
-  run(async () => {
-    const {
-      db,
-      marker,
-      origin,
-      userId,
-      otherId,
-      account,
-      create,
-      token,
-      bearer,
-    } = state;
-    expect(
-      await create(
-        `${marker}-denied`,
-        "https://client.example/callback",
-        "client_secret_basic",
-        account.request,
-      ),
-    ).toMatchObject({ status: 403 });
-    expect(await db.oAuthClient.count()).toBe(0);
-    expect(await db.auditLog.count()).toBe(0);
-    const owned = await db.todo.create({
-      data: { userId, title: `${marker}-owned` },
-    });
-    const foreign = await db.todo.create({
-      data: { userId: otherId, title: `${marker}-foreign` },
-    });
-    for (const method of [
-      "none",
-      "client_secret_post",
-      "client_secret_basic",
-    ]) {
-      const result = await create(
-        `${marker}-trusted-brand`,
-        "https://life.ustc.edu.cn/callback",
-        method,
-      );
-      if (!("createdClientId" in result))
-        throw new Error("Expected an administrator-created OAuth client");
-      const clientId = result.createdClientId;
-      const stored = await db.oAuthClient.findUniqueOrThrow({
-        where: { clientId },
+test(
+  "oauth.trusted-clients-admin-backend",
+  { tag: "@OAuth/REST" },
+  async ({ state, run }) =>
+    run(async () => {
+      const {
+        db,
+        marker,
+        origin,
+        userId,
+        otherId,
+        account,
+        create,
+        token,
+        bearer,
+      } = state;
+      expect(
+        await create(
+          `${marker}-denied`,
+          "https://client.example/callback",
+          "client_secret_basic",
+          account.request,
+        ),
+      ).toMatchObject({ status: 403 });
+      expect(await db.oAuthClient.count()).toBe(0);
+      expect(await db.auditLog.count()).toBe(0);
+      const owned = await db.todo.create({
+        data: { userId, title: `${marker}-owned` },
       });
-      expect(stored.skipConsent).toBe(method === "client_secret_basic");
-      expect(await db.oAuthConsent.count()).toBe(0);
-      const accessToken = await token(clientId);
-      const response = await bearer("/api/workspace/todos", accessToken);
-      if (method !== "client_secret_basic") {
-        expect(response.status).toBe(401);
-        expect(response.body).not.toContain(owned.id);
+      const foreign = await db.todo.create({
+        data: { userId: otherId, title: `${marker}-foreign` },
+      });
+      for (const method of [
+        "none",
+        "client_secret_post",
+        "client_secret_basic",
+      ]) {
+        const result = await create(
+          `${marker}-trusted-brand`,
+          "https://life.ustc.edu.cn/callback",
+          method,
+        );
+        if (!("createdClientId" in result))
+          throw new Error("Expected an administrator-created OAuth client");
+        const clientId = result.createdClientId;
+        const stored = await db.oAuthClient.findUniqueOrThrow({
+          where: { clientId },
+        });
+        expect(stored.skipConsent).toBe(method === "client_secret_basic");
+        expect(await db.oAuthConsent.count()).toBe(0);
+        const accessToken = await token(clientId);
+        const response = await bearer("/api/workspace/todos", accessToken);
+        if (method !== "client_secret_basic") {
+          expect(response.status).toBe(401);
+          expect(response.body).not.toContain(owned.id);
+          await db.oAuthClient.update({
+            where: { clientId },
+            data: {
+              clientDiscoveryId: "cimd",
+              metadata: {
+                source: "admin_panel_svelte",
+                trusted: true,
+                issuer: origin,
+              },
+            },
+          });
+          const spoofed = await bearer("/api/workspace/todos", accessToken);
+          expect(spoofed.status).toBe(401);
+          expect(spoofed.body).not.toContain(owned.id);
+          continue;
+        }
+        expect(response.status).toBe(200);
+        expect(response.body).toContain(owned.id);
+        expect(response.body).not.toContain(foreign.id);
+        expect((await bearer("/api/admin/users", accessToken)).status).toBe(
+          401,
+        );
+        expect(
+          await db.user.findUniqueOrThrow({ where: { id: userId } }),
+        ).toMatchObject({ isAdmin: false });
         await db.oAuthClient.update({
           where: { clientId },
-          data: {
-            clientDiscoveryId: "cimd",
-            metadata: {
-              source: "admin_panel_svelte",
-              trusted: true,
-              issuer: origin,
-            },
-          },
+          data: { skipConsent: false },
         });
-        const spoofed = await bearer("/api/workspace/todos", accessToken);
-        expect(spoofed.status).toBe(401);
-        expect(spoofed.body).not.toContain(owned.id);
-        continue;
+        const revoked = await bearer("/api/workspace/todos", accessToken);
+        expect(revoked.status).toBe(401);
+        expect(revoked.body).not.toContain(owned.id);
       }
-      expect(response.status).toBe(200);
-      expect(response.body).toContain(owned.id);
-      expect(response.body).not.toContain(foreign.id);
-      expect((await bearer("/api/admin/users", accessToken)).status).toBe(401);
-      expect(
-        await db.user.findUniqueOrThrow({ where: { id: userId } }),
-      ).toMatchObject({ isAdmin: false });
-      await db.oAuthClient.update({
-        where: { clientId },
-        data: { skipConsent: false },
+      expect(await db.oAuthConsent.count()).toBe(0);
+      expect(await db.jwks.count()).toBe(1);
+    }),
+);
+
+test(
+  "audit.action-admin-oauth-client-create",
+  { tag: "@OAuth/REST" },
+  async ({ state, run }) =>
+    run(async () => {
+      const { db, marker, adminId, create } = state;
+      const name = `private-client-name-${marker}`;
+      const redirect = `https://private-client.example/${marker}`;
+      const result = await create(name, redirect, "client_secret_basic");
+      if (!("createdClientId" in result))
+        throw new Error("Expected an administrator-created OAuth client");
+      expect(typeof result.createdClientSecret).toBe("string");
+      const stored = await db.oAuthClient.findUniqueOrThrow({
+        where: { clientId: result.createdClientId },
       });
-      const revoked = await bearer("/api/workspace/todos", accessToken);
-      expect(revoked.status).toBe(401);
-      expect(revoked.body).not.toContain(owned.id);
-    }
-    expect(await db.oAuthConsent.count()).toBe(0);
-    expect(await db.jwks.count()).toBe(1);
-  }));
-
-test("audit.action-admin-oauth-client-create", async ({ state, run }) =>
-  run(async () => {
-    const { db, marker, adminId, create } = state;
-    const name = `private-client-name-${marker}`;
-    const redirect = `https://private-client.example/${marker}`;
-    const result = await create(name, redirect, "client_secret_basic");
-    if (!("createdClientId" in result))
-      throw new Error("Expected an administrator-created OAuth client");
-    expect(typeof result.createdClientSecret).toBe("string");
-    const stored = await db.oAuthClient.findUniqueOrThrow({
-      where: { clientId: result.createdClientId },
-    });
-    expect(stored.redirectUris).toEqual([redirect]);
-    const events = await db.auditLog.findMany({
-      where: {
-        action: "admin_oauth_client_create",
+      expect(stored.redirectUris).toEqual([redirect]);
+      const events = await db.auditLog.findMany({
+        where: {
+          action: "admin_oauth_client_create",
+          targetId: result.createdClientId,
+        },
+      });
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        userId: adminId,
         targetId: result.createdClientId,
-      },
-    });
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-      userId: adminId,
-      targetId: result.createdClientId,
-      targetType: "oauth_client",
-      channel: "web",
-      outcome: "success",
-      metadata: {
-        changedFields: [
-          "redirectUris",
-          "scopes",
-          "tokenEndpointAuthMethod",
-          "trusted",
-        ],
-      },
-    });
-    for (const privateValue of [name, redirect, result.createdClientSecret])
-      if (privateValue)
-        expect(JSON.stringify(events)).not.toContain(privateValue);
-  }));
+        targetType: "oauth_client",
+        channel: "web",
+        outcome: "success",
+        metadata: {
+          changedFields: [
+            "redirectUris",
+            "scopes",
+            "tokenEndpointAuthMethod",
+            "trusted",
+          ],
+        },
+      });
+      for (const privateValue of [name, redirect, result.createdClientSecret])
+        if (privateValue)
+          expect(JSON.stringify(events)).not.toContain(privateValue);
+    }),
+);
 
-test("audit.action-admin-oauth-client-delete", async ({ state, run }) =>
-  run(async () => {
-    const { db, marker, adminId, create, remove } = state;
-    const created = await create(
-      `delete-${marker}`,
-      "https://private-client.example/deleted",
-      "client_secret_basic",
-    );
-    if (!("createdClientId" in created))
-      throw new Error("Expected an administrator-created OAuth client");
-    expect(await remove(created.createdClientId)).toMatchObject({
-      variant: "default",
-    });
-    expect(
-      await db.oAuthClient.findUnique({
-        where: { clientId: created.createdClientId },
-      }),
-    ).toBeNull();
-    const rows = await db.auditLog.findMany({
-      where: {
-        action: "admin_oauth_client_delete",
-        targetId: created.createdClientId,
-      },
-    });
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      userId: adminId,
-      channel: "web",
-      targetType: "oauth_client",
-      metadata: null,
-      outcome: "success",
-    });
-    expect(await remove(created.createdClientId)).toMatchObject({
-      status: 404,
-    });
-    expect(
-      await db.auditLog.findMany({
+test(
+  "audit.action-admin-oauth-client-delete",
+  { tag: "@OAuth/REST" },
+  async ({ state, run }) =>
+    run(async () => {
+      const { db, marker, adminId, create, remove } = state;
+      const created = await create(
+        `delete-${marker}`,
+        "https://private-client.example/deleted",
+        "client_secret_basic",
+      );
+      if (!("createdClientId" in created))
+        throw new Error("Expected an administrator-created OAuth client");
+      expect(await remove(created.createdClientId)).toMatchObject({
+        variant: "default",
+      });
+      expect(
+        await db.oAuthClient.findUnique({
+          where: { clientId: created.createdClientId },
+        }),
+      ).toBeNull();
+      const rows = await db.auditLog.findMany({
         where: {
           action: "admin_oauth_client_delete",
           targetId: created.createdClientId,
         },
-      }),
-    ).toEqual(rows);
-    if (created.createdClientSecret)
-      expect(JSON.stringify(rows)).not.toContain(created.createdClientSecret);
-  }));
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        userId: adminId,
+        channel: "web",
+        targetType: "oauth_client",
+        metadata: null,
+        outcome: "success",
+      });
+      expect(await remove(created.createdClientId)).toMatchObject({
+        status: 404,
+      });
+      expect(
+        await db.auditLog.findMany({
+          where: {
+            action: "admin_oauth_client_delete",
+            targetId: created.createdClientId,
+          },
+        }),
+      ).toEqual(rows);
+      if (created.createdClientSecret)
+        expect(JSON.stringify(rows)).not.toContain(created.createdClientSecret);
+    }),
+);

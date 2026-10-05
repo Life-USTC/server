@@ -175,10 +175,9 @@ function selected(state: Awaited<ReturnType<typeof snapshot>>, target: Target) {
 for (const transport of transports)
   for (const target of ["event", "organizer"] as const) {
     for (const subscribed of [true, false]) {
-      test(`young ${target} ${subscribed ? "subscribe" : "unsubscribe"} preserves foreign state through ${transport}`, async ({
-        run,
-        h,
-      }) => {
+      test(`young ${target} ${subscribed ? "subscribe" : "unsubscribe"} preserves foreign state through ${transport}`, {
+        tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ run, h }) => {
         await run(async () => {
           const actor = h.actors[subscribed ? 0 : 1];
           await seedSubscriptions(h, "event");
@@ -235,10 +234,9 @@ for (const transport of transports)
         });
       });
     }
-    test(`young ${target} authorization rejection preserves state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`young ${target} authorization rejection preserves state through ${transport}`, {
+      tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await seedSubscriptions(h, target);
         await notice(h, h.actors[0].id, target);
@@ -260,10 +258,9 @@ for (const transport of transports)
         }
       });
     });
-    test(`young ${target} missing target preserves state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`young ${target} missing target preserves state through ${transport}`, {
+      tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await seedSubscriptions(h, target);
         await notice(h, h.actors[0].id, target);
@@ -281,10 +278,9 @@ for (const transport of transports)
       });
     });
     for (const subscribed of [false, true]) {
-      test(`young ${target} ${subscribed ? "subscribe" : "unsubscribe"} remains personal during suspension through ${transport}`, async ({
-        run,
-        h,
-      }) => {
+      test(`young ${target} ${subscribed ? "subscribe" : "unsubscribe"} remains personal during suspension through ${transport}`, {
+        tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ run, h }) => {
         await run(async () => {
           await seedSubscriptions(h, target);
           if (subscribed) {
@@ -343,10 +339,9 @@ for (const transport of transports)
       });
     }
     for (const repeat of [false, true]) {
-      test(`young ${target} ${repeat ? "repeat unsubscribe" : "unsubscribe"} removes only own unread notices through ${transport}`, async ({
-        run,
-        h,
-      }) => {
+      test(`young ${target} ${repeat ? "repeat unsubscribe" : "unsubscribe"} removes only own unread notices through ${transport}`, {
+        tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ run, h }) => {
         await run(async () => {
           await seedSubscriptions(h, target);
           if (repeat) {
@@ -395,10 +390,9 @@ for (const transport of transports)
     }
   }
 for (const transport of transports) {
-  test(`young notification rejects foreign and missing identifiers through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`young notification rejects foreign and missing identifiers through ${transport}`, {
+    tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const owned = await notice(h, h.actors[0].id, "event");
       await notice(h, h.actors[1].id, "event");
@@ -415,10 +409,9 @@ for (const transport of transports) {
       }
     });
   });
-  test(`young notification authorization rejection preserves state through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`young notification authorization rejection preserves state through ${transport}`, {
+    tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const owned = await notice(h, h.actors[0].id, "event");
       await notice(h, h.actors[1].id, "event");
@@ -441,10 +434,9 @@ for (const transport of transports) {
     });
   });
   for (const alreadyRead of [false, true]) {
-    test(`young notification ${alreadyRead ? "repeat read" : "read"} preserves foreign state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`young notification ${alreadyRead ? "repeat read" : "read"} preserves foreign state through ${transport}`, {
+      tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         const actor = h.actors[alreadyRead ? 1 : 0];
         const owned = await notice(h, actor.id, "event", alreadyRead);
@@ -472,10 +464,9 @@ for (const transport of transports) {
       });
     });
   }
-  test(`young notification remains personal during suspension through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`young notification remains personal during suspension through ${transport}`, {
+    tag: `@Young/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const owned = await notice(h, h.actors[0].id, "event");
       await notice(h, h.actors[1].id, "event");

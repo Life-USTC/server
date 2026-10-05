@@ -54,10 +54,9 @@ const queued = (sectionId: number) => ({
 for (const transport of transports) {
   for (const actorIndex of [0, 1])
     for (const action of ["create", "update"] as const) {
-      test(`homework ${action} by editor ${actorIndex} through ${transport}`, async ({
-        h,
-        community: c,
-      }) => {
+      test(`homework ${action} by editor ${actorIndex} through ${transport}`, {
+        tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ h, community: c }) => {
         await c.run(async () => {
           const original = await prepare(h);
           const actor = h.actors[actorIndex];
@@ -99,10 +98,9 @@ for (const transport of transports) {
       });
     }
   for (const reason of ["deleted", "missing", "wrong-section"] as const)
-    test(`homework ${reason} rejected through ${transport}`, async ({
-      h,
-      community: c,
-    }) => {
+    test(`homework ${reason} rejected through ${transport}`, {
+      tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ h, community: c }) => {
       await c.run(async () => {
         const original = await prepare(h);
         if (reason === "deleted")
@@ -132,10 +130,9 @@ for (const transport of transports) {
     });
   for (const reason of ["anonymous", "read_scope", "suspended"] as const)
     for (const action of ["create", "update"] as const) {
-      test(`homework ${action} ${reason} rejected through ${transport}`, async ({
-        h,
-        community: c,
-      }) => {
+      test(`homework ${action} ${reason} rejected through ${transport}`, {
+        tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ h, community: c }) => {
         await c.run(async () => {
           const original = await prepare(h);
           const actor = h.actors[1];
@@ -167,10 +164,9 @@ for (const transport of transports) {
 }
 for (const transport of ["rest", "graphql"] as const)
   for (const suspended of [false, true]) {
-    test(`homework cookie collaborative edit suspended=${suspended} through ${transport}`, async ({
-      h,
-      community: c,
-    }) => {
+    test(`homework cookie collaborative edit suspended=${suspended} through ${transport}`, {
+      tag: `@Homework/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ h, community: c }) => {
       await c.run(async () => {
         const original = await prepare(h);
         const actor = h.actors[1];

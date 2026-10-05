@@ -2,10 +2,9 @@ import { expect } from "@playwright/test";
 import { base, test } from "./_fixture";
 
 for (const method of ["get", "post"] as const) {
-  test(`anonymous upload ${method} returns JSON 401`, async ({
-    run,
-    request,
-  }) => {
+  test(`anonymous upload ${method} returns JSON 401`, {
+    tag: "@Upload/REST",
+  }, async ({ run, request }) => {
     await run(async () => {
       const response = await request[method](
         base,
@@ -25,10 +24,9 @@ for (const method of ["get", "post"] as const) {
   });
 }
 
-test("known uploads expose quota and stable owner-only pagination", async ({
-  run,
-  uploadState,
-}) => {
+test("known uploads expose quota and stable owner-only pagination", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { owner, other, knownUpload } = uploadState;
     const rows = [];
@@ -74,10 +72,9 @@ test("known uploads expose quota and stable owner-only pagination", async ({
   });
 });
 
-test("listing counts active reservations and ignores expired ones without mutating either", async ({
-  run,
-  uploadState,
-}) => {
+test("listing counts active reservations and ignores expired ones without mutating either", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, knownUpload, pending } = uploadState;
     await knownUpload({ contents: "hello" });
@@ -99,10 +96,9 @@ test("listing counts active reservations and ignores expired ones without mutati
   });
 });
 
-test("initialization reserves only the owner's quota and returns an on-site object URL", async ({
-  run,
-  uploadState,
-}) => {
+test("initialization reserves only the owner's quota and returns an on-site object URL", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, other, knownUpload, bucket } = uploadState;
     await knownUpload({ contents: "hi" });
@@ -144,10 +140,9 @@ test("initialization reserves only the owner's quota and returns an on-site obje
   });
 });
 
-test("oversized initialization returns 413 without reserving quota", async ({
-  run,
-  uploadState,
-}) => {
+test("oversized initialization returns 413 without reserving quota", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, pending } = uploadState;
     await pending();
@@ -169,10 +164,9 @@ test("oversized initialization returns 413 without reserving quota", async ({
   });
 });
 
-test("complete upload journey connects reservation, R2 bytes, final metadata and download", async ({
-  run,
-  uploadState,
-}) => {
+test("complete upload journey connects reservation, R2 bytes, final metadata and download", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
   await run(async () => {
     const { db, owner, bucket } = uploadState;
     const contents = "hello upload API";

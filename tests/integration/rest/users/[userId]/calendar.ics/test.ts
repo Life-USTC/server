@@ -6,16 +6,17 @@ import {
 
 const path = (id: string) => `/api/calendar-feeds/${id}.ics`;
 
-test("anonymous access without a feed token returns 401", async ({
-  run,
-  request,
-}) => {
+test("anonymous access without a feed token returns 401", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request }) => {
   await run(async () => {
     expect((await request.get(path(crypto.randomUUID()))).status()).toBe(401);
   });
 });
 
-test("unknown user with a feed token returns 404", async ({ run, request }) => {
+test("unknown user with a feed token returns 404", {
+  tag: "@Calendar/ICS",
+}, async ({ run, request }) => {
   await run(async () => {
     expect(
       (
@@ -25,10 +26,9 @@ test("unknown user with a feed token returns 404", async ({ run, request }) => {
   });
 });
 
-test("a session cannot read another existing user's calendar", async ({
-  run,
-  createActor,
-}) => {
+test("a session cannot read another existing user's calendar", {
+  tag: "@Calendar/ICS",
+}, async ({ run, createActor }) => {
   await run(async () => {
     const owner = await createActor();
     const other = await createActor();
@@ -37,11 +37,9 @@ test("a session cannot read another existing user's calendar", async ({
 });
 
 for (const mode of ["session", "path token", "query token"] as const) {
-  test(`${mode} consumes known calendar state and excludes completed, deleted and foreign items`, async ({
-    run,
-    request,
-    calendarState,
-  }) => {
+  test(`${mode} consumes known calendar state and excludes completed, deleted and foreign items`, {
+    tag: "@Calendar/ICS",
+  }, async ({ run, request, calendarState }) => {
     await run(async () => {
       const { db, owner, other, section, scheduleGroupId } = calendarState;
       const token = crypto.randomUUID();
@@ -162,12 +160,9 @@ for (const mode of ["session", "path token", "query token"] as const) {
   });
 }
 
-test("invalid or revoked token returns private 410 even with the owner's session", async ({
-  run,
-  isolatedWorker,
-  request,
-  createActor,
-}) => {
+test("invalid or revoked token returns private 410 even with the owner's session", {
+  tag: "@Calendar/ICS",
+}, async ({ run, isolatedWorker, request, createActor }) => {
   await run(async () => {
     const owner = await createActor();
     const db = isolatedWorker.database.owner;
@@ -186,12 +181,9 @@ test("invalid or revoked token returns private 410 even with the owner's session
   });
 });
 
-test("valid anonymous token returns an empty VCALENDAR for a new user", async ({
-  run,
-  isolatedWorker,
-  request,
-  createActor,
-}) => {
+test("valid anonymous token returns an empty VCALENDAR for a new user", {
+  tag: "@Calendar/ICS",
+}, async ({ run, isolatedWorker, request, createActor }) => {
   await run(async () => {
     const owner = await createActor();
     const token = crypto.randomUUID();

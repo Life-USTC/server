@@ -57,10 +57,9 @@ function rows(h: ProtocolFixture) {
 for (const transport of transports) {
   for (const kind of ["regular", "auditor", "teaching_assistant"] as const) {
     for (const operation of ["change", "repeat"] as const) {
-      test(`subscription kind ${kind} ${operation} updates only its owner through ${transport}`, async ({
-        run,
-        h,
-      }) => {
+      test(`subscription kind ${kind} ${operation} updates only its owner through ${transport}`, {
+        tag: `@Subscription/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ run, h }) => {
         await run(async () => {
           const initialKind =
             operation === "repeat"
@@ -96,10 +95,9 @@ for (const transport of transports) {
       });
     }
   }
-  test(`subscription kind rejects another owner membership through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`subscription kind rejects another owner membership through ${transport}`, {
+    tag: `@Subscription/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       await h.db.userSectionSubscription.create({
         data: { userId: h.actors[0].id, sectionId: h.section.id },
@@ -117,10 +115,9 @@ for (const transport of transports) {
       expect(await rows(h)).toEqual(before);
     });
   });
-  test(`subscription kind rejects an internal section ID through ${transport}`, async ({
-    run,
-    h,
-  }) => {
+  test(`subscription kind rejects an internal section ID through ${transport}`, {
+    tag: `@Subscription/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       await h.db.userSectionSubscription.create({
         data: { userId: h.actors[0].id, sectionId: h.section.id },
@@ -139,10 +136,9 @@ for (const transport of transports) {
     });
   });
   for (const reason of ["anonymous", "read_scope"] as const) {
-    test(`subscription kind ${reason} rejection preserves state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`subscription kind ${reason} rejection preserves state through ${transport}`, {
+      tag: `@Subscription/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await h.db.userSectionSubscription.createMany({
           data: h.actors.map((a) => ({
@@ -168,10 +164,9 @@ for (const transport of transports) {
     });
   }
   for (const kind of ["regular", "auditor"] as const) {
-    test(`subscription kind ${kind} remains personal during suspension through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`subscription kind ${kind} remains personal during suspension through ${transport}`, {
+      tag: `@Subscription/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await h.db.$transaction([
           h.db.userSectionSubscription.createMany({

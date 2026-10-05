@@ -1,11 +1,9 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../_shared/public-academic-fixture";
 
-test("/api/catalog/sections/[jwId]/schedule-groups 契约", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedule-groups 契约", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${academic.section.jwId}/schedule-groups`,
@@ -17,11 +15,9 @@ test("/api/catalog/sections/[jwId]/schedule-groups 契约", async ({
   });
 });
 
-test("/api/catalog/sections/[jwId]/schedule-groups 返回默认组及课表", async ({
-  run,
-  request,
-  academic,
-}) => {
+test("/api/catalog/sections/[jwId]/schedule-groups 返回默认组及课表", {
+  tag: "@Catalog/REST",
+}, async ({ run, request, academic }) => {
   await run(async () => {
     const response = await request.get(
       `/api/catalog/sections/${academic.section.jwId}/schedule-groups`,

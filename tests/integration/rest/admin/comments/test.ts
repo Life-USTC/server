@@ -15,20 +15,26 @@ import { assertApiContract } from "../../_shared/api-contract";
 import { base as BASE, test } from "./_fixture";
 
 test.describe("GET /api/admin/comments 评论列表", () => {
-  test("API 契约", async ({ run, request }) => {
+  test("API 契约", { tag: "@Comment/REST" }, async ({ run, request }) => {
     await run(async () => {
       await assertApiContract(request, { routePath: BASE });
     });
   });
 
-  test("未认证请求返回 401", async ({ run, request }) => {
+  test("未认证请求返回 401", { tag: "@Comment/REST" }, async ({
+    run,
+    request,
+  }) => {
     await run(async () => {
       const response = await request.get(BASE);
       expect(response.status()).toBe(401);
     });
   });
 
-  test("非管理员认证用户返回 401", async ({ run, commentState }) => {
+  test("非管理员认证用户返回 401", { tag: "@Comment/REST" }, async ({
+    run,
+    commentState,
+  }) => {
     await run(async () => {
       const { owner, db } = commentState;
       const response = await owner.request.get(BASE);
@@ -37,10 +43,9 @@ test.describe("GET /api/admin/comments 评论列表", () => {
     });
   });
 
-  test("管理员可按 status=softbanned 筛选评论", async ({
-    run,
-    commentState,
-  }) => {
+  test("管理员可按 status=softbanned 筛选评论", {
+    tag: "@Comment/REST",
+  }, async ({ run, commentState }) => {
     await run(async () => {
       const { admin, softbanned } = commentState;
       const response = await admin.request.get(`${BASE}?status=softbanned`);
@@ -58,7 +63,10 @@ test.describe("GET /api/admin/comments 评论列表", () => {
     });
   });
 
-  test("管理员可无状态筛选列出活跃评论", async ({ run, commentState }) => {
+  test("管理员可无状态筛选列出活跃评论", { tag: "@Comment/REST" }, async ({
+    run,
+    commentState,
+  }) => {
     await run(async () => {
       const { admin, owner, db, recent, older } = commentState;
       const response = await admin.request.get(`${BASE}?pageSize=5`);
@@ -90,10 +98,9 @@ test.describe("GET /api/admin/comments 评论列表", () => {
     });
   });
 
-  test("管理员可翻到第二页且不会重复第一条评论", async ({
-    run,
-    commentState,
-  }) => {
+  test("管理员可翻到第二页且不会重复第一条评论", {
+    tag: "@Comment/REST",
+  }, async ({ run, commentState }) => {
     await run(async () => {
       const { admin, recent, older } = commentState;
       const firstResponse = await admin.request.get(

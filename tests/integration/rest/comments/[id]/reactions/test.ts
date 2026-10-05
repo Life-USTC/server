@@ -6,10 +6,9 @@ test.describe.configure({ mode: "parallel" });
 // comment.interaction-gate, comment.locked-action-projection and
 // comment.reaction-removal-noop are maintained manually in
 // docs/features/comment.yaml. All requests use the real Worker.
-test("/api/community/comments/[id]/reactions 接口契约", async ({
-  run,
-  request,
-}) => {
+test("/api/community/comments/[id]/reactions 接口契约", {
+  tag: "@Comment/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     const response = await request.get(
       "/api/community/comments/invalid-e2e/reactions",
@@ -19,10 +18,9 @@ test("/api/community/comments/[id]/reactions 接口契约", async ({
 });
 
 for (const method of ["POST", "DELETE"] as const) {
-  test(`/api/community/comments/[id]/reactions ${method} 未登录返回 401`, async ({
-    run,
-    commentState: { anonymous, db, owner, comment },
-  }) => {
+  test(`/api/community/comments/[id]/reactions ${method} 未登录返回 401`, {
+    tag: "@Comment/REST",
+  }, async ({ run, commentState: { anonymous, db, owner, comment } }) => {
     await run(async () => {
       const prepared = await comment();
       for (const commentId of [prepared.id, crypto.randomUUID()]) {
@@ -45,10 +43,9 @@ for (const method of ["POST", "DELETE"] as const) {
   });
 }
 
-test("/api/community/comments/[id]/reactions concurrent duplicates persist one reaction and audit", async ({
-  run,
-  commentState: { owner, db, comment },
-}) => {
+test("/api/community/comments/[id]/reactions concurrent duplicates persist one reaction and audit", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState: { owner, db, comment } }) => {
   await run(async () => {
     const request = owner.request;
     const prepared = await comment();
@@ -83,10 +80,9 @@ test("/api/community/comments/[id]/reactions concurrent duplicates persist one r
   });
 });
 
-test("/api/community/comments/[id]/reactions DELETE removes only the seeded own reaction", async ({
-  run,
-  commentState: { owner, other, db, comment },
-}) => {
+test("/api/community/comments/[id]/reactions DELETE removes only the seeded own reaction", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState: { owner, other, db, comment } }) => {
   await run(async () => {
     const prepared = await comment({
       reactions: {
@@ -129,10 +125,9 @@ test("/api/community/comments/[id]/reactions DELETE removes only the seeded own 
   });
 });
 
-test("/api/community/comments/[id]/reactions seeded thread exposes count and viewer state", async ({
-  run,
-  commentState: { owner, db, comment },
-}) => {
+test("/api/community/comments/[id]/reactions seeded thread exposes count and viewer state", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState: { owner, db, comment } }) => {
   await run(async () => {
     const prepared = await comment({
       reactions: { create: { userId: owner.id, type: "rocket" } },
@@ -161,10 +156,9 @@ test("/api/community/comments/[id]/reactions seeded thread exposes count and vie
   });
 });
 
-test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404", async ({
-  run,
-  commentState: { owner, db },
-}) => {
+test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState: { owner, db } }) => {
   await run(async () => {
     const commentId = crypto.randomUUID();
     const response = await owner.request.post(
@@ -185,10 +179,9 @@ test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404",
 
 for (const status of ["deleted", "softbanned"] as const) {
   for (const method of ["POST", "DELETE"] as const) {
-    test(`/api/community/comments/[id]/reactions ${method} 对失效评论返回 403 (${status})`, async ({
-      run,
-      commentState: { owner, db, comment },
-    }) => {
+    test(`/api/community/comments/[id]/reactions ${method} 对失效评论返回 403 (${status})`, {
+      tag: "@Comment/REST",
+    }, async ({ run, commentState: { owner, db, comment } }) => {
       await run(async () => {
         const prepared = await comment({
           status,
@@ -228,10 +221,9 @@ for (const status of ["deleted", "softbanned"] as const) {
   }
 }
 
-test("/api/community/comments/[id]/reactions suspended actor cannot add or remove reactions", async ({
-  run,
-  commentState: { owner, other, db, comment },
-}) => {
+test("/api/community/comments/[id]/reactions suspended actor cannot add or remove reactions", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState: { owner, other, db, comment } }) => {
   await run(async () => {
     const prepared = await comment();
     await db.commentReaction.create({
@@ -268,10 +260,9 @@ test("/api/community/comments/[id]/reactions suspended actor cannot add or remov
   });
 });
 
-test("/api/community/comments/[id]/reactions DELETE missing comment succeeds without effects", async ({
-  run,
-  commentState: { owner, db },
-}) => {
+test("/api/community/comments/[id]/reactions DELETE missing comment succeeds without effects", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState: { owner, db } }) => {
   await run(async () => {
     const commentId = crypto.randomUUID();
     const response = await owner.request.delete(
@@ -289,10 +280,9 @@ test("/api/community/comments/[id]/reactions DELETE missing comment succeeds wit
   });
 });
 
-test("/api/community/comments/[id]/reactions DELETE absent own reaction is idempotent and preserves another actor", async ({
-  run,
-  commentState: { owner, other, db, comment },
-}) => {
+test("/api/community/comments/[id]/reactions DELETE absent own reaction is idempotent and preserves another actor", {
+  tag: "@Comment/REST",
+}, async ({ run, commentState: { owner, other, db, comment } }) => {
   await run(async () => {
     const prepared = await comment();
     await db.commentReaction.create({

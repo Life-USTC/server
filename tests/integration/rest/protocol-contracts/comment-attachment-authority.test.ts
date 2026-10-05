@@ -7,10 +7,9 @@ test.use({ features: ["community.comment"] });
 for (const transport of transports)
   for (const authorIndex of [0, 1]) {
     for (const action of ["create", "retain", "replace", "detach"] as const) {
-      test(`comment attachment ${action} by author ${authorIndex} through ${transport}`, async ({
-        h,
-        community: c,
-      }) => {
+      test(`comment attachment ${action} by author ${authorIndex} through ${transport}`, {
+        tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+      }, async ({ h, community: c }) => {
         await c.run(async () => {
           const actor = h.actors[authorIndex];
           const other = h.actors[1 - authorIndex];
@@ -106,10 +105,9 @@ for (const transport of transports)
     }
     for (const action of ["create", "update"] as const)
       for (const invalid of ["foreign", "occupied", "missing"] as const) {
-        test(`comment attachment ${invalid} ${action} by author ${authorIndex} rejected through ${transport}`, async ({
-          h,
-          community: c,
-        }) => {
+        test(`comment attachment ${invalid} ${action} by author ${authorIndex} rejected through ${transport}`, {
+          tag: `@Comment/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+        }, async ({ h, community: c }) => {
           await c.run(async () => {
             const actor = h.actors[authorIndex];
             const own = await c.upload(actor),

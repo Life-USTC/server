@@ -210,10 +210,9 @@ for (const transport of transports) {
     ["suspended enable", false, true, 0, true],
     ["suspended disable", true, false, 0, true],
   ] as const) {
-    test(`bus preferences ${operation} preserves ownership through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`bus preferences ${operation} preserves ownership through ${transport}`, {
+      tag: `@Bus/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         const actor = h.actors[actorIndex];
         await seedBusPreferences(h, actor, initial, suspended);
@@ -250,10 +249,9 @@ for (const transport of transports) {
   }
 
   for (const outcome of ["anonymous", "read_scope"] as const) {
-    test(`bus preferences ${outcome} rejection preserves state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`bus preferences ${outcome} rejection preserves state through ${transport}`, {
+      tag: `@Bus/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await seedBusPreferences(h, h.actors[0], false);
         const before = await busSnapshot(h);
@@ -273,10 +271,9 @@ for (const transport of transports) {
     ["origin", 2147483647, null],
     ["destination", null, 2147483647],
   ] as const) {
-    test(`bus preferences invalid ${field} preserves state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`bus preferences invalid ${field} preserves state through ${transport}`, {
+      tag: `@Bus/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await seedBusPreferences(h, h.actors[0], false);
         const before = await busSnapshot(h);
@@ -302,10 +299,9 @@ for (const transport of transports) {
     ["suspended pin", false, true, 0, true],
     ["suspended unpin", true, false, 0, true],
   ] as const) {
-    test(`link pins ${operation} preserves ownership through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`link pins ${operation} preserves ownership through ${transport}`, {
+      tag: `@CatalogLink/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         const actor = h.actors[actorIndex];
         await seedLinkPins(h, actor, initial, suspended);
@@ -352,10 +348,9 @@ for (const transport of transports) {
   }
 
   for (const outcome of ["anonymous", "read_scope"] as const) {
-    test(`link pins ${outcome} rejection preserves state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`link pins ${outcome} rejection preserves state through ${transport}`, {
+      tag: `@CatalogLink/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await seedLinkPins(h, h.actors[0], false);
         const before = await pinSnapshot(h);
@@ -366,10 +361,9 @@ for (const transport of transports) {
   }
 
   for (const pinned of [true, false]) {
-    test(`link pins invalid ${pinned ? "pin" : "unpin"} preserves state through ${transport}`, async ({
-      run,
-      h,
-    }) => {
+    test(`link pins invalid ${pinned ? "pin" : "unpin"} preserves state through ${transport}`, {
+      tag: `@CatalogLink/${transport === "graphql" ? "GraphQL" : transport.toUpperCase()}`,
+    }, async ({ run, h }) => {
       await run(async () => {
         await seedLinkPins(h, h.actors[0], false);
         const before = await pinSnapshot(h);

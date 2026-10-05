@@ -9,11 +9,9 @@ import {
 
 test.describe.configure({ mode: "parallel" });
 
-test("/api/community/descriptions 接口契约", async ({
-  run,
-  request,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions 接口契约", {
+  tag: "@Description/REST",
+}, async ({ run, request, descriptionState: state }) => {
   await run(async () => {
     const response = await request.get(
       `${base}?targetType=section&targetId=${state.section.id}`,
@@ -32,11 +30,9 @@ test("/api/community/descriptions 接口契约", async ({
   });
 });
 
-test("/api/community/descriptions GET 返回已准备的描述内容", async ({
-  run,
-  request,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions GET 返回已准备的描述内容", {
+  tag: "@Description/REST",
+}, async ({ run, request, descriptionState: state }) => {
   await run(async () => {
     const response = await request.get(
       `${base}?targetType=section&targetId=${state.section.id}`,
@@ -55,11 +51,9 @@ test("/api/community/descriptions GET 返回已准备的描述内容", async ({
   });
 });
 
-test("/api/community/descriptions GET 接受公开 section JW id", async ({
-  run,
-  request,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions GET 接受公开 section JW id", {
+  tag: "@Description/REST",
+}, async ({ run, request, descriptionState: state }) => {
   await run(async () => {
     const response = await request.get(
       `${base}?targetType=section&sectionJwId=${state.section.jwId}`,
@@ -77,10 +71,9 @@ test("/api/community/descriptions GET 接受公开 section JW id", async ({
   });
 });
 
-test("/api/community/descriptions GET 无效 targetType 返回 400", async ({
-  run,
-  request,
-}) => {
+test("/api/community/descriptions GET 无效 targetType 返回 400", {
+  tag: "@Description/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     expect(
       (await request.get(`${base}?targetType=invalid&targetId=1`)).status(),
@@ -88,10 +81,9 @@ test("/api/community/descriptions GET 无效 targetType 返回 400", async ({
   });
 });
 
-test("/api/community/descriptions GET 缺少 targetId 返回 400", async ({
-  run,
-  request,
-}) => {
+test("/api/community/descriptions GET 缺少 targetId 返回 400", {
+  tag: "@Description/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     expect((await request.get(`${base}?targetType=section`)).status()).toBe(
       400,
@@ -99,11 +91,9 @@ test("/api/community/descriptions GET 缺少 targetId 返回 400", async ({
   });
 });
 
-test("/api/community/descriptions GET 不存在的 target 返回 404", async ({
-  run,
-  request,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions GET 不存在的 target 返回 404", {
+  tag: "@Description/REST",
+}, async ({ run, request, descriptionState: state }) => {
   await run(async () => {
     await state.db.section.delete({ where: { id: state.section.id } });
     expect(
@@ -116,11 +106,9 @@ test("/api/community/descriptions GET 不存在的 target 返回 404", async ({
   });
 });
 
-test("/api/community/descriptions POST 未登录返回 401", async ({
-  run,
-  request,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions POST 未登录返回 401", {
+  tag: "@Description/REST",
+}, async ({ run, request, descriptionState: state }) => {
   await run(async () => {
     const before = await storedDescription(state);
     const response = await request.post(base, {
@@ -135,10 +123,9 @@ test("/api/community/descriptions POST 未登录返回 401", async ({
   });
 });
 
-test("/api/community/descriptions POST 登录后更新描述且重复提交无副作用", async ({
-  run,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions POST 登录后更新描述且重复提交无副作用", {
+  tag: "@Description/REST",
+}, async ({ run, descriptionState: state }) => {
   await run(async () => {
     const { request } = state.owner;
     const original = await request.get(
@@ -196,10 +183,9 @@ test("/api/community/descriptions POST 登录后更新描述且重复提交无�
   });
 });
 
-test("/api/community/descriptions POST 接受公开 section JW id", async ({
-  run,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions POST 接受公开 section JW id", {
+  tag: "@Description/REST",
+}, async ({ run, descriptionState: state }) => {
   await run(async () => {
     const { request } = state.owner;
     const path = `${base}?targetType=section&sectionJwId=${state.section.jwId}`;
@@ -242,10 +228,9 @@ test("/api/community/descriptions POST 接受公开 section JW id", async ({
   });
 });
 
-test("/api/community/descriptions POST 不存在的 target 返回 404", async ({
-  run,
-  descriptionState: state,
-}) => {
+test("/api/community/descriptions POST 不存在的 target 返回 404", {
+  tag: "@Description/REST",
+}, async ({ run, descriptionState: state }) => {
   await run(async () => {
     await state.db.section.delete({ where: { id: state.section.id } });
     const response = await state.owner.request.post(base, {

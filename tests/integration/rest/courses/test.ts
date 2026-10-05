@@ -27,13 +27,13 @@ import { assertApiContract } from "../_shared/api-contract";
 import { test } from "../_shared/catalog-reader-fixture";
 
 test.describe("GET /api/catalog/courses 接口", () => {
-  test("接口契约", async ({ run, request }) => {
+  test("接口契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, { routePath: "/api/catalog/courses" });
     });
   });
 
-  test("详情接口契约", async ({ run, request }) => {
+  test("详情接口契约", { tag: "@Catalog/REST" }, async ({ run, request }) => {
     return run(async () => {
       await assertApiContract(request, {
         routePath: "/api/catalog/courses/[jwId]",
@@ -41,7 +41,10 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("返回分页响应结构", async ({ run, request }) => {
+  test("返回分页响应结构", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/courses");
       expect(response.status()).toBe(200);
@@ -64,10 +67,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", async ({
-    run,
-    request,
-  }) => {
+  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", {
+    tag: "@Catalog/REST",
+  }, async ({ run, request }) => {
     return run(async () => {
       const explicit = await request.get(
         "/api/catalog/courses?locale=en-us&pageSize=1",
@@ -106,7 +108,10 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("按课程代码搜索返回 seed 课程", async ({ run, request }) => {
+  test("按课程代码搜索返回 seed 课程", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get(
         `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
@@ -124,7 +129,10 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("按中文名搜索返回 seed 课程", async ({ run, request }) => {
+  test("按中文名搜索返回 seed 课程", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get(
         `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.nameCn)}`,
@@ -139,7 +147,10 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("无匹配搜索返回空数据", async ({ run, request }) => {
+  test("无匹配搜索返回空数据", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get(
         "/api/catalog/courses?search=ZZZZZ_NONEXISTENT_COURSE_99999",
@@ -155,7 +166,10 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("page 参数切换结果页", async ({ run, request }) => {
+  test("page 参数切换结果页", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+  }) => {
     return run(async () => {
       const response = await request.get("/api/catalog/courses?page=1");
       expect(response.status()).toBe(200);
@@ -166,7 +180,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
     });
   });
 
-  test("pageSize 控制分页大小并优先于 limit 别名", async ({ run, request }) => {
+  test("pageSize 控制分页大小并优先于 limit 别名", {
+    tag: "@Catalog/REST",
+  }, async ({ run, request }) => {
     return run(async () => {
       const response = await request.get(
         "/api/catalog/courses?pageSize=1&limit=2",

@@ -3,7 +3,7 @@ import { expect } from "@playwright/test";
 import { test } from "../../_shared/public-academic-fixture";
 
 test.describe("GET /api/catalog/semesters/current", () => {
-  test("契约", async ({ run, request, academic }) => {
+  test("契约", { tag: "@Catalog/REST" }, async ({ run, request, academic }) => {
     await run(async () => {
       const response = await request.get("/api/catalog/semesters/current");
       expect(response.status()).toBe(200);
@@ -19,7 +19,11 @@ test.describe("GET /api/catalog/semesters/current", () => {
     });
   });
 
-  test("返回 seed 学期", async ({ run, request, academic }) => {
+  test("返回 seed 学期", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+    academic,
+  }) => {
     await run(async () => {
       const response = await request.get("/api/catalog/semesters/current");
       expect(response.status()).toBe(200);
@@ -34,7 +38,11 @@ test.describe("GET /api/catalog/semesters/current", () => {
     });
   });
 
-  test("响应包含预期字段", async ({ run, request, academic }) => {
+  test("响应包含预期字段", { tag: "@Catalog/REST" }, async ({
+    run,
+    request,
+    academic,
+  }) => {
     await run(async () => {
       const response = await request.get("/api/catalog/semesters/current");
       expect(response.status()).toBe(200);

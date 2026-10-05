@@ -17,7 +17,10 @@ import { test } from "./_fixture";
 const BASE = "/api/admin/descriptions";
 
 test.describe("GET /api/admin/descriptions 课程简介管理", () => {
-  test("API 契约", async ({ run, descriptionState }) => {
+  test("API 契约", { tag: "@Description/REST" }, async ({
+    run,
+    descriptionState,
+  }) => {
     await run(async () => {
       const {
         admin: { request },
@@ -96,14 +99,20 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("未认证请求返回 401", async ({ run, request }) => {
+  test("未认证请求返回 401", { tag: "@Description/REST" }, async ({
+    run,
+    request,
+  }) => {
     await run(async () => {
       const response = await request.get(BASE);
       expect(response.status()).toBe(401);
     });
   });
 
-  test("非管理员认证用户返回 401", async ({ run, descriptionState }) => {
+  test("非管理员认证用户返回 401", { tag: "@Description/REST" }, async ({
+    run,
+    descriptionState,
+  }) => {
     await run(async () => {
       const {
         owner: { request },
@@ -113,10 +122,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("管理员可按 targetType=section 筛选课程简介", async ({
-    run,
-    descriptionState,
-  }) => {
+  test("管理员可按 targetType=section 筛选课程简介", {
+    tag: "@Description/REST",
+  }, async ({ run, descriptionState }) => {
     await run(async () => {
       const {
         admin: { request },
@@ -139,10 +147,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("管理员可按 hasContent=withContent 筛选非空课程简介", async ({
-    run,
-    descriptionState,
-  }) => {
+  test("管理员可按 hasContent=withContent 筛选非空课程简介", {
+    tag: "@Description/REST",
+  }, async ({ run, descriptionState }) => {
     await run(async () => {
       const {
         admin: { request },
@@ -165,10 +172,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("管理员可按 hasContent=empty 筛选空课程简介", async ({
-    run,
-    descriptionState,
-  }) => {
+  test("管理员可按 hasContent=empty 筛选空课程简介", {
+    tag: "@Description/REST",
+  }, async ({ run, descriptionState }) => {
     await run(async () => {
       const {
         admin: { request },
@@ -185,10 +191,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("管理员可按 search 搜索课程简介内容", async ({
-    run,
-    descriptionState,
-  }) => {
+  test("管理员可按 search 搜索课程简介内容", {
+    tag: "@Description/REST",
+  }, async ({ run, descriptionState }) => {
     await run(async () => {
       const {
         admin: { request },
@@ -211,10 +216,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("管理员可使用 pageSize 参数限制返回数量", async ({
-    run,
-    descriptionState,
-  }) => {
+  test("管理员可使用 pageSize 参数限制返回数量", {
+    tag: "@Description/REST",
+  }, async ({ run, descriptionState }) => {
     await run(async () => {
       const {
         admin: { request },
@@ -245,7 +249,10 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     });
   });
 
-  test("无效 limit 参数返回 400", async ({ run, descriptionState }) => {
+  test("无效 limit 参数返回 400", { tag: "@Description/REST" }, async ({
+    run,
+    descriptionState,
+  }) => {
     await run(async () => {
       const {
         admin: { request },

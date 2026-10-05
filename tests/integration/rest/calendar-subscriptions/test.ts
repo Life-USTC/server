@@ -12,10 +12,9 @@ for (const [method, path] of [
   ["post", importCodes],
   ["post", batch],
 ] as const) {
-  test(`anonymous ${method} ${path} returns JSON 401`, async ({
-    run,
-    request,
-  }) => {
+  test(`anonymous ${method} ${path} returns JSON 401`, {
+    tag: "@Subscription/REST",
+  }, async ({ run, request }) => {
     await run(async () => {
       const response = await request[method](path, {
         data: { sectionIds: [1], codes: ["known"], action: "add" },
@@ -27,10 +26,9 @@ for (const [method, path] of [
   });
 }
 
-test("repeated anonymous body PATCH ignores forged internal headers", async ({
-  run,
-  request,
-}) => {
+test("repeated anonymous body PATCH ignores forged internal headers", {
+  tag: "@Subscription/REST",
+}, async ({ run, request }) => {
   await run(async () => {
     for (let attempt = 0; attempt < 20; attempt++) {
       const response = await request.patch(base, {
@@ -57,10 +55,9 @@ for (const [method, data] of [
   ["delete", {}],
   ["patch", { sectionIds: "not-an-array" }],
 ] as const) {
-  test(`${method} rejects ${JSON.stringify(data)} without changing subscriptions`, async ({
-    run,
-    calendarState,
-  }) => {
+  test(`${method} rejects ${JSON.stringify(data)} without changing subscriptions`, {
+    tag: "@Subscription/REST",
+  }, async ({ run, calendarState }) => {
     await run(async () => {
       const { db, owner, other, section } = calendarState;
       await db.userSectionSubscription.createMany({
@@ -86,10 +83,9 @@ for (const [method, data] of [
   });
 }
 
-test("import codes adds matches, reports unmatched codes and is idempotent", async ({
-  run,
-  calendarState,
-}) => {
+test("import codes adds matches, reports unmatched codes and is idempotent", {
+  tag: "@Subscription/REST",
+}, async ({ run, calendarState }) => {
   await run(async () => {
     const { db, owner, other, section } = calendarState;
     await db.userSectionSubscription.create({
@@ -147,10 +143,9 @@ test("import codes adds matches, reports unmatched codes and is idempotent", asy
   });
 });
 
-test("append preserves known subscriptions, drops unknown IDs and reports repeated additions", async ({
-  run,
-  calendarState,
-}) => {
+test("append preserves known subscriptions, drops unknown IDs and reports repeated additions", {
+  tag: "@Subscription/REST",
+}, async ({ run, calendarState }) => {
   await run(async () => {
     const { db, owner, other, section, second } = calendarState;
     await db.userSectionSubscription.createMany({
@@ -213,10 +208,9 @@ test("append preserves known subscriptions, drops unknown IDs and reports repeat
 
 for (const alreadySubscribed of [false, true]) {
   for (const entry of ["append", "batch"] as const) {
-    test(`${entry} excludes retired selection and ${alreadySubscribed ? "preserves" : "does not create"} a subscription`, async ({
-      run,
-      calendarState,
-    }) => {
+    test(`${entry} excludes retired selection and ${alreadySubscribed ? "preserves" : "does not create"} a subscription`, {
+      tag: "@Subscription/REST",
+    }, async ({ run, calendarState }) => {
       await run(async () => {
         const { db, owner, section } = calendarState;
         await db.section.update({
@@ -264,10 +258,9 @@ for (const alreadySubscribed of [false, true]) {
 }
 
 for (const action of ["add", "remove"] as const) {
-  test(`batch ${action} changes only selected semester subscriptions`, async ({
-    run,
-    calendarState,
-  }) => {
+  test(`batch ${action} changes only selected semester subscriptions`, {
+    tag: "@Subscription/REST",
+  }, async ({ run, calendarState }) => {
     await run(async () => {
       const { db, owner, other, section, previous } = calendarState;
       expect(previous.semesterId).not.toBe(section.semesterId);
@@ -332,10 +325,9 @@ for (const action of ["add", "remove"] as const) {
 }
 
 for (const retired of [false, true]) {
-  test(`remove ${retired ? "retired" : "active"} subscription preserves a concurrent addition`, async ({
-    run,
-    calendarState,
-  }) => {
+  test(`remove ${retired ? "retired" : "active"} subscription preserves a concurrent addition`, {
+    tag: "@Subscription/REST",
+  }, async ({ run, calendarState }) => {
     await run(async () => {
       const { db, owner, other, section, second } = calendarState;
       if (retired)

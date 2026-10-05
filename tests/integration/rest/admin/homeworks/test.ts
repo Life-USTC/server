@@ -1,7 +1,10 @@
 import { expect } from "@playwright/test";
 import { base, test } from "./_fixture";
 
-test("未认证列表请求返回 401 JSON", async ({ run, request }) => {
+test("未认证列表请求返回 401 JSON", { tag: "@Homework/REST" }, async ({
+  run,
+  request,
+}) => {
   await run(async () => {
     const response = await request.get(base);
     expect(response.status()).toBe(401);
@@ -9,14 +12,17 @@ test("未认证列表请求返回 401 JSON", async ({ run, request }) => {
   });
 });
 
-test("非管理员认证用户返回 401", async ({ run, isolatedWorker }) => {
+test("非管理员认证用户返回 401", { tag: "@Homework/REST" }, async ({
+  run,
+  isolatedWorker,
+}) => {
   await run(async () => {
     const user = await isolatedWorker.createActor();
     expect((await user.request.get(base)).status()).toBe(401);
   });
 });
 
-test("管理员可列出作业并包含关键字段", async ({
+test("管理员可列出作业并包含关键字段", { tag: "@Homework/REST" }, async ({
   run,
   homeworkState: state,
 }) => {
@@ -51,10 +57,9 @@ for (const [status, indices] of [
   ["active", [1, 0]],
   ["deleted", [2]],
 ] as const) {
-  test(`管理员按 status=${status} 筛选并排序作业`, async ({
-    run,
-    homeworkState: state,
-  }) => {
+  test(`管理员按 status=${status} 筛选并排序作业`, {
+    tag: "@Homework/REST",
+  }, async ({ run, homeworkState: state }) => {
     await run(async () => {
       const response = await state.admin.request.get(
         `${base}?status=${status}`,
@@ -83,7 +88,7 @@ for (const field of [
   "course-code",
   "missing",
 ] as const) {
-  test(`管理员按 search=${field} 搜索作业`, async ({
+  test(`管理员按 search=${field} 搜索作业`, { tag: "@Homework/REST" }, async ({
     run,
     homeworkState: state,
   }) => {
@@ -111,7 +116,7 @@ for (const field of [
   });
 }
 
-test("管理员可分页读取独立且完整的作业列表", async ({
+test("管理员可分页读取独立且完整的作业列表", { tag: "@Homework/REST" }, async ({
   run,
   homeworkState: state,
 }) => {
@@ -141,7 +146,10 @@ test("管理员可分页读取独立且完整的作业列表", async ({
 });
 
 for (const query of ["pageSize=not-a-number", "limit=1"]) {
-  test(`管理员列表拒绝无效参数 ${query}`, async ({ run, isolatedWorker }) => {
+  test(`管理员列表拒绝无效参数 ${query}`, { tag: "@Homework/REST" }, async ({
+    run,
+    isolatedWorker,
+  }) => {
     await run(async () => {
       const admin = await isolatedWorker.createActor({ isAdmin: true });
       expect((await admin.request.get(`${base}?${query}`)).status()).toBe(400);

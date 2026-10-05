@@ -1,11 +1,9 @@
 import { expect } from "@playwright/test";
 import { base, test } from "../_fixture";
 
-test("未认证 DELETE 返回 401 JSON 且不修改作业", async ({
-  run,
-  request,
-  homeworkState: state,
-}) => {
+test("未认证 DELETE 返回 401 JSON 且不修改作业", {
+  tag: "@Homework/REST",
+}, async ({ run, request, homeworkState: state }) => {
   await run(async () => {
     const homework = state.homeworks[0];
     const response = await request.delete(`${base}/${homework.id}`);
@@ -20,10 +18,9 @@ test("未认证 DELETE 返回 401 JSON 且不修改作业", async ({
   });
 });
 
-test("非管理员 DELETE 返回 401 且不修改作业", async ({
-  run,
-  homeworkState: state,
-}) => {
+test("非管理员 DELETE 返回 401 且不修改作业", {
+  tag: "@Homework/REST",
+}, async ({ run, homeworkState: state }) => {
   await run(async () => {
     const homework = state.homeworks[0];
     expect(
@@ -38,7 +35,10 @@ test("非管理员 DELETE 返回 401 且不修改作业", async ({
   });
 });
 
-test("封禁管理员不能删除作业", async ({ run, homeworkState: state }) => {
+test("封禁管理员不能删除作业", { tag: "@Homework/REST" }, async ({
+  run,
+  homeworkState: state,
+}) => {
   await run(async () => {
     const homework = state.homeworks[0];
     await state.db.userSuspension.create({
@@ -56,7 +56,10 @@ test("封禁管理员不能删除作业", async ({ run, homeworkState: state }) 
   });
 });
 
-test("管理员删除不存在的作业返回 404", async ({ run, isolatedWorker }) => {
+test("管理员删除不存在的作业返回 404", { tag: "@Homework/REST" }, async ({
+  run,
+  isolatedWorker,
+}) => {
   await run(async () => {
     const admin = await isolatedWorker.createActor({ isAdmin: true });
     expect(
@@ -70,10 +73,9 @@ test("管理员删除不存在的作业返回 404", async ({ run, isolatedWorker
   });
 });
 
-test("管理员不能通过普通删除入口越过作者权限", async ({
-  run,
-  homeworkState: state,
-}) => {
+test("管理员不能通过普通删除入口越过作者权限", {
+  tag: "@Homework/REST",
+}, async ({ run, homeworkState: state }) => {
   await run(async () => {
     const homework = state.homeworks[0];
     const path = `/api/community/section-homeworks/${homework.id}`;
@@ -88,7 +90,7 @@ test("管理员不能通过普通删除入口越过作者权限", async ({
   });
 });
 
-test("管理员可删除作业且重放不重复写审计", async ({
+test("管理员可删除作业且重放不重复写审计", { tag: "@Homework/REST" }, async ({
   run,
   homeworkState: state,
 }) => {

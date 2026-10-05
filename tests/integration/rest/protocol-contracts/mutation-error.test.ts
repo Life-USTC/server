@@ -42,6 +42,7 @@ async function rejectDelete(
   domain: Domain,
   id: string,
   tokens: Tokens,
+  surface: keyof Tokens,
   meaning:
     | "not_found"
     | "forbidden"
@@ -54,45 +55,59 @@ async function rejectDelete(
   const binding = domains[domain];
   const requestDelete = (url: string | Request, init?: RequestInit) =>
     duringDelete ? duringDelete(() => fetch(url, init)) : fetch(url, init);
-  const rest = await requestDelete(`${origin}${binding.path}/${id}`, {
-    method: "DELETE",
-    headers: { authorization: `Bearer ${tokens.rest}` },
-  });
-  expect(rest.status, await rest.clone().text()).toBe(
-    meaning === "not_found"
-      ? 404
-      : meaning === "storage_delete_failed"
-        ? 502
-        : 403,
-  );
-  const restBody = await rest.json();
-  const graph = await requestDelete(`${origin}/api/graphql`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${tokens.graphql}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      query: `mutation($id: ID!) { ${binding.field}(id: $id) { success } }`,
-      variables: { id },
-    }),
-  });
-  expect(graph.status).toBe(
-    meaning === "not_found"
-      ? 404
-      : meaning === "storage_delete_failed"
-        ? 503
-        : 403,
-  );
-  const graphBody = await graph.json();
-  expect(graphBody.errors).toHaveLength(1);
-  expect(graphBody.errors[0].extensions.code).toBe(
-    meaning === "not_found"
-      ? "NOT_FOUND"
-      : meaning === "storage_delete_failed"
-        ? "SERVICE_UNAVAILABLE"
-        : "FORBIDDEN",
-  );
+  if (surface === "rest") {
+    const rest = await requestDelete(`${origin}${binding.path}/${id}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${tokens.rest}` },
+    });
+    expect(rest.status, await rest.clone().text()).toBe(
+      meaning === "not_found"
+        ? 404
+        : meaning === "storage_delete_failed"
+          ? 502
+          : 403,
+    );
+    const restBody = await rest.json();
+    return { status: rest.status, body: restBody };
+  }
+  if (surface === "graphql") {
+    const graph = await requestDelete(`${origin}/api/graphql`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokens.graphql}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `mutation($id: ID!) { ${binding.field}(id: $id) { success } }`,
+        variables: { id },
+      }),
+    });
+    expect(graph.status).toBe(
+      meaning === "not_found"
+        ? 404
+        : meaning === "storage_delete_failed"
+          ? 503
+          : 403,
+    );
+    const graphBody = await graph.json();
+    expect(graphBody.errors).toHaveLength(1);
+    expect(graphBody.errors[0].extensions.code).toBe(
+      meaning === "not_found"
+        ? "NOT_FOUND"
+        : meaning === "storage_delete_failed"
+          ? "SERVICE_UNAVAILABLE"
+          : "FORBIDDEN",
+    );
+    return {
+      status: graph.status,
+      errors: graphBody.errors.map(
+        (error: { message: string; extensions: { code: string } }) => ({
+          message: error.message,
+          code: error.extensions.code,
+        }),
+      ),
+    };
+  }
   const mcp = await requestDelete(`${origin}/api/mcp`, {
     method: "POST",
     headers: {
@@ -129,210 +144,210 @@ async function rejectDelete(
     ).text,
   );
   expect(mcpBody).toMatchObject({ success: false, error: meaning });
-  return {
-    protocol: {
-      rest_status: rest.status,
-      graphql_status: graph.status,
-      graphql_code: graphBody.errors[0].extensions.code,
-    },
-    rest: restBody,
-    graphql: graphBody.errors.map(
-      (error: { message: string; extensions: { code: string } }) => ({
-        message: error.message,
-        code: error.extensions.code,
-      }),
-    ),
-    mcp: mcpBody,
-  };
+  return mcpBody;
 }
 
-test("interface-hierarchy.private-delete-error-parity", async ({ h, run }) => {
-  await run(async () => {
-    const db = h.db;
-    const f = {
-      owner: h.actors[0],
-      other: h.actors[1],
-      tokens: h.actors[0].tokens,
-    };
-    const todo = await db.todo.create({
-      data: { userId: f.other.id, title: "foreign private todo" },
+for (const domain of ["todo", "upload"] as const)
+  for (const surface of transports)
+    test(`interface-hierarchy.private-delete-error-parity ${domain} through ${surface}`, {
+      tag: `@${domain === "todo" ? "Todo" : "Upload"}/${surface === "graphql" ? "GraphQL" : surface.toUpperCase()}`,
+    }, async ({ h, run }) => {
+      await run(async () => {
+        const other = h.actors[1];
+        const row =
+          domain === "todo"
+            ? await h.db.todo.create({
+                data: { userId: other.id, title: "foreign private todo" },
+              })
+            : await h.db.upload.create({
+                data: {
+                  userId: other.id,
+                  key: `errors/${crypto.randomUUID()}`,
+                  filename: "foreign-private.txt",
+                  size: 1,
+                },
+              });
+        const foreign = await rejectDelete(
+          h,
+          domain,
+          row.id,
+          h.actors[0].tokens,
+          surface,
+          "not_found",
+        );
+        const missing = await rejectDelete(
+          h,
+          domain,
+          crypto.randomUUID(),
+          h.actors[0].tokens,
+          surface,
+          "not_found",
+        );
+        expect(foreign).toEqual(missing);
+        expect(JSON.stringify(foreign)).not.toContain(other.id);
+        expect(
+          domain === "todo"
+            ? await h.db.todo.findUnique({ where: { id: row.id } })
+            : await h.db.upload.findUnique({ where: { id: row.id } }),
+        ).toEqual(row);
+      });
     });
-    const upload = await db.upload.create({
-      data: {
-        userId: f.other.id,
-        key: `errors/${crypto.randomUUID()}`,
-        filename: "foreign-private.txt",
-        size: 1,
-      },
+
+for (const domain of ["comment", "homework"] as const)
+  for (const surface of transports)
+    test(`interface-hierarchy.shared-delete-error-parity ${domain} through ${surface}`, {
+      tag: `@${domain === "comment" ? "Comment" : "Homework"}/${surface === "graphql" ? "GraphQL" : surface.toUpperCase()}`,
+    }, async ({ h, run }) => {
+      await run(async () => {
+        const row =
+          domain === "comment"
+            ? await h.db.comment.create({
+                data: {
+                  userId: h.actors[1].id,
+                  sectionId: h.section.id,
+                  body: "public foreign comment",
+                },
+              })
+            : await h.db.homework.create({
+                data: {
+                  createdById: h.actors[1].id,
+                  sectionId: h.section.id,
+                  title: "public foreign homework",
+                },
+              });
+        await rejectDelete(
+          h,
+          domain,
+          row.id,
+          h.actors[0].tokens,
+          surface,
+          "forbidden",
+        );
+        await rejectDelete(
+          h,
+          domain,
+          crypto.randomUUID(),
+          h.actors[0].tokens,
+          surface,
+          "not_found",
+        );
+        if (domain === "comment") {
+          const locked = await h.db.comment.create({
+            data: {
+              userId: h.actors[0].id,
+              sectionId: h.section.id,
+              body: "locked owned comment",
+              status: "deleted",
+              deletedAt: new Date(),
+            },
+          });
+          await rejectDelete(
+            h,
+            domain,
+            locked.id,
+            h.actors[0].tokens,
+            surface,
+            "locked",
+          );
+          expect(
+            await h.db.comment.findUnique({ where: { id: locked.id } }),
+          ).toEqual(locked);
+        }
+        expect(
+          domain === "comment"
+            ? await h.db.comment.findUnique({ where: { id: row.id } })
+            : await h.db.homework.findUnique({ where: { id: row.id } }),
+        ).toEqual(row);
+      });
     });
-    for (const [domain, row] of [
-      ["todo", todo],
-      ["upload", upload],
-    ] as const) {
-      const foreign = await rejectDelete(
+
+for (const surface of transports)
+  test(`homework ordinary delete rejects a non-creator admin through ${surface}`, {
+    tag: `@Homework/${surface === "graphql" ? "GraphQL" : surface.toUpperCase()}`,
+  }, async ({ h, run }) => {
+    await run(async () => {
+      await h.db.user.update({
+        where: { id: h.actors[0].id },
+        data: { isAdmin: true },
+      });
+      const homework = await h.db.homework.create({
+        data: {
+          createdById: h.actors[1].id,
+          sectionId: h.section.id,
+          title: "Foreign homework for admin denial",
+        },
+      });
+      await rejectDelete(
         h,
-        domain,
-        row.id,
-        f.tokens,
-        "not_found",
+        "homework",
+        homework.id,
+        h.actors[0].tokens,
+        surface,
+        "forbidden",
       );
-      const missing = await rejectDelete(
-        h,
-        domain,
-        crypto.randomUUID(),
-        f.tokens,
-        "not_found",
-      );
-      expect(foreign).toEqual(missing);
-      expect(JSON.stringify(foreign)).not.toContain(f.other.id);
-    }
-    expect(await db.todo.findUnique({ where: { id: todo.id } })).toEqual(todo);
-    expect(await db.upload.findUnique({ where: { id: upload.id } })).toEqual(
-      upload,
-    );
+      expect(
+        await h.db.homework.findUnique({ where: { id: homework.id } }),
+      ).toEqual(homework);
+      expect(
+        await h.db.auditLog.count({
+          where: { action: "homework_delete", targetId: homework.id },
+        }),
+      ).toBe(0);
+    });
   });
-});
 
-test("interface-hierarchy.shared-delete-error-parity", async ({ h, run }) => {
-  await run(async () => {
-    const db = h.db;
-    const f = {
-      owner: h.actors[0],
-      other: h.actors[1],
-      tokens: h.actors[0].tokens,
-    };
-    const section = h.section;
-    const comment = await db.comment.create({
-      data: {
-        userId: f.other.id,
-        sectionId: section.id,
-        body: "public foreign comment",
-      },
+for (const domain of ["comment", "homework", "upload"] as const)
+  for (const surface of transports)
+    test(`interface-hierarchy.suspended-delete-error-parity ${domain} through ${surface}`, {
+      tag: `@${{ comment: "Comment", homework: "Homework", upload: "Upload" }[domain]}/${surface === "graphql" ? "GraphQL" : surface.toUpperCase()}`,
+    }, async ({ h, run }) => {
+      await run(async () => {
+        const owner = h.actors[0];
+        const row =
+          domain === "comment"
+            ? await h.db.comment.create({
+                data: {
+                  userId: owner.id,
+                  sectionId: h.section.id,
+                  body: "owned comment",
+                },
+              })
+            : domain === "homework"
+              ? await h.db.homework.create({
+                  data: {
+                    createdById: owner.id,
+                    sectionId: h.section.id,
+                    title: "owned homework",
+                  },
+                })
+              : await h.db.upload.create({
+                  data: {
+                    userId: owner.id,
+                    key: `errors/${crypto.randomUUID()}`,
+                    filename: "owned.txt",
+                    size: 1,
+                  },
+                });
+        await h.db.userSuspension.create({
+          data: { userId: owner.id, reason: "contract suspension" },
+        });
+        await rejectDelete(
+          h,
+          domain,
+          row.id,
+          owner.tokens,
+          surface,
+          "suspended",
+        );
+        expect(
+          domain === "comment"
+            ? await h.db.comment.findUnique({ where: { id: row.id } })
+            : domain === "homework"
+              ? await h.db.homework.findUnique({ where: { id: row.id } })
+              : await h.db.upload.findUnique({ where: { id: row.id } }),
+        ).toEqual(row);
+      });
     });
-    const locked = await db.comment.create({
-      data: {
-        userId: f.owner.id,
-        sectionId: section.id,
-        body: "locked owned comment",
-        status: "deleted",
-        deletedAt: new Date(),
-      },
-    });
-    const homework = await db.homework.create({
-      data: {
-        createdById: f.other.id,
-        sectionId: section.id,
-        title: "public foreign homework",
-      },
-    });
-    for (const [domain, row] of [
-      ["comment", comment],
-      ["homework", homework],
-    ] as const) {
-      await rejectDelete(h, domain, row.id, f.tokens, "forbidden");
-      await rejectDelete(h, domain, crypto.randomUUID(), f.tokens, "not_found");
-    }
-    await rejectDelete(h, "comment", locked.id, f.tokens, "locked");
-    expect(await db.comment.findUnique({ where: { id: comment.id } })).toEqual(
-      comment,
-    );
-    expect(await db.comment.findUnique({ where: { id: locked.id } })).toEqual(
-      locked,
-    );
-    expect(
-      await db.homework.findUnique({ where: { id: homework.id } }),
-    ).toEqual(homework);
-  });
-});
-
-test("homework ordinary delete rejects a non-creator admin", async ({
-  h,
-  run,
-}) => {
-  await run(async () => {
-    await h.db.user.update({
-      where: { id: h.actors[0].id },
-      data: { isAdmin: true },
-    });
-    const homework = await h.db.homework.create({
-      data: {
-        createdById: h.actors[1].id,
-        sectionId: h.section.id,
-        title: "Foreign homework for admin denial",
-      },
-    });
-    await rejectDelete(
-      h,
-      "homework",
-      homework.id,
-      h.actors[0].tokens,
-      "forbidden",
-    );
-    expect(
-      await h.db.homework.findUnique({ where: { id: homework.id } }),
-    ).toEqual(homework);
-    expect(
-      await h.db.auditLog.count({
-        where: { action: "homework_delete", targetId: homework.id },
-      }),
-    ).toBe(0);
-  });
-});
-
-test("interface-hierarchy.suspended-delete-error-parity", async ({
-  h,
-  run,
-}) => {
-  await run(async () => {
-    const db = h.db;
-    const f = {
-      owner: h.actors[0],
-      other: h.actors[1],
-      tokens: h.actors[0].tokens,
-    };
-    const section = h.section;
-    const comment = await db.comment.create({
-      data: {
-        userId: f.owner.id,
-        sectionId: section.id,
-        body: "owned comment",
-      },
-    });
-    const homework = await db.homework.create({
-      data: {
-        createdById: f.owner.id,
-        sectionId: section.id,
-        title: "owned homework",
-      },
-    });
-    const upload = await db.upload.create({
-      data: {
-        userId: f.owner.id,
-        key: `errors/${crypto.randomUUID()}`,
-        filename: "owned.txt",
-        size: 1,
-      },
-    });
-    await db.userSuspension.create({
-      data: { userId: f.owner.id, reason: "contract suspension" },
-    });
-    for (const [domain, row] of [
-      ["comment", comment],
-      ["homework", homework],
-      ["upload", upload],
-    ] as const)
-      await rejectDelete(h, domain, row.id, f.tokens, "suspended");
-    expect(await db.comment.findUnique({ where: { id: comment.id } })).toEqual(
-      comment,
-    );
-    expect(
-      await db.homework.findUnique({ where: { id: homework.id } }),
-    ).toEqual(homework);
-    expect(await db.upload.findUnique({ where: { id: upload.id } })).toEqual(
-      upload,
-    );
-  });
-});
 
 async function successfulDelete(
   h: ProtocolFixture,
@@ -486,12 +501,13 @@ async function verifyDeleteReplay(
     expect(replay.success).toBe(true);
     if (surface !== "rest") expect(replay.alreadyDeleted).toBe(true);
   } else {
-    // Verify each protocol's native rejection without changing the committed row.
+    // Verify this protocol's native rejection without changing the committed row.
     await rejectDelete(
       h,
       domain,
       row.id,
       f.tokens,
+      surface,
       domain === "todo" ? "not_found" : "locked",
     );
   }
@@ -506,16 +522,18 @@ async function verifyDeleteReplay(
 
 for (const domain of ["todo", "comment", "homework"] as const)
   for (const surface of transports)
-    test(`${domain} delete replay through ${surface} preserves the committed state`, async ({
-      run,
-      h,
-    }) => run(() => verifyDeleteReplay(h, domain, surface)));
+    test(
+      `${domain} delete replay through ${surface} preserves the committed state`,
+      {
+        tag: `@${{ todo: "Todo", comment: "Comment", homework: "Homework" }[domain]}/${surface === "graphql" ? "GraphQL" : surface.toUpperCase()}`,
+      },
+      async ({ run, h }) => run(() => verifyDeleteReplay(h, domain, surface)),
+    );
 
 for (const surface of transports) {
-  test(`upload storage deletion failure and retry through ${surface}`, async ({
-    run,
-    h,
-  }) => {
+  test(`upload storage deletion failure and retry through ${surface}`, {
+    tag: `@Upload/${surface === "graphql" ? "GraphQL" : surface.toUpperCase()}`,
+  }, async ({ run, h }) => {
     await run(async () => {
       const db = h.db;
       const owner = h.actors[0];
@@ -594,6 +612,7 @@ for (const surface of transports) {
           "upload",
           row.id,
           owner.tokens,
+          surface,
           "storage_delete_failed",
           observePending(true),
         );
@@ -607,8 +626,8 @@ for (const surface of transports) {
           await (await fetch(storageUrl, { headers: storageHeaders })).text(),
         ).toBe(content);
         expect(await auditCount()).toBe(0);
-        expect(metadataAtStorageDelete).toEqual([1, 1, 1]);
-        expect(await readProbe()).toMatchObject({ attempts: 3, pending: 0 });
+        expect(metadataAtStorageDelete).toEqual([1]);
+        expect(await readProbe()).toMatchObject({ attempts: 1, pending: 0 });
 
         const deleted = await successfulDelete(
           h,
@@ -627,10 +646,17 @@ for (const surface of transports) {
           await db.upload.findUnique({ where: { id: row.id } }),
         ).toBeNull();
         expect(await auditCount()).toBe(1);
-        expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
-        expect(await readProbe()).toMatchObject({ attempts: 4, pending: 0 });
-        await rejectDelete(h, "upload", row.id, owner.tokens, "not_found");
-        expect(await readProbe()).toMatchObject({ attempts: 4, pending: 0 });
+        expect(metadataAtStorageDelete).toEqual([1, 1]);
+        expect(await readProbe()).toMatchObject({ attempts: 2, pending: 0 });
+        await rejectDelete(
+          h,
+          "upload",
+          row.id,
+          owner.tokens,
+          surface,
+          "not_found",
+        );
+        expect(await readProbe()).toMatchObject({ attempts: 2, pending: 0 });
         expect(await auditCount()).toBe(1);
       } finally {
         // Releasing the exact-key probe first also handles assertion/setup failures.
