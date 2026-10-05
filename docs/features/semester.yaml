@@ -76,7 +76,7 @@ requirements:
     - Selecting each term retains its own label and only its associated section records.
     test:
       file: tests/e2e/src/app/account-policy/semester-presentation.test.ts
-      name: semester.semester-visible-in-filters
+      name: semester.semester-visible-in-filters Course
 - id: semester.current-semester.latest-startdate-wins
   category: consistency
   rule: The current semester is determined by date range; when multiple semester ranges overlap the current

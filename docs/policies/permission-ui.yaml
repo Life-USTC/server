@@ -15,7 +15,7 @@ requirements:
     - Public course and section APIs still resolve their JW IDs to the correct records.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
-      name: permission-ui.identity-4
+      name: permission-ui.identity-4 Course Web
 
 applies_to:
 - id: list-page
