@@ -14,6 +14,7 @@ import {
 const scope = "community.comment:write";
 const deviceGrant = "urn:ietf:params:oauth:grant-type:device_code";
 type Channel = "rest" | "graphql" | "mcp";
+type SecurityMethod = "Web" | "REST" | "GraphQL" | "MCP";
 type Principal = "session" | Channel;
 
 async function prepareCommentSecurity(
@@ -22,6 +23,7 @@ async function prepareCommentSecurity(
   flow: CommunityFlow,
   userId: string,
   section: { id: number; jwId: number },
+  method: SecurityMethod,
 ) {
   const db = worker.database.owner;
   const marker = `comment-security-${crypto.randomUUID()}`;
@@ -114,20 +116,37 @@ async function prepareCommentSecurity(
   let createdComments:
     | Awaited<ReturnType<typeof db.comment.findMany>>
     | undefined;
+  const principals: readonly Principal[] =
+    method === "REST"
+      ? ["session", "rest"]
+      : method === "GraphQL"
+        ? ["graphql"]
+        : method === "MCP"
+          ? ["mcp"]
+          : [];
   const checks: CommunityChecks = {
     async verifyTransport({ producer, sdkRequests }) {
-      for (const [method, path, statuses] of [
+      for (const [requestMethod, path, statuses] of [
         ["POST", "/api/auth/oauth2/device-authorization", [200, 200, 200]],
         ["POST", "/oauth/device", [303, 303, 303]],
         ["POST", "/api/auth/oauth2/token", [200, 200, 200]],
-        ["POST", "/api/community/comments", [201, 201, 403, 403]],
-        ["POST", "/api/graphql", [200, 403]],
-        ["POST", "/api/account/preferences", [200, 200]],
+        [
+          "POST",
+          "/api/community/comments",
+          method === "REST" ? [201, 201, 403, 403] : [],
+        ],
+        ["POST", "/api/graphql", method === "GraphQL" ? [200, 403] : []],
+        [
+          "POST",
+          "/api/account/preferences",
+          method === "Web" ? [200, 200] : [],
+        ],
       ] as const) {
         expect(
           producer.requests
             .filter(
-              ({ value }) => value.method === method && value.path === path,
+              ({ value }) =>
+                value.method === requestMethod && value.path === path,
             )
             .map(({ result }) => result)
             .sort(),
@@ -143,10 +162,14 @@ async function prepareCommentSecurity(
           ...Array<string>(3).fill("/api/auth/oauth2/device-authorization"),
           ...Array<string>(3).fill("/oauth/device"),
           ...Array<string>(3).fill("/api/auth/oauth2/token"),
-          ...Array<string>(4).fill("/api/community/comments"),
-          ...Array<string>(2).fill("/api/graphql"),
-          ...Array<string>(2).fill("/api/account/preferences"),
-          ...Array<string>(4).fill("/api/mcp"),
+          ...Array<string>(method === "REST" ? 4 : 0).fill(
+            "/api/community/comments",
+          ),
+          ...Array<string>(method === "GraphQL" ? 2 : 0).fill("/api/graphql"),
+          ...Array<string>(method === "Web" ? 2 : 0).fill(
+            "/api/account/preferences",
+          ),
+          ...Array<string>(method === "MCP" ? 4 : 2).fill("/api/mcp"),
         ].sort(),
       );
       expect(
@@ -157,14 +180,17 @@ async function prepareCommentSecurity(
         "GET stream",
         "POST initialize",
         "POST notifications/initialized",
-        "POST tools/call",
-        "POST tools/call",
+        ...(method === "MCP" ? ["POST tools/call", "POST tools/call"] : []),
       ]);
       expect(
         sdkRequests
           .filter(({ rpc }) => rpc === "tools/call")
           .map(({ tool }) => tool),
-      ).toEqual(["community_comment_create", "community_comment_create"]);
+      ).toEqual(
+        method === "MCP"
+          ? ["community_comment_create", "community_comment_create"]
+          : [],
+      );
     },
     async verifyState() {
       const current = await stable();
@@ -209,7 +235,6 @@ async function prepareCommentSecurity(
         liftedAt: null,
         liftedById: null,
       });
-      const principals = ["session", "rest", "graphql", "mcp"] as const;
       expect(Object.keys(commentIds).sort()).toEqual([...principals].sort());
       const comments = await db.comment.findMany({ orderBy: { id: "asc" } });
       expect(comments).toEqual(createdComments);
@@ -363,7 +388,9 @@ async function prepareCommentSecurity(
               feature: "community.comment",
               channel,
             },
-            counts: [0, 2, channel === "mcp" ? 0 : 1],
+            counts: principals.includes(channel)
+              ? [0, 2, channel === "mcp" ? 0 : 1]
+              : [0, 0, 0],
             windows: windows[channel],
           },
         );
@@ -404,6 +431,7 @@ async function prepareCommentSecurity(
 type CommentSecurity = Awaited<ReturnType<typeof prepareCommentSecurity>>;
 export const test = communityTest.extend<{
   commentSecurityRun: (
+    method: SecurityMethod,
     work: (fixture: CommentSecurity) => Promise<void>,
   ) => Promise<void>;
 }>({
@@ -411,7 +439,7 @@ export const test = communityTest.extend<{
     { page, isolatedWorker, communityFlow, account, community },
     use,
   ) => {
-    await use(async (work) => {
+    await use(async (method, work) => {
       let fixture: CommentSecurity;
       await communityFlow.run(
         async () => {
@@ -421,10 +449,15 @@ export const test = communityTest.extend<{
             communityFlow,
             account.id,
             community.section,
+            method,
           );
           await work(fixture);
         },
-        { auditActions: { comment_create: 4 } },
+        {
+          auditActions: {
+            comment_create: method === "REST" ? 2 : method === "Web" ? 0 : 1,
+          },
+        },
         {
           verifyTransport: (observation) =>
             fixture.checks.verifyTransport(observation),
