@@ -48,8 +48,125 @@ async function createFixture(db: TestPrismaClient) {
   });
 }
 
-test("mobile catalog cards retain list and link semantics", {
-  tag: "@Catalog/Web",
+async function createMultipleSectionsFixture(db: TestPrismaClient) {
+  const fixture = await createFixture(db);
+  return db.$transaction(async (db) => {
+    const current = await db.semester.create({
+      data: { jwId: 9_900_001, code: "421", nameCn: "2026年春季学期" },
+    });
+    const previous = await db.semester.create({
+      data: { jwId: 9_900_000, code: "420", nameCn: "2025年秋季学期" },
+    });
+    const sections = [];
+    for (const [index, semester] of [current, current, previous].entries()) {
+      sections.push(
+        await db.section.create({
+          data: {
+            id: fixture.section.id + 2 * (index + 1),
+            jwId: fixture.section.jwId + 2 * (index + 1),
+            code: `${fixture.course.code}.0${index + 2}`,
+            courseId: fixture.course.id,
+            semesterId: semester.id,
+          },
+        }),
+      );
+    }
+    return { fixture, current, previous, sections };
+  });
+}
+
+test("mobile courses cards retain list and link semantics", {
+  tag: "@Course/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      (
+        await preferenceFlow.http(() =>
+          page.request.post("/api/account/preferences", {
+            headers: preferenceFlow.headers,
+            data: { locale: "zh-cn" },
+          }),
+        )
+      ).status(),
+    ).toBe(200);
+    const route = "courses";
+    const search = fixture.course.code;
+    const name = fixture.course.nameCn;
+    const destination = fixture.course.jwId;
+    await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
+    const item = page
+      .getByRole("listitem")
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .filter({ visible: true });
+    await expect(item).toHaveCount(1);
+    const link = item.getByRole("link");
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAccessibleName(new RegExp(name));
+    await expect(link).toHaveAttribute(
+      "href",
+      `/catalog/${route}/${destination}`,
+    );
+    await link.focus();
+    await expect(link).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(
+      new RegExp(`/catalog/${route}/${destination}$`),
+    );
+  });
+});
+
+test("mobile sections cards retain list and link semantics", {
+  tag: "@Section/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      (
+        await preferenceFlow.http(() =>
+          page.request.post("/api/account/preferences", {
+            headers: preferenceFlow.headers,
+            data: { locale: "zh-cn" },
+          }),
+        )
+      ).status(),
+    ).toBe(200);
+    const route = "sections";
+    const search = fixture.course.code;
+    const name = fixture.course.nameCn;
+    const destination = fixture.section.jwId;
+    await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
+    const item = page
+      .getByRole("listitem")
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .filter({ visible: true });
+    await expect(item).toHaveCount(1);
+    const link = item.getByRole("link");
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAccessibleName(new RegExp(name));
+    await expect(link).toHaveAttribute(
+      "href",
+      `/catalog/${route}/${destination}`,
+    );
+    await link.focus();
+    await expect(link).toBeFocused();
+    const expectSectionDetailReady = observeSectionDetailNavigation(
+      page,
+      preferenceFlow,
+      destination,
+    );
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(
+      new RegExp(`/catalog/${route}/${destination}$`),
+    );
+    await expectSectionDetailReady();
+  });
+});
+
+test("mobile teachers cards retain list and link semantics", {
+  tag: "@Teacher/Web",
 }, async ({ preferenceFlow, isolatedWorker, page }) => {
   await preferenceFlow.run(async () => {
     const fixture = await createFixture(isolatedWorker.database.owner);
@@ -66,51 +183,29 @@ test("mobile catalog cards retain list and link semantics", {
     ).toBe(200);
     if (!fixture.teacher.code)
       throw new Error("Teacher fixture must have a public code");
-    for (const [route, search, name, destination] of [
-      [
-        "courses",
-        fixture.course.code,
-        fixture.course.nameCn,
-        fixture.course.jwId,
-      ],
-      [
-        "sections",
-        fixture.course.code,
-        fixture.course.nameCn,
-        fixture.section.jwId,
-      ],
-      [
-        "teachers",
-        fixture.teacher.code,
-        fixture.teacher.nameCn,
-        fixture.teacher.id,
-      ],
-    ] as const) {
-      await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
-      const item = page
-        .getByRole("listitem")
-        .filter({ has: page.getByText(name, { exact: true }) })
-        .filter({ visible: true });
-      await expect(item).toHaveCount(1);
-      const link = item.getByRole("link");
-      await expect(link).toHaveCount(1);
-      await expect(link).toHaveAccessibleName(new RegExp(name));
-      await expect(link).toHaveAttribute(
-        "href",
-        `/catalog/${route}/${destination}`,
-      );
-      await link.focus();
-      await expect(link).toBeFocused();
-      const expectSectionDetailReady =
-        route === "sections"
-          ? observeSectionDetailNavigation(page, preferenceFlow, destination)
-          : undefined;
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(
-        new RegExp(`/catalog/${route}/${destination}$`),
-      );
-      if (expectSectionDetailReady) await expectSectionDetailReady();
-    }
+    const route = "teachers";
+    const search = fixture.teacher.code;
+    const name = fixture.teacher.nameCn;
+    const destination = fixture.teacher.id;
+    await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
+    const item = page
+      .getByRole("listitem")
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .filter({ visible: true });
+    await expect(item).toHaveCount(1);
+    const link = item.getByRole("link");
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAccessibleName(new RegExp(name));
+    await expect(link).toHaveAttribute(
+      "href",
+      `/catalog/${route}/${destination}`,
+    );
+    await link.focus();
+    await expect(link).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(
+      new RegExp(`/catalog/${route}/${destination}$`),
+    );
   });
 });
 
@@ -461,7 +556,7 @@ test(
 
 test(
   "ui.data-table-cells-2",
-  { tag: "@Catalog/Web" },
+  { tag: "@Section/Web" },
   async ({ preferenceFlow, isolatedWorker, page, baseURL }, testInfo) => {
     await preferenceFlow.run(async () => {
       const fixture = await createFixture(isolatedWorker.database.owner);
@@ -601,7 +696,7 @@ test(
   },
 );
 
-test("ui.data-table-cells-3", { tag: "@Catalog/Web" }, async ({
+test("ui.data-table-cells-3 Course", { tag: "@Course/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -612,13 +707,77 @@ test("ui.data-table-cells-3", { tag: "@Catalog/Web" }, async ({
       await page.setViewportSize({ width, height: 900 });
       for (const [path, code] of [
         [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
+        [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
+        [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
+      ]) {
+        await gotoAndWaitForReady(page, path);
+        const label = page
+          .locator("#main-content")
+          .getByText(code, { exact: true })
+          .filter({ visible: true });
+        await expect(label.first()).toBeVisible();
+        const presentations = await label.evaluateAll((elements) =>
+          elements.map((element) => ({
+            family: getComputedStyle(element).fontFamily,
+            inBadge: element.closest('[data-slot="badge"]') !== null,
+          })),
+        );
+        for (const presentation of presentations) {
+          expect(presentation.family).toMatch(/monospace|mono/i);
+          expect(presentation.inBadge).toBe(false);
+        }
+      }
+    }
+  });
+});
+
+test("ui.data-table-cells-3 Section", { tag: "@Section/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const [path, code] of [
         [
           `/catalog/sections?search=${fixture.section.code}`,
           fixture.section.code,
         ],
-        [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
-        [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
         [`/catalog/sections/${fixture.section.jwId}`, fixture.section.code],
+      ]) {
+        await gotoAndWaitForReady(page, path);
+        const label = page
+          .locator("#main-content")
+          .getByText(code, { exact: true })
+          .filter({ visible: true });
+        await expect(label.first()).toBeVisible();
+        const presentations = await label.evaluateAll((elements) =>
+          elements.map((element) => ({
+            family: getComputedStyle(element).fontFamily,
+            inBadge: element.closest('[data-slot="badge"]') !== null,
+          })),
+        );
+        for (const presentation of presentations) {
+          expect(presentation.family).toMatch(/monospace|mono/i);
+          expect(presentation.inBadge).toBe(false);
+        }
+      }
+    }
+  });
+});
+
+test("ui.data-table-cells-3 Teacher", { tag: "@Teacher/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const [path, code] of [
         [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
       ]) {
         await gotoAndWaitForReady(page, path);
@@ -642,7 +801,7 @@ test("ui.data-table-cells-3", { tag: "@Catalog/Web" }, async ({
   });
 });
 
-test("permission-ui.identity-4", { tag: "@Catalog/Web" }, async ({
+test("permission-ui.identity-4 Course Web", { tag: "@Course/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   page,
@@ -676,11 +835,103 @@ test("permission-ui.identity-4", { tag: "@Catalog/Web" }, async ({
           locale === "zh-cn" ? course.nameCn : course.nameEn,
           course.code,
         ],
+      ]) {
+        if (!path || !name || !code)
+          throw new Error("Incomplete identity fixture");
+        await gotoAndWaitForReady(page, path);
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          name,
+        );
+        await expect(page.locator("#main-content")).toContainText(code);
+        const visible = await page.locator("#main-content").innerText();
+        for (const id of forbidden) expect(visible).not.toContain(id);
+        for (const id of forbidden)
+          expect(await page.title()).not.toContain(id);
+      }
+    }
+  });
+});
+
+test("permission-ui.identity-4 Section Web", { tag: "@Section/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { course, teacher, section, user } = fixture;
+    const forbidden = [
+      course.id,
+      course.jwId,
+      teacher.id,
+      teacher.jwId,
+      section.id,
+      section.jwId,
+      user.id,
+    ].map(String);
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      for (const [path, name, code] of [
         [
           `/catalog/sections/${section.jwId}`,
           locale === "zh-cn" ? course.nameCn : course.nameEn,
           section.code,
         ],
+      ]) {
+        if (!path || !name || !code)
+          throw new Error("Incomplete identity fixture");
+        await gotoAndWaitForReady(page, path);
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          name,
+        );
+        await expect(page.locator("#main-content")).toContainText(code);
+        const visible = await page.locator("#main-content").innerText();
+        for (const id of forbidden) expect(visible).not.toContain(id);
+        for (const id of forbidden)
+          expect(await page.title()).not.toContain(id);
+      }
+    }
+  });
+});
+
+test("permission-ui.identity-4 Teacher Web", { tag: "@Teacher/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { course, teacher, section, user } = fixture;
+    const forbidden = [
+      course.id,
+      course.jwId,
+      teacher.id,
+      teacher.jwId,
+      section.id,
+      section.jwId,
+      user.id,
+    ].map(String);
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      for (const [path, name, code] of [
         [
           `/catalog/teachers/${teacher.id}`,
           locale === "zh-cn" ? teacher.nameCn : teacher.nameEn,
@@ -700,13 +951,21 @@ test("permission-ui.identity-4", { tag: "@Catalog/Web" }, async ({
           expect(await page.title()).not.toContain(id);
       }
     }
+  });
+});
+
+test("permission-ui.identity-4 Account Web", { tag: "@Account/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { user } = fixture;
     await page
       .context()
       .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
-    for (const path of [
-      "/account/settings",
-      `/community/users/${user.username}`,
-    ]) {
+    for (const path of ["/account/settings"]) {
       await gotoAndWaitForReady(page, path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       expect(await page.locator("#main-content").innerText()).not.toContain(
@@ -714,6 +973,42 @@ test("permission-ui.identity-4", { tag: "@Catalog/Web" }, async ({
       );
       expect(await page.title()).not.toContain(user.id);
     }
+  });
+});
+
+test("permission-ui.identity-4 User Web", { tag: "@User/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { user } = fixture;
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+    for (const path of [`/community/users/${user.username}`]) {
+      await gotoAndWaitForReady(page, path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      expect(await page.locator("#main-content").innerText()).not.toContain(
+        user.id,
+      );
+      expect(await page.title()).not.toContain(user.id);
+    }
+  });
+});
+
+test("permission-ui.identity-4 Course REST", { tag: "@Course/REST" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { course, user } = fixture;
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
     const courseResponse = await preferenceFlow.http(() =>
       page.request.get(`/api/catalog/courses/${course.jwId}`, {
         headers: preferenceFlow.headers,
@@ -724,6 +1019,20 @@ test("permission-ui.identity-4", { tag: "@Catalog/Web" }, async ({
       jwId: course.jwId,
       code: course.code,
     });
+  });
+});
+
+test("permission-ui.identity-4 Section REST", { tag: "@Section/REST" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { section, user } = fixture;
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
     const sectionResponse = await preferenceFlow.http(() =>
       page.request.get(`/api/catalog/sections/${section.jwId}`, {
         headers: preferenceFlow.headers,
@@ -738,7 +1047,7 @@ test("permission-ui.identity-4", { tag: "@Catalog/Web" }, async ({
 });
 
 test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
-  tag: "@Catalog/Web",
+  tag: "@Section/Web",
 }, async ({ preferenceFlow, isolatedWorker, page }) => {
   await preferenceFlow.run(async () => {
     const fixture = await createFixture(isolatedWorker.database.owner);
@@ -786,6 +1095,32 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
       expect(await page.locator("#main-content").innerText()).not.toMatch(
         /取消|cancelled|canceled/i,
       );
+    }
+  });
+});
+
+test("cases.missing-data.section-missing-teacher-location-or-exam-1 REST", {
+  tag: "@Section/REST",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    await isolatedWorker.database.owner.$transaction((db) =>
+      db.section.update({
+        where: { id: fixture.section.id },
+        data: { teachers: { set: [] } },
+      }),
+    );
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
       const response = await preferenceFlow.http(() =>
         page.request.get(`/api/catalog/sections/${fixture.section.jwId}`, {
           headers: preferenceFlow.headers,
@@ -995,7 +1330,7 @@ for (const [domain, method] of [
 }
 
 test("cases.disambiguation.duplicate-course-names-1", {
-  tag: "@Catalog/Web",
+  tag: "@Course/Web",
 }, async ({ preferenceFlow, isolatedWorker, page }) => {
   await preferenceFlow.run(async () => {
     const fixture = await createFixture(isolatedWorker.database.owner);
@@ -1044,6 +1379,43 @@ test("cases.disambiguation.duplicate-course-names-1", {
             row.locator(`a[href="/catalog/courses/${course.jwId}"]`),
           ).toBeVisible();
         }
+      }
+    }
+  });
+});
+
+test("cases.disambiguation.duplicate-course-names-1 Search", {
+  tag: "@Search/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const second = await isolatedWorker.database.owner.$transaction((db) =>
+      db.course.create({
+        data: {
+          id: fixture.course.id + 6,
+          jwId: fixture.course.jwId + 6,
+          code: `${fixture.course.code}-OTHER`,
+          nameCn: fixture.course.nameCn,
+          nameEn: fixture.course.nameEn,
+        },
+      }),
+    );
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      const name =
+        locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+      if (!name) throw new Error("Missing fixture course name");
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(
           page,
           `/search?q=${encodeURIComponent(fixture.course.nameCn)}`,
@@ -1064,52 +1436,20 @@ test("cases.disambiguation.duplicate-course-names-1", {
 });
 
 subscriptionTest(
-  "cases.disambiguation.multiple-sections-same-course-1",
-  { tag: "@Catalog/Web" },
+  "cases.disambiguation.multiple-sections-same-course-1 Search Web",
+  { tag: "@Search/Web" },
   async ({ page, isolatedWorker, run, catalogSubscriptionRun }, testInfo) => {
     subscriptionTest.setTimeout(60_000);
     const db = isolatedWorker.database.owner;
-    const { fixture, current, previous, sections } = await run(async () => {
-      const fixture = await createFixture(db);
-      return db.$transaction(async (db) => {
-        const current = await db.semester.create({
-          data: { jwId: 9_900_001, code: "421", nameCn: "2026年春季学期" },
-        });
-        const previous = await db.semester.create({
-          data: { jwId: 9_900_000, code: "420", nameCn: "2025年秋季学期" },
-        });
-        const sections = [];
-        for (const [index, semester] of [
-          current,
-          current,
-          previous,
-        ].entries()) {
-          sections.push(
-            await db.section.create({
-              data: {
-                id: fixture.section.id + 2 * (index + 1),
-                jwId: fixture.section.jwId + 2 * (index + 1),
-                code: `${fixture.course.code}.0${index + 2}`,
-                courseId: fixture.course.id,
-                semesterId: semester.id,
-              },
-            }),
-          );
-        }
-        return { fixture, current, previous, sections };
-      });
-    });
+    const { fixture, current, previous, sections } = await run(() =>
+      createMultipleSectionsFixture(db),
+    );
     await catalogSubscriptionRun(
       fixture.user,
       {
-        calendarTokenCreated: true,
-        calendarMessages: Array.from({ length: 2 }, () => ({
-          type: "user" as const,
-          userId: fixture.user.id,
-        })),
+        calendarMessages: [],
       },
       async (effects) => {
-        let completedImports = 0;
         for (const locale of ["zh-cn", "en-us"]) {
           expect(
             (
@@ -1152,6 +1492,39 @@ subscriptionTest(
             }
             await expect(result).toContainText(semesterLabel);
           }
+        }
+      },
+    );
+  },
+);
+
+subscriptionTest(
+  "cases.disambiguation.multiple-sections-same-course-1 Course Web",
+  { tag: "@Course/Web" },
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+    subscriptionTest.setTimeout(60_000);
+    const db = isolatedWorker.database.owner;
+    const { fixture, current, previous, sections } = await run(() =>
+      createMultipleSectionsFixture(db),
+    );
+    await catalogSubscriptionRun(
+      fixture.user,
+      {
+        calendarMessages: [],
+      },
+      async (effects) => {
+        for (const locale of ["zh-cn", "en-us"]) {
+          expect(
+            (
+              await page.request.post("/api/account/preferences", {
+                headers: effects.headers,
+                data: { locale },
+              })
+            ).status(),
+          ).toBe(200);
+          const name =
+            locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+          if (!name) throw new Error("Missing localized course name");
           for (const width of [1280, 390]) {
             await page.setViewportSize({ width, height: 900 });
             await gotoAndWaitForReady(
@@ -1188,6 +1561,37 @@ subscriptionTest(
               );
             }
           }
+        }
+      },
+    );
+  },
+);
+
+subscriptionTest(
+  "cases.disambiguation.multiple-sections-same-course-1 Course REST",
+  { tag: "@Course/REST" },
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+    subscriptionTest.setTimeout(60_000);
+    const db = isolatedWorker.database.owner;
+    const { fixture } = await run(() => createMultipleSectionsFixture(db));
+    await catalogSubscriptionRun(
+      fixture.user,
+      {
+        calendarMessages: [],
+      },
+      async (effects) => {
+        for (const locale of ["zh-cn", "en-us"]) {
+          expect(
+            (
+              await page.request.post("/api/account/preferences", {
+                headers: effects.headers,
+                data: { locale },
+              })
+            ).status(),
+          ).toBe(200);
+          const name =
+            locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+          if (!name) throw new Error("Missing localized course name");
           const courseResponse = await page.request.get(
             `/api/catalog/courses/${fixture.course.jwId}`,
             { headers: effects.headers },
@@ -1196,6 +1600,44 @@ subscriptionTest(
           const coursePayload = await courseResponse.json();
           expect(Object.hasOwn(coursePayload, "semester")).toBe(false);
           expect(Object.hasOwn(coursePayload, "semesterId")).toBe(false);
+        }
+      },
+    );
+  },
+);
+
+subscriptionTest(
+  "cases.disambiguation.multiple-sections-same-course-1 Subscription Web",
+  { tag: "@Subscription/Web" },
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+    subscriptionTest.setTimeout(60_000);
+    const db = isolatedWorker.database.owner;
+    const { fixture, current, sections } = await run(() =>
+      createMultipleSectionsFixture(db),
+    );
+    await catalogSubscriptionRun(
+      fixture.user,
+      {
+        calendarTokenCreated: true,
+        calendarMessages: Array.from({ length: 2 }, () => ({
+          type: "user" as const,
+          userId: fixture.user.id,
+        })),
+      },
+      async (effects) => {
+        let completedImports = 0;
+        for (const locale of ["zh-cn", "en-us"]) {
+          expect(
+            (
+              await page.request.post("/api/account/preferences", {
+                headers: effects.headers,
+                data: { locale },
+              })
+            ).status(),
+          ).toBe(200);
+          const name =
+            locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+          if (!name) throw new Error("Missing localized course name");
           await page
             .context()
             .addCookies([

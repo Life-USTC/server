@@ -1,4 +1,8 @@
-import { test } from "../../../../utils/catalog-detail-fixture";
+import type { TestPrismaClient } from "../../../../../shared/prisma";
+import {
+  type arrangeDetailCatalog,
+  test,
+} from "../../../../utils/catalog-detail-fixture";
 /**
  * E2E tests for /teachers/[id] — Teacher Detail Page
  *
@@ -82,8 +86,33 @@ async function jumpToTeacherSection(
   await expect(page.locator(selector)).toBeVisible();
 }
 
+async function expectDetailCatalogUnchanged(
+  db: TestPrismaClient,
+  catalog: Awaited<ReturnType<typeof arrangeDetailCatalog>>,
+  assignments: Awaited<
+    ReturnType<TestPrismaClient["sectionTeacher"]["findMany"]>
+  >,
+) {
+  const { course, teacher, section, semester, campus } = catalog;
+  // run owns these observations after preferenceFlow drains native reads.
+  expect(await db.course.findMany()).toEqual([course]);
+  expect(await db.teacher.findMany()).toEqual([teacher]);
+  expect(await db.semester.findMany()).toEqual([semester]);
+  expect(await db.campus.findMany()).toEqual([campus]);
+  expect(
+    await db.section.findMany({
+      include: { teachers: { select: { id: true } } },
+    }),
+  ).toEqual([{ ...section, teachers: [{ id: teacher.id }] }]);
+  expect(await db.sectionTeacher.findMany()).toEqual(assignments);
+  expect(await db.user.findMany()).toEqual([]);
+  expect(await db.session.findMany()).toEqual([]);
+  expect(await db.userSectionSubscription.findMany()).toEqual([]);
+  expect(await db.auditLog.findMany()).toEqual([]);
+}
+
 test.describe("/catalog/teachers/[id] 教师详情页", () => {
-  test("页面契约", { tag: "@Catalog/Web" }, async ({
+  test("页面契约", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -95,7 +124,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("无效参数返回 404", { tag: "@Catalog/Web" }, async ({
+  test("无效参数返回 404", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -112,7 +141,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("标题中显示教师主名称", { tag: "@Catalog/Web" }, async ({
+  test("标题中显示教师主名称", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -139,7 +168,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("常规界面不显示内部教师 ID", { tag: "@Catalog/Web" }, async ({
+  test("常规界面不显示内部教师 ID", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -155,7 +184,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("基本信息中显示院系、职称与邮箱", { tag: "@Catalog/Web" }, async ({
+  test("基本信息中显示院系、职称与邮箱", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -183,12 +212,12 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("catalog.consume-course-teacher-section-identity", {
-    tag: "@Catalog/Web",
+  test("course.consume-section-identity", {
+    tag: "@Course/Web",
   }, async ({ page, preferenceFlow, detailCatalog, isolatedWorker, run }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
-      const { course, teacher, section, semester, campus } = detailCatalog;
+      const { course, teacher, section } = detailCatalog;
       const sectionPath = `/catalog/sections/${section.jwId}`;
       const assignments = await db.sectionTeacher.findMany();
       expect(assignments).toEqual([
@@ -261,6 +290,26 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expectSectionDetailReady();
           expect(new URL(page.url()).pathname).toBe(sectionPath);
         });
+      });
+      await expectDetailCatalogUnchanged(db, detailCatalog, assignments);
+    });
+  });
+
+  test("teacher.consume-section-identity", {
+    tag: "@Teacher/Web",
+  }, async ({ page, preferenceFlow, detailCatalog, isolatedWorker, run }) => {
+    await run(async () => {
+      const db = isolatedWorker.database.owner;
+      const { teacher, section } = detailCatalog;
+      const sectionPath = `/catalog/sections/${section.jwId}`;
+      const assignments = await db.sectionTeacher.findMany();
+      expect(assignments).toEqual([
+        expect.objectContaining({
+          sectionId: section.id,
+          teacherId: teacher.id,
+        }),
+      ]);
+      await preferenceFlow.run(async () => {
         await test.step("Teacher to section", async () => {
           await navigateToSeedTeacher(page);
           await jumpToTeacherSection(
@@ -305,27 +354,13 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           expect(new URL(page.url()).pathname).toBe(sectionPath);
         });
       });
-      // run owns these observations after preferenceFlow drains native reads.
-      expect(await db.course.findMany()).toEqual([course]);
-      expect(await db.teacher.findMany()).toEqual([teacher]);
-      expect(await db.semester.findMany()).toEqual([semester]);
-      expect(await db.campus.findMany()).toEqual([campus]);
-      expect(
-        await db.section.findMany({
-          include: { teachers: { select: { id: true } } },
-        }),
-      ).toEqual([{ ...section, teachers: [{ id: teacher.id }] }]);
-      expect(await db.sectionTeacher.findMany()).toEqual(assignments);
-      expect(await db.user.findMany()).toEqual([]);
-      expect(await db.session.findMany()).toEqual([]);
-      expect(await db.userSectionSubscription.findMany()).toEqual([]);
-      expect(await db.auditLog.findMany()).toEqual([]);
+      await expectDetailCatalogUnchanged(db, detailCatalog, assignments);
     });
   });
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", { tag: "@Catalog/Web" }, async ({
+  test("详情流式布局包含主要锚点区块", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -347,7 +382,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     });
   });
 
-  test("移动端教师标题与流式区块保持紧凑", { tag: "@Catalog/Web" }, async ({
+  test("移动端教师标题与流式区块保持紧凑", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -547,7 +582,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   );
 });
 
-test("页面契约", { tag: "@Catalog/Web" }, async ({
+test("页面契约", { tag: "@Teacher/Web" }, async ({
   page,
   preferenceFlow,
   detailCatalog: _detailCatalog,
