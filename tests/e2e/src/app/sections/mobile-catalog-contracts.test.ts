@@ -53,7 +53,7 @@ async function reachable(locator: Locator) {
 
 test(
   "course.mobile-detail-hierarchy",
-  { tag: "@Catalog/Web" },
+  { tag: "@Course/Web" },
   async (
     { page, mobile: { fixture, user }, catalogSubscriptionRun },
     testInfo,
@@ -114,7 +114,7 @@ test(
 
 test(
   "teacher.mobile-detail-hierarchy",
-  { tag: "@Catalog/Web" },
+  { tag: "@Teacher/Web" },
   async (
     { page, mobile: { fixture, user }, catalogSubscriptionRun },
     testInfo,
@@ -182,7 +182,7 @@ test(
 
 test(
   "section.mobile-detail-actions",
-  { tag: "@Catalog/Web" },
+  { tag: "@Section/Web" },
   async (
     { page, mobile: { fixture, user }, catalogSubscriptionRun },
     testInfo,
@@ -265,94 +265,109 @@ async function actionBarAboveNavigation(page: Page) {
   }
   return bar;
 }
-test(
-  "section.mobile-sticky-actions",
-  { tag: "@Catalog/Web" },
-  async (
-    {
-      page,
-      mobile: { fixture, user },
-      catalogSubscriptionRun,
-      isolatedWorker,
-      mobileDb,
-    },
-    testInfo,
-  ) => {
-    await catalogSubscriptionRun(
-      user,
+for (const domain of ["Calendar", "Subscription"] as const) {
+  test(
+    `section.mobile-sticky-actions ${domain}`,
+    { tag: `@${domain}/Web` },
+    async (
       {
-        calendarMessages: Array.from({ length: 4 }, () => ({
-          type: "user" as const,
-          userId: user.id,
-        })),
+        page,
+        mobile: { fixture, user },
+        catalogSubscriptionRun,
+        isolatedWorker,
+        mobileDb,
       },
-      async (effects) => {
-        await page
-          .context()
-          .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
-        await locale(page, "zh-cn", effects.headers);
-        for (const width of [320, 390]) {
-          await page.setViewportSize({ width, height: 844 });
-          await gotoAndWaitForReady(
-            page,
-            `/catalog/sections/${fixture.sections[0].jwId}`,
-          );
-          await actionBarAboveNavigation(page);
-          await page.evaluate(() => {
-            document
-              .querySelectorAll("[data-detail-scroll-container]")
-              .forEach((element) => {
-                element.scrollTop = element.scrollHeight;
-              });
-            window.scrollTo(0, document.documentElement.scrollHeight);
-          });
-          const bar = await actionBarAboveNavigation(page);
-          await page.screenshot({
-            path: testInfo.outputPath(`sticky-actions-${width}.png`),
-          });
-          await bar
-            .getByRole("button", { name: "添加到日历", exact: true })
-            .click();
-          await expect(page.getByRole("dialog")).toBeVisible();
-          await page.keyboard.press("Escape");
-          await expect(page.getByRole("dialog")).toHaveCount(0);
-          await bar
-            .getByRole("button", { name: "订阅教学班", exact: true })
-            .click();
-          const dialog = page.getByRole("dialog");
-          await expect(dialog).toBeVisible();
-          await dialog
-            .getByRole("button", { name: "订阅教学班", exact: true })
-            .click();
-          await expect(
-            bar.getByRole("button", { name: "取消订阅", exact: true }),
-          ).toBeVisible();
-          await expect
-            .poll(() =>
-              mobileDb((db) =>
-                db.userSectionSubscription.count({
-                  where: { userId: user.id, sectionId: fixture.sections[0].id },
-                }),
-              ),
-            )
-            .toBe(1);
-          await bar
-            .getByRole("button", { name: "取消订阅", exact: true })
-            .click();
-          await expect(
-            bar.getByRole("button", { name: "订阅教学班", exact: true }),
-          ).toBeVisible();
-          await expect
-            .poll(() =>
-              mobileDb((db) =>
-                db.userSectionSubscription.count({
-                  where: { userId: user.id, sectionId: fixture.sections[0].id },
-                }),
-              ),
-            )
-            .toBe(0);
-        }
-      },
-    );
-  },
-);
+      testInfo,
+    ) => {
+      await catalogSubscriptionRun(
+        user,
+        {
+          calendarMessages: Array.from(
+            { length: domain === "Subscription" ? 4 : 0 },
+            () => ({
+              type: "user" as const,
+              userId: user.id,
+            }),
+          ),
+        },
+        async (effects) => {
+          await page
+            .context()
+            .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+          await locale(page, "zh-cn", effects.headers);
+          for (const width of [320, 390]) {
+            await page.setViewportSize({ width, height: 844 });
+            await gotoAndWaitForReady(
+              page,
+              `/catalog/sections/${fixture.sections[0].jwId}`,
+            );
+            await actionBarAboveNavigation(page);
+            await page.evaluate(() => {
+              document
+                .querySelectorAll("[data-detail-scroll-container]")
+                .forEach((element) => {
+                  element.scrollTop = element.scrollHeight;
+                });
+              window.scrollTo(0, document.documentElement.scrollHeight);
+            });
+            const bar = await actionBarAboveNavigation(page);
+            await page.screenshot({
+              path: testInfo.outputPath(`sticky-actions-${width}.png`),
+            });
+            if (domain === "Calendar") {
+              await bar
+                .getByRole("button", { name: "添加到日历", exact: true })
+                .click();
+              await expect(page.getByRole("dialog")).toBeVisible();
+              await page.keyboard.press("Escape");
+              await expect(page.getByRole("dialog")).toHaveCount(0);
+            }
+            if (domain === "Subscription") {
+              await bar
+                .getByRole("button", { name: "订阅教学班", exact: true })
+                .click();
+              const dialog = page.getByRole("dialog");
+              await expect(dialog).toBeVisible();
+              await dialog
+                .getByRole("button", { name: "订阅教学班", exact: true })
+                .click();
+              await expect(
+                bar.getByRole("button", { name: "取消订阅", exact: true }),
+              ).toBeVisible();
+              await expect
+                .poll(() =>
+                  mobileDb((db) =>
+                    db.userSectionSubscription.count({
+                      where: {
+                        userId: user.id,
+                        sectionId: fixture.sections[0].id,
+                      },
+                    }),
+                  ),
+                )
+                .toBe(1);
+              await bar
+                .getByRole("button", { name: "取消订阅", exact: true })
+                .click();
+              await expect(
+                bar.getByRole("button", { name: "订阅教学班", exact: true }),
+              ).toBeVisible();
+              await expect
+                .poll(() =>
+                  mobileDb((db) =>
+                    db.userSectionSubscription.count({
+                      where: {
+                        userId: user.id,
+                        sectionId: fixture.sections[0].id,
+                      },
+                    }),
+                  ),
+                )
+                .toBe(0);
+            }
+          }
+        },
+      );
+    },
+  );
+}

@@ -161,7 +161,7 @@ for (const [domain, method] of [
   ["Subscription", "REST"],
   ["Subscription", "GraphQL"],
   ["Subscription", "MCP"],
-  ["Catalog", "REST"],
+  ["Schedule", "REST"],
   ["Exam", "REST"],
   ["Homework", "REST"],
   ["Calendar", "REST"],
@@ -202,7 +202,7 @@ for (const [domain, method] of [
           }
           const params = `userId=${foreign.users[0].id}&dateFrom=${own.date}&dateTo=${own.activityDate}`;
           for (const [path, key, owner] of [
-            ["schedules", "schedules", "Catalog"],
+            ["schedules", "schedules", "Schedule"],
             ["exams", "data", "Exam"],
             ["homeworks", "data", "Homework"],
           ] as const) {
@@ -383,7 +383,7 @@ for (const [domain, method] of [
   ["Subscription", "Web"],
   ["Subscription", "REST"],
   ["Subscription", "GraphQL"],
-  ["Catalog", "REST"],
+  ["Schedule", "REST"],
   ["Exam", "REST"],
   ["Homework", "REST"],
   ["Calendar", "REST"],
@@ -403,7 +403,7 @@ for (const [domain, method] of [
       if (method === "REST")
         for (const [path, owner] of [
           ["subscriptions/current", "Subscription"],
-          ["schedules", "Catalog"],
+          ["schedules", "Schedule"],
           ["exams", "Exam"],
           ["homeworks", "Homework"],
           ["calendar/events", "Calendar"],
@@ -443,7 +443,7 @@ for (const role of ["regular", "suspended admin"] as const) {
     ["Calendar", "Web"],
     ["Overview", "Web"],
     ["Subscription", "REST"],
-    ["Catalog", "REST"],
+    ["Schedule", "REST"],
     ["Exam", "REST"],
     ["Homework", "REST"],
     ["Calendar", "REST"],
@@ -480,7 +480,7 @@ for (const role of ["regular", "suspended admin"] as const) {
           });
         }
         for (const [path, key, owner] of [
-          ["schedules", "schedules", "Catalog"],
+          ["schedules", "schedules", "Schedule"],
           ["exams", "data", "Exam"],
           ["homeworks", "data", "Homework"],
         ] as const) {

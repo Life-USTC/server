@@ -124,7 +124,7 @@ test.describe("视觉回归基线矩阵", () => {
       } else if (screen.id === "catalog-courses") {
         test(
           `${screen.id} / ${locale}`,
-          { tag: "@Catalog/Web" },
+          { tag: "@Course/Web" },
           async ({ baseURL, page, catalog: _catalog }) => verify(page, baseURL),
         );
       } else {

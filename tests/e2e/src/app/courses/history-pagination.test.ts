@@ -173,13 +173,13 @@ async function verifyHistory(
 
 test(
   "course.bounded-detail-history",
-  { tag: "@Catalog/Web" },
+  { tag: "@Course/Web" },
   async ({ page, isolatedWorker, catalogFlow }) =>
     verifyHistory(page, "course", isolatedWorker, catalogFlow),
 );
 test(
   "teacher.bounded-detail-history",
-  { tag: "@Catalog/Web" },
+  { tag: "@Teacher/Web" },
   async ({ page, isolatedWorker, catalogFlow }) =>
     verifyHistory(page, "teacher", isolatedWorker, catalogFlow),
 );

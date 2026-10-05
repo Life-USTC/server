@@ -115,109 +115,121 @@ async function resultText(page: Page) {
   return page.locator("#main-content").innerText();
 }
 
-test("ui.list-table-3", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  isolatedWorker,
-}) => {
-  await preferenceFlow.run(async () => {
-    for (const fixture of await cases(isolatedWorker.database.owner)) {
-      await gotoAndWaitForReady(page, fixture.route);
-      const dialog = await openCatalogFilterSheet(page);
-      await expect(page.getByRole("dialog")).toHaveCount(1);
-      await expect(dialog).toHaveAccessibleName(/筛选|Filter/i);
-      await expect(dialog.locator("form")).toHaveCount(1);
-      const fields = dialog.locator(
-        'select[name], input:not([type="hidden"])[name]',
-      );
-      expect(
-        await fields.evaluateAll((nodes) =>
-          nodes.map((node) => node.getAttribute("name")).sort(),
-        ),
-      ).toEqual(Object.keys(fixture.filters).sort());
-      for (const name of Object.keys(fixture.filters)) {
-        await expect(dialog.locator(`[name="${name}"]`)).toHaveAccessibleName(
-          /.+/,
-        );
-      }
-      await expect(
-        dialog.getByRole("button", { name: /应用筛选|Apply filters/i }),
-      ).toBeVisible();
-      const close = dialog.getByRole("button", { name: "Close", exact: true });
-      await expect(close).toBeVisible();
-      await close.click();
-      await expect(dialog).toBeHidden();
-    }
-  });
-});
-
-test("ui.list-table-4", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  isolatedWorker,
-}) => {
-  await preferenceFlow.run(async () => {
-    for (const fixture of await cases(isolatedWorker.database.owner)) {
-      const query = new URLSearchParams({
-        search: fixture.search,
-        ...fixture.filters,
-      });
-      await gotoAndWaitForReady(page, `${fixture.route}?${query}`);
-      const beforeUrl = page.url();
-      const beforeResults = await resultText(page);
-      expect(beforeResults).toContain(fixture.result);
-      for (const dismissal of ["button", "escape"]) {
+for (const domain of ["Course", "Section", "Teacher"] as const) {
+  test(`ui.list-table-3 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    preferenceFlow,
+    isolatedWorker,
+  }) => {
+    await preferenceFlow.run(async () => {
+      for (const fixture of await cases(isolatedWorker.database.owner)) {
+        if (fixture.route !== `/catalog/${domain.toLowerCase()}s`) continue;
+        await gotoAndWaitForReady(page, fixture.route);
         const dialog = await openCatalogFilterSheet(page);
-        for (const [name, value] of Object.entries(fixture.filters)) {
-          await expect(dialog.locator(`[name="${name}"]`)).toHaveValue(value);
-          await setDraft(
-            dialog,
-            name,
-            name === "sort" ? "code" : name === "order" ? "asc" : "",
+        await expect(page.getByRole("dialog")).toHaveCount(1);
+        await expect(dialog).toHaveAccessibleName(/筛选|Filter/i);
+        await expect(dialog.locator("form")).toHaveCount(1);
+        const fields = dialog.locator(
+          'select[name], input:not([type="hidden"])[name]',
+        );
+        expect(
+          await fields.evaluateAll((nodes) =>
+            nodes.map((node) => node.getAttribute("name")).sort(),
+          ),
+        ).toEqual(Object.keys(fixture.filters).sort());
+        for (const name of Object.keys(fixture.filters)) {
+          await expect(dialog.locator(`[name="${name}"]`)).toHaveAccessibleName(
+            /.+/,
           );
         }
-        if (dismissal === "button")
-          await dialog
-            .getByRole("button", { name: "Close", exact: true })
-            .click();
-        else await page.keyboard.press("Escape");
+        await expect(
+          dialog.getByRole("button", { name: /应用筛选|Apply filters/i }),
+        ).toBeVisible();
+        const close = dialog.getByRole("button", {
+          name: "Close",
+          exact: true,
+        });
+        await expect(close).toBeVisible();
+        await close.click();
         await expect(dialog).toBeHidden();
-        expect(page.url()).toBe(beforeUrl);
-        expect(await resultText(page)).toBe(beforeResults);
       }
-    }
+    });
   });
-});
+}
 
-test("ui.list-table-5", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  isolatedWorker,
-}) => {
-  await preferenceFlow.run(async () => {
-    for (const fixture of await cases(isolatedWorker.database.owner)) {
-      await gotoAndWaitForReady(
-        page,
-        `${fixture.route}?${new URLSearchParams({ search: fixture.search, page: "2" })}`,
-      );
-      const dialog = await openCatalogFilterSheet(page);
-      for (const [name, value] of Object.entries(fixture.filters))
-        await setDraft(dialog, name, value);
-      await dialog
-        .getByRole("button", { name: /应用筛选|Apply filters/i })
-        .click();
-      await expect(dialog).toBeHidden();
-      await expect
-        .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
-        .toEqual({ search: fixture.search, ...fixture.filters });
-      expect(await resultText(page)).toContain(fixture.result);
-      const changedSearch = fixture.result;
-      await page.getByRole("searchbox").fill(changedSearch);
-      await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-      await expect
-        .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
-        .toEqual({ search: changedSearch, ...fixture.filters });
-      expect(await resultText(page)).toContain(fixture.result);
-    }
+for (const domain of ["Course", "Section", "Teacher"] as const) {
+  test(`ui.list-table-4 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    preferenceFlow,
+    isolatedWorker,
+  }) => {
+    await preferenceFlow.run(async () => {
+      for (const fixture of await cases(isolatedWorker.database.owner)) {
+        if (fixture.route !== `/catalog/${domain.toLowerCase()}s`) continue;
+        const query = new URLSearchParams({
+          search: fixture.search,
+          ...fixture.filters,
+        });
+        await gotoAndWaitForReady(page, `${fixture.route}?${query}`);
+        const beforeUrl = page.url();
+        const beforeResults = await resultText(page);
+        expect(beforeResults).toContain(fixture.result);
+        for (const dismissal of ["button", "escape"]) {
+          const dialog = await openCatalogFilterSheet(page);
+          for (const [name, value] of Object.entries(fixture.filters)) {
+            await expect(dialog.locator(`[name="${name}"]`)).toHaveValue(value);
+            await setDraft(
+              dialog,
+              name,
+              name === "sort" ? "code" : name === "order" ? "asc" : "",
+            );
+          }
+          if (dismissal === "button")
+            await dialog
+              .getByRole("button", { name: "Close", exact: true })
+              .click();
+          else await page.keyboard.press("Escape");
+          await expect(dialog).toBeHidden();
+          expect(page.url()).toBe(beforeUrl);
+          expect(await resultText(page)).toBe(beforeResults);
+        }
+      }
+    });
   });
-});
+}
+
+for (const domain of ["Course", "Section", "Teacher"] as const) {
+  test(`ui.list-table-5 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    preferenceFlow,
+    isolatedWorker,
+  }) => {
+    await preferenceFlow.run(async () => {
+      for (const fixture of await cases(isolatedWorker.database.owner)) {
+        if (fixture.route !== `/catalog/${domain.toLowerCase()}s`) continue;
+        await gotoAndWaitForReady(
+          page,
+          `${fixture.route}?${new URLSearchParams({ search: fixture.search, page: "2" })}`,
+        );
+        const dialog = await openCatalogFilterSheet(page);
+        for (const [name, value] of Object.entries(fixture.filters))
+          await setDraft(dialog, name, value);
+        await dialog
+          .getByRole("button", { name: /应用筛选|Apply filters/i })
+          .click();
+        await expect(dialog).toBeHidden();
+        await expect
+          .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
+          .toEqual({ search: fixture.search, ...fixture.filters });
+        expect(await resultText(page)).toContain(fixture.result);
+        const changedSearch = fixture.result;
+        await page.getByRole("searchbox").fill(changedSearch);
+        await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await expect
+          .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
+          .toEqual({ search: changedSearch, ...fixture.filters });
+        expect(await resultText(page)).toContain(fixture.result);
+      }
+    });
+  });
+}

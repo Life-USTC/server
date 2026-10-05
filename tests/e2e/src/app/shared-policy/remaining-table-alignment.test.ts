@@ -68,7 +68,7 @@ for (const [domain, names] of [
   ["Upload", ["uploads"]],
   ["Homework", ["section-homeworks", "homeworks"]],
   ["Exam", ["section-exams", "exams"]],
-  ["Catalog", ["section-calendar"]],
+  ["Schedule", ["section-calendar"]],
   ["Todo", ["todos"]],
   ["Subscription", ["subscriptions"]],
   ["CatalogLink", ["signed-links"]],

@@ -9,7 +9,9 @@ import {
 } from "./semester-presentation-fixture";
 
 for (const domain of [
-  "Catalog",
+  "Course",
+  "Teacher",
+  "Section",
   "Subscription",
   "Exam",
   "Homework",
@@ -117,8 +119,13 @@ for (const domain of [
               "/workspace/subscriptions",
             ]) {
               if (
-                (route.startsWith("/catalog/") ? "Catalog" : "Subscription") !==
-                domain
+                (route.startsWith("/catalog/courses/")
+                  ? "Course"
+                  : route.startsWith("/catalog/teachers/")
+                    ? "Teacher"
+                    : route.startsWith("/catalog/sections")
+                      ? "Section"
+                      : "Subscription") !== domain
               )
                 continue;
               await gotoAndWaitForReady(page, route);
@@ -132,7 +139,7 @@ for (const domain of [
                   label,
                 );
             }
-            if (domain === "Catalog") {
+            if (domain === "Section") {
               await gotoAndWaitForReady(
                 page,
                 `/catalog/sections?courseCode=${marker}`,

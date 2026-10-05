@@ -41,7 +41,7 @@ async function useChineseLocale(page: Page) {
 }
 
 test.describe("/catalog/sections 班级搜索页", () => {
-  test("页面契约", { tag: "@Catalog/Web" }, async ({
+  test("页面契约", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -54,7 +54,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
   });
 
   test("无匹配班级时显示明确空状态且不渲染结果链接", {
-    tag: "@Catalog/Web",
+    tag: "@Section/Web",
   }, async ({ page, preferenceFlow, searchSection: _searchSection }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
@@ -74,7 +74,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("SSR 输出包含搜索查询", { tag: "@Catalog/Web" }, async ({
+  test("SSR 输出包含搜索查询", { tag: "@Section/Web" }, async ({
     baseURL,
     preferenceFlow,
     searchSection: _searchSection,
@@ -94,7 +94,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("移动端卡片可点击并导航到详情", { tag: "@Catalog/Web" }, async ({
+  test("移动端卡片可点击并导航到详情", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -198,7 +198,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("英文界面本地化班级列表名称", { tag: "@Catalog/Web" }, async ({
+  test("英文界面本地化班级列表名称", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -232,7 +232,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("280 至 375 像素窄屏筛选与帮助不溢出", { tag: "@Catalog/Web" }, async ({
+  test("280 至 375 像素窄屏筛选与帮助不溢出", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -364,7 +364,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("中文目录在桌面宽度下不裁切或横向溢出", { tag: "@Catalog/Web" }, async ({
+  test("中文目录在桌面宽度下不裁切或横向溢出", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -567,7 +567,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("结构化筛选、高级语法与清除", { tag: "@Catalog/Web" }, async ({
+  test("结构化筛选、高级语法与清除", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -612,7 +612,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("学期筛选保留种子数据结果", { tag: "@Catalog/Web" }, async ({
+  test("学期筛选保留种子数据结果", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,

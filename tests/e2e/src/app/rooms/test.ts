@@ -81,7 +81,7 @@ async function mockRoomMap(page: Page) {
 }
 
 test.describe("/catalog/rooms 教室地图", () => {
-  test("页面契约", { tag: "@Catalog/Web" }, async ({
+  test("页面契约", { tag: "@RoomMap/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -90,7 +90,7 @@ test.describe("/catalog/rooms 教室地图", () => {
     });
   });
 
-  test("room-map.expanded-map-view", { tag: "@Catalog/Web" }, async ({
+  test("room-map.expanded-map-view", { tag: "@RoomMap/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -120,7 +120,7 @@ test.describe("/catalog/rooms 教室地图", () => {
     });
   });
 
-  test("room-map.web", { tag: "@Catalog/Web" }, async ({
+  test("room-map.web", { tag: "@RoomMap/Web" }, async ({
     page,
     preferenceFlow,
     roomSchedule: _roomSchedule,
@@ -150,7 +150,7 @@ test.describe("/catalog/rooms 教室地图", () => {
       await expect(trigger).toBeFocused();
     });
   });
-  test("room-map.keyboard-map-access", { tag: "@Catalog/Web" }, async ({
+  test("room-map.keyboard-map-access", { tag: "@RoomMap/Web" }, async ({
     page,
     preferenceFlow,
     roomSchedule: _roomSchedule,
@@ -173,7 +173,7 @@ test.describe("/catalog/rooms 教室地图", () => {
     });
   });
 
-  test("移动端点击房间后打开地图", { tag: "@Catalog/Web" }, async ({
+  test("移动端点击房间后打开地图", { tag: "@RoomMap/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -196,7 +196,7 @@ test.describe("/catalog/rooms 教室地图", () => {
       );
     });
   });
-  test("网络失败后再次查询同一教室会重试", { tag: "@Catalog/Web" }, async ({
+  test("网络失败后再次查询同一教室会重试", { tag: "@RoomMap/Web" }, async ({
     page,
     preferenceFlow,
   }) => {

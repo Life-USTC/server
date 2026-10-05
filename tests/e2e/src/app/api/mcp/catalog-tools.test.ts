@@ -8,7 +8,7 @@ import { test } from "./_fixture";
 import { parseTextContent } from "./helpers";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
-  for (const domain of ["Catalog", "Exam"] as const) {
+  for (const domain of ["Course", "Section", "Schedule", "Exam"] as const) {
     test(`种子工具：目录课程与教学班 ${domain}`, {
       tag: `@${domain}/MCP`,
     }, async ({ mcpRun }) => {
@@ -17,16 +17,20 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           calls:
             domain === "Exam"
               ? [["catalog_section_exam_list"]]
-              : [
-                  ["catalog_course_search"],
-                  ["catalog_section_get"],
-                  ["catalog_section_search"],
-                  ["catalog_section_schedule_list"],
-                  ["catalog_schedule_list"],
-                  ["catalog_section_match_preview"],
-                  ["catalog_section_match_preview"],
-                  ["catalog_section_get"],
-                ],
+              : domain === "Course"
+                ? [["catalog_course_search"]]
+                : domain === "Schedule"
+                  ? [
+                      ["catalog_section_schedule_list"],
+                      ["catalog_schedule_list"],
+                    ]
+                  : [
+                      ["catalog_section_get"],
+                      ["catalog_section_search"],
+                      ["catalog_section_match_preview"],
+                      ["catalog_section_match_preview"],
+                      ["catalog_section_get"],
+                    ],
           usage: [],
         },
         async ({ mcp: mcpClient, oauth, observeCalendar }) => {
@@ -41,7 +45,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             ]);
           const expectedCatalog = await readCatalog();
 
-          if (domain === "Catalog") {
+          if (domain === "Course") {
             const coursesResult = await mcpClient.callTool({
               name: "catalog_course_search",
               arguments: {
@@ -67,7 +71,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
                   course.namePrimary === facts.course.nameCn,
               ),
             ).toBe(true);
-
+          }
+          if (domain === "Section") {
             const sectionResult = await mcpClient.callTool({
               name: "catalog_section_get",
               arguments: {
@@ -117,6 +122,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             expect(filteredSectionsPayload.data?.[0]?.code).toBe(
               facts.section.code,
             );
+          }
+          if (domain === "Schedule") {
             const schedulesResult = await mcpClient.callTool({
               name: "catalog_section_schedule_list",
               arguments: {
@@ -191,7 +198,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             expect(examsPayload.section?.jwId).toBe(facts.section.jwId);
             expect((examsPayload.exams?.length ?? 0) > 0).toBe(true);
           }
-          if (domain === "Catalog") {
+          if (domain === "Section") {
             const matchSectionCodesResult = await mcpClient.callTool({
               name: "catalog_section_match_preview",
               arguments: {

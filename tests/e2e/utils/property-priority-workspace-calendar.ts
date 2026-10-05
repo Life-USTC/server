@@ -24,7 +24,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   locale: Locale,
   width: number,
   headers: Record<string, string>,
-  domain: "Catalog" | "Subscription",
+  domain: "Schedule" | "Subscription" | "Calendar",
 ) {
   const { catalog, section, schedule, room } = data;
   const main = page.locator("#main-content");
@@ -32,7 +32,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const teacherName = local(catalog.teachers[0], locale);
   const semester = locale === "en-us" ? "Fall 2026" : "2026年秋季学期";
   const roomName = local(room, locale);
-  if (domain === "Catalog") {
+  if (domain === "Schedule") {
     await gotoAndWaitForReady(
       page,
       `/catalog/sections/${section.jwId}#calendar`,
@@ -87,6 +87,12 @@ export async function checkWorkspaceCalendarPriorityViews(
         },
       },
     });
+  }
+  if (domain === "Calendar") {
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/sections/${section.jwId}#calendar`,
+    );
     await page
       .getByRole("button", { name: /^(添加到日历|Add to calendar)$/i })
       .first()

@@ -15,7 +15,7 @@ const subscriptionLabel =
 // private request finishes, so they do not use gotoAndWaitForReady.
 overlayTest(
   "section public content stays readable while personal actions await the viewer",
-  { tag: "@Catalog/Web" },
+  { tag: "@Subscription/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async (flow) => {
       await signInPrivateDebugUser(page, "/workspace");
@@ -64,7 +64,7 @@ overlayTest(
 
 searchTest(
   "section viewer failure disables personal actions and supports retry",
-  { tag: "@Catalog/Web" },
+  { tag: "@Subscription/Web" },
   async ({ preferenceFlow, searchSection: _searchSection, page }) => {
     await preferenceFlow.run(async () => {
       let requests = 0;
@@ -351,7 +351,7 @@ overlayTest(
 
 overlayTest(
   "logout clears section private controls on the same route",
-  { tag: "@Catalog/Web" },
+  { tag: "@Subscription/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async () => {
       await signInPrivateDebugUser(page, "/workspace");

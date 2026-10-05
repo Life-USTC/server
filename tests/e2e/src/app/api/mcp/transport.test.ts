@@ -74,7 +74,7 @@ test.describe("/api/mcp - 传输与授权", () => {
   });
 
   test("/api/mcp 未认证时可以调用公开 catalog 工具", {
-    tag: "@Catalog/MCP",
+    tag: "@Semester/MCP",
   }, async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const now = Date.now();

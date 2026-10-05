@@ -140,7 +140,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/courses",
-    domain: "Catalog",
+    domain: "Course",
     samplePath: "/catalog/courses",
     kind: "page",
     auth: "public",
@@ -148,7 +148,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/rooms",
-    domain: "Catalog",
+    domain: "RoomMap",
     samplePath: "/catalog/rooms",
     kind: "page",
     auth: "public",
@@ -204,7 +204,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/courses/[jwId]",
-    domain: "Catalog",
+    domain: "Course",
     samplePath: `/catalog/courses/${DEV_SEED.course.jwId}`,
     kind: "page",
     auth: "public",
@@ -212,7 +212,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/courses/[jwId]/[section]",
-    domain: "Catalog",
+    domain: "Course",
     samplePath: `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
     kind: "redirect",
     auth: "public",
@@ -227,7 +227,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/sections",
-    domain: "Catalog",
+    domain: "Section",
     samplePath: "/catalog/sections",
     kind: "page",
     auth: "public",
@@ -235,7 +235,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/sections/[jwId]",
-    domain: "Catalog",
+    domain: "Section",
     samplePath: `/catalog/sections/${DEV_SEED.section.jwId}`,
     kind: "page",
     auth: "public",
@@ -243,14 +243,14 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/sections/[jwId]/[section]",
-    domain: "Catalog",
+    domain: "Section",
     samplePath: `/catalog/sections/${DEV_SEED.section.jwId}/introduction`,
     kind: "redirect",
     auth: "public",
   },
   {
     routeId: "/catalog/teachers",
-    domain: "Catalog",
+    domain: "Teacher",
     samplePath: "/catalog/teachers",
     kind: "page",
     auth: "public",
@@ -258,14 +258,14 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   },
   {
     routeId: "/catalog/teachers/[id]",
-    domain: "Catalog",
+    domain: "Teacher",
     samplePath: "/catalog/teachers/[id]",
     kind: "page",
     auth: "public",
   },
   {
     routeId: "/catalog/teachers/[id]/[section]",
-    domain: "Catalog",
+    domain: "Teacher",
     samplePath: "/catalog/teachers/[id]/introduction",
     kind: "redirect",
     auth: "public",
