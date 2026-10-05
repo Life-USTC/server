@@ -13,7 +13,7 @@ vi.mock("@/lib/storage/r2-object", () => ({
 }));
 // The object spy belongs to this single-case isolated runner file. It does not
 // provide isolation for concurrent cases sharing the same module environment.
-it("user.avatar-current-reference", async ({
+it("user.avatar-current-reference", { tags: ["@User/REST"] }, async ({
   isolatedDatabase: { owner: db },
   protocolRuntime,
 }) => {

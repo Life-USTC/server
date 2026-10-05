@@ -3,7 +3,9 @@ import { setYoungEventSubscription } from "@/features/young/server/young-subscri
 import { youngWorkspaceTest as it } from "../shared/young-workspace-fixture";
 
 // This case owns the process-global network spy. Vitest isolates this file.
-it("young-workspace.subscription", async ({ young }) => {
+it("young-workspace.subscription", { tags: ["@Young/Service"] }, async ({
+  young,
+}) => {
   const { db: fixture, userId, youngId } = young;
   await young.runtime(async () => {
     const original = await fixture.youngEvent.findUniqueOrThrow({

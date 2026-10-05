@@ -112,10 +112,9 @@ const test = isolatedNodeTest.extend<{
 });
 
 describe("account activity isolation", () => {
-  test("本人安全活动只返回账户 allowlist，并对网络和设备脱敏", async ({
-    activityIdentity,
-    nodeRuntime,
-  }) => {
+  test("本人安全活动只返回账户 allowlist，并对网络和设备脱敏", {
+    tags: ["@Account/Service"],
+  }, async ({ activityIdentity, nodeRuntime }) => {
     const { userId } = activityIdentity;
     const activity = await nodeRuntime.run(() =>
       listOwnAccountSecurityActivity(userId),
@@ -132,10 +131,9 @@ describe("account activity isolation", () => {
     expect(activity[0]).not.toHaveProperty("userAgent");
   });
 
-  test("OAuth 客户端只能看到自身代表当前用户产生的安全投影", async ({
-    activityIdentity,
-    nodeRuntime,
-  }) => {
+  test("OAuth 客户端只能看到自身代表当前用户产生的安全投影", {
+    tags: ["@Account/Service"],
+  }, async ({ activityIdentity, nodeRuntime }) => {
     const { userId, clientId, grantId } = activityIdentity;
     const activity = await nodeRuntime.run(() =>
       listOAuthClientActivity({

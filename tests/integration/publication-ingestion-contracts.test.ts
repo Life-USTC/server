@@ -70,7 +70,9 @@ const it = nodeProtocolTest.extend("publication", async ({ protocolRuntime }) =>
   }),
 );
 
-it("publications.service-principal", async ({
+it("publications.service-principal", {
+  tags: ["@Publication/Service"],
+}, async ({
   publication,
   isolatedDatabase: { owner: db },
   protocolRuntime,
@@ -127,7 +129,9 @@ it("publications.service-principal", async ({
   });
 });
 
-it("publications.revision-ordering", async ({
+it("publications.revision-ordering", {
+  tags: ["@Publication/Service"],
+}, async ({
   publication,
   isolatedDatabase: { owner: db },
   protocolRuntime,
@@ -178,7 +182,7 @@ it("publications.revision-ordering", async ({
   });
 });
 
-it("publications.tombstones", async ({
+it("publications.tombstones", { tags: ["@Publication/Service"] }, async ({
   publication,
   isolatedDatabase: { owner: db },
   protocolRuntime,
@@ -214,7 +218,9 @@ it("publications.tombstones", async ({
   });
 });
 
-it("publications.partial-item-rejection", async ({
+it("publications.partial-item-rejection", {
+  tags: ["@Publication/Service"],
+}, async ({
   publication,
   isolatedDatabase: { owner: db },
   protocolRuntime,
@@ -246,7 +252,9 @@ it("publications.partial-item-rejection", async ({
   });
 });
 
-it("publications.source-registration", async ({
+it("publications.source-registration", {
+  tags: ["@Publication/Service"],
+}, async ({
   publication,
   isolatedDatabase: { owner: db },
   protocolRuntime,
@@ -307,7 +315,9 @@ it("publications.source-registration", async ({
   });
 });
 
-it("publications.reprint-fold-title-normalization", async ({
+it("publications.reprint-fold-title-normalization", {
+  tags: ["@Publication/Service"],
+}, async ({
   publication,
   isolatedDatabase: { owner: db },
   protocolRuntime,

@@ -50,6 +50,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_calendar_timeline_get 使用 atTime 返回种子窗口和正确范围",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -101,6 +102,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_calendar_timeline_get summary 兼容输入保持 default 数组结构",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -126,6 +128,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_deadline_list 使用 atTime 仅返回锚点之后的事件",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -168,6 +171,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_deadline_list 排除已开始考试",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -224,6 +228,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_deadline_list 将仅日期 atTime 视为上海天开始",
+    { tags: ["@Calendar/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -269,6 +274,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_overview_get 使用 atTime 反映种子日课程数及样本限制",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -340,6 +346,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_overview_get 将仅日期 atTime 视为上海天开始",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -379,6 +386,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_overview_get 遵守紧凑总览作业窗口",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -447,6 +455,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_overview_get summary 兼容输入与 default 结构和值一致",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const atTime = `${overviewPlusTwelveDays}T12:00:00+08:00`;
@@ -472,6 +481,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_overview_get 排除当天已结束的考试",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -526,6 +536,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   anchoredTimeTest(
     "workspace_overview_get 从未知日期考试中排除待考计数",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -585,6 +596,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 describe("workspace_snapshot_get — 默认模式紧凑性", () => {
   workspaceTest(
     "atTime 锚定下一节课、截止日期和事件",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const workspaceResult = await isolated.client.call<{
@@ -619,6 +631,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
 
   workspaceTest(
     "nextClass payload 中移除 scheduleGroup 和 roomType",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const workspaceResult = await isolated.client.call<{
@@ -660,6 +673,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
 
   workspaceTest(
     "summary 兼容输入与 default 返回相同结构",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const def = await isolated.client.callTool("workspace_snapshot_get", {
@@ -678,6 +692,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
 
   workspaceTest(
     "full 模式保留 default 的容器类型与合成键",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const full = await isolated.client.call<{
@@ -717,6 +732,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
 
   workspaceTest(
     "当前学期无关注班级时仍可按学期回溯往期数据",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         const db = isolatedDatabase.owner;
@@ -814,6 +830,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
 describe("workspace_schedule_next — 聚焦下一节课", () => {
   workspaceTest(
     "atTime 锚定下一节课并与 snapshot 一致",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const [snapshot, next] = await Promise.all([
@@ -857,6 +874,7 @@ describe("workspace_schedule_next — 聚焦下一节课", () => {
 
   workspaceTest(
     "default 模式紧凑化 nextClass payload",
+    { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const next = await isolated.client.call<{

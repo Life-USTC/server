@@ -61,6 +61,7 @@ const readerTest = isolatedMcpTest.extend(
 describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
   readerTest(
     "comment.mcp-markdown-projection",
+    { tags: ["@Comment/MCP"] },
     async ({ mcpWorkflow, state, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const { catalog, rootBody } = state;
@@ -162,6 +163,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
 
   readerTest(
     "community_comment_get 返回聚焦线程及目标元数据",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,
@@ -252,6 +254,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
 
   readerTest(
     "community_comment_list 报告缺失目标而非返回空成功",
+    { tags: ["@Comment/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -275,6 +278,7 @@ describe("评论读取工具 — 隔离目录夹具", () => {
 
   ownershipTest(
     "community_comment_list 将未关联的班级-教师对报告为缺失目标",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,
@@ -311,141 +315,151 @@ describe("评论读取工具 — 隔离目录夹具", () => {
       }),
   );
 
-  ownershipTest(
-    "comment.read-target-nonmutation",
-    async ({
-      mcpWorkflow,
-      state,
-      mcpOtherActor: isolated,
-      expect,
-      isolatedDatabase: { owner: db },
-      mcpRuntime,
-    }) =>
-      mcpWorkflow.run(async () => {
-        const { catalog } = state;
+  for (const method of ["MCP", "REST", "Service"] as const) {
+    ownershipTest(
+      `comment.read-target-nonmutation (${method})`,
+      { tags: [`@Comment/${method}`] },
+      async ({
+        mcpWorkflow,
+        state,
+        mcpOtherActor: isolated,
+        expect,
+        isolatedDatabase: { owner: db },
+        mcpRuntime,
+      }) =>
+        mcpWorkflow.run(async () => {
+          const { catalog } = state;
 
-        const marker = `[integration-test] mcp-section-teacher-read-${Date.now()}`;
-        const sectionJwId = 2_100_000_000 + (Date.now() % 10_000_000);
-        let sectionId: number | null = null;
-        let teacherId: number | null = null;
+          const marker = `[integration-test] mcp-section-teacher-read-${Date.now()}`;
+          const sectionJwId = 2_100_000_000 + (Date.now() % 10_000_000);
+          let sectionId: number | null = null;
+          let teacherId: number | null = null;
 
-        const course = await db.course.findUnique({
-          where: { jwId: catalog.courses[0].jwId },
-          select: { id: true },
-        });
-        if (!course) {
-          throw new Error(`Seed course ${catalog.courses[0].jwId} not found`);
-        }
+          const course = await db.course.findUnique({
+            where: { jwId: catalog.courses[0].jwId },
+            select: { id: true },
+          });
+          if (!course) {
+            throw new Error(`Seed course ${catalog.courses[0].jwId} not found`);
+          }
 
-        const semester = await db.semester.findUnique({
-          where: { jwId: catalog.semester.jwId },
-          select: { id: true },
-        });
-        if (!semester) {
-          throw new Error(`Seed semester ${catalog.semester.jwId} not found`);
-        }
+          const semester = await db.semester.findUnique({
+            where: { jwId: catalog.semester.jwId },
+            select: { id: true },
+          });
+          if (!semester) {
+            throw new Error(`Seed semester ${catalog.semester.jwId} not found`);
+          }
 
-        const teacher = await db.teacher.create({
-          data: {
-            code: marker,
-            jwId: sectionJwId,
-            nameCn: marker,
-          },
-          select: { id: true },
-        });
-        teacherId = teacher.id;
-
-        const section = await db.section.create({
-          data: {
-            jwId: sectionJwId,
-            code: `${marker}.01`,
-            courseId: course.id,
-            semesterId: semester.id,
-            teachers: { connect: { id: teacherId } },
-          },
-          select: { id: true },
-        });
-        sectionId = section.id;
-
-        const before = await db.sectionTeacher.findUnique({
-          where: {
-            sectionId_teacherId: {
-              sectionId,
-              teacherId,
+          const teacher = await db.teacher.create({
+            data: {
+              code: marker,
+              jwId: sectionJwId,
+              nameCn: marker,
             },
-          },
-          select: { id: true },
-        });
-        expect(before).toBeNull();
+            select: { id: true },
+          });
+          teacherId = teacher.id;
 
-        const result = await isolated.client.call<{
-          data?: unknown[];
-          found?: boolean;
-          meta?: {
-            target?: {
-              sectionId?: number | null;
-              sectionTeacherId?: number | null;
-              teacherId?: number | null;
-            };
-          };
-        }>("community_comment_list", {
-          targetType: "section-teacher",
-          sectionJwId,
-          teacherId,
-        });
-
-        expect(result.found).toBe(true);
-        expect(result.data).toEqual([]);
-        expect(result.meta?.target?.sectionId).toBe(sectionId);
-        expect(result.meta?.target?.teacherId).toBe(teacherId);
-        expect(result.meta?.target?.sectionTeacherId).toBeNull();
-        const response = await mcpRuntime.run(() =>
-          getCommentsRoute(
-            new Request(
-              `http://localhost:3000/api/community/comments?targetType=section-teacher&sectionJwId=${sectionJwId}&teacherId=${teacherId}`,
-            ),
-          ),
-        );
-        expect(response.status).toBe(200);
-        expect(await response.json()).toMatchObject({
-          data: [],
-          pagination: { total: 0 },
-        });
-        const resolved = await mcpRuntime.run(() =>
-          resolveCommentTargetReference({
-            targetType: "section-teacher",
-            sectionJwId,
-            teacherId,
-            verifyExistence: true,
-            includeTargetMetadata: true,
-          }),
-        );
-        if (!resolved.ok) throw new Error("Expected existing relationship");
-        const web = await mcpRuntime.run(() =>
-          loadCommentThread({
-            target: resolved.target,
-            viewerUserId: isolated.userId,
-            pagination: { pageSize: 20, skip: 0 },
-          }),
-        );
-        expect(web.comments).toEqual([]);
-        expect(web.total).toBe(0);
-
-        const after = await db.sectionTeacher.findUnique({
-          where: {
-            sectionId_teacherId: {
-              sectionId,
-              teacherId,
+          const section = await db.section.create({
+            data: {
+              jwId: sectionJwId,
+              code: `${marker}.01`,
+              courseId: course.id,
+              semesterId: semester.id,
+              teachers: { connect: { id: teacherId } },
             },
-          },
-          select: { id: true },
-        });
-        expect(after).toBeNull();
-      }),
-  );
+            select: { id: true },
+          });
+          sectionId = section.id;
+
+          const before = await db.sectionTeacher.findUnique({
+            where: {
+              sectionId_teacherId: {
+                sectionId,
+                teacherId,
+              },
+            },
+            select: { id: true },
+          });
+          expect(before).toBeNull();
+
+          if (method === "MCP") {
+            const result = await isolated.client.call<{
+              data?: unknown[];
+              found?: boolean;
+              meta?: {
+                target?: {
+                  sectionId?: number | null;
+                  sectionTeacherId?: number | null;
+                  teacherId?: number | null;
+                };
+              };
+            }>("community_comment_list", {
+              targetType: "section-teacher",
+              sectionJwId,
+              teacherId,
+            });
+
+            expect(result.found).toBe(true);
+            expect(result.data).toEqual([]);
+            expect(result.meta?.target?.sectionId).toBe(sectionId);
+            expect(result.meta?.target?.teacherId).toBe(teacherId);
+            expect(result.meta?.target?.sectionTeacherId).toBeNull();
+          }
+          if (method === "REST") {
+            const response = await mcpRuntime.run(() =>
+              getCommentsRoute(
+                new Request(
+                  `http://localhost:3000/api/community/comments?targetType=section-teacher&sectionJwId=${sectionJwId}&teacherId=${teacherId}`,
+                ),
+              ),
+            );
+            expect(response.status).toBe(200);
+            expect(await response.json()).toMatchObject({
+              data: [],
+              pagination: { total: 0 },
+            });
+          }
+          if (method === "Service") {
+            const resolved = await mcpRuntime.run(() =>
+              resolveCommentTargetReference({
+                targetType: "section-teacher",
+                sectionJwId,
+                teacherId,
+                verifyExistence: true,
+                includeTargetMetadata: true,
+              }),
+            );
+            if (!resolved.ok) throw new Error("Expected existing relationship");
+            const web = await mcpRuntime.run(() =>
+              loadCommentThread({
+                target: resolved.target,
+                viewerUserId: isolated.userId,
+                pagination: { pageSize: 20, skip: 0 },
+              }),
+            );
+            expect(web.comments).toEqual([]);
+            expect(web.total).toBe(0);
+          }
+
+          const after = await db.sectionTeacher.findUnique({
+            where: {
+              sectionId_teacherId: {
+                sectionId,
+                teacherId,
+              },
+            },
+            select: { id: true },
+          });
+          expect(after).toBeNull();
+        }),
+    );
+  }
 
   ownershipTest(
     "community_comment_list 保留 active/retired 班级-教师目标合同",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,
@@ -586,6 +600,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
   ] as const) {
     mutationTest(
       `comment.mcp-write-audit-source ${operation}`,
+      { tags: ["@Comment/MCP"] },
       async ({
         mcpWorkflow,
         state,
@@ -785,6 +800,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   mutationTest(
     "评论写入工具拒绝不支持的匿名可见性",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,
@@ -808,6 +824,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   mutationTest(
     "评论写入 community_comment_create 返回序列化的无效目标失败",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       mcpOtherActor: actor,
@@ -838,6 +855,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   mutationTest(
     "评论写入 community_comment_create 支持通过公共 MCP 接口回复",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,
@@ -886,6 +904,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
   for (const operation of ["update", "delete"] as const) {
     mutationTest(
       `评论写入工具拒绝非所有者 ${operation}`,
+      { tags: ["@Comment/MCP"] },
       async ({
         mcpWorkflow,
         state,
@@ -912,6 +931,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   mutationTest(
     "评论写入工具创建评论时绑定已有上传附件",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,
@@ -976,6 +996,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   mutationTest(
     "评论写入工具拒绝编辑时绑定其他用户的上传附件",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,
@@ -1023,6 +1044,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   mutationTest(
     "评论写入 community_comment_create 在目标查找前检查封禁状态",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       mcpOtherActor: actor,
@@ -1051,6 +1073,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
   for (const operation of ["delete", "reply", "reaction"] as const) {
     mutationTest(
       `评论写入工具拒绝已删除评论的 ${operation}`,
+      { tags: ["@Comment/MCP"] },
       async ({
         mcpWorkflow,
         state,
@@ -1092,6 +1115,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   mutationTest(
     "评论写入工具拒绝软封禁评论的所有者删除",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       state,

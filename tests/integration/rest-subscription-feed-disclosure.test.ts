@@ -3,6 +3,7 @@ import { restSubscriptionTest } from "../shared/rest-subscription-contract-fixtu
 
 restSubscriptionTest(
   "interface-hierarchy.representative-cross-surface-contract-4",
+  { tags: ["@Subscription/REST"] },
   async ({ subscription: { db, origin, fetch, user }, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const { signResourceBoundOAuthAccessToken } = await import(

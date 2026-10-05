@@ -59,12 +59,9 @@ const test = isolatedNodeTest.extend("userId", async ({ isolatedDatabase }) => {
 });
 
 describe("overview todo bundle counts", () => {
-  test("matches the existing per-count helpers and preserves dueAt IS NOT NULL semantics", async ({
-    userId,
-    isolatedDatabase,
-    nodeRuntime,
-    expect,
-  }) => {
+  test("matches the existing per-count helpers and preserves dueAt IS NOT NULL semantics", {
+    tags: ["@Todo/Service"],
+  }, async ({ userId, isolatedDatabase, nodeRuntime, expect }) => {
     await nodeRuntime.run(async () => {
       const fixturePrisma = isolatedDatabase.owner;
       const fusedCounts = await runtimePrisma.$transaction(async (tx) => {
@@ -110,7 +107,11 @@ describe("overview todo bundle counts", () => {
     });
   });
 
-  test("todo.bounded-summary-read", async ({ userId, nodeRuntime, expect }) => {
+  test("todo.bounded-summary-read", { tags: ["@Todo/Service"] }, async ({
+    userId,
+    nodeRuntime,
+    expect,
+  }) => {
     await nodeRuntime.run(async () => {
       for (const completed of [undefined, true, false]) {
         const summary = await listTodoSummary({

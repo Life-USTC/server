@@ -5,10 +5,9 @@ import { prisma as runtimePrisma, withUserDbContext } from "@/lib/db/prisma";
 import { workspaceRuntimeTest as it } from "../shared/workspace-state-fixture";
 
 describe("self-hosted observability event store", () => {
-  it("is idempotent for replayed feature and issue event IDs", async ({
-    isolatedDatabase,
-    workspaceRuntime,
-  }) => {
+  it("is idempotent for replayed feature and issue event IDs", {
+    tags: ["@Infrastructure/Service"],
+  }, async ({ isolatedDatabase, workspaceRuntime }) => {
     const { owner: fixturePrisma } = isolatedDatabase;
     await workspaceRuntime.run(async () => {
       const regularUserId = `event-user-${crypto.randomUUID()}`;
@@ -52,10 +51,9 @@ describe("self-hosted observability event store", () => {
     });
   });
 
-  it("rejects invalid dimensions and non-finite or negative durations", async ({
-    isolatedDatabase,
-    workspaceRuntime,
-  }) => {
+  it("rejects invalid dimensions and non-finite or negative durations", {
+    tags: ["@Infrastructure/Service"],
+  }, async ({ isolatedDatabase, workspaceRuntime }) => {
     const { owner: fixturePrisma } = isolatedDatabase;
     await workspaceRuntime.run(async () => {
       const base = {
@@ -88,10 +86,9 @@ describe("self-hosted observability event store", () => {
     });
   });
 
-  it("deletes both event types in bounded ninety-day retention batches", async ({
-    isolatedDatabase,
-    workspaceRuntime,
-  }) => {
+  it("deletes both event types in bounded ninety-day retention batches", {
+    tags: ["@Infrastructure/Service"],
+  }, async ({ isolatedDatabase, workspaceRuntime }) => {
     const { owner: fixturePrisma } = isolatedDatabase;
     await workspaceRuntime.run(async () => {
       const oldFeatureId = crypto.randomUUID();

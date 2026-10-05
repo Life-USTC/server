@@ -4,11 +4,9 @@ import { subscribedExamsResponseSchema } from "@/lib/api/schemas/subscribed-exam
 import { workspaceExamTest as it } from "../shared/workspace-exam-fixture";
 
 describe("complete subscribed exam pages", () => {
-  it("accepts real signed exam-read tokens and returns only their subject's subscribed exams", async ({
-    exams,
-    protocolRuntime,
-    expect,
-  }) => {
+  it("accepts real signed exam-read tokens and returns only their subject's subscribed exams", {
+    tags: ["@Exam/REST"],
+  }, async ({ exams, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const { examIds, signedRequest } = exams;
       for (const userIndex of [0, 1]) {

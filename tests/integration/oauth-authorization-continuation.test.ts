@@ -31,6 +31,7 @@ describe("OAuth authorization continuation grant binding", () => {
   ]) {
     continuationTest(
       `真实 binder 为 ${entry.name} continuation 绑定委托前 generation`,
+      { tags: ["@OAuth/OAuth"] },
       async ({
         continuation,
         continuationRuntime,
@@ -70,6 +71,7 @@ describe("OAuth authorization continuation grant binding", () => {
   }
   continuationTest(
     "login 前无 session 时绑定登录后 code user 的当前 generation",
+    { tags: ["@OAuth/OAuth"] },
     async ({
       continuation,
       continuationRuntime,

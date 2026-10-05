@@ -61,7 +61,7 @@ async function digest(value: string) {
   ).toString("hex");
 }
 
-it("publications.identity", async ({
+it("publications.identity", { tags: ["@Publication/Service"] }, async ({
   publication: persistence,
   protocolRuntime,
   expect,
@@ -242,7 +242,7 @@ it("publications.identity", async ({
   });
 });
 
-it("publications.outbox", async ({
+it("publications.outbox", { tags: ["@Publication/Service"] }, async ({
   publication: persistence,
   protocolRuntime,
   expect,
@@ -344,7 +344,7 @@ it("publications.outbox", async ({
   });
 });
 
-it("publications.reprint-folding", async ({
+it("publications.reprint-folding", { tags: ["@Publication/Service"] }, async ({
   publication: persistence,
   protocolRuntime,
   expect,
@@ -471,11 +471,9 @@ it("publications.reprint-folding", async ({
   });
 });
 
-it("publications.reprint-sibling-exposure", async ({
-  publication: persistence,
-  protocolRuntime,
-  expect,
-}) => {
+it("publications.reprint-sibling-exposure", {
+  tags: ["@Publication/Service"],
+}, async ({ publication: persistence, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const { batch, ingest } = persistence;
     const payload = batch("siblings");
@@ -529,7 +527,7 @@ it("publications.reprint-sibling-exposure", async ({
   });
 });
 
-it("publications.source-registry", async ({
+it("publications.source-registry", { tags: ["@Publication/Service"] }, async ({
   publication: persistence,
   protocolRuntime,
   expect,

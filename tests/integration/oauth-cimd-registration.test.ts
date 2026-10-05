@@ -7,9 +7,7 @@ import { cimdTest } from "../shared/oauth-cimd-fixture";
 
 cimdTest(
   "oauth.llm-platform-oauth-compatibility",
-  {
-    timeout: 20_000,
-  },
+  { tags: ["@OAuth/OAuth"], timeout: 20_000 },
   async ({
     isolatedDatabase: { owner: fixturePrisma },
     oauthRuntime,

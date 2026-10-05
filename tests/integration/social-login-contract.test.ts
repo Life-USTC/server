@@ -5,7 +5,10 @@ import {
 
 const it = socialLoginTest.extend({ socialIp: "192.0.2.1" });
 
-it("user.oauth-callback-integrity", async ({ social, expect }) => {
+it("user.oauth-callback-integrity", { tags: ["@Account/OAuth"] }, async ({
+  social,
+  expect,
+}) => {
   await social.run(async () => {
     const { db, origin, email, fetch, start, network } = social;
     for (const variant of ["wrong-state", "missing-cookie"] as const) {

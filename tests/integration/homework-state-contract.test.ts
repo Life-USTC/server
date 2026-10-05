@@ -46,7 +46,9 @@ const it = domainStateTest.extend<{
   },
 });
 
-it("homework.no-subscription-required", async ({ homework }) => {
+it("homework.no-subscription-required", {
+  tags: ["@Homework/Service"],
+}, async ({ homework }) => {
   const { db, users, sectionId, create } = homework;
   await homework.runtime(async () => {
     for (const index of [0, 1]) {
@@ -72,7 +74,9 @@ it("homework.no-subscription-required", async ({ homework }) => {
   });
 });
 
-it("homework.entity-and-completion-separated", async ({ homework }) => {
+it("homework.entity-and-completion-separated", {
+  tags: ["@Homework/Service"],
+}, async ({ homework }) => {
   const { db, users, create } = homework;
   await homework.runtime(async () => {
     const homework = await create();
@@ -131,7 +135,9 @@ it("homework.entity-and-completion-separated", async ({ homework }) => {
   });
 });
 
-it("homework.completion-owner", async ({ homework }) => {
+it("homework.completion-owner", { tags: ["@Homework/Service"] }, async ({
+  homework,
+}) => {
   const { db, users, create } = homework;
   await homework.runtime(async () => {
     const homework = await create();
@@ -205,7 +211,9 @@ it("homework.completion-owner", async ({ homework }) => {
   });
 });
 
-it("homework.active-collaborator-write", async ({ homework }) => {
+it("homework.active-collaborator-write", {
+  tags: ["@Homework/Service"],
+}, async ({ homework }) => {
   const { db, users, sectionId, create } = homework;
   await homework.runtime(async () => {
     expect(

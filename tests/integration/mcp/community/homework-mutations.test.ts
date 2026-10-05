@@ -49,6 +49,7 @@ function seedHomework(
 describe("班级作业写入工具 — community_section_homework_create", () => {
   toolTest(
     "community_section_homework_list 对 default/full 都使用 summary 契约",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -120,6 +121,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
 
   toolTest(
     "community_section_homework_create 创建作业并返回完整实体",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -214,6 +216,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
 
   toolTest(
     "community_section_homework_create 对不存在的班级返回恢复提示",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -250,6 +253,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
 
   toolTest(
     "community_section_homework_create 拒绝非法日期输入",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -282,6 +286,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
 
   toolTest(
     "community_section_homework_create 校验提交开始不晚于截止时间",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -314,6 +319,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
 
   toolTest(
     "community_section_homework_create 拒绝被禁用户创建",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -361,6 +367,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
 describe("班级作业更新工具 — community_section_homework_update", () => {
   toolTest(
     "community_section_homework_update 更新标题、描述、标志与日期并返回完整实体",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -475,6 +482,7 @@ describe("班级作业更新工具 — community_section_homework_update", () =>
 
   toolTest(
     "community_section_homework_update 对不存在作业返回恢复提示",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -512,6 +520,7 @@ describe("班级作业更新工具 — community_section_homework_update", () =>
 
   toolTest(
     "community_section_homework_update 无变更时返回无变化",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -554,6 +563,7 @@ describe("班级作业更新工具 — community_section_homework_update", () =>
 
   toolTest(
     "community_section_homework_update 拒绝更新已删除作业",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -598,6 +608,7 @@ describe("班级作业更新工具 — community_section_homework_update", () =>
 
   toolTest(
     "community_section_homework_update 校验提交开始不晚于截止时间",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -643,6 +654,7 @@ describe("班级作业更新工具 — community_section_homework_update", () =>
 describe("作业完成状态工具 — workspace_homework_completion_set", () => {
   toolTest(
     "workspace_homework_completion_set 标记完成并返回完成时间",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -709,6 +721,7 @@ describe("作业完成状态工具 — workspace_homework_completion_set", () =>
 
   toolTest(
     "workspace_homework_completion_set 取消完成状态",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -768,6 +781,7 @@ describe("作业完成状态工具 — workspace_homework_completion_set", () =>
 
   toolTest(
     "workspace_homework_completion_set 对不存在作业返回恢复提示",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -805,6 +819,7 @@ describe("作业完成状态工具 — workspace_homework_completion_set", () =>
 
   toolTest(
     "workspace_homework_completion_set 对已删除作业报告未找到",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -848,6 +863,7 @@ describe("作业完成状态工具 — workspace_homework_completion_set", () =>
 describe("班级作业删除工具 — community_section_homework_delete", () => {
   toolTest(
     "community_section_homework_delete 删除创建者拥有的作业并记录审计",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -918,6 +934,7 @@ describe("班级作业删除工具 — community_section_homework_delete", () =>
 
   toolTest(
     "community_section_homework_delete 对不存在作业返回 not_found",
+    { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -949,6 +966,7 @@ describe("班级作业删除工具 — community_section_homework_delete", () =>
   for (const isAdmin of [false, true]) {
     toolTest(
       `community_section_homework_delete 非所有者${isAdmin ? "管理员" : "普通用户"}被拒绝`,
+      { tags: ["@Homework/MCP"] },
       async ({
         mcpWorkflow,
         mcpOtherActor,

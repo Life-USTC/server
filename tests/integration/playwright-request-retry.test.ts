@@ -26,6 +26,7 @@ describe("Playwright read-only request transport recovery", () => {
     },
   ])(
     "$name",
+    { tags: ["@Infrastructure/Runtime"] },
     async ({ resets, status, attempts }, { signal, onTestFinished }) => {
       let received = 0;
       const server = createServer((incoming, response) => {

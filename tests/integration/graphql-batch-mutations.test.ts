@@ -130,10 +130,9 @@ function expectErrorCode(payload: GraphqlPayload, code: string) {
 }
 
 describe("GraphQL batch mutations", () => {
-  it("requires the exact write scope before any batch item changes", async ({
-    graphqlRuntime,
-    batch,
-  }) => {
+  it("requires the exact write scope before any batch item changes", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,
@@ -177,10 +176,9 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("todo completion batch returns ordered mixed-owner results", async ({
-    graphqlRuntime,
-    batch,
-  }) => {
+  it("todo completion batch returns ordered mixed-owner results", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,
@@ -259,10 +257,9 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("todo deletion batch returns ordered owned, missing, and foreign results", async ({
-    graphqlRuntime,
-    batch,
-  }) => {
+  it("todo deletion batch returns ordered owned, missing, and foreign results", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,
@@ -323,10 +320,9 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("rejects duplicate, extra, and null inputs before writing", async ({
-    graphqlRuntime,
-    batch,
-  }) => {
+  it("rejects duplicate, extra, and null inputs before writing", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,
@@ -384,7 +380,10 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("graphql.homework-batch-results", async ({ graphqlRuntime, batch }) => {
+  it("graphql.homework-batch-results", { tags: ["@Homework/GraphQL"] }, async ({
+    graphqlRuntime,
+    batch,
+  }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,
@@ -496,10 +495,9 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("subscription import adds matched codes without changing foreign membership", async ({
-    graphqlRuntime,
-    batch,
-  }) => {
+  it("subscription import adds matched codes without changing foreign membership", {
+    tags: ["@Subscription/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -562,10 +560,9 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("subscription import removes only the seeded owner's membership", async ({
-    graphqlRuntime,
-    batch,
-  }) => {
+  it("subscription import removes only the seeded owner's membership", {
+    tags: ["@Subscription/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,

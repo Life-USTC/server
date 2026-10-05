@@ -3,7 +3,9 @@ import { restReadScope } from "@/lib/oauth/scope-registry";
 import { graphqlViewerTest as it } from "../shared/graphql-viewer-fixture";
 
 describe("GraphQL Viewer integration", () => {
-  it("graphql.scoped-query-auth", async ({ viewer: viewerCase }) => {
+  it("graphql.scoped-query-auth", { tags: ["@GraphQL/GraphQL"] }, async ({
+    viewer: viewerCase,
+  }) => {
     await viewerCase.run(async () => {
       const { execute, graphqlBearer, firstUserId, signToken } = viewerCase;
       const authorized = await execute(

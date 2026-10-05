@@ -27,9 +27,9 @@ async function whileRefreshLocked(
   }
 }
 
-it("reuses a fresh exact activity snapshot", async ({
-  metrics: { run, read },
-}) => {
+it("reuses a fresh exact activity snapshot", {
+  tags: ["@Admin/Service"],
+}, async ({ metrics: { run, read } }) => {
   await run(async () => {
     const first = await read();
     const second = await read();
@@ -38,9 +38,9 @@ it("reuses a fresh exact activity snapshot", async ({
   });
 });
 
-it("refreshes activity after 60 seconds while preserving its values", async ({
-  metrics: { run, db, read },
-}) => {
+it("refreshes activity after 60 seconds while preserving its values", {
+  tags: ["@Admin/Service"],
+}, async ({ metrics: { run, db, read } }) => {
   await run(async () => {
     const first = await read();
     await expireCache(db, 61);
@@ -52,9 +52,9 @@ it("refreshes activity after 60 seconds while preserving its values", async ({
   });
 });
 
-it("serves the bounded stale activity snapshot while another refresh owns the lock", async ({
-  metrics: { run, db, read },
-}) => {
+it("serves the bounded stale activity snapshot while another refresh owns the lock", {
+  tags: ["@Admin/Service"],
+}, async ({ metrics: { run, db, read } }) => {
   await run(async () => {
     await read();
     await expireCache(db, 61);
@@ -73,9 +73,9 @@ it("serves the bounded stale activity snapshot while another refresh owns the lo
 });
 
 for (const state of ["empty", "expired"] as const) {
-  it(`returns native scrape 503 for ${state} activity while refresh is locked and recovers after release`, async ({
-    metrics: { run, db, read, serve },
-  }) => {
+  it(`returns native scrape 503 for ${state} activity while refresh is locked and recovers after release`, {
+    tags: ["@Admin/Service"],
+  }, async ({ metrics: { run, db, read, serve } }) => {
     await run(async () => {
       if (state === "expired") {
         await read();

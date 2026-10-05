@@ -3,7 +3,9 @@ import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { graphqlViewerTest as it } from "../shared/graphql-viewer-fixture";
 
 describe("GraphQL Viewer integration", () => {
-  it("graphql.workspace-ownership", async ({ viewer: viewerCase }) => {
+  it("graphql.workspace-ownership", { tags: ["@GraphQL/GraphQL"] }, async ({
+    viewer: viewerCase,
+  }) => {
     await viewerCase.run(async () => {
       const {
         execute,

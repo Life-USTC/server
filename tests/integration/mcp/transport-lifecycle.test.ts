@@ -4,10 +4,9 @@ import { createNodeRuntime } from "../../shared/node-runtime";
 import { ownAnonymousMcpHarness, ownMcpHarness } from "./_harness/client";
 
 // One scenario owns these prototype spies in its Vitest-isolated module.
-test("MCP transports stay closed when initialization resumes after disposal", async ({
-  signal,
-  onTestFinished,
-}) => {
+test("MCP transports stay closed when initialization resumes after disposal", {
+  tags: ["@MCP/MCP"],
+}, async ({ signal, onTestFinished }) => {
   const workflow = createNodeRuntime({});
   const cleanups = new Set<() => Promise<void>>();
   onTestFinished(async () => {

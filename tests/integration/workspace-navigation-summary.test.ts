@@ -127,6 +127,7 @@ const reminderTest = nodeProtocolTest.extend(
 describe("workspace navigation summary", () => {
   workspaceNavigationTest(
     "matches the existing workspace SSR navigation semantics",
+    { tags: ["@Overview/Service"] },
     async ({
       navigation: { viewer, section, referenceDate },
       protocolRuntime,
@@ -187,6 +188,7 @@ describe("workspace navigation summary", () => {
 
   examBoundaryTest(
     "upcoming exam counts use Shanghai calendar dates across midnight and exam end boundaries",
+    { tags: ["@Overview/Service"] },
     async ({ boundary: { user, exams }, protocolRuntime, expect }) => {
       await protocolRuntime.run(async () => {
         for (const [atTime, indexes] of [
@@ -221,6 +223,7 @@ describe("workspace navigation summary", () => {
 
   reminderTest(
     "counts only the viewer's unread, unexpired reminders even without course subscriptions",
+    { tags: ["@Overview/Service"] },
     async ({
       reminders: { users, referenceDate },
       protocolRuntime,

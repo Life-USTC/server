@@ -3,7 +3,9 @@ import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
 import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
 describe("static Section source lifecycle persistence", () => {
-  it("section.retirement-preserves-data", async ({
+  it("section.retirement-preserves-data", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
     isolatedDatabase: { owner: db },
     importer,
     protocolRuntime,

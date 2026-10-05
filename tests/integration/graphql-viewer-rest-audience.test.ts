@@ -7,9 +7,9 @@ import { restReadScope } from "@/lib/oauth/scope-registry";
 import { graphqlViewerTest as it } from "../shared/graphql-viewer-fixture";
 
 describe("GraphQL Viewer integration", () => {
-  it("rejects a REST bearer without falling back to a valid session cookie", async ({
-    viewer: viewerCase,
-  }) => {
+  it("rejects a REST bearer without falling back to a valid session cookie", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ viewer: viewerCase }) => {
     await viewerCase.run(async () => {
       const { signToken, firstUserId, execute, sessionCookie } = viewerCase;
       const resource = () => getOAuthRestAudienceUrls()[0] as string;

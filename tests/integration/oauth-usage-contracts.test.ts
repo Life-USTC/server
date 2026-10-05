@@ -10,11 +10,9 @@ import { oauthUsageTest as test } from "../shared/oauth-usage-fixture";
 
 const anchor = new Date("2026-09-27T16:00:00.000Z");
 
-test("oauth.authorization-management.oauth-usage-aggregation", async ({
-  usage,
-  isolatedDatabase: { owner: db },
-  nodeRuntime,
-}) => {
+test("oauth.authorization-management.oauth-usage-aggregation", {
+  tags: ["@OAuth/Service"],
+}, async ({ usage, isolatedDatabase: { owner: db }, nodeRuntime }) => {
   const { userId, clientId } = usage;
   const marker = "usage";
   const base = {

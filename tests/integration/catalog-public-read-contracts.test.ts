@@ -8,7 +8,7 @@ import { findTeacherDetailById } from "@/features/catalog/server/teacher-summary
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
 import { catalogReadTest as it } from "../shared/catalog-read-fixture";
 
-it("section.relational-course-filter", async ({
+it("section.relational-course-filter", { tags: ["@Catalog/Service"] }, async ({
   catalogRead: { run, fixture, request },
 }) => {
   await run(async () => {
@@ -33,7 +33,7 @@ it("section.relational-course-filter", async ({
   });
 });
 
-it("section.bounded-related-sections", async ({
+it("section.bounded-related-sections", { tags: ["@Catalog/Service"] }, async ({
   catalogRead: { run, db, fixture, request },
 }) => {
   await run(async () => {
@@ -79,7 +79,7 @@ it("section.bounded-related-sections", async ({
   });
 });
 
-it("course.public-detail-fields", async ({
+it("course.public-detail-fields", { tags: ["@Catalog/Service"] }, async ({
   catalogRead: { run, fixture, request },
 }) => {
   await run(async () => {
@@ -107,7 +107,7 @@ it("course.public-detail-fields", async ({
   });
 });
 
-it("section.public-teacher-reference", async ({
+it("section.public-teacher-reference", { tags: ["@Catalog/Service"] }, async ({
   catalogRead: { run, fixture, request },
 }) => {
   await run(async () => {
@@ -155,7 +155,7 @@ it("section.public-teacher-reference", async ({
   });
 });
 
-it("teacher.public-detail-fields", async ({
+it("teacher.public-detail-fields", { tags: ["@Catalog/Service"] }, async ({
   catalogRead: { run, fixture, request },
 }) => {
   await run(async () => {

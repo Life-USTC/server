@@ -23,14 +23,17 @@ const contractTest = publicYoungProtocolTest.extend(
   },
 );
 
-contractTest(
-  "young-event.static-snapshot-sourced",
-  async ({ state, network, protocolRuntime, expect }) =>
-    protocolRuntime.run(async () => {
-      const { youngId, publicDetails } = state;
+for (const method of ["REST", "GraphQL", "MCP"] as const) {
+  contractTest(
+    `young-event.static-snapshot-sourced / ${method}`,
+    { tags: [`@Young/${method}`] },
+    async ({ state, network, protocolRuntime, expect }) =>
+      protocolRuntime.run(async () => {
+        const { youngId, publicDetail } = state;
 
-      for (const event of await publicDetails())
+        const event = await publicDetail(method);
         expect(event.youngId).toBe(youngId);
-      expect(network).not.toHaveBeenCalled();
-    }),
-);
+        expect(network).not.toHaveBeenCalled();
+      }),
+  );
+}

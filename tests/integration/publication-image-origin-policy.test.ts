@@ -4,7 +4,9 @@ import { publicationFetchTest as it } from "../shared/publication-object-fixture
 // This file deliberately contains one scenario: its controlled fetch boundary
 // belongs to one Vitest-isolated module and cannot race another case's spy.
 
-it("publications.image-origin-policy", async ({ publication, fetchSpy }) => {
+it("publications.image-origin-policy", {
+  tags: ["@Publication/REST"],
+}, async ({ publication, fetchSpy }) => {
   await publication.run(async () => {
     const {
       db,

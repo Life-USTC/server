@@ -112,10 +112,9 @@ const it = nodeProtocolTest
   );
 
 describe("committed Better Auth lifecycle audit", () => {
-  it("stores a producer-ID replay exactly once", async ({
-    lifecycle,
-    expect,
-  }) => {
+  it("stores a producer-ID replay exactly once", {
+    tags: ["@Account/Service"],
+  }, async ({ lifecycle, expect }) => {
     const { fixturePrisma, userId, replayAuditId } = lifecycle;
     await lifecycle.runtime(async () => {
       const event = {
@@ -134,7 +133,9 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-profile-update", async ({ lifecycle, expect }) => {
+  it("audit.action-account-profile-update", {
+    tags: ["@Account/OAuth"],
+  }, async ({ lifecycle, expect }) => {
     const { fixturePrisma, userId, authRequest, createSessionCookie } =
       lifecycle;
     await lifecycle.runtime(async () => {
@@ -164,7 +165,10 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-unlink", async ({ lifecycle, expect }) => {
+  it("audit.action-account-unlink", { tags: ["@Account/OAuth"] }, async ({
+    lifecycle,
+    expect,
+  }) => {
     const {
       fixturePrisma,
       userId,
@@ -206,7 +210,10 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-sign-out", async ({ lifecycle, expect }) => {
+  it("audit.action-account-sign-out", { tags: ["@Account/OAuth"] }, async ({
+    lifecycle,
+    expect,
+  }) => {
     const { fixturePrisma, userId, authRequest, createSessionCookie } =
       lifecycle;
     await lifecycle.runtime(async () => {

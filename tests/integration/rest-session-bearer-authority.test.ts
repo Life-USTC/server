@@ -7,6 +7,7 @@ import { restStateTest } from "../shared/rest-state-contract-fixture";
 
 restStateTest(
   "openapi.session-and-bearer",
+  { tags: ["@OpenAPI/REST"] },
   async ({ rest: { db, origin, fetch }, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const users: string[] = [];

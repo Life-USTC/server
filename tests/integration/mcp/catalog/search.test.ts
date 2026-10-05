@@ -4,6 +4,7 @@ import { catalogMcpTest as toolTest } from "../_harness/catalog-fixture";
 describe("课程与班级查找", () => {
   toolTest(
     "interface-hierarchy.catalog-mcp-relationship-projections",
+    { tags: ["@Search/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -251,6 +252,7 @@ describe("课程与班级查找", () => {
 
   toolTest(
     "catalog_section_get 在 jwId 缺失时返回恢复提示",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -278,6 +280,7 @@ describe("课程与班级查找", () => {
 describe("学期查询工具", () => {
   toolTest(
     "catalog_semester_list 返回与 REST 等价的分页学期列表",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -320,6 +323,7 @@ describe("学期查询工具", () => {
 
   toolTest(
     "catalog_semester_list summary 兼容输入保留标准分页数组",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -352,6 +356,7 @@ describe("学期查询工具", () => {
 
   toolTest(
     "catalog_semester_list 合法高页码返回空数据与正确分页元数据",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -378,6 +383,7 @@ describe("学期查询工具", () => {
 
   toolTest(
     "catalog_semester_list 拒绝越界或无效分页参数",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(
@@ -406,6 +412,7 @@ describe("学期查询工具", () => {
 
   toolTest(
     "catalog_semester_current 返回覆盖当前的 seed 学期",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -432,6 +439,7 @@ describe("学期查询工具", () => {
 
   toolTest(
     "catalog_semester_current full 模式返回完整学期记录",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -450,6 +458,7 @@ describe("学期查询工具", () => {
 
   toolTest(
     "catalog_semester_current 拒绝无效 mode 参数",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(
@@ -533,6 +542,7 @@ type GetCourseResult = {
 describe("班级搜索工具 catalog_section_search", () => {
   toolTest(
     "按教师工号过滤班级",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<SearchSectionsResult>(
@@ -557,6 +567,7 @@ describe("班级搜索工具 catalog_section_search", () => {
 
   toolTest(
     "按 jwIds 精确查询班级",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<SearchSectionsResult>(
@@ -579,6 +590,7 @@ describe("班级搜索工具 catalog_section_search", () => {
 
   toolTest(
     "无匹配过滤返回空分页",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<SearchSectionsResult>(
@@ -600,6 +612,7 @@ describe("班级搜索工具 catalog_section_search", () => {
 
   toolTest(
     "拒绝越界分页参数",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(
@@ -618,6 +631,7 @@ describe("班级搜索工具 catalog_section_search", () => {
 describe("课程详情工具 catalog_course_get", () => {
   toolTest(
     "缺失课程返回 found false",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<GetCourseResult>(
@@ -635,6 +649,7 @@ describe("课程详情工具 catalog_course_get", () => {
 
   toolTest(
     "拒绝无效 jwId 参数",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(
@@ -657,6 +672,7 @@ describe("课程详情工具 catalog_course_get", () => {
 describe("catalog_section_match_preview — 班级代码匹配", () => {
   toolTest(
     "在当前学期匹配单个班级代码",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -685,6 +701,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
 
   toolTest(
     "支持多个代码并区分匹配与未匹配，且为未匹配代码提供建议",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const unmatchedCode = mcpCatalog.section.code.replace(/\.\d+$/, ".02");
@@ -713,6 +730,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
 
   toolTest(
     "可按 semesterId 查询历史学期班级代码",
+    { tags: ["@Search/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -759,6 +777,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
 
   toolTest(
     "在 semesterId 不存在时返回失败提示",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -777,6 +796,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
 
   toolTest(
     "拒绝空代码数组",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(
@@ -790,6 +810,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
 
   toolTest(
     "拒绝非法格式班级代码",
+    { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {
         await expect(

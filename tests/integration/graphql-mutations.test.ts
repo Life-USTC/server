@@ -131,10 +131,9 @@ function readComments(db: TestPrismaClient) {
 
 describe("GraphQL authenticated mutations", () => {
   for (const authority of ["anonymous", "read-only"] as const) {
-    it(`rejects ${authority} todo creation before service execution`, async ({
-      graphqlRuntime,
-      mutations,
-    }) => {
+    it(`rejects ${authority} todo creation before service execution`, {
+      tags: ["@Todo/GraphQL"],
+    }, async ({ graphqlRuntime, mutations }) => {
       await graphqlRuntime.run(async () => {
         const {
           fixturePrisma: db,
@@ -170,10 +169,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   }
 
-  it("creates a bearer todo with normalized fields and a zoned due date", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("creates a bearer todo with normalized fields and a zoned due date", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -223,10 +221,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("reads the GraphQL priority enum from independently seeded todos", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("reads the GraphQL priority enum from independently seeded todos", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -262,10 +259,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("clears todo content without changing omitted fields or another owner", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("clears todo content without changing omitted fields or another owner", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -297,10 +293,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("rejects updating a foreign todo without changing either owner", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("rejects updating a foreign todo without changing either owner", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -330,10 +325,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("deletes only the independently seeded owned todo", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("deletes only the independently seeded owned todo", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -362,10 +356,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("rejects explicit null for optional fields that are non-null in REST", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("rejects explicit null for optional fields that are non-null in REST", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma,
@@ -494,10 +487,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("rejects non-positive numeric comment selectors even with a valid targetId", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("rejects non-positive numeric comment selectors even with a valid targetId", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const { fixturePrisma, execute, signToken, marker, userAId, sectionId } =
         mutations;
@@ -542,10 +534,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("executes top-level subscription mutations serially", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("executes top-level subscription mutations serially", {
+    tags: ["@Subscription/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -593,10 +584,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("executes top-level link pin mutations serially", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("executes top-level link pin mutations serially", {
+    tags: ["@CatalogLink/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -634,10 +624,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("persists valid bus campus preferences through GraphQL", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("persists valid bus campus preferences through GraphQL", {
+    tags: ["@Bus/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -694,10 +683,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("completes seeded homework without changing another owner's completion", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("completes seeded homework without changing another owner's completion", {
+    tags: ["@Homework/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -757,10 +745,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("creates a section comment with GraphQL request audit attribution", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("creates a section comment with GraphQL request audit attribution", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -837,10 +824,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("creates a Young event comment from its public identifier", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("creates a Young event comment from its public identifier", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -910,10 +896,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("edits a seeded comment while preserving omitted fields and foreign comments", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("edits a seeded comment while preserving omitted fields and foreign comments", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -974,10 +959,9 @@ describe("GraphQL authenticated mutations", () => {
   });
 
   for (const operation of ["add", "remove"] as const) {
-    it(`comment reaction ${operation} changes only the seeded owner's reaction`, async ({
-      graphqlRuntime,
-      mutations,
-    }) => {
+    it(`comment reaction ${operation} changes only the seeded owner's reaction`, {
+      tags: ["@Comment/GraphQL"],
+    }, async ({ graphqlRuntime, mutations }) => {
       await graphqlRuntime.run(async () => {
         const {
           fixturePrisma: db,
@@ -1053,10 +1037,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   }
 
-  it("rejects deletion of a seeded foreign comment without changing rows or audits", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("rejects deletion of a seeded foreign comment without changing rows or audits", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -1091,10 +1074,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("soft-deletes a seeded owned comment and records its audit", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("soft-deletes a seeded owned comment and records its audit", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -1158,10 +1140,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("rejects a reaction to an independently seeded deleted comment", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("rejects a reaction to an independently seeded deleted comment", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -1202,10 +1183,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("permits personal todo creation for an independently suspended actor", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("permits personal todo creation for an independently suspended actor", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,
@@ -1255,10 +1235,9 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
-  it("rejects comment creation for an independently suspended actor without changing rows or audits", async ({
-    graphqlRuntime,
-    mutations,
-  }) => {
+  it("rejects comment creation for an independently suspended actor without changing rows or audits", {
+    tags: ["@Comment/GraphQL"],
+  }, async ({ graphqlRuntime, mutations }) => {
     await graphqlRuntime.run(async () => {
       const {
         fixturePrisma: db,

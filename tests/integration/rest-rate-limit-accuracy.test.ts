@@ -5,6 +5,7 @@ import { restStateTest } from "../shared/rest-state-contract-fixture";
 
 restStateTest(
   "openapi.rate-limit-accuracy-boundary",
+  { tags: ["@OpenAPI/REST"] },
   async ({
     rest: { db, origin, fetch },
     protocolRuntime,

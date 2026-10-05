@@ -80,10 +80,9 @@ async function getAnonymously(query: string) {
 }
 
 describe("GET /api/community/comments (anonymous)", () => {
-  it("lists section comments without a viewer and reports a hidden count", async ({
-    targets,
-    protocolRuntime,
-  }) => {
+  it("lists section comments without a viewer and reports a hidden count", {
+    tags: ["@Comment/REST"],
+  }, async ({ targets, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       const response = await protocolRuntime.request(() =>
         getAnonymously(targets[0].query),
@@ -103,10 +102,9 @@ describe("GET /api/community/comments (anonymous)", () => {
     });
   });
 
-  it("resolves every anonymous comment target type", async ({
-    targets,
-    protocolRuntime,
-  }) => {
+  it("resolves every anonymous comment target type", {
+    tags: ["@Comment/REST"],
+  }, async ({ targets, protocolRuntime }) => {
     await protocolRuntime.run(async () => {
       for (const { query, visibleId } of targets) {
         const response = await protocolRuntime.request(() =>

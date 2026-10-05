@@ -6,6 +6,7 @@ import { graphqlAuthTest } from "../shared/graphql-auth-contract-fixture";
 describe("GraphQL OAuth resource isolation", () => {
   graphqlAuthTest(
     "接受 GraphQL-bound JWT principal",
+    { tags: ["@OAuth/Service"] },
     async ({
       authorization: { clientId, userId, signToken },
       oauthRuntime,

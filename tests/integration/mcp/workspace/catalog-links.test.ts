@@ -4,6 +4,7 @@ import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 describe("workspace link 工具 — 列表/搜索与置顶状态", () => {
   toolTest(
     "catalog_link_list 搜索拼音且不包含个人状态",
+    { tags: ["@CatalogLink/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -44,6 +45,7 @@ describe("workspace link 工具 — 列表/搜索与置顶状态", () => {
 
   toolTest(
     "workspace_link_pin_set 为 MCP 用户置顶与取消置顶",
+    { tags: ["@CatalogLink/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -104,6 +106,7 @@ describe("workspace link 工具 — 列表/搜索与置顶状态", () => {
 
   toolTest(
     "workspace_link_pin_set 对无效 slug 返回校验载荷",
+    { tags: ["@CatalogLink/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,

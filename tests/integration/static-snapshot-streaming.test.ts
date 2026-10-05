@@ -7,10 +7,9 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { expect, it } from "vitest";
 
-it("streams real SQLite semester groups in storage order with sparse children", async ({
-  signal,
-  onTestFinished,
-}) => {
+it("streams real SQLite semester groups in storage order with sparse children", {
+  tags: ["@StaticImport/Runtime"],
+}, async ({ signal, onTestFinished }) => {
   const directory = mkdtempSync(join(tmpdir(), "static-streaming-owner-"));
   let closed: Promise<void> | undefined;
   let abort: (() => void) | undefined;

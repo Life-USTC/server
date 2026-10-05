@@ -46,6 +46,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "interface-hierarchy.transport-specific-exceptions-11",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const resources = await isolated.client.listResources();
@@ -106,6 +107,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "graphql.graphql-operation-prompt",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         expect(isolated.client.getInstructions()).toContain(
@@ -191,6 +193,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "exposes arbitrary documents and compatible registered operations",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const { tools } = await isolated.client.listTools();
@@ -234,6 +237,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "correlates nested GraphQL observations with the HTTP request id",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect, mcpRuntime }) =>
       mcpWorkflow.run(async () => {
         const logs: Parameters<
@@ -275,6 +279,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "runs arbitrary documents with fragments, aliases, and variables",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await isolated.client.call<{
@@ -315,6 +320,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "graphql.mcp-mutation-confirmation",
+    { tags: ["@GraphQL/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -419,6 +425,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "graphql.graphql-operation-runner",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect, mcpCatalog: _catalog }) =>
       mcpWorkflow.run(async () => {
         for (const input of [
@@ -457,6 +464,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "graphql.mcp-validation-parity",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect, mcpRuntime }) =>
       mcpWorkflow.run(async () => {
         const { createGraphqlRequestHandler } = await import(
@@ -513,6 +521,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "rejects ambiguous inputs, introspection, and over-wide documents",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const ambiguous = await callExpectedGraphqlError<{
@@ -559,6 +568,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "runs approved Viewer reads and confirmed mutations",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const todos = await isolated.client.call<{
@@ -671,6 +681,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "rejects variables outside the selected registered operation",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await callExpectedGraphqlError<{
@@ -695,6 +706,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "returns an exact insufficient-scope challenge for reauthorization",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect, mcpSessions }) =>
       mcpWorkflow.run(async () => {
         const limitedMcpSession = mcpSessions.own(isolated.userId, [
@@ -730,6 +742,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "enforces resolver scopes for arbitrary documents",
+    { tags: ["@GraphQL/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect, mcpSessions }) =>
       mcpWorkflow.run(async () => {
         const limitedMcpSession = mcpSessions.own(isolated.userId, [
@@ -770,6 +783,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "preflights every mutation scope before any selected field executes",
+    { tags: ["@GraphQL/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,
@@ -816,6 +830,7 @@ describe("GraphQL MCP operations", () => {
 
   toolTest(
     "preflights only mutation fields included by GraphQL directives",
+    { tags: ["@GraphQL/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,

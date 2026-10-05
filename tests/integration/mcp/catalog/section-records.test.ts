@@ -7,6 +7,7 @@ const throughDay = "2026-05-05";
 describe("catalog_section_schedule_list — 日期范围筛选", () => {
   toolTest(
     "无日期筛选时返回该班级所有课程安排",
+    { tags: ["@Catalog/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -34,6 +35,7 @@ describe("catalog_section_schedule_list — 日期范围筛选", () => {
 
   toolTest(
     "使用 dateFrom+dateTo 裸日期将结果缩小到特定周",
+    { tags: ["@Catalog/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -73,6 +75,7 @@ describe("catalog_section_schedule_list — 日期范围筛选", () => {
 
   toolTest(
     "对无匹配课程安排的窗口返回空数组",
+    { tags: ["@Catalog/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -98,6 +101,7 @@ describe("catalog_section_schedule_list — 日期范围筛选", () => {
 
   toolTest(
     "无效 dateFrom 返回错误消息",
+    { tags: ["@Catalog/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpSection, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -120,6 +124,7 @@ describe("catalog_section_schedule_list — 日期范围筛选", () => {
 describe("catalog_schedule_list — 灵活日期筛选", () => {
   toolTest(
     "接受裸日期并返回分页公开课程安排",
+    { tags: ["@Catalog/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -166,6 +171,7 @@ describe("catalog_schedule_list — 灵活日期筛选", () => {
 
   toolTest(
     "对无效日期筛选返回描述性载荷",
+    { tags: ["@Catalog/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpSection, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{

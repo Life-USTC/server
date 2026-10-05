@@ -71,6 +71,7 @@ const toolTest = isolatedMcpTest.extend(
 describe("第二课堂活动", () => {
   toolTest(
     "catalog_young_event_list 返回分页结构并可按报名状态筛选",
+    { tags: ["@Young/MCP"] },
     async ({ mcpWorkflow, state, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const { ACTIVE_ID, ENDED_ID } = state;
@@ -98,6 +99,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_list 默认模式省略详情字段，full 模式保留",
+    { tags: ["@Young/MCP"] },
     async ({ mcpWorkflow, state, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const { ACTIVE_ID } = state;
@@ -142,6 +144,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_list 可按模块与活动级别精确筛选",
+    { tags: ["@Young/MCP"] },
     async ({ mcpWorkflow, state, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const { ACTIVE_ID } = state;
@@ -179,6 +182,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_get 返回消毒后的正文与结构化场地",
+    { tags: ["@Young/MCP"] },
     async ({ mcpWorkflow, state, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const { ACTIVE_ID } = state;
@@ -209,6 +213,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_get 返回详情，full 模式包含 rawJson",
+    { tags: ["@Young/MCP"] },
     async ({ mcpWorkflow, state, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const { ACTIVE_ID } = state;
@@ -226,6 +231,7 @@ describe("第二课堂活动", () => {
 
   toolTest(
     "catalog_young_event_get 对未知 id 返回 found: false",
+    { tags: ["@Young/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{

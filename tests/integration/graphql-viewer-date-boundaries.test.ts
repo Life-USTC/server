@@ -2,9 +2,9 @@ import { describe, expect } from "vitest";
 import { graphqlViewerTest as it } from "../shared/graphql-viewer-fixture";
 
 describe("GraphQL Viewer integration", () => {
-  it("enforces default/max pagination, ordered ranges, and strict zoned dates", async ({
-    viewer: viewerCase,
-  }) => {
+  it("enforces default/max pagination, ordered ranges, and strict zoned dates", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ viewer: viewerCase }) => {
     await viewerCase.run(async () => {
       const { execute, graphqlBearer } = viewerCase;
       const headers = { authorization: `Bearer ${graphqlBearer}` };

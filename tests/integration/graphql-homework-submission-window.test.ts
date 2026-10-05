@@ -8,6 +8,7 @@ import {
 describe("GraphQL homework CRUD mutations", () => {
   graphqlHomeworkTest(
     "validates the shared homework submission window before writing",
+    { tags: ["@Homework/GraphQL"] },
     async ({
       homework: {
         fixturePrisma,

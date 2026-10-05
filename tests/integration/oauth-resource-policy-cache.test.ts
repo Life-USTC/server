@@ -11,6 +11,7 @@ const origin = "http://localhost:3000";
 
 oauthObservationTest(
   "oauth.provider-resource-policy-cache",
+  { tags: ["@OAuth/OAuth"] },
   async ({
     isolatedDatabase: { owner: db },
     observation,

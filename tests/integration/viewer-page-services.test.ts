@@ -9,11 +9,9 @@ import { listTodoPage } from "@/features/todos/server/todo-service";
 import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
 describe("viewer page services", () => {
-  it("paginates todos without crossing owners", async ({
-    isolatedDatabase: { owner: db },
-    protocolRuntime,
-    expect,
-  }) => {
+  it("paginates todos without crossing owners", {
+    tags: ["@Todo/Service"],
+  }, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const [firstUser, secondUser] = await db.$transaction(async (tx) => {
         const first = await tx.user.create({
@@ -81,11 +79,9 @@ describe("viewer page services", () => {
     });
   });
 
-  it("keeps every subscribed page inside the principal's section relation", async ({
-    isolatedDatabase: { owner: db },
-    protocolRuntime,
-    expect,
-  }) => {
+  it("keeps every subscribed page inside the principal's section relation", {
+    tags: ["@Subscription/Service"],
+  }, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const firstSectionId = 1;
       const secondSectionId = 2;

@@ -157,117 +157,132 @@ type Entry = {
   section?: { course: { namePrimary: string } };
 };
 
-contractTest(
-  "schedule.teacher-participation-facts",
-  async ({ state, protocolRuntime, expect }) =>
-    protocolRuntime.run(async () => {
-      const { db, sectionId, teacherIds, facts, importMeeting, listRest } =
-        state;
+for (const method of ["Service", "REST"] as const) {
+  contractTest(
+    `schedule.teacher-participation-facts (${method})`,
+    { tags: [`@Catalog/${method}`] },
+    async ({ state, protocolRuntime, expect }) =>
+      protocolRuntime.run(async () => {
+        const { db, sectionId, teacherIds, facts, importMeeting, listRest } =
+          state;
 
-      let scheduleId: number | undefined;
-      for (const order of [
-        [0, 1, 2],
-        [2, 1, 0],
-        [1, 0, 2],
-      ]) {
-        await importMeeting(order);
-        const schedules = await db.schedule.findMany({
-          where: { sectionId },
-          include: { teacherParticipations: { orderBy: { teacherId: "asc" } } },
-        });
-        expect(schedules).toHaveLength(1);
-        if (scheduleId) expect(schedules[0].id).toBe(scheduleId);
-        scheduleId = schedules[0].id;
-        expect(
-          schedules[0].teacherParticipations.map(
-            ({ teacherId, periods, exerciseClass }) => ({
-              teacherId,
+        let scheduleId: number | undefined;
+        for (const order of [
+          [0, 1, 2],
+          [2, 1, 0],
+          [1, 0, 2],
+        ]) {
+          await importMeeting(order);
+          const schedules = await db.schedule.findMany({
+            where: { sectionId },
+            include: {
+              teacherParticipations: { orderBy: { teacherId: "asc" } },
+            },
+          });
+          if (method === "Service") {
+            expect(schedules).toHaveLength(1);
+            if (scheduleId) expect(schedules[0].id).toBe(scheduleId);
+            scheduleId = schedules[0].id;
+            expect(
+              schedules[0].teacherParticipations.map(
+                ({ teacherId, periods, exerciseClass }) => ({
+                  teacherId,
+                  periods,
+                  exerciseClass,
+                }),
+              ),
+            ).toEqual(
+              facts.map((fact, index) => ({
+                teacherId: teacherIds[index],
+                ...fact,
+              })),
+            );
+            expect(schedules[0].exerciseClass).toBeNull();
+          }
+          if (method === "REST") {
+            const { body } = await listRest();
+            expect(
+              body.data[0].teacherParticipations.map(
+                ({ periods, exerciseClass }) => ({
+                  periods,
+                  exerciseClass,
+                }),
+              ),
+            ).toEqual(facts);
+          }
+        }
+      }),
+  );
+}
+
+for (const method of ["REST", "MCP"] as const) {
+  contractTest(
+    `schedule.teacher-participation-output (${method})`,
+    { tags: [`@Catalog/${method}`] },
+    async ({ state, protocolRuntime, expect }) =>
+      protocolRuntime.run(async () => {
+        const { marker, client, sectionId, teacherIds, facts, listRest } =
+          state;
+
+        const results: Entry[][] = [];
+        if (method === "REST") {
+          const { body } = await listRest();
+          const detail = await protocolRuntime.request(() =>
+            getSectionSchedulesRoute(
+              new Request(
+                `https://example.test/api/catalog/sections/${marker}/schedules`,
+              ),
+              { jwId: String(marker) },
+            ),
+          );
+          expect(detail.status).toBe(200);
+          results.push(body.data, (await detail.json()) as Entry[]);
+        }
+        if (method === "MCP") {
+          const mcpList = await client.call<{ data: Entry[] }>(
+            "catalog_schedule_list",
+            { sectionId, mode: "full" },
+          );
+          const mcpSection = await client.call<{ schedules: Entry[] }>(
+            "catalog_section_schedule_list",
+            { sectionJwId: marker, mode: "full" },
+          );
+          results.push(mcpList.data, mcpSection.schedules);
+        }
+        for (const rows of results) {
+          expect(rows).toHaveLength(1);
+          const entry = rows[0];
+          expect(
+            entry.teachers.map(({ id, jwId, code, nameCn }) => ({
+              id,
+              jwId,
+              code,
+              nameCn,
+            })),
+          ).toEqual(
+            teacherIds.map((id, index) => ({
+              id,
+              jwId: marker + index,
+              code: `SCHEDULE-${marker}-${index}`,
+              nameCn: "同名教师",
+            })),
+          );
+          expect(entry.teachers).toEqual(
+            entry.teacherParticipations.map(({ teacher }) => teacher),
+          );
+          expect(
+            entry.teacherParticipations.map(({ periods, exerciseClass }) => ({
               periods,
               exerciseClass,
-            }),
-          ),
-        ).toEqual(
-          facts.map((fact, index) => ({
-            teacherId: teacherIds[index],
-            ...fact,
-          })),
-        );
-        expect(schedules[0].exerciseClass).toBeNull();
-        const { body } = await listRest();
-        expect(
-          body.data[0].teacherParticipations.map(
-            ({ periods, exerciseClass }) => ({
-              periods,
-              exerciseClass,
-            }),
-          ),
-        ).toEqual(facts);
-      }
-    }),
-);
-
-contractTest(
-  "schedule.teacher-participation-output",
-  async ({ state, protocolRuntime, expect }) =>
-    protocolRuntime.run(async () => {
-      const { marker, client, sectionId, teacherIds, facts, listRest } = state;
-
-      const { body } = await listRest();
-      const detail = await protocolRuntime.request(() =>
-        getSectionSchedulesRoute(
-          new Request(
-            `https://example.test/api/catalog/sections/${marker}/schedules`,
-          ),
-          { jwId: String(marker) },
-        ),
-      );
-      expect(detail.status).toBe(200);
-      const mcpList = await client.call<{ data: Entry[] }>(
-        "catalog_schedule_list",
-        { sectionId, mode: "full" },
-      );
-      const mcpSection = await client.call<{ schedules: Entry[] }>(
-        "catalog_section_schedule_list",
-        { sectionJwId: marker, mode: "full" },
-      );
-      for (const rows of [
-        body.data,
-        (await detail.json()) as Entry[],
-        mcpList.data,
-        mcpSection.schedules,
-      ]) {
-        expect(rows).toHaveLength(1);
-        const entry = rows[0];
-        expect(
-          entry.teachers.map(({ id, jwId, code, nameCn }) => ({
-            id,
-            jwId,
-            code,
-            nameCn,
-          })),
-        ).toEqual(
-          teacherIds.map((id, index) => ({
-            id,
-            jwId: marker + index,
-            code: `SCHEDULE-${marker}-${index}`,
-            nameCn: "同名教师",
-          })),
-        );
-        expect(entry.teachers).toEqual(
-          entry.teacherParticipations.map(({ teacher }) => teacher),
-        );
-        expect(
-          entry.teacherParticipations.map(({ periods, exerciseClass }) => ({
-            periods,
-            exerciseClass,
-          })),
-        ).toEqual(facts);
-      }
-    }),
-);
-
+            })),
+          ).toEqual(facts);
+        }
+      }),
+  );
+}
 contractTest(
   "schedule.public-rest-locale-cache",
+  { tags: ["@Catalog/REST"] },
   async ({ state, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { listRest } = state;
@@ -298,6 +313,7 @@ contractTest(
 
 contractTest(
   "schedule.graphql-teacher-participation-output",
+  { tags: ["@Catalog/GraphQL"] },
   async ({ state, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { marker, teacherIds, ownerId, otherId, facts } = state;

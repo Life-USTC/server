@@ -94,7 +94,9 @@ async function createFixture(
 }
 
 describe("Section subscription retirement linearization", () => {
-  it("rejects newly retired candidates while preserving existing relations", async ({
+  it("rejects newly retired candidates while preserving existing relations", {
+    tags: ["@Subscription/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma },
     importer: importerPrisma,
     protocolRuntime,
@@ -194,7 +196,9 @@ describe("Section subscription retirement linearization", () => {
     });
   });
 
-  it("lets a subscriber that owns the advisory lock commit before retirement", async ({
+  it("lets a subscriber that owns the advisory lock commit before retirement", {
+    tags: ["@Subscription/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma, app: subscriberPrisma },
     importer: importerPrisma,
     protocolRuntime,

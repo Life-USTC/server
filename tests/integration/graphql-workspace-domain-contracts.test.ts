@@ -10,7 +10,10 @@ type HomeworkState = {
   completionRequired: boolean;
 };
 
-it("graphql.subscription-kind", async ({ graphqlRuntime, workspace }) => {
+it("graphql.subscription-kind", { tags: ["@Subscription/MCP"] }, async ({
+  graphqlRuntime,
+  workspace,
+}) => {
   await graphqlRuntime.run(async () => {
     const { db, userId, owner, other, section, registered, graphqlRuntime } =
       workspace;
@@ -60,10 +63,9 @@ it("graphql.subscription-kind", async ({ graphqlRuntime, workspace }) => {
   });
 });
 
-it("graphql.homework-completion-requirement", async ({
-  graphqlRuntime,
-  workspace,
-}) => {
+it("graphql.homework-completion-requirement", {
+  tags: ["@Homework/MCP"],
+}, async ({ graphqlRuntime, workspace }) => {
   await graphqlRuntime.run(async () => {
     const {
       db,
@@ -170,7 +172,7 @@ it("graphql.homework-completion-requirement", async ({
   });
 });
 
-it("graphql.young-event-subscriptions", async ({
+it("graphql.young-event-subscriptions", { tags: ["@Young/MCP"] }, async ({
   graphqlRuntime,
   workspace,
 }) => {
@@ -220,7 +222,7 @@ it("graphql.young-event-subscriptions", async ({
   });
 });
 
-it("graphql.young-organizer-subscriptions", async ({
+it("graphql.young-organizer-subscriptions", { tags: ["@Young/MCP"] }, async ({
   graphqlRuntime,
   workspace,
 }) => {
@@ -275,7 +277,10 @@ it("graphql.young-organizer-subscriptions", async ({
   });
 });
 
-it("graphql.young-reminders", async ({ graphqlRuntime, workspace }) => {
+it("graphql.young-reminders", { tags: ["@Young/MCP"] }, async ({
+  graphqlRuntime,
+  workspace,
+}) => {
   await graphqlRuntime.run(async () => {
     const { db, youngId, owner, other, run } = workspace;
     await run(
@@ -329,7 +334,10 @@ it("graphql.young-reminders", async ({ graphqlRuntime, workspace }) => {
   });
 });
 
-it("graphql.young-daily-digests", async ({ graphqlRuntime, workspace }) => {
+it("graphql.young-daily-digests", { tags: ["@Young/MCP"] }, async ({
+  graphqlRuntime,
+  workspace,
+}) => {
   await graphqlRuntime.run(async () => {
     const { db, userId, youngId, organizerId, owner, other, now, run } =
       workspace;
@@ -370,7 +378,10 @@ it("graphql.young-daily-digests", async ({ graphqlRuntime, workspace }) => {
   });
 });
 
-it("graphql.young-calendar", async ({ graphqlRuntime, workspace }) => {
+it("graphql.young-calendar", { tags: ["@Young/MCP"] }, async ({
+  graphqlRuntime,
+  workspace,
+}) => {
   await graphqlRuntime.run(async () => {
     const { db, youngId, owner, other, run } = workspace;
     const eventStart = new Date("2026-09-27T23:30:00+08:00");

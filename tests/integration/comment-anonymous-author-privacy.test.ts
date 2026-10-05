@@ -16,6 +16,7 @@ function flatten(nodes: CommentNode[]): CommentNode[] {
 describe("anonymous comment identity boundaries", () => {
   commentPrivacyTest(
     "comment.anonymous-author-privacy",
+    { tags: ["@Comment/Service"] },
     async ({ privacy, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const {
@@ -95,6 +96,7 @@ describe("anonymous comment identity boundaries", () => {
 
   commentPrivacyTest(
     "comment.governance-anonymous-author-access",
+    { tags: ["@Comment/Service"] },
     async ({ privacy, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const {
@@ -137,6 +139,7 @@ describe("anonymous comment identity boundaries", () => {
 
   commentPrivacyTest(
     "comment.governance-anonymous-author-audit",
+    { tags: ["@Comment/Service"] },
     async ({ privacy, protocolRuntime, expect }) =>
       protocolRuntime.run(async () => {
         const {

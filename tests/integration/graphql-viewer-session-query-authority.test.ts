@@ -7,7 +7,9 @@ import {
 } from "../shared/scenarios/overview";
 
 describe("GraphQL Viewer integration", () => {
-  it("graphql.session-query-authority", async ({ viewer: viewerCase }) => {
+  it("graphql.session-query-authority", { tags: ["@GraphQL/GraphQL"] }, async ({
+    viewer: viewerCase,
+  }) => {
     await viewerCase.run(async () => {
       const {
         execute,

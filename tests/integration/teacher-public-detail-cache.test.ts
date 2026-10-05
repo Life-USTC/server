@@ -4,7 +4,7 @@ import { findTeacherDetailById } from "@/features/catalog/server/teacher-summary
 import { catalogReadTest as it } from "../shared/catalog-read-fixture";
 
 // The cache transition owns its Vitest process as well as its database.
-it("teacher.public-detail-cache", async ({
+it("teacher.public-detail-cache", { tags: ["@Catalog/Service"] }, async ({
   catalogRead: { run, db, fixture, request, commitRevision },
 }) => {
   await run(async () => {

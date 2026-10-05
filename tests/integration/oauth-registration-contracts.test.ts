@@ -3,6 +3,7 @@ import { registrationTest } from "../shared/oauth-registration-fixture";
 
 registrationTest(
   "oauth.dcr-via-provider",
+  { tags: ["@OAuth/OAuth"] },
   async ({
     isolatedDatabase: { owner: db },
     oauthRuntime,

@@ -46,7 +46,7 @@ const webhookTest = it.extend({
   },
 });
 
-it("audit.action-account-create", async ({
+it("audit.action-account-create", { tags: ["@Admin/Service"] }, async ({
   isolatedDatabase: { owner: db },
   protocolRuntime,
   marker,
@@ -120,7 +120,7 @@ it("audit.action-account-create", async ({
   });
 });
 
-it("audit.action-account-link", async ({
+it("audit.action-account-link", { tags: ["@Admin/Service"] }, async ({
   isolatedDatabase: { owner: db },
   protocolRuntime,
   marker,
@@ -211,6 +211,7 @@ it("audit.action-account-link", async ({
 
 webhookTest(
   "audit.action-webhook-login",
+  { tags: ["@Admin/OAuth"] },
   async ({
     isolatedDatabase: { owner: db },
     protocolRuntime,

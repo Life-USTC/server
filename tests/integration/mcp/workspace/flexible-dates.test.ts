@@ -4,6 +4,7 @@ import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 
 toolTest(
   "mcp.flexible-date-inputs",
+  { tags: ["@Calendar/MCP"] },
   async ({
     mcpWorkflow,
     mcpActor: context,

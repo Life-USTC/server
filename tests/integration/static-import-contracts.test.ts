@@ -9,5 +9,9 @@ for (const name of [
   "section.retirement-audit",
   "section.retirement-report",
 ]) {
-  it(name, async ({ staticImportProcess }) => staticImportProcess.verify(name));
+  it(
+    name,
+    { tags: ["@StaticImport/Runtime"] },
+    async ({ staticImportProcess }) => staticImportProcess.verify(name),
+  );
 }

@@ -30,9 +30,10 @@ type Report = {
 };
 
 for (const phase of ["template", "clone"] as const) {
-  test(`Vitest native ${phase} setup timeout releases its database resources`, async ({
-    annotate,
-  }) => {
+  test(`Vitest native ${phase} setup timeout releases its database resources`, {
+    tags: ["@Infrastructure/Runtime"],
+    timeout: 60_000,
+  }, async ({ annotate }) => {
     const output = await mkdtemp(join(tmpdir(), "life-ustc-vitest-timeout-"));
     let passed = false;
     try {
@@ -177,5 +178,5 @@ for (const phase of ["template", "clone"] as const) {
       if (passed) await rm(output, { recursive: true, force: true });
       else console.error(`Native database timeout evidence: ${output}`);
     }
-  }, 60_000);
+  });
 }

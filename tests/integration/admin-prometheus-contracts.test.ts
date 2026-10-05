@@ -26,9 +26,9 @@ function metricsRequest(
   return new Request(`http://localhost:3000${path}`, { headers });
 }
 
-it("rejects metric collection when the dedicated secret is absent", async ({
-  metrics: { run, db, scrape },
-}) => {
+it("rejects metric collection when the dedicated secret is absent", {
+  tags: ["@Admin/REST"],
+}, async ({ metrics: { run, db, scrape } }) => {
   await run(async () => {
     const response = await scrape(
       metricsRequest("Bearer metrics-fixture-secret"),
@@ -50,9 +50,9 @@ for (const [label, authorization] of [
   ["comma joined tokens", "Bearer metrics-fixture-secret,other"],
   ["oversized token", `Bearer ${"x".repeat(4097)}`],
 ] as const) {
-  it(`rejects ${label} despite a cookie and query secret`, async ({
-    metrics: { run, db, scrape },
-  }) => {
+  it(`rejects ${label} despite a cookie and query secret`, {
+    tags: ["@Admin/REST"],
+  }, async ({ metrics: { run, db, scrape } }) => {
     await run(async () => {
       const response = await scrape(
         metricsRequest(
@@ -75,7 +75,9 @@ for (const [label, authorization] of [
   });
 }
 
-it("admin.prometheus-export", async ({ metrics: { run, db, scrape } }) => {
+it("admin.prometheus-export", { tags: ["@Admin/REST"] }, async ({
+  metrics: { run, db, scrape },
+}) => {
   await run(async () => {
     await db.featureOperationEvent.create({ data: event() });
     const response = await scrape(
@@ -105,9 +107,9 @@ it("admin.prometheus-export", async ({ metrics: { run, db, scrape } }) => {
   });
 });
 
-it("ignores retained observations that predate the counter epoch", async ({
-  metrics: { run, db, read },
-}) => {
+it("ignores retained observations that predate the counter epoch", {
+  tags: ["@Admin/Service"],
+}, async ({ metrics: { run, db, read } }) => {
   await run(async () => {
     const [epoch] = await db.$queryRaw<
       Array<{ startedAt: Date }>
@@ -135,9 +137,9 @@ it("ignores retained observations that predate the counter epoch", async ({
   });
 });
 
-it("rolls back observation rows and their counter triggers atomically", async ({
-  metrics: { run, db, read },
-}) => {
+it("rolls back observation rows and their counter triggers atomically", {
+  tags: ["@Admin/Service"],
+}, async ({ metrics: { run, db, read } }) => {
   await run(async () => {
     const observation = event();
     await expect(
@@ -157,7 +159,9 @@ it("rolls back observation rows and their counter triggers atomically", async ({
   });
 });
 
-it("admin.prometheus-windows", async ({ metrics: { run, db, read } }) => {
+it("admin.prometheus-windows", { tags: ["@Admin/Service"] }, async ({
+  metrics: { run, db, read },
+}) => {
   await run(async () => {
     const users = await Promise.all(
       [0, 1, 2, 3].map(() =>

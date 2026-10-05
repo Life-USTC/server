@@ -12,6 +12,7 @@ type List = {
 
 commentReadTest(
   "comment.shared-read-policy",
+  { tags: ["@Comment/Service"] },
   async ({ reader, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const {
@@ -89,6 +90,7 @@ commentReadTest(
 
 commentReadTest(
   "comment.rest-pagination-parameters",
+  { tags: ["@Comment/Service"] },
   async ({ reader, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const {
@@ -126,6 +128,7 @@ commentReadTest(
 
 commentReadTest(
   "description.rest-pagination-parameters",
+  { tags: ["@Comment/Service"] },
   async ({ reader, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { marker, getAdminDescriptionsRoute, request, admin } = reader;
@@ -158,6 +161,7 @@ commentReadTest(
 
 commentReadTest(
   "comment.mcp-pagination-parameters",
+  { tags: ["@Comment/Service"] },
   async ({ reader, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const { mcp, owner, teacherId, rootId } = reader;
@@ -200,6 +204,7 @@ commentReadTest(
 
 commentReadTest(
   "comment.focused-read-errors",
+  { tags: ["@Comment/Service"] },
   async ({ reader, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const {
@@ -229,6 +234,7 @@ commentReadTest(
 
 commentReadTest(
   "comment.reply-read-errors",
+  { tags: ["@Comment/Service"] },
   async ({ reader, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const {
@@ -276,6 +282,7 @@ commentReadTest(
 
 commentReadTest(
   "comment.moderation-default-status",
+  { tags: ["@Comment/Service"] },
   async ({ reader, protocolRuntime, expect }) =>
     protocolRuntime.run(async () => {
       const {

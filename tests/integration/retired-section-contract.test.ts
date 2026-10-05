@@ -61,7 +61,7 @@ async function createSections(db: TestPrismaClient) {
   });
 }
 
-it("section.retired-read-semantics", async ({
+it("section.retired-read-semantics", { tags: ["@Catalog/Service"] }, async ({
   isolatedDatabase: { owner: db },
   protocolRuntime,
   expect,
@@ -120,11 +120,9 @@ it("section.retired-read-semantics", async ({
   });
 });
 
-it("section.retired-subscription-mutations", async ({
-  isolatedDatabase: { owner: db },
-  protocolRuntime,
-  expect,
-}) => {
+it("section.retired-subscription-mutations", {
+  tags: ["@Catalog/Service"],
+}, async ({ isolatedDatabase: { owner: db }, protocolRuntime, expect }) => {
   await protocolRuntime.run(async () => {
     const { user, active, retired } = await createSections(db);
     expect(

@@ -5,11 +5,11 @@ import { publicCatalogProtocolTest as it } from "../shared/public-catalog-protoc
 
 it.for(["zh-cn", "en-us"] as const)(
   "section teacher assignment preserves fields and resolves its public teacher (%s)",
-  async (locale, {
-    isolatedDatabase,
-    protocolRuntime,
-    _publicCatalogRevision,
-  }) => {
+  { tags: ["@Catalog/Service"] },
+  async (
+    locale,
+    { isolatedDatabase, protocolRuntime, _publicCatalogRevision },
+  ) => {
     await protocolRuntime.run(async () => {
       const jwId = 1700000000 + Math.floor(Math.random() * 100000000);
       const { teacher, section, assignment } =

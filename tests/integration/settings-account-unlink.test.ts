@@ -18,7 +18,9 @@ const it = nodeProtocolTest.extend({
 });
 
 describe("settings account unlink database boundary", () => {
-  it("uses a locked-down security-definer function", async ({
+  it("uses a locked-down security-definer function", {
+    tags: ["@Account/Permissions"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
     expect,
@@ -59,7 +61,9 @@ describe("settings account unlink database boundary", () => {
     });
   });
 
-  it("atomically removes one provider but never the last account", async ({
+  it("atomically removes one provider but never the last account", {
+    tags: ["@Account/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
     expect,

@@ -579,6 +579,7 @@ const projectionFields: Record<string, readonly [string, string]> = {
 
 contractTest(
   "MCP academic catalog preserves explicit compact and full projections",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, state, expect }) =>
     mcpWorkflow.run(async () => {
       const { date, catalog, scheduleId, currentSemesterId, pair } = state;
@@ -686,6 +687,7 @@ contractTest(
 );
 contractTest(
   "MCP personal academic readers preserve explicit compact and full projections",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, state, expect }) =>
     mcpWorkflow.run(async () => {
       const {
@@ -813,6 +815,7 @@ contractTest(
 );
 contractTest(
   "MCP bus and link projections retain display fields and personal state",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, state }) =>
     mcpWorkflow.run(async () => {
       const { atTime, invoke, pair } = state;
@@ -870,6 +873,7 @@ contractTest(
 );
 contractTest(
   "MCP community and uploads preserve explicit compact and full projections",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, state, expect }) =>
     mcpWorkflow.run(async () => {
       const {
@@ -995,6 +999,7 @@ contractTest(
 );
 contractTest.for(["default", "full"] as const)(
   "MCP todo mutation projection in %s mode",
+  { tags: ["@MCP/MCP"] },
   async (mode, { mcpWorkflow, state, expect }) =>
     mcpWorkflow.run(async () => {
       const { dueAt, invoke, db } = state;
@@ -1050,6 +1055,7 @@ contractTest.for(["default", "full"] as const)(
 );
 contractTest.for(["default", "full"] as const)(
   "MCP homework mutation projection in %s mode",
+  { tags: ["@MCP/MCP"] },
   async (mode, { mcpWorkflow, state, expect }) =>
     mcpWorkflow.run(async () => {
       const { dueAt, catalog, invoke, db } = state;
@@ -1106,6 +1112,7 @@ contractTest.for(["default", "full"] as const)(
 );
 contractTest.for(["default", "full"] as const)(
   "MCP subscription mutation projection in %s mode",
+  { tags: ["@MCP/MCP"] },
   async (mode, { mcpWorkflow, state }) =>
     mcpWorkflow.run(async () => {
       const { catalog, currentSemesterId, invoke } = state;
@@ -1135,6 +1142,7 @@ contractTest.for(["default", "full"] as const)(
 );
 contractTest.for(["default", "full"] as const)(
   "MCP bus preference mutation projection in %s mode",
+  { tags: ["@MCP/MCP"] },
   async (mode, { mcpWorkflow, state }) =>
     mcpWorkflow.run(async () => {
       const { invoke } = state;
@@ -1157,6 +1165,7 @@ contractTest.for(["default", "full"] as const)(
 );
 contractTest.for(["default", "full"] as const)(
   "MCP comment mutation projection in %s mode",
+  { tags: ["@MCP/MCP"] },
   async (mode, { mcpWorkflow, state }) =>
     mcpWorkflow.run(async () => {
       const { catalog, invoke } = state;
@@ -1205,6 +1214,7 @@ contractTest.for(["default", "full"] as const)(
 );
 contractTest.for(["default", "full"] as const)(
   "MCP description mutation projection in %s mode",
+  { tags: ["@MCP/MCP"] },
   async (mode, { mcpWorkflow, state }) =>
     mcpWorkflow.run(async () => {
       const { userName, catalog, invoke } = state;
@@ -1227,6 +1237,7 @@ contractTest.for(["default", "full"] as const)(
 );
 contractTest.for(["default", "full"] as const)(
   "MCP upload mutation projection in %s mode",
+  { tags: ["@MCP/MCP"] },
   async (mode, { mcpWorkflow, state, expect }) =>
     mcpWorkflow.run(async () => {
       const { userId, invoke, db, deletedKeys } = state;
@@ -1257,6 +1268,7 @@ contractTest.for(["default", "full"] as const)(
 );
 contractTest(
   "MCP completed todo consumers retain mode-specific fields",
+  { tags: ["@MCP/MCP"] },
   async ({ mcpWorkflow, state, expect }) =>
     mcpWorkflow.run(async () => {
       const { dueAt, client, todoId, db } = state;

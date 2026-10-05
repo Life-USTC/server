@@ -36,9 +36,9 @@ const histogram = (snapshot: PrometheusMetricsSnapshot) =>
       row.protocol === "rest",
   );
 describe("Persistent Prometheus metrics", () => {
-  it("counts server errors separately from rejected requests", async ({
-    metrics: { run, read, write },
-  }) => {
+  it("counts server errors separately from rejected requests", {
+    tags: ["@Admin/Service"],
+  }, async ({ metrics: { run, read, write } }) => {
     await run(async () => {
       await write({
         features: [
@@ -62,7 +62,9 @@ describe("Persistent Prometheus metrics", () => {
         ).toBe(1);
     });
   });
-  it("counts concurrent committed inserts exactly once, deduplicates replay, and reads counters while activity is cached", async ({
+  it("counts concurrent committed inserts exactly once, deduplicates replay, and reads counters while activity is cached", {
+    tags: ["@Admin/Service"],
+  }, async ({
     metrics: {
       run,
       db: fixture,
@@ -97,7 +99,9 @@ describe("Persistent Prometheus metrics", () => {
       expect(total(await readPrometheusMetrics())).toBe(total(after));
     });
   });
-  it("persists cumulative bucket boundaries, count and sum independently of raw retention", async ({
+  it("persists cumulative bucket boundaries, count and sum independently of raw retention", {
+    tags: ["@Admin/Service"],
+  }, async ({
     metrics: {
       run,
       db: fixture,
@@ -131,7 +135,9 @@ describe("Persistent Prometheus metrics", () => {
       expect(histogram(await readPrometheusMetrics())).toEqual(after);
     });
   });
-  it("preserves sub-microsecond duration sums", async ({
+  it("preserves sub-microsecond duration sums", {
+    tags: ["@Admin/Service"],
+  }, async ({
     metrics: {
       run,
       read: readPrometheusMetrics,
@@ -147,7 +153,9 @@ describe("Persistent Prometheus metrics", () => {
       expect(after - before).toBeCloseTo(0.000123456789, 12);
     });
   });
-  it("uses rolling exact unique-user windows while deletion preserves cumulative counts", async ({
+  it("uses rolling exact unique-user windows while deletion preserves cumulative counts", {
+    tags: ["@Admin/Service"],
+  }, async ({
     metrics: {
       run,
       db: fixture,
@@ -211,9 +219,9 @@ describe("Persistent Prometheus metrics", () => {
       expect(after.features).toEqual(beforeDelete.features);
     });
   });
-  it("counts OAuth upsert deltas and retains counts after usage/account removal", async ({
-    metrics: { run, db: fixture, read: readPrometheusMetrics },
-  }) => {
+  it("counts OAuth upsert deltas and retains counts after usage/account removal", {
+    tags: ["@Admin/Service"],
+  }, async ({ metrics: { run, db: fixture, read: readPrometheusMetrics } }) => {
     await run(async () => {
       const before = await readPrometheusMetrics();
       const user = await fixture.user.create({
@@ -253,7 +261,9 @@ describe("Persistent Prometheus metrics", () => {
       expect(selected(await readPrometheusMetrics())).toEqual(selected(after));
     });
   });
-  it("folds arbitrary runtime labels and retains totals after cleanup", async ({
+  it("folds arbitrary runtime labels and retains totals after cleanup", {
+    tags: ["@Admin/Service"],
+  }, async ({
     metrics: {
       run,
       db: fixture,
@@ -290,9 +300,9 @@ describe("Persistent Prometheus metrics", () => {
       );
     });
   });
-  it("counts audit inserts once and never decrements during audit retention", async ({
-    metrics: { run, db: fixture, read: readPrometheusMetrics },
-  }) => {
+  it("counts audit inserts once and never decrements during audit retention", {
+    tags: ["@Admin/Service"],
+  }, async ({ metrics: { run, db: fixture, read: readPrometheusMetrics } }) => {
     await run(async () => {
       const before = await readPrometheusMetrics();
       const id = crypto.randomUUID();
@@ -324,9 +334,9 @@ describe("Persistent Prometheus metrics", () => {
       );
     });
   });
-  it("denies direct aggregate table reads and writes to the application", async ({
-    metrics: { run, app: runtime },
-  }) => {
+  it("denies direct aggregate table reads and writes to the application", {
+    tags: ["@Admin/Service"],
+  }, async ({ metrics: { run, app: runtime } }) => {
     await run(async () => {
       await expect(
         runtime.$queryRaw`SELECT * FROM public."PrometheusCounter"`,

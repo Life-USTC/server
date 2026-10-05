@@ -86,6 +86,7 @@ async function expectCommentAudit(
 
 auditTest(
   "audit.action-comment-create",
+  { tags: ["@Admin/MCP"] },
   async ({ mcpWorkflow, f, isolatedDatabase }) =>
     mcpWorkflow.run(async () => {
       const prisma = isolatedDatabase.owner;
@@ -114,6 +115,7 @@ auditTest(
 
 auditTest(
   "audit.action-comment-edit",
+  { tags: ["@Admin/MCP"] },
   async ({ mcpWorkflow, f, isolatedDatabase }) =>
     mcpWorkflow.run(async () => {
       const prisma = isolatedDatabase.owner;
@@ -145,6 +147,7 @@ auditTest(
 
 auditTest(
   "audit.action-comment-delete",
+  { tags: ["@Admin/MCP"] },
   async ({ mcpWorkflow, f, isolatedDatabase }) =>
     mcpWorkflow.run(async () => {
       const prisma = isolatedDatabase.owner;
@@ -167,6 +170,7 @@ auditTest(
 
 auditTest(
   "audit.action-comment-react",
+  { tags: ["@Admin/MCP"] },
   async ({ mcpWorkflow, f, isolatedDatabase }) =>
     mcpWorkflow.run(async () => {
       const prisma = isolatedDatabase.owner;
@@ -209,6 +213,7 @@ auditTest(
 
 auditTest(
   "audit.action-description-edit",
+  { tags: ["@Admin/MCP"] },
   async ({ mcpWorkflow, f, isolatedDatabase }) =>
     mcpWorkflow.run(async () => {
       const prisma = isolatedDatabase.owner;

@@ -15,7 +15,9 @@ const context = {
 } as const;
 
 // This file owns one console spy scope; other cases run in isolated modules.
-it("admin.platform-runtime-logs", async ({ observation }) => {
+it("admin.platform-runtime-logs", { tags: ["@Admin/Runtime"] }, async ({
+  observation,
+}) => {
   await observation.runtime(async () => {
     const { db, capture } = observation;
     const error = vi

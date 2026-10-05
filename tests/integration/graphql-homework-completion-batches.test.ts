@@ -23,6 +23,7 @@ describe("GraphQL completion batch boundaries", () => {
 
   graphqlHomeworkTest(
     "returns an independent not-found result for each missing target",
+    { tags: ["@Homework/GraphQL"] },
     async ({
       homework: { fixturePrisma, creatorId, items, send },
       protocolRuntime,

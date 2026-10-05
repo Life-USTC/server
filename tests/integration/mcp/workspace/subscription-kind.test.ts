@@ -4,6 +4,7 @@ import { isolatedMcpTest as toolTest } from "../_harness/isolated-context";
 describe("subscription kind transport", () => {
   toolTest(
     "mcp.subscription-kind-projection",
+    { tags: ["@Subscription/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: owner,

@@ -9,6 +9,7 @@ import { graphqlAuthTest } from "../shared/graphql-auth-contract-fixture";
 describe("GraphQL OAuth resource isolation", () => {
   graphqlAuthTest.for([["MCP", getOAuthMcpResourceUrl()]])(
     "拒绝重放 %s-bound JWT",
+    { tags: ["@OAuth/Service"] },
     async (
       [_surface, resource],
       { authorization: { signToken }, oauthRuntime },

@@ -4,6 +4,7 @@ import { catalogMcpTest as toolTest } from "../_harness/catalog-fixture";
 describe("seeded-list MCP tools formerly E2E-only", () => {
   toolTest(
     "workspace_todo_list returns counts and incomplete seed todos",
+    { tags: ["@Todo/MCP"] },
     async ({ mcpWorkflow, mcpActor: subscribed, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
         await isolatedDatabase.owner.todo.create({
@@ -38,6 +39,7 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
 
   toolTest(
     "catalog_section_exam_list returns exams for the seed section",
+    { tags: ["@Exam/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -57,6 +59,7 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
 
   toolTest(
     "catalog_bus_route_search returns routes for seed campuses",
+    { tags: ["@Bus/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpBus, expect }) =>
       mcpWorkflow.run(async () => {
         const result = await context.client.call<{
@@ -79,6 +82,7 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
 
   toolTest(
     "community_comment_replies returns replies for a seed root comment",
+    { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: context,
@@ -139,75 +143,77 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
       }),
   );
 
-  toolTest(
-    "workspace_upload_list / workspace_homework_list / workspace_exam_list return arrays",
-    async ({
-      mcpWorkflow,
-      mcpActor: subscribed,
-      mcpCatalog,
-      isolatedDatabase,
-      expect,
-    }) =>
-      mcpWorkflow.run(async () => {
-        const records = await isolatedDatabase.owner.$transaction(
-          async (db) => {
-            await db.userSectionSubscription.create({
-              data: {
-                userId: subscribed.userId,
-                sectionId: mcpCatalog.section.id,
-              },
+  for (const domain of ["Upload", "Homework", "Exam"] as const) {
+    toolTest(
+      `workspace ${domain} list returns its independently seeded records`,
+      { tags: [`@${domain}/MCP`] },
+      async ({
+        mcpWorkflow,
+        mcpActor: subscribed,
+        mcpCatalog,
+        isolatedDatabase,
+        expect,
+      }) =>
+        mcpWorkflow.run(async () => {
+          const records = await isolatedDatabase.owner.$transaction(
+            async (db) => {
+              await db.userSectionSubscription.create({
+                data: {
+                  userId: subscribed.userId,
+                  sectionId: mcpCatalog.section.id,
+                },
+              });
+              const upload = await db.upload.create({
+                data: {
+                  userId: subscribed.userId,
+                  key: "private/list.txt",
+                  filename: "list.txt",
+                  contentType: "text/plain",
+                  size: 12,
+                },
+              });
+              const homework = await db.homework.create({
+                data: {
+                  createdById: subscribed.userId,
+                  sectionId: mcpCatalog.section.id,
+                  title: "Private list homework",
+                },
+              });
+              return { upload, homework };
+            },
+          );
+          if (domain === "Upload") {
+            const uploads = await subscribed.client.call<{
+              data?: unknown[];
+              meta?: { usedBytes?: number };
+            }>("workspace_upload_list", {});
+            expect(Array.isArray(uploads.data)).toBe(true);
+            expect(uploads.data).toContainEqual(
+              expect.objectContaining({ id: records.upload.id }),
+            );
+          } else if (domain === "Homework") {
+            const homeworks = await subscribed.client.call<{
+              homeworks?: unknown[];
+            }>("workspace_homework_list", {
+              completed: false,
+              limit: 10,
+              locale: "zh-cn",
             });
-            const upload = await db.upload.create({
-              data: {
-                userId: subscribed.userId,
-                key: "private/list.txt",
-                filename: "list.txt",
-                contentType: "text/plain",
-                size: 12,
-              },
-            });
-            const homework = await db.homework.create({
-              data: {
-                createdById: subscribed.userId,
-                sectionId: mcpCatalog.section.id,
-                title: "Private list homework",
-              },
-            });
-            return { upload, homework };
-          },
-        );
-        const [uploads, homeworks, exams] = await Promise.all([
-          subscribed.client.call<{
-            data?: unknown[];
-            meta?: { usedBytes?: number };
-          }>("workspace_upload_list", {}),
-          subscribed.client.call<{
-            homeworks?: unknown[];
-          }>("workspace_homework_list", {
-            completed: false,
-            limit: 10,
-            locale: "zh-cn",
-          }),
-          subscribed.client.call<{
-            exams?: unknown[];
-          }>("workspace_exam_list", {
-            limit: 10,
-            locale: "zh-cn",
-          }),
-        ]);
-
-        expect(Array.isArray(uploads.data)).toBe(true);
-        expect(Array.isArray(homeworks.homeworks)).toBe(true);
-        expect(Array.isArray(exams.exams)).toBe(true);
-        expect(uploads.data).toContainEqual(
-          expect.objectContaining({ id: records.upload.id }),
-        );
-        expect(homeworks.homeworks).toContainEqual(
-          expect.objectContaining({ id: records.homework.id }),
-        );
-        expect(exams.exams).toContainEqual(
-          expect.objectContaining({ id: mcpCatalog.exam.id }),
-        );
-      }),
-  );
+            expect(Array.isArray(homeworks.homeworks)).toBe(true);
+            expect(homeworks.homeworks).toContainEqual(
+              expect.objectContaining({ id: records.homework.id }),
+            );
+          } else {
+            const exams = await subscribed.client.call<{ exams?: unknown[] }>(
+              "workspace_exam_list",
+              { limit: 10, locale: "zh-cn" },
+            );
+            expect(Array.isArray(exams.exams)).toBe(true);
+            expect(exams.exams).toContainEqual(
+              expect.objectContaining({ id: mcpCatalog.exam.id }),
+            );
+          }
+        }),
+    );
+  }
 });

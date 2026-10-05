@@ -35,6 +35,7 @@ async function userState(
 
 toolTest(
   "cases.mcp-assistant-workflows.preview-before-write-1",
+  { tags: ["@Subscription/MCP"] },
   async ({
     mcpWorkflow,
     mcpActor: context,

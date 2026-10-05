@@ -112,6 +112,7 @@ const contractTest = isolatedMcpTest.extend(
               organizerId: organizerIds[i],
               name: `Event ${i}`,
               rawJson: {},
+              createdAt: created[i],
               isActive: i % 2 === 0,
             },
           });
@@ -203,175 +204,286 @@ const contractTest = isolatedMcpTest.extend(
 type Row = Record<string, unknown>;
 // REST/MCP use Shanghai timestamps; GraphQL DateTime uses UTC for Date values.
 
-contractTest(
-  "young-workspace.list-transport-pagination",
-  async ({ mcpWorkflow, state, isolatedDatabase, mcpRuntime, expect }) =>
-    mcpWorkflow.run(async () => {
-      const {
-        eventIds,
-        organizerIds,
-        noticeIds,
-        client,
-        ascendingTie,
-        descendingTie,
-        request,
-        timestampInstants,
-      } = state;
+for (const method of ["REST", "GraphQL", "MCP"] as const) {
+  contractTest(
+    `young-workspace.list-transport-pagination (${method})`,
+    { tags: [`@Young/${method}`] },
+    async ({ mcpWorkflow, state, isolatedDatabase, mcpRuntime, expect }) =>
+      mcpWorkflow.run(async () => {
+        const {
+          eventIds,
+          organizerIds,
+          noticeIds,
+          client,
+          ascendingTie,
+          descendingTie,
+          request,
+          timestampInstants,
+        } = state;
 
-      const db = isolatedDatabase.owner;
-      expect(
-        await db.userYoungEventSubscription.findMany({
-          where: { userId: state.users[0] },
-          select: { youngId: true },
-          orderBy: { youngId: "asc" },
-        }),
-      ).toEqual([...eventIds].sort().map((youngId) => ({ youngId })));
-      expect(
-        await db.userYoungOrganizerSubscription.findMany({
-          where: { userId: state.users[0] },
-          select: { organizerId: true },
-          orderBy: { organizerId: "asc" },
-        }),
-      ).toEqual(
-        [...organizerIds].sort().map((organizerId) => ({ organizerId })),
-      );
-      expect(
-        await db.userYoungEventSubscription.findMany({
-          where: { userId: state.users[1] },
-          select: { youngId: true },
-        }),
-      ).toEqual([{ youngId: eventIds[0] }]);
-      expect(
-        await db.userYoungOrganizerSubscription.findMany({
-          where: { userId: state.users[1] },
-          select: { organizerId: true },
-        }),
-      ).toEqual([{ organizerId: organizerIds[0] }]);
-      expect(
-        await db.youngNotification.findMany({
-          select: { id: true, userId: true, readAt: true, expiresAt: true },
-          orderBy: { id: "asc" },
-        }),
-      ).toEqual(
-        noticeIds
-          .map((id, i) => ({
+        const db = isolatedDatabase.owner;
+        expect(
+          await db.userYoungEventSubscription.findMany({
+            where: { userId: state.users[0] },
+            select: { youngId: true },
+            orderBy: { youngId: "asc" },
+          }),
+        ).toEqual([...eventIds].sort().map((youngId) => ({ youngId })));
+        expect(
+          await db.userYoungOrganizerSubscription.findMany({
+            where: { userId: state.users[0] },
+            select: { organizerId: true },
+            orderBy: { organizerId: "asc" },
+          }),
+        ).toEqual(
+          [...organizerIds].sort().map((organizerId) => ({ organizerId })),
+        );
+        expect(
+          await db.userYoungEventSubscription.findMany({
+            where: { userId: state.users[1] },
+            select: { youngId: true },
+          }),
+        ).toEqual([{ youngId: eventIds[0] }]);
+        expect(
+          await db.userYoungOrganizerSubscription.findMany({
+            where: { userId: state.users[1] },
+            select: { organizerId: true },
+          }),
+        ).toEqual([{ organizerId: organizerIds[0] }]);
+        expect(
+          await db.youngNotification.findMany({
+            select: { id: true, userId: true, readAt: true, expiresAt: true },
+            orderBy: { id: "asc" },
+          }),
+        ).toEqual(
+          noticeIds
+            .map((id, i) => ({
+              id,
+              userId: state.users[i === 6 ? 1 : 0],
+              readAt: i === 3 ? state.now : null,
+              expiresAt:
+                i === 5
+                  ? new Date(state.now.getTime() - 86_400_000)
+                  : i === 4
+                    ? new Date(state.now.getTime() + 86_400_000)
+                    : null,
+            }))
+            .sort((left, right) => left.id.localeCompare(right.id)),
+        );
+
+        // Each entry has an independent fixture and expected rows, including all
+        // REST/MCP fields and the exact selected GraphQL projection.
+        const timestamp = (date: Date) =>
+          `${new Date(date.getTime() + 8 * 3_600_000).toISOString().slice(0, 23)}+08:00`;
+        const expectedRow = (kind: string, id: string): Row => {
+          if (kind === "events") {
+            const index = eventIds.indexOf(id);
+            const event: Row = {
+              youngId: id,
+              name: `Event ${index}`,
+              isActive: index % 2 === 0,
+              organizerId: organizerIds[index],
+            };
+            if (method !== "GraphQL") {
+              Object.assign(event, {
+                ...Object.fromEntries(
+                  [
+                    "category",
+                    "department",
+                    "organizer",
+                    "status",
+                    "activityStatusCode",
+                    "signupStatusCode",
+                    "requiresSignup",
+                    "categoryCode",
+                    "moduleCode",
+                    "formCode",
+                    "activityLevelCode",
+                    "departmentId",
+                    "signupScopeCode",
+                    "requiresSignupInfo",
+                    "isOnline",
+                    "onlineMeetingInfo",
+                    "externalSponsor",
+                    "location",
+                    "imageUrl",
+                    "hours",
+                    "capacity",
+                    "appliedCount",
+                    "startAt",
+                    "endAt",
+                    "applyStartAt",
+                    "applyEndAt",
+                    "lastSeenAt",
+                    "activityLevel",
+                    "module",
+                    "form",
+                    "grades",
+                    "sponsor",
+                    "contactName",
+                    "contactTel",
+                    "duration",
+                    "serviceHour",
+                    "sumHours",
+                    "sumPersons",
+                    "partakeNum",
+                    "favCount",
+                    "limitNum",
+                    "createdAtUpstream",
+                    "auditedAt",
+                    "updatedAtUpstream",
+                    "places",
+                  ].map((key) => [key, null]),
+                ),
+                upstreamOrganizerIds: [],
+                upstreamSponsorIds: [],
+                tagIds: [],
+                signupDepartmentIds: [],
+                allowedAttachmentTypes: [],
+                sourceMissing: false,
+                createdAt: timestamp(state.created[index]),
+              });
+            }
+            return {
+              youngId: id,
+              createdAt: state.created[index].getTime(),
+              remindSignup: false,
+              remindDeadline: false,
+              remindStart: false,
+              event,
+            };
+          }
+          if (kind === "organizers") {
+            const index = organizerIds.findIndex((value) => value === id);
+            return {
+              organizerId: id,
+              createdAt: state.created[index].getTime(),
+              organizer: { id, name: `Organizer ${index}` },
+            };
+          }
+          const index = noticeIds.findIndex((value) => value === id);
+          return {
             id,
-            userId: state.users[i === 6 ? 1 : 0],
-            readAt: i === 3 ? state.now : null,
-            expiresAt:
-              i === 5
-                ? new Date(state.now.getTime() - 86_400_000)
-                : i === 4
-                  ? new Date(state.now.getTime() + 86_400_000)
-                  : null,
-          }))
-          .sort((left, right) => left.id.localeCompare(right.id)),
-      );
-
-      // One prepared snapshot spans these consumer projections. Pages, timestamp
-      // ties, read/expired filters and foreign rows jointly define the pagination
-      // contract; none of the transports mutates the state another one consumes.
-      for (const spec of [
-        {
-          kind: "events",
-          path: "young-event-subscriptions",
-          field: "youngEventSubscriptions",
-          tool: "workspace_young_event_subscription_list",
-          id: "youngId",
-          selection:
-            "youngId createdAt remindSignup remindDeadline remindStart event { youngId name isActive organizerId }",
-          expected: ascendingTie(eventIds),
-          unread: undefined,
-        },
-        {
-          kind: "organizers",
-          path: "young-organizer-subscriptions",
-          field: "youngOrganizerSubscriptions",
-          tool: "workspace_young_organizer_subscription_list",
-          id: "organizerId",
-          selection: "organizerId createdAt organizer { id name }",
-          expected: ascendingTie(organizerIds),
-          unread: undefined,
-        },
-        ...[undefined, false, true].map((unread) => ({
-          kind: "notifications",
-          path: "young-notifications",
-          field: "youngNotifications",
-          tool: "workspace_young_notification_list",
-          id: "id",
-          selection:
-            "id youngId organizerId kind title body createdAt readAt expiresAt",
-          expected: unread
-            ? descendingTie.filter((id) => id !== noticeIds[3])
-            : descendingTie,
-          unread,
-        })),
-      ] as const) {
-        const joined: string[] = [];
-        for (const page of [1, 2, 3, 4]) {
-          const pageSize = 2;
-          const filter =
-            spec.unread === undefined ? {} : { unread: spec.unread };
-          const query = new URLSearchParams({
-            page: String(page),
-            pageSize: String(pageSize),
-            ...(spec.unread === undefined
-              ? {}
-              : { unread: String(spec.unread) }),
-          });
-          // Own the actual Response before an assertion or JSON parse can fail.
-          const response = await mcpRuntime.run(async () =>
-            getYoungWorkspaceRoute(
-              await request(`/api/workspace/${spec.path}?${query}`),
-              spec.kind as "events" | "organizers" | "notifications",
-            ),
-          );
-          expect(response.status).toBe(200);
-          const rest = (await response.json()) as PaginatedResponse<Row>;
-          const expectedIds = spec.expected.slice(
-            (page - 1) * pageSize,
-            page * pageSize,
-          );
-          expect(rest.data.map((row) => row[spec.id])).toEqual(expectedIds);
-          expect(rest.pagination).toEqual({
-            page,
-            pageSize,
-            total: spec.expected.length,
-            totalPages: Math.ceil(spec.expected.length / pageSize),
-          });
-          const mcp = await client.call<
-            PaginatedResponse<Row> & { success: boolean }
-          >(spec.tool, {
-            page,
-            pageSize,
-            ...filter,
-            mode: "full",
-          });
-          expect(mcp).toEqual({ ...rest, success: true });
-          const graphResponse = await mcpRuntime.run(async () =>
-            createGraphqlYoga(false).fetch(
-              await request("/api/graphql", {
-                query: `query($page: PageInput!${spec.kind === "notifications" ? ", $unread: Boolean" : ""}) { workspace { ${spec.field}(page: $page${spec.kind === "notifications" ? ", unread: $unread" : ""}) { items { ${spec.selection} } pageInfo { page pageSize total totalPages } } } }`,
-                variables: { page: { page, pageSize }, ...filter },
-              }),
-              { locals: { locale: "zh-cn" } },
-            ),
-          );
-          const graph = await graphResponse.json();
-          expect(graph.errors).toBeUndefined();
-          const actual = graph.data.workspace[spec.field];
-          expect(actual.pageInfo).toEqual(rest.pagination);
-          expect(actual.items.map((row: Row) => row[spec.id])).toEqual(
-            expectedIds,
-          );
-          expect(rest.data.map(timestampInstants)).toMatchObject(
-            actual.items.map(timestampInstants),
-          );
-          joined.push(...rest.data.map((row) => String(row[spec.id])));
+            youngId: eventIds[index % 5],
+            organizerId: organizerIds[index % 5],
+            kind: "event_changed",
+            title: `Notice ${index}`,
+            body: `Detail ${index}`,
+            createdAt: state.created[index].getTime(),
+            readAt: index === 3 ? state.now.getTime() : null,
+            expiresAt: index === 4 ? state.now.getTime() + 86_400_000 : null,
+          };
+        };
+        for (const spec of [
+          {
+            kind: "events",
+            path: "young-event-subscriptions",
+            field: "youngEventSubscriptions",
+            tool: "workspace_young_event_subscription_list",
+            id: "youngId",
+            selection:
+              "youngId createdAt remindSignup remindDeadline remindStart event { youngId name isActive organizerId }",
+            expected: ascendingTie(eventIds),
+            unread: undefined,
+          },
+          {
+            kind: "organizers",
+            path: "young-organizer-subscriptions",
+            field: "youngOrganizerSubscriptions",
+            tool: "workspace_young_organizer_subscription_list",
+            id: "organizerId",
+            selection: "organizerId createdAt organizer { id name }",
+            expected: ascendingTie(organizerIds),
+            unread: undefined,
+          },
+          ...[undefined, false, true].map((unread) => ({
+            kind: "notifications",
+            path: "young-notifications",
+            field: "youngNotifications",
+            tool: "workspace_young_notification_list",
+            id: "id",
+            selection:
+              "id youngId organizerId kind title body createdAt readAt expiresAt",
+            expected: unread
+              ? descendingTie.filter((id) => id !== noticeIds[3])
+              : descendingTie,
+            unread,
+          })),
+        ] as const) {
+          const joined: string[] = [];
+          for (const page of [1, 2, 3, 4]) {
+            const pageSize = 2;
+            const filter =
+              spec.unread === undefined ? {} : { unread: spec.unread };
+            const query = new URLSearchParams({
+              page: String(page),
+              pageSize: String(pageSize),
+              ...(spec.unread === undefined
+                ? {}
+                : { unread: String(spec.unread) }),
+            });
+            const expectedIds = spec.expected.slice(
+              (page - 1) * pageSize,
+              page * pageSize,
+            );
+            const pagination = {
+              page,
+              pageSize,
+              total: spec.expected.length,
+              totalPages: Math.ceil(spec.expected.length / pageSize),
+            };
+            const expected = expectedIds.map((id) =>
+              expectedRow(spec.kind, id),
+            );
+            let rows: Row[];
+            if (method === "REST") {
+              const response = await mcpRuntime.run(async () =>
+                getYoungWorkspaceRoute(
+                  await request(`/api/workspace/${spec.path}?${query}`),
+                  spec.kind as "events" | "organizers" | "notifications",
+                ),
+              );
+              expect(response.status).toBe(200);
+              const rest = (await response.json()) as PaginatedResponse<Row>;
+              expect(rest.pagination).toEqual(pagination);
+              expect(Object.keys(rest).sort()).toEqual(["data", "pagination"]);
+              rows = rest.data;
+            } else if (method === "MCP") {
+              const mcp = await client.call<
+                PaginatedResponse<Row> & { success: boolean }
+              >(spec.tool, { page, pageSize, ...filter, mode: "full" });
+              expect(mcp.success).toBe(true);
+              expect(mcp.pagination).toEqual(pagination);
+              expect(Object.keys(mcp).sort()).toEqual([
+                "data",
+                "pagination",
+                "success",
+              ]);
+              rows = mcp.data;
+            } else {
+              const graphResponse = await mcpRuntime.run(async () =>
+                createGraphqlYoga(false).fetch(
+                  await request("/api/graphql", {
+                    query: `query($page: PageInput!${spec.kind === "notifications" ? ", $unread: Boolean" : ""}) { workspace { ${spec.field}(page: $page${spec.kind === "notifications" ? ", unread: $unread" : ""}) { items { ${spec.selection} } pageInfo { page pageSize total totalPages } } } }`,
+                    variables: { page: { page, pageSize }, ...filter },
+                  }),
+                  { locals: { locale: "zh-cn" } },
+                ),
+              );
+              const graph = await graphResponse.json();
+              expect(graph.errors).toBeUndefined();
+              const actual = graph.data.workspace[spec.field];
+              expect(actual.pageInfo).toEqual(pagination);
+              rows = actual.items;
+            }
+            expect(rows.map((row) => row[spec.id])).toEqual(expectedIds);
+            expect(rows.map(timestampInstants)).toEqual(expected);
+            joined.push(...rows.map((row) => String(row[spec.id])));
+          }
+          expect(joined).toEqual(spec.expected);
+          expect(new Set(joined).size).toBe(spec.expected.length);
         }
-        expect(joined).toEqual(spec.expected);
-        expect(new Set(joined).size).toBe(spec.expected.length);
-      }
-      expect(await db.jwks.count()).toBe(1);
-    }),
-);
+        expect(await db.jwks.count()).toBe(1);
+      }),
+  );
+}

@@ -20,7 +20,9 @@ async function expectAuditLogCount(
 }
 
 describe("协作数据不变量", () => {
-  it("阻止同一用户的直接重复开放封禁", async ({
+  it("阻止同一用户的直接重复开放封禁", {
+    tags: ["@Admin/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
   }) => {
@@ -56,7 +58,9 @@ describe("协作数据不变量", () => {
     });
   });
 
-  it("创建替代封禁并关闭之前的开放记录", async ({
+  it("创建替代封禁并关闭之前的开放记录", {
+    tags: ["@Admin/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
   }) => {
@@ -119,7 +123,9 @@ describe("协作数据不变量", () => {
     });
   });
 
-  it("user.account-deletion-retention", async ({
+  it("user.account-deletion-retention", {
+    tags: ["@Account/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
   }) => {
@@ -263,7 +269,9 @@ describe("协作数据不变量", () => {
     });
   });
 
-  it("并发首次描述写入保持稳定并记录编辑历史", async ({
+  it("并发首次描述写入保持稳定并记录编辑历史", {
+    tags: ["@Description/Service"],
+  }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
   }) => {

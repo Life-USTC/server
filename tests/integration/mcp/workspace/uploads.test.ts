@@ -18,6 +18,7 @@ describe("MCP upload metadata mutations", () => {
   for (const operation of ["list", "rename", "storage failure"] as const) {
     toolTest(
       `上传元数据工具独立验证 ${operation}`,
+      { tags: ["@Upload/MCP"] },
       async ({
         mcpWorkflow,
         mcpActor: isolated,
@@ -99,6 +100,7 @@ describe("MCP upload metadata mutations", () => {
   ]) {
     toolTest(
       `上传重命名拒绝控制字符文件名且不做清洗 ${name}`,
+      { tags: ["@Upload/MCP"] },
       async ({
         mcpWorkflow,
         mcpActor: isolated,
@@ -138,6 +140,7 @@ describe("MCP upload metadata mutations", () => {
 
   toolTest(
     "上传元数据工具拒绝非所有者及被禁用户写入",
+    { tags: ["@Upload/MCP"] },
     async ({
       mcpWorkflow,
       mcpActor: isolated,

@@ -1,7 +1,9 @@
 import { expect } from "vitest";
 import { rlsTest as it } from "../shared/rls-fixture";
 
-it("maintenance discovers only the requested section recipients while owner RLS remains intact", async ({
+it("maintenance discovers only the requested section recipients while owner RLS remains intact", {
+  tags: ["@Calendar/Permissions"],
+}, async ({
   isolatedDatabase: { owner, app, auth, maintenance },
   rlsActors: { firstUserId, secondUserId, adminUserId },
   rlsSections: { sectionId, writeProbeSectionId },
@@ -71,7 +73,9 @@ it("maintenance discovers only the requested section recipients while owner RLS 
   ).toEqual([{ relrowsecurity: true, relforcerowsecurity: true }]);
 });
 
-it("section recipient discovery bounds each ordered page without losing subscription kinds", async ({
+it("section recipient discovery bounds each ordered page without losing subscription kinds", {
+  tags: ["@Calendar/Permissions"],
+}, async ({
   isolatedDatabase: { owner, maintenance },
   rlsSections: { sectionId },
 }) => {

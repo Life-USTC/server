@@ -8,6 +8,7 @@ import {
 describe("GraphQL homework CRUD mutations", () => {
   graphqlHomeworkTest(
     "requires the exact homework write scope before resolving a section",
+    { tags: ["@Homework/GraphQL"] },
     async ({
       homework: {
         fixturePrisma,
