@@ -33,7 +33,7 @@ async function canonical(
     new RegExp(`${path}\\?source=contract#overview$`),
   );
 }
-test("course.detail-canonical-url", { tag: "@Catalog/Web" }, async ({
+test("course.detail-canonical-url", { tag: "@Course/Web" }, async ({
   page,
   catalog: { fixture },
   catalogFlow,
@@ -47,7 +47,7 @@ test("course.detail-canonical-url", { tag: "@Catalog/Web" }, async ({
     ),
   );
 });
-test("section.detail-canonical-url", { tag: "@Catalog/Web" }, async ({
+test("section.detail-canonical-url", { tag: "@Section/Web" }, async ({
   page,
   catalog: { fixture },
   catalogFlow,
@@ -61,7 +61,7 @@ test("section.detail-canonical-url", { tag: "@Catalog/Web" }, async ({
     ),
   );
 });
-test("teacher.detail-canonical-url", { tag: "@Catalog/Web" }, async ({
+test("teacher.detail-canonical-url", { tag: "@Teacher/Web" }, async ({
   page,
   catalog: { fixture },
   catalogFlow,
@@ -111,7 +111,7 @@ async function opaqueIdentity(
     );
   }
 }
-test("course.jwid-url-only", { tag: "@Catalog/Web" }, async ({
+test("course.jwid-url-only", { tag: "@Course/Web" }, async ({
   page,
   catalog: { fixture },
   catalogFlow,
@@ -120,7 +120,7 @@ test("course.jwid-url-only", { tag: "@Catalog/Web" }, async ({
     opaqueIdentity(page, "courses", fixture, catalogFlow),
   );
 });
-test("section.jwid-url-only", { tag: "@Catalog/Web" }, async ({
+test("section.jwid-url-only", { tag: "@Section/Web" }, async ({
   page,
   catalog: { fixture },
   catalogFlow,
@@ -130,7 +130,7 @@ test("section.jwid-url-only", { tag: "@Catalog/Web" }, async ({
   );
 });
 
-test("teacher.identified-by-name", { tag: "@Catalog/Web" }, async ({
+test("teacher.identified-by-name", { tag: "@Teacher/Web" }, async ({
   page,
   catalog: { fixture },
   catalogFlow: flow,
@@ -164,7 +164,7 @@ test("teacher.identified-by-name", { tag: "@Catalog/Web" }, async ({
   });
 });
 
-test("teacher.section-code-auxiliary", { tag: "@Catalog/Web" }, async ({
+test("teacher.section-code-auxiliary", { tag: "@Teacher/Web" }, async ({
   page,
   catalog: { fixture },
   catalogFlow: flow,
@@ -196,7 +196,7 @@ test("teacher.section-code-auxiliary", { tag: "@Catalog/Web" }, async ({
   });
 });
 
-test("section.private-section-projection", { tag: "@Catalog/Web" }, async ({
+test("section.private-section-projection", { tag: "@Section/REST" }, async ({
   page,
   request,
   catalog: { fixture, user },
@@ -321,7 +321,7 @@ test("section.private-section-projection", { tag: "@Catalog/Web" }, async ({
   });
 });
 
-test("section.personal-deep-link-gate", { tag: "@Catalog/Web" }, async ({
+test("section.personal-deep-link-gate", { tag: "@Subscription/Web" }, async ({
   page,
   catalog: { fixture, user },
   isolatedWorker,

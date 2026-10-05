@@ -12,7 +12,7 @@ for (const domain of [
   "Exam",
   "Overview",
   "Calendar",
-  "Catalog",
+  "Schedule",
   "Subscription",
 ] as const) {
   for (const locale of ["zh-cn", "en-us"] as const) {
@@ -37,7 +37,7 @@ for (const domain of [
               width,
               domain,
             );
-          } else if (domain === "Catalog" || domain === "Subscription") {
+          } else if (domain === "Schedule" || domain === "Subscription") {
             await checkWorkspaceCalendarPriorityViews(
               page,
               data,
@@ -55,6 +55,14 @@ for (const domain of [
             );
           } else {
             await checkWorkspaceEventPriorityViews(page, data, locale, width);
+            await checkWorkspaceCalendarPriorityViews(
+              page,
+              data,
+              locale,
+              width,
+              headers,
+              domain,
+            );
           }
         });
       });

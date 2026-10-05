@@ -207,7 +207,7 @@ export const test = workerTest.extend<{
       | "Exam"
       | "Overview"
       | "Calendar"
-      | "Catalog"
+      | "Schedule"
       | "Subscription",
     work: Parameters<typeof withHomeworkEffects>[1],
   ) => Promise<void>;

@@ -114,7 +114,9 @@ for (const [domain, names] of [
   ["Exam", ["exams", "section-exams"]],
   ["Todo", ["todos"]],
   ["Subscription", ["subscriptions"]],
-  ["Catalog", ["course-history", "teacher-history", "section-calendar"]],
+  ["Course", ["course-history"]],
+  ["Teacher", ["teacher-history"]],
+  ["Schedule", ["section-calendar"]],
   ["Young", ["organizer-history"]],
 ] as const) {
   test(
@@ -174,7 +176,9 @@ for (const [domain, names] of [
   ["Exam", ["exams", "section-exams"]],
   ["Todo", ["todos"]],
   ["Subscription", ["subscriptions"]],
-  ["Catalog", ["course-history", "teacher-history", "section-calendar"]],
+  ["Course", ["course-history"]],
+  ["Teacher", ["teacher-history"]],
+  ["Schedule", ["section-calendar"]],
   ["Young", ["organizer-history"]],
   ["Bus", []],
 ] as const) {

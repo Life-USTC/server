@@ -3,7 +3,7 @@ import { withCommunityFlow } from "../../../utils/community-flow";
 import { test } from "../../../utils/owned-worker";
 
 test("signed-in catalog documents remain public while the private shell resolves the viewer", {
-  tag: "@Catalog/Web",
+  tag: "@Course/Web",
 }, async ({ page, browser, request: observer, isolatedWorker, run }) => {
   await run(async () => {
     const actor = await isolatedWorker.createActor();

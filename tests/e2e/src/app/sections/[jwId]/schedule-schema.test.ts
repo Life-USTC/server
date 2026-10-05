@@ -7,7 +7,7 @@ import { test } from "../../../../utils/calendar-presentation-fixture";
 
 test(
   "section.schedule-response-schema",
-  { tag: "@Catalog/REST" },
+  { tag: "@Schedule/REST" },
   async ({ calendar: fixture, calendarDb, request, run }, testInfo) => {
     await run(async () => {
       const probeId = crypto.randomUUID();

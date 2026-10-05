@@ -28,7 +28,8 @@ for (const [domain, names] of [
   ["Upload", ["uploads"]],
   ["Admin", ["users"]],
   ["Young", ["events", "organizers", "notifications", "organizer-events"]],
-  ["Catalog", ["course-history", "teacher-history"]],
+  ["Course", ["course-history"]],
+  ["Teacher", ["teacher-history"]],
 ] as const) {
   test(`ui.list-pagination-filter-state ${domain}`, {
     tag: `@${domain}/Web`,

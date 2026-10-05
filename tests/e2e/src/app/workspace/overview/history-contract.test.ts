@@ -11,7 +11,7 @@ for (const [domain, method, feature] of [
   ["Overview", "MCP", "workspace.overview"],
   ["Subscription", "MCP", "workspace.subscription"],
   ["Homework", "MCP", "workspace.homework"],
-  ["Catalog", "MCP", "workspace.schedule"],
+  ["Schedule", "MCP", "workspace.schedule"],
   ["Exam", "MCP", "workspace.exam"],
 ] as const) {
   test(`overview.historical-subscriptions-remain-discoverable ${domain} ${method}`, {

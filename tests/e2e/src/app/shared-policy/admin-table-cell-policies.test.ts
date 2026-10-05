@@ -221,7 +221,7 @@ test(
   },
 );
 
-for (const domain of ["Admin", "Catalog"] as const) {
+for (const domain of ["Admin", "Teacher"] as const) {
   test(`ui.data-table-cells-5 ${domain}`, { tag: `@${domain}/Web` }, async ({
     adminFlow,
     run,
@@ -252,7 +252,7 @@ for (const domain of ["Admin", "Catalog"] as const) {
               }
             }
           }
-          if (domain === "Catalog") {
+          if (domain === "Teacher") {
             await gotoAndWaitForReady(
               page,
               `/catalog/teachers?search=${fixture.teacher.code}`,

@@ -44,7 +44,9 @@ async function rowLinks(page: Page, name: string) {
 }
 
 for (const [domain, names] of [
-  ["Catalog", ["courses", "teachers", "sections"]],
+  ["Course", ["courses"]],
+  ["Teacher", ["teachers"]],
+  ["Section", ["sections"]],
   ["Young", ["events", "organizers"]],
   ["Publication", ["news"]],
 ] as const) {
@@ -135,7 +137,9 @@ for (const [domain, names] of [
 }
 
 for (const [domain, names] of [
-  ["Catalog", ["courses", "teachers", "sections"]],
+  ["Course", ["courses"]],
+  ["Teacher", ["teachers"]],
+  ["Section", ["sections"]],
   ["Young", ["events", "organizers"]],
   ["Publication", ["news"]],
 ] as const) {
@@ -173,7 +177,9 @@ for (const [domain, names] of [
 }
 
 for (const [domain, names] of [
-  ["Catalog", ["courses", "teachers", "sections"]],
+  ["Course", ["courses"]],
+  ["Teacher", ["teachers"]],
+  ["Section", ["sections"]],
   ["Young", ["events", "organizers"]],
   ["Publication", ["news"]],
 ] as const) {

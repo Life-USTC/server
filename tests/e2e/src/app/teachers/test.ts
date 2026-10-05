@@ -34,7 +34,7 @@ import { absoluteTestUrl } from "../../../utils/request-url";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/teachers", () => {
-  test("页面契约", { tag: "@Catalog/Web" }, async ({
+  test("页面契约", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
@@ -46,7 +46,7 @@ test.describe("/catalog/teachers", () => {
     });
   });
 
-  test("SSR 输出包含搜索参数", { tag: "@Catalog/Web" }, async ({
+  test("SSR 输出包含搜索参数", { tag: "@Teacher/Web" }, async ({
     baseURL,
     preferenceFlow,
     searchTeacher: _searchTeacher,
@@ -67,7 +67,7 @@ test.describe("/catalog/teachers", () => {
   });
 
   test("无匹配教师时显示明确空状态且不渲染结果链接", {
-    tag: "@Catalog/Web",
+    tag: "@Teacher/Web",
   }, async ({ page, preferenceFlow, searchTeacher: _searchTeacher }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
@@ -87,7 +87,7 @@ test.describe("/catalog/teachers", () => {
     });
   });
 
-  test("移动端卡片可点击并导航到详情", { tag: "@Catalog/Web" }, async ({
+  test("移动端卡片可点击并导航到详情", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
@@ -120,7 +120,7 @@ test.describe("/catalog/teachers", () => {
   });
 
   test("280 至 1440 像素通过筛选面板提供教师高级筛选", {
-    tag: "@Catalog/Web",
+    tag: "@Teacher/Web",
   }, async ({ page, preferenceFlow, searchTeacher: _searchTeacher }) => {
     await preferenceFlow.run(async () => {
       for (const width of [280, 320, 375, 1024, 1280, 1440]) {
@@ -134,7 +134,7 @@ test.describe("/catalog/teachers", () => {
     });
   });
 
-  test("搜索和清除按钮可用", { tag: "@Catalog/Web" }, async ({
+  test("搜索和清除按钮可用", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,
@@ -165,7 +165,7 @@ test.describe("/catalog/teachers", () => {
     });
   });
 
-  test("院系筛选保留教师结果", { tag: "@Catalog/Web" }, async ({
+  test("院系筛选保留教师结果", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     searchTeacher: _searchTeacher,

@@ -13,7 +13,7 @@ import { parseTextContent } from "./helpers";
 for (const [domain, feature] of [
   ["Todo", "workspace.todo"],
   ["Homework", "workspace.homework"],
-  ["Catalog", "workspace.schedule"],
+  ["Schedule", "workspace.schedule"],
   ["Exam", "workspace.exam"],
   ["Overview", "workspace.overview"],
   ["Calendar", "workspace.calendar"],
@@ -161,7 +161,7 @@ for (const [domain, feature] of [
             },
           ]);
         }
-        if (domain === "Catalog") {
+        if (domain === "Schedule") {
           const schedules = await read("workspace_schedule_list", {
             limit: 30,
             locale: "zh-cn",

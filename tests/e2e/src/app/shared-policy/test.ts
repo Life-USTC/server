@@ -90,7 +90,7 @@ async function assertReadingOrder(page: Page, items: readonly string[]) {
   }
 }
 
-test("ui.detail-two-column-stream-2", { tag: "@Catalog/Web" }, async ({
+test("ui.detail-two-column-stream-2", { tag: "@Section/Web" }, async ({
   page,
   preferenceFlow,
   searchSection: _searchSection,
@@ -113,126 +113,142 @@ test("ui.detail-two-column-stream-2", { tag: "@Catalog/Web" }, async ({
   });
 });
 
-test("ui.detail-two-column-stream-3", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  searchSection: _searchSection,
-}) => {
-  await preferenceFlow.run(async () => {
-    const pages = (await catalogPages(page)).filter(
-      (p) => p.collection !== "/catalog/sections",
-    );
-    for (const viewport of viewports) {
-      await page.setViewportSize(viewport);
-      for (const { href } of pages) {
+for (const domain of ["Course", "Teacher"] as const) {
+  test(`ui.detail-two-column-stream-3 ${domain}`, {
+    tag: `@${domain}/Web`,
+  }, async ({ page, preferenceFlow, searchSection: _searchSection }) => {
+    await preferenceFlow.run(async () => {
+      const pages = (await catalogPages(page)).filter(
+        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
+      );
+      for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        for (const { href } of pages) {
+          await gotoAndWaitForReady(page, href);
+          await assertReadingOrder(page, [
+            "introduction",
+            "sections",
+            "comments",
+          ]);
+        }
+      }
+    });
+  });
+}
+
+for (const domain of ["Course", "Section", "Teacher"] as const) {
+  test(`ui.detail-hero-2 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    preferenceFlow,
+    searchSection: _searchSection,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const pages = (await catalogPages(page)).filter(
+        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
+      );
+      for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        for (const { href, collection } of pages) {
+          await gotoAndWaitForReady(page, href);
+          if (viewport.width < 768) await openMobileMenu(page);
+          const navigation = page.locator(
+            `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
+          );
+          const link = navigation.locator(`a[href="${collection}"]`);
+          await expect(link).toBeVisible();
+          await link.click();
+          await expect(page).toHaveURL(new RegExp(`${collection}$`));
+          await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        }
+      }
+    });
+  });
+}
+
+for (const domain of ["Course", "Section", "Teacher"] as const) {
+  test(`ui.detail-hero-3 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    preferenceFlow,
+    searchSection: _searchSection,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const pages = (await catalogPages(page)).filter(
+        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
+      );
+      for (const [index, locale] of locales.entries()) {
+        await setLocale(page, locale);
+        for (const { href, collection, names } of pages) {
+          await gotoAndWaitForReady(page, href);
+          await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+            locale === "en-us" && collection !== "/catalog/sections"
+              ? `${names[1]} (${names[0]})`
+              : names[index],
+          );
+        }
+      }
+    });
+  });
+}
+
+for (const domain of ["Course", "Section", "Teacher"] as const) {
+  test(`ui.layout-principles-1 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    preferenceFlow,
+    searchSection: _searchSection,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize(viewports[0]);
+      for (const { href, collection } of (await catalogPages(page)).filter(
+        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
+      )) {
         await gotoAndWaitForReady(page, href);
-        await assertReadingOrder(page, [
+        const column = page.locator("[data-detail-reading-stream]");
+        for (const id of [
           "introduction",
-          "sections",
           "comments",
-        ]);
+          ...(collection === "/catalog/sections" ? ["homework"] : []),
+        ]) {
+          await expect(column.locator(`#${id}`)).toHaveCount(1);
+          const reading = await column.locator(`#${id}`).boundingBox();
+          const aside = await page
+            .locator("[data-detail-scroll-container] aside")
+            .boundingBox();
+          expect(reading).not.toBeNull();
+          expect(aside).not.toBeNull();
+          if (!reading || !aside)
+            throw new Error("Missing reading/sidebar geometry");
+          expect(reading.x + reading.width).toBeLessThan(aside.x);
+        }
       }
-    }
+    });
   });
-});
+}
 
-test("ui.detail-hero-2", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  searchSection: _searchSection,
-}) => {
-  await preferenceFlow.run(async () => {
-    const pages = await catalogPages(page);
-    for (const viewport of viewports) {
-      await page.setViewportSize(viewport);
-      for (const { href, collection } of pages) {
+for (const domain of ["Course", "Section", "Teacher"] as const) {
+  test(`ui.layout-principles-2 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    preferenceFlow,
+    searchSection: _searchSection,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize(viewports[0]);
+      for (const { href } of (await catalogPages(page)).filter(
+        (p) => p.collection === `/catalog/${domain.toLowerCase()}s`,
+      )) {
         await gotoAndWaitForReady(page, href);
-        if (viewport.width < 768) await openMobileMenu(page);
-        const navigation = page.locator(
-          `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
-        );
-        const link = navigation.locator(`a[href="${collection}"]`);
-        await expect(link).toBeVisible();
-        await link.click();
-        await expect(page).toHaveURL(new RegExp(`${collection}$`));
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        const aside = page.locator("[data-detail-scroll-container] aside");
+        await expect(page.locator("#overview")).toBeVisible();
+        await expect(aside.locator("dl, table").first()).toBeVisible();
+        const main = await page.locator("#introduction").boundingBox();
+        const facts = await aside.boundingBox();
+        expect(main).not.toBeNull();
+        expect(facts).not.toBeNull();
+        if (!main || !facts) throw new Error("Missing detail columns");
+        expect(facts.x).toBeGreaterThan(main.x + main.width);
       }
-    }
+    });
   });
-});
-
-test("ui.detail-hero-3", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  searchSection: _searchSection,
-}) => {
-  await preferenceFlow.run(async () => {
-    const pages = await catalogPages(page);
-    for (const [index, locale] of locales.entries()) {
-      await setLocale(page, locale);
-      for (const { href, collection, names } of pages) {
-        await gotoAndWaitForReady(page, href);
-        await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-          locale === "en-us" && collection !== "/catalog/sections"
-            ? `${names[1]} (${names[0]})`
-            : names[index],
-        );
-      }
-    }
-  });
-});
-
-test("ui.layout-principles-1", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  searchSection: _searchSection,
-}) => {
-  await preferenceFlow.run(async () => {
-    await page.setViewportSize(viewports[0]);
-    for (const { href, collection } of await catalogPages(page)) {
-      await gotoAndWaitForReady(page, href);
-      const column = page.locator("[data-detail-reading-stream]");
-      for (const id of [
-        "introduction",
-        "comments",
-        ...(collection === "/catalog/sections" ? ["homework"] : []),
-      ]) {
-        await expect(column.locator(`#${id}`)).toHaveCount(1);
-        const reading = await column.locator(`#${id}`).boundingBox();
-        const aside = await page
-          .locator("[data-detail-scroll-container] aside")
-          .boundingBox();
-        expect(reading).not.toBeNull();
-        expect(aside).not.toBeNull();
-        if (!reading || !aside)
-          throw new Error("Missing reading/sidebar geometry");
-        expect(reading.x + reading.width).toBeLessThan(aside.x);
-      }
-    }
-  });
-});
-
-test("ui.layout-principles-2", { tag: "@Catalog/Web" }, async ({
-  page,
-  preferenceFlow,
-  searchSection: _searchSection,
-}) => {
-  await preferenceFlow.run(async () => {
-    await page.setViewportSize(viewports[0]);
-    for (const { href } of await catalogPages(page)) {
-      await gotoAndWaitForReady(page, href);
-      const aside = page.locator("[data-detail-scroll-container] aside");
-      await expect(page.locator("#overview")).toBeVisible();
-      await expect(aside.locator("dl, table").first()).toBeVisible();
-      const main = await page.locator("#introduction").boundingBox();
-      const facts = await aside.boundingBox();
-      expect(main).not.toBeNull();
-      expect(facts).not.toBeNull();
-      if (!main || !facts) throw new Error("Missing detail columns");
-      expect(facts.x).toBeGreaterThan(main.x + main.width);
-    }
-  });
-});
+}
 
 for (const [index, locale] of locales.entries()) {
   for (const [domain, tab] of [
