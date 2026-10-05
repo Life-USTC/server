@@ -98,6 +98,20 @@ describe("domain / method CI matrix", () => {
     ).toThrow("case: expected exactly one");
   });
 
+  it("creates larger groups first and breaks equal counts by name", () => {
+    const tags = ["@Account/REST", "@Todo/Web", "@Catalog/Web", "@Catalog/Web"];
+    expect(
+      testMatrix(
+        tags.map((tag, index) => ({
+          name: `case ${index}`,
+          file: "case.ts",
+          engine: "browser" as const,
+          tags: [tag],
+        })),
+      ).include.map(({ domain, method }) => `${domain}/${method}`),
+    ).toEqual(["Catalog/Web", "Account/REST", "Todo/Web"]);
+  });
+
   it("rejects spelling variants instead of creating new groups", () => {
     expect(() =>
       testMatrix([

@@ -16,6 +16,7 @@ export type TestOwner = {
 // native runners retain responsibility for discovery and execution.
 export function testMatrix(tests: TestOwner[]) {
   const knownTags = new Set(testTags.map((tag) => tag.name));
+  const caseCounts = new Map<string, number>();
   const groups = new Map<
     string,
     {
@@ -53,13 +54,19 @@ export function testMatrix(tests: TestOwner[]) {
         group.integrationFiles.push(test.file);
     }
     groups.set(tag, group);
+    caseCounts.set(tag, (caseCounts.get(tag) ?? 0) + 1);
   }
   if (!groups.size) throw new Error("No test combinations collected");
   if (groups.size > 256)
     throw new Error("Test combinations exceed the CI matrix limit");
   return {
     include: [...groups.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
+      // Create larger native groups first to reduce time waiting at the tail.
+      .sort(
+        ([a], [b]) =>
+          (caseCounts.get(b) ?? 0) - (caseCounts.get(a) ?? 0) ||
+          a.localeCompare(b),
+      )
       .map(([, group]) => group),
   };
 }
