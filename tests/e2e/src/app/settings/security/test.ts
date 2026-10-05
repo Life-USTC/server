@@ -11,11 +11,11 @@ import {
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/security 安全活动", () => {
-  test("需要登录", async ({ page }) => {
+  test("需要登录", { tag: "@Account/Web" }, async ({ page }) => {
     await expectRequiresSignIn(page, "/account/settings/security");
   });
 
-  test("敏感活动分页展示且网络与设备信息脱敏", async ({
+  test("敏感活动分页展示且网络与设备信息脱敏", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -72,7 +72,7 @@ test.describe("/account/settings/security 安全活动", () => {
     );
   });
 
-  test("最近登录用户可以轮换私人日历链接", async ({
+  test("最近登录用户可以轮换私人日历链接", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -152,7 +152,11 @@ test.describe("/account/settings/security 安全活动", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  accountRun,
+  page,
+  account: _account,
+}) => {
   await accountRun({ writes: [], audits: [] }, async () => {
     await expectSettingsPage(page, "/account/settings/security");
   });

@@ -38,13 +38,13 @@ import {
 test.describe("/account/settings/profile 个人资料设置", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("需要登录", async ({ accountRun, page }) => {
+  test("需要登录", { tag: "@Account/Web" }, async ({ accountRun, page }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await expectRequiresSignIn(page, "/account/settings/profile");
     });
   });
 
-  test("显示所有必填个人资料字段", async ({
+  test("显示所有必填个人资料字段", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     profile: account,
@@ -70,7 +70,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     });
   });
 
-  test("可保存姓名并回滚", async ({
+  test("可保存姓名并回滚", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -158,7 +158,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     );
   });
 
-  test("保存前要求填写用户名", async ({
+  test("保存前要求填写用户名", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -188,7 +188,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     });
   });
 
-  test("清空头像选项后仍可重新登录", async ({
+  test("清空头像选项后仍可重新登录", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     profile: account,
@@ -238,7 +238,11 @@ test.describe("/account/settings/profile 个人资料设置", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  accountRun,
+  page,
+  account: _account,
+}) => {
   await accountRun({ writes: [], audits: [] }, async () => {
     await expectSettingsPage(page, "/account/settings/profile");
     await expect(

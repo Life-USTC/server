@@ -66,11 +66,13 @@ async function openModerationDescriptionDialog(
   return dialog;
 }
 
-test("/admin/moderation 未登录重定向到登录页", async ({ page }) => {
+test("/admin/moderation 未登录重定向到登录页", { tag: "@Admin/Web" }, async ({
+  page,
+}) => {
   await expectRequiresSignIn(page, "/admin/moderation");
 });
 
-test("/admin/moderation 普通用户访问返回 403", async ({
+test("/admin/moderation 普通用户访问返回 403", { tag: "@Admin/Web" }, async ({
   pageRun,
   page,
   account: _account,
@@ -87,7 +89,7 @@ test("/admin/moderation 普通用户访问返回 403", async ({
   );
 });
 
-test("/admin/moderation 管理员访问成功", async ({
+test("/admin/moderation 管理员访问成功", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -108,12 +110,9 @@ test("/admin/moderation 管理员访问成功", async ({
   );
 });
 
-test("/admin/moderation 刷新队列并保留当前视图", async ({
-  adminFlow,
-  run,
-  page,
-  moderation: _moderation,
-}) => {
+test("/admin/moderation 刷新队列并保留当前视图", {
+  tag: "@Comment/Web",
+}, async ({ adminFlow, run, page, moderation: _moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -149,7 +148,7 @@ test("/admin/moderation 刷新队列并保留当前视图", async ({
   );
 });
 
-test("/admin/moderation 无效标签回退到评论", async ({
+test("/admin/moderation 无效标签回退到评论", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -170,12 +169,9 @@ test("/admin/moderation 无效标签回退到评论", async ({
   );
 });
 
-test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
-  adminFlow,
-  run,
-  page,
-  moderation,
-}) => {
+test("/admin/moderation 移动端工作区可管理首条筛选结果", {
+  tag: "@Comment/Web",
+}, async ({ adminFlow, run, page, moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -215,12 +211,9 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
   );
 });
 
-test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
-  adminFlow,
-  run,
-  page,
-  moderation,
-}) => {
+test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", {
+  tag: "@Account/Web",
+}, async ({ adminFlow, run, page, moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -297,7 +290,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
   );
 });
 
-test("/admin/moderation 可更新评论状态与备注", async ({
+test("/admin/moderation 可更新评论状态与备注", { tag: "@Comment/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -363,12 +356,9 @@ test("/admin/moderation 可更新评论状态与备注", async ({
   );
 });
 
-test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
-  adminFlow,
-  run,
-  page,
-  moderation,
-}) => {
+test("/admin/moderation 目标链接可跳转到原页面锚点", {
+  tag: "@Comment/Web",
+}, async ({ adminFlow, run, page, moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -401,7 +391,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   );
 });
 
-test("/admin/moderation 可切换状态筛选下拉", async ({
+test("/admin/moderation 可切换状态筛选下拉", { tag: "@Comment/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -427,7 +417,7 @@ test("/admin/moderation 可切换状态筛选下拉", async ({
   );
 });
 
-test("/admin/moderation 封禁列表可解除封禁", async ({
+test("/admin/moderation 封禁列表可解除封禁", { tag: "@Account/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -508,7 +498,7 @@ test("/admin/moderation 封禁列表可解除封禁", async ({
   );
 });
 
-test("/admin/moderation 可从评论弹窗封禁用户", async ({
+test("/admin/moderation 可从评论弹窗封禁用户", { tag: "@Account/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -598,7 +588,7 @@ test("/admin/moderation 可从评论弹窗封禁用户", async ({
   );
 });
 
-test("admin.moderation-centralized", async ({
+test("admin.moderation-centralized", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -649,12 +639,9 @@ test("admin.moderation-centralized", async ({
   );
 });
 
-test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", async ({
-  adminFlow,
-  run,
-  page,
-  moderation,
-}) => {
+test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", {
+  tag: "@Description/Web",
+}, async ({ adminFlow, run, page, moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -675,12 +662,9 @@ test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", as
   );
 });
 
-test("/admin/moderation 可更新课程简介内容", async ({
-  adminFlow,
-  run,
-  page,
-  moderation,
-}) => {
+test("/admin/moderation 可更新课程简介内容", {
+  tag: "@Description/Web",
+}, async ({ adminFlow, run, page, moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -760,7 +744,7 @@ test("/admin/moderation 可更新课程简介内容", async ({
 
 // ── Homework governance ─────────────────────────────────────────────────────
 
-test("/admin/moderation 作业治理可访问", async ({
+test("/admin/moderation 作业治理可访问", { tag: "@Homework/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -801,7 +785,12 @@ test("/admin/moderation 作业治理可访问", async ({
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, moderation }) => {
+test("页面契约", { tag: "@Admin/Web" }, async ({
+  adminFlow,
+  run,
+  page,
+  moderation,
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -829,7 +818,7 @@ test("页面契约", async ({ adminFlow, run, page, moderation }) => {
   );
 });
 
-test("admin.high-risk-feedback", async ({
+test("admin.high-risk-feedback", { tag: "@Homework/Web" }, async ({
   homeworkDeletionRun,
   page,
   moderation,

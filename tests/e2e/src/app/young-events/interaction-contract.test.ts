@@ -44,7 +44,7 @@ async function observePrivateFetches(page: Page) {
   });
 }
 
-test("young-event.private-client-overlays", async ({
+test("young-event.private-client-overlays", { tag: "@Young/Web" }, async ({
   page,
   calendar: fixture,
   youngRun,
@@ -119,7 +119,7 @@ test("young-event.private-client-overlays", async ({
   });
 });
 
-test("young-event.overlay-shared-viewer-state", async ({
+test("young-event.overlay-shared-viewer-state", { tag: "@Young/Web" }, async ({
   page,
   calendar: fixture,
   youngRun,
@@ -174,7 +174,7 @@ test("young-event.overlay-shared-viewer-state", async ({
   });
 });
 
-test("young-event.web-detail-priority", async ({
+test("young-event.web-detail-priority", { tag: "@Young/Web" }, async ({
   page,
   calendar: fixture,
   calendarDb,
@@ -286,6 +286,7 @@ test("young-event.web-detail-priority", async ({
 
 publicTest(
   "young-event.web-mobile-calendar",
+  { tag: "@Young/Web" },
   async ({ page, isolatedWorker, publicFlow }) => {
     await publicFlow.run(async () => {
       await identify(page, isolatedWorker.origin);
@@ -332,110 +333,123 @@ publicTest(
   },
 );
 
-test("young-event.read-only", async ({
-  page,
-  request,
-  calendar: fixture,
-  calendarDb,
-  youngRun,
-}) => {
-  await youngRun(async (observation) => {
-    const client = new Client({ name: "young-read-only", version: "1" });
-    const errors: unknown[] = [];
-    client.onerror = (error) => errors.push(error);
-    try {
-      await identify(
-        page,
-        fixture.origin,
-        await fixture.createSignedSessionCookie(fixture.users[0].id),
-      );
-      for (const path of [
-        "/api/catalog/young-events",
-        `/api/catalog/young-events/${fixture.young.youngId}`,
-      ]) {
-        for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-          const response = await page.request.fetch(path, {
-            method,
+for (const entry of ["Web", "REST", "GraphQL", "MCP"] as const) {
+  test(`young-event.read-only ${entry}`, { tag: `@Young/${entry}` }, async ({
+    page,
+    request,
+    calendar: fixture,
+    calendarDb,
+    youngRun,
+  }) => {
+    await youngRun(async (observation) => {
+      const client = new Client({ name: "young-read-only", version: "1" });
+      const errors: unknown[] = [];
+      client.onerror = (error) => errors.push(error);
+      try {
+        await identify(
+          page,
+          fixture.origin,
+          await fixture.createSignedSessionCookie(fixture.users[0].id),
+        );
+        if (entry === "REST") {
+          for (const path of [
+            "/api/catalog/young-events",
+            `/api/catalog/young-events/${fixture.young.youngId}`,
+          ]) {
+            for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+              const response = await page.request.fetch(path, {
+                method,
+                headers: {
+                  Origin: fixture.origin,
+                  ...observation.headers(method, path, 405),
+                },
+                data: { name: "forbidden replacement" },
+              });
+              expect(response.status(), `${method} ${path}`).toBe(405);
+            }
+          }
+        }
+        if (entry === "GraphQL") {
+          const graph = await request.post("/api/graphql", {
             headers: {
               Origin: fixture.origin,
-              ...observation.headers(method, path, 405),
+              ...observation.headers("POST", "/api/graphql", 200),
             },
-            data: { name: "forbidden replacement" },
+            data: { query: "{__schema{mutationType{fields{name}}}}" },
           });
-          expect(response.status(), `${method} ${path}`).toBe(405);
+          expect(graph.status()).toBe(200);
+          const schema = await graph.json();
+          expect(schema.errors).toBeUndefined();
+          expect(
+            schema.data.__schema.mutationType.fields
+              .map((field: { name: string }) => field.name)
+              .filter((name: string) => name.toLowerCase().includes("young")),
+          ).toEqual([
+            "youngEventSubscriptionSet",
+            "youngOrganizerSubscriptionSet",
+            "youngNotificationRead",
+          ]);
         }
-      }
-      const graph = await request.post("/api/graphql", {
-        headers: {
-          Origin: fixture.origin,
-          ...observation.headers("POST", "/api/graphql", 200),
-        },
-        data: { query: "{__schema{mutationType{fields{name}}}}" },
-      });
-      expect(graph.status()).toBe(200);
-      const schema = await graph.json();
-      expect(schema.errors).toBeUndefined();
-      expect(
-        schema.data.__schema.mutationType.fields
-          .map((field: { name: string }) => field.name)
-          .filter((name: string) => name.toLowerCase().includes("young")),
-      ).toEqual([
-        "youngEventSubscriptionSet",
-        "youngOrganizerSubscriptionSet",
-        "youngNotificationRead",
-      ]);
-      await client.connect(
-        new StreamableHTTPClientTransport(new URL("/api/mcp", fixture.origin), {
-          fetch: observation.sdkFetch,
-          reconnectionOptions: {
-            maxRetries: 0,
-            initialReconnectionDelay: 0,
-            maxReconnectionDelay: 0,
-            reconnectionDelayGrowFactor: 1,
-          },
-        }),
-      );
-      const tools = await client.listTools();
-      expect(
-        tools.tools
-          .filter((tool) => tool.name.startsWith("catalog_young_"))
-          .map((tool) => tool.name)
-          .sort(),
-      ).toEqual([
-        "catalog_young_event_get",
-        "catalog_young_event_list",
-        "catalog_young_organizer_get",
-        "catalog_young_organizer_list",
-      ]);
-      await observation.settleSdk();
-      await page.goto(`/catalog/young-events/${fixture.young.youngId}`);
-      await expect(
-        page.getByRole("heading", { level: 1, name: fixture.young.name }),
-      ).toBeVisible();
-      await expect(
-        page.locator("#main-content").getByRole("button", {
-          name: /^(Edit event|Delete event|Create event|Save event)$/,
-        }),
-      ).toHaveCount(0);
-      expect(
-        await calendarDb((db) =>
-          db.youngEvent.findUnique({
-            where: { youngId: fixture.young.youngId },
-            select: { name: true },
-          }),
-        ),
-      ).toEqual({ name: fixture.young.name });
-    } catch (error) {
-      errors.push(error);
-    } finally {
-      try {
-        await client.close();
+        if (entry === "MCP") {
+          await client.connect(
+            new StreamableHTTPClientTransport(
+              new URL("/api/mcp", fixture.origin),
+              {
+                fetch: observation.sdkFetch,
+                reconnectionOptions: {
+                  maxRetries: 0,
+                  initialReconnectionDelay: 0,
+                  maxReconnectionDelay: 0,
+                  reconnectionDelayGrowFactor: 1,
+                },
+              },
+            ),
+          );
+          const tools = await client.listTools();
+          expect(
+            tools.tools
+              .filter((tool) => tool.name.startsWith("catalog_young_"))
+              .map((tool) => tool.name)
+              .sort(),
+          ).toEqual([
+            "catalog_young_event_get",
+            "catalog_young_event_list",
+            "catalog_young_organizer_get",
+            "catalog_young_organizer_list",
+          ]);
+          await observation.settleSdk();
+        }
+        if (entry === "Web") {
+          await page.goto(`/catalog/young-events/${fixture.young.youngId}`);
+          await expect(
+            page.getByRole("heading", { level: 1, name: fixture.young.name }),
+          ).toBeVisible();
+          await expect(
+            page.locator("#main-content").getByRole("button", {
+              name: /^(Edit event|Delete event|Create event|Save event)$/,
+            }),
+          ).toHaveCount(0);
+        }
+        expect(
+          await calendarDb((db) =>
+            db.youngEvent.findUnique({
+              where: { youngId: fixture.young.youngId },
+              select: { name: true },
+            }),
+          ),
+        ).toEqual({ name: fixture.young.name });
       } catch (error) {
         errors.push(error);
+      } finally {
+        try {
+          await client.close();
+        } catch (error) {
+          errors.push(error);
+        }
+        await observation.drain();
       }
-      await observation.drain();
-    }
-    if (errors.length)
-      throw new AggregateError(errors, "Young read-only interfaces failed");
+      if (errors.length)
+        throw new AggregateError(errors, "Young read-only interfaces failed");
+    });
   });
-});
+}

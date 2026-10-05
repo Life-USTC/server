@@ -3,10 +3,9 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/public-worker";
 import { assertPageContract } from "../../_shared/page-contract";
 
-test("/community/comments/guide 重定向到标准 Markdown 指南", async ({
-  page,
-  publicFlow,
-}) => {
+test("/community/comments/guide 重定向到标准 Markdown 指南", {
+  tag: "@Comment/Web",
+}, async ({ page, publicFlow }) => {
   await publicFlow.run(async () => {
     await gotoAndWaitForReady(page, "/community/comments/guide", {
       waitUntil: "load",
@@ -15,7 +14,7 @@ test("/community/comments/guide 重定向到标准 Markdown 指南", async ({
   });
 });
 
-test("页面契约", async ({ page, publicFlow }) => {
+test("页面契约", { tag: "@Comment/Web" }, async ({ page, publicFlow }) => {
   await publicFlow.run(async () => {
     await assertPageContract(page, {
       routePath: "/community/comments/guide",

@@ -9,7 +9,7 @@ import { test } from "../../../../utils/settings-fixture";
 test.describe("/account/settings/accounts 通行密钥", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("user.passkey-user-flow", async ({
+  test("user.passkey-user-flow", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -182,7 +182,10 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     );
   });
 
-  test("user.passkey-unsupported", async ({ accountRun, page }) => {
+  test("user.passkey-unsupported", { tag: "@Account/Web" }, async ({
+    accountRun,
+    page,
+  }) => {
     await accountRun(
       {
         writes: [
@@ -233,7 +236,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     );
   });
 
-  test("user.passkey-mobile-controls", async ({
+  test("user.passkey-mobile-controls", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account: _account,
@@ -267,7 +270,10 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     });
   });
 
-  test("user.passkey-cancelled", async ({ accountRun, page }) => {
+  test("user.passkey-cancelled", { tag: "@Account/Web" }, async ({
+    accountRun,
+    page,
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.addInitScript(() => {
         Object.defineProperty(navigator.credentials, "get", {
@@ -291,7 +297,10 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     });
   });
 
-  test("user.passkey-sign-in-failure", async ({ accountRun, page }) => {
+  test("user.passkey-sign-in-failure", { tag: "@Account/Web" }, async ({
+    accountRun,
+    page,
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await page.route(
         "**/api/auth/passkey/generate-authenticate-options",
@@ -324,7 +333,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     });
   });
 
-  test("user.passkey-stale-session-guidance", async ({
+  test("user.passkey-stale-session-guidance", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -364,7 +373,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     });
   });
 
-  test("user.passkey-list-retry", async ({
+  test("user.passkey-list-retry", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account: _account,

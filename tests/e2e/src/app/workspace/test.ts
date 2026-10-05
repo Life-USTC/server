@@ -31,7 +31,7 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 test.describe("仪表盘", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("登录后首页显示总览、所有标签和独立数据", async ({
+  test("登录后首页显示总览、所有标签和独立数据", { tag: "@Site/Web" }, async ({
     page,
     homeworkStates,
     homeworkRun,
@@ -82,7 +82,7 @@ test.describe("仪表盘", () => {
     );
   });
 
-  test("可通过侧边栏导航到作业标签", async ({
+  test("可通过侧边栏导航到作业标签", { tag: "@Site/Web" }, async ({
     page,
     account: _account,
     homeworkRun,
@@ -102,7 +102,9 @@ test.describe("仪表盘", () => {
     );
   });
 
-  test("navigation badges retain the bootstrap counts across catalog navigation", async ({
+  test("navigation badges retain the bootstrap counts across catalog navigation", {
+    tag: "@Site/Web",
+  }, async ({
     page,
     account,
     academic,
@@ -205,7 +207,7 @@ test.describe("仪表盘", () => {
     );
   });
 
-  test("仪表盘路径别名渲染匹配的标签", async ({
+  test("仪表盘路径别名渲染匹配的标签", { tag: "@Site/Web" }, async ({
     page,
     academic: _academic,
     homeworkRun,
@@ -258,7 +260,7 @@ test.describe("仪表盘", () => {
     );
   });
 
-  test("ui.workspace-mobile-priority-1", async ({
+  test("ui.workspace-mobile-priority-1", { tag: "@Site/Web" }, async ({
     page,
     homeworkStates: _homeworkStates,
     homeworkRun,
@@ -288,7 +290,7 @@ test.describe("仪表盘", () => {
     );
   });
 
-  test("中文总览周视图使用本地化星期标签", async ({
+  test("中文总览周视图使用本地化星期标签", { tag: "@Site/Web" }, async ({
     page,
     account: _account,
     homeworkRun,

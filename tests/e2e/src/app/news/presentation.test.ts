@@ -3,7 +3,7 @@ import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/publication-fixture";
 
-test("publications.markdown-presentation", async ({
+test("publications.markdown-presentation", { tag: "@Publication/Web" }, async ({
   browseRun,
   page,
   publication: f,

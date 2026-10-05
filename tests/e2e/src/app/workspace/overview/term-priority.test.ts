@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/calendar-presentation-fixture";
 
-test("overview.current-semester-priority", async ({
+test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
   page,
   calendar: fixture,
   calendarDb,

@@ -36,13 +36,13 @@ import { test as oauthTest } from "../../../../utils/settings-oauth-fixture";
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/accounts 关联账号设置", () => {
-  test("需要登录", async ({ accountRun, page }) => {
+  test("需要登录", { tag: "@Account/Web" }, async ({ accountRun, page }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await expectRequiresSignIn(page, "/account/settings/accounts");
     });
   });
 
-  test("显示所有提供商卡片", async ({
+  test("显示所有提供商卡片", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account: _account,
@@ -61,6 +61,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
 
   oauthTest(
     "连接按钮启动账号关联 OAuth 流程",
+    { tag: "@Account/Web" },
     async ({
       accountRun,
       page,
@@ -172,7 +173,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     },
   );
 
-  test("仅关联一个账号时断开连接被禁用", async ({
+  test("仅关联一个账号时断开连接被禁用", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account: _account,
@@ -198,7 +199,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     });
   });
 
-  test("多账号：取消与确认解绑流程", async ({
+  test("多账号：取消与确认解绑流程", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -293,7 +294,11 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  accountRun,
+  page,
+  account: _account,
+}) => {
   await accountRun({ writes: [], audits: [] }, async () => {
     await expectSettingsPage(page, "/account/settings/accounts");
     await expect(

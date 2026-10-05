@@ -40,11 +40,9 @@ async function expectSelection(group: Locator, selected: string) {
   }
 }
 
-test("task filters respond after navigating between workspace pages", async ({
-  page,
-  taskFilterState,
-  taskFilterRun,
-}) => {
+test("task filters respond after navigating between workspace pages", {
+  tag: "@Site/Web",
+}, async ({ page, taskFilterState, taskFilterRun }) => {
   const fixture = await taskFilterState(true);
   await taskFilterRun(
     async () => {
@@ -76,12 +74,9 @@ test("task filters respond after navigating between workspace pages", async ({
 for (const tab of ["homeworks", "todos", "exams"] as const) {
   for (const mobile of [false, true]) {
     for (const includePending of [false, true]) {
-      test(`ui.workspace-filters-and-empty-states-1 (${tab}, ${mobile ? "mobile" : "desktop"}, ${includePending ? "pending" : "completed-only"})`, async ({
-        page,
-        taskFilterState,
-        taskFilterRun,
-        taskFilterDb,
-      }) => {
+      test(`ui.workspace-filters-and-empty-states-1 (${tab}, ${mobile ? "mobile" : "desktop"}, ${includePending ? "pending" : "completed-only"})`, {
+        tag: `@${{ homeworks: "Homework", todos: "Todo", exams: "Exam" }[tab]}/Web`,
+      }, async ({ page, taskFilterState, taskFilterRun, taskFilterDb }) => {
         await page.setViewportSize(
           mobile ? { width: 390, height: 844 } : { width: 1280, height: 900 },
         );

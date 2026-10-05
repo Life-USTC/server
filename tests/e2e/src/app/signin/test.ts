@@ -82,13 +82,13 @@ async function expectSignedOutAfterMenuClick(page: Page) {
   ).toBeVisible();
 }
 
-test("/account/sign-in 页面契约", async ({ page }) => {
+test("/account/sign-in 页面契约", { tag: "@Account/Web" }, async ({ page }) => {
   await assertPageContract(page, { routePath: "/account/sign-in" });
 });
 
-test("/account/sign-in narrow mobile shell uses an accessible compact brand", async ({
-  page,
-}) => {
+test("/account/sign-in narrow mobile shell uses an accessible compact brand", {
+  tag: "@Account/Web",
+}, async ({ page }) => {
   for (const width of [280, 375, 390]) {
     await page.setViewportSize({ width, height: 800 });
     await gotoAndWaitForReady(page, "/account/sign-in");
@@ -123,9 +123,9 @@ test("/account/sign-in narrow mobile shell uses an accessible compact brand", as
   }
 });
 
-test("/account/sign-in 320px actions and legal links stay inside the Card", async ({
-  page,
-}) => {
+test("/account/sign-in 320px actions and legal links stay inside the Card", {
+  tag: "@Account/Web",
+}, async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await gotoAndWaitForReady(page, "/account/sign-in");
 
@@ -152,7 +152,9 @@ test("/account/sign-in 320px actions and legal links stay inside the Card", asyn
   ).toBeVisible();
 });
 
-test("/account/sign-in 显示所有必填字段", async ({ page }) => {
+test("/account/sign-in 显示所有必填字段", { tag: "@Account/Web" }, async ({
+  page,
+}) => {
   await gotoAndWaitForReady(page, "/account/sign-in");
 
   // OAuth provider buttons (user.yml sign-in.display.fields)
@@ -175,7 +177,9 @@ test("/account/sign-in 显示所有必填字段", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("/account/sign-in 显示账户未关联错误", async ({ page }) => {
+test("/account/sign-in 显示账户未关联错误", { tag: "@Account/Web" }, async ({
+  page,
+}) => {
   await gotoAndWaitForReady(
     page,
     "/account/sign-in?error=OAuthAccountNotLinked",
@@ -185,12 +189,9 @@ test("/account/sign-in 显示账户未关联错误", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("/account/sign-in 已登录用户直接返回回调页面", async ({
-  isolatedWorker,
-  pageRun,
-  page,
-  debugUser,
-}) => {
+test("/account/sign-in 已登录用户直接返回回调页面", {
+  tag: "@Account/Web",
+}, async ({ isolatedWorker, pageRun, page, debugUser }) => {
   const writes: AuthWrite[] = [["/account/sign-in?callbackUrl=%2F", 200, "/"]];
   await pageRun(
     async () => {
@@ -218,7 +219,7 @@ test("/account/sign-in 已登录用户直接返回回调页面", async ({
   );
 });
 
-test("/account/sign-in 调试用户按钮可登录", async ({
+test("/account/sign-in 调试用户按钮可登录", { tag: "@Account/Web" }, async ({
   pageRun,
   page,
   debugUser,
@@ -256,7 +257,7 @@ test("/account/sign-in 调试用户按钮可登录", async ({
   );
 });
 
-test("/account/sign-in 调试用户可登出", async ({
+test("/account/sign-in 调试用户可登出", { tag: "@Account/Web" }, async ({
   pageRun,
   page,
   debugUser,
@@ -295,7 +296,7 @@ test("/account/sign-in 调试用户可登出", async ({
   );
 });
 
-test("/account/sign-in 调试管理员可登出", async ({
+test("/account/sign-in 调试管理员可登出", { tag: "@Account/Web" }, async ({
   pageRun,
   page,
   adminUser,
@@ -334,7 +335,7 @@ test("/account/sign-in 调试管理员可登出", async ({
   );
 });
 
-test("user.post-login-redirect", async ({
+test("user.post-login-redirect", { tag: "@Account/Web" }, async ({
   isolatedWorker,
   pageRun,
   page,

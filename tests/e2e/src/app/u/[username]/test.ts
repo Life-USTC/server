@@ -34,7 +34,7 @@ import { absoluteTestUrl } from "../../../../utils/request-url";
 import { assertPageContract } from "../../_shared/page-contract";
 import { test } from "./_fixture";
 
-test("user.public-profile-canonical-route", async ({
+test("user.public-profile-canonical-route", { tag: "@Account/Web" }, async ({
   preferenceFlow,
   isolatedWorker,
   publicAdminProfile: _publicAdminProfile,
@@ -76,6 +76,7 @@ test("user.public-profile-canonical-route", async ({
 
 privateTest(
   "user.public-profile-id-addressability",
+  { tag: "@Account/Web" },
   async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
@@ -106,7 +107,7 @@ privateTest(
 );
 
 test.describe("/community/users/[identifier]", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Account/Web" }, async ({
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
@@ -118,7 +119,7 @@ test.describe("/community/users/[identifier]", () => {
     });
   });
 
-  test("显示所有必需的资料字段", async ({
+  test("显示所有必需的资料字段", { tag: "@Account/Web" }, async ({
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
@@ -146,7 +147,9 @@ test.describe("/community/users/[identifier]", () => {
     });
   });
 
-  test("公开资料页使用固定 Open Graph 图片，不向图片 URL 传递资料字段", async ({
+  test("公开资料页使用固定 Open Graph 图片，不向图片 URL 传递资料字段", {
+    tag: "@Account/Web",
+  }, async ({
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
@@ -171,7 +174,7 @@ test.describe("/community/users/[identifier]", () => {
     });
   });
 
-  test("显示统计计数器网格", async ({
+  test("显示统计计数器网格", { tag: "@Account/Web" }, async ({
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
@@ -215,7 +218,7 @@ test.describe("/community/users/[identifier]", () => {
     });
   });
 
-  test("显示贡献热力图及 totalContributions", async ({
+  test("显示贡献热力图及 totalContributions", { tag: "@Account/Web" }, async ({
     preferenceFlow,
     publicDebugProfile: _publicDebugProfile,
     page,
@@ -235,7 +238,7 @@ test.describe("/community/users/[identifier]", () => {
     });
   });
 
-  test("用户名页面不显示内部用户 ID", async ({
+  test("用户名页面不显示内部用户 ID", { tag: "@Account/Web" }, async ({
     run,
     publicAdminProfile: _publicAdminProfile,
     baseURL,
@@ -253,7 +256,10 @@ test.describe("/community/users/[identifier]", () => {
     });
   });
 
-  test("不存在的用户名返回 404", async ({ preferenceFlow, page }) => {
+  test("不存在的用户名返回 404", { tag: "@Account/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,
@@ -274,7 +280,7 @@ test.describe("/community/users/[identifier]", () => {
 });
 
 test.describe("/community/users/[identifier] by ID", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Account/Web" }, async ({
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
     page,
@@ -288,6 +294,7 @@ test.describe("/community/users/[identifier] by ID", () => {
 
   privateTest(
     "内部用户 ID 地址直接解析同一资料页",
+    { tag: "@Account/Web" },
     async ({ page, isolatedWorker, preferenceFlow, run }) => {
       await run(async () => {
         const viewer = await preferenceFlow.prepare(() =>
@@ -325,7 +332,10 @@ test.describe("/community/users/[identifier] by ID", () => {
     },
   );
 
-  test("不存在的 uid 返回 404", async ({ preferenceFlow, page }) => {
+  test("不存在的 uid 返回 404", { tag: "@Account/Web" }, async ({
+    preferenceFlow,
+    page,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(
         page,

@@ -24,11 +24,15 @@ import { expectSettingsPage, test } from "../../../utils/settings-fixture";
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings 设置中心", () => {
-  test("需要登录", async ({ page }) => {
+  test("需要登录", { tag: "@Account/Web" }, async ({ page }) => {
     await expectRequiresSignIn(page, "/account/settings");
   });
 
-  test("ui.settings-navigation-2", async ({ accountRun, page, account }) => {
+  test("ui.settings-navigation-2", { tag: "@Account/Web" }, async ({
+    accountRun,
+    page,
+    account,
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings");
 
@@ -41,7 +45,7 @@ test.describe("/account/settings 设置中心", () => {
     });
   });
 
-  test("ui.settings-navigation-1", async ({
+  test("ui.settings-navigation-1", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account: _account,
@@ -86,7 +90,7 @@ test.describe("/account/settings 设置中心", () => {
     });
   });
 
-  test("ui.settings-navigation-6", async ({
+  test("ui.settings-navigation-6", { tag: "@Account/Web" }, async ({
     accountRun,
     isolatedWorker,
     page,
@@ -109,7 +113,11 @@ test.describe("/account/settings 设置中心", () => {
     });
   });
 
-  test("标签导航切换分区", async ({ accountRun, page, account: _account }) => {
+  test("标签导航切换分区", { tag: "@Account/Web" }, async ({
+    accountRun,
+    page,
+    account: _account,
+  }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await gotoAndWaitForReady(page, "/account/settings");
 
@@ -146,7 +154,7 @@ test.describe("/account/settings 设置中心", () => {
     });
   });
 
-  test("设置语义路径渲染对应分区", async ({
+  test("设置语义路径渲染对应分区", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account: _account,
@@ -167,7 +175,11 @@ test.describe("/account/settings 设置中心", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  accountRun,
+  page,
+  account: _account,
+}) => {
   await accountRun({ writes: [], audits: [] }, async () => {
     await expectSettingsPage(page, "/account/settings");
     for (const name of [

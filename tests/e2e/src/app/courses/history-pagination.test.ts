@@ -171,13 +171,15 @@ async function verifyHistory(
   );
 }
 
-test("course.bounded-detail-history", async ({
-  page,
-  isolatedWorker,
-  catalogFlow,
-}) => verifyHistory(page, "course", isolatedWorker, catalogFlow));
-test("teacher.bounded-detail-history", async ({
-  page,
-  isolatedWorker,
-  catalogFlow,
-}) => verifyHistory(page, "teacher", isolatedWorker, catalogFlow));
+test(
+  "course.bounded-detail-history",
+  { tag: "@Catalog/Web" },
+  async ({ page, isolatedWorker, catalogFlow }) =>
+    verifyHistory(page, "course", isolatedWorker, catalogFlow),
+);
+test(
+  "teacher.bounded-detail-history",
+  { tag: "@Catalog/Web" },
+  async ({ page, isolatedWorker, catalogFlow }) =>
+    verifyHistory(page, "teacher", isolatedWorker, catalogFlow),
+);

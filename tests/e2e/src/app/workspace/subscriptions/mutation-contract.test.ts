@@ -53,12 +53,9 @@ for (const operation of [
   for (const state of operation === "query"
     ? (["absent"] as const)
     : (["absent", "present"] as const)) {
-    test(`subscription.duplicate-input-semantics REST ${operation} ${state}`, async ({
-      page,
-      oauthOwner,
-      createCalendar,
-      calendarProtocolRun,
-    }) => {
+    test(`subscription.duplicate-input-semantics REST ${operation} ${state}`, {
+      tag: "@Subscription/REST",
+    }, async ({ page, oauthOwner, createCalendar, calendarProtocolRun }) => {
       await calendarProtocolRun(async (io) => {
         const { fixture, db, contract } = await prepare(
           page,
@@ -146,7 +143,9 @@ for (const operation of [
 }
 
 for (const action of ["ADD", "REMOVE"] as const) {
-  test(`subscription.duplicate-input-semantics GraphQL ${action}`, async ({
+  test(`subscription.duplicate-input-semantics GraphQL ${action}`, {
+    tag: "@Subscription/GraphQL",
+  }, async ({
     page,
     oauthOwner,
     createCalendar,
@@ -203,12 +202,9 @@ for (const action of ["ADD", "REMOVE"] as const) {
 }
 
 for (const state of ["absent", "present"] as const) {
-  test(`subscription.duplicate-input-semantics MCP ${state}`, async ({
-    page,
-    oauthOwner,
-    createCalendar,
-    calendarProtocolRun,
-  }) => {
+  test(`subscription.duplicate-input-semantics MCP ${state}`, {
+    tag: "@Subscription/MCP",
+  }, async ({ page, oauthOwner, createCalendar, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
       const { fixture, db, contract } = await prepare(
         page,
@@ -261,13 +257,9 @@ for (const operation of [
   "remove",
   "batch remove",
 ] as const) {
-  test(`subscription.membership-atomicity ${operation}`, async ({
-    page,
-    oauthOwner,
-    createCalendar,
-    calendarProtocolRun,
-    run,
-  }) => {
+  test(`subscription.membership-atomicity ${operation}`, {
+    tag: "@Subscription/REST",
+  }, async ({ page, oauthOwner, createCalendar, calendarProtocolRun, run }) => {
     // The trigger outlives the entire protocol callback and server drain,
     // including interruption; its cleanup is itself an admitted operation.
     await run(async () => {
@@ -372,12 +364,9 @@ for (const operation of [
   });
 }
 
-test("subscription.import-replay-after-lost-response", async ({
-  page,
-  oauthOwner,
-  createCalendar,
-  calendarProtocolRun,
-}) => {
+test("subscription.import-replay-after-lost-response", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, createCalendar, calendarProtocolRun }) => {
   await calendarProtocolRun(async (io) => {
     const { fixture, second, db, contract } = await prepare(
       page,

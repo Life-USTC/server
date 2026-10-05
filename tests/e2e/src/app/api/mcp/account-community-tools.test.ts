@@ -7,7 +7,9 @@ import { test } from "./_fixture";
 import { parseTextContent } from "./helpers";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
-  test("种子工具：账号资料与社区用户", async ({ mcpRun }) => {
+  test("种子工具：账号资料与社区用户", { tag: "@Account/MCP" }, async ({
+    mcpRun,
+  }) => {
     await mcpRun(
       {
         calls: [

@@ -11,7 +11,7 @@ import {
   waitForUiSettled,
 } from "../../../../../utils/page-ready";
 
-test("活动、主办方订阅和提醒入口可用", async ({
+test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, async ({
   page,
   activity,
   activityConsumer,
@@ -68,13 +68,9 @@ for (const viewport of [
   { width: 390, height: 844 },
 ]) {
   for (const action of ["add", "settings", "remove"] as const) {
-    test(`activity subscription ${action} persists at ${viewport.width}px`, async ({
-      page,
-      account,
-      activity,
-      activityRun,
-      activityDb,
-    }) => {
+    test(`activity subscription ${action} persists at ${viewport.width}px`, {
+      tag: "@Young/Web",
+    }, async ({ page, account, activity, activityRun, activityDb }) => {
       const youngId = activity.youngId;
       const initial = {
         userId: account.id,
@@ -226,13 +222,9 @@ for (const viewport of [
   }
 }
 
-test("activity detail posts comments to the public youngId and preserves them on reload", async ({
-  page,
-  account,
-  activity,
-  activityRun,
-  activityDb,
-}) => {
+test("activity detail posts comments to the public youngId and preserves them on reload", {
+  tag: "@Young/Web",
+}, async ({ page, account, activity, activityRun, activityDb }) => {
   await activityRun(async () => {
     const body = "Independent public activity comment";
     await gotoAndWaitForReady(
@@ -284,14 +276,9 @@ test("activity detail posts comments to the public youngId and preserves them on
 });
 
 for (const locale of ["zh-cn", "en-us"] as const) {
-  test(`activity reminders filter, localize and persist read state in ${locale}`, async ({
-    page,
-    account,
-    activity,
-    baseURL,
-    activityRun,
-    activityDb,
-  }) => {
+  test(`activity reminders filter, localize and persist read state in ${locale}`, {
+    tag: "@Young/Web",
+  }, async ({ page, account, activity, baseURL, activityRun, activityDb }) => {
     await activityRun(async () => {
       const marker = activity.youngId;
       if (!baseURL) throw new Error("Activity browser tests require baseURL");
@@ -418,13 +405,9 @@ for (const locale of ["zh-cn", "en-us"] as const) {
   });
 }
 
-test("reading the last unread reminder on page two returns to the remaining reminders", async ({
-  page,
-  account,
-  activity,
-  activityRun,
-  activityDb,
-}) => {
+test("reading the last unread reminder on page two returns to the remaining reminders", {
+  tag: "@Young/Web",
+}, async ({ page, account, activity, activityRun, activityDb }) => {
   await activityRun(async () => {
     const marker = activity.youngId;
     const createdAt = Date.now();

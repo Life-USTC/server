@@ -10,12 +10,9 @@ import { verifyCountImport } from "./count-import-contract";
 
 for (const count of [1, 2]) {
   for (const locale of ["en-us", "zh-cn"]) {
-    test(`subscriptions.bulk-count-copy ${locale} count=${count}`, async ({
-      page,
-      request,
-      isolatedWorker,
-      calendarProtocolRun,
-    }) => {
+    test(`subscriptions.bulk-count-copy ${locale} count=${count}`, {
+      tag: "@Subscription/Web",
+    }, async ({ page, request, isolatedWorker, calendarProtocolRun }) => {
       test.setTimeout(300_000);
       const db = isolatedWorker.database.owner;
       await calendarProtocolRun(async (io) => {

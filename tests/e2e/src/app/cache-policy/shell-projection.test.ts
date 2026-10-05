@@ -21,10 +21,9 @@ function expectPrivate(response: APIResponse) {
   expect(response.headers().vary?.split(/,\s*/)).toContain("Cookie");
 }
 
-test("rendering-and-cache.cacheable-public-pages-14", async ({
-  shell,
-  page,
-}) => {
+test("rendering-and-cache.cacheable-public-pages-14", {
+  tag: "@Site/Web",
+}, async ({ shell, page }) => {
   await shell.run(
     { incomplete: true, sessions: [{ user: 0 }, { user: 2 }, { user: 3 }] },
     async ({ users, flow, sessionCookie, incomplete }) => {
@@ -98,7 +97,10 @@ test("rendering-and-cache.cacheable-public-pages-14", async ({
   );
 });
 
-test("rendering-and-cache.personal-overlays-4", async ({ shell, page }) => {
+test("rendering-and-cache.personal-overlays-4", { tag: "@Site/Web" }, async ({
+  shell,
+  page,
+}) => {
   await shell.run(
     { device: true, sessions: [{ user: 0 }, { user: 1 }] },
     async ({ users, flow, origin, sessionCookie, client, profileRead }) => {
@@ -203,7 +205,9 @@ test("rendering-and-cache.personal-overlays-4", async ({ shell, page }) => {
   );
 });
 
-test("rendering-and-cache.personal-overlays-5", async ({ shell }) => {
+test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
+  shell,
+}) => {
   await shell.run(
     { sessions: [{ user: 0 }, { user: 1 }] },
     async ({ users, flow, origin, sessionCookie }) => {
@@ -269,7 +273,7 @@ test("rendering-and-cache.personal-overlays-5", async ({ shell }) => {
   );
 });
 
-test("rendering-and-cache.personal-overlays-7", async ({
+test("rendering-and-cache.personal-overlays-7", { tag: "@Site/Web" }, async ({
   shell,
   page,
   context,
@@ -348,7 +352,9 @@ test("rendering-and-cache.personal-overlays-7", async ({
   );
 });
 
-test("rendering-and-cache.web-rendering-and-cache-1", async ({ shell }) => {
+test("rendering-and-cache.web-rendering-and-cache-1", {
+  tag: "@Site/Web",
+}, async ({ shell }) => {
   await shell.run(
     { sessions: [{ user: 0 }, { user: 1 }, { user: 0 }, { user: 1 }] },
     async ({ users, flow, origin, sessionCookie, teacher }) => {
@@ -527,6 +533,7 @@ function normalizePublicHtml(html: string) {
 // Check that the observation adapter cannot hide changed public content or broken references.
 browserTest(
   "public HTML normalization preserves text and accessibility relationships",
+  { tag: "@Site/Web" },
   async ({ page }) => {
     const markup = (id: string, reference = id, text = "Public content") =>
       `<div data-scroll-area-viewport><div data-scroll-area-content id="${id}">${text}</div></div><button aria-controls="${reference}" aria-label="Open content">Open</button><a href="#${reference}">Jump</a>`;
@@ -546,10 +553,9 @@ browserTest(
   },
 );
 
-test("rendering-and-cache.web-rendering-and-cache-2", async ({
-  shell,
-  page,
-}) => {
+test("rendering-and-cache.web-rendering-and-cache-2", {
+  tag: "@Site/Web",
+}, async ({ shell, page }) => {
   await shell.run(
     { sessions: [{ user: 0 }, { user: 1 }, { user: 0 }, { user: 1 }] },
     async ({ users, flow, origin, sessionCookie, teacher, organizer }) => {
@@ -717,11 +723,9 @@ const shellViewerPages: {
 ];
 
 for (const scenario of shellViewerPages) {
-  test(`user.shell-viewer: ${scenario.name} public projection`, async ({
-    shell,
-    page,
-    context,
-  }) => {
+  test(`user.shell-viewer: ${scenario.name} public projection`, {
+    tag: "@Site/Web",
+  }, async ({ shell, page, context }) => {
     await shell.run(
       { bus: scenario.bus, sessions: [{ user: 0 }] },
       async (fixture) => {
@@ -756,11 +760,9 @@ for (const scenario of shellViewerPages) {
   });
 }
 
-test("user.shell-viewer: private navigation retains the viewer on the public section", async ({
-  shell,
-  page,
-  context,
-}) => {
+test("user.shell-viewer: private navigation retains the viewer on the public section", {
+  tag: "@Site/Web",
+}, async ({ shell, page, context }) => {
   await shell.run(
     { feedToken: true, sessions: [{ user: 0 }] },
     async ({ users, sessionCookie }) => {
@@ -799,11 +801,9 @@ test("user.shell-viewer: private navigation retains the viewer on the public sec
   );
 });
 
-test("user.shell-viewer: real sign-in initializes the public section projections", async ({
-  shell,
-  page,
-  context,
-}) => {
+test("user.shell-viewer: real sign-in initializes the public section projections", {
+  tag: "@Site/Web",
+}, async ({ shell, page, context }) => {
   await shell.run(
     { debug: true, sessions: [{ user: 0 }] },
     async ({ users, sessionCookie, debugUser }) => {
@@ -872,7 +872,10 @@ test("user.shell-viewer: real sign-in initializes the public section projections
   );
 });
 
-test("overview.public-html-viewer-independent", async ({ shell, page }) => {
+test("overview.public-html-viewer-independent", { tag: "@Site/Web" }, async ({
+  shell,
+  page,
+}) => {
   await shell.run(
     { sessions: [{ user: 0 }, { user: 1 }] },
     async ({ users, flow, sessionCookie }) => {

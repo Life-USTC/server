@@ -1,7 +1,10 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../utils/public-worker";
 
-test("anonymous workspace canonical routing", async ({ publicFlow, page }) => {
+test("anonymous workspace canonical routing", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  page,
+}) => {
   await publicFlow.run(async () => {
     await test.step("仪表盘 › 未登录旧 homework tab 永久重定向到受保护语义路径", async () => {
       const response = await page.request.get(

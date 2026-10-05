@@ -34,7 +34,7 @@ async function openControls(page: Page) {
   await expect(page.getByTestId("bus-start-stop-group")).toBeVisible();
 }
 
-test("bus.core-filters-only", async ({
+test("bus.core-filters-only", { tag: "@Bus/Web" }, async ({
   page,
   preferenceFlow,
   isolatedWorker,
@@ -93,6 +93,7 @@ test("bus.core-filters-only", async ({
 
 privateTest(
   "bus.merged-table-grouped-by-route",
+  { tag: "@Bus/Web" },
   async (
     { page, isolatedWorker, preferenceFlow, busOwner: owner, run },
     testInfo,
@@ -138,7 +139,7 @@ privateTest(
   },
 );
 
-test("bus.mobile-next-departures", async ({
+test("bus.mobile-next-departures", { tag: "@Bus/Web" }, async ({
   page,
   preferenceFlow,
   isolatedWorker,
@@ -168,7 +169,7 @@ test("bus.mobile-next-departures", async ({
   });
 });
 
-test("bus.responsive-route-surfaces", async ({
+test("bus.responsive-route-surfaces", { tag: "@Bus/Web" }, async ({
   page,
   preferenceFlow,
   isolatedWorker,
@@ -187,7 +188,7 @@ test("bus.responsive-route-surfaces", async ({
   });
 });
 
-test("bus.stop-label-wrapping", async ({
+test("bus.stop-label-wrapping", { tag: "@Bus/Web" }, async ({
   page,
   preferenceFlow,
   isolatedWorker,
@@ -220,7 +221,10 @@ test("bus.stop-label-wrapping", async ({
   });
 });
 
-test("bus.map-label-legibility", async ({ page, preferenceFlow }) => {
+test("bus.map-label-legibility", { tag: "@Bus/Web" }, async ({
+  page,
+  preferenceFlow,
+}) => {
   await preferenceFlow.run(async () => {
     for (const width of [320, 1280]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -254,7 +258,7 @@ test("bus.map-label-legibility", async ({ page, preferenceFlow }) => {
   });
 });
 
-test("bus.visual-priority", async ({
+test("bus.visual-priority", { tag: "@Bus/Web" }, async ({
   page,
   preferenceFlow,
   isolatedWorker,

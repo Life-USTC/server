@@ -25,10 +25,9 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/public-worker";
 
 test.describe("仪表盘无效标签（comments）", () => {
-  test("/workspace/comments 不是仪表盘路由页面", async ({
-    publicFlow,
-    page,
-  }) => {
+  test("/workspace/comments 不是仪表盘路由页面", {
+    tag: "@Comment/Web",
+  }, async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
       const response = await gotoAndWaitForReady(page, "/workspace/comments");
 
@@ -37,10 +36,9 @@ test.describe("仪表盘无效标签（comments）", () => {
     });
   });
 
-  test("未登录 ?tab=comments 保持轻量公共首页", async ({
-    publicFlow,
-    page,
-  }) => {
+  test("未登录 ?tab=comments 保持轻量公共首页", {
+    tag: "@Comment/Web",
+  }, async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(page, "/?tab=comments");
 
@@ -60,6 +58,7 @@ test.describe("仪表盘无效标签（comments）", () => {
 
   privateTest(
     "登录后 ?tab=comments 回退到总览",
+    { tag: "@Comment/Web" },
     async ({ run, accountRun, page, isolatedWorker }) => {
       const actor = await run(async () => {
         const actor = await isolatedWorker.createActor();

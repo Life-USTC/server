@@ -28,11 +28,9 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 test.describe("仪表盘日历", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("登录后显示日历，包含班级事件链接和星期标签", async ({
-    page,
-    calendarUrl,
-    homeworkRun,
-  }) => {
+  test("登录后显示日历，包含班级事件链接和星期标签", {
+    tag: "@Calendar/Web",
+  }, async ({ page, calendarUrl, homeworkRun }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, calendarUrl);
@@ -58,7 +56,7 @@ test.describe("仪表盘日历", () => {
     );
   });
 
-  test("班级事件链接导航到班级详情", async ({
+  test("班级事件链接导航到班级详情", { tag: "@Calendar/Web" }, async ({
     page,
     calendarUrl,
     homeworkRun,
@@ -80,7 +78,11 @@ test.describe("仪表盘日历", () => {
     );
   });
 
-  test("考试卡片链接到考试标签", async ({ page, calendarUrl, homeworkRun }) => {
+  test("考试卡片链接到考试标签", { tag: "@Calendar/Web" }, async ({
+    page,
+    calendarUrl,
+    homeworkRun,
+  }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, calendarUrl);
@@ -94,7 +96,7 @@ test.describe("仪表盘日历", () => {
     );
   });
 
-  test("学期导航控件可切换到其他学期", async ({
+  test("学期导航控件可切换到其他学期", { tag: "@Calendar/Web" }, async ({
     page,
     calendarUrl,
     homeworkRun,
@@ -128,7 +130,7 @@ test.describe("仪表盘日历", () => {
     );
   });
 
-  test("视图切换可在学期/月/周之间切换", async ({
+  test("视图切换可在学期/月/周之间切换", { tag: "@Calendar/Web" }, async ({
     page,
     calendarUrl,
     homeworkRun,
@@ -158,7 +160,7 @@ test.describe("仪表盘日历", () => {
     );
   });
 
-  test("ical.copyable-links", async ({
+  test("ical.copyable-links", { tag: "@Calendar/Web" }, async ({
     page,
     academic,
     calendarUrl,
@@ -231,6 +233,7 @@ test.describe("仪表盘日历", () => {
 
   calendarTest(
     "calendar.mobile-agenda-first",
+    { tag: "@Calendar/Web" },
     async ({ page, calendar: fixture, calendarRun }) => {
       await calendarRun(
         async () => {

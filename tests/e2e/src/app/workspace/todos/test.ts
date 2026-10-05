@@ -16,7 +16,10 @@ import {
 test.describe.configure({ mode: "parallel" });
 
 test.describe("仪表盘待办", () => {
-  test("未登录旧 todos tab 重定向到语义路径", async ({ request, todoRun }) => {
+  test("未登录旧 todos tab 重定向到语义路径", { tag: "@Todo/Web" }, async ({
+    request,
+    todoRun,
+  }) => {
     await todoRun(
       async (effects) => {
         // The native request fixture is independent of the signed-in page context.
@@ -34,7 +37,11 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("登录后显示独立准备的待办", async ({ todoRun, page, todos }) => {
+  test("登录后显示独立准备的待办", { tag: "@Todo/Web" }, async ({
+    todoRun,
+    page,
+    todos,
+  }) => {
     await todoRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
@@ -70,7 +77,11 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("todo.web-create-target", async ({ todoRun, page, todos: _todos }) => {
+  test("todo.web-create-target", { tag: "@Todo/Web" }, async ({
+    todoRun,
+    page,
+    todos: _todos,
+  }) => {
     await todoRun(
       async () => {
         await page.addInitScript(() => {
@@ -133,12 +144,9 @@ test.describe("仪表盘待办", () => {
   });
 
   for (const completed of [false, true]) {
-    test(`切换待办到${completed ? "未完成" : "已完成"}并更新筛选`, async ({
-      todoActor,
-      todoRun,
-      page,
-      todoState,
-    }) => {
+    test(`切换待办到${completed ? "未完成" : "已完成"}并更新筛选`, {
+      tag: "@Todo/Web",
+    }, async ({ todoActor, todoRun, page, todoState }) => {
       await todoRun(
         async (effects) => {
           const [todo] = await todoState.seed([
@@ -208,7 +216,11 @@ test.describe("仪表盘待办", () => {
     });
   }
 
-  test("todo.web-completed-title", async ({ todoRun, page, todos }) => {
+  test("todo.web-completed-title", { tag: "@Todo/Web" }, async ({
+    todoRun,
+    page,
+    todos,
+  }) => {
     await todoRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
@@ -255,7 +267,11 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("todo.web-detail-actions", async ({ todoRun, page, todos }) => {
+  test("todo.web-detail-actions", { tag: "@Todo/Web" }, async ({
+    todoRun,
+    page,
+    todos,
+  }) => {
     await todoRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
@@ -311,7 +327,7 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("嵌套待办路由渲染服务端操作错误", async ({
+  test("嵌套待办路由渲染服务端操作错误", { tag: "@Todo/Web" }, async ({
     todoRun,
     page,
     todoState,
@@ -351,7 +367,7 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("todo.web-local-create", async ({
+  test("todo.web-local-create", { tag: "@Todo/Web" }, async ({
     todoActor,
     todoRun,
     page,
@@ -433,7 +449,7 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("todo.web-local-edit", async ({
+  test("todo.web-local-edit", { tag: "@Todo/Web" }, async ({
     todoActor,
     todoRun,
     page,
@@ -523,7 +539,7 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("todo.web-local-complete", async ({
+  test("todo.web-local-complete", { tag: "@Todo/Web" }, async ({
     todoActor,
     todoRun,
     page,
@@ -626,7 +642,7 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("todo.web-local-delete", async ({
+  test("todo.web-local-delete", { tag: "@Todo/Web" }, async ({
     todoActor,
     todoRun,
     page,
@@ -727,11 +743,9 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("移动端长标题和内容保持操作可达并按层级排列", async ({
-    todoRun,
-    page,
-    todoState,
-  }) => {
+  test("移动端长标题和内容保持操作可达并按层级排列", {
+    tag: "@Todo/Web",
+  }, async ({ todoRun, page, todoState }) => {
     await todoRun(
       async () => {
         test.setTimeout(90_000);
@@ -843,11 +857,9 @@ test.describe("仪表盘待办", () => {
     );
   });
 
-  test("短视口待办新建和编辑弹窗保持标题、滚动体与操作可达", async ({
-    todoRun,
-    page,
-    todoState,
-  }) => {
+  test("短视口待办新建和编辑弹窗保持标题、滚动体与操作可达", {
+    tag: "@Todo/Web",
+  }, async ({ todoRun, page, todoState }) => {
     await todoRun(
       async () => {
         test.setTimeout(90_000);

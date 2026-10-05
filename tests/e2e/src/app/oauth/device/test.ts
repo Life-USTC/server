@@ -214,10 +214,9 @@ async function exchangeDeviceToken(
     refreshToken: tokenBody.refresh_token,
   };
 }
-test("/oauth/device 移动端只呈现一个标题和一个代码输入", async ({
-  publicFlow,
-  page,
-}) => {
+test("/oauth/device 移动端只呈现一个标题和一个代码输入", {
+  tag: "@OAuth/Web",
+}, async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/oauth/device");
@@ -269,10 +268,9 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", async 
     ).toBe(true);
   });
 });
-test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
-  publicFlow,
-  page,
-}) => {
+test("/oauth/device 320px 和 375px 输入槽完整显示", {
+  tag: "@OAuth/Web",
+}, async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     for (const width of [320, 375]) {
       await page.setViewportSize({ width, height: 800 });
@@ -301,7 +299,10 @@ test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
     }
   });
 });
-test("/oauth/device 无效用户代码显示公开错误", async ({ publicFlow, page }) => {
+test("/oauth/device 无效用户代码显示公开错误", { tag: "@OAuth/Web" }, async ({
+  publicFlow,
+  page,
+}) => {
   await publicFlow.run(async () => {
     await gotoAndWaitForReady(
       page,
@@ -315,6 +316,7 @@ test("/oauth/device 无效用户代码显示公开错误", async ({ publicFlow, 
 });
 isolatedTest(
   "/oauth/device 设备授权端点返回必要字段",
+  { tag: "@OAuth/OAuth" },
   async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-${Date.now()}`;
@@ -368,6 +370,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 拒绝超出客户端允许范围的 scope",
+  { tag: "@OAuth/OAuth" },
   async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-invalid-scope-${Date.now()}`;
@@ -415,6 +418,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 拒绝未注册设备授权类型的客户端",
+  { tag: "@OAuth/OAuth" },
   async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-unsupported-grant-${Date.now()}`;
@@ -464,6 +468,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 未登录的待批准请求重定向到登录页",
+  { tag: "@OAuth/Web" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-redirect-${Date.now()}`;
@@ -519,6 +524,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 已登录用户看到批准界面",
+  { tag: "@OAuth/Web" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-approval-${Date.now()}`;
@@ -581,6 +587,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 资源绑定令牌可访问 REST 与 MCP",
+  { tag: "@OAuth/OAuth" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(
       async ({ request }) => {
@@ -743,6 +750,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 仅 profile 的 REST 令牌被受保护 REST 拒绝",
+  { tag: "@OAuth/OAuth" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(
       async ({ request }) => {
@@ -841,6 +849,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 含其他 feature scope 但无 todo scope 的令牌被 todo REST 拒绝",
+  { tag: "@OAuth/OAuth" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(
       async ({ request }) => {
@@ -946,6 +955,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 已禁用客户端代码显示错误而非批准界面",
+  { tag: "@OAuth/Web" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const clientName = `device-e2e-disabled-${Date.now()}`;
@@ -1006,6 +1016,7 @@ isolatedTest(
 );
 isolatedTest(
   "/oauth/device 拒绝请求后不能兑换令牌",
+  { tag: "@OAuth/Web" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(
       async ({ request }) => {
@@ -1101,6 +1112,7 @@ isolatedTest(
 
 isolatedTest(
   "/oauth/device 过期代码公开报错且不能兑换令牌",
+  { tag: "@OAuth/Web" },
   async ({ isolatedWorker, page, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const resource = `${isolatedWorker.origin}/api/auth`;
@@ -1177,6 +1189,7 @@ isolatedTest(
 
 requestTest(
   "/oauth/device 发现文档包含设备授权端点",
+  { tag: "@OAuth/OAuth" },
   async ({ run, request }) => {
     await run(async () => {
       const discoveryResponse = await request.get(
@@ -1199,7 +1212,7 @@ requestTest(
     });
   },
 );
-test("页面契约", async ({ publicFlow, page }) => {
+test("页面契约", { tag: "@OAuth/Web" }, async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     await assertPageContract(page, { routePath: "/oauth/device" });
   });

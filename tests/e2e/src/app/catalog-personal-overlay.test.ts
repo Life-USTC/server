@@ -15,6 +15,7 @@ const subscriptionLabel =
 // private request finishes, so they do not use gotoAndWaitForReady.
 overlayTest(
   "section public content stays readable while personal actions await the viewer",
+  { tag: "@Catalog/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async (flow) => {
       await signInPrivateDebugUser(page, "/workspace");
@@ -63,6 +64,7 @@ overlayTest(
 
 searchTest(
   "section viewer failure disables personal actions and supports retry",
+  { tag: "@Catalog/Web" },
   async ({ preferenceFlow, searchSection: _searchSection, page }) => {
     await preferenceFlow.run(async () => {
       let requests = 0;
@@ -107,6 +109,7 @@ searchTest(
 
 overlayTest(
   "description editing awaits private permissions while preserving SSR content",
+  { tag: "@Description/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async (flow) => {
       await signInPrivateDebugUser(page, "/workspace");
@@ -155,6 +158,7 @@ overlayTest(
 
 overlayTest(
   "links keep public browsing usable when personal pins fail and recover on retry",
+  { tag: "@CatalogLink/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async (flow) => {
       await signInPrivateDebugUser(page, "/workspace");
@@ -191,6 +195,7 @@ overlayTest(
 
 overlayTest(
   "bus preference read failures cannot save anonymous defaults over the account",
+  { tag: "@Bus/Web" },
   async ({ page, overlay }) => {
     await overlay.run(
       { loginRedirect: "/workspace", bus: { showDepartedTrips: false } },
@@ -275,6 +280,7 @@ async function refreshIdentityOnSameRoute(
 
 overlayTest(
   "logout closes an open description editor on the same route",
+  { tag: "@Description/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async () => {
       await signInPrivateDebugUser(page, "/workspace");
@@ -295,6 +301,7 @@ overlayTest(
 
 overlayTest(
   "logout discards an outstanding links overlay on the same route",
+  { tag: "@CatalogLink/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async (flow) => {
       await signInPrivateDebugUser(page, "/workspace");
@@ -344,6 +351,7 @@ overlayTest(
 
 overlayTest(
   "logout clears section private controls on the same route",
+  { tag: "@Catalog/Web" },
   async ({ page, overlay }) => {
     await overlay.run({ loginRedirect: "/workspace" }, async () => {
       await signInPrivateDebugUser(page, "/workspace");
@@ -367,6 +375,7 @@ overlayTest(
 
 overlayTest(
   "logout resets the bus planner's account preferences",
+  { tag: "@Bus/Web" },
   async ({ page, overlay }) => {
     await overlay.run(
       { loginRedirect: "/workspace", bus: { showDepartedTrips: true } },

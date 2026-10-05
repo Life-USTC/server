@@ -112,10 +112,9 @@ async function openWriter(
 }
 
 for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-  test(`${method} body failure settles exactly one write before page close`, async ({
-    page,
-    endpoint,
-  }) => {
+  test(`${method} body failure settles exactly one write before page close`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ page, endpoint }) => {
     const bodyFinished = gate();
     const bodyError = new Error("Intentional body failure");
     const events: string[] = [];
@@ -140,10 +139,9 @@ for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
   });
 }
 
-test("fetch failure aborts the original browser write before page close", async ({
-  page,
-  endpoint,
-}) => {
+test("fetch failure aborts the original browser write before page close", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, endpoint }) => {
   const failure = await withSettledPageWrites(
     page,
     /\/disconnect$/,
@@ -172,10 +170,9 @@ test("fetch failure aborts the original browser write before page close", async 
   expect(page.isClosed()).toBe(true);
 });
 
-test("teardown rejects new writes and retains both body and cleanup errors", async ({
-  page,
-  endpoint,
-}) => {
+test("teardown rejects new writes and retains both body and cleanup errors", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, endpoint }) => {
   const bodyFinished = gate();
   const bodyError = new Error("Intentional body failure");
   const failure = withSettledPageWrites(page, /\/(write|late)$/, async () => {
@@ -210,10 +207,9 @@ test("teardown rejects new writes and retains both body and cleanup errors", asy
   expect(page.isClosed()).toBe(true);
 });
 
-test("response observer finishes before fulfillment and page teardown", async ({
-  page,
-  endpoint,
-}) => {
+test("response observer finishes before fulfillment and page teardown", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, endpoint }) => {
   const observing = gate();
   const observed = gate();
   const bodyFinished = gate();
@@ -266,10 +262,9 @@ test("response observer finishes before fulfillment and page teardown", async ({
   ]);
 });
 
-test("observer failure aborts the browser write without replay and reports the error", async ({
-  page,
-  endpoint,
-}) => {
+test("observer failure aborts the browser write without replay and reports the error", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, endpoint }) => {
   const observerError = new Error("Intentional observer failure");
   let observations = 0;
   endpoint.release();
@@ -307,10 +302,9 @@ function workflowErrors(error: unknown): unknown[] {
     : [error];
 }
 
-test("normal browser workflow keeps its original body and write order", async ({
-  page,
-  endpoint,
-}) => {
+test("normal browser workflow keeps its original body and write order", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, endpoint }) => {
   const events: string[] = [];
   const browserReads: Promise<unknown>[] = [];
   endpoint.release();
@@ -360,10 +354,9 @@ test("normal browser workflow keeps its original body and write order", async ({
 });
 
 for (const observerFails of [false, true]) {
-  test(`interrupted body joins a submitted write, observer and actual callback (${observerFails ? "observer fails" : "observer succeeds"})`, async ({
-    page,
-    endpoint,
-  }) => {
+  test(`interrupted body joins a submitted write, observer and actual callback (${observerFails ? "observer fails" : "observer succeeds"})`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ page, endpoint }) => {
     const bodyWaiting = createDeferred();
     const finalizing = createDeferred();
     const observerEntered = createDeferred();
@@ -523,10 +516,9 @@ for (const observerFails of [false, true]) {
   });
 }
 
-test("interruption during preparation does not start a late business callback", async ({
-  page,
-  endpoint,
-}) => {
+test("interruption during preparation does not start a late business callback", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, endpoint }) => {
   const preparing = createDeferred();
   const releasePreparation = createDeferred();
   const useError = new Error("Fixture use ended during preparation");
@@ -570,10 +562,9 @@ test("interruption during preparation does not start a late business callback", 
 });
 
 for (const interrupted of [false, true]) {
-  test(`pre-fetch PUT gate releases before drain after ${interrupted ? "fixture interruption" : "body failure"}`, async ({
-    page,
-    endpoint,
-  }) => {
+  test(`pre-fetch PUT gate releases before drain after ${interrupted ? "fixture interruption" : "body failure"}`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ page, endpoint }) => {
     const beforePut = createDeferred();
     const releasePut = createDeferred();
     const failBody = createDeferred();
@@ -676,10 +667,9 @@ for (const interrupted of [false, true]) {
   });
 }
 
-test("pre-fetch failure aborts the paused browser write without sending it", async ({
-  page,
-  endpoint,
-}) => {
+test("pre-fetch failure aborts the paused browser write without sending it", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, endpoint }) => {
   const hookError = new Error("Original pre-fetch failure");
   const failure = await withSettledPageWrites(
     page,

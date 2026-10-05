@@ -58,11 +58,13 @@ async function openAdminUserDialog(
   return dialog;
 }
 
-test("/admin/users 未登录重定向到登录页", async ({ page }) => {
+test("/admin/users 未登录重定向到登录页", { tag: "@Account/Web" }, async ({
+  page,
+}) => {
   await expectRequiresSignIn(page, "/admin/users");
 });
 
-test("/admin/users 普通用户访问返回 403", async ({
+test("/admin/users 普通用户访问返回 403", { tag: "@Account/Web" }, async ({
   pageRun,
   page,
   account: _account,
@@ -78,13 +80,9 @@ test("/admin/users 普通用户访问返回 403", async ({
   );
 });
 
-test("/admin/users 管理员可看到独立用户与管理员", async ({
-  adminFlow,
-  run,
-  page,
-  managedUser,
-  admin,
-}) => {
+test("/admin/users 管理员可看到独立用户与管理员", {
+  tag: "@Account/Web",
+}, async ({ adminFlow, run, page, managedUser, admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -101,12 +99,9 @@ test("/admin/users 管理员可看到独立用户与管理员", async ({
   );
 });
 
-test("/admin/users 桌面行操作可用键盘打开管理弹窗", async ({
-  adminFlow,
-  run,
-  page,
-  managedUser,
-}) => {
+test("/admin/users 桌面行操作可用键盘打开管理弹窗", {
+  tag: "@Account/Web",
+}, async ({ adminFlow, run, page, managedUser }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -120,13 +115,9 @@ test("/admin/users 桌面行操作可用键盘打开管理弹窗", async ({
   );
 });
 
-test("/admin/users 变更管理员权限需要二次确认", async ({
-  adminFlow,
-  run,
-  page,
-  managedUser,
-  isolatedWorker,
-}) => {
+test("/admin/users 变更管理员权限需要二次确认", {
+  tag: "@Account/Web",
+}, async ({ adminFlow, run, page, managedUser, isolatedWorker }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -163,7 +154,7 @@ test("/admin/users 变更管理员权限需要二次确认", async ({
   );
 });
 
-test("/admin/users 搜索表单可过滤用户", async ({
+test("/admin/users 搜索表单可过滤用户", { tag: "@Account/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -196,12 +187,9 @@ test("/admin/users 搜索表单可过滤用户", async ({
   );
 });
 
-test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
-  adminFlow,
-  run,
-  page,
-  managedUser,
-}) => {
+test("/admin/users 移动端工作区可搜索并管理首条记录", {
+  tag: "@Account/Web",
+}, async ({ adminFlow, run, page, managedUser }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -263,12 +251,9 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
   );
 });
 
-test("/admin/users 状态列对齐且平板使用可读列表", async ({
-  adminFlow,
-  run,
-  page,
-  managedUser,
-}) => {
+test("/admin/users 状态列对齐且平板使用可读列表", {
+  tag: "@Account/Web",
+}, async ({ adminFlow, run, page, managedUser }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -365,7 +350,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
   );
 });
 
-test("/admin/users 分页控件可进入下一页", async ({
+test("/admin/users 分页控件可进入下一页", { tag: "@Account/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -417,7 +402,7 @@ test("/admin/users 分页控件可进入下一页", async ({
   );
 });
 
-test("/admin/users 用户名非法保存返回 400", async ({
+test("/admin/users 用户名非法保存返回 400", { tag: "@Account/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -459,7 +444,7 @@ test("/admin/users 用户名非法保存返回 400", async ({
   );
 });
 
-test("/admin/users 可打开管理弹窗并保存姓名", async ({
+test("/admin/users 可打开管理弹窗并保存姓名", { tag: "@Account/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -519,13 +504,9 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({
   );
 });
 
-test("/admin/users 自定义封禁时长会展示到期时间输入框", async ({
-  adminFlow,
-  run,
-  page,
-  managedUser,
-  isolatedWorker,
-}) => {
+test("/admin/users 自定义封禁时长会展示到期时间输入框", {
+  tag: "@Account/Web",
+}, async ({ adminFlow, run, page, managedUser, isolatedWorker }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -572,7 +553,7 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
   );
 });
 
-test("/admin/users 可创建默认时长封禁", async ({
+test("/admin/users 可创建默认时长封禁", { tag: "@Account/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -677,7 +658,12 @@ test("/admin/users 可创建默认时长封禁", async ({
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, admin: _admin }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  adminFlow,
+  run,
+  page,
+  admin: _admin,
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {

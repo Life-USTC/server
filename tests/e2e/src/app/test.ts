@@ -4,7 +4,10 @@ import { test } from "../../utils/public-worker";
 import { test as shellTest } from "../../utils/shell-fixture";
 import { assertPageContract } from "./_shared/page-contract";
 
-test("anonymous landing and keyboard access", async ({ publicFlow, page }) => {
+test("anonymous landing and keyboard access", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  page,
+}) => {
   await publicFlow.run(async () => {
     await test.step("ui.navigation-landmarks-4", async () => {
       await gotoAndWaitForReady(page, "/");
@@ -70,6 +73,7 @@ test("anonymous landing and keyboard access", async ({ publicFlow, page }) => {
 
 shellTest(
   "/ 登录用户的旧 tab 永久重定向至语义 workspace 路径",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(async () => {
       await gotoAndWaitForReady(page, "/workspace");
@@ -87,7 +91,10 @@ shellTest(
   },
 );
 
-test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ publicFlow, page }) => {
+test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  page,
+}) => {
   await publicFlow.run(async () => {
     const browserIssues: string[] = [];
     page.on("console", (message) => {
@@ -157,7 +164,10 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ publicFlow, pa
   }, {});
 });
 
-test("ui.theme-system-response", async ({ publicFlow, page }) => {
+test("ui.theme-system-response", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  page,
+}) => {
   await publicFlow.run(async () => {
     await gotoAndWaitForReady(page, "/");
 
@@ -204,7 +214,10 @@ test("ui.theme-system-response", async ({ publicFlow, page }) => {
   }, {});
 });
 
-test("ui.shell-layout-9", async ({ publicFlow, baseURL }) => {
+test("ui.shell-layout-9", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  baseURL,
+}) => {
   await publicFlow.run(async () => {
     const context = await publicFlow.newContext({
       baseURL,
@@ -245,10 +258,9 @@ test("ui.shell-layout-9", async ({ publicFlow, baseURL }) => {
   }, {});
 });
 
-test("/ 浏览器存储不可用时仍完成 hydration 并允许切换主题", async ({
-  publicFlow,
-  baseURL,
-}) => {
+test("/ 浏览器存储不可用时仍完成 hydration 并允许切换主题", {
+  tag: "@Site/Web",
+}, async ({ publicFlow, baseURL }) => {
   await publicFlow.run(async () => {
     const context = await publicFlow.newContext({
       baseURL,
@@ -281,7 +293,10 @@ test("/ 浏览器存储不可用时仍完成 hydration 并允许切换主题", a
   }, {});
 });
 
-test("ui.theme-no-js", async ({ publicFlow, baseURL }) => {
+test("ui.theme-no-js", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  baseURL,
+}) => {
   await publicFlow.run(async () => {
     const context = await publicFlow.newContext({
       baseURL,
@@ -309,6 +324,7 @@ test("ui.theme-no-js", async ({ publicFlow, baseURL }) => {
 
 shellTest(
   "/ shell 只保留滚动区域的顺序焦点",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
@@ -342,6 +358,7 @@ shellTest(
 
 shellTest(
   "/ shell 菜单可一键切换",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 800 });
@@ -373,6 +390,7 @@ shellTest(
 
 shellTest(
   "ui.shell-layout-2",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(
       async () => {
@@ -423,6 +441,7 @@ shellTest(
 
 shellTest(
   "/ shell 中等视口只显示侧栏品牌并采用 stock 宽度",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(async () => {
       await page.setViewportSize({ width: 900, height: 800 });
@@ -522,6 +541,7 @@ shellTest(
 
 shellTest(
   "/ shell 当前分组在导航后保持展开",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(
       async () => {
@@ -568,6 +588,7 @@ shellTest(
 
 shellTest(
   "ui.shell-layout-8",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, administrator: _administrator }) => {
     await communityFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
@@ -661,6 +682,7 @@ shellTest(
 
 shellTest(
   "/ shell 390px 设置子路由保持唯一当前位置",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
@@ -702,6 +724,7 @@ shellTest(
 
 shellTest(
   "/ shell 菜单支持键盘菜单语义",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(async () => {
       await gotoAndWaitForReady(page, "/workspace/overview");
@@ -750,7 +773,10 @@ shellTest(
   },
 );
 
-test("/ shell 桌面导航后内容滚动回到顶部", async ({ publicFlow, page }) => {
+test("/ shell 桌面导航后内容滚动回到顶部", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  page,
+}) => {
   await publicFlow.run(async () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoAndWaitForReady(page, "/terms");
@@ -798,7 +824,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ publicFlow, pag
   }, {});
 });
 
-test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({
+test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/Web" }, async ({
   publicFlow,
   page,
 }) => {
@@ -855,6 +881,7 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({
 
 shellTest(
   "/ 登录用户在空状态总览页可看到班级发现入口",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, account, isolatedWorker }) => {
     await communityFlow.run(async () => {
       test.setTimeout(300_000);
@@ -882,6 +909,7 @@ shellTest(
 
 shellTest(
   "cases.semester.only-non-current-semester-subscriptions-3",
+  { tag: "@Site/Web" },
   async ({ communityFlow, page, historical }) => {
     await communityFlow.run(
       async () => {

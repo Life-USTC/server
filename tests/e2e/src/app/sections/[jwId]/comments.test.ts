@@ -197,13 +197,9 @@ async function expectKnownThread(
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("已登录用户可发布评论并立即看到自己的评论卡片", async ({
-    commentRun,
-    page,
-    account,
-    community,
-    isolatedWorker,
-  }) => {
+  test("已登录用户可发布评论并立即看到自己的评论卡片", {
+    tag: "@Comment/Web",
+  }, async ({ commentRun, page, account, community, isolatedWorker }) => {
     await commentRun(
       { writes: ["create"], auditActions: { comment_create: 1 } },
       async () => {
@@ -253,13 +249,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("可对他人评论点赞且不会获得其编辑删除入口", async ({
-    commentRun,
-    page,
-    account,
-    community,
-    isolatedWorker,
-  }) => {
+  test("可对他人评论点赞且不会获得其编辑删除入口", {
+    tag: "@Comment/Web",
+  }, async ({ commentRun, page, account, community, isolatedWorker }) => {
     await commentRun(
       { writes: ["reaction"], auditActions: { comment_react: 1 } },
       async () => {
@@ -313,13 +305,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("编辑评论会展示提交时的编辑时间并保留原发布时间", async ({
-    commentRun,
-    page,
-    account,
-    community,
-    isolatedWorker,
-  }) => {
+  test("编辑评论会展示提交时的编辑时间并保留原发布时间", {
+    tag: "@Comment/Web",
+  }, async ({ commentRun, page, account, community, isolatedWorker }) => {
     await commentRun(
       { writes: ["edit"], auditActions: { comment_edit: 1 } },
       async () => {
@@ -398,7 +386,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("可回复他人评论且回复归属于回复者", async ({
+  test("可回复他人评论且回复归属于回复者", { tag: "@Comment/Web" }, async ({
     commentRun,
     page,
     account,
@@ -456,7 +444,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("删除评论需二次确认，取消不产生任何影响", async ({
+  test("删除评论需二次确认，取消不产生任何影响", {
+    tag: "@Comment/Web",
+  }, async ({
     commentRun,
     commentFlow,
     page,
@@ -582,7 +572,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("已知评论线程对作者、他人与匿名读者的投影", async ({
+  test("已知评论线程对作者、他人与匿名读者的投影", {
+    tag: "@Comment/Web",
+  }, async ({
     commentRun,
     commentFlow,
     page,
@@ -662,7 +654,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("匿名评论复选框会隐藏评论者身份", async ({
+  test("匿名评论复选框会隐藏评论者身份", { tag: "@Comment/Web" }, async ({
     commentRun,
     page,
     account,
@@ -720,13 +712,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("已存匿名评论对退出登录的读者隐藏作者身份", async ({
-    commentRun,
-    page,
-    account,
-    community,
-    isolatedWorker,
-  }) => {
+  test("已存匿名评论对退出登录的读者隐藏作者身份", {
+    tag: "@Comment/Web",
+  }, async ({ commentRun, page, account, community, isolatedWorker }) => {
     await commentRun({ writes: [], auditActions: {} }, async () => {
       const { db, comment } = await seedSectionComments({
         account,
@@ -755,6 +743,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   uploadTest(
     "upload.three-step-upload",
+    { tag: "@Comment/Web" },
     async ({
       page,
       account,
@@ -997,7 +986,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     },
   );
 
-  test("删除带附件的评论保留已存储对象", async ({
+  test("删除带附件的评论保留已存储对象", { tag: "@Comment/Web" }, async ({
     commentRun,
     page,
     account,

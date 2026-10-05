@@ -87,13 +87,13 @@ function adminPrimaryNav(page: import("@playwright/test").Page) {
   });
 }
 
-test("/admin 未登录重定向到登录页", async ({ page }) => {
+test("/admin 未登录重定向到登录页", { tag: "@Admin/Web" }, async ({ page }) => {
   await expectRequiresSignIn(page, "/admin", {
     providers: ["ustc", "github", "google"],
   });
 });
 
-test("/admin 普通用户访问返回 403", async ({
+test("/admin 普通用户访问返回 403", { tag: "@Admin/Web" }, async ({
   pageRun,
   page,
   account: _account,
@@ -109,7 +109,7 @@ test("/admin 普通用户访问返回 403", async ({
   );
 });
 
-test("/admin 重定向到用户管理", async ({
+test("/admin 重定向到用户管理", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -128,12 +128,9 @@ test("/admin 重定向到用户管理", async ({
   );
 });
 
-test("已移除的可观测性页面返回 404 且不出现在管理导航", async ({
-  adminFlow,
-  run,
-  page,
-  admin: _admin,
-}) => {
+test("已移除的可观测性页面返回 404 且不出现在管理导航", {
+  tag: "@Admin/Web",
+}, async ({ adminFlow, run, page, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -157,7 +154,7 @@ test("已移除的可观测性页面返回 404 且不出现在管理导航", asy
   );
 });
 
-test("admin.primary-admin-navigation", async ({
+test("admin.primary-admin-navigation", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -209,7 +206,7 @@ test("admin.primary-admin-navigation", async ({
   );
 });
 
-test("/admin 主导航支持键盘切换", async ({
+test("/admin 主导航支持键盘切换", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -241,7 +238,7 @@ test("/admin 主导航支持键盘切换", async ({
   );
 });
 
-test("/admin 主导航可跳转到各管理工具", async ({
+test("/admin 主导航可跳转到各管理工具", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -284,12 +281,9 @@ test("/admin 主导航可跳转到各管理工具", async ({
   );
 });
 
-test("/admin 移动端导航覆盖全部管理工具且显示当前位置", async ({
-  adminFlow,
-  run,
-  page,
-  admin: _admin,
-}) => {
+test("/admin 移动端导航覆盖全部管理工具且显示当前位置", {
+  tag: "@Admin/Web",
+}, async ({ adminFlow, run, page, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -344,7 +338,12 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, admin: _admin }) => {
+test("页面契约", { tag: "@Admin/Web" }, async ({
+  adminFlow,
+  run,
+  page,
+  admin: _admin,
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -372,7 +371,7 @@ test("页面契约", async ({ adminFlow, run, page, admin: _admin }) => {
   );
 });
 
-test("admin.responsive-workspace", async ({
+test("admin.responsive-workspace", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,

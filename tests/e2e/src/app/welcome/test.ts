@@ -3,15 +3,15 @@ import { expectRequiresSignIn } from "../../../utils/auth";
 import { getUserProfileById, test } from "../../../utils/onboarding-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
-test("/account/welcome 未登录重定向到登录页", async ({ page }) => {
+test("/account/welcome 未登录重定向到登录页", { tag: "@Account/Web" }, async ({
+  page,
+}) => {
   await expectRequiresSignIn(page, "/account/welcome");
 });
 
-test("/account/welcome 资料步骤显示必填字段与进度", async ({
-  accountRun,
-  page,
-  incompleteProfile: _incompleteProfile,
-}) => {
+test("/account/welcome 资料步骤显示必填字段与进度", {
+  tag: "@Account/Web",
+}, async ({ accountRun, page, incompleteProfile: _incompleteProfile }) => {
   test.setTimeout(300_000);
   await accountRun({ writes: [], audits: [] }, async () => {
     await gotoAndWaitForReady(page, "/account/welcome");
@@ -48,12 +48,9 @@ test("/account/welcome 资料步骤显示必填字段与进度", async ({
   });
 });
 
-test("/account/welcome 本地图片处理不可用时保留表单并显示错误", async ({
-  accountRun,
-  page,
-  incompleteProfile,
-  isolatedWorker,
-}) => {
+test("/account/welcome 本地图片处理不可用时保留表单并显示错误", {
+  tag: "@Account/Web",
+}, async ({ accountRun, page, incompleteProfile, isolatedWorker }) => {
   test.setTimeout(300_000);
   await accountRun(
     { writes: [["/account/welcome", 200, "complete"]], audits: [] },
@@ -101,7 +98,7 @@ test("/account/welcome 本地图片处理不可用时保留表单并显示错误
   );
 });
 
-test("/account/welcome 完成后返回原回调页面", async ({
+test("/account/welcome 完成后返回原回调页面", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   incompleteProfile,
@@ -169,12 +166,9 @@ test("/account/welcome 完成后返回原回调页面", async ({
   );
 });
 
-test("/account/welcome 未完善资料的用户可完成资料并返回首页", async ({
-  accountRun,
-  page,
-  incompleteProfile,
-  isolatedWorker,
-}) => {
+test("/account/welcome 未完善资料的用户可完成资料并返回首页", {
+  tag: "@Account/Web",
+}, async ({ accountRun, page, incompleteProfile, isolatedWorker }) => {
   test.setTimeout(300_000);
   await accountRun(
     {
@@ -230,12 +224,9 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
   );
 });
 
-test("/account/welcome 可选择已上传头像并保存", async ({
-  accountRun,
-  page,
-  avatars,
-  isolatedWorker,
-}) => {
+test("/account/welcome 可选择已上传头像并保存", {
+  tag: "@Account/Web",
+}, async ({ accountRun, page, avatars, isolatedWorker }) => {
   test.setTimeout(300_000);
   await accountRun(
     {
@@ -302,7 +293,7 @@ test("/account/welcome 可选择已上传头像并保存", async ({
   );
 });
 
-test("user.welcome-subscription-guidance", async ({
+test("user.welcome-subscription-guidance", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   semester,
@@ -358,11 +349,9 @@ test("user.welcome-subscription-guidance", async ({
   });
 });
 
-test("/account/welcome 最后一步展示平台引导并可返回上一步", async ({
-  accountRun,
-  page,
-  account: _account,
-}) => {
+test("/account/welcome 最后一步展示平台引导并可返回上一步", {
+  tag: "@Account/Web",
+}, async ({ accountRun, page, account: _account }) => {
   test.setTimeout(300_000);
   await accountRun({ writes: [], audits: [] }, async () => {
     await gotoAndWaitForReady(

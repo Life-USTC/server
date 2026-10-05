@@ -10,13 +10,13 @@ import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/authorizations OAuth 授权", () => {
-  test("需要登录", async ({ accountRun, page }) => {
+  test("需要登录", { tag: "@Account/Web" }, async ({ accountRun, page }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
       await expectRequiresSignIn(page, "/account/settings/authorizations");
     });
   });
 
-  test("仅显示安全的客户端信息", async ({
+  test("仅显示安全的客户端信息", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     authorization,
@@ -51,7 +51,7 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
     });
   });
 
-  test("确认撤销后授权立即消失并持久保存", async ({
+  test("确认撤销后授权立即消失并持久保存", { tag: "@Account/Web" }, async ({
     accountRun,
     page,
     account,
@@ -141,7 +141,11 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
   });
 });
 
-test("页面契约", async ({ accountRun, page, account: _account }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  accountRun,
+  page,
+  account: _account,
+}) => {
   await accountRun({ writes: [], audits: [] }, async () => {
     await expectSettingsPage(page, "/account/settings/authorizations");
     await expect(

@@ -32,7 +32,7 @@ import { getDetailViewport, jumpToSection } from "./_helpers";
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -50,7 +50,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("无效参数返回 404", async ({ page, preferenceFlow }) => {
+  test("无效参数返回 404", { tag: "@Catalog/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/sections/999999999", {
         expectMainContent: false,
@@ -62,7 +65,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("显示课程名称为 h1 与班级代码", async ({
+  test("显示课程名称为 h1 与班级代码", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -102,7 +105,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("显示学期、校区与教师信息", async ({
+  test("显示学期、校区与教师信息", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -147,7 +150,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("显示学分、考试方式与备注", async ({
+  test("显示学分、考试方式与备注", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -192,7 +195,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("基本信息中显示授课语言与教室类型", async ({
+  test("基本信息中显示授课语言与教室类型", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -227,7 +230,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("显示行政班级（可折叠）", async ({
+  test("显示行政班级（可折叠）", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -257,7 +260,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("可见文本中不显示 jwId（仅 URL 规则）", async ({
+  test("可见文本中不显示 jwId（仅 URL 规则）", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -277,7 +280,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("详情流式布局包含主要锚点区块", async ({
+  test("详情流式布局包含主要锚点区块", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -313,6 +316,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   overlayTest(
     "移动端标题、流式区块与底部主操作保持可达",
+    { tag: "@Catalog/Web" },
     async ({ page, overlay }) => {
       await overlay.run({ loginRedirect: SECTION_URL }, async () => {
         const runtimeErrors: string[] = [];
@@ -427,6 +431,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   overlayTest(
     "移动端评论编辑器不会让详情内容列横向滚动",
+    { tag: "@Catalog/Web" },
     async ({ page, overlay }) => {
       await overlay.run({ loginRedirect: SECTION_URL }, async () => {
         await signInPrivateDebugUser(page, SECTION_URL);
@@ -467,12 +472,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     },
   );
 
-  test("桌面端保留页首主操作并隐藏移动端操作栏", async ({
-    page,
-    preferenceFlow,
-    detailCatalog,
-    isolatedWorker,
-  }) => {
+  test("桌面端保留页首主操作并隐藏移动端操作栏", {
+    tag: "@Catalog/Web",
+  }, async ({ page, preferenceFlow, detailCatalog, isolatedWorker }) => {
     await preferenceFlow.prepare(() =>
       isolatedWorker.database.owner.$transaction((db) =>
         arrangeSectionDetails(db, detailCatalog),
@@ -509,7 +511,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("详情锚点导航滚动到目标区块", async ({
+  test("详情锚点导航滚动到目标区块", { tag: "@Catalog/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -542,6 +544,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   communityTest(
     "已登录用户可编辑班级简介",
+    { tag: "@Description/Web" },
     async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(
         async () => {
@@ -635,7 +638,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   );
 });
 
-test("页面契约", async ({
+test("页面契约", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   detailCatalog,

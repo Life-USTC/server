@@ -5,7 +5,11 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("桌面端默认显示作业列表", async ({ page, homeworks, homeworkRun }) => {
+  test("桌面端默认显示作业列表", { tag: "@Homework/Web" }, async ({
+    page,
+    homeworks,
+    homeworkRun,
+  }) => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
@@ -34,7 +38,9 @@ test.describe("仪表盘作业", () => {
 
   for (const target of ["workspace-list", "workspace-card"] as const) {
     for (const overdue of [true, false]) {
-      test(`homework.completed-deadline-display (${target}, ${overdue ? "overdue" : "future"})`, async ({
+      test(`homework.completed-deadline-display (${target}, ${overdue ? "overdue" : "future"})`, {
+        tag: "@Homework/Web",
+      }, async ({
         page,
         account,
         academic,

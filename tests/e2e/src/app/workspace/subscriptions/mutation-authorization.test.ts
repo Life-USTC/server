@@ -14,12 +14,9 @@ const mutationFields = [
 const mutationQuery = (field: (typeof mutationFields)[number]) =>
   `mutation($jwId: Int!) { ${field}(jwId: $jwId${field === "subscriptionKindUpdate" ? ", kind: auditor" : ""}) { ${field === "subscriptionKindUpdate" ? "kind" : "subscribed"} } }`;
 
-test("invalid subscription kind preserves its independently seeded role", async ({
-  page,
-  calendarProtocolRun,
-  oauthOwner,
-  createCalendar,
-}) => {
+test("invalid subscription kind preserves its independently seeded role", {
+  tag: "@Subscription/REST",
+}, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
   await runSubscriptionScenario(
     { page, calendarProtocolRun, oauthOwner, createCalendar },
     { transport: "REST session", messages: 0 },
@@ -54,68 +51,75 @@ test("invalid subscription kind preserves its independently seeded role", async 
   );
 });
 
-test("Anonymous subscription writes are rejected without changing any memberships", async ({
-  page,
-  calendarProtocolRun,
-  oauthOwner,
-  createCalendar,
-}) => {
-  await runSubscriptionScenario(
-    { page, calendarProtocolRun, oauthOwner, createCalendar },
-    { messages: 0 },
-    async ({ request }, fixture) => {
-      for (const method of ["patch", "delete"] as const) {
-        const response = await request[method]("/api/workspace/subscriptions", {
-          data: { sectionIds: [fixture.own.section.id] },
-        });
-        await response.body();
-        expect(response.status()).toBe(401);
-        await expectSubscriptionRelations(fixture, fixture.initial);
-      }
-      const kind = await request.patch(
-        `/api/workspace/subscriptions/${fixture.own.section.jwId}`,
-        { data: { kind: "auditor" } },
-      );
-      await kind.body();
-      expect(kind.status()).toBe(401);
-      await expectSubscriptionRelations(fixture, fixture.initial);
-      for (const field of mutationFields) {
-        const { body } = await subscriptionGraphql(
-          request,
-          fixture.owner.worker.origin,
-          mutationQuery(field),
-          { jwId: fixture.own.section.jwId },
-        );
-        expect(body.errors).toHaveLength(1);
-        expect(body.errors[0].extensions.code).toBe("UNAUTHENTICATED");
-        expect(body.data).toBeNull();
-        await expectSubscriptionRelations(fixture, fixture.initial);
-      }
-      for (const action of ["add", "remove", "kind_update"]) {
-        const response = await request.post("/api/mcp", {
-          headers: { Accept: "application/json, text/event-stream" },
-          data: {
-            jsonrpc: "2.0",
-            id: 1,
-            method: "tools/call",
-            params: {
-              name: `workspace_subscription_${action}`,
-              arguments: {
-                jwId: fixture.own.section.jwId,
-                ...(action === "kind_update" ? { kind: "auditor" } : {}),
+for (const entry of ["REST", "GraphQL", "MCP"] as const) {
+  test(`Anonymous subscription writes are rejected without changing any memberships ${entry}`, {
+    tag: `@Subscription/${entry}`,
+  }, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
+    await runSubscriptionScenario(
+      { page, calendarProtocolRun, oauthOwner, createCalendar },
+      { messages: 0 },
+      async ({ request }, fixture) => {
+        if (entry === "REST") {
+          for (const method of ["patch", "delete"] as const) {
+            const response = await request[method](
+              "/api/workspace/subscriptions",
+              {
+                data: { sectionIds: [fixture.own.section.id] },
               },
-            },
-          },
-        });
-        await response.body();
-        expect(response.status()).toBe(401);
-        expect(response.headers()["www-authenticate"]).toContain("Bearer");
-        await expectSubscriptionRelations(fixture, fixture.initial);
-      }
-      return fixture.initial;
-    },
-  );
-});
+            );
+            await response.body();
+            expect(response.status()).toBe(401);
+            await expectSubscriptionRelations(fixture, fixture.initial);
+          }
+          const kind = await request.patch(
+            `/api/workspace/subscriptions/${fixture.own.section.jwId}`,
+            { data: { kind: "auditor" } },
+          );
+          await kind.body();
+          expect(kind.status()).toBe(401);
+          await expectSubscriptionRelations(fixture, fixture.initial);
+        }
+        if (entry === "GraphQL") {
+          for (const field of mutationFields) {
+            const { body } = await subscriptionGraphql(
+              request,
+              fixture.owner.worker.origin,
+              mutationQuery(field),
+              { jwId: fixture.own.section.jwId },
+            );
+            expect(body.errors).toHaveLength(1);
+            expect(body.errors[0].extensions.code).toBe("UNAUTHENTICATED");
+            expect(body.data).toBeNull();
+            await expectSubscriptionRelations(fixture, fixture.initial);
+          }
+        }
+        if (entry === "MCP")
+          for (const action of ["add", "remove", "kind_update"]) {
+            const response = await request.post("/api/mcp", {
+              headers: { Accept: "application/json, text/event-stream" },
+              data: {
+                jsonrpc: "2.0",
+                id: 1,
+                method: "tools/call",
+                params: {
+                  name: `workspace_subscription_${action}`,
+                  arguments: {
+                    jwId: fixture.own.section.jwId,
+                    ...(action === "kind_update" ? { kind: "auditor" } : {}),
+                  },
+                },
+              },
+            });
+            await response.body();
+            expect(response.status()).toBe(401);
+            expect(response.headers()["www-authenticate"]).toContain("Bearer");
+            await expectSubscriptionRelations(fixture, fixture.initial);
+          }
+        return fixture.initial;
+      },
+    );
+  });
+}
 
 for (const transport of [
   "REST session",
@@ -123,12 +127,9 @@ for (const transport of [
   "GraphQL session",
   "GraphQL bearer",
 ] as const) {
-  test(`${transport}: owner injection into kind mutation is rejected without side effects`, async ({
-    page,
-    calendarProtocolRun,
-    oauthOwner,
-    createCalendar,
-  }) => {
+  test(`${transport}: owner injection into kind mutation is rejected without side effects`, {
+    tag: `@Subscription/${transport.split(" ")[0]}`,
+  }, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
     test.setTimeout(90_000);
     await runSubscriptionScenario(
       { page, calendarProtocolRun, oauthOwner, createCalendar },
@@ -179,12 +180,9 @@ for (const transport of [
   "GraphQL bearer",
   "MCP bearer",
 ] as const) {
-  test(`${transport}: read-only authorization cannot add, remove, or change kind`, async ({
-    page,
-    calendarProtocolRun,
-    oauthOwner,
-    createCalendar,
-  }) => {
+  test(`${transport}: read-only authorization cannot add, remove, or change kind`, {
+    tag: `@Subscription/${transport.split(" ")[0]}`,
+  }, async ({ page, calendarProtocolRun, oauthOwner, createCalendar }) => {
     test.setTimeout(90_000);
     await runSubscriptionScenario(
       { page, calendarProtocolRun, oauthOwner, createCalendar },

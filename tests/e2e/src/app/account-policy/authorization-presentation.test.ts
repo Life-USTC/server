@@ -86,7 +86,7 @@ const test = workerTest.extend<{
   },
 });
 
-test("user.sign-in-identities-separate", async ({
+test("user.sign-in-identities-separate", { tag: "@Account/Web" }, async ({
   page,
   owned: f,
   authorizationRun,
@@ -148,7 +148,7 @@ test("user.sign-in-identities-separate", async ({
   });
 });
 
-test("user.oauth-authorization-management", async ({
+test("user.oauth-authorization-management", { tag: "@Account/Web" }, async ({
   page,
   owned: f,
   authorizationRun,

@@ -17,7 +17,10 @@ async function signIn(page: Page, fixture: CalendarFixture) {
 const overviewUrl = (time = "09:30") =>
   `/workspace/overview?snapshotAt=${encodeURIComponent(`2026-04-29T${time}:00+08:00`)}`;
 
-test("overview.decision-page", async ({ page, calendarRun }) => {
+test("overview.decision-page", { tag: "@Overview/Web" }, async ({
+  page,
+  calendarRun,
+}) => {
   await calendarRun(
     async () => {
       for (const width of [1280, 390]) {
@@ -51,7 +54,7 @@ test("overview.decision-page", async ({ page, calendarRun }) => {
   );
 });
 
-test("overview.workspace-card-priority", async ({
+test("overview.workspace-card-priority", { tag: "@Overview/Web" }, async ({
   page,
   calendar: fixture,
   calendarDb,
@@ -189,7 +192,7 @@ test("overview.workspace-card-priority", async ({
   );
 });
 
-test("overview.personal-next-action-page", async ({
+test("overview.personal-next-action-page", { tag: "@Overview/Web" }, async ({
   page,
   calendar: fixture,
   calendarRun,
@@ -231,12 +234,9 @@ test("overview.personal-next-action-page", async ({
   );
 });
 
-test("overview.workspace-card-disambiguation", async ({
-  page,
-  calendar: fixture,
-  calendarRun,
-  calendarDb,
-}) => {
+test("overview.workspace-card-disambiguation", {
+  tag: "@Overview/Web",
+}, async ({ page, calendar: fixture, calendarRun, calendarDb }) => {
   const extra = await calendarDb(async (db) => {
     const campuses = [];
     const rooms = [];

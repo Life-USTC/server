@@ -23,7 +23,10 @@ import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("校车线路图", () => {
-  test("SVG 中渲染校区节点与线路", async ({ page, preferenceFlow }) => {
+  test("SVG 中渲染校区节点与线路", { tag: "@Bus/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus/map");
 
@@ -52,7 +55,7 @@ test.describe("校车线路图", () => {
     });
   });
 
-  test("移动端地图按容器宽度缩放且不造成页面溢出", async ({
+  test("移动端地图按容器宽度缩放且不造成页面溢出", { tag: "@Bus/Web" }, async ({
     page,
     preferenceFlow,
   }) => {
@@ -149,7 +152,10 @@ test.describe("校车线路图", () => {
     });
   });
 
-  test("窄屏刷新按钮可触控", async ({ page, preferenceFlow }) => {
+  test("窄屏刷新按钮可触控", { tag: "@Bus/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 280, height: 900 });
       await gotoAndWaitForReady(page, "/catalog/bus/map");
@@ -163,7 +169,10 @@ test.describe("校车线路图", () => {
     });
   });
 
-  test("刷新按钮存在", async ({ page, preferenceFlow }) => {
+  test("刷新按钮存在", { tag: "@Bus/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus/map");
 
@@ -175,7 +184,7 @@ test.describe("校车线路图", () => {
   });
 });
 
-test("页面契约", async ({ page, preferenceFlow }) => {
+test("页面契约", { tag: "@Bus/Web" }, async ({ page, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, { routePath: "/catalog/bus/map" });
   });

@@ -4,7 +4,9 @@ import { expect, roles, browserTest as test } from "./_ownership";
 for (const role of roles)
   test.describe(`todo ownership OAuth MCP ${role}`, () => {
     test.use({ ownerRole: role });
-    test("consumer returns only owned rows", async ({ ownership: f }) => {
+    test("consumer returns only owned rows", { tag: "@Todo/MCP" }, async ({
+      ownership: f,
+    }) => {
       await f.run(
         async () => {
           const client = await f.mcp();
@@ -22,9 +24,9 @@ for (const role of roles)
         { calendarRebuilds: 0 },
       );
     });
-    test("foreign update and delete are rejected without effects", async ({
-      ownership: f,
-    }) => {
+    test("foreign update and delete are rejected without effects", {
+      tag: "@Todo/MCP",
+    }, async ({ ownership: f }) => {
       await f.run(
         async () => {
           const client = await f.mcp();
@@ -51,7 +53,9 @@ for (const role of roles)
         { calendarRebuilds: 0 },
       );
     });
-    test("owner create ignores forged ownership", async ({ ownership: f }) => {
+    test("owner create ignores forged ownership", { tag: "@Todo/MCP" }, async ({
+      ownership: f,
+    }) => {
       await f.run(
         async () => {
           const client = await f.mcp();
@@ -80,9 +84,9 @@ for (const role of roles)
         { calendarRebuilds: 1 },
       );
     });
-    test("owner update preserves authenticated ownership", async ({
-      ownership: f,
-    }) => {
+    test("owner update preserves authenticated ownership", {
+      tag: "@Todo/MCP",
+    }, async ({ ownership: f }) => {
       await f.run(
         async () => {
           const todo = await f.seedTodo({
@@ -118,9 +122,9 @@ for (const role of roles)
         { calendarRebuilds: 1 },
       );
     });
-    test("owner delete removes an independently prepared todo", async ({
-      ownership: f,
-    }) => {
+    test("owner delete removes an independently prepared todo", {
+      tag: "@Todo/MCP",
+    }, async ({ ownership: f }) => {
       await f.run(
         async () => {
           const todo = await f.seedTodo({

@@ -16,13 +16,16 @@ import { test } from "../../../utils/public-worker";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/privacy 隐私政策页", () => {
-  test("页面契约", async ({ publicFlow, page }) => {
+  test("页面契约", { tag: "@Site/Web" }, async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
       await assertPageContract(page, { routePath: "/privacy" });
     });
   });
 
-  test("渲染带章节的隐私政策", async ({ publicFlow, page }) => {
+  test("渲染带章节的隐私政策", { tag: "@Site/Web" }, async ({
+    publicFlow,
+    page,
+  }) => {
     await publicFlow.run(async () => {
       await gotoAndWaitForReady(page, "/privacy");
       await waitForUiSettled(page);
@@ -39,7 +42,10 @@ test.describe("/privacy 隐私政策页", () => {
     });
   });
 
-  test("320px 列表内容完整换行", async ({ publicFlow, page }) => {
+  test("320px 列表内容完整换行", { tag: "@Site/Web" }, async ({
+    publicFlow,
+    page,
+  }) => {
     await publicFlow.run(async () => {
       await page.setViewportSize({ width: 320, height: 800 });
       await gotoAndWaitForReady(page, "/privacy");
@@ -71,6 +77,7 @@ test.describe("/privacy 隐私政策页", () => {
 
   privateTest(
     "登录用户共享匿名 SSR 并通过私有请求恢复身份",
+    { tag: "@Site/Web" },
     async ({ run, accountRun, page, isolatedWorker }) => {
       const actor = await run(async () => {
         const actor = await isolatedWorker.createActor();
@@ -116,17 +123,21 @@ test.describe("/privacy 隐私政策页", () => {
 test.describe("/privacy 无 JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  noScriptTest("SSR 保留完整政策正文", async ({ preferenceFlow }) => {
-    await preferenceFlow.run(async () => {
-      const context = await preferenceFlow.newContext({
-        javaScriptEnabled: false,
-      });
-      const page = await preferenceFlow.newPage(context);
-      await page.goto("/privacy");
+  noScriptTest(
+    "SSR 保留完整政策正文",
+    { tag: "@Site/Web" },
+    async ({ preferenceFlow }) => {
+      await preferenceFlow.run(async () => {
+        const context = await preferenceFlow.newContext({
+          javaScriptEnabled: false,
+        });
+        const page = await preferenceFlow.newPage(context);
+        await page.goto("/privacy");
 
-      await expect(page.locator("h1")).toBeVisible();
-      await expect(page.locator("h2").first()).toBeVisible();
-      await expect(page.locator("li").first()).toBeVisible();
-    });
-  });
+        await expect(page.locator("h1")).toBeVisible();
+        await expect(page.locator("h2").first()).toBeVisible();
+        await expect(page.locator("li").first()).toBeVisible();
+      });
+    },
+  );
 });

@@ -177,12 +177,9 @@ async function seedPins(
 }
 
 for (const scenario of pinCases) {
-  test(`catalog-link.pin-limit ${scenario.name}`, async ({
-    preferenceFlow,
-    linkState,
-    isolatedWorker,
-    page,
-  }) => {
+  test(`catalog-link.pin-limit ${scenario.name}`, {
+    tag: "@CatalogLink/REST",
+  }, async ({ preferenceFlow, linkState, isolatedWorker, page }) => {
     await preferenceFlow.run(async () => {
       const { users, state } = linkState;
       await seedPins(isolatedWorker, users[0], scenario.initial);
@@ -231,7 +228,7 @@ for (const scenario of pinCases) {
   });
 }
 
-test("catalog-link.seeded-pin-controls", async ({
+test("catalog-link.seeded-pin-controls", { tag: "@CatalogLink/Web" }, async ({
   preferenceFlow,
   linkState,
   isolatedWorker,
@@ -258,13 +255,9 @@ test("catalog-link.seeded-pin-controls", async ({
   }, "pins");
 });
 
-test("catalog-link.public-web-personal-overlay", async ({
-  preferenceFlow,
-  linkState,
-  isolatedWorker,
-  page,
-  request,
-}) => {
+test("catalog-link.public-web-personal-overlay", {
+  tag: "@CatalogLink/Web",
+}, async ({ preferenceFlow, linkState, isolatedWorker, page, request }) => {
   await preferenceFlow.run(async () => {
     const { users } = linkState;
     for (const [index, userId] of users.entries()) {
@@ -336,7 +329,7 @@ test("catalog-link.public-web-personal-overlay", async ({
   }, "consume");
 });
 
-test("catalog-link.pin-write-gate", async ({
+test("catalog-link.pin-write-gate", { tag: "@CatalogLink/Web" }, async ({
   preferenceFlow,
   linkState,
   page,
@@ -421,7 +414,7 @@ test("catalog-link.pin-write-gate", async ({
   }, "pins");
 });
 
-test("catalog-link.pin-error-clear", async ({
+test("catalog-link.pin-error-clear", { tag: "@CatalogLink/Web" }, async ({
   preferenceFlow,
   linkState,
   isolatedWorker,
@@ -535,7 +528,7 @@ test("catalog-link.pin-error-clear", async ({
   }, "pins");
 });
 
-test("catalog-link.visit-tracking-link", async ({
+test("catalog-link.visit-tracking-link", { tag: "@CatalogLink/Web" }, async ({
   preferenceFlow,
   linkState,
   isolatedWorker,
@@ -621,7 +614,7 @@ test("catalog-link.visit-tracking-link", async ({
   }, "visits");
 });
 
-test("catalog-link.visit-owner-count", async ({
+test("catalog-link.visit-owner-count", { tag: "@CatalogLink/REST" }, async ({
   preferenceFlow,
   linkState,
   isolatedWorker,

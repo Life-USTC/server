@@ -31,7 +31,7 @@ const end = (page: Page, name: string) =>
     .getByTestId("bus-end-stop-group")
     .getByRole("radio", { name, exact: true });
 
-test("bus.preference-hydration-write-gate", async ({
+test("bus.preference-hydration-write-gate", { tag: "@Bus/Web" }, async ({
   page,
   isolatedWorker,
   preferenceFlow,
@@ -221,7 +221,7 @@ test("bus.preference-hydration-write-gate", async ({
   });
 });
 
-test("bus.recent-route-precedence", async ({
+test("bus.recent-route-precedence", { tag: "@Bus/Web" }, async ({
   page,
   isolatedWorker,
   preferenceFlow,

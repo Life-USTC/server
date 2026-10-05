@@ -163,10 +163,9 @@ async function readRawStructuredData(page: Page, path: string) {
   }, html);
 }
 
-test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", async ({
-  page,
-  preferenceFlow,
-}) => {
+test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", {
+  tag: "@Catalog/Web",
+}, async ({ page, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
     const cases = [
       {
@@ -197,11 +196,9 @@ test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", asyn
   });
 });
 
-test("interface-hierarchy.locale-caching-and-seo-3", async ({
-  page,
-  context,
-  preferenceFlow,
-}) => {
+test("interface-hierarchy.locale-caching-and-seo-3", {
+  tag: "@Catalog/Web",
+}, async ({ page, context, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
     await context.clearCookies();
     await context.setExtraHTTPHeaders({
@@ -295,6 +292,7 @@ test("interface-hierarchy.locale-caching-and-seo-3", async ({
 
 privateTest(
   "ui.social-sharing-metadata-3",
+  { tag: "@Catalog/Web" },
   async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
@@ -415,11 +413,9 @@ privateTest(
   },
 );
 
-test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", async ({
-  page,
-  preferenceFlow,
-  detailCatalog: _detailCatalog,
-}) => {
+test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", {
+  tag: "@Catalog/Web",
+}, async ({ page, preferenceFlow, detailCatalog: _detailCatalog }) => {
   await preferenceFlow.run(async () => {
     await setLocale(page, preferenceFlow, "zh-cn");
     const courseResult = await readRawStructuredData(
@@ -495,44 +491,48 @@ test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字�
   });
 });
 
-assetTest("ui.social-sharing-metadata-6", async ({ request, run }) => {
-  await run(async () => {
-    const response = await request.get("/open-graph.png");
-    expect(response.status()).toBe(200);
-    expect(response.headers()["content-type"]).toContain("image/png");
+assetTest(
+  "ui.social-sharing-metadata-6",
+  { tag: "@Catalog/Web" },
+  async ({ request, run }) => {
+    await run(async () => {
+      const response = await request.get("/open-graph.png");
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toContain("image/png");
 
-    const image = await response.body();
-    expect(image).toEqual(
-      await readFile(
-        new URL("../../../../../public/open-graph.png", import.meta.url),
-      ),
-    );
-    expect(image.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-    expect(image.readUInt32BE(16)).toBe(1200);
-    expect(image.readUInt32BE(20)).toBe(630);
-    expect(image[24]).toBe(8);
-    expect([2, 6]).toContain(image[25]);
-    expect(image.byteLength).toBeGreaterThan(10_000);
-    expect(image.byteLength).toBeLessThan(500_000);
-    expect(response.headers()["x-request-id"]).toBeUndefined();
-    expect(response.headers()["cache-control"]).toBe("public, max-age=86400");
-    const withQuery = await request.get(
-      "/open-graph.png?title=Another+page&variant=profile&avatar=https://example.com/avatar.png",
-    );
-    expect(withQuery.status()).toBe(200);
-    expect(await withQuery.body()).toEqual(image);
-    expect(withQuery.headers()["x-request-id"]).toBeUndefined();
-    const head = await request.head("/open-graph.png");
-    expect(head.status()).toBe(200);
-    expect(await head.body()).toHaveLength(0);
-    const conditional = await request.get("/open-graph.png", {
-      headers: { "If-None-Match": response.headers().etag },
+      const image = await response.body();
+      expect(image).toEqual(
+        await readFile(
+          new URL("../../../../../public/open-graph.png", import.meta.url),
+        ),
+      );
+      expect(image.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+      expect(image.readUInt32BE(16)).toBe(1200);
+      expect(image.readUInt32BE(20)).toBe(630);
+      expect(image[24]).toBe(8);
+      expect([2, 6]).toContain(image[25]);
+      expect(image.byteLength).toBeGreaterThan(10_000);
+      expect(image.byteLength).toBeLessThan(500_000);
+      expect(response.headers()["x-request-id"]).toBeUndefined();
+      expect(response.headers()["cache-control"]).toBe("public, max-age=86400");
+      const withQuery = await request.get(
+        "/open-graph.png?title=Another+page&variant=profile&avatar=https://example.com/avatar.png",
+      );
+      expect(withQuery.status()).toBe(200);
+      expect(await withQuery.body()).toEqual(image);
+      expect(withQuery.headers()["x-request-id"]).toBeUndefined();
+      const head = await request.head("/open-graph.png");
+      expect(head.status()).toBe(200);
+      expect(await head.body()).toHaveLength(0);
+      const conditional = await request.get("/open-graph.png", {
+        headers: { "If-None-Match": response.headers().etag },
+      });
+      expect(conditional.status()).toBe(304);
     });
-    expect(conditional.status()).toBe(304);
-  });
-});
+  },
+);
 
-test("分享元数据不改变首页与课程详情可见布局", async ({
+test("分享元数据不改变首页与课程详情可见布局", { tag: "@Catalog/Web" }, async ({
   page,
   preferenceFlow,
   detailCatalog: _detailCatalog,

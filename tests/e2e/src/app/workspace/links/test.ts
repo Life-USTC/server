@@ -78,10 +78,9 @@ async function clickJwPin(
 }
 
 test.describe("仪表盘网站链接", () => {
-  test("公共 /links 显示搜索和链接，无置顶控件", async ({
-    preferenceFlow,
-    page,
-  }) => {
+  test("公共 /links 显示搜索和链接，无置顶控件", {
+    tag: "@CatalogLink/Web",
+  }, async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
       await setLocale(page, "zh-cn", preferenceFlow);
       const response = await gotoAndWaitForReady(page, "/catalog/links");
@@ -109,10 +108,9 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("旧版 links 查询标签永久重定向到语义路径", async ({
-    preferenceFlow,
-    page,
-  }) => {
+  test("旧版 links 查询标签永久重定向到语义路径", {
+    tag: "@CatalogLink/Web",
+  }, async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
       const response = await preferenceFlow.http(() =>
         page.request.get("/?tab=links&linkView=list&utm_source=bookmark", {
@@ -128,10 +126,9 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("公共英文链接页面在搜索中使用本地化标题", async ({
-    preferenceFlow,
-    page,
-  }) => {
+  test("公共英文链接页面在搜索中使用本地化标题", {
+    tag: "@CatalogLink/Web",
+  }, async ({ preferenceFlow, page }) => {
     await preferenceFlow.run(async () => {
       await setLocale(page, "en-us", preferenceFlow);
 
@@ -162,7 +159,7 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("登录后可以导航到链接标签", async ({
+  test("登录后可以导航到链接标签", { tag: "@CatalogLink/Web" }, async ({
     preferenceFlow,
     page,
     pinnedAccount: _account,
@@ -190,7 +187,7 @@ test.describe("仪表盘网站链接", () => {
     }, "consume");
   });
 
-  test("搜索可筛选链接", async ({
+  test("搜索可筛选链接", { tag: "@CatalogLink/Web" }, async ({
     preferenceFlow,
     page,
     account: _account,
@@ -242,7 +239,12 @@ test.describe("仪表盘网站链接", () => {
     const name = initiallyPinned
       ? "可以取消已准备链接的置顶并在刷新后保持状态"
       : "可以置顶链接并在刷新后保持状态";
-    test(name, async ({ preferenceFlow, page, account, isolatedWorker }) => {
+    test(name, { tag: "@CatalogLink/Web" }, async ({
+      preferenceFlow,
+      page,
+      account,
+      isolatedWorker,
+    }) => {
       const db = isolatedWorker.database.owner;
       if (initiallyPinned)
         await preferenceFlow.prepare(() =>
@@ -285,7 +287,12 @@ test.describe("仪表盘网站链接", () => {
     const name = pinned
       ? "搜索重新计算链接时保持置顶状态"
       : "搜索重新计算链接时保持未置顶状态";
-    test(name, async ({ preferenceFlow, page, account, isolatedWorker }) => {
+    test(name, { tag: "@CatalogLink/Web" }, async ({
+      preferenceFlow,
+      page,
+      account,
+      isolatedWorker,
+    }) => {
       const db = isolatedWorker.database.owner;
       if (pinned)
         await preferenceFlow.prepare(() =>
@@ -319,7 +326,10 @@ test.describe("仪表盘网站链接", () => {
   }
 });
 
-test("页面契约", async ({ preferenceFlow, page }) => {
+test("页面契约", { tag: "@CatalogLink/Web" }, async ({
+  preferenceFlow,
+  page,
+}) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, { routePath: "/catalog/links" });
   }, "consume");

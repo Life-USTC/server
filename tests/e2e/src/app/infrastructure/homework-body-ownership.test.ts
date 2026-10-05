@@ -35,12 +35,9 @@ function errorsIn(error: unknown): unknown[] {
 }
 
 for (const observeReads of [false, true]) {
-  test(`homework final effects join the interrupted callback (observeReads=${observeReads})`, async ({
-    bodyOwnershipRun,
-    calendar,
-    isolatedWorker,
-    page,
-  }) => {
+  test(`homework final effects join the interrupted callback (observeReads=${observeReads})`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ bodyOwnershipRun, calendar, isolatedWorker, page }) => {
     await bodyOwnershipRun(async () => {
       const cookie = await calendar.createSignedSessionCookie(
         calendar.users[0].id,
@@ -203,12 +200,9 @@ for (const outcome of [
   "failed-unplanned",
   "successful-unplanned",
 ] as const) {
-  test(`homework calendar finalization: ${outcome}`, async ({
-    bodyOwnershipRun,
-    calendar,
-    isolatedWorker,
-    page,
-  }) => {
+  test(`homework calendar finalization: ${outcome}`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ bodyOwnershipRun, calendar, isolatedWorker, page }) => {
     await bodyOwnershipRun(async () => {
       const account = calendar.users[0];
       const message = { type: "user" as const, userId: account.id };

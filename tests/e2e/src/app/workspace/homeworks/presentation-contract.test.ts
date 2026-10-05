@@ -26,7 +26,7 @@ async function open(page: Page, width: number, title: string) {
   return dialog;
 }
 
-test("homework.responsive-workspace-view", async ({
+test("homework.responsive-workspace-view", { tag: "@Homework/Web" }, async ({
   page,
   homeworks: _homeworks,
   homeworkRun,
@@ -65,7 +65,7 @@ test("homework.responsive-workspace-view", async ({
   );
 });
 
-test("homework.compact-card-list-surface", async ({
+test("homework.compact-card-list-surface", { tag: "@Homework/Web" }, async ({
   page,
   homeworks,
   academic,
@@ -111,7 +111,7 @@ test("homework.compact-card-list-surface", async ({
   );
 });
 
-test("homework.detail-secondary-content", async ({
+test("homework.detail-secondary-content", { tag: "@Homework/Web" }, async ({
   page,
   homeworks,
   academic,
@@ -155,7 +155,7 @@ test("homework.detail-secondary-content", async ({
   );
 });
 
-test("homework.detail-dialog-dismissal", async ({
+test("homework.detail-dialog-dismissal", { tag: "@Homework/Web" }, async ({
   page,
   homeworks,
   homeworkRun,

@@ -8,7 +8,7 @@ import { expectOAuthUsage } from "../../../utils/oauth-usage";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../api/mcp/_fixture";
 
-test("user.account-security-activity", async ({
+test("user.account-security-activity", { tag: "@Account/Web" }, async ({
   page,
   isolatedWorker,
   calendarProtocolRun,

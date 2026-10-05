@@ -48,7 +48,10 @@ async function rejectAudit(f: HomeworkAudit) {
     );
 }
 
-test("audit.action-homework-create", async ({ page, homeworkRun }) => {
+test("audit.action-homework-create", { tag: "@Homework/REST" }, async ({
+  page,
+  homeworkRun,
+}) => {
   await homeworkRun("create", async (f) => {
     const restore = await rejectAudit(f);
     expect(
@@ -97,7 +100,10 @@ test("audit.action-homework-create", async ({ page, homeworkRun }) => {
   });
 });
 
-test("audit.action-homework-update", async ({ page, homeworkRun }) => {
+test("audit.action-homework-update", { tag: "@Homework/REST" }, async ({
+  page,
+  homeworkRun,
+}) => {
   await homeworkRun("update", async (f) => {
     const creator = await f.db.user.create({
       data: {
@@ -155,7 +161,10 @@ test("audit.action-homework-update", async ({ page, homeworkRun }) => {
   });
 });
 
-test("audit.action-homework-delete", async ({ page, homeworkRun }) => {
+test("audit.action-homework-delete", { tag: "@Homework/REST" }, async ({
+  page,
+  homeworkRun,
+}) => {
   await homeworkRun("delete", async (f) => {
     const homework = await f.db.homework.create({
       data: {

@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { parseTextContent } from "../api/mcp/helpers";
 import { test } from "./upload-audit-fixture";
 
-test("audit.action-upload-delete", async ({
+test("audit.action-upload-delete", { tag: "@Upload/MCP" }, async ({
   page,
   uploadAuditRun,
   run,

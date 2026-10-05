@@ -108,29 +108,31 @@ test.describe("视觉回归基线矩阵", () => {
         await expect(page).toHaveScreenshot(`${screen.id}-${locale}.png`);
       };
       if (screen.id === "workspace-overview") {
-        test(`${screen.id} / ${locale}`, async ({
-          baseURL,
-          page,
-          workspace: _workspace,
-          pageRun,
-        }) =>
-          pageRun(
-            () => verify(page, baseURL),
-            async (_response, request) => {
-              throw new Error(
-                `Read-only workspace screenshot submitted ${request.method()} ${new URL(request.url()).pathname}`,
-              );
-            },
-          ));
+        test(
+          `${screen.id} / ${locale}`,
+          { tag: "@Overview/Web" },
+          async ({ baseURL, page, workspace: _workspace, pageRun }) =>
+            pageRun(
+              () => verify(page, baseURL),
+              async (_response, request) => {
+                throw new Error(
+                  `Read-only workspace screenshot submitted ${request.method()} ${new URL(request.url()).pathname}`,
+                );
+              },
+            ),
+        );
       } else if (screen.id === "catalog-courses") {
-        test(`${screen.id} / ${locale}`, async ({
-          baseURL,
-          page,
-          catalog: _catalog,
-        }) => verify(page, baseURL));
+        test(
+          `${screen.id} / ${locale}`,
+          { tag: "@Catalog/Web" },
+          async ({ baseURL, page, catalog: _catalog }) => verify(page, baseURL),
+        );
       } else {
-        test(`${screen.id} / ${locale}`, async ({ baseURL, page }) =>
-          verify(page, baseURL));
+        test(
+          `${screen.id} / ${locale}`,
+          { tag: "@Site/Web" },
+          async ({ baseURL, page }) => verify(page, baseURL),
+        );
       }
     }
   }

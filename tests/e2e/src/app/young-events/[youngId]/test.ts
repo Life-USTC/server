@@ -30,7 +30,7 @@ import { assertPageContract } from "../../_shared/page-contract";
 const DETAIL_PATH = `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`;
 
 test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => {
-  test("页面契约", async ({
+  test("页面契约", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
@@ -42,7 +42,7 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     });
   });
 
-  test("young-event.public-no-signin", async ({
+  test("young-event.public-no-signin", { tag: "@Young/Web" }, async ({
     page,
     preferenceFlow,
     youngPublicState: _youngPublicState,
@@ -101,7 +101,10 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     });
   });
 
-  test("未知 youngId 显示 404", async ({ page, preferenceFlow }) => {
+  test("未知 youngId 显示 404", { tag: "@Young/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
     await preferenceFlow.run(async () => {
       const response = await page.goto(
         "/catalog/young-events/e2e-unknown-young-id",
@@ -114,6 +117,7 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
 for (const width of [1280, 390]) {
   privateTest(
     `参与信息保留未知值且在 ${width}px 可阅读`,
+    { tag: "@Young/Web" },
     async ({ page, isolatedWorker, preferenceFlow, run }) => {
       await run(async () => {
         const db = isolatedWorker.database.owner;
@@ -229,6 +233,7 @@ for (const width of [1280, 390]) {
 for (const status of [200, 401]) {
   privateTest(
     `subscription resolves independently of unavailable shell navigation (${status})`,
+    { tag: "@Young/Web" },
     async ({ page, isolatedWorker, preferenceFlow, run }) => {
       await run(async () => {
         const viewer = await preferenceFlow.prepare(() =>
@@ -304,11 +309,9 @@ for (const status of [200, 401]) {
   );
 }
 
-test("未登录时标题右侧显示订阅活动，且不请求私人订阅数据", async ({
-  page,
-  preferenceFlow,
-  youngPublicState: _youngPublicState,
-}) => {
+test("未登录时标题右侧显示订阅活动，且不请求私人订阅数据", {
+  tag: "@Young/Web",
+}, async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
   await preferenceFlow.run(async () => {
     let privateRequests = 0;
     page.on("request", (request) => {

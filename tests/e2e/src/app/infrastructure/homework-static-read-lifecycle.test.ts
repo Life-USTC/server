@@ -3,11 +3,9 @@ import { createDeferred } from "../../../../shared/deferred";
 import { withHomeworkEffects } from "../../../utils/homework-effects";
 import { test } from "../../../utils/owned-worker";
 
-test("homework finalization closes retired static reads before checking their terminal", async ({
-  page,
-  isolatedWorker,
-  run,
-}) => {
+test("homework finalization closes retired static reads before checking their terminal", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, isolatedWorker, run }) => {
   await run(async () => {
     const account = await isolatedWorker.createActor();
     const arrived = createDeferred();

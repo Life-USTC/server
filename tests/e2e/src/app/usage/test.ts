@@ -9,14 +9,17 @@ for (const routePath of [
   "/usage/mcp",
   "/usage/cli",
 ]) {
-  test(`${routePath} page contract`, async ({ page, publicFlow }) => {
+  test(`${routePath} page contract`, { tag: "@Site/Web" }, async ({
+    page,
+    publicFlow,
+  }) => {
     await publicFlow.run(async () => {
       await assertPageContract(page, { routePath });
     });
   });
 }
 
-test("usage pages expose their primary handoff", async ({
+test("usage pages expose their primary handoff", { tag: "@Site/Web" }, async ({
   page,
   publicFlow,
 }) => {

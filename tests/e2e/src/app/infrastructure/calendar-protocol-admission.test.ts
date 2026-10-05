@@ -5,13 +5,9 @@ import { test } from "../../../utils/private-calendar-fixture";
 
 const calendarPath = "/api/workspace/calendar/events";
 
-test("calendar closure excludes new browser reads while draining their real Worker effects", async ({
-  calendar,
-  calendarProtocolRun,
-  isolatedWorker,
-  page,
-  request,
-}) => {
+test("calendar closure excludes new browser reads while draining their real Worker effects", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ calendar, calendarProtocolRun, isolatedWorker, page, request }) => {
   const barrier = await calendarLifecycleBarrier(isolatedWorker.database);
   const originalClose = page.close;
   const originalGet = request.get;

@@ -8,12 +8,9 @@ import { test } from "../api/mcp/_fixture";
 import { createNewsCountFixture, setCountPublications } from "./count-fixture";
 
 for (const count of [0, 1, 2]) {
-  test(`news.localized-count-copy count=${count}`, async ({
-    page,
-    request,
-    isolatedWorker,
-    calendarProtocolRun,
-  }) => {
+  test(`news.localized-count-copy count=${count}`, {
+    tag: "@Publication/Web",
+  }, async ({ page, request, isolatedWorker, calendarProtocolRun }) => {
     test.setTimeout(300_000);
     const baseURL = isolatedWorker.origin;
     const db = isolatedWorker.database.owner;

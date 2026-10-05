@@ -118,11 +118,13 @@ async function readClientSecret(
   return expectSecret ? value : undefined;
 }
 
-test("/admin/oauth 未登录重定向到登录页", async ({ page }) => {
+test("/admin/oauth 未登录重定向到登录页", { tag: "@OAuth/Web" }, async ({
+  page,
+}) => {
   await expectRequiresSignIn(page, "/admin/oauth");
 });
 
-test("/admin/oauth 普通用户访问返回 403", async ({
+test("/admin/oauth 普通用户访问返回 403", { tag: "@OAuth/Web" }, async ({
   pageRun,
   page,
   account: _account,
@@ -139,7 +141,7 @@ test("/admin/oauth 普通用户访问返回 403", async ({
   );
 });
 
-test("oauth.client-authentication-inventory", async ({
+test("oauth.client-authentication-inventory", { tag: "@OAuth/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -279,13 +281,9 @@ test("oauth.client-authentication-inventory", async ({
   );
 });
 
-test("/admin/oauth 显示 disabled 客户端并确认删除", async ({
-  adminFlow,
-  run,
-  page,
-  isolatedWorker,
-  admin: _admin,
-}) => {
+test("/admin/oauth 显示 disabled 客户端并确认删除", {
+  tag: "@OAuth/Web",
+}, async ({ adminFlow, run, page, isolatedWorker, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -339,13 +337,9 @@ test("/admin/oauth 显示 disabled 客户端并确认删除", async ({
   );
 });
 
-test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完整提示", async ({
-  adminFlow,
-  run,
-  page,
-  isolatedWorker,
-  admin: _admin,
-}) => {
+test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完整提示", {
+  tag: "@OAuth/Web",
+}, async ({ adminFlow, run, page, isolatedWorker, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -428,13 +422,9 @@ test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完�
   );
 });
 
-test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async ({
-  adminFlow,
-  run,
-  page,
-  isolatedWorker,
-  admin: _admin,
-}) => {
+test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", {
+  tag: "@OAuth/Web",
+}, async ({ adminFlow, run, page, isolatedWorker, admin: _admin }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -471,7 +461,12 @@ test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async (
   );
 });
 
-test("页面契约", async ({ adminFlow, run, page, admin: _admin }) => {
+test("页面契约", { tag: "@OAuth/Web" }, async ({
+  adminFlow,
+  run,
+  page,
+  admin: _admin,
+}) => {
   await run(() =>
     adminFlow.run(
       async () => {

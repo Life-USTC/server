@@ -52,10 +52,9 @@ const DCR_CLIENT_SCOPE = [
 
 test.describe("OAuth 提供者", () => {
   test.describe.configure({ mode: "parallel" });
-  test("标准 issuer/resource 发现地址可读且额外别名不存在", async ({
-    run,
-    request,
-  }) => {
+  test("标准 issuer/resource 发现地址可读且额外别名不存在", {
+    tag: "@OAuth/OAuth",
+  }, async ({ run, request }) => {
     await run(async () => {
       for (const path of [
         "/.well-known/oauth-authorization-server/api/auth",
@@ -91,6 +90,7 @@ test.describe("OAuth 提供者", () => {
 
   isolatedTest(
     "动态注册 + 授权同意 + 授权码交换 + userinfo",
+    { tag: "@OAuth/OAuth" },
     async ({ isolatedWorker, page, calendarProtocolRun }) => {
       await calendarProtocolRun(async ({ request }) => {
         const REDIRECT_URI = `${isolatedWorker.origin}/e2e/oauth/callback`;
@@ -268,6 +268,7 @@ test.describe("OAuth 提供者", () => {
 
   isolatedTest(
     "动态注册接受无 redirect URI 的纯 device 客户端",
+    { tag: "@OAuth/OAuth" },
     async ({ isolatedWorker, calendarProtocolRun }) => {
       await calendarProtocolRun(async ({ request }) => {
         const registrationResponse = await request.post(
@@ -347,6 +348,7 @@ test.describe("OAuth 提供者", () => {
 
   isolatedTest(
     "Bearer-only 资源服务器拒绝强制 DPoP 的动态注册",
+    { tag: "@OAuth/OAuth" },
     async ({ isolatedWorker, calendarProtocolRun }) => {
       await calendarProtocolRun(async ({ request }) => {
         const REDIRECT_URI = `${isolatedWorker.origin}/e2e/oauth/callback`;
@@ -397,6 +399,7 @@ test.describe("OAuth 提供者", () => {
 
   isolatedTest(
     "loopback 授权拒绝替换已注册的 127.0.0.1 主机",
+    { tag: "@OAuth/OAuth" },
     async ({ isolatedWorker, page, calendarProtocolRun }) => {
       await calendarProtocolRun(async ({ request }) => {
         const registrationResponse = await request.post(

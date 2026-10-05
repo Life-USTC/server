@@ -42,7 +42,7 @@ async function withEvent(
   }
 }
 
-test("young-event.display-known-values", async ({
+test("young-event.display-known-values", { tag: "@Young/Web" }, async ({
   page,
   isolatedWorker,
   preferenceFlow,
@@ -85,7 +85,7 @@ test("young-event.display-known-values", async ({
   });
 });
 
-test("young-event.online-option-uncertainty", async ({
+test("young-event.online-option-uncertainty", { tag: "@Young/Web" }, async ({
   page,
   isolatedWorker,
   preferenceFlow,
@@ -112,7 +112,7 @@ test("young-event.online-option-uncertainty", async ({
   });
 });
 
-test("young-event.scope-uncertainty", async ({
+test("young-event.scope-uncertainty", { tag: "@Young/Web" }, async ({
   page,
   isolatedWorker,
   preferenceFlow,
@@ -154,7 +154,7 @@ test("young-event.scope-uncertainty", async ({
   });
 });
 
-test("young-event.partial-time-uncertainty", async ({
+test("young-event.partial-time-uncertainty", { tag: "@Young/Web" }, async ({
   page,
   isolatedWorker,
   preferenceFlow,
@@ -186,7 +186,7 @@ test("young-event.partial-time-uncertainty", async ({
   });
 });
 
-test("young-event.occupancy-uncertainty", async ({
+test("young-event.occupancy-uncertainty", { tag: "@Young/Web" }, async ({
   page,
   isolatedWorker,
   preferenceFlow,

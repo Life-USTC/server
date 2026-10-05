@@ -7,6 +7,7 @@ for (const role of roles)
       modeTest.use({ ownerRole: role });
       modeTest(
         "consumer ignores forged owner filters",
+        { tag: "@Todo/REST" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -31,6 +32,7 @@ for (const role of roles)
       );
       modeTest(
         "foreign update and delete are rejected without effects",
+        { tag: "@Todo/REST" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -50,6 +52,7 @@ for (const role of roles)
       );
       modeTest(
         "owner create ignores forged ownership",
+        { tag: "@Todo/REST" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -82,6 +85,7 @@ for (const role of roles)
       );
       modeTest(
         "owner update preserves authenticated ownership",
+        { tag: "@Todo/REST" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -121,6 +125,7 @@ for (const role of roles)
       );
       modeTest(
         "owner delete removes an independently prepared todo",
+        { tag: "@Todo/REST" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -143,6 +148,7 @@ for (const role of roles)
       );
       modeTest(
         "mixed-owner batch completion changes only owned row",
+        { tag: "@Todo/REST" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {
@@ -185,6 +191,7 @@ for (const role of roles)
       );
       modeTest(
         "mixed-owner batch deletion removes only owned row",
+        { tag: "@Todo/REST" },
         async ({ ownership: f }) => {
           await f.run(
             async () => {

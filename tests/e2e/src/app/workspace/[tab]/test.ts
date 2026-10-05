@@ -46,7 +46,10 @@ async function expectWorkspacePageIdentity(
   ).toHaveCount(1);
 }
 
-test("/workspace 别名需要登录", async ({ publicFlow, page }) => {
+test("/workspace 别名需要登录", { tag: "@Site/Web" }, async ({
+  publicFlow,
+  page,
+}) => {
   await publicFlow.run(async () => {
     await expectRequiresSignIn(page, "/workspace/homeworks");
   });
@@ -54,6 +57,7 @@ test("/workspace 别名需要登录", async ({ publicFlow, page }) => {
 
 privateTest(
   "匿名工作区重定向后仍可登录并加载标签",
+  { tag: "@Site/Web" },
   async ({ page, isolatedWorker, privateLoginUser, loginFlow, run }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
@@ -181,6 +185,7 @@ privateTest(
 
 privateTest(
   "登录工作区隐藏公共页脚但公共内容页保留",
+  { tag: "@Site/Web" },
   async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const viewer = await preferenceFlow.prepare(() =>
@@ -200,6 +205,7 @@ privateTest(
 
 privateTest(
   "查询参数别名永久跳转后使用规范化的工作台页面身份",
+  { tag: "@Site/Web" },
   async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const viewer = await preferenceFlow.prepare(() =>
@@ -220,6 +226,7 @@ privateTest(
 
 privateTest(
   "页面契约",
+  { tag: "@Site/Web" },
   async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const viewer = await preferenceFlow.prepare(() =>
@@ -237,6 +244,7 @@ privateTest(
 
 privateTest(
   "页面契约 /workspace",
+  { tag: "@Site/Web" },
   async ({ page, isolatedWorker, preferenceFlow, run }) => {
     await run(async () => {
       const viewer = await preferenceFlow.prepare(() =>

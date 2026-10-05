@@ -89,9 +89,9 @@ const test = base.extend<{
   },
 });
 
-test("keeps native response status and joins the observation", async ({
-  reads,
-}) => {
+test("keeps native response status and joins the observation", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ reads }) => {
   const request = await reads.start();
   reads.release();
   expect((await request.response())?.status()).toBe(201);
@@ -102,10 +102,9 @@ test("keeps native response status and joins the observation", async ({
   expect(reads.owner.errors).toEqual([]);
 });
 
-test("closing admission retains an already-owned redirect successor", async ({
-  page,
-  reads,
-}) => {
+test("closing admission retains an already-owned redirect successor", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, reads }) => {
   const original = await reads.start("/redirect");
   reads.stopAccepting();
   const completed = page.waitForResponse(`${reads.origin}/completed`);
@@ -122,7 +121,9 @@ test("closing admission retains an already-owned redirect successor", async ({
   expect(reads.owner.errors).toEqual([]);
 });
 
-test("propagates an active network failure", async ({ reads }) => {
+test("propagates an active network failure", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ reads }) => {
   const request = await reads.start("/error");
   reads.release();
   await expect
@@ -134,10 +135,9 @@ test("propagates an active network failure", async ({ reads }) => {
   ]);
 });
 
-test("same-document navigation cannot release an active read", async ({
-  page,
-  reads,
-}) => {
+test("same-document navigation cannot release an active read", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, reads }) => {
   const request = await reads.start();
   await page.evaluate(() => history.pushState({}, "", "#next"));
   expect(reads.owner.ownedReads.get(request)?.retiredBy).toBeUndefined();
@@ -151,10 +151,9 @@ test("same-document navigation cannot release an active read", async ({
   expect(reads.owner.errors).toEqual([]);
 });
 
-test("document replacement releases retired reads on close", async ({
-  page,
-  reads,
-}) => {
+test("document replacement releases retired reads on close", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ page, reads }) => {
   const request = await reads.start();
   await page.goto(`${reads.origin}/next`);
   const owned = reads.owner.ownedReads.get(request);
@@ -169,10 +168,9 @@ test("document replacement releases retired reads on close", async ({
 });
 
 for (const declared of [true, false]) {
-  test(`native cancellation settles ${declared ? "after dispatch with an explicit expectation" : "before dispatch without an expectation"}`, async ({
-    page,
-    reads,
-  }) => {
+  test(`native cancellation settles ${declared ? "after dispatch with an explicit expectation" : "before dispatch without an expectation"}`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ page, reads }) => {
     let request: Request;
     if (declared) {
       request = await reads.start();
@@ -199,9 +197,9 @@ for (const declared of [true, false]) {
   });
 }
 
-test("a response does not satisfy an expected cancellation", async ({
-  reads,
-}) => {
+test("a response does not satisfy an expected cancellation", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ reads }) => {
   const request = await reads.start();
   reads.owner.expectCancellation(request);
   reads.release();
@@ -215,9 +213,9 @@ test("a response does not satisfy an expected cancellation", async ({
   );
 });
 
-test("removal joins an exact cancellation and preserves action failures", async ({
-  reads,
-}) => {
+test("removal joins an exact cancellation and preserves action failures", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ reads }) => {
   const request = await reads.start();
   const failure = new Error("Removal assertion failed");
   await expect(
@@ -229,9 +227,9 @@ test("removal joins an exact cancellation and preserves action failures", async 
   expect(reads.owner.errors).toContain(failure);
 });
 
-test("removal accepts native abort but rejects other network failures", async ({
-  reads,
-}) => {
+test("removal accepts native abort but rejects other network failures", {
+  tag: "@Infrastructure/Runtime",
+}, async ({ reads }) => {
   const request = await reads.start();
   await reads.owner.duringRemoval([request], reads.cancel);
   expect(reads.owner.ownedReads.get(request)?.canceled).toBe(true);

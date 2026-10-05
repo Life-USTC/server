@@ -59,12 +59,9 @@ async function prepare(
   };
 }
 
-test("subscription.bounded-batch-input REST query", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-  calendarSemester,
-}) => {
+test("subscription.bounded-batch-input REST query", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
   test.setTimeout(180_000);
   await calendarProtocolRun(async (io) => {
     const { db, fixture, userId, contract, ids, codes } = await prepare(
@@ -102,12 +99,9 @@ test("subscription.bounded-batch-input REST query", async ({
   });
 });
 
-test("subscription.bounded-batch-input REST append", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-  calendarSemester,
-}) => {
+test("subscription.bounded-batch-input REST append", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
   test.setTimeout(180_000);
   await calendarProtocolRun(async (io) => {
     const { db, userId, contract, ids } = await prepare(
@@ -138,12 +132,9 @@ test("subscription.bounded-batch-input REST append", async ({
   });
 });
 
-test("subscription.bounded-batch-input REST remove", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-  calendarSemester,
-}) => {
+test("subscription.bounded-batch-input REST remove", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
   test.setTimeout(180_000);
   await calendarProtocolRun(async (io) => {
     const { db, userId, contract, ids } = await prepare(
@@ -182,12 +173,9 @@ test("subscription.bounded-batch-input REST remove", async ({
 });
 
 for (const field of ["sectionIds", "codes"] as const) {
-  test(`subscription.bounded-batch-input REST batch add ${field}`, async ({
-    page,
-    oauthOwner,
-    calendarProtocolRun,
-    calendarSemester,
-  }) => {
+  test(`subscription.bounded-batch-input REST batch add ${field}`, {
+    tag: "@Subscription/REST",
+  }, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
     test.setTimeout(180_000);
     await calendarProtocolRun(async (io) => {
       const { db, fixture, userId, contract, ids, codes } = await prepare(
@@ -233,12 +221,9 @@ for (const field of ["sectionIds", "codes"] as const) {
     });
   });
 
-  test(`subscription.bounded-batch-input REST batch remove ${field}`, async ({
-    page,
-    oauthOwner,
-    calendarProtocolRun,
-    calendarSemester,
-  }) => {
+  test(`subscription.bounded-batch-input REST batch remove ${field}`, {
+    tag: "@Subscription/REST",
+  }, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
     test.setTimeout(180_000);
     await calendarProtocolRun(async (io) => {
       const { db, fixture, userId, contract, ids, codes } = await prepare(
@@ -289,12 +274,9 @@ for (const field of ["sectionIds", "codes"] as const) {
   });
 }
 
-test("subscription.bounded-batch-input REST import", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-  calendarSemester,
-}) => {
+test("subscription.bounded-batch-input REST import", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
   test.setTimeout(180_000);
   await calendarProtocolRun(async (io) => {
     const { db, fixture, userId, contract, ids, codes } = await prepare(
@@ -328,7 +310,9 @@ test("subscription.bounded-batch-input REST import", async ({
   });
 });
 
-test("subscription.bounded-batch-input GraphQL import", async ({
+test("subscription.bounded-batch-input GraphQL import", {
+  tag: "@Subscription/GraphQL",
+}, async ({
   page,
   oauthOwner,
   calendarProtocolRun,
@@ -376,12 +360,9 @@ test("subscription.bounded-batch-input GraphQL import", async ({
   });
 });
 
-test("subscription.bounded-batch-input MCP import", async ({
-  page,
-  oauthOwner,
-  calendarProtocolRun,
-  calendarSemester,
-}) => {
+test("subscription.bounded-batch-input MCP import", {
+  tag: "@Subscription/MCP",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
   test.setTimeout(180_000);
   await calendarProtocolRun(async (io) => {
     const { db, fixture, userId, contract, ids, codes } = await prepare(

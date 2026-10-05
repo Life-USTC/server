@@ -12,11 +12,11 @@ import { expectSettingsPage } from "../../../../utils/settings-fixture";
 test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/preferences 外观与语言偏好", () => {
-  test("canonical 路径需要登录", async ({ page }) => {
+  test("canonical 路径需要登录", { tag: "@Account/Web" }, async ({ page }) => {
     await expectRequiresSignIn(page, "/account/settings/preferences");
   });
 
-  test("legacy query 输入规范到语义路径", async ({
+  test("legacy query 输入规范到语义路径", { tag: "@Account/Web" }, async ({
     run,
     accountRun,
     page,
@@ -41,12 +41,9 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
     });
   });
 
-  test("外观选择立即应用并写入既有 localStorage", async ({
-    run,
-    accountRun,
-    page,
-    isolatedWorker,
-  }) => {
+  test("外观选择立即应用并写入既有 localStorage", {
+    tag: "@Account/Web",
+  }, async ({ run, accountRun, page, isolatedWorker }) => {
     await run(async () => {
       const actor = await isolatedWorker.createActor();
       await page.context().addCookies([actor.cookie]);
@@ -89,12 +86,9 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
     });
   });
 
-  test("语言选择复用 locale API 且 URL 不增加语言目录", async ({
-    run,
-    accountRun,
-    page,
-    isolatedWorker,
-  }) => {
+  test("语言选择复用 locale API 且 URL 不增加语言目录", {
+    tag: "@Account/Web",
+  }, async ({ run, accountRun, page, isolatedWorker }) => {
     await run(async () => {
       const actor = await isolatedWorker.createActor();
       await page
@@ -142,7 +136,12 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
   });
 });
 
-test("页面契约", async ({ run, accountRun, page, isolatedWorker }) => {
+test("页面契约", { tag: "@Account/Web" }, async ({
+  run,
+  accountRun,
+  page,
+  isolatedWorker,
+}) => {
   await run(async () => {
     const actor = await isolatedWorker.createActor();
     await page.context().addCookies([actor.cookie]);

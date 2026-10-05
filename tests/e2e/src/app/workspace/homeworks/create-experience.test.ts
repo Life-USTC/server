@@ -4,12 +4,9 @@ import { test } from "../../../../utils/homework-editor-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 
 for (const width of [1280, 390]) {
-  test(`homework creation offers class deadlines and live preview at ${width}`, async ({
-    page,
-    homeworkEditor: fixture,
-    taskFilterRun,
-    taskFilterDb,
-  }) => {
+  test(`homework creation offers class deadlines and live preview at ${width}`, {
+    tag: "@Homework/Web",
+  }, async ({ page, homeworkEditor: fixture, taskFilterRun, taskFilterDb }) => {
     await page.setViewportSize({ width, height: 900 });
     await taskFilterRun(
       async ({ headers }) => {

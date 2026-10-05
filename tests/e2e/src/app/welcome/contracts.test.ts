@@ -33,7 +33,7 @@ const skip = (page: Page) =>
 const finish = (page: Page) =>
   page.getByRole("link", { name: /进入工作区|Go to workspace/i });
 
-test("user.profile-field-labels", async ({
+test("user.profile-field-labels", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   baseURL,
@@ -99,7 +99,7 @@ async function expectStep(page: Page, step: 1 | 2 | 3) {
   await expect(skip(page)).toHaveCount(step === 2 ? 1 : 0);
   await expect(finish(page)).toHaveCount(step === 3 ? 1 : 0);
 }
-test("user.welcome-flow-required", async ({
+test("user.welcome-flow-required", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   isolatedWorker,
@@ -143,7 +143,7 @@ test("user.welcome-flow-required", async ({
   });
 });
 
-test("user.welcome-staged-steps", async ({
+test("user.welcome-staged-steps", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   isolatedWorker,
@@ -205,7 +205,7 @@ test("user.welcome-staged-steps", async ({
   );
 });
 
-test("user.welcome-shell-isolation", async ({
+test("user.welcome-shell-isolation", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   isolatedWorker,
@@ -250,7 +250,7 @@ test("user.welcome-shell-isolation", async ({
   });
 });
 
-test("user.welcome-completion-resume", async ({
+test("user.welcome-completion-resume", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   isolatedWorker,

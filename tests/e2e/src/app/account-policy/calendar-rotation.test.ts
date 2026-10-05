@@ -25,7 +25,7 @@ const test = workerTest.extend<{
   },
 });
 
-test("user.calendar-rotation-recent-auth", async ({
+test("user.calendar-rotation-recent-auth", { tag: "@Calendar/Web" }, async ({
   page,
   isolatedWorker,
   calendarRun,

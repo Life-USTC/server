@@ -54,10 +54,9 @@ const test = workerTest.extend<{
   },
 });
 
-test("search page returns catalog and link results", async ({
-  page,
-  searchRun,
-}) => {
+test("search page returns catalog and link results", {
+  tag: "@Search/Web",
+}, async ({ page, searchRun }) => {
   await searchRun(async () => {
     const response = await observeAction(
       () =>
@@ -87,10 +86,9 @@ test("search page returns catalog and link results", async ({
   });
 });
 
-test("search page supports keyboard navigation into results", async ({
-  page,
-  searchRun,
-}) => {
+test("search page supports keyboard navigation into results", {
+  tag: "@Search/Web",
+}, async ({ page, searchRun }) => {
   await searchRun(async () => {
     await gotoAndWaitForReady(page, "/search?q=线性代数");
 
@@ -103,10 +101,9 @@ test("search page supports keyboard navigation into results", async ({
   });
 });
 
-test("search page matches course and teacher terms in one section", async ({
-  page,
-  searchRun,
-}) => {
+test("search page matches course and teacher terms in one section", {
+  tag: "@Search/Web",
+}, async ({ page, searchRun }) => {
   await searchRun(async () => {
     const query = "线性代数 林璟锵";
     const runtimeErrors: string[] = [];
@@ -141,7 +138,7 @@ test("search page matches course and teacher terms in one section", async ({
   });
 });
 
-test("页面契约", async ({ page, searchRun }) => {
+test("页面契约", { tag: "@Search/Web" }, async ({ page, searchRun }) => {
   await searchRun(async () => {
     await assertPageContract(page, { routePath: "/search" });
   });
