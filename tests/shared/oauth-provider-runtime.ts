@@ -1,7 +1,7 @@
 import { isolatedDatabaseTest } from "./isolated-database";
 import { createNodeRuntime } from "./node-runtime";
 
-type ProviderRuntime = {
+export type ProviderRuntime = {
   run: ReturnType<typeof createNodeRuntime>["run"];
   request: ReturnType<typeof createNodeRuntime>["run"];
   close: () => Promise<void>;
