@@ -2,7 +2,7 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI (`ci.yml`) | manual branch run, push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression |
+| CI (`ci.yml`) | manual branch run, push main, PRs | Source checks, application tests/build, database permissions, static-loader image, optional visual snapshots |
 | OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
 | GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
@@ -30,11 +30,20 @@ docs.
 - Validate an open PR through its automatic current-head run; do not dispatch
   a duplicate manual run after pushing review changes.
 - Preserve external job names used by protection. The aggregate gate always runs
-  and rejects every non-success mandatory result; specifications run in Check.
+  and rejects every non-success mandatory result; specifications run in
+  `Source / Checks`.
+- Display CI jobs as `Scope / Verification`, followed by ` / i/n` for shards.
+  Use application scope for mixed contracts: `Application / Integration`,
+  `Application / HTTP`, and `Application / Web`. The Web complement includes
+  other application features and harness checks; the HTTP suite includes REST,
+  GraphQL, MCP and page requests. Keep browser engines in native project names
+  rather than mixing them into the scope. The protected aggregate retains its
+  externally required name, `Specification execution evidence / run`.
 - Browser jobs upload native HTML reports and failure diagnostics as CI artifacts.
-- CI groups tests by engine and browser project: Integration, HTTP, Chromium,
-  and Mobile Chrome. Chromium uses directory scopes: Shared UI (5 shards),
-  Workspace (5), and all remaining features/harnesses (6). The remaining scope
+- CI runs Integration, HTTP and Web checks. Chromium uses directory scopes:
+  `Shared UI / Web` (5 shards), `Workspace / Web` (5), and `Application / Web`
+  (6) for all remaining features/harnesses. `Application / Mobile web` runs
+  the separate mobile project. The remaining Chromium scope
   excludes only the first two directories so new test directories stay covered.
   HTTP/browser jobs use native case sharding and two workers; keep local defaults
   conservative and visual projects opt-in. Do not maintain a separate

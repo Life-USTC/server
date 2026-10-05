@@ -86,7 +86,7 @@ observed results from the same production operation.
 
 CI must run the unit, integration, REST, role-isolation and browser partitions,
 plus static and build checks. The protected check named Specification execution
-evidence aggregates those job results; Check validates document structure.
+evidence aggregates those job results; `Source / Checks` validates document structure.
 Passing these jobs establishes execution success,
 not exhaustive requirements coverage. Retain runner reports and failed browser
 traces for review.
