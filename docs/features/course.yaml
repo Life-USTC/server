@@ -265,7 +265,7 @@ requirements:
     - User, Session, UserSectionSubscription and AuditLog remain empty after the reads complete.
     test:
       file: tests/e2e/src/app/teachers/[id]/test.ts
-      name: catalog.consume-course-teacher-section-identity
+      name: course.consume-section-identity
 capabilities:
   course-list:
     title: Course List & Filter

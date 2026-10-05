@@ -75,7 +75,7 @@ requirements:
     - Course/Teacher history and the owner subscription list retain both records.
     test:
       file: tests/integration/retired-section-contract.test.ts
-      name: section.retired-read-semantics
+      name: section.retired-read-semantics Section
 - id: section.jwid-url-only
   category: behavior
   rule: Opaque Section jwId values remain routing/API identifiers and are not displayed as ordinary student-facing
@@ -399,7 +399,7 @@ requirements:
     - The calendar dialog opens and the subscription actions persist and remove the exact membership.
     test:
       file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
-      name: section.mobile-sticky-actions
+      name: section.mobile-sticky-actions Subscription
 - id: section.teacher-assignment-reference
   category: privacy
   applies_to:

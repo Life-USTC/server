@@ -184,7 +184,7 @@ requirements:
     - The observed User, Session, UserSectionSubscription and AuditLog tables remain unchanged after each consumer stage.
     test:
       file: tests/integration/rest/catalog/relationship-projections.test.ts
-      name: interface-hierarchy.catalog-rest-relationship-projections
+      name: interface-hierarchy.catalog-rest-relationship-projections Course
 - id: interface-hierarchy.catalog-mcp-relationship-projections
   category: consistency
   topic: semantic-parity
@@ -525,7 +525,7 @@ requirements:
     - Each kind update changes only the section selected by its public JW ID.
     test:
       file: tests/integration/rest-catalog-identifier-parity.test.ts
-      name: interface-hierarchy.semantic-parity-12
+      name: interface-hierarchy.semantic-parity-12 / Course / REST
 - id: interface-hierarchy.semantic-parity-13
   category: consistency
   topic: semantic-parity
@@ -577,7 +577,7 @@ requirements:
     - Default HTML is Chinese and indexable; translated presentation retains the identical canonical URL without locale-prefixed alternatives.
     test:
       file: tests/e2e/src/app/courses/social-metadata.test.ts
-      name: interface-hierarchy.locale-caching-and-seo-3
+      name: interface-hierarchy.locale-caching-and-seo-3 Course
 - id: interface-hierarchy.locale-caching-and-seo-5
   category: consistency
   topic: locale-caching-and-seo

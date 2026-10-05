@@ -327,7 +327,7 @@ requirements:
       cookie, and none includes either viewer's private identity or todo content.
     test:
       file: tests/integration/rest/cache-policy/public-viewers.test.ts
-      name: rendering-and-cache.personal-overlays-9
+      name: rendering-and-cache.personal-overlays-9 Course
 - id: rendering-and-cache.personal-overlays-10
   category: privacy
   topic: personal-overlays

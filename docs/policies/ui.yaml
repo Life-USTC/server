@@ -17,7 +17,7 @@ requirements:
       and comments in the main reading column.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.layout-principles-1
+      name: ui.layout-principles-1 Course
 - id: ui.layout-principles-2
   category: presentation
   topic: layout-principles
@@ -32,7 +32,7 @@ requirements:
       sidebar.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.layout-principles-2
+      name: ui.layout-principles-2 Course
 - id: ui.layout-principles-3
   category: presentation
   topic: layout-principles
@@ -51,7 +51,7 @@ requirements:
     - Desktop places identity and remaining facts to the right of the reading stream.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.layout-principles-3
+      name: ui.layout-principles-3 Course
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
@@ -108,7 +108,7 @@ requirements:
     - The shared page frame contains its heading and panel; visible filters precede the result summary and records, and pagination follows in the panel footer.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
-      name: ui.list-table-1
+      name: ui.list-table-1 Course
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
@@ -133,7 +133,7 @@ requirements:
     - Headings precede applicable filters and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
     test:
       file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
-      name: ui.embedded-collection-order
+      name: ui.embedded-collection-order Course
 - id: ui.list-table-2
   category: presentation
   topic: list-table
@@ -163,7 +163,7 @@ requirements:
     - Apply is visible and Close dismisses the sheet.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
-      name: ui.list-table-3
+      name: ui.list-table-3 Course
 - id: ui.list-table-4
   category: presentation
   topic: list-table
@@ -177,7 +177,7 @@ requirements:
     - Dismissing without Apply preserves both the exact URL and rendered results.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
-      name: ui.list-table-4
+      name: ui.list-table-4 Course
 - id: ui.list-table-5
   category: presentation
   topic: list-table
@@ -191,7 +191,7 @@ requirements:
     - Primary search changes preserve every applied advanced filter and still show the matching result.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
-      name: ui.list-table-5
+      name: ui.list-table-5 Course
 - id: ui.list-table-6
   category: presentation
   topic: list-table
@@ -205,7 +205,7 @@ requirements:
     - Bus rows retain every stop column, matching the desktop headers, and their final column remains reachable within the local table region.
     test:
       file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
-      name: ui.list-table-6
+      name: ui.list-table-6 Course
 - id: ui.other-browse-responsive-lists
   category: presentation
   topic: list-table
@@ -229,7 +229,7 @@ requirements:
     - Twenty compact records remain rendered and fit within the viewport; the document has no horizontal overflow and the active pagination page remains identified.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
-      name: ui.public-browse-responsive-lists
+      name: ui.public-browse-responsive-lists Course
 - id: ui.list-table-7
   category: presentation
   topic: list-table
@@ -313,7 +313,7 @@ requirements:
     - None of those code labels is rendered inside a badge.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
-      name: ui.data-table-cells-3
+      name: ui.data-table-cells-3 Course
 - id: ui.catalog-table-column-alignment
   category: presentation
   topic: data-table-cells
@@ -325,7 +325,7 @@ requirements:
     - Text headers and values share a left edge, and each numeric header and value shares a right edge.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.catalog-table-column-alignment
+      name: ui.catalog-table-column-alignment Course
 - id: ui.data-table-cells-4
   category: presentation
   topic: data-table-cells
@@ -339,7 +339,7 @@ requirements:
     - Bus stop headers and their times align left at the origin, center at intermediate stops and right at the destination.
     test:
       file: tests/e2e/src/app/shared-policy/remaining-table-alignment.test.ts
-      name: ui.data-table-cells-4
+      name: ui.data-table-cells-4 Schedule
 - id: ui.numeric-measure-table-alignment
   category: presentation
   topic: data-table-cells
@@ -364,7 +364,7 @@ requirements:
     - Blank placeholders are empty and aria-hidden; meaningful No ID and Unknown labels remain exposed.
     test:
       file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
-      name: ui.data-table-cells-5
+      name: ui.data-table-cells-5 Teacher
 - id: ui.data-table-cells-6
   category: presentation
   topic: data-table-cells
@@ -392,7 +392,7 @@ requirements:
       without requiring browser history.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.detail-hero-2
+      name: ui.detail-hero-2 Course
 - id: ui.detail-hero-3
   category: presentation
   topic: detail-hero
@@ -405,7 +405,7 @@ requirements:
     - h1 uses the primary display name of the current object, not an internal ID.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.detail-hero-3
+      name: ui.detail-hero-3 Course
 - id: ui.detail-hero-4
   category: presentation
   topic: detail-hero
@@ -422,7 +422,7 @@ requirements:
     - Hero content never substitutes the database row ID or JW ID for the public display identity.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.detail-hero-4
+      name: ui.detail-hero-4 Course
 - id: ui.detail-hero-5
   category: presentation
   topic: detail-hero
@@ -449,7 +449,7 @@ requirements:
     - Every applicable section remains visible in the same ordered stream without changing the entity URL; in-page links do not use detail-tab queries or detail subroutes.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.detail-two-column-stream-1
+      name: ui.detail-two-column-stream-1 Course
 - id: ui.detail-two-column-stream-2
   category: presentation
   topic: detail-two-column-stream
@@ -496,7 +496,7 @@ requirements:
     - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.detail-two-column-stream-3
+      name: ui.detail-two-column-stream-3 Course
   applies_to:
   - detail-two-column-stream
 - id: ui.detail-two-column-stream-4
@@ -516,7 +516,7 @@ requirements:
     - Course and teacher pages expose applicable facts and section links without presenting section subscription or calendar actions before selection.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-detail-facts.test.ts
-      name: ui.detail-two-column-stream-4
+      name: ui.detail-two-column-stream-4 Section
 - id: ui.detail-two-column-stream-6
   category: presentation
   topic: detail-two-column-stream
@@ -548,7 +548,7 @@ requirements:
     - The existing page or detail scroll container moves to the discussion target and brings it into the viewport.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.detail-two-column-stream-7
+      name: ui.detail-two-column-stream-7 Course
 - id: ui.model-property-priority-community-views
   category: presentation
   topic: model-property-priority
@@ -632,7 +632,7 @@ requirements:
     - Locale-specific secondary names are either rendered in English views or explicitly absent in Chinese views.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-catalog.test.ts
-      name: "ui.model-property-priority-catalog-views zh-cn/1280"
+      name: "ui.model-property-priority-catalog-views zh-cn/1280 Course"
 - id: ui.model-property-priority-account-views
   category: presentation
   topic: model-property-priority
@@ -1256,7 +1256,7 @@ requirements:
     - Authored description content is present in page data but never copied into social descriptions or titles.
     test:
       file: tests/e2e/src/app/courses/social-metadata.test.ts
-      name: ui.social-sharing-metadata-3
+      name: ui.social-sharing-metadata-3 Course
 - id: ui.social-sharing-metadata-4
   category: presentation
   topic: social-sharing-metadata
@@ -1401,7 +1401,7 @@ requirements:
     - The rendered summary reports the actual shown and total counts with correct singular, plural or Chinese classifier wording.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.catalog-count-copy
+      name: ui.catalog-count-copy Course
 - id: ui.profile-count-copy
   category: presentation
   topic: localized-count-copy
@@ -1529,7 +1529,7 @@ requirements:
     - Links change only page or sectionsPage while preserving the collection query; second-page records are disjoint, and history restores the exact records and active-page state for both pages.
     test:
       file: tests/e2e/src/app/shared-policy/other-collection-pagination.test.ts
-      name: ui.list-pagination-filter-state
+      name: ui.list-pagination-filter-state Course
 - id: ui.public-browse-pagination-state
   category: presentation
   topic: list-table
@@ -1541,7 +1541,7 @@ requirements:
     - Every link preserves the applied query apart from page; the two pages show disjoint records and browser history restores each page's query, records and active page marker.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
-      name: ui.public-browse-pagination-state
+      name: ui.public-browse-pagination-state Course
 - id: ui.theme-system-response
   category: presentation
   topic: shell-layout

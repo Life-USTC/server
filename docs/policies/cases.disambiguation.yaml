@@ -32,7 +32,7 @@ requirements:
     - The resulting subscriptions link to the selected teaching sections and retain the course identity.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
-      name: cases.disambiguation.multiple-sections-same-course-1
+      name: cases.disambiguation.multiple-sections-same-course-1 Subscription Web
 refs:
 - feature: course
   capability: course-list
