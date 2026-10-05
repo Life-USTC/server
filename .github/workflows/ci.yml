@@ -26,7 +26,7 @@ defaults:
 
 jobs:
   check:
-    name: Check / run
+    name: Source / Checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -60,7 +60,7 @@ jobs:
         run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
   test-unit:
-    name: Unit test coverage / run
+    name: Application / Unit coverage
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -79,7 +79,7 @@ jobs:
           retention-days: 14
 
   test-integration:
-    name: Integration · ${{ matrix.index }}/4
+    name: Application / Integration / ${{ matrix.index }}/4
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
@@ -109,7 +109,7 @@ jobs:
       - run: bunx vitest run --config vitest.integration.config.ts --shard=${{ matrix.index }}/4
 
   test-rest:
-    name: HTTP · ${{ matrix.index }}/8
+    name: Application / HTTP / ${{ matrix.index }}/8
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     needs: build-e2e-artifacts
@@ -139,7 +139,7 @@ jobs:
           retention-days: 14
 
   test-rls:
-    name: PostgreSQL RLS Isolation Test / run
+    name: Database / Permissions
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services: *test-database
@@ -203,7 +203,7 @@ jobs:
             tests/integration/*-rls.test.ts
 
   build-e2e-artifacts:
-    name: Build test artifacts
+    name: Application / Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env: &worker-env
@@ -225,7 +225,7 @@ jobs:
           retention-days: 14
 
   static-loader-image:
-    name: Static Loader Image
+    name: Static loader / Container image
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -334,7 +334,7 @@ jobs:
           test "${remaining_rows}" = "0"
 
   test-e2e:
-    name: Browser · ${{ matrix.name }} · ${{ matrix.index }}/${{ matrix.total }}
+    name: ${{ matrix.name }} / ${{ matrix.index }}/${{ matrix.total }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: build-e2e-artifacts
@@ -351,22 +351,22 @@ jobs:
         include:
           - group: shared-ui
             project: chromium
-            name: Chromium · Shared UI
+            name: Shared UI / Web
             filter: tests/e2e/src/app/shared-policy/
             total: 5
           - group: workspace
             project: chromium
-            name: Chromium · Workspace
+            name: Workspace / Web
             filter: tests/e2e/src/app/workspace/
             total: 5
           - group: features
             project: chromium
-            name: Chromium · Features
+            name: Application / Web
             filter: '^(?!.*tests/e2e/src/app/(?:shared-policy|workspace)/)'
             total: 6
           - group: mobile
             project: mobile-chrome
-            name: Mobile Chrome
+            name: Application / Mobile web
             filter: .
             index: 1
             total: 1
@@ -388,7 +388,7 @@ jobs:
           retention-days: 14
 
   test-visual-regression:
-    name: Visual regression (opt-in)
+    name: Application / Visual (opt-in)
     if: ${{ vars.VISUAL_REGRESSION == '1' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -411,7 +411,7 @@ jobs:
           retention-days: 14
 
   specification-evidence:
-    # Keep the protected check name; document validation belongs to Check.
+    # Keep the protected check name; documents are validated by Source / Checks.
     name: Specification execution evidence / run
     runs-on: ubuntu-latest
     timeout-minutes: 5
