@@ -126,7 +126,7 @@ async function consume(response: Response) {
   return response;
 }
 
-for (const method of ["Service", "OAuth"] as const) {
+for (const method of ["Service", "REST"] as const) {
   it(`disabled providers cannot replace the last usable sign-in method (${method})`, {
     tags: [`@Account/${method}`],
   }, async ({
@@ -226,7 +226,7 @@ it("a password permits provider removal only with a valid issuer and subject and
 });
 
 it("a remaining passkey permits account unlinking but cannot itself be removed last", {
-  tags: ["@Account/OAuth"],
+  tags: ["@Account/REST"],
 }, async ({
   isolatedDatabase: { owner: fixture },
   protocolRuntime,

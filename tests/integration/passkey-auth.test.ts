@@ -87,7 +87,7 @@ async function repeatRequest(count: number, request: () => Promise<Response>) {
 
 describe("Better Auth passkey integration", () => {
   it("keeps the Better Auth Passkey and legacy Authenticator models separate", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/Service"],
   }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
@@ -168,7 +168,7 @@ describe("Better Auth passkey integration", () => {
   });
 
   it("matches the official Better Auth Passkey columns, indexes, and owner FK", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/Service"],
   }, async ({
     isolatedDatabase: { owner: fixturePrisma },
     protocolRuntime,
@@ -244,7 +244,7 @@ describe("Better Auth passkey integration", () => {
   });
 
   it("allows an anonymous authentication challenge but requires a session for registration", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/REST"],
   }, async ({ passkey: { authRequest }, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const challengeResponse = await authRequest(
@@ -277,7 +277,7 @@ describe("Better Auth passkey integration", () => {
   });
 
   it("allows registration options only with an existing trusted session", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/REST"],
   }, async ({
     passkey: { authRequest, signSessionToken },
     isolatedDatabase: { owner: fixturePrisma },
@@ -344,7 +344,7 @@ describe("Better Auth passkey integration", () => {
   });
 
   it("requires an authoritative recent session for passkey rename and delete", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/REST"],
   }, async ({
     passkey: { authRequest, signSessionToken },
     isolatedDatabase: { owner: fixturePrisma },
@@ -481,7 +481,7 @@ describe("Better Auth passkey integration", () => {
   });
 
   it("rejects cookie-backed verification from missing or untrusted origins", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/REST"],
   }, async ({ passkey: { authRequest }, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const request = (origin?: string) =>
@@ -502,7 +502,7 @@ describe("Better Auth passkey integration", () => {
   });
 
   it("rate-limits only the anonymous passkey challenge and verification paths", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/REST"],
   }, async ({ passkey: { authRequest }, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
       const challengeIp = privateClientIp();

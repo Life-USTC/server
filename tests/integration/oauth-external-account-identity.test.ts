@@ -4,7 +4,7 @@ import { isolatedNodeTest as test } from "../shared/isolated-node-fixture";
 
 test(
   "oauth.external-account-issuer-identity",
-  { tags: ["@OAuth/OAuth"] },
+  { tags: ["@OAuth/Service"] },
   async ({ isolatedDatabase: { owner: db }, nodeRuntime }) =>
     nodeRuntime.run(async () => {
       const marker = crypto.randomUUID();

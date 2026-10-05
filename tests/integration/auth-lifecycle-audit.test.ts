@@ -134,7 +134,7 @@ describe("committed Better Auth lifecycle audit", () => {
   });
 
   it("audit.action-account-profile-update", {
-    tags: ["@Account/OAuth"],
+    tags: ["@Account/REST"],
   }, async ({ lifecycle, expect }) => {
     const { fixturePrisma, userId, authRequest, createSessionCookie } =
       lifecycle;
@@ -165,7 +165,7 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-unlink", { tags: ["@Account/OAuth"] }, async ({
+  it("audit.action-account-unlink", { tags: ["@Account/REST"] }, async ({
     lifecycle,
     expect,
   }) => {
@@ -210,7 +210,7 @@ describe("committed Better Auth lifecycle audit", () => {
     });
   });
 
-  it("audit.action-account-sign-out", { tags: ["@Account/OAuth"] }, async ({
+  it("audit.action-account-sign-out", { tags: ["@Account/REST"] }, async ({
     lifecycle,
     expect,
   }) => {

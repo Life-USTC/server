@@ -211,7 +211,7 @@ it("audit.action-account-link", { tags: ["@Admin/Service"] }, async ({
 
 webhookTest(
   "audit.action-webhook-login",
-  { tags: ["@Admin/OAuth"] },
+  { tags: ["@Admin/REST"] },
   async ({
     isolatedDatabase: { owner: db },
     protocolRuntime,

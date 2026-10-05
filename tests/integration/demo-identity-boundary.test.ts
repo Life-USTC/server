@@ -5,7 +5,7 @@ import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 const origin = "http://localhost:3000";
 
 // Isolate the real Better Auth singleton from the registration-only case.
-it("demo.no-live-writes", { tags: ["@Account/OAuth"] }, async ({
+it("demo.no-live-writes", { tags: ["@Account/Service"] }, async ({
   isolatedDatabase: { owner: fixtures },
   protocolRuntime,
   expect,
