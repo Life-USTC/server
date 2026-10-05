@@ -4,7 +4,7 @@ import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
 const origin = "http://localhost:3000";
 
-it("user.sensitive-account-recent-auth", { tags: ["@Account/OAuth"] }, async ({
+it("user.sensitive-account-recent-auth", { tags: ["@Account/REST"] }, async ({
   isolatedDatabase: { owner: db },
   protocolRuntime,
   expect,
