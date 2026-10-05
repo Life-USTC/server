@@ -12,7 +12,7 @@ when changing behavior: `$life-ustc-implement`.
 | Browser | `tests/e2e/` | domain/method jobs including Chromium and Mobile Chrome, two workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
 
 CI collects each test's native `@Domain/Method` tag, for example
-`@Homework/REST` or `@Catalog/Web`, and runs one job per combination. A combination
+`@Homework/REST` or `@Course/Web`, and runs one job per combination. A combination
 can execute Vitest, Worker request and browser contracts; those are execution
 engines, not additional ownership labels. Missing or multiple tags fail collection.
 Shared UI policies belong to the feature whose view they verify; site-wide shell
@@ -20,6 +20,12 @@ and navigation policies use `Site/Web`. Split independent multi-domain or
 multi-entrypoint consumers into native cases with independently prepared state.
 Setup requests, external mutations used to stimulate a live view, and independent
 state observations do not change the owner of the behavior being verified.
+Use concrete feature responsibilities: Course, Section, Teacher, Schedule,
+Semester and RoomMap, even when their code or route lives under `catalog`.
+CatalogMetadata owns the combined filter-dictionary endpoint. Related records
+rendered by a feature stay with that consumer (for example, Course history);
+subscription writes belong to Subscription, including on a Section page.
+Shared templates and database tables do not create additional test domains.
 
 Source checks, unit coverage, role contracts, native inventory and the shared test
 build start independently. Domain jobs consume the `test-build` artifact:

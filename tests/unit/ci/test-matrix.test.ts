@@ -99,7 +99,7 @@ describe("domain / method CI matrix", () => {
   });
 
   it("creates larger groups first and breaks equal counts by name", () => {
-    const tags = ["@Account/REST", "@Todo/Web", "@Catalog/Web", "@Catalog/Web"];
+    const tags = ["@Account/REST", "@Todo/Web", "@Course/Web", "@Course/Web"];
     expect(
       testMatrix(
         tags.map((tag, index) => ({
@@ -109,7 +109,7 @@ describe("domain / method CI matrix", () => {
           tags: [tag],
         })),
       ).include.map(({ domain, method }) => `${domain}/${method}`),
-    ).toEqual(["Catalog/Web", "Account/REST", "Todo/Web"]);
+    ).toEqual(["Course/Web", "Account/REST", "Todo/Web"]);
   });
 
   it("rejects spelling variants instead of creating new groups", () => {
