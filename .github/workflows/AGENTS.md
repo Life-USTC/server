@@ -33,9 +33,13 @@ docs.
   and rejects every non-success mandatory result; specifications run in
   `Source / Checks`.
 - Name each business test job `Domain / Method`, for example `Homework / REST`
-  or `Catalog / MCP`. A native test has exactly one `@Domain/Method` tag.
+  or `Course / MCP`. A native test has exactly one `@Domain/Method` tag.
   Use the behavior under test as the owner; setup requests and independent
   database observations do not create another verification method.
+  Use concrete features rather than the `catalog` route/directory umbrella:
+  Course, Section, Teacher, Schedule, Semester and RoomMap. CatalogMetadata
+  owns the combined filter dictionaries. Related projections stay with their
+  consumer; shared templates and individual dictionary tables are not domains.
 - `Tests / Inventory` collects native Vitest and Playwright test metadata and
   deduplicates the tags into a matrix, creating groups with more collected cases
   first. Missing or ambiguous ownership fails the
