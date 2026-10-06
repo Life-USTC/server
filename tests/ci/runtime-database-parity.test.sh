@@ -22,7 +22,6 @@ printf 'bootstrap\n' >>"$PARITY_COMMAND_LOG"
 MOCK
 chmod +x "$test_dir/bin/"*
 export PATH="$test_dir/bin:$PATH"
-unset E2E_BUNX_BIN
 export FUNCTION_OWNER_DATABASE_URL='postgresql://postgres:owner@127.0.0.1:59999/parity?sslmode=disable'
 export ALLOW_TEST_DATABASE_SETUP=true
 source tests/ci/setup-runtime-database.sh

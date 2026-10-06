@@ -152,7 +152,8 @@ if (import.meta.main) {
     process.env.GITHUB_OUTPUT,
     `matrix=${JSON.stringify(matrix)}\n`,
   );
-  console.log(
-    `${tests.length} tests in ${matrix.include.length} domain / method combinations`,
-  );
+  const summary = `${tests.length} tests in ${matrix.include.length} domain / method combinations`;
+  console.log(summary);
+  if (process.env.GITHUB_STEP_SUMMARY)
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
 }

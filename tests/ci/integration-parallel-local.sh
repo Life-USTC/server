@@ -85,8 +85,11 @@ done
 DATABASE_URL="${database_urls[0]}" bun run app:prepare >"$report_root/prepare.log" 2>&1
 export AUTH_SECRET="${AUTH_SECRET:-e2e-dev-secret-not-for-production}"
 for shard in $(seq 1 "$shard_total"); do
-  setsid bash tests/ci/integration-local-shard.sh "$shard" "$shard_total" \
-    "${database_urls[$((shard - 1))]}" "$@" >"$report_root/shard-${shard}.log" 2>&1 &
+  FUNCTION_OWNER_DATABASE_URL="${database_urls[$((shard - 1))]}" \
+    ALLOW_TEST_DATABASE_SETUP=true setsid bash -euo pipefail -c '
+      source tests/ci/setup-runtime-database.sh
+      exec bunx vitest run --config vitest.integration.config.ts "$@"
+    ' _ --shard="${shard}/${shard_total}" "$@" >"$report_root/shard-${shard}.log" 2>&1 &
   pids+=("$!")
 done
 

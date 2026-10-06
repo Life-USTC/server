@@ -27,13 +27,16 @@ describe("OpenAPI build and workflow contracts", () => {
       ".github/workflows/openapi-compatibility.yml",
     );
 
-    expect(workflow.match(new RegExp(actionRevision, "g"))).toHaveLength(2);
+    expect(workflow.match(new RegExp(actionRevision, "g"))).toHaveLength(1);
     expect(workflow).toContain(
       "base: origin/$" + "{{ github.base_ref }}:public/openapi.generated.json",
     );
     expect(workflow).toContain("revision: HEAD:public/openapi.generated.json");
-    expect(workflow).toContain("fail-on: WARN");
-    expect(workflow.match(/review: false/g)).toHaveLength(2);
+    expect(workflow).toContain(
+      "fail-on: $" +
+        "{{ !contains(github.event.pull_request.labels.*.name, 'api-breaking-approved') && 'WARN' || '' }}",
+    );
+    expect(workflow.match(/review: false/g)).toHaveLength(1);
     expect(workflow).toContain("'api-breaking-approved'");
     expect(workflow).toContain(
       "types: [opened, synchronize, reopened, labeled, unlabeled]",
@@ -50,17 +53,20 @@ describe("OpenAPI build and workflow contracts", () => {
     expect(compatibilityWorkflow).toContain(
       "types: [opened, synchronize, reopened, labeled, unlabeled]",
     );
-    expect(compatibilityWorkflow).toMatch(
-      /name: Verify canonical GraphQL schema snapshot[\s\S]*GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"/,
+    expect(compatibilityWorkflow).toContain(
+      "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: $" +
+        "{{ contains(github.event.pull_request.labels.*.name, 'graphql-breaking-approved') }}",
     );
     expect(compatibilityWorkflow).toContain(
       'GRAPHQL_SCHEMA_BASE_REF: "origin/$' + '{{ github.base_ref }}"',
     );
-    expect(compatibilityWorkflow).toContain(
-      '-t "does not break the configured base schema"',
-    );
+    expect(
+      compatibilityWorkflow.match(
+        /bunx vitest run tests\/unit\/lib\/graphql\/graphql-schema-snapshot.test.ts/g,
+      ),
+    ).toHaveLength(1);
     expect(ciWorkflow).toMatch(
-      /name: Verify canonical GraphQL schema snapshot[\s\S]*GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"/,
+      /test-unit:[\s\S]*GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"[\s\S]*bunx vitest run --coverage/,
     );
     expect(ciWorkflow).not.toContain("PR_TITLE:");
   });

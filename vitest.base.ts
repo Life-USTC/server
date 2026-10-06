@@ -3,8 +3,8 @@ import path from "node:path";
 /** Path aliases shared by Vitest configs. SvelteKit owns editor aliases. */
 export const sharedAlias = {
   "@/generated/prisma/client": path.resolve(
-    __dirname,
+    import.meta.dirname,
     "src/generated/prisma-node/client",
   ),
-  "@": path.resolve(__dirname, "src"),
+  "@": path.resolve(import.meta.dirname, "src"),
 };

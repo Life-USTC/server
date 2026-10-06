@@ -29,35 +29,37 @@ jobs:
     name: Source / Checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
     steps:
       - &checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-bun-env
-      - name: Verify test infrastructure
+      - name: Verify development seed guard
+        run: bash tests/ci/seed-guard.test.sh
+      - name: Verify database setup parity
+        run: bash tests/ci/runtime-database-parity.test.sh
+      - name: Verify local integration orchestration
+        run: bash tests/ci/integration-parallel-local.test.sh
+      - name: Verify local browser cleanup
+        run: bash tests/ci/e2e-local-cleanup.test.sh
+      - name: Verify Worker request IDs
+        run: bash tests/ci/worker-request-id-platform.test.sh
+      - name: Generate application and database clients
+        run: bun run app:prepare
+      - name: Check Cloudflare bindings
+        run: bunx wrangler types --include-runtime=false --check
+      - name: Check formatting and lint
+        run: bunx biome check
+      - name: Validate feature specifications
+        run: bun run specs:check
+      - name: Check Svelte components
+        run: bunx svelte-check --tsconfig ./tsconfig.json
+      - name: Check TypeScript
         run: |
-          bash tests/ci/seed-guard.test.sh
-          bash tests/ci/runtime-database-parity.test.sh
-          bash tests/ci/integration-parallel-local.test.sh
-          bash tests/ci/e2e-local-cleanup.test.sh
-          bash tests/ci/worker-request-id-platform.test.sh
-      - name: Check source, specifications and types
-        run: |
-          bun run app:prepare
-          bunx wrangler types --include-runtime=false --check
-          bunx biome check
-          bun run specs:check
-          bunx svelte-check --tsconfig ./tsconfig.json
           bunx tsc --noEmit -p tsconfig.typecheck.json
           bunx tsc --noEmit -p tsconfig.typecheck.tests.json
           bunx tsc --noEmit -p tsconfig.typecheck.operational.json
       - name: Verify OpenAPI parity
         run: bun run openapi:check
-      - name: Verify canonical GraphQL schema snapshot
-        env:
-          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
-        run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
   test-unit:
     name: Application / Unit coverage
@@ -68,8 +70,10 @@ jobs:
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
-      - run: bun run app:prepare
-      - run: bunx vitest run --coverage
+      - name: Generate application and database clients
+        run: bun run app:prepare
+      - name: Run unit tests and check coverage
+        run: bunx vitest run --coverage
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() }}
         with:
@@ -108,7 +112,10 @@ jobs:
       - uses: ./.github/actions/setup-test-database
       - id: inventory
         name: Collect domain and verification combinations
-        run: bun tests/ci/test-matrix.ts
+        run: |
+          echo "::group::Native test collection"
+          bun tests/ci/test-matrix.ts
+          echo "::endgroup::"
 
   test-domain:
     name: ${{ matrix.domain }} / ${{ matrix.method }}
@@ -123,9 +130,11 @@ jobs:
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
-      - if: ${{ matrix.browser }}
+      - name: Install Chromium
+        if: ${{ matrix.browser }}
         run: bunx playwright install --with-deps chromium
-      - &download-build
+      - name: Download application and Worker build
+        if: ${{ matrix.http || matrix.browser }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: test-build
@@ -145,7 +154,7 @@ jobs:
         if: ${{ matrix.browser }}
         run: bunx playwright test --project=chromium --project=mobile-chrome --fully-parallel --workers=2 --grep='@${{ matrix.domain }}/${{ matrix.method }}( |$)'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: ${{ always() }}
+        if: ${{ always() && (matrix.http || matrix.browser) }}
         with:
           name: playwright-report-${{ matrix.domain }}-${{ matrix.method }}
           path: playwright-report/
@@ -215,9 +224,12 @@ jobs:
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
-      - run: bun run build
-      - run: bun run build:test-worker
-      - run: bash tests/ci/public-route-client-budget.test.sh
+      - name: Build application
+        run: bun run build
+      - name: Build isolated test Worker
+        run: bun run build:test-worker
+      - name: Check public page client budgets
+        run: bash tests/ci/public-route-client-budget.test.sh
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-build
@@ -346,10 +358,16 @@ jobs:
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
-      - run: bunx playwright install --with-deps chromium
-      - *download-build
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Download application and Worker build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: test-build
+          path: .svelte-kit
       - uses: ./.github/actions/setup-test-database
-      - run: bun run e2e:visual
+      - name: Run visual snapshots
+        run: bun run e2e:visual
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() }}
         with:
@@ -371,4 +389,9 @@ jobs:
         env:
           JOB_RESULTS: ${{ toJSON(needs) }}
         run: |
+          jq -r '
+            "| Check | Result |", "| --- | --- |",
+            (to_entries[] | "| \(.key) | \(.value.result) |")
+          ' <<< "$JOB_RESULTS" >> "$GITHUB_STEP_SUMMARY"
+          jq -r 'to_entries[] | select(.value.result != "success") | "::error::\(.key): \(.value.result)"' <<< "$JOB_RESULTS"
           jq -e 'type == "object" and length == 7 and all(.[]; .result == "success")' <<< "$JOB_RESULTS"

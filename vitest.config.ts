@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { sharedAlias } from "./vitest.base";
+import { sharedAlias } from "./vitest.base.ts";
 
 export default defineConfig({
   test: {
@@ -22,7 +22,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reportOnFailure: true,
-      reporter: ["text", "html", "json-summary"],
+      reporter: ["text-summary", "html", "json-summary"],
       include: ["src/**/*.ts"],
       exclude: ["src/generated/**"],
       thresholds: {

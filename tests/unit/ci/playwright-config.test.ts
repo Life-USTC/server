@@ -23,7 +23,7 @@ describe("Playwright configuration", () => {
           forbidOnly: Boolean(ci),
           retries: 0,
           workers: 1,
-          globalSetup: "./tests/e2e/global-setup.ts",
+          globalSetup: "./tests/shared/runtime-database.ts",
           use: { trace: "retain-on-failure" },
         });
         expect(config.webServer).toBeUndefined();
