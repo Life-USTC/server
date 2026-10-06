@@ -6,10 +6,10 @@ when changing behavior: `$life-ustc-implement`.
 | Layer | Path | Execution and isolation |
 |-------|------|-------------------------|
 | Unit | `tests/unit/` | `bunx vitest run --coverage`; files run in parallel with isolated mocks |
-| Integration | `tests/integration/` | `bun run integration:test:parallel`; four independent PostgreSQL shards, serial files within each |
-| RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job and the default local parallel runner enable all role-test gates against the production bootstrap |
+| Integration | `tests/integration/` | `bunx vitest run --config vitest.integration.config.ts`; prepared disposable database, serial files |
+| RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job; the root local recipe explicitly enables all four role-test gates against the production bootstrap |
 | HTTP | `tests/integration/rest/` | `bun run rest:test`; domain/method CI jobs with two workers each; each case owns its database and real Worker |
-| Browser | `tests/e2e/` | domain/method jobs including Chromium and Mobile Chrome, two workers each; locally `bun run e2e:test:local --workers=2` or `bun run e2e:test` with prepared roles |
+| Browser | `tests/e2e/` | domain/method jobs including Chromium and Mobile Chrome, two workers each; locally `bun run e2e:test --workers=2` with prepared roles |
 
 CI collects each test's native `@Domain/Method` tag, for example
 `@Homework/REST` or `@Course/Web`, and runs one job per combination. A combination
@@ -33,10 +33,11 @@ the application plus immutable compiled Worker code in `.svelte-kit/test-worker`
 Playwright jobs use native `--fully-parallel --workers=2`; Vitest files remain
 serial. Chromium and Mobile Chrome run in the same domain/method job.
 Local defaults remain one Playwright worker.
-Local `e2e:test:local` owns one temporary PostgreSQL service; native workers
-schedule isolated cases. `e2e:test` and `rest:test` invoke Playwright directly after
-database setup and the application/Worker builds. Native reports remain under
-`playwright-report/` (or `E2E_REPORT_ROOT`).
+Local commands use the separately provisioned disposable PostgreSQL service in
+the root recipe. `e2e:test` and `rest:test` invoke Playwright directly after database
+setup and the application/Worker builds. Native fixtures own per-case resources;
+the source service must be stopped explicitly after the run. Native reports remain
+under `playwright-report/` (or `E2E_REPORT_ROOT`).
 
 Coverage reports measure unit execution of `src/**/*.ts`; database and browser
 tests separately verify real permissions and transport behavior. Keep every

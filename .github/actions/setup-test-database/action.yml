@@ -16,15 +16,6 @@ runs:
     - name: Apply migrations and production database permissions
       shell: bash
       run: |
-        export FUNCTION_OWNER_DATABASE_URL="$DATABASE_URL"
-        export ALLOW_TEST_DATABASE_SETUP=true
-        echo "::group::Database migrations and role grants"
-        source tests/ci/setup-runtime-database.sh
-        echo "::endgroup::"
-        for variable in FUNCTION_OWNER_DATABASE_URL ALLOW_TEST_DATABASE_SETUP \
-          DATABASE_URL AUTH_DATABASE_URL MAINTENANCE_DATABASE_URL \
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE \
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH \
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE; do
-          printf '%s=%s\n' "$variable" "${!variable}" >> "$GITHUB_ENV"
-        done
+        DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bunx prisma migrate deploy
+        psql "$FUNCTION_OWNER_DATABASE_URL" -X --quiet --single-transaction \
+          --file=tests/integration/fixtures/rls-runtime-bootstrap.sql

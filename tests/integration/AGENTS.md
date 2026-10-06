@@ -4,9 +4,9 @@ Vitest database, authentication, GraphQL and MCP integration tests, plus
 Playwright HTTP contracts. Full recipes: root `AGENTS.md`.
 
 ```bash
-export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
-export ALLOW_TEST_DATABASE_SETUP=true
-source tests/ci/setup-runtime-database.sh
+# First prepare the disposable PostgreSQL service and all connections in root AGENTS.md.
+export RLS_TEST_ENABLED=true AUTH_ROLE_TEST_ENABLED=true
+export FUNCTION_OWNER_ROLE_TEST_ENABLED=true MAINTENANCE_ROLE_TEST_ENABLED=true
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run build:test-worker && bun run rest:test
 ```
@@ -72,16 +72,10 @@ overall integration suite to bound resource use. Maintenance and Prometheus
 scenarios use per-test databases;
 per-test identities alone do not isolate database-wide operations.
 
-Run isolated local shards with `bun run integration:test:parallel`. It creates
-four disposable PostgreSQL containers, applies the production role bootstrap to
-each, and removes them on exit. Existing databases are not used. Set
-`INTEGRATION_SHARDS=1` through `8` to choose concurrency and
-`INTEGRATION_REPORT_ROOT` to retain logs at a chosen path. Test filters and role
-filters pass through; files inside each shard stay serial. The runner enables
-RLS, authentication-role, function-owner, and maintenance-role contract tests
-by default. Explicitly setting any of those four gates to a value other than
-`true` is rejected so required tests cannot be silently skipped.
-The local runner requires Bash, Docker, Bun, `psql`, and Linux `setsid`.
+Run the native Vitest command above against the disposable service prepared in
+root `AGENTS.md`. Files remain serial. Explicitly enable all four role-test flags
+for a complete local run; CI enables them in its permissions job. Stop the source
+container yourself after testing, including after an interrupted run.
 
 Global maintenance and aggregate tests can use `isolatedDatabaseTest` from
 `tests/shared/isolated-database.ts`. A file-scoped, schema-only PostgreSQL dump
@@ -90,7 +84,7 @@ empty database and uses explicit owner/app/auth/maintenance clients. Tests arran
 their own rows. Teardown closes clients and drops only those generated databases.
 The elevated fixture account needs database creation/deletion privileges.
 Put `pg_dump` matching the PostgreSQL server major on `PATH` (PostgreSQL 16 in CI
-and the local Docker runners); `psql` must also be available. For Debian/Ubuntu,
+and the documented local service); `psql` must also be available. For Debian/Ubuntu,
 install `postgresql-client-16` and prepend `/usr/lib/postgresql/16/bin` to `PATH`.
 The harness rejects a mismatched dump client; it does not rewrite schema SQL.
 

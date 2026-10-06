@@ -45,7 +45,8 @@ tests/unit|integration|e2e
 
 ## Local checks
 
-Needs Bun (`.bun-version`), Docker Compose, and host `psql`. Locally you can use
+Needs Bun (`.bun-version`), Docker Compose, and host PostgreSQL 16 clients
+(`psql` and `pg_dump`). Locally you can use
 one `DATABASE_URL` for development. Database-backed tests require a disposable
 database and separate app/auth/maintenance roles, prepared below. First
 Playwright run: `bunx playwright install --with-deps chromium`.
@@ -62,38 +63,53 @@ bun run dev            # http://127.0.0.1:3000
 # Local static, unit, type, specification, and schema checks
 bun run check
 
-# Integration (same commands as the CI integration jobs), in Bash
-export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
-export ALLOW_TEST_DATABASE_SETUP=true
-source tests/ci/setup-runtime-database.sh
+# Disposable test service; separate from the development database above.
+docker run --detach --rm --name life-ustc-test \
+  --env POSTGRES_DB=life_ustc_test --env POSTGRES_USER=postgres \
+  --env POSTGRES_PASSWORD=postgres --publish 127.0.0.1:55432:5432 postgres:16
+# Continue once this reports "accepting connections".
+docker exec life-ustc-test pg_isready -U postgres -d life_ustc_test
+
+export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:55432/life_ustc_test"
+export DATABASE_URL="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:55432/life_ustc_test"
+export AUTH_DATABASE_URL="postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:55432/life_ustc_test"
+export MAINTENANCE_DATABASE_URL="postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:55432/life_ustc_test"
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$DATABASE_URL"
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH="$AUTH_DATABASE_URL"
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE="$MAINTENANCE_DATABASE_URL"
+export AUTH_SECRET=e2e-dev-secret-not-for-production
+bun run app:prepare
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bunx prisma migrate deploy
+psql "$FUNCTION_OWNER_DATABASE_URL" -X --quiet --single-transaction \
+  --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
+
+# Include every role contract in a complete local integration run.
+export RLS_TEST_ENABLED=true AUTH_ROLE_TEST_ENABLED=true
+export FUNCTION_OWNER_ROLE_TEST_ENABLED=true MAINTENANCE_ROLE_TEST_ENABLED=true
 bunx vitest run --config vitest.integration.config.ts
-bun run build && bun run build:test-worker && bun run rest:test
 
-# Parallel integration: provisions and cleans up four isolated databases
-bun run integration:test:parallel
+# Native filters, projects and worker counts pass directly to Playwright.
+bun run build && bun run build:test-worker
+bun run rest:test
+bun run e2e:test --workers=2
 
-# Local E2E — one temporary PostgreSQL service, native concurrent workers
-bun run e2e:test:local --workers=2
-
-# E2E against an existing disposable source — each case owns its database and Worker
-# Use the disposable FUNCTION_OWNER_DATABASE_URL and setup flags above.
-source tests/ci/setup-runtime-database.sh
-bun run build
-bun run build:test-worker
-bun run e2e:test
-# Native Playwright filters/options also work, e.g. bun run e2e:test --project=chromium
-
+# Stop this service explicitly after testing, including after interrupted runs.
+docker rm -f -v life-ustc-test
+# Stop the development service separately when finished with development.
 docker compose -f docker-compose.dev.yml down
 ```
 
 CI jobs live directly in `.github/workflows/ci.yml`. Shared actions install Bun
 dependencies and prepare production-equivalent test database roles. The shared
 `test-build` artifact contains the application and precompiled test Worker in
-`.svelte-kit/test-worker`. Manual HTTP/browser runs build both in the order above;
-`e2e:test:local` does this automatically. Rebuild after changing application or
-Worker fixture code. Cases share only the compiled code; databases, Worker
-processes and local storage remain private. Uploads in
-E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
+`.svelte-kit/test-worker`. Manual HTTP/browser runs build both in the order above.
+Rebuild after changing application or Worker fixture code. Cases share only the compiled code; databases,
+Worker processes and local storage remain private. Native fixtures release their
+owned resources on test completion, failure and timeout. The PostgreSQL source
+service belongs to the person running the commands and stays up until explicitly
+stopped. Force-killing a runner can bypass fixture teardown; stop only that run's
+remaining processes and remove its recorded temporary directories if necessary.
+Uploads in E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
 specifically testing object storage.
 
 ## Delivery gate
