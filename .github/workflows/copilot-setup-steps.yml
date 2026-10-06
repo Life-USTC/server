@@ -3,7 +3,8 @@ name: Copilot Setup Steps
 on:
   workflow_dispatch:
   push:
-    paths:
+    branches: ["main"]
+    paths: &setup-paths
       - .bun-version
       - .github/actions/setup-bun-env/action.yml
       - .github/workflows/copilot-setup-steps.yml
@@ -20,22 +21,11 @@ on:
       - svelte.openapi.json
       - tests/e2e/fixtures/scenario.json
   pull_request:
-    paths:
-      - .bun-version
-      - .github/actions/setup-bun-env/action.yml
-      - .github/workflows/copilot-setup-steps.yml
-      - .github/actions/setup-test-database/action.yml
-      - bun.lock
-      - package.json
-      - prisma.config.ts
-      - prisma/migrations/**
-      - prisma/roles/**
-      - tests/ci/setup-runtime-database.sh
-      - tests/integration/fixtures/rls-runtime-bootstrap.sql
-      - prisma/schema.prisma
-      - svelte.config.js
-      - svelte.openapi.json
-      - tests/e2e/fixtures/scenario.json
+    paths: *setup-paths
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # The job name must be exactly `copilot-setup-steps`
