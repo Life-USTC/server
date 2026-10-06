@@ -130,7 +130,7 @@
     "typescript": "^6.0.3",
     "vite": "8.3.0",
     "vitest": "5.0.0",
-    "wrangler": "4.135.0",
+    "wrangler": "4.147.0",
     "yaml": "2.9.1",
     "zod-openapi": "^6.0.2"
   },
