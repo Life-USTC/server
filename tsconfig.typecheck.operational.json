@@ -11,6 +11,7 @@
     "vitest.config.ts",
     "vitest.integration.config.ts",
     "tests/ci/test-matrix.ts",
+    "tests/ci/static-loader-image.ts",
     "tests/ci/fixtures/e2e-storage-worker.ts",
     "tests/ci/fixtures/isolated-worker-timeout.config.ts",
     "tests/ci/fixtures/isolated-worker-timeout.scenario.ts",

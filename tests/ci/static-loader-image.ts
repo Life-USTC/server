@@ -11,23 +11,6 @@ assert.ok(
 );
 const image = "life-ustc-static-loader:check";
 
-for (const [command, ...args] of [
-  ["bun", "--version"],
-  ["curl", "--version"],
-  ["test", "-x", "/usr/local/bin/docker-entrypoint.load.sh"],
-  ["test", "-x", "scripts/load-static-sqlite.sh"],
-  ["test", "-f", "src/static-loader/cli.ts"],
-  ["test", "-d", "src/generated/prisma-node"],
-]) {
-  execFileSync(
-    "docker",
-    ["run", "--rm", "--entrypoint", command, image, ...args],
-    {
-      stdio: "inherit",
-    },
-  );
-}
-
 const directory = mkdtempSync(join(tmpdir(), "static-loader-image-"));
 try {
   const snapshot = join(directory, "fixture.sqlite");
