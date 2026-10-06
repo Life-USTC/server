@@ -4,9 +4,7 @@ Playwright browser tests against the Cloudflare Worker. Full recipes: root
 `AGENTS.md`.
 
 ```bash
-export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
-export ALLOW_TEST_DATABASE_SETUP=true
-source tests/ci/setup-runtime-database.sh
+# First prepare the disposable PostgreSQL service and all connections in root AGENTS.md.
 bun run build
 bun run build:test-worker
 bun run e2e:test   # runs the complete suite once
@@ -26,12 +24,13 @@ contract: request-only cases keep their actual protocol. Native collection group
 Chromium and Mobile Chrome by this ownership, without shard numbers or a file
 registry. Each combination runs once, including any Vitest/Worker cases with the
 same tag.
-Each Playwright job uses `--fully-parallel --workers=2`. Locally, use
-`bun run e2e:test:local --workers=2` to build once and run native workers against
-one temporary PostgreSQL service. Cases retain private database clones, Worker
-ports and persistence directories. The local launcher removes its service and
-owned detached processes on exit or interruption; native arguments and exit
-status pass through unchanged.
+Each Playwright job uses `--fully-parallel --workers=2`. Locally, build once and use
+`bun run e2e:test --workers=2` against the disposable
+PostgreSQL service prepared in root `AGENTS.md`. Cases retain private database
+clones, Worker ports and persistence directories. Native fixtures release their
+resources on test completion, failure and timeout; stop the source container
+yourself after the run. Force-killing a runner can bypass teardown and require
+manual cleanup of that run's recorded processes and temporary directories.
 The shared `.svelte-kit/test-worker` output is immutable compiled code. Rebuild
 it after application or Worker fixture changes; every case still starts its own
 Worker process with private database and storage state.
@@ -54,11 +53,10 @@ resolution records visits and must not be replayed. Native transport behavior
 is covered by `tests/integration/playwright-request-retry.test.ts`.
 
 Fixtures use FUNCTION_OWNER_DATABASE_URL; the Worker uses separate restricted
-app/auth/maintenance URLs. `setup-runtime-database.sh` requires the explicit
-`ALLOW_TEST_DATABASE_SETUP=true` opt-in and applies migrations plus the production
-permission script to a disposable schema source. It does not seed or reset shared
-application data. Invoke Playwright directly against an already-prepared source
-to keep setup separate from test execution.
+app/auth/maintenance URLs. The root recipe applies migrations with the owner
+connection and then runs the production permission script on a
+disposable schema source. It does not seed or reset shared application data.
+Invoke Playwright directly against that prepared source.
 
 ## Scenario data
 

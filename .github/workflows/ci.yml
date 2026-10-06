@@ -17,8 +17,14 @@ permissions:
   contents: read
 
 env:
-  # Preparation/build need a datasource; only jobs declaring Postgres connect.
-  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test
+  # Only jobs declaring PostgreSQL connect; builds use the same datasource URL.
+  FUNCTION_OWNER_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test
+  DATABASE_URL: postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/life_ustc_test
+  AUTH_DATABASE_URL: postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/life_ustc_test
+  MAINTENANCE_DATABASE_URL: postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/life_ustc_test
+  CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/life_ustc_test
+  CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH: postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/life_ustc_test
+  CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE: postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/life_ustc_test
 
 defaults:
   run:
@@ -35,12 +41,6 @@ jobs:
       - uses: ./.github/actions/setup-bun-env
       - name: Verify development seed guard
         run: bash tests/ci/seed-guard.test.sh
-      - name: Verify database setup parity
-        run: bash tests/ci/runtime-database-parity.test.sh
-      - name: Verify local integration orchestration
-        run: bash tests/ci/integration-parallel-local.test.sh
-      - name: Verify local browser cleanup
-        run: bash tests/ci/e2e-local-cleanup.test.sh
       - name: Generate application and database clients
         run: bun run app:prepare
       - name: Check Cloudflare bindings

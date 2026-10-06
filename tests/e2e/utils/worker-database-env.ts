@@ -33,7 +33,7 @@ function requireEnvironmentValue(
   const value = input[name]?.trim();
   if (!value) {
     throw new Error(
-      `${name} is required for real Worker tests; source tests/ci/setup-runtime-database.sh first`,
+      `${name} is required for real Worker tests; prepare the disposable database and connections described in AGENTS.md`,
     );
   }
   return value;
