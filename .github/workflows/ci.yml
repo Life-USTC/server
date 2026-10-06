@@ -211,112 +211,17 @@ jobs:
 
   static-loader-image:
     name: Static loader / Container image
-    permissions:
-      contents: read
     runs-on: ubuntu-latest
+    services: *test-database
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - *checkout
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
       - name: Build static loader image
-        shell: bash
         run: docker build --target loader -t life-ustc-static-loader:check .
-      - name: Smoke test static loader image
-        run: |
-          docker run --rm --entrypoint sh life-ustc-static-loader:check -c '
-            command -v bun
-            command -v curl
-            test -x /usr/local/bin/docker-entrypoint.load.sh
-            test -x scripts/load-static-sqlite.sh
-            test -f src/static-loader/cli.ts
-            test -d src/generated/prisma-node
-          '
-      - name: Dry-run static loader image
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          network="static-loader-check-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          postgres="static-loader-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          report_dir="${RUNNER_TEMP}/static-loader-report"
-          mkdir -p "${report_dir}"
-          bun tests/fixtures/static-loader-snapshot.ts "${report_dir}/fixture.sqlite"
-
-          cleanup() {
-            docker rm -f "${postgres}" >/dev/null 2>&1 || true
-            docker network rm "${network}" >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-
-          docker network create "${network}"
-          docker run -d --rm \
-            --name "${postgres}" \
-            --network "${network}" \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_DB=life_ustc_static_loader \
-            postgres:16
-
-          for attempt in $(seq 1 60); do
-            if docker exec "${postgres}" pg_isready -U postgres -d life_ustc_static_loader >/dev/null 2>&1; then
-              break
-            fi
-            if [ "${attempt}" -eq 60 ]; then
-              echo "Postgres did not become ready" >&2
-              exit 1
-            fi
-            sleep 1
-          done
-
-          docker run --rm \
-            --network "${network}" \
-            -v "${report_dir}:/tmp/static-loader-report" \
-            -v "${report_dir}/fixture.sqlite:/tmp/static-loader-fixture.sqlite:ro" \
-            -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
-            -e STATIC_SNAPSHOT_PATH=/tmp/static-loader-fixture.sqlite \
-            -e STATIC_LOADER_DRY_RUN=true \
-            -e STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json \
-            life-ustc-static-loader:check
-
-          REPORT_PATH="${report_dir}/report.json" bun -e '
-            const report = await Bun.file(process.env.REPORT_PATH).json();
-            if (
-              report.mode !== "dry-run" ||
-              report.outcome !== "rolled-back" ||
-              report.databaseRecordCounts !== null ||
-              report.snapshot?.schemaVersion !== "6" ||
-              report.reconciliation?.sectionPresence?.status !== "applied" ||
-              !Number.isInteger(
-                report.reconciliation?.sectionPresence
-                  ?.missingSectionCount,
-              ) ||
-              !/^[a-f0-9]{64}$/.test(report.snapshot?.sha256 ?? "")
-            ) {
-              throw new Error("Static loader report has invalid dry-run semantics");
-            }
-            for (const [table, count] of Object.entries({
-              semesters: 1, courses: 1, sections: 1, teachers: 1,
-              scheduleGroups: 1, schedules: 1, exams: 1,
-              rooms: 1, buildings: 1, campuses: 1,
-            })) {
-              if (report.plannedRecordCounts?.[table] !== count) {
-                throw new Error(`Static loader fixture did not exercise ${table}`);
-              }
-            }
-          '
-
-          # Check the real database as well as the reported rollback outcome.
-          remaining_rows="$(docker exec "${postgres}" psql -U postgres -d life_ustc_static_loader -X -qAt -v ON_ERROR_STOP=1 -c '
-            SELECT (SELECT COUNT(*) FROM "Course")
-                 + (SELECT COUNT(*) FROM "Section")
-                 + (SELECT COUNT(*) FROM "Teacher")
-                 + (SELECT COUNT(*) FROM "TeacherAssignment")
-                 + (SELECT COUNT(*) FROM "RoomType")
-                 + (SELECT COUNT(*) FROM "Schedule")
-                 + (SELECT COUNT(*) FROM "Exam")
-                 + (SELECT COUNT(*) FROM "StaticImportState");
-          ')"
-          test "${remaining_rows}" = "0"
+      - name: Verify static loader image and dry-run rollback
+        run: bun tests/ci/static-loader-image.ts
 
   specification-evidence:
     # Keep the protected check name; documents are validated by Source / Checks.
