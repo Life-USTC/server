@@ -2,9 +2,9 @@ import { createLocalAccountIssuer } from "@better-auth/core/db";
 import type { Prisma } from "../../../src/generated/prisma-node/client";
 import scenario from "../fixtures/scenario.json" with { type: "json" };
 import {
-  createVisualCourseCatalog,
-  createVisualWorkspaceCatalog,
-} from "../visual-matrix/catalog-fixture";
+  createMobileCourseCatalog,
+  createMobileWorkspaceCatalog,
+} from "./mobile-catalog-state";
 
 export type MobileRole = "user" | "admin";
 
@@ -42,8 +42,8 @@ export async function createMobilePageState(
   // Welcome starts with an incomplete private profile; no common user is reset.
   if (incompleteProfile) return account;
 
-  const courses = await createVisualCourseCatalog(db);
-  await createVisualWorkspaceCatalog(db, courses);
+  const courses = await createMobileCourseCatalog(db);
+  await createMobileWorkspaceCatalog(db, courses);
   // Keep the populated current-semester consumer available as the clock advances.
   await db.semester.update({
     where: { jwId: scenario.semester.jwId },

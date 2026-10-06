@@ -22,7 +22,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reportOnFailure: true,
-      reporter: ["text-summary", "html", "json-summary"],
+      reporter: ["text-summary", "html"],
       include: ["src/**/*.ts"],
       exclude: ["src/generated/**"],
       thresholds: {

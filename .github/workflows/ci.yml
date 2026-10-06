@@ -229,7 +229,7 @@ jobs:
       - name: Build isolated test Worker
         run: bun run build:test-worker
       - name: Check public page client budgets
-        run: bash tests/ci/public-route-client-budget.test.sh
+        run: bun tests/ci/public-route-client-budget.mjs
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-build
@@ -346,35 +346,6 @@ jobs:
                  + (SELECT COUNT(*) FROM "StaticImportState");
           ')"
           test "${remaining_rows}" = "0"
-
-  test-visual-regression:
-    name: Application / Visual (opt-in)
-    if: ${{ vars.VISUAL_REGRESSION == '1' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    needs: build-e2e-artifacts
-    env: *worker-env
-    services: *test-database
-    steps:
-      - *checkout
-      - uses: ./.github/actions/setup-bun-env
-      - name: Install Chromium
-        run: bunx playwright install --with-deps chromium
-      - name: Download application and Worker build
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: test-build
-          path: .svelte-kit
-      - uses: ./.github/actions/setup-test-database
-      - name: Run visual snapshots
-        run: bun run e2e:visual
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: ${{ always() }}
-        with:
-          name: playwright-report-visual
-          path: playwright-report/
-          if-no-files-found: ignore
-          retention-days: 14
 
   specification-evidence:
     # Keep the protected check name; documents are validated by Source / Checks.

@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { mobileScreenshotCases } from "../src/app/_shared/page-inventory";
+import { mobilePageCases } from "../src/app/_shared/page-inventory";
 import { test } from "../utils/mobile-page-fixture";
 import { gotoAndWaitForReady } from "../utils/page-ready";
 import { expectHealthyMobileRoute } from "./route-health";
@@ -9,7 +9,7 @@ const tokenPages = [
   "/workspace/calendar",
   "/workspace/exams",
 ];
-const memberPages = mobileScreenshotCases("authed");
+const memberPages = mobilePageCases("authed");
 
 test.describe("移动端页面健全性", () => {
   test.describe("登录后页面", () => {
@@ -62,33 +62,31 @@ test.describe("移动端页面健全性", () => {
       );
     });
 
-    test.describe("welcome 共享用户状态", () => {
+    test.describe("welcome 独立用户状态", () => {
       test.use({ incompleteMobileProfile: true });
 
-      test("/account/welcome 页面截图", { tag: "@Account/Web" }, async ({
+      test("/account/welcome 页面健全性", { tag: "@Account/Web" }, async ({
         page,
         mobileRun,
       }) => {
         await mobileRun(
           async ({ startPage, checkpoint }) => {
-            await test.step("/account/welcome 页面截图", async () => {
-              await startPage();
-              await gotoAndWaitForReady(page, "/account/welcome", {
-                browserHealth: {},
-                expectMeaningfulContent: true,
-                expectNoHorizontalOverflow: true,
-                uiQuality: {},
-              });
-              await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
-              await expect(
-                page.getByRole("textbox", {
-                  name: /^(昵称|Nickname)(?:\s|$)/i,
-                }),
-              ).toBeVisible();
-              await checkpoint("/account/welcome 页面截图", {
-                calendarMessages: [],
-                calendarTokenCreated: false,
-              });
+            await startPage();
+            await gotoAndWaitForReady(page, "/account/welcome", {
+              browserHealth: {},
+              expectMeaningfulContent: true,
+              expectNoHorizontalOverflow: true,
+              uiQuality: {},
+            });
+            await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
+            await expect(
+              page.getByRole("textbox", {
+                name: /^(昵称|Nickname)(?:\s|$)/i,
+              }),
+            ).toBeVisible();
+            await checkpoint("/account/welcome 页面健全性", {
+              calendarMessages: [],
+              calendarTokenCreated: false,
             });
           },
           { calendarTokenCreated: false },

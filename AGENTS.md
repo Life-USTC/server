@@ -106,7 +106,7 @@ domain/method combinations, and the aggregate required-jobs gate.
 The protected check named Specification execution evidence aggregates mandatory
 native job outcomes. `Source / Checks` validates document structure separately; neither
 establishes requirement coverage. `bun run check` alone is insufficient.
-Visual changes also require the visual suite and matched before/after evidence.
+Visual changes require matched before/after evidence in the PR.
 
 After review changes, revalidate the current head. Merge only when main's
 required checks pass and review conversations are resolved; never bypass

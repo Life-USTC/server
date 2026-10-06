@@ -7,7 +7,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-for command in bun curl node grep; do
+for command in bun curl grep; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "$command is required" >&2
     exit 1
@@ -79,9 +79,9 @@ fetch_json locked "$temp_dir/locked.json"
 fetch_json disturbed "$temp_dir/disturbed.json"
 fetch_json non-immutable "$temp_dir/non-immutable.json"
 
-node - "$temp_dir/redirect.json" "$temp_dir/metadata.json" \
+bun run - "$temp_dir/redirect.json" "$temp_dir/metadata.json" \
   "$temp_dir/websocket.json" "$temp_dir/locked.json" \
-  "$temp_dir/disturbed.json" "$temp_dir/non-immutable.json" <<'NODE'
+  "$temp_dir/disturbed.json" "$temp_dir/non-immutable.json" <<'BUN'
 const fs = require("node:fs");
 const [redirect, metadata, websocket, locked, disturbed, nonImmutable] =
   process.argv.slice(2).map((path) => JSON.parse(fs.readFileSync(path, "utf8")));
@@ -126,7 +126,7 @@ if (disturbed.error !== "TypeError:Response body is locked or disturbed.") {
 if (nonImmutable.error !== "TypeError:header sink unavailable") {
   throw new Error(`non-immutable TypeError was misclassified: ${nonImmutable.error}`);
 }
-NODE
+BUN
 
 curl --silent --show-error --fail --max-time 10 --noproxy '*' \
   --compressed -D "$temp_dir/encoding.headers" \

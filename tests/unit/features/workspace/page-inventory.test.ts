@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
 import { workspaceTabIds } from "@/features/workspace/lib/workspace-nav";
 import {
-  mobileScreenshotCases,
+  mobilePageCases,
   PAGE_INVENTORY,
   routeIdFromPageFile,
 } from "../../../e2e/src/app/_shared/page-inventory";
@@ -50,15 +50,15 @@ describe("browser route inventory", () => {
 
   it("mobile route batches have unique paths and include current navigation tabs", () => {
     for (const group of ["public", "authed", "admin"] as const) {
-      const paths = mobileScreenshotCases(group).map(({ path }) => path);
+      const paths = mobilePageCases(group).map(({ path }) => path);
       expect(new Set(paths).size).toBe(paths.length);
       for (const entry of PAGE_INVENTORY.filter((entry) =>
-        entry.mobileScreenshots?.includes(group),
+        entry.mobileChecks?.includes(group),
       )) {
         expect(paths).toContain(entry.samplePath);
       }
     }
-    const paths = mobileScreenshotCases("authed").map(({ path }) => path);
+    const paths = mobilePageCases("authed").map(({ path }) => path);
     for (const tab of workspaceTabIds)
       expect(paths).toContain(`/workspace/${tab}`);
     for (const tab of SETTINGS_TABS)
