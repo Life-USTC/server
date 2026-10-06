@@ -21,6 +21,9 @@ docs.
 - Docker is local infra, CI services, and the static loader image only.
 - Declare each CI responsibility directly in `ci.yml`. Shared composite actions only
   install dependencies or prepare test database roles; keep test commands in jobs.
+- Let Actions own service containers and job results, and native runners own tests.
+  Keep assertions in test files; do not embed JavaScript in shell/YAML or add local
+  launchers, environment-conversion scripts, or wrapper-specific self-tests.
 - Only database-backed jobs provision PostgreSQL. Matrix jobs own separate service
   containers; HTTP and browser jobs consume the single `test-build`
   artifact. Build the application, then run `bun run build:test-worker` once;
