@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
@@ -506,12 +507,30 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     it("keeps runtime grants on the checked-in privilege contract", async ({
-      isolatedDatabase: { app: prisma },
+      isolatedDatabase: { app: prisma, connections },
       nodeRuntime,
     }) => {
       await nodeRuntime.run(async () => {
         const expectedRuntimePrivileges =
           await loadRuntimePrivilegeAllowlist(prisma);
+
+        // Exercise the production verifier against the same explicit contract.
+        execFileSync(
+          "psql",
+          [
+            connections.app,
+            "-X",
+            "--quiet",
+            "--set=expected_role=life_ustc_runtime",
+            "--set=expected_schema_privileges=public:USAGE",
+            `--set=expected_table_privileges=${expectedRuntimePrivileges.table.join(",")}`,
+            `--set=expected_column_privileges=${expectedRuntimePrivileges.column.join(",")}`,
+            `--set=expected_sequence_privileges=${expectedRuntimePrivileges.sequence.join(",")}`,
+            `--set=expected_function_privileges=${expectedRuntimeFunctionPrivileges.join(",")}`,
+            "--file=prisma/roles/verify-app-runtime.sql",
+          ],
+          { stdio: "pipe" },
+        );
 
         const grants = await prisma.$queryRaw<
           { tableName: string; privilege: string }[]

@@ -14,7 +14,10 @@ export default defineConfig({
     globals: true,
     testTimeout: 30_000,
     hookTimeout: 30_000,
-    include: ["tests/integration/**/*.test.ts"],
+    // CI supplies files from native discovery; avoid collecting unrelated suites.
+    include: process.env.INTEGRATION_FILES
+      ? JSON.parse(process.env.INTEGRATION_FILES)
+      : ["tests/integration/**/*.test.ts"],
     // REST contracts run under Playwright with a real Worker, not Vitest.
     exclude: ["tests/integration/rest/**"],
     tags: testTags,
