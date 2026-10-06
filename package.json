@@ -79,7 +79,7 @@
     "dotenv": "^17.4.2",
     "graphql": "16.14.2",
     "graphql-yoga": "5.22.0",
-    "ical-generator": "^10.2.0",
+    "ical-generator": "^11.1.2",
     "jose": "^6.2.12",
     "katex": "^0.18.7",
     "pinyin-pro": "^3.29.3",
