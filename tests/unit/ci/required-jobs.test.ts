@@ -23,8 +23,7 @@ function runGate(results: unknown) {
 describe("mandatory CI gate", () => {
   it("waits for every mandatory job even after a dependency fails", () => {
     const mandatory = Object.keys(workflow.jobs).filter(
-      (name) =>
-        name !== "specification-evidence" && name !== "test-visual-regression",
+      (name) => name !== "specification-evidence",
     );
     expect(gate.needs.toSorted()).toEqual(mandatory.toSorted());
     expect(gate.if).toBe("$" + "{{ always() }}");

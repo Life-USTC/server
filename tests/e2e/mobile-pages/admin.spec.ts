@@ -1,4 +1,4 @@
-import { mobileScreenshotCases } from "../src/app/_shared/page-inventory";
+import { mobilePageCases } from "../src/app/_shared/page-inventory";
 import { test } from "../utils/mobile-page-fixture";
 import { expectHealthyMobileRoute } from "./route-health";
 
@@ -12,7 +12,7 @@ test.describe("移动端页面健全性", () => {
       await mobileRun(
         async ({ startPage, checkpoint }) => {
           await startPage();
-          for (const { path } of mobileScreenshotCases("admin")) {
+          for (const { path } of mobilePageCases("admin")) {
             await test.step(path, async () => {
               await expectHealthyMobileRoute(page, path);
               await checkpoint(path, {

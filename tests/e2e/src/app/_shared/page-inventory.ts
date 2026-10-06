@@ -6,7 +6,7 @@ import { DEV_SEED } from "../../../../fixtures/dev-seed";
 
 export type PageAuth = "public" | "user" | "admin";
 export type PageKind = "page" | "redirect";
-export type MobileScreenshotGroup = "public" | "authed" | "admin";
+export type MobilePageGroup = "public" | "authed" | "admin";
 export type PageInventoryEntry = {
   routeId: string;
   domain: string;
@@ -14,7 +14,7 @@ export type PageInventoryEntry = {
   kind: PageKind;
   auth: PageAuth;
   /** Drive one or more authenticated-state mobile checks from the inventory. */
-  mobileScreenshots?: readonly MobileScreenshotGroup[];
+  mobileChecks?: readonly MobilePageGroup[];
 };
 /**
  * Tab ids reused so settings / workspace inventory stays DRY with product code.
@@ -37,7 +37,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/account/settings",
@@ -52,7 +52,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/account/settings/profile",
     kind: "page",
     auth: "user",
-    mobileScreenshots: ["authed"],
+    mobileChecks: ["authed"],
   },
   {
     routeId: "/account/sign-in",
@@ -60,7 +60,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/account/sign-in",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/account/welcome",
@@ -82,7 +82,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/admin/bus",
     kind: "page",
     auth: "admin",
-    mobileScreenshots: ["admin"],
+    mobileChecks: ["admin"],
   },
   {
     routeId: "/admin/moderation",
@@ -90,7 +90,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/admin/moderation",
     kind: "page",
     auth: "admin",
-    mobileScreenshots: ["admin"],
+    mobileChecks: ["admin"],
   },
   {
     routeId: "/admin/oauth",
@@ -98,7 +98,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/admin/oauth",
     kind: "page",
     auth: "admin",
-    mobileScreenshots: ["admin"],
+    mobileChecks: ["admin"],
   },
   {
     routeId: "/admin/users",
@@ -106,7 +106,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/admin/users",
     kind: "page",
     auth: "admin",
-    mobileScreenshots: ["admin"],
+    mobileChecks: ["admin"],
   },
   {
     routeId: "/api/docs",
@@ -128,7 +128,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/bus",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/bus/map",
@@ -136,7 +136,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/bus/map",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/courses",
@@ -144,7 +144,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/courses",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/rooms",
@@ -152,7 +152,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/rooms",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/weather",
@@ -160,7 +160,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/weather",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/young-events",
@@ -168,7 +168,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/young-events",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/young-events/[youngId]",
@@ -176,7 +176,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/young-events/calendar",
@@ -184,7 +184,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/young-events/calendar",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/young-events/organizers",
@@ -192,7 +192,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/young-events/organizers",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/young-events/organizers/[organizerId]",
@@ -200,7 +200,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/young-events/organizers/dev-scenario-young-organizer",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/courses/[jwId]",
@@ -208,7 +208,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: `/catalog/courses/${DEV_SEED.course.jwId}`,
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/courses/[jwId]/[section]",
@@ -223,7 +223,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/links",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public", "authed"],
+    mobileChecks: ["public", "authed"],
   },
   {
     routeId: "/catalog/sections",
@@ -231,7 +231,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/sections",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/sections/[jwId]",
@@ -239,7 +239,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: `/catalog/sections/${DEV_SEED.section.jwId}`,
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/sections/[jwId]/[section]",
@@ -254,7 +254,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/catalog/teachers",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/catalog/teachers/[id]",
@@ -283,7 +283,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/community/comments/guide",
     kind: "redirect",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/community/users/[identifier]",
@@ -291,7 +291,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: `/community/users/${DEV_SEED.debugUsername}`,
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public", "authed"],
+    mobileChecks: ["public", "authed"],
   },
   {
     routeId: "/e2e/oauth/callback",
@@ -299,7 +299,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/e2e/oauth/callback?code=e2e-test-code&state=e2e-test-state",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/error",
@@ -307,7 +307,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/error?error=consent_failed",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/guides/markdown-support",
@@ -315,7 +315,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/guides/markdown-support",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/usage/mobile",
@@ -323,7 +323,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/usage/mobile",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/usage/bot",
@@ -331,7 +331,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/usage/bot",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/usage/mcp",
@@ -339,7 +339,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/usage/mcp",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/usage/cli",
@@ -347,7 +347,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/usage/cli",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/oauth/authorize",
@@ -355,7 +355,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/oauth/authorize",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/oauth/device",
@@ -363,7 +363,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/oauth/device",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/news",
@@ -371,7 +371,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/news",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/news/sources",
@@ -379,7 +379,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/news/sources",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/news/[id]",
@@ -394,7 +394,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/privacy",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/search",
@@ -402,7 +402,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/search",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/terms",
@@ -410,7 +410,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/terms",
     kind: "page",
     auth: "public",
-    mobileScreenshots: ["public"],
+    mobileChecks: ["public"],
   },
   {
     routeId: "/workspace",
@@ -425,7 +425,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/workspace/overview",
     kind: "page",
     auth: "user",
-    mobileScreenshots: ["authed"],
+    mobileChecks: ["authed"],
   },
   {
     routeId: "/workspace/subscriptions",
@@ -433,7 +433,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/workspace/subscriptions",
     kind: "page",
     auth: "user",
-    mobileScreenshots: ["authed"],
+    mobileChecks: ["authed"],
   },
   {
     routeId: "/workspace/subscriptions/activities",
@@ -441,7 +441,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     samplePath: "/workspace/subscriptions/activities",
     kind: "page",
     auth: "user",
-    mobileScreenshots: ["authed"],
+    mobileChecks: ["authed"],
   },
   {
     routeId: "/workspace/subscriptions/sections",
@@ -465,11 +465,11 @@ export function inventoryByRouteId(
   return PAGE_INVENTORY.find((entry) => entry.routeId === routeId);
 }
 
-export function mobileScreenshotCases(
-  group: MobileScreenshotGroup,
+export function mobilePageCases(
+  group: MobilePageGroup,
 ): { path: string; domain: string }[] {
   const paths = PAGE_INVENTORY.filter((entry) =>
-    entry.mobileScreenshots?.includes(group),
+    entry.mobileChecks?.includes(group),
   ).map((entry) => ({ path: entry.samplePath, domain: entry.domain }));
 
   if (group === "authed") {

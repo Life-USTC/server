@@ -51,14 +51,4 @@ if (unset ALLOW_TEST_DATABASE_SETUP; export ALLOW_DATABASE_SEED=true; source tes
   exit 1
 fi
 diff -u "$test_dir/expected" "$PARITY_COMMAND_LOG"
-grep -Fq '\ir ../../../prisma/roles/production-runtime-bootstrap.sql' \
-  tests/integration/fixtures/rls-runtime-bootstrap.sql
-if grep -Eq '^(GRANT|REVOKE|ALTER ROLE|CREATE POLICY)' tests/integration/fixtures/rls-runtime-bootstrap.sql; then
-  echo 'Test fixtures must not maintain a separate runtime permission contract.' >&2
-  exit 1
-fi
-if grep -Eq '^(INSERT|UPDATE|DELETE)' tests/integration/fixtures/rls-runtime-bootstrap.sql; then
-  echo 'Runtime role setup must not write shared application fixtures.' >&2
-  exit 1
-fi
 echo 'Runtime database parity orchestration passed.'

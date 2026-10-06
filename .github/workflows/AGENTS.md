@@ -2,7 +2,7 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI (`ci.yml`) | manual branch run, push main, PRs | Source checks, application tests/build, database permissions, static-loader image, optional visual snapshots |
+| CI (`ci.yml`) | manual branch run, push main, PRs | Source checks, application tests/build, database permissions, static-loader image |
 | OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
 | GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
@@ -22,7 +22,7 @@ docs.
 - Declare each CI responsibility directly in `ci.yml`. Shared composite actions only
   install dependencies or prepare test database roles; keep test commands in jobs.
 - Only database-backed jobs provision PostgreSQL. Matrix jobs own separate service
-  containers; HTTP, browser and visual jobs consume the single `test-build`
+  containers; HTTP and browser jobs consume the single `test-build`
   artifact. Build the application, then run `bun run build:test-worker` once;
   `.svelte-kit/test-worker` shares immutable code, never mutable case state.
 - PR and manual branch runs use separate ref-based concurrency groups; newer
@@ -45,8 +45,8 @@ docs.
   first. Missing or ambiguous ownership fails the
   inventory. Do not maintain a file-to-job registry, numbered shards, or timing
   scheduler. One combination runs all its applicable engines sequentially.
-- Role contracts remain in `Database / Permissions`; visual snapshots remain
-  opt-in. Chromium and Mobile Chrome cases share their domain's Web job.
+- Role contracts remain in `Database / Permissions`. Chromium and Mobile Chrome
+  cases share their domain's Web job.
   Playwright uses two native workers; Vitest files remain serial. Keep local
   defaults conservative, private case state, zero test retries and native reports.
   The protected aggregate retains `Specification execution evidence / run`.

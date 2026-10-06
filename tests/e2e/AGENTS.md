@@ -25,7 +25,7 @@ CI names jobs `Domain / Method`, using each test's single native tag such as
 contract: request-only cases keep their actual protocol. Native collection groups
 Chromium and Mobile Chrome by this ownership, without shard numbers or a file
 registry. Each combination runs once, including any Vitest/Worker cases with the
-same tag. Visual projects remain in the separate opt-in job.
+same tag.
 Each Playwright job uses `--fully-parallel --workers=2`. Locally, use
 `bun run e2e:test:local --workers=2` to build once and run native workers against
 one temporary PostgreSQL service. Cases retain private database clones, Worker
@@ -137,8 +137,8 @@ scenarios arrange a private actor or exercise the real sign-in flow explicitly.
   or critical structural WCAG A/AA violations. Page specs assert their required
   controls with role/label locators. Third-party exceptions must be scoped by
   issue kind and exact match, and must include a reason; never add a wildcard
-  allowlist. Contrast, link-color, target-size, and pixel-diff checks are visual
-  policy and stay outside the no-visual-change structural gate.
+  allowlist. Contrast, link-color, and target-size requirements need dedicated
+  observations beyond this structural gate.
 - **L3 — capabilities and states:** cover the states a page actually owns. Lists
   exercise results, no-results, filters/search, clear, and pagination when
   present. Forms exercise validation, pending/disabled state, success,
@@ -148,9 +148,9 @@ scenarios arrange a private actor or exercise the real sign-in flow explicitly.
   including setup and assertion failures. Dynamic detail pages
   include missing-record/404 cases; role-sensitive pages cover anonymous, user,
   and admin behavior as applicable.
-- **L4 — visual evidence:** keep pixel regression opt-in and representative
-  across the shell, a public catalog surface, and an authenticated workspace in
-  both locales and viewports. Do not require pixel snapshots for every page.
+- **L4 — visual evidence:** attach matched before/after screenshots to the PR
+  when changing the UI. Test results and failure diagnostics stay in GitHub
+  Actions artifacts; do not publish them to a separate repository.
 
 Prefer `getByRole` / bilingual labels. Do not blindly click every button:
 destructive, OAuth, download, upload, clipboard, and external-navigation flows

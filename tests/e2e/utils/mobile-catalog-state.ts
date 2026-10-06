@@ -1,8 +1,8 @@
 import type { Prisma } from "../../../src/generated/prisma-node/client";
 import scenario from "../fixtures/scenario.json" with { type: "json" };
 
-/** The four public catalog rows shown by the committed screenshot baselines. */
-export async function createVisualCourseCatalog(db: Prisma.TransactionClient) {
+/** Private catalog rows used by populated mobile page checks. */
+export async function createMobileCourseCatalog(db: Prisma.TransactionClient) {
   const [category, classType, classify, educationLevel, gradation, type] =
     await Promise.all([
       db.courseCategory.create({ data: scenario.catalog.category }),
@@ -28,14 +28,14 @@ export async function createVisualCourseCatalog(db: Prisma.TransactionClient) {
     ),
   );
 }
-export type VisualCatalog = Awaited<
-  ReturnType<typeof createVisualCourseCatalog>
+export type MobileCatalog = Awaited<
+  ReturnType<typeof createMobileCourseCatalog>
 >;
 
 /** Preserve the overview's calendar, counts and task state without shared seed rows. */
-export async function createVisualWorkspaceCatalog(
+export async function createMobileWorkspaceCatalog(
   db: Prisma.TransactionClient,
-  courses: VisualCatalog,
+  courses: MobileCatalog,
 ) {
   const current = await db.semester.create({
     data: {
@@ -291,8 +291,8 @@ export async function createVisualWorkspaceCatalog(
   const author = await db.user.create({
     data: {
       name: scenario.users.debug.name,
-      username: "visual-homework-author",
-      email: "visual-homework-author@example.test",
+      username: "mobile-homework-author",
+      email: "mobile-homework-author@example.test",
       emailVerified: true,
     },
   });

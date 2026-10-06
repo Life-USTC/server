@@ -31,8 +31,8 @@ Source checks, unit coverage, role contracts, native inventory and the shared te
 build start independently. Domain jobs consume the `test-build` artifact:
 the application plus immutable compiled Worker code in `.svelte-kit/test-worker`.
 Playwright jobs use native `--fully-parallel --workers=2`; Vitest files remain
-serial. Chromium and Mobile Chrome run in the same domain/method job; visual
-projects remain opt-in. Local defaults remain one Playwright worker.
+serial. Chromium and Mobile Chrome run in the same domain/method job.
+Local defaults remain one Playwright worker.
 Local `e2e:test:local` owns one temporary PostgreSQL service; native workers
 schedule isolated cases. `e2e:test` and `rest:test` invoke Playwright directly after
 database setup and the application/Worker builds. Native reports remain under
