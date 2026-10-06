@@ -11,7 +11,11 @@ const successful = Object.fromEntries(
 );
 function runGate(results: unknown) {
   execFileSync("bash", ["-euo", "pipefail", "-c", command], {
-    env: { ...process.env, JOB_RESULTS: JSON.stringify(results) },
+    env: {
+      ...process.env,
+      JOB_RESULTS: JSON.stringify(results),
+      GITHUB_STEP_SUMMARY: "/dev/null",
+    },
     stdio: "pipe",
   });
 }

@@ -5,6 +5,10 @@ on:
     branches: ["**"]
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   breaking-changes:
     name: GraphQL breaking changes
@@ -29,19 +33,8 @@ jobs:
           git fetch --no-tags --depth=1 origin
           "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
 
-      - name: Verify canonical GraphQL schema snapshot
-        env:
-          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
-        run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
-
-      - name: Block unapproved breaking changes
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'graphql-breaking-approved') }}
+      - name: Check GraphQL snapshot and base compatibility
         env:
           GRAPHQL_SCHEMA_BASE_REF: "origin/${{ github.base_ref }}"
-        run: >-
-          bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
-          -t "does not break the configured base schema"
-
-      - name: Acknowledge approved breaking changes
-        if: ${{ contains(github.event.pull_request.labels.*.name, 'graphql-breaking-approved') }}
-        run: echo "GraphQL base compatibility change approved by label."
+          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: ${{ contains(github.event.pull_request.labels.*.name, 'graphql-breaking-approved') }}
+        run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts

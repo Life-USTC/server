@@ -9,10 +9,9 @@ if [[ "${ALLOW_TEST_DATABASE_SETUP:-}" != "true" ]]; then
   return 1 2>/dev/null || exit 1
 fi
 
-runtime_setup_bunx="${E2E_BUNX_BIN:-bunx}"
-DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" "$runtime_setup_bunx" prisma migrate deploy
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bunx prisma migrate deploy
 runtime_setup_database="$(bun -e 'console.log(decodeURIComponent(new URL(process.env.FUNCTION_OWNER_DATABASE_URL).pathname.slice(1)))')"
-psql "$FUNCTION_OWNER_DATABASE_URL" -X --single-transaction \
+psql "$FUNCTION_OWNER_DATABASE_URL" -X --quiet --single-transaction \
   --set=database_name="$runtime_setup_database" \
   --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
 
@@ -26,4 +25,4 @@ export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$DATABASE_URL"
 export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH="$AUTH_DATABASE_URL"
 export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE="$MAINTENANCE_DATABASE_URL"
 unset -f runtime_test_url
-unset runtime_setup_bunx runtime_setup_database
+unset runtime_setup_database

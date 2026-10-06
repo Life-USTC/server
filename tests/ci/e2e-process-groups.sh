@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Process ownership helpers for the local E2E runners. Every shard receives a
+# Process ownership helpers for the local E2E launcher. Every run receives a
 # unique E2E_PROCESS_OWNER marker; descendants keep it even when they detach
-# from the shard's process group and are reparented to init.
+# from the launcher's process group and are reparented to init.
 
 e2e_process_group_for_pid() {
   local pid="$1"
@@ -54,7 +54,7 @@ e2e_list_owned_processes() {
 
 # Signal all processes carrying one exact run marker. A recorded /proc start
 # time prevents a PID reused between the scan and signal from being touched.
-# Process groups are used for isolated shard groups; members in the protected
+# Process groups are used for isolated runner groups; members in the protected
 # caller group are signaled individually so the caller and its siblings remain
 # untouched.
 e2e_signal_owned_processes() {

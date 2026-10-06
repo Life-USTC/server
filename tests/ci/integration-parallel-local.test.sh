@@ -78,7 +78,6 @@ MOCK
 chmod +x "$test_dir/bin/"*
 export PARALLEL_REAL_BUN="$(command -v bun)"
 export PATH="$test_dir/bin:$PATH"
-unset E2E_BUNX_BIN
 unset RLS_TEST_ENABLED AUTH_ROLE_TEST_ENABLED FUNCTION_OWNER_ROLE_TEST_ENABLED MAINTENANCE_ROLE_TEST_ENABLED
 export INTEGRATION_SHARDS=2
 export INTEGRATION_REPORT_ROOT="$test_dir/reports"

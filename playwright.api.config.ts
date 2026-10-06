@@ -12,9 +12,9 @@ export default defineConfig({
   // Preserve deterministic failures; each case owns its runtime lifecycle.
   retries: 0,
   workers: 1,
-  reporter: [["list"]],
+  reporter: [[process.env.CI ? "dot" : "list"]],
   use: {
     trace: "retain-on-failure",
   },
-  globalSetup: "./tests/e2e/global-setup.ts",
+  globalSetup: "./tests/shared/runtime-database.ts",
 });

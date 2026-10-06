@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { sharedAlias } from "../../../vitest.base";
+import { sharedAlias } from "../../../vitest.base.ts";
 
 const output = process.env.ISOLATED_DATABASE_PROBE_OUTPUT;
 if (!output) throw new Error("ISOLATED_DATABASE_PROBE_OUTPUT is required");

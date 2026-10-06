@@ -19,7 +19,7 @@ export default defineConfig({
   // Bound local resource use independently of test-state isolation.
   workers: 1,
   reporter: [
-    ["list"],
+    [process.env.CI ? "dot" : "list"],
     ["html", { open: "never", outputFolder: `${reportRoot}/html` }],
   ],
   snapshotPathTemplate:
@@ -35,7 +35,7 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: { mode: "only-on-failure", fullPage: true },
   },
-  globalSetup: "./tests/e2e/global-setup.ts",
+  globalSetup: "./tests/shared/runtime-database.ts",
   projects: [
     {
       name: "chromium",

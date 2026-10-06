@@ -10,13 +10,17 @@ runs:
         /usr/lib/postgresql/16/bin/psql --version
         /usr/lib/postgresql/16/bin/pg_dump --version
         echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
-    - name: Prepare clients and restricted runtime roles
+    - name: Generate application and database clients
+      shell: bash
+      run: bun run app:prepare
+    - name: Apply migrations and production database permissions
       shell: bash
       run: |
-        bun run app:prepare
         export FUNCTION_OWNER_DATABASE_URL="$DATABASE_URL"
         export ALLOW_TEST_DATABASE_SETUP=true
+        echo "::group::Database migrations and role grants"
         source tests/ci/setup-runtime-database.sh
+        echo "::endgroup::"
         for variable in FUNCTION_OWNER_DATABASE_URL ALLOW_TEST_DATABASE_SETUP \
           DATABASE_URL AUTH_DATABASE_URL MAINTENANCE_DATABASE_URL \
           CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE \
