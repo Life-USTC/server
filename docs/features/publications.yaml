@@ -540,8 +540,16 @@ requirements:
       name: publications.object-size-limit
 - id: publications.batch-item-count
   category: validation
-  rule: An ingestion batch contains 1 through 100 items; empty and larger batches are rejected by the
-    input schema.
+  applies_to:
+  - publication-ingestion
+  expectation:
+    kind: collection_input
+    surface: rest
+    operation: POST /api/ingestion/publications/batches
+    input: items
+    min_items: 1
+    max_items: 100
+    unique_items: false
   acceptance:
     given: An ingestion batch otherwise satisfies its source and item schema.
     when: The declared request schema parses empty, 100-item and 101-item batches.
@@ -552,6 +560,34 @@ requirements:
     test:
       file: tests/unit/features/publications/publication-ingestion-contract.test.ts
       name: publications.batch-item-count
+- id: publications.ingestion-query-budget
+  category: behavior
+  rule: Object and image registration uses bounded bulk operations within each item's existing batch
+    transaction. A 50-item batch with three objects and ten images per item uses at most 750 database
+    queries both on first ingestion and unchanged redelivery, preserving atomic rollback and exact claims.
+  acceptance:
+    given: Fifty new publications each carry three objects and ten image sources in a real runtime-role database.
+    when: Ingest the batch, replay its ID, then redeliver the revisions under a new batch ID while counting actual database queries.
+    then:
+    - Each first ingestion and unchanged redelivery stays within 750 queries.
+    - Replay returns the stored result, revisions remain unique, and each batch owns all 150 object claims.
+    test:
+      file: tests/integration/publication-ingestion-volume.test.ts
+      name: publications.ingestion-query-budget
+- id: publications.transaction-timeout
+  category: consistency
+  rule: A timed-out ingestion transaction returns its failure without immediately repeating the same
+    work on the server. Serialization conflicts may retry at most three times; client redelivery retains
+    batch identity and canonical payload idempotency.
+  acceptance:
+    given: Ingestion encounters an interactive transaction timeout or serialization conflict.
+    when: Execute the ingestion service.
+    then:
+    - A timeout is returned after the first attempt without writes.
+    - Serialization conflicts may retry, with a maximum of three attempts.
+    test:
+      file: tests/unit/features/publications/publication-ingestion-service.test.ts
+      name: returns an interactive transaction timeout without repeating the same work
 - id: publications.manifest-content-type
   category: validation
   rule: Object manifests require a bare MIME type. MIME parameters such as charset are rejected.

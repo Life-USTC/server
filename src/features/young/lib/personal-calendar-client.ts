@@ -19,26 +19,37 @@ export async function fetchPersonalCalendar(
   dateTo: string,
   signal: AbortSignal,
 ) {
-  const items: PersonalCalendarItem[] = [];
-  let page = 1;
-  while (true) {
-    const query = new URLSearchParams({
-      dateFrom,
-      dateTo,
-      page: String(page),
-      pageSize: "100",
-    });
-    const response = await fetch(`/api/workspace/calendar/events?${query}`, {
-      signal,
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    if (!response.ok) throw new PersonalCalendarRequestError(response.status);
-    const result = personalCalendarPageSchema.parse(await response.json());
-    items.push(...result.data);
-    if (page >= result.pagination.totalPages) return items;
-    page++;
-  }
+  const items = new Map<string, PersonalCalendarItem>();
+  let from = dateFrom;
+  do {
+    // Date-only bounds are inclusive. Semester grids can span more than the
+    // API's 366-day limit after padding their first and last weeks.
+    const windowEnd = shanghaiDayjs(from).add(365, "day").format("YYYY-MM-DD");
+    const to = windowEnd < dateTo ? windowEnd : dateTo;
+    let page = 1;
+    while (true) {
+      signal.throwIfAborted();
+      const query = new URLSearchParams({
+        dateFrom: from,
+        dateTo: to,
+        page: String(page),
+        pageSize: "100",
+      });
+      const response = await fetch(`/api/workspace/calendar/events?${query}`, {
+        signal,
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      if (!response.ok) throw new PersonalCalendarRequestError(response.status);
+      const result = personalCalendarPageSchema.parse(await response.json());
+      // An activity overlapping a window boundary appears in both responses.
+      for (const item of result.data) items.set(item.id, item);
+      if (page >= result.pagination.totalPages) break;
+      page++;
+    }
+    from = shanghaiDayjs(to).add(1, "day").format("YYYY-MM-DD");
+  } while (from <= dateTo);
+  return [...items.values()];
 }
 
 export function personalItemsForDay(

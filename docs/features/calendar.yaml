@@ -42,7 +42,9 @@ requirements:
 - id: calendar.views
   category: presentation
   rule: Personal calendars provide day, week, and month views with individually subscribed activities.
-    Course subscriptions add a semester view while preserving day access on desktop and mobile.
+    Course subscriptions add a semester view while preserving day access on desktop and mobile. Visible
+    ranges longer than 366 inclusive days are loaded in bounded date windows, with all pages fetched and
+    overlapping activities displayed once.
   rationale: Day, week, and month remain useful with or without courses; semester adds the academic planning
     range without removing a shorter view. A day agenda preserves course context and subscription badges.
   acceptance:
@@ -56,6 +58,8 @@ requirements:
     - Previous day, next day, and today select the expected campus date; reloading preserves the selected
       day and its events.
     - Every activity-only mode displays the activity without requiring or leaking course subscriptions.
+    - Semester grids retain activities across their complete visible range without exceeding the API's
+      366-day request limit or duplicating activities that overlap adjacent request windows.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
       name: calendar.views

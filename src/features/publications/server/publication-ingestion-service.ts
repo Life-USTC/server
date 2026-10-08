@@ -49,14 +49,6 @@ function isUniqueViolation(error: unknown) {
   );
 }
 
-function isTransientTransactionError(error: unknown) {
-  return (
-    isSerializationError(error) ||
-    (error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2028")
-  );
-}
-
 function retryDelay(attempt: number) {
   return new Promise((resolve) =>
     setTimeout(
@@ -245,7 +237,7 @@ async function ingestWithRetry(
       );
     } catch (error) {
       if (
-        !isTransientTransactionError(error) ||
+        !isSerializationError(error) ||
         attempt >= PUBLICATION_INGESTION_TRANSACTION_MAX_ATTEMPTS
       ) {
         throw error;
