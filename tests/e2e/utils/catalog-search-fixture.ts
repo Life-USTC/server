@@ -51,7 +51,7 @@ export async function arrangeSearchSection(
     data: {
       ...scenario.semester,
       startDate: new Date("2026-04-08T00:00:00Z"),
-      endDate: new Date(Date.now() + 180 * 86_400_000),
+      endDate: new Date("2026-09-06T00:00:00Z"),
     },
   });
   const campus = await db.campus.create({ data: scenario.catalog.campus });

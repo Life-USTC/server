@@ -1,7 +1,7 @@
 import { type APIRequestContext, request } from "@playwright/test";
 import { describe, expect } from "vitest";
 import {
-  resolveSeedSectionMatch,
+  resolveSeedSection,
   resolveSeedTeacherId,
 } from "../e2e/utils/seed-lookups";
 import { DEV_SEED } from "../fixtures/dev-seed";
@@ -13,9 +13,13 @@ const test = nodeHttpTest.extend({
     await use((incoming: Request) => {
       const id = Number(incoming.headers.get("x-fixture-record-id"));
       const path = new URL(incoming.url).pathname;
-      if (path === "/api/catalog/sections/match-codes") {
+      if (path === "/api/catalog/sections") {
+        expect(incoming.method).toBe("GET");
+        expect(new URL(incoming.url).searchParams.get("jwIds")).toBe(
+          String(DEV_SEED.section.jwId),
+        );
         return Response.json({
-          sections: id
+          data: id
             ? [{ id, jwId: DEV_SEED.section.jwId, code: DEV_SEED.section.code }]
             : [],
         });
@@ -32,7 +36,7 @@ const test = nodeHttpTest.extend({
 
 describe("Catalog lookup request-context independence", () => {
   test.for([
-    { name: "section", read: resolveSeedSectionMatch },
+    { name: "section", read: resolveSeedSection },
     { name: "teacher", read: resolveSeedTeacherId },
   ])(
     "$name observes each context after a missing record and a successful lookup",

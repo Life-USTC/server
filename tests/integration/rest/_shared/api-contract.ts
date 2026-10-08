@@ -1,7 +1,7 @@
 import { type APIRequestContext, expect } from "@playwright/test";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { absoluteTestUrl } from "../../../e2e/utils/request-url";
-import { resolveSeedSectionMatch } from "../../../e2e/utils/seed-lookups";
+import { resolveSeedSection } from "../../../e2e/utils/seed-lookups";
 
 type ApiContractCase = {
   routePath: string;
@@ -76,7 +76,7 @@ export async function assertApiContract(
         expect(first.course).toBeDefined();
         expect(typeof first.course?.nameCn).toBe("string");
       }
-      expect((await resolveSeedSectionMatch(request)).code).toBe(
+      expect((await resolveSeedSection(request)).code).toBe(
         DEV_SEED.section.code,
       );
       return;
@@ -103,7 +103,7 @@ export async function assertApiContract(
     }
 
     case "/api/catalog/sections/calendar.ics": {
-      const section = await resolveSeedSectionMatch(request);
+      const section = await resolveSeedSection(request);
       await expectCalendarResponse(
         await request.get(
           `/api/catalog/sections/calendar.ics?sectionIds=${section.id}`,
@@ -212,7 +212,7 @@ export async function assertApiContract(
     }
 
     case "/api/catalog/schedules": {
-      const section = await resolveSeedSectionMatch(request);
+      const section = await resolveSeedSection(request);
       const response = await request.get(
         `/api/catalog/schedules?sectionId=${section.id}`,
       );
