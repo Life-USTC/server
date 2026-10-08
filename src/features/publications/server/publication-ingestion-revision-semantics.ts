@@ -275,12 +275,12 @@ function revisionSemanticsFromStored(
   };
 }
 
-export function revisionSemanticsMatch(
+export function storedRevisionSemanticsKey(
   revision: StoredPublicationRevision,
-  item: PublicationIngestionItem,
 ) {
-  return (
-    JSON.stringify(canonicalize(revisionSemanticsFromStored(revision))) ===
-    JSON.stringify(canonicalize(revisionSemanticsFromItem(item)))
-  );
+  return JSON.stringify(canonicalize(revisionSemanticsFromStored(revision)));
+}
+
+export function incomingRevisionSemanticsKey(item: PublicationIngestionItem) {
+  return JSON.stringify(canonicalize(revisionSemanticsFromItem(item)));
 }

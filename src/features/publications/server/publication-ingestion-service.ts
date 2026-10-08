@@ -22,7 +22,12 @@ import {
   publicationIngestionPayloadDigest,
   publicationPrincipalKey,
 } from "./publication-ingestion-keys";
+import {
+  flushPublicationLinks,
+  type PendingPublicationLinks,
+} from "./publication-ingestion-links";
 import { parsePublicationDate } from "./publication-ingestion-revision-semantics";
+import { loadIngestionBatchState } from "./publication-ingestion-state";
 
 export { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/lib/publication-ingestion-limits";
 
@@ -196,6 +201,9 @@ async function ingestWithRetry(
           });
 
           const results: PublicationIngestionItemResult[] = [];
+          const state = await loadIngestionBatchState(tx, payload.items);
+          const links: PendingPublicationLinks[] = [];
+          const events: Prisma.PublicationEventOutboxCreateManyInput[] = [];
           for (const item of payload.items) {
             const source = registeredSources.get(item.sourceId);
             if (!source?.enabled || source.discoveryOnly) {
@@ -214,7 +222,24 @@ async function ingestWithRetry(
               );
               continue;
             }
-            results.push(await ingestItem(tx, batch.id, item, source));
+            results.push(
+              await ingestItem(
+                tx,
+                batch.id,
+                item,
+                source,
+                state,
+                links,
+                events,
+              ),
+            );
+          }
+          await flushPublicationLinks(tx, batch.id, links);
+          if (events.length > 0) {
+            await tx.publicationEventOutbox.createMany({
+              data: events,
+              skipDuplicates: true,
+            });
           }
 
           const response: PublicationIngestionBatchResult = {

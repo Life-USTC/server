@@ -5,17 +5,19 @@ import {
   PublicationIngestionBadRequestError,
   type PublicationIngestionItemResult,
 } from "./publication-ingestion-errors";
+import type { PendingPublicationLinks } from "./publication-ingestion-links";
 import {
-  linkImageSources,
-  linkObjects,
-  objectsNeedingUpload,
-} from "./publication-ingestion-links";
-import {
+  incomingRevisionSemanticsKey,
   parseOptionalPublicationDate,
   parsePublicationDate,
-  revisionSemanticsMatch,
   validatePublicationImageSources,
 } from "./publication-ingestion-revision-semantics";
+import {
+  type IngestionBatchState,
+  publicationIdentity,
+  rememberRevision,
+  revisionIdentity,
+} from "./publication-ingestion-state";
 
 type TransactionClient = Prisma.TransactionClient;
 
@@ -109,6 +111,9 @@ export async function ingestItem(
   batchId: string,
   item: PublicationIngestionBatchRequest["items"][number],
   source: RegisteredSource,
+  state: IngestionBatchState,
+  links: PendingPublicationLinks[],
+  events: Prisma.PublicationEventOutboxCreateManyInput[],
 ): Promise<PublicationIngestionItemResult> {
   if (!item.tombstone) {
     await validatePublicationImageSources(item.imageSources);
@@ -124,24 +129,7 @@ export async function ingestItem(
   }
 
   const observedAt = parsePublicationDate(item.observedAt);
-  const publication = await tx.publication.findUnique({
-    where: {
-      sourceId_canonicalUrl: {
-        sourceId: item.sourceId,
-        canonicalUrl: item.canonicalUrl,
-      },
-    },
-    include: {
-      currentRevision: {
-        select: {
-          id: true,
-          observedAt: true,
-          revisionHash: true,
-          isTombstone: true,
-        },
-      },
-    },
-  });
+  const publication = state.publications.get(publicationIdentity(item));
 
   if (item.tombstone && !publication) {
     return result(item, "unchanged", null, null);
@@ -202,18 +190,25 @@ export async function ingestItem(
       },
     });
     await tx.publication.update({
+      select: { id: true },
       where: { id: created.id },
       data: { currentRevisionId: revision.id },
     });
-    await linkObjects(tx, batchId, revision.id, item.objects);
-    await linkImageSources(
-      tx,
+    const remembered = rememberRevision(
+      state,
+      created.id,
       revision.id,
-      item.imageSources,
-      item.imageMetadata,
+      item,
+      observedAt,
     );
-    await writePublicationEvent(
-      tx,
+    state.publications.set(publicationIdentity(item), {
+      id: created.id,
+      lastSeenAt: observedAt,
+      currentRevision: remembered,
+    });
+    links.push({ revisionId: revision.id, item });
+    writePublicationEvent(
+      events,
       batchId,
       created.id,
       revision.id,
@@ -226,32 +221,13 @@ export async function ingestItem(
     return result(item, "rejected", null, null, "invalid item");
   }
 
-  const existingRevision = await tx.publicationRevision.findUnique({
-    where: {
-      publicationId_revisionHash: {
-        publicationId: publication.id,
-        revisionHash: incomingHash,
-      },
-    },
-    include: {
-      objectLinks: {
-        include: {
-          object: {
-            select: { kind: true, sha256: true, size: true },
-          },
-        },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      },
-      imageSourceRefs: {
-        include: {
-          imageSource: {
-            select: { id: true, url: true },
-          },
-        },
-      },
-    },
-  });
-  if (existingRevision && !revisionSemanticsMatch(existingRevision, item)) {
+  const existingRevision = state.revisions.get(
+    revisionIdentity(publication.id, incomingHash),
+  );
+  if (
+    existingRevision &&
+    existingRevision.semantics !== incomingRevisionSemanticsKey(item)
+  ) {
     throw new PublicationIngestionBadRequestError(
       "A revision hash cannot change its stored publication semantics",
     );
@@ -269,20 +245,7 @@ export async function ingestItem(
     // whose bytes were never uploaded (e.g. an earlier batch crashed between
     // claiming and uploading).
     if (!item.tombstone && existingRevision) {
-      const linked = await linkObjects(
-        tx,
-        batchId,
-        existingRevision.id,
-        item.objects,
-      );
-      await linkImageSources(
-        tx,
-        existingRevision.id,
-        item.imageSources,
-        item.imageMetadata,
-      );
-      const missing = objectsNeedingUpload(linked);
-      if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
+      links.push({ revisionId: existingRevision.id, item, unchanged });
     }
     return unchanged;
   }
@@ -324,6 +287,10 @@ export async function ingestItem(
           },
         }));
 
+  const remembered =
+    existingRevision ??
+    rememberRevision(state, publication.id, revision.id, item, observedAt);
+
   if (
     existingRevision &&
     existingRevision.observedAt.getTime() > observedAt.getTime()
@@ -335,20 +302,7 @@ export async function ingestItem(
       existingRevision.id,
     );
     if (!item.tombstone) {
-      const linked = await linkObjects(
-        tx,
-        batchId,
-        existingRevision.id,
-        item.objects,
-      );
-      await linkImageSources(
-        tx,
-        existingRevision.id,
-        item.imageSources,
-        item.imageMetadata,
-      );
-      const missing = objectsNeedingUpload(linked);
-      if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
+      links.push({ revisionId: existingRevision.id, item, unchanged });
     }
     return unchanged;
   }
@@ -358,13 +312,16 @@ export async function ingestItem(
     observedAt.getTime() > existingRevision.observedAt.getTime()
   ) {
     await tx.publicationRevision.update({
+      select: { id: true },
       where: { id: existingRevision.id },
       data: { observedAt },
     });
+    existingRevision.observedAt = observedAt;
   }
 
   if (item.tombstone) {
     await tx.publication.update({
+      select: { id: true },
       where: { id: publication.id },
       data: {
         currentRevisionId: revision.id,
@@ -374,6 +331,7 @@ export async function ingestItem(
     });
   } else {
     await tx.publication.update({
+      select: { id: true },
       where: { id: publication.id },
       data: {
         title: item.title,
@@ -387,17 +345,11 @@ export async function ingestItem(
     });
   }
 
-  if (!item.tombstone)
-    await linkObjects(tx, batchId, revision.id, item.objects);
-  if (!item.tombstone)
-    await linkImageSources(
-      tx,
-      revision.id,
-      item.imageSources,
-      item.imageMetadata,
-    );
-  await writePublicationEvent(
-    tx,
+  publication.currentRevision = remembered;
+  publication.lastSeenAt = maxDate(publication.lastSeenAt, observedAt);
+  if (!item.tombstone) links.push({ revisionId: revision.id, item });
+  writePublicationEvent(
+    events,
     batchId,
     publication.id,
     revision.id,
@@ -406,27 +358,24 @@ export async function ingestItem(
   return result(item, "updated", publication.id, revision.id);
 }
 
-async function writePublicationEvent(
-  tx: TransactionClient,
+function writePublicationEvent(
+  events: Prisma.PublicationEventOutboxCreateManyInput[],
   batchId: string,
   publicationId: string,
   revisionId: string,
   revisionHash: string,
 ) {
   const eventId = `publication.revision:${publicationId}:${revisionHash}`;
-  await tx.publicationEventOutbox.createMany({
-    data: {
-      eventId,
-      eventType: "publication.revision.accepted",
-      aggregateType: "publication",
-      aggregateId: publicationId,
-      payload: {
-        batchId,
-        publicationId,
-        revisionId,
-        revisionHash,
-      },
+  events.push({
+    eventId,
+    eventType: "publication.revision.accepted",
+    aggregateType: "publication",
+    aggregateId: publicationId,
+    payload: {
+      batchId,
+      publicationId,
+      revisionId,
+      revisionHash,
     },
-    skipDuplicates: true,
   });
 }

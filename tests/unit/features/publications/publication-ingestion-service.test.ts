@@ -127,30 +127,34 @@ const fake = vi.hoisted(() => {
       }),
     },
     publication: {
-      findUnique: vi.fn(async (args: QueryArgs) => {
-        const where = value<{
-          sourceId_canonicalUrl: { sourceId: string; canonicalUrl: string };
-        }>(args.where);
-        const publication = [...state.publications.values()].find(
-          (entry) =>
-            entry.sourceId === where.sourceId_canonicalUrl.sourceId &&
-            entry.canonicalUrl === where.sourceId_canonicalUrl.canonicalUrl,
-        );
-        if (!publication) return null;
-        const revision = publication.currentRevisionId
-          ? state.revisions.get(String(publication.currentRevisionId))
-          : null;
-        return {
-          ...publication,
-          currentRevision: revision
-            ? {
-                id: revision.id,
-                observedAt: revision.observedAt,
-                revisionHash: revision.revisionHash,
-                isTombstone: revision.isTombstone ?? false,
-              }
-            : null,
-        };
+      findMany: vi.fn(async (args: QueryArgs) => {
+        const keys = value<{
+          OR: Array<{ sourceId: string; canonicalUrl: string }>;
+        }>(args.where).OR;
+        return [...state.publications.values()]
+          .filter((entry) =>
+            keys.some(
+              (key) =>
+                entry.sourceId === key.sourceId &&
+                entry.canonicalUrl === key.canonicalUrl,
+            ),
+          )
+          .map((publication) => {
+            const revision = publication.currentRevisionId
+              ? state.revisions.get(String(publication.currentRevisionId))
+              : null;
+            return {
+              ...publication,
+              currentRevision: revision
+                ? {
+                    id: revision.id,
+                    observedAt: revision.observedAt,
+                    revisionHash: revision.revisionHash,
+                    isTombstone: revision.isTombstone ?? false,
+                  }
+                : null,
+            };
+          });
       }),
       create: vi.fn(async (args: QueryArgs) => {
         const created = { id: id("publication"), ...objectValue(args.data) };
@@ -166,48 +170,48 @@ const fake = vi.hoisted(() => {
       }),
     },
     publicationRevision: {
-      findUnique: vi.fn(async (args: QueryArgs) => {
-        const where = value<{
-          publicationId_revisionHash: {
-            publicationId: string;
-            revisionHash: string;
-          };
-        }>(args.where);
-        const revision = [...state.revisions.values()].find(
-          (entry) =>
-            entry.publicationId ===
-              where.publicationId_revisionHash.publicationId &&
-            entry.revisionHash ===
-              where.publicationId_revisionHash.revisionHash,
-        );
-        if (!revision) return null;
-        return {
-          ...revision,
-          objectLinks: [...state.links.values()]
-            .filter((link) => link.revisionId === revision.id)
-            .map((link) => ({
-              altText: (link.altText as string | null | undefined) ?? null,
-              filename: link.filename ?? null,
-              sourceUrl: link.sourceUrl ?? null,
-              object:
-                [...state.objects.values()].find(
-                  (object) => object.id === link.objectId,
-                ) ?? null,
-              role: String(link.role),
-              sortOrder: (link.sortOrder as number | null | undefined) ?? null,
-            })),
-          imageSourceRefs: [...state.imageSourceRefs.values()]
-            .filter((link) => link.revisionId === revision.id)
-            .map((link) => ({
-              altText: link.altText ?? null,
-              title: link.title ?? null,
-              caption: link.caption ?? null,
-              imageSource:
-                [...state.imageSources.values()].find(
-                  (source) => source.id === link.imageSourceId,
-                ) ?? null,
-            })),
-        };
+      findMany: vi.fn(async (args: QueryArgs) => {
+        const keys = value<{
+          OR: Array<{ publicationId: string; revisionHash: string }>;
+        }>(args.where).OR;
+        return [...state.revisions.values()]
+          .filter((entry) =>
+            keys.some(
+              (key) =>
+                entry.publicationId === key.publicationId &&
+                entry.revisionHash === key.revisionHash,
+            ),
+          )
+          .map((revision) => {
+            return {
+              ...revision,
+              objectLinks: [...state.links.values()]
+                .filter((link) => link.revisionId === revision.id)
+                .map((link) => ({
+                  altText: (link.altText as string | null | undefined) ?? null,
+                  filename: link.filename ?? null,
+                  sourceUrl: link.sourceUrl ?? null,
+                  object:
+                    [...state.objects.values()].find(
+                      (object) => object.id === link.objectId,
+                    ) ?? null,
+                  role: String(link.role),
+                  sortOrder:
+                    (link.sortOrder as number | null | undefined) ?? null,
+                })),
+              imageSourceRefs: [...state.imageSourceRefs.values()]
+                .filter((link) => link.revisionId === revision.id)
+                .map((link) => ({
+                  altText: link.altText ?? null,
+                  title: link.title ?? null,
+                  caption: link.caption ?? null,
+                  imageSource:
+                    [...state.imageSources.values()].find(
+                      (source) => source.id === link.imageSourceId,
+                    ) ?? null,
+                })),
+            };
+          });
       }),
       create: vi.fn(async (args: QueryArgs) => {
         const created = {
