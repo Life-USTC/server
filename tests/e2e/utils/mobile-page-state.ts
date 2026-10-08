@@ -44,11 +44,6 @@ export async function createMobilePageState(
 
   const courses = await createMobileCourseCatalog(db);
   await createMobileWorkspaceCatalog(db, courses);
-  // Keep the populated current-semester consumer available as the clock advances.
-  await db.semester.update({
-    where: { jwId: scenario.semester.jwId },
-    data: { endDate: new Date(Date.now() + 180 * 86_400_000) },
-  });
   const sections = await db.section.findMany({ orderBy: { jwId: "asc" } });
   if (sections.length !== scenario.sections.length)
     throw new Error("Private mobile catalog is incomplete");

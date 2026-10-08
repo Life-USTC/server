@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import { createCalendarContractFixture } from "../../../utils/calendar-contract";
-import { DEV_SEED } from "../../../utils/dev-seed";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../utils/dev-seed";
 import { waitForUiSettled } from "../../../utils/page-ready";
 import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import {
@@ -105,7 +105,7 @@ for (const sample of new Map(
           code: "421",
           nameCn: DEV_SEED.semesterNameCn,
           startDate: new Date("2026-04-08"),
-          endDate: new Date(Date.now() + 180 * 86_400_000),
+          endDate: new Date("2026-09-06"),
         },
       });
       const calendar = await createCalendarContractFixture((work) => work(db));
@@ -205,6 +205,12 @@ for (const sample of new Map(
                 : []),
             ]);
           const url = new URL(entry.path, origin);
+          if (url.pathname.startsWith("/workspace/")) {
+            url.searchParams.set(
+              "snapshotAt",
+              DEV_SEED_ANCHOR.recommendedAtTime,
+            );
+          }
           url.searchParams.set("code", secrets[4]);
           url.searchParams.set("state", secrets[5]);
           url.searchParams.set(

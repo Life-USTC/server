@@ -39,7 +39,7 @@ export const test = workerTest.extend<{
               code: "421",
               nameCn: DEV_SEED.semesterNameCn,
               startDate: new Date("2026-04-08"),
-              endDate: new Date(Date.now() + 180 * 86_400_000),
+              endDate: new Date("2026-09-06"),
             },
           }),
         );
