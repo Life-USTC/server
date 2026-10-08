@@ -74,4 +74,108 @@ describe("personal calendar client", () => {
       ),
     ).rejects.toThrow();
   });
+  it("loads every page of a long semester range without duplicating boundary events", async () => {
+    const spanning = {
+      ...item,
+      id: "young-boundary",
+      at: "2027-04-06T23:00:00+08:00",
+      endsAt: "2027-04-07T01:00:00+08:00",
+    };
+    const last = {
+      ...item,
+      id: "young-last-day",
+      at: "2027-04-11T16:00:00+08:00",
+      endsAt: "2027-04-11T17:00:00+08:00",
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          data: [item],
+          pagination: { page: 1, pageSize: 1, total: 2, totalPages: 2 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          data: [spanning],
+          pagination: { page: 2, pageSize: 1, total: 2, totalPages: 2 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          data: [spanning, last],
+          pagination: { page: 1, pageSize: 100, total: 2, totalPages: 1 },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchPersonalCalendar(
+      "2026-04-06",
+      "2027-04-11",
+      new AbortController().signal,
+    );
+    expect(result).toEqual([item, spanning, last]);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/workspace/calendar/events?dateFrom=2026-04-06&dateTo=2027-04-06&page=1&pageSize=100",
+      "/api/workspace/calendar/events?dateFrom=2026-04-06&dateTo=2027-04-06&page=2&pageSize=100",
+      "/api/workspace/calendar/events?dateFrom=2027-04-07&dateTo=2027-04-11&page=1&pageSize=100",
+    ]);
+  });
+  it.each([
+    ["2024-01-01", "2024-12-31"],
+    ["2026-04-06", "2027-04-06"],
+  ])(
+    "keeps exactly 366 inclusive days in one request (%s to %s)",
+    async (from, to) => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        Response.json({
+          data: [],
+          pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 },
+        }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(
+        fetchPersonalCalendar(from, to, new AbortController().signal),
+      ).resolves.toEqual([]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        `/api/workspace/calendar/events?dateFrom=${from}&dateTo=${to}&page=1&pageSize=100`,
+      );
+    },
+  );
+  it("rejects a failed later date window without returning partial results", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          data: [item],
+          pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("error", { status: 503 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      fetchPersonalCalendar(
+        "2026-04-06",
+        "2027-04-11",
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+  it("does not start another date window after cancellation", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("Owner changed", "AbortError");
+    const fetchMock = vi.fn().mockImplementationOnce(async () => {
+      controller.abort(reason);
+      return Response.json({
+        data: [item],
+        pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      fetchPersonalCalendar("2026-04-06", "2027-04-11", controller.signal),
+    ).rejects.toBe(reason);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
