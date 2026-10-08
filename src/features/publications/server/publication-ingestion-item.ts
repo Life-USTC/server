@@ -1,14 +1,15 @@
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import { Prisma } from "@/generated/prisma/client";
-import type {
-  PublicationIngestionBatchRequest,
-  PublicationObjectManifest,
-} from "@/lib/api/schemas/request-publication-ingestion-schemas";
+import type { PublicationIngestionBatchRequest } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import {
   PublicationIngestionBadRequestError,
   type PublicationIngestionItemResult,
 } from "./publication-ingestion-errors";
-import { publicationObjectKey } from "./publication-ingestion-keys";
+import {
+  linkImageSources,
+  linkObjects,
+  objectsNeedingUpload,
+} from "./publication-ingestion-links";
 import {
   parseOptionalPublicationDate,
   parsePublicationDate,
@@ -80,97 +81,6 @@ function jsonValue(value: Record<string, unknown> | null | undefined) {
 
 function maxDate(left: Date, right: Date) {
   return left.getTime() >= right.getTime() ? left : right;
-}
-
-async function ensureObjectManifest(
-  tx: TransactionClient,
-  batchId: string,
-  manifest: PublicationObjectManifest,
-) {
-  const object = await tx.publicationObject.upsert({
-    where: {
-      kind_sha256: { kind: manifest.kind, sha256: manifest.sha256 },
-    },
-    create: {
-      kind: manifest.kind,
-      sha256: manifest.sha256,
-      size: manifest.size,
-      contentType: manifest.contentType,
-      r2Key: publicationObjectKey(manifest.kind, manifest.sha256),
-    },
-    update: {},
-  });
-
-  // A stored key that no longer matches the content address means the key
-  // derivation changed; never repair that silently.
-  if (object.r2Key !== publicationObjectKey(manifest.kind, manifest.sha256)) {
-    throw new PublicationIngestionBadRequestError(
-      `Object manifest does not match ${manifest.kind}/${manifest.sha256}`,
-    );
-  }
-
-  if (object.size !== manifest.size) {
-    throw new PublicationIngestionBadRequestError(
-      `Object manifest does not match ${manifest.kind}/${manifest.sha256}`,
-    );
-  }
-
-  await tx.ingestionBatchObject.upsert({
-    where: { batchId_objectId: { batchId, objectId: object.id } },
-    create: {
-      batchId,
-      objectId: object.id,
-      expectedSha256: manifest.sha256,
-      expectedSize: manifest.size,
-      expectedContentType: object.contentType,
-    },
-    update: {
-      expectedSha256: manifest.sha256,
-      expectedSize: manifest.size,
-      expectedContentType: object.contentType,
-    },
-  });
-
-  return object;
-}
-
-async function linkImageSources(
-  tx: TransactionClient,
-  revisionId: string,
-  imageSources: Record<string, string>,
-  imageMetadata: Record<
-    string,
-    { altText?: string | null; title?: string | null; caption?: string | null }
-  > = {},
-) {
-  for (const [id, url] of Object.entries(imageSources)) {
-    const source = await tx.publicationImageSource.upsert({
-      where: { id },
-      create: { id, url },
-      update: {},
-    });
-    if (source.url !== url) {
-      throw new PublicationIngestionBadRequestError(
-        `Image source ${id} does not match its stored URL`,
-      );
-    }
-    await tx.publicationRevisionImageSource.upsert({
-      where: {
-        revisionId_imageSourceId: {
-          revisionId,
-          imageSourceId: id,
-        },
-      },
-      create: {
-        revisionId,
-        imageSourceId: id,
-        altText: imageMetadata[id]?.altText ?? null,
-        title: imageMetadata[id]?.title ?? null,
-        caption: imageMetadata[id]?.caption ?? null,
-      },
-      update: {},
-    });
-  }
 }
 
 export function result(
@@ -256,6 +166,7 @@ export async function ingestItem(
 
   if (!item.tombstone && !publication) {
     const created = await tx.publication.create({
+      select: { id: true },
       data: {
         sourceId: item.sourceId,
         canonicalUrl: item.canonicalUrl,
@@ -268,6 +179,7 @@ export async function ingestItem(
       },
     });
     const revision = await tx.publicationRevision.create({
+      select: { id: true },
       data: {
         publicationId: created.id,
         revisionHash: incomingHash,
@@ -379,6 +291,7 @@ export async function ingestItem(
     existingRevision ??
     (item.tombstone
       ? await tx.publicationRevision.create({
+          select: { id: true },
           data: {
             publicationId: publication.id,
             revisionHash: incomingHash,
@@ -388,6 +301,7 @@ export async function ingestItem(
           },
         })
       : await tx.publicationRevision.create({
+          select: { id: true },
           data: {
             publicationId: publication.id,
             revisionHash: incomingHash,
@@ -492,72 +406,6 @@ export async function ingestItem(
   return result(item, "updated", publication.id, revision.id);
 }
 
-type LinkedObject = {
-  kind: PublicationObjectManifest["kind"];
-  sha256: string;
-  status: string;
-};
-
-function objectsNeedingUpload(linked: LinkedObject[]) {
-  // "linked" and "verified" are the only states reached after strict byte
-  // verification, matching the trust model of the object plan endpoint.
-  return linked
-    .filter(
-      (object) => object.status !== "linked" && object.status !== "verified",
-    )
-    .map(({ kind, sha256 }) => ({ kind, sha256 }));
-}
-
-async function linkObjects(
-  tx: TransactionClient,
-  batchId: string,
-  revisionId: string,
-  manifests: PublicationObjectManifest[],
-): Promise<LinkedObject[]> {
-  const seen = new Set<string>();
-  const linked: LinkedObject[] = [];
-  for (const manifest of manifests) {
-    const key = `${manifest.kind}:${manifest.sha256}`;
-    if (seen.has(key)) {
-      throw new PublicationIngestionBadRequestError(
-        `Duplicate object manifest: ${key}`,
-      );
-    }
-    seen.add(key);
-    const object = await ensureObjectManifest(tx, batchId, manifest);
-    await tx.publicationObjectLink.upsert({
-      where: {
-        revisionId_objectId_role: {
-          revisionId,
-          objectId: object.id,
-          role: manifest.kind,
-        },
-      },
-      create: {
-        revisionId,
-        objectId: object.id,
-        role: manifest.kind,
-        sortOrder: manifest.sortOrder ?? null,
-        altText: manifest.altText ?? null,
-        filename: manifest.filename ?? null,
-        sourceUrl: manifest.sourceUrl ?? null,
-      },
-      update: {
-        sortOrder: manifest.sortOrder ?? null,
-        altText: manifest.altText ?? null,
-        filename: manifest.filename ?? null,
-        sourceUrl: manifest.sourceUrl ?? null,
-      },
-    });
-    linked.push({
-      kind: manifest.kind,
-      sha256: manifest.sha256,
-      status: object.status,
-    });
-  }
-  return linked;
-}
-
 async function writePublicationEvent(
   tx: TransactionClient,
   batchId: string,
@@ -566,9 +414,8 @@ async function writePublicationEvent(
   revisionHash: string,
 ) {
   const eventId = `publication.revision:${publicationId}:${revisionHash}`;
-  await tx.publicationEventOutbox.upsert({
-    where: { eventId },
-    create: {
+  await tx.publicationEventOutbox.createMany({
+    data: {
       eventId,
       eventType: "publication.revision.accepted",
       aggregateType: "publication",
@@ -580,6 +427,6 @@ async function writePublicationEvent(
         revisionHash,
       },
     },
-    update: {},
+    skipDuplicates: true,
   });
 }

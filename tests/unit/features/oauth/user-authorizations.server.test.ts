@@ -133,6 +133,8 @@ function refreshRow(overrides: Record<string, unknown> = {}) {
 
 describe("user OAuth authorizations", () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-15T00:00:00.000Z"));
     vi.resetAllMocks();
     mocks.transactionRunner.mockImplementation(
       async (callback: (tx: typeof mocks.transaction) => Promise<unknown>) =>

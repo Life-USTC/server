@@ -8,7 +8,7 @@ import fixture from "../../../fixtures/publication-batch.json";
 
 type QueryArgs = {
   where?: Record<string, unknown>;
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown> | Record<string, unknown>[];
   create?: Record<string, unknown>;
   update?: Record<string, unknown>;
   include?: unknown;
@@ -227,119 +227,89 @@ const fake = vi.hoisted(() => {
       }),
     },
     publicationImageSource: {
-      upsert: vi.fn(async (args: QueryArgs) => {
-        const where = value<{ id: string }>(args.where);
-        const existing = state.imageSources.get(where.id);
-        if (existing) return existing;
-        const created = { id: where.id, ...objectValue(args.create) };
-        state.imageSources.set(where.id, created);
-        return created;
+      createMany: vi.fn(async (args: QueryArgs) =>
+        createRows(state.imageSources, args, (row) => String(row.id)),
+      ),
+      findMany: vi.fn(async (args: QueryArgs) => {
+        const ids = value<{ id: { in: string[] } }>(args.where).id.in;
+        return [...state.imageSources.values()].filter((row) =>
+          ids.includes(String(row.id)),
+        );
       }),
     },
     publicationRevisionImageSource: {
-      upsert: vi.fn(async (args: QueryArgs) => {
-        const where = value<{
-          revisionId_imageSourceId: {
-            revisionId: string;
-            imageSourceId: string;
-          };
-        }>(args.where);
-        const key = `${where.revisionId_imageSourceId.revisionId}:${where.revisionId_imageSourceId.imageSourceId}`;
-        const existing = state.imageSourceRefs.get(key);
-        if (existing) return existing;
-        const created = { id: key, ...objectValue(args.create) };
-        state.imageSourceRefs.set(key, created);
-        return created;
-      }),
+      createMany: vi.fn(async (args: QueryArgs) =>
+        createRows(
+          state.imageSourceRefs,
+          args,
+          (row) => `${row.revisionId}:${row.imageSourceId}`,
+        ),
+      ),
     },
     publicationObject: {
-      upsert: vi.fn(),
-      update: vi.fn(),
+      createMany: vi.fn(async (args: QueryArgs) =>
+        createRows(state.objects, args, (row) => `${row.kind}:${row.sha256}`, {
+          status: "pending",
+          verifiedAt: null,
+        }),
+      ),
+      findMany: vi.fn(async (args: QueryArgs) => {
+        const keys = value<{ OR: Array<{ kind: string; sha256: string }> }>(
+          args.where,
+        ).OR;
+        return [...state.objects.values()].filter((row) =>
+          keys.some(
+            (key) => key.kind === row.kind && key.sha256 === row.sha256,
+          ),
+        );
+      }),
     },
     ingestionBatchObject: {
-      upsert: vi.fn(),
+      createMany: vi.fn(async (args: QueryArgs) =>
+        createRows(
+          state.claims,
+          args,
+          (row) => `${row.batchId}:${row.objectId}`,
+        ),
+      ),
     },
     publicationObjectLink: {
-      upsert: vi.fn(),
+      createMany: vi.fn(async (args: QueryArgs) =>
+        createRows(
+          state.links,
+          args,
+          (row) => `${row.revisionId}:${row.objectId}:${row.role}`,
+        ),
+      ),
     },
     publicationEventOutbox: {
-      upsert: vi.fn(),
+      createMany: vi.fn(async (args: QueryArgs) =>
+        createRows(state.events, args, (row) => String(row.eventId)),
+      ),
     },
   };
 
-  tx.publicationObject.upsert.mockImplementation(async (args: QueryArgs) => {
-    const where = value<{ kind_sha256: { kind: string; sha256: string } }>(
-      args.where,
-    );
-    const key = `${where.kind_sha256.kind}:${where.kind_sha256.sha256}`;
-    const existing = state.objects.get(key);
-    if (existing) return existing;
-    const created = {
-      id: id("object"),
-      status: "pending",
-      verifiedAt: null,
-      ...objectValue(args.create),
-    };
-    state.objects.set(key, created);
-    return created;
-  });
-
-  tx.publicationObject.update.mockImplementation(async (args: QueryArgs) => {
-    const where = value<{ id: string }>(args.where);
-    const object = [...state.objects.values()].find(
-      (entry) => entry.id === where.id,
-    );
-    if (!object) throw new Error("object not found");
-    Object.assign(object, args.data);
-    return object;
-  });
-
-  tx.ingestionBatchObject.upsert.mockImplementation(async (args: QueryArgs) => {
-    const where = value<{
-      batchId_objectId: { batchId: string; objectId: string };
-    }>(args.where);
-    const key = `${where.batchId_objectId.batchId}:${where.batchId_objectId.objectId}`;
-    const existing = state.claims.get(key);
-    if (existing) {
-      Object.assign(existing, args.update);
-      return existing;
+  function createRows(
+    rows: Map<string, Record<string, unknown>>,
+    args: QueryArgs,
+    key: (row: Record<string, unknown>) => string,
+    defaults: Record<string, unknown> = {},
+  ) {
+    let count = 0;
+    for (const data of Array.isArray(args.data)
+      ? args.data
+      : [objectValue(args.data)]) {
+      const rowKey = key(data);
+      if (rows.has(rowKey)) continue;
+      rows.set(rowKey, {
+        id: rows === state.imageSourceRefs ? rowKey : id("row"),
+        ...defaults,
+        ...data,
+      });
+      count += 1;
     }
-    const created = { id: id("claim"), ...objectValue(args.create) };
-    state.claims.set(key, created);
-    return created;
-  });
-
-  tx.publicationObjectLink.upsert.mockImplementation(
-    async (args: QueryArgs) => {
-      const where = value<{
-        revisionId_objectId_role: {
-          revisionId: string;
-          objectId: string;
-          role: string;
-        };
-      }>(args.where);
-      const key = `${where.revisionId_objectId_role.revisionId}:${where.revisionId_objectId_role.objectId}:${where.revisionId_objectId_role.role}`;
-      const existing = state.links.get(key);
-      if (existing) {
-        Object.assign(existing, args.update);
-        return existing;
-      }
-      const created = { id: id("link"), ...objectValue(args.create) };
-      state.links.set(key, created);
-      return created;
-    },
-  );
-
-  tx.publicationEventOutbox.upsert.mockImplementation(
-    async (args: QueryArgs) => {
-      const where = value<{ eventId: string }>(args.where);
-      const existing = state.events.get(where.eventId);
-      if (existing) return existing;
-      const created = { id: id("event"), ...objectValue(args.create) };
-      state.events.set(where.eventId, created);
-      return created;
-    },
-  );
+    return { count };
+  }
 
   const prisma = {
     $transaction: vi.fn(
@@ -1119,44 +1089,56 @@ describe("publication ingestion transaction", () => {
     );
   });
 
-  it("retries an interactive transaction timeout and commits on a later attempt", async () => {
-    fake.prisma.$transaction.mockImplementationOnce(() =>
-      Promise.reject(transactionTimeoutError()),
-    );
+  it("returns an interactive transaction timeout without repeating the same work", async () => {
+    const error = transactionTimeoutError();
+    fake.prisma.$transaction.mockRejectedValueOnce(error);
+    const payload = payloadFor({}, "batch-transaction-timeout");
 
-    const payload = payloadFor({}, "batch-transaction-timeout-retry");
+    await expect(ingestPublicationBatch({ payload, principal })).rejects.toBe(
+      error,
+    );
+    expect(fake.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(fake.state.batches.size).toBe(0);
+    expect(fake.state.publications.size).toBe(0);
+  });
+
+  it("retries a serialization conflict and commits without duplicating the batch", async () => {
+    fake.prisma.$transaction.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("Write conflict", {
+        code: "P2034",
+        clientVersion: "test",
+      }),
+    );
+    const payload = payloadFor({}, "batch-serialization-retry");
     const response = await ingestPublicationBatch({ payload, principal });
 
-    expect(response.batchId).toBe("batch-transaction-timeout-retry");
-    expect(response.results).toHaveLength(1);
     expect(response.results[0].status).toBe("created");
     expect(fake.prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(fake.state.batches.size).toBe(1);
     expect(fake.state.publications.size).toBe(1);
   });
 
-  it("rethrows the transaction timeout after exhausting all attempts", async () => {
-    const error = transactionTimeoutError();
+  it("bounds repeated serialization conflicts", async () => {
+    const error = new Prisma.PrismaClientKnownRequestError("Write conflict", {
+      code: "P2034",
+      clientVersion: "test",
+    });
     for (
       let attempt = 0;
       attempt < PUBLICATION_INGESTION_TRANSACTION_MAX_ATTEMPTS;
       attempt += 1
     ) {
-      fake.prisma.$transaction.mockImplementationOnce(() =>
-        Promise.reject(error),
-      );
+      fake.prisma.$transaction.mockRejectedValueOnce(error);
     }
-
-    const payload = payloadFor({}, "batch-transaction-timeout-exhausted");
-    await expect(ingestPublicationBatch({ payload, principal })).rejects.toBe(
-      error,
-    );
-
+    await expect(
+      ingestPublicationBatch({
+        payload: payloadFor({}, "batch-serialization-exhausted"),
+        principal,
+      }),
+    ).rejects.toBe(error);
     expect(fake.prisma.$transaction).toHaveBeenCalledTimes(
       PUBLICATION_INGESTION_TRANSACTION_MAX_ATTEMPTS,
     );
-    expect(fake.state.batches.size).toBe(0);
-    expect(fake.state.publications.size).toBe(0);
   });
 
   it("does not retry non-transient transaction failures", async () => {
