@@ -225,9 +225,8 @@ for (const entry of ["rest-batch", "graphql"] as const) {
         );
         expect(afterText).not.toContain("BEGIN:VEVENT");
       } finally {
-        // Observe committed membership and actual KV even on a missing consumer;
+        // Observe actual KV even on a missing consumer;
         // never call the feed route, which could rebuild and conceal this bug.
-        await memberships();
         await readCalendar();
         await readEffects();
       }

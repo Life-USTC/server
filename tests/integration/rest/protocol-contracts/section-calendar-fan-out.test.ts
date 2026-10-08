@@ -240,7 +240,6 @@ for (const operation of ["create", "update", "delete"] as const) {
           }
         }
       } finally {
-        await db.userSectionSubscription.findMany();
         await Promise.all(actors.map((actor) => read(actor.id)));
       }
     });
