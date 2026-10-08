@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { parseConfigFileTextToJson } from "typescript";
 import { expect, it } from "vitest";
 import { getPlatformProxy } from "wrangler";
@@ -114,6 +115,12 @@ it("subscription.per-user-rate-limit", { timeout: 60_000 }, async () => {
           body: JSON.stringify({ sectionIds: [sectionId] }),
         },
       );
+    // The real binding resets at wall-clock minute boundaries. Reserve half a
+    // window so the request sequence tests one quota, even when CI starts late.
+    const periodMs = batch.simple.period * 1000;
+    const remainingMs = periodMs - (Date.now() % periodMs);
+    if (remainingMs < periodMs / 2) await delay(remainingMs + 100);
+    const windowEpoch = Math.floor(Date.now() / periodMs);
     await runWithCloudflareRuntimeEnv(env, async () => {
       for (let i = 0; i < batch.simple.limit; i++) {
         expect(
@@ -124,6 +131,10 @@ it("subscription.per-user-rate-limit", { timeout: 60_000 }, async () => {
       const rejected = await patchCalendarSubscriptionsRoute(
         request(0, second.id),
       );
+      expect(
+        Math.floor(Date.now() / periodMs),
+        "The rate-limit request sequence must stay within one quota window",
+      ).toBe(windowEpoch);
       expect(rejected.status).toBe(429);
       expect(rejected.headers.get("retry-after")).toBe(
         String(batch.simple.period),
