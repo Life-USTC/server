@@ -49,12 +49,8 @@ describe("domain expectation references", () => {
     ).toBe(false);
     expect(valid({ ...window, notification: "whatever" })).toBe(false);
   });
-  it("resolves source exports and reports locator fields separately", () => {
-    expect(validateDomainExpectation(window, { root })).toEqual({
-      errors: [],
-      validatedPaths: [],
-      bindingPaths: ["/operation/module", "/operation/export"],
-    });
+  it("resolves source exports and rejects missing exports or non-source files", () => {
+    expect(validateDomainExpectation(window, { root }).errors).toEqual([]);
     expect(
       validateDomainExpectation(
         { ...window, operation: { ...operation, export: "missingOperation" } },
@@ -71,8 +67,8 @@ describe("domain expectation references", () => {
           },
         },
         { root },
-      ).bindingPaths,
-    ).toEqual([]);
+      ).errors.join(" "),
+    ).toContain("source reference escapes repository source");
   });
   it("rejects an existing source file outside the repository", () => {
     const directory = mkdtempSync(join(tmpdir(), "spec-source-boundary-"));
@@ -86,7 +82,6 @@ describe("domain expectation references", () => {
       expect(result.errors.join(" ")).toContain(
         "source reference escapes repository source",
       );
-      expect(result.bindingPaths).toEqual([]);
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
@@ -95,11 +90,11 @@ describe("domain expectation references", () => {
     expect(
       validateDomainExpectation(projection, { root }).errors.join(" "),
     ).toContain("requires the generated OpenAPI");
-    const result = validateDomainExpectation(projection, { root, openapi });
+    const result = validateDomainExpectation(
+      { ...projection, nested_fields: { department: ["id"] } },
+      { root, openapi },
+    );
     expect(result.errors).toEqual([]);
-    expect(result.validatedPaths).toContain("/preserves/department~1id");
-    expect(result.bindingPaths).not.toContain("/fields/0");
-    expect(result.bindingPaths).not.toContain("/preserves/department~1id");
   });
   it("rejects misspelled schema, projection and preserved-value paths", () => {
     for (const changed of [
@@ -118,7 +113,6 @@ describe("domain expectation references", () => {
     ]) {
       const result = validateDomainExpectation(changed, { root, openapi });
       expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.bindingPaths).toEqual([]);
     }
   });
   it("requires a model catalog and rejects invented order fields", () => {
