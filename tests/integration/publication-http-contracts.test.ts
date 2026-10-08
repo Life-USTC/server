@@ -72,6 +72,9 @@ async function post(
 beforeAll(async () => {
   vi.stubEnv("PUBLICATION_INGESTION_SECRET", secret);
   server = createServer(async (incoming, outgoing) => {
+    // MCP work between HTTP requests can outlast the server's idle timeout.
+    // Close each response so fetch cannot reuse an expired fixture connection.
+    outgoing.shouldKeepAlive = false;
     try {
       const request = await getRequest({ request: incoming, base: origin });
       const path = new URL(request.url).pathname;
