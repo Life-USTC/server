@@ -118,7 +118,6 @@ export const test = workerTest.extend<{
       ownerRole,
     },
     use,
-    testInfo,
   ) => {
     const db = isolatedWorker.database.owner;
     const origin = isolatedWorker.origin;
@@ -263,18 +262,6 @@ export const test = workerTest.extend<{
                   errors: [],
                 });
             }
-            await testInfo.attach("todo-ownership-effects", {
-              body: JSON.stringify({
-                database: isolatedWorker.database.name,
-                origin,
-                clientNames,
-                completed,
-                calendarRebuilds,
-                producer,
-                consumers,
-              }),
-              contentType: "application/json",
-            });
           } catch (error) {
             errors.push(error);
           } finally {

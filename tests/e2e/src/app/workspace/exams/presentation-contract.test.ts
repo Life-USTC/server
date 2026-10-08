@@ -146,12 +146,7 @@ test("exam.semester-required", { tag: "@Exam/Web" }, async ({
         await filters(page)
           .getByRole("radio", { name: "All", exact: true })
           .click();
-        await page.screenshot({
-          path: test
-            .info()
-            .outputPath(`life-spec-business-exam-semester-${width}.png`),
-          fullPage: true,
-        });
+
         for (const [section, semester] of [
           [data.currentSection, data.current],
           [data.section, data.past],
@@ -257,10 +252,7 @@ test("exam.mobile-display-overflow", { tag: "@Exam/Web" }, async ({
       await filters(page)
         .getByRole("radio", { name: "All", exact: true })
         .click();
-      await page.screenshot({
-        path: test.info().outputPath("life-spec-business-exam-overflow.png"),
-        fullPage: true,
-      });
+
       const trigger = page.getByTestId("workspace-exams-view-menu");
       await expect(trigger).toBeVisible();
       await trigger.focus();
@@ -279,10 +271,7 @@ test("exam.mobile-display-overflow", { tag: "@Exam/Web" }, async ({
       await expect(page.getByRole("table")).toBeVisible();
       await expect(page.getByTestId("workspace-exams-cards")).toBeHidden();
       await expect(trigger).toBeFocused();
-      await page.screenshot({
-        path: test.info().outputPath("life-spec-business-exam-list-after.png"),
-        fullPage: true,
-      });
+
       await page.keyboard.press("Enter");
       const cards = page.getByRole("menuitemradio", {
         name: "Card",
@@ -301,12 +290,7 @@ test("exam.mobile-display-overflow", { tag: "@Exam/Web" }, async ({
       await expect(page.getByTestId("workspace-exams-cards")).toBeVisible();
       await expect(page.getByRole("table")).toBeHidden();
       await expect(trigger).toBeFocused();
-      await page.screenshot({
-        path: test
-          .info()
-          .outputPath("life-spec-business-exam-overflow-after.png"),
-        fullPage: true,
-      });
+
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,

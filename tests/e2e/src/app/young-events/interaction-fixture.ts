@@ -64,7 +64,6 @@ export const test = calendarTest.extend<{
   youngRun: async (
     { calendar, calendarDb, calendarRun, page, request, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work) => {
@@ -283,10 +282,6 @@ export const test = calendarTest.extend<{
                   expect(effects.messages).toEqual([]);
                   expect(effects.purges).toEqual([]);
                   expect(effects.backgroundErrors).toEqual([]);
-                  await testInfo.attach("young-interface-read-effects", {
-                    body: JSON.stringify({ externalReads, actual }, null, 2),
-                    contentType: "application/json",
-                  });
                 }
                 expect(await storedState()).toEqual(before);
                 expect(await calendarDb((db) => db.auditLog.count())).toBe(0);

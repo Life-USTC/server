@@ -76,15 +76,7 @@ test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
               await page.goto(
                 `/workspace/overview?snapshotAt=${encodeURIComponent(time)}&overviewWeek=2026-04-27`,
               );
-              if (!mixed && time.includes("09:30"))
-                await page.screenshot({
-                  path: test
-                    .info()
-                    .outputPath(
-                      `life-spec-business-overview-current-term-${locale}-${width}.png`,
-                    ),
-                  fullPage: true,
-                });
+
               const focus = page.getByTestId("workspace-overview-focus");
               await expect(focus).toContainText(title);
               await expect(focus.getByRole("link")).toHaveAttribute(

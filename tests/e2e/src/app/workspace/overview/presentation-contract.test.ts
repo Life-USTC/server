@@ -341,14 +341,7 @@ test("overview.workspace-card-disambiguation", {
           const focus = page.getByTestId("workspace-overview-focus");
           await expect(focus).toContainText(String(fixture.course.nameEn));
           await expect(focus).toContainText(String(campus.nameEn));
-          await page.screenshot({
-            path: test
-              .info()
-              .outputPath(
-                `life-spec-business-overview-context-${width}-${time.replace(":", "")}.png`,
-              ),
-            fullPage: true,
-          });
+
           await expect(focus).toContainText(String(section.code));
           const today = page.getByTestId("workspace-overview-today-overdue");
           for (const [item, place] of [

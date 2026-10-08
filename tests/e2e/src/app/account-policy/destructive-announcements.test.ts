@@ -3,106 +3,94 @@ import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "./destructive-security-fixture";
 
-test(
-  "cases.content-security.destructive-actions-1",
-  { tag: "@Account/Web" },
-  async ({ page, deletionAnnouncementRun }, testInfo) => {
-    await deletionAnnouncementRun(async (f) => {
-      const marker = f.marker;
-      const owner = f.actor;
-      const localeResponse = await page.request.post(
-        "/api/account/preferences",
-        {
-          data: { locale: "en-us" },
-        },
-      );
-      await localeResponse.body();
-      expect(localeResponse.status()).toBe(200);
-      const created = await page.request.post("/api/community/comments", {
-        data: {
-          targetType: "section",
-          sectionJwId: f.section.jwId,
-          body: marker,
-        },
-      });
-      expect(created.status()).toBe(201);
-      const body = await created.json();
-      const commentId = body.id;
-      f.ids.comment = commentId;
-      expect(commentId).toEqual(expect.any(String));
-      await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
-      const comment = page.locator(`#comment-${commentId}`);
+test("cases.content-security.destructive-actions-1", {
+  tag: "@Account/Web",
+}, async ({ page, deletionAnnouncementRun }) => {
+  await deletionAnnouncementRun(async (f) => {
+    const marker = f.marker;
+    const owner = f.actor;
+    const localeResponse = await page.request.post("/api/account/preferences", {
+      data: { locale: "en-us" },
+    });
+    await localeResponse.body();
+    expect(localeResponse.status()).toBe(200);
+    const created = await page.request.post("/api/community/comments", {
+      data: {
+        targetType: "section",
+        sectionJwId: f.section.jwId,
+        body: marker,
+      },
+    });
+    expect(created.status()).toBe(201);
+    const body = await created.json();
+    const commentId = body.id;
+    f.ids.comment = commentId;
+    expect(commentId).toEqual(expect.any(String));
+    await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
+    const comment = page.locator(`#comment-${commentId}`);
+    await expect(comment).toContainText(marker);
+    await comment
+      .getByRole("button", { name: "More actions", exact: true })
+      .click();
+    await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+    const dialog = page.getByRole("alertdialog");
+    const confirm = dialog.getByRole("button", {
+      name: "Delete",
+      exact: true,
+    });
+    const unchanged = async () => {
       await expect(comment).toContainText(marker);
-      await comment
-        .getByRole("button", { name: "More actions", exact: true })
-        .click();
-      await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
-      const dialog = page.getByRole("alertdialog");
-      const confirm = dialog.getByRole("button", {
-        name: "Delete",
-        exact: true,
-      });
-      const unchanged = async () => {
-        await expect(comment).toContainText(marker);
-        expect(
-          await f.db.comment.findUnique({
-            where: { id: commentId },
-            select: { status: true },
-          }),
-        ).toEqual({ status: "active" });
-        await expect(
-          page
-            .locator("[data-sonner-toast]")
-            .filter({ hasText: "Comment deleted" }),
-        ).toHaveCount(0);
-      };
-      // A newly persisted suspension revokes writes after the deletion dialog opens.
-      const suspension = await f.db.userSuspension.create({
-        data: { userId: owner.id, reason: marker },
-      });
-      const refused = await observeAction(
-        () =>
-          page.waitForResponse(
-            (response) =>
-              response.url().endsWith(`/api/community/comments/${commentId}`) &&
-              response.request().method() === "DELETE",
-          ),
-        () => confirm.click(),
-      );
-      expect(refused.status()).toBe(403);
-      await page.screenshot({
-        path: testInfo.outputPath("comment-deletion-refused.png"),
-        fullPage: true,
-      });
-      await expect(dialog.getByRole("alert")).toHaveText(
-        "Couldn't post comment",
-      );
-      await unchanged();
-      await f.db.userSuspension.delete({ where: { id: suspension.id } });
-      await f.abortNextWrite();
-      await confirm.click();
-      await expect(dialog.getByRole("alert")).toHaveText("Failed to fetch");
-      await unchanged();
-      await f.clearRoutes();
-      await confirm.click();
-      await expect(dialog).toHaveCount(0);
-      await expect(
-        page
-          .locator(
-            '[data-sonner-toast][aria-live="polite"][aria-atomic="true"]',
-          )
-          .filter({ hasText: "Comment deleted" }),
-      ).toBeVisible();
-      await expect(comment).toHaveCount(0);
       expect(
         await f.db.comment.findUnique({
           where: { id: commentId },
           select: { status: true },
         }),
-      ).toEqual({ status: "deleted" });
+      ).toEqual({ status: "active" });
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: "Comment deleted" }),
+      ).toHaveCount(0);
+    };
+    // A newly persisted suspension revokes writes after the deletion dialog opens.
+    const suspension = await f.db.userSuspension.create({
+      data: { userId: owner.id, reason: marker },
     });
-  },
-);
+    const refused = await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().endsWith(`/api/community/comments/${commentId}`) &&
+            response.request().method() === "DELETE",
+        ),
+      () => confirm.click(),
+    );
+    expect(refused.status()).toBe(403);
+
+    await expect(dialog.getByRole("alert")).toHaveText("Couldn't post comment");
+    await unchanged();
+    await f.db.userSuspension.delete({ where: { id: suspension.id } });
+    await f.abortNextWrite();
+    await confirm.click();
+    await expect(dialog.getByRole("alert")).toHaveText("Failed to fetch");
+    await unchanged();
+    await f.clearRoutes();
+    await confirm.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(
+      page
+        .locator('[data-sonner-toast][aria-live="polite"][aria-atomic="true"]')
+        .filter({ hasText: "Comment deleted" }),
+    ).toBeVisible();
+    await expect(comment).toHaveCount(0);
+    expect(
+      await f.db.comment.findUnique({
+        where: { id: commentId },
+        select: { status: true },
+      }),
+    ).toEqual({ status: "deleted" });
+  });
+});
 
 test("cases.content-security.destructive-actions-2", {
   tag: "@Account/Web",

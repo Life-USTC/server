@@ -139,131 +139,124 @@ const test = workerTest.extend<{
 
 const visibleRows = (page: Page) => page.locator("tbody:visible tr");
 
-test(
-  "upload.web-list",
-  { tag: "@Upload/Web" },
-  async ({ page, request, owned, uploadRun }, testInfo) => {
-    await uploadRun(async () => {
-      const other = await owned.db.$transaction((db) =>
-        db.user.create({
-          data: {
-            name: "Other upload owner",
-            email: `${crypto.randomUUID()}@example.test`,
-          },
-        }),
-      );
-      const signedOut = await request.get("/workspace/uploads?page=2", {
-        maxRedirects: 0,
-      });
-      expect(signedOut.status()).toBe(303);
-      expect(signedOut.headers().location).toBe(
-        "/account/sign-in?callbackUrl=%2Fworkspace%2Fuploads%3Fpage%3D2",
-      );
-      await owned.db.$transaction(async (db) => {
-        for (let index = 0; index < 21; index++)
-          await db.upload.create({
-            data: {
-              userId: owned.user.id,
-              key: `uploads/${owned.user.id}/${index}`,
-              filename: `material-${String(index).padStart(2, "0")}.txt`,
-              size: 1024,
-              contentType: "text/plain",
-              createdAt: new Date(Date.UTC(2026, 0, 1, 0, index)),
-            },
-          });
+test("upload.web-list", { tag: "@Upload/Web" }, async ({
+  page,
+  request,
+  owned,
+  uploadRun,
+}) => {
+  await uploadRun(async () => {
+    const other = await owned.db.$transaction((db) =>
+      db.user.create({
+        data: {
+          name: "Other upload owner",
+          email: `${crypto.randomUUID()}@example.test`,
+        },
+      }),
+    );
+    const signedOut = await request.get("/workspace/uploads?page=2", {
+      maxRedirects: 0,
+    });
+    expect(signedOut.status()).toBe(303);
+    expect(signedOut.headers().location).toBe(
+      "/account/sign-in?callbackUrl=%2Fworkspace%2Fuploads%3Fpage%3D2",
+    );
+    await owned.db.$transaction(async (db) => {
+      for (let index = 0; index < 21; index++)
         await db.upload.create({
           data: {
-            userId: other.id,
-            key: `uploads/${other.id}/private`,
-            filename: "other-private-file.txt",
-            size: 7,
+            userId: owned.user.id,
+            key: `uploads/${owned.user.id}/${index}`,
+            filename: `material-${String(index).padStart(2, "0")}.txt`,
+            size: 1024,
             contentType: "text/plain",
+            createdAt: new Date(Date.UTC(2026, 0, 1, 0, index)),
           },
         });
+      await db.upload.create({
+        data: {
+          userId: other.id,
+          key: `uploads/${other.id}/private`,
+          filename: "other-private-file.txt",
+          size: 7,
+          contentType: "text/plain",
+        },
       });
-      await page.setViewportSize({ width: 1440, height: 1000 });
-      const response = await page.goto("/workspace/uploads");
-      expect(response?.headers()["cache-control"]).toContain(
-        "private, no-store",
-      );
-      await assertPageContract(page, {
-        routePath: "/workspace/uploads",
-      });
-      await expect(
-        page.getByRole("heading", { name: "My Uploads", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: "My Uploads", exact: true }),
-      ).toBeVisible();
-      await expect(visibleRows(page)).toHaveCount(20);
-      await expect(visibleRows(page).first()).toContainText("material-20.txt");
-      await expect(visibleRows(page).first()).toContainText("1.0 KB");
-      await expect(visibleRows(page).first().locator("time")).toHaveAttribute(
-        "datetime",
-        "2026-01-01T00:20:00.000Z",
-      );
-      await expect(visibleRows(page).first().locator("time")).toContainText(
-        "8:20",
-      );
-      await expect(
-        page.getByText(`21 KB of ${owned.quotaLabel} used`, { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Up to 50 MB per file", { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText("other-private-file.txt", { exact: true }),
-      ).toHaveCount(0);
-      await page.screenshot({
-        path: testInfo.outputPath("uploads-desktop-after.png"),
-        fullPage: true,
-      });
-      await page.getByRole("link", { name: "Next page", exact: true }).click();
-      await expect(page).toHaveURL(/page=2$/);
-      await expect(visibleRows(page)).toHaveCount(1);
-      await expect(visibleRows(page).first()).toContainText("material-00.txt");
-      await page.goto("/workspace/uploads?page=900");
-      await expect(page).toHaveURL(/page=2$/);
-      await page.setViewportSize({ width: 390, height: 844 });
-      await gotoAndWaitForReady(page, "/workspace/overview");
-      await page.getByRole("button", { name: "Menu", exact: true }).click();
-      await page.getByRole("link", { name: "My Uploads", exact: true }).click();
-      await expect(page).toHaveURL(/\/workspace\/uploads$/);
-      await assertPageContract(page, {
-        routePath: "/workspace/uploads",
-      });
-      await expect(
-        page.getByRole("listitem").filter({ hasText: "material-20.txt" }),
-      ).toBeVisible();
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= innerWidth,
-        ),
-      ).toBe(true);
-      await page.screenshot({
-        path: testInfo.outputPath("uploads-mobile-after.png"),
-        fullPage: true,
-      });
-      expect(
-        (
-          await page.request.post("/api/account/preferences", {
-            data: { locale: "zh-cn" },
-          })
-        ).status(),
-      ).toBe(200);
-      await page.reload();
-      await expect(
-        page.getByRole("heading", { name: "我的上传", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", {
-          name: "重命名 material-20.txt",
-          exact: true,
-        }),
-      ).toBeVisible();
     });
-  },
-);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    const response = await page.goto("/workspace/uploads");
+    expect(response?.headers()["cache-control"]).toContain("private, no-store");
+    await assertPageContract(page, {
+      routePath: "/workspace/uploads",
+    });
+    await expect(
+      page.getByRole("heading", { name: "My Uploads", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "My Uploads", exact: true }),
+    ).toBeVisible();
+    await expect(visibleRows(page)).toHaveCount(20);
+    await expect(visibleRows(page).first()).toContainText("material-20.txt");
+    await expect(visibleRows(page).first()).toContainText("1.0 KB");
+    await expect(visibleRows(page).first().locator("time")).toHaveAttribute(
+      "datetime",
+      "2026-01-01T00:20:00.000Z",
+    );
+    await expect(visibleRows(page).first().locator("time")).toContainText(
+      "8:20",
+    );
+    await expect(
+      page.getByText(`21 KB of ${owned.quotaLabel} used`, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Up to 50 MB per file", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("other-private-file.txt", { exact: true }),
+    ).toHaveCount(0);
+
+    await page.getByRole("link", { name: "Next page", exact: true }).click();
+    await expect(page).toHaveURL(/page=2$/);
+    await expect(visibleRows(page)).toHaveCount(1);
+    await expect(visibleRows(page).first()).toContainText("material-00.txt");
+    await page.goto("/workspace/uploads?page=900");
+    await expect(page).toHaveURL(/page=2$/);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, "/workspace/overview");
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByRole("link", { name: "My Uploads", exact: true }).click();
+    await expect(page).toHaveURL(/\/workspace\/uploads$/);
+    await assertPageContract(page, {
+      routePath: "/workspace/uploads",
+    });
+    await expect(
+      page.getByRole("listitem").filter({ hasText: "material-20.txt" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+
+    expect(
+      (
+        await page.request.post("/api/account/preferences", {
+          data: { locale: "zh-cn" },
+        })
+      ).status(),
+    ).toBe(200);
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "我的上传", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: "重命名 material-20.txt",
+        exact: true,
+      }),
+    ).toBeVisible();
+  });
+});
 
 test("upload.web-rename", { tag: "@Upload/Web" }, async ({
   page,
@@ -341,84 +334,81 @@ test("upload.web-rename", { tag: "@Upload/Web" }, async ({
   });
 });
 
-test(
-  "upload.web-delete-feedback",
-  { tag: "@Upload/Web" },
-  async ({ page, owned, uploadRun }, testInfo) => {
-    await uploadRun(async () => {
-      const id = await owned.upload();
-      await gotoAndWaitForReady(page, "/workspace/uploads");
-      await page
-        .getByRole("button", { name: "Delete lecture-notes.txt", exact: true })
-        .click();
-      const dialog = page.getByRole("alertdialog", {
-        name: "Delete",
-        exact: true,
-      });
-      const confirm = dialog.getByRole("button", {
-        name: "Delete",
-        exact: true,
-      });
-      const suspension = await owned.db.$transaction((db) =>
-        db.userSuspension.create({
-          data: {
-            userId: owned.user.id,
-            reason: "Test current write authorization",
-          },
-        }),
-      );
-      const rejected = await observeAction(
-        () =>
-          page.waitForResponse(
-            (r) =>
-              r.url().endsWith(`/api/workspace/uploads/${id}`) &&
-              r.request().method() === "DELETE",
-          ),
-        () => confirm.click(),
-      );
-      expect(rejected.status()).toBe(403);
-      await expect(dialog.getByRole("alert")).toHaveText(
-        "We couldn't delete the file.",
-      );
-      expect(
-        await owned.db.$transaction((db) => db.upload.count({ where: { id } })),
-      ).toBe(1);
-      expect(
-        await (
-          await page.request.get(`/api/workspace/uploads/${id}/download`)
-        ).text(),
-      ).toBe("Learning material");
-      await expect(
-        page.locator("[data-sonner-toast]").filter({ hasText: "File deleted" }),
-      ).toHaveCount(0);
-      await owned.db.$transaction((db) =>
-        db.userSuspension.delete({ where: { id: suspension.id } }),
-      );
-      await page.screenshot({
-        path: testInfo.outputPath("uploads-confirmation-after.png"),
-        fullPage: true,
-      });
-      await confirm.click();
-      await expect(dialog).toHaveCount(0);
-      await expect(
-        page.getByText("No uploads yet", { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText(`0 B of ${owned.quotaLabel} used`, { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page
-          .locator('[data-sonner-toast][aria-live="polite"]')
-          .filter({ hasText: "File deleted" }),
-      ).toBeVisible();
-      expect(
-        (
-          await page.request.get(`/api/workspace/uploads/${id}/download`)
-        ).status(),
-      ).toBe(404);
+test("upload.web-delete-feedback", { tag: "@Upload/Web" }, async ({
+  page,
+  owned,
+  uploadRun,
+}) => {
+  await uploadRun(async () => {
+    const id = await owned.upload();
+    await gotoAndWaitForReady(page, "/workspace/uploads");
+    await page
+      .getByRole("button", { name: "Delete lecture-notes.txt", exact: true })
+      .click();
+    const dialog = page.getByRole("alertdialog", {
+      name: "Delete",
+      exact: true,
     });
-  },
-);
+    const confirm = dialog.getByRole("button", {
+      name: "Delete",
+      exact: true,
+    });
+    const suspension = await owned.db.$transaction((db) =>
+      db.userSuspension.create({
+        data: {
+          userId: owned.user.id,
+          reason: "Test current write authorization",
+        },
+      }),
+    );
+    const rejected = await observeAction(
+      () =>
+        page.waitForResponse(
+          (r) =>
+            r.url().endsWith(`/api/workspace/uploads/${id}`) &&
+            r.request().method() === "DELETE",
+        ),
+      () => confirm.click(),
+    );
+    expect(rejected.status()).toBe(403);
+    await expect(dialog.getByRole("alert")).toHaveText(
+      "We couldn't delete the file.",
+    );
+    expect(
+      await owned.db.$transaction((db) => db.upload.count({ where: { id } })),
+    ).toBe(1);
+    expect(
+      await (
+        await page.request.get(`/api/workspace/uploads/${id}/download`)
+      ).text(),
+    ).toBe("Learning material");
+    await expect(
+      page.locator("[data-sonner-toast]").filter({ hasText: "File deleted" }),
+    ).toHaveCount(0);
+    await owned.db.$transaction((db) =>
+      db.userSuspension.delete({ where: { id: suspension.id } }),
+    );
+
+    await confirm.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(
+      page.getByText("No uploads yet", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(`0 B of ${owned.quotaLabel} used`, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('[data-sonner-toast][aria-live="polite"]')
+        .filter({ hasText: "File deleted" }),
+    ).toBeVisible();
+    expect(
+      (
+        await page.request.get(`/api/workspace/uploads/${id}/download`)
+      ).status(),
+    ).toBe(404);
+  });
+});
 
 test("cases.content-security.deletion-confirmation", {
   tag: "@Upload/Web",

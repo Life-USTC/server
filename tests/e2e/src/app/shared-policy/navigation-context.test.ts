@@ -179,13 +179,7 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
           const next = nav.locator(`a[href="${paths[index + 1]}"]`);
           await expect(next).toBeFocused();
           await insideHorizontalViewport(next, viewport);
-          if (width === 390 && index === 1)
-            await page.screenshot({
-              path: test
-                .info()
-                .outputPath("life-spec-business-context-nav-after390.png"),
-              fullPage: true,
-            });
+
           await page.keyboard.press("Enter");
           await expect(page).toHaveURL(new RegExp(`${paths[index + 1]}$`));
         }

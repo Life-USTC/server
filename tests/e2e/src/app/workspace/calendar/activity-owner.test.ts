@@ -201,14 +201,7 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
               await expect(page.locator("body")).not.toContainText(
                 fixtures[0].young.name,
               );
-              await page.screenshot({
-                path: test
-                  .info()
-                  .outputPath(
-                    `life-spec-business-calendar-owner-after-${ownerIndex}-${pending}.png`,
-                  ),
-                fullPage: true,
-              });
+
               expect(
                 await page.evaluate(
                   () =>

@@ -1,8 +1,4 @@
-import {
-  type APIRequestContext,
-  expect,
-  type TestInfo,
-} from "@playwright/test";
+import { type APIRequestContext, expect } from "@playwright/test";
 import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
@@ -13,7 +9,6 @@ async function publicList(
   request: APIRequestContext,
   kind: "courses" | "sections" | "teachers",
   isolatedWorker: IsolatedWorker,
-  testInfo: TestInfo,
 ) {
   const db = isolatedWorker.database.owner;
   const { fixture, user } = await db.$transaction(async (tx) => {
@@ -118,10 +113,7 @@ async function publicList(
       await response.body();
       expect(response.status()).toBe(200);
       const effects = await response.json();
-      await testInfo.attach("public-list-effects", {
-        contentType: "application/json",
-        body: JSON.stringify(effects),
-      });
+
       expect(effects.backgroundErrors).toEqual([]);
       expect(effects.messages).toEqual([]);
       expect(effects.purges).toEqual([]);
@@ -176,24 +168,24 @@ async function publicList(
     throw new AggregateError(errors, "Public list HTTP workflow failed");
 }
 
-test(
-  "course.public-list-cache",
-  { tag: "@Course/REST" },
-  async ({ request, isolatedWorker, run }, testInfo) => {
-    await run(() => publicList(request, "courses", isolatedWorker, testInfo));
-  },
-);
-test(
-  "section.public-list-cache",
-  { tag: "@Section/REST" },
-  async ({ request, isolatedWorker, run }, testInfo) => {
-    await run(() => publicList(request, "sections", isolatedWorker, testInfo));
-  },
-);
-test(
-  "teacher.public-list-cache",
-  { tag: "@Teacher/REST" },
-  async ({ request, isolatedWorker, run }, testInfo) => {
-    await run(() => publicList(request, "teachers", isolatedWorker, testInfo));
-  },
-);
+test("course.public-list-cache", { tag: "@Course/REST" }, async ({
+  request,
+  isolatedWorker,
+  run,
+}) => {
+  await run(() => publicList(request, "courses", isolatedWorker));
+});
+test("section.public-list-cache", { tag: "@Section/REST" }, async ({
+  request,
+  isolatedWorker,
+  run,
+}) => {
+  await run(() => publicList(request, "sections", isolatedWorker));
+});
+test("teacher.public-list-cache", { tag: "@Teacher/REST" }, async ({
+  request,
+  isolatedWorker,
+  run,
+}) => {
+  await run(() => publicList(request, "teachers", isolatedWorker));
+});

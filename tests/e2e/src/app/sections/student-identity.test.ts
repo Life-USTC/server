@@ -148,54 +148,47 @@ test("section.student-identity-teachers", { tag: "@Section/Web" }, async ({
   });
 });
 
-test(
-  "search.section-student-identity-teachers",
-  { tag: "@Search/Web" },
-  async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
-    await run(async () => {
-      const db = isolatedWorker.database.owner;
-      const fixture = await createIdentityFixture(db);
+test("search.section-student-identity-teachers", {
+  tag: "@Search/Web",
+}, async ({ page, isolatedWorker, preferenceFlow, run }) => {
+  await run(async () => {
+    const db = isolatedWorker.database.owner;
+    const fixture = await createIdentityFixture(db);
 
-      const baseline = await initialIdentityState(db);
-      await preferenceFlow.run(async () => {
-        const locale = await preferenceFlow.http(() =>
-          page.request.post("/api/account/preferences", {
-            data: { locale: "zh-cn" },
-          }),
-        );
-        expect(locale.status()).toBe(200);
-        await page.setViewportSize({ width: 1280, height: 900 });
-        await gotoAndWaitForReady(
-          page,
-          `/search?q=${encodeURIComponent(fixture.course.nameCn)}`,
-        );
-        const withTeacher = page
-          .getByRole("option")
-          .filter({ hasText: fixture.section.code });
-        const withoutTeacher = page
-          .getByRole("option")
-          .filter({ hasText: fixture.unassigned.code });
-        await expect(withTeacher).toBeVisible();
-        await expect(withoutTeacher).toBeVisible();
-        await page.screenshot({
-          path: testInfo.outputPath("section-identity-search.png"),
-          fullPage: true,
-        });
-        await expect(withTeacher.locator(".font-medium")).toHaveText(
-          `${fixture.course.nameCn} · ${fixture.teacher.nameCn}`,
-        );
-        await expect(withoutTeacher.locator(".font-medium")).toHaveText(
-          fixture.course.nameCn,
-        );
-        await expectMonospace(
-          withTeacher.locator('[data-slot="catalog-code"]'),
-        );
-        await expectMonospace(
-          withoutTeacher.locator('[data-slot="catalog-code"]'),
-        );
-      });
-      expect(await publicIdentityState(db)).toEqual(baseline);
-      await expectPublicIdentityEffectsEmpty(db);
+    const baseline = await initialIdentityState(db);
+    await preferenceFlow.run(async () => {
+      const locale = await preferenceFlow.http(() =>
+        page.request.post("/api/account/preferences", {
+          data: { locale: "zh-cn" },
+        }),
+      );
+      expect(locale.status()).toBe(200);
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await gotoAndWaitForReady(
+        page,
+        `/search?q=${encodeURIComponent(fixture.course.nameCn)}`,
+      );
+      const withTeacher = page
+        .getByRole("option")
+        .filter({ hasText: fixture.section.code });
+      const withoutTeacher = page
+        .getByRole("option")
+        .filter({ hasText: fixture.unassigned.code });
+      await expect(withTeacher).toBeVisible();
+      await expect(withoutTeacher).toBeVisible();
+
+      await expect(withTeacher.locator(".font-medium")).toHaveText(
+        `${fixture.course.nameCn} · ${fixture.teacher.nameCn}`,
+      );
+      await expect(withoutTeacher.locator(".font-medium")).toHaveText(
+        fixture.course.nameCn,
+      );
+      await expectMonospace(withTeacher.locator('[data-slot="catalog-code"]'));
+      await expectMonospace(
+        withoutTeacher.locator('[data-slot="catalog-code"]'),
+      );
     });
-  },
-);
+    expect(await publicIdentityState(db)).toEqual(baseline);
+    await expectPublicIdentityEffectsEmpty(db);
+  });
+});

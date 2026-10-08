@@ -314,7 +314,7 @@ for (const width of [1280, 390]) {
   privateTest(
     `calendar has all pages, day drilldown, and independent registration times at ${width}px`,
     { tag: "@Young/Web" },
-    async ({ page, isolatedWorker, preferenceFlow, run }, testInfo) => {
+    async ({ page, isolatedWorker, preferenceFlow, run }) => {
       await run(async () => {
         const db = isolatedWorker.database.owner;
         const events: YoungEvent[] = [];
@@ -396,10 +396,7 @@ for (const width of [1280, 390]) {
               () => document.documentElement.scrollWidth <= window.innerWidth,
             ),
           ).toBe(true);
-          await page.screenshot({
-            path: testInfo.outputPath(`young-calendar-${width}.png`),
-            fullPage: true,
-          });
+
           expect(errors).toEqual([]);
         });
         expect(

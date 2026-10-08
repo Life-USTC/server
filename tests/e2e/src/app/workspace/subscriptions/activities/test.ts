@@ -188,12 +188,6 @@ for (const viewport of [
           await expect(link).toBeVisible();
           await expect(page.getByRole("checkbox")).toHaveCount(0);
           await expect(remove).toBeEnabled();
-          await page.screenshot({
-            path: test
-              .info()
-              .outputPath(`young-subscriptions-remove-${viewport.width}.png`),
-            fullPage: true,
-          });
         }
         // Check the detail or subscription-list page that owns this operation.
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
@@ -268,10 +262,6 @@ test("activity detail posts comments to the public youngId and preserves them on
     await expect(
       page.locator("#comments").getByText(body, { exact: true }),
     ).toBeVisible();
-    await page.screenshot({
-      path: test.info().outputPath("young-comments.png"),
-      fullPage: true,
-    });
   });
 });
 

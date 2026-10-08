@@ -17,99 +17,89 @@ import { jumpToSection } from "./_helpers";
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
-  test(
-    "schedule.schedule-as-context",
-    { tag: "@Calendar/Web" },
-    async (
-      { page, preferenceFlow, detailCatalog, isolatedWorker },
-      testInfo,
-    ) => {
-      await preferenceFlow.prepare(() =>
-        isolatedWorker.database.owner.$transaction((db) =>
-          arrangeSectionDetails(db, detailCatalog),
-        ),
+  test("schedule.schedule-as-context", { tag: "@Calendar/Web" }, async ({
+    page,
+    preferenceFlow,
+    detailCatalog,
+    isolatedWorker,
+  }) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction((db) =>
+        arrangeSectionDetails(db, detailCatalog),
+      ),
+    );
+    await preferenceFlow.run(async () => {
+      test.setTimeout(90_000);
+      await gotoAndWaitForReady(page, SECTION_URL);
+
+      await jumpToSection(page, SECTION_URL, /日历|Calendar/i, "#calendar");
+
+      const calendar = page.locator("#calendar");
+      const scheduleTable = calendar.locator("table").first();
+      await expect(scheduleTable).toBeVisible({ timeout: 30_000 });
+      await expect(scheduleTable.locator("tbody tr").first()).toBeVisible();
+
+      // schedule.room / building / campus appear in the location column.
+      await expect(
+        scheduleTable
+          .getByText(DEV_SEED.room.nameCn, { exact: false })
+          .or(scheduleTable.getByText(DEV_SEED.room.nameEn, { exact: false }))
+          .first(),
+      ).toBeVisible();
+      await expect(
+        scheduleTable
+          .getByText(DEV_SEED.building.nameCn, { exact: false })
+          .or(
+            scheduleTable.getByText(DEV_SEED.building.nameEn, {
+              exact: false,
+            }),
+          )
+          .first(),
+      ).toBeVisible();
+      await expect(
+        scheduleTable
+          .getByText(DEV_SEED.campus.nameCn, { exact: false })
+          .or(scheduleTable.getByText(DEV_SEED.campus.nameEn, { exact: false }))
+          .first(),
+      ).toBeVisible();
+
+      const response = await page.request.get(
+        `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
       );
-      await preferenceFlow.run(async () => {
-        test.setTimeout(90_000);
-        await gotoAndWaitForReady(page, SECTION_URL);
-
-        await jumpToSection(page, SECTION_URL, /日历|Calendar/i, "#calendar");
-
-        const calendar = page.locator("#calendar");
-        const scheduleTable = calendar.locator("table").first();
-        await expect(scheduleTable).toBeVisible({ timeout: 30_000 });
-        await expect(scheduleTable.locator("tbody tr").first()).toBeVisible();
-
-        // schedule.room / building / campus appear in the location column.
-        await expect(
-          scheduleTable
-            .getByText(DEV_SEED.room.nameCn, { exact: false })
-            .or(scheduleTable.getByText(DEV_SEED.room.nameEn, { exact: false }))
-            .first(),
-        ).toBeVisible();
-        await expect(
-          scheduleTable
-            .getByText(DEV_SEED.building.nameCn, { exact: false })
-            .or(
-              scheduleTable.getByText(DEV_SEED.building.nameEn, {
-                exact: false,
-              }),
-            )
-            .first(),
-        ).toBeVisible();
-        await expect(
-          scheduleTable
-            .getByText(DEV_SEED.campus.nameCn, { exact: false })
-            .or(
-              scheduleTable.getByText(DEV_SEED.campus.nameEn, { exact: false }),
-            )
-            .first(),
-        ).toBeVisible();
-
-        const response = await page.request.get(
-          `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
-        );
-        expect(response.ok()).toBe(true);
-        const schedules = (await response.json()) as Array<{
-          date: string | null;
-          startTime: string;
-          endTime: string;
-          teachers: Array<{
-            id: number;
-            nameCn: string;
-            nameEn: string | null;
-          }>;
+      expect(response.ok()).toBe(true);
+      const schedules = (await response.json()) as Array<{
+        date: string | null;
+        startTime: string;
+        endTime: string;
+        teachers: Array<{
+          id: number;
+          nameCn: string;
+          nameEn: string | null;
         }>;
-        const meeting = schedules.find(
-          (item) => item.date && item.teachers.length,
+      }>;
+      const meeting = schedules.find(
+        (item) => item.date && item.teachers.length,
+      );
+      if (!meeting?.date)
+        throw new Error("Seed must contain a dated meeting with teachers");
+      const row = scheduleTable
+        .getByRole("row")
+        .filter({ hasText: meeting.date.slice(0, 10) })
+        .filter({ hasText: meeting.startTime })
+        .first();
+      await expect(row).toContainText(meeting.endTime);
+      for (const teacher of meeting.teachers) {
+        const link = row.locator(`a[href="/catalog/teachers/${teacher.id}"]`);
+        await expect(link).toBeVisible();
+        expect([teacher.nameCn, teacher.nameEn]).toContain(
+          await link.innerText(),
         );
-        if (!meeting?.date)
-          throw new Error("Seed must contain a dated meeting with teachers");
-        const row = scheduleTable
-          .getByRole("row")
-          .filter({ hasText: meeting.date.slice(0, 10) })
-          .filter({ hasText: meeting.startTime })
-          .first();
-        await expect(row).toContainText(meeting.endTime);
-        for (const teacher of meeting.teachers) {
-          const link = row.locator(`a[href="/catalog/teachers/${teacher.id}"]`);
-          await expect(link).toBeVisible();
-          expect([teacher.nameCn, teacher.nameEn]).toContain(
-            await link.innerText(),
-          );
-          expect(
-            (await page.request.get(`/catalog/teachers/${teacher.id}`)).ok(),
-          ).toBe(true);
-        }
-        for (const width of [1280, 390]) {
-          await page.setViewportSize({ width, height: 844 });
-          await scheduleTable.screenshot({
-            path: testInfo.outputPath(`section-schedule-${width}.png`),
-          });
-        }
-      });
-    },
-  );
+        expect(
+          (await page.request.get(`/catalog/teachers/${teacher.id}`)).ok(),
+        ).toBe(true);
+      }
+    });
+  });
 
   test("日历区块以课表表格展示班级日程", { tag: "@Calendar/Web" }, async ({
     page,

@@ -94,10 +94,7 @@ test("bus.core-filters-only", { tag: "@Bus/Web" }, async ({
 privateTest(
   "bus.merged-table-grouped-by-route",
   { tag: "@Bus/Web" },
-  async (
-    { page, isolatedWorker, preferenceFlow, busOwner: owner, run },
-    testInfo,
-  ) => {
+  async ({ page, isolatedWorker, preferenceFlow, busOwner: owner, run }) => {
     await run(async () => {
       const db = isolatedWorker.database.owner;
       const baseline = await busContractState(db);
@@ -112,12 +109,7 @@ privateTest(
             await openPlanner(page, width, "en-us", isolatedWorker.origin);
             const routes = page.getByTestId("bus-route-section");
             expect(await routes.count()).toBeGreaterThanOrEqual(2);
-            await page.screenshot({
-              path: testInfo.outputPath(
-                `life-spec-business-bus-merged-${signedIn}-${width}.png`,
-              ),
-              fullPage: true,
-            });
+
             await expect
               .soft(page.locator("table").filter({ visible: true }))
               .toHaveCount(1);

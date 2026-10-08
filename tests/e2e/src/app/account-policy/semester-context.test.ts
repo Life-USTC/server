@@ -13,96 +13,88 @@ for (const [domain, method] of [
   ["Young", "Web"],
   ["Young", "REST"],
 ] as const) {
-  test(
-    `cases.semester.no-current-semester-1 ${domain} ${method}`,
-    { tag: `@${domain}/${method}` },
-    async ({ page, isolatedWorker, calendarProtocolRun }, testInfo) => {
-      await calendarProtocolRun(async (io) => {
-        const marker = `semester-policy-${crypto.randomUUID()}`;
-        const fixture = await isolatedWorker.database.owner.$transaction((db) =>
-          createPastSemesterFixture(db, {
-            marker,
-            name: "Semester policy user",
-            activity: true,
-          }),
-        );
-        const observation = await prepareSemesterObservation(
-          page,
-          isolatedWorker,
-          io,
-          fixture.user.id,
-          [],
-        );
-        // No fixture semester covers this explicit snapshot date.
-        const snapshot =
-          "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00";
-        for (const locale of ["en-us", "zh-cn"]) {
-          expect(
-            (
-              await page.request.post("/api/account/preferences", {
-                data: { locale },
-              })
-            ).status(),
-          ).toBe(200);
-          if (domain === "Overview") {
-            await gotoAndWaitForReady(page, snapshot);
-            if (locale === "en-us")
-              await page.screenshot({
-                path: testInfo.outputPath("no-semester-after.png"),
-                fullPage: true,
-              });
-            await expect(page.locator("#main-content")).toContainText(
-              locale === "en-us"
-                ? "Current semester is unavailable."
-                : "暂无当前学期信息。",
-            );
-            expect(
-              await page.locator("#main-content").innerText(),
-            ).not.toContain(
-              locale === "en-us"
-                ? "You only have past-term section subscriptions."
-                : "你目前只订阅了往期教学班",
-            );
-            const todoLink = page
-              .locator('#main-content a[href="/workspace/todos"]')
-              .first();
-            await expect(todoLink).toBeVisible();
-            await todoLink.click();
-            await expect(page.locator("#main-content")).toContainText(marker);
-            await gotoAndWaitForReady(page, snapshot);
-            await page
-              .getByRole("link", { name: /View Past Homework|查看往期作业/ })
-              .click();
-            await expect(page.locator("#main-content")).toContainText(
-              DEV_SEED.homeworks.historicalTitle,
-            );
-          }
-          if (domain === "Young" && method === "Web") {
-            await gotoAndWaitForReady(
-              page,
-              "/workspace/subscriptions/activities",
-            );
-            await expect(page.locator("#main-content")).toContainText(
-              DEV_SEED.youngEvent.name,
-            );
-          }
-          if (method === "REST") {
-            const activities = await page.request.get(
-              "/api/workspace/young-event-subscriptions",
-            );
-            expect(activities.status()).toBe(200);
-            expect(JSON.stringify(await activities.json())).toContain(
-              DEV_SEED.youngEvent.youngId,
-            );
-          }
+  test(`cases.semester.no-current-semester-1 ${domain} ${method}`, {
+    tag: `@${domain}/${method}`,
+  }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
+    await calendarProtocolRun(async (io) => {
+      const marker = `semester-policy-${crypto.randomUUID()}`;
+      const fixture = await isolatedWorker.database.owner.$transaction((db) =>
+        createPastSemesterFixture(db, {
+          marker,
+          name: "Semester policy user",
+          activity: true,
+        }),
+      );
+      const observation = await prepareSemesterObservation(
+        page,
+        isolatedWorker,
+        io,
+        fixture.user.id,
+        [],
+      );
+      // No fixture semester covers this explicit snapshot date.
+      const snapshot =
+        "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00";
+      for (const locale of ["en-us", "zh-cn"]) {
+        expect(
+          (
+            await page.request.post("/api/account/preferences", {
+              data: { locale },
+            })
+          ).status(),
+        ).toBe(200);
+        if (domain === "Overview") {
+          await gotoAndWaitForReady(page, snapshot);
+
+          await expect(page.locator("#main-content")).toContainText(
+            locale === "en-us"
+              ? "Current semester is unavailable."
+              : "暂无当前学期信息。",
+          );
+          expect(await page.locator("#main-content").innerText()).not.toContain(
+            locale === "en-us"
+              ? "You only have past-term section subscriptions."
+              : "你目前只订阅了往期教学班",
+          );
+          const todoLink = page
+            .locator('#main-content a[href="/workspace/todos"]')
+            .first();
+          await expect(todoLink).toBeVisible();
+          await todoLink.click();
+          await expect(page.locator("#main-content")).toContainText(marker);
+          await gotoAndWaitForReady(page, snapshot);
+          await page
+            .getByRole("link", { name: /View Past Homework|查看往期作业/ })
+            .click();
+          await expect(page.locator("#main-content")).toContainText(
+            DEV_SEED.homeworks.historicalTitle,
+          );
         }
-        return observation.checks({
-          feedTokenCreated: false,
-          requests: [["POST", "/api/account/preferences", [200, 200]]],
-        });
+        if (domain === "Young" && method === "Web") {
+          await gotoAndWaitForReady(
+            page,
+            "/workspace/subscriptions/activities",
+          );
+          await expect(page.locator("#main-content")).toContainText(
+            DEV_SEED.youngEvent.name,
+          );
+        }
+        if (method === "REST") {
+          const activities = await page.request.get(
+            "/api/workspace/young-event-subscriptions",
+          );
+          expect(activities.status()).toBe(200);
+          expect(JSON.stringify(await activities.json())).toContain(
+            DEV_SEED.youngEvent.youngId,
+          );
+        }
+      }
+      return observation.checks({
+        feedTokenCreated: false,
+        requests: [["POST", "/api/account/preferences", [200, 200]]],
       });
-    },
-  );
+    });
+  });
 }
 for (const domain of ["Overview", "Subscription"] as const) {
   test(`cases.semester.no-current-semester-2 ${domain}`, {

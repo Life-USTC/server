@@ -191,55 +191,52 @@ test("ui.contribution-heatmap-2", { tag: "@User/Web" }, async ({
   });
 });
 
-test(
-  "ui.profile-count-copy",
-  { tag: "@User/Web" },
-  async ({ page, baseURL, isolatedWorker, preferenceFlow }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      if (!baseURL) throw new Error("Missing Playwright baseURL");
-      for (const count of [1, 2]) {
-        const user = await createProfile(isolatedWorker.database.owner, count);
-        for (const locale of ["en-us", "zh-cn"]) {
-          await page
-            .context()
-            .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
-          await page.setViewportSize({ width: 1280, height: 844 });
-          await gotoAndWaitForReady(page, `/community/users/${user.username}`);
-          const grid = page.getByRole("grid");
-          const populated = grid.locator(
-            `[data-date="${user.contributionDate}"]`,
-          );
-          const empty = grid.locator('[data-count="0"]').first();
-          const formatter = new Intl.DateTimeFormat(locale, {
-            timeZone: "Asia/Shanghai",
-            dateStyle: "medium",
-          });
-          for (const [cell, expectedCount] of [
-            [empty, 0],
-            [populated, count],
-          ] as const) {
-            const date = await cell.getAttribute("data-date");
-            if (!date) throw new Error("Expected a contribution date");
-            await cell.focus();
-            const dateLabel = formatter.format(new Date(date));
-            const label =
-              locale === "zh-cn"
-                ? `${dateLabel}：${expectedCount} 条记录`
-                : `${expectedCount} ${expectedCount === 1 ? "activity" : "activities"} on ${dateLabel}`;
-            const detail = page.locator("[data-profile-contribution-detail]");
-            if (locale === "en-us" && expectedCount === 1) {
-              await detail.screenshot({
-                path: testInfo.outputPath("profile-single-count.png"),
-              });
-            }
-            await expect
-              .soft(cell)
-              .toHaveAttribute("data-count", String(expectedCount));
-            await expect.soft(cell).toHaveAccessibleName(label);
-            await expect.soft(detail).toHaveText(label);
-          }
+test("ui.profile-count-copy", { tag: "@User/Web" }, async ({
+  page,
+  baseURL,
+  isolatedWorker,
+  preferenceFlow,
+}) => {
+  await preferenceFlow.run(async () => {
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
+    for (const count of [1, 2]) {
+      const user = await createProfile(isolatedWorker.database.owner, count);
+      for (const locale of ["en-us", "zh-cn"]) {
+        await page
+          .context()
+          .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+        await page.setViewportSize({ width: 1280, height: 844 });
+        await gotoAndWaitForReady(page, `/community/users/${user.username}`);
+        const grid = page.getByRole("grid");
+        const populated = grid.locator(
+          `[data-date="${user.contributionDate}"]`,
+        );
+        const empty = grid.locator('[data-count="0"]').first();
+        const formatter = new Intl.DateTimeFormat(locale, {
+          timeZone: "Asia/Shanghai",
+          dateStyle: "medium",
+        });
+        for (const [cell, expectedCount] of [
+          [empty, 0],
+          [populated, count],
+        ] as const) {
+          const date = await cell.getAttribute("data-date");
+          if (!date) throw new Error("Expected a contribution date");
+          await cell.focus();
+          const dateLabel = formatter.format(new Date(date));
+          const label =
+            locale === "zh-cn"
+              ? `${dateLabel}：${expectedCount} 条记录`
+              : `${expectedCount} ${expectedCount === 1 ? "activity" : "activities"} on ${dateLabel}`;
+          const detail = page.locator("[data-profile-contribution-detail]");
+
+          await expect
+            .soft(cell)
+            .toHaveAttribute("data-count", String(expectedCount));
+          await expect.soft(cell).toHaveAccessibleName(label);
+          await expect.soft(detail).toHaveText(label);
         }
       }
-    });
-  },
-);
+    }
+  });
+});

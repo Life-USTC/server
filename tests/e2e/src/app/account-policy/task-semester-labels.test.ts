@@ -1,4 +1,4 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
@@ -12,7 +12,6 @@ import {
 async function assertTaskSemesterLabels(
   page: Page,
   kind: "homeworks" | "exams",
-  testInfo: TestInfo,
   isolatedWorker: IsolatedWorker,
   calendarProtocolRun: SemesterProtocolRun,
 ) {
@@ -105,11 +104,7 @@ async function assertTaskSemesterLabels(
             exact: true,
           })
           .click();
-        if (locale === "en-us" && width === 1280)
-          await page.screenshot({
-            path: testInfo.outputPath(`${kind}-semester-after.png`),
-            fullPage: true,
-          });
+
         for (const item of fixture.rows) {
           const row =
             width >= 768
@@ -153,30 +148,26 @@ async function assertTaskSemesterLabels(
   });
 }
 
-test(
-  "cases.semester.cross-semester-browsing-3",
-  { tag: "@Homework/Web" },
-  async ({ page, isolatedWorker, calendarProtocolRun }, testInfo) => {
-    await assertTaskSemesterLabels(
-      page,
-      "homeworks",
-      testInfo,
-      isolatedWorker,
-      calendarProtocolRun,
-    );
-  },
-);
+test("cases.semester.cross-semester-browsing-3", {
+  tag: "@Homework/Web",
+}, async ({ page, isolatedWorker, calendarProtocolRun }) => {
+  await assertTaskSemesterLabels(
+    page,
+    "homeworks",
+    isolatedWorker,
+    calendarProtocolRun,
+  );
+});
 
-test(
-  "cases.semester.cross-semester-browsing-4",
-  { tag: "@Todo/Web" },
-  async ({ page, isolatedWorker, calendarProtocolRun }, testInfo) => {
-    await assertTaskSemesterLabels(
-      page,
-      "exams",
-      testInfo,
-      isolatedWorker,
-      calendarProtocolRun,
-    );
-  },
-);
+test("cases.semester.cross-semester-browsing-4", { tag: "@Todo/Web" }, async ({
+  page,
+  isolatedWorker,
+  calendarProtocolRun,
+}) => {
+  await assertTaskSemesterLabels(
+    page,
+    "exams",
+    isolatedWorker,
+    calendarProtocolRun,
+  );
+});

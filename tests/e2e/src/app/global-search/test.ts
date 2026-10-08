@@ -63,44 +63,39 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test(
-  "global search shortcut returns catalog results",
-  { tag: "@Search/Web" },
-  async ({ searchRun, page }, testInfo) => {
-    await searchRun(async () => {
-      await gotoAndWaitForReady(page, "/");
+test("global search shortcut returns catalog results", {
+  tag: "@Search/Web",
+}, async ({ searchRun, page }) => {
+  await searchRun(async () => {
+    await gotoAndWaitForReady(page, "/");
 
-      await page.keyboard.press("Control+k");
-      const dialog = page.locator('[data-slot="dialog-content"]');
-      await expect(dialog).toBeVisible();
+    await page.keyboard.press("Control+k");
+    const dialog = page.locator('[data-slot="dialog-content"]');
+    await expect(dialog).toBeVisible();
 
-      await observeAction(
-        () =>
-          page.waitForResponse(
-            (response) =>
-              response.url().includes("/api/search?q=math") &&
-              response.url().includes("locale=") &&
-              !response.url().includes("scope=workspace") &&
-              response.ok(),
-          ),
-        async () => {
-          const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
-          await expect(input).toBeVisible();
-          await input.pressSequentially("math", { delay: 40 });
-        },
-      );
+    await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/search?q=math") &&
+            response.url().includes("locale=") &&
+            !response.url().includes("scope=workspace") &&
+            response.ok(),
+        ),
+      async () => {
+        const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+        await expect(input).toBeVisible();
+        await input.pressSequentially("math", { delay: 40 });
+      },
+    );
 
-      await expect(
-        dialog
-          .getByRole("option", { name: /Advanced Linear Algebra|MATH2001/ })
-          .first(),
-      ).toBeVisible();
-      await page.screenshot({
-        path: testInfo.outputPath("global-search-results.png"),
-      });
-    });
-  },
-);
+    await expect(
+      dialog
+        .getByRole("option", { name: /Advanced Linear Algebra|MATH2001/ })
+        .first(),
+    ).toBeVisible();
+  });
+});
 
 test("global search returns Chinese catalog matches", {
   tag: "@Search/Web",
