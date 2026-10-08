@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { mobilePageCases } from "../src/app/_shared/page-inventory";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../utils/dev-seed";
 import { test } from "../utils/mobile-page-fixture";
 import { gotoAndWaitForReady } from "../utils/page-ready";
 import { expectHealthyMobileRoute } from "./route-health";
@@ -20,7 +21,21 @@ test.describe("移动端页面健全性", () => {
         await mobileRun(
           async ({ startPage, checkpoint }) => {
             await startPage();
-            await expectHealthyMobileRoute(page, path);
+            const target = path.startsWith("/workspace/")
+              ? `${path}?snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`
+              : path;
+            await expectHealthyMobileRoute(page, target);
+            if (path === "/workspace/calendar") {
+              await expect(
+                page
+                  .getByTestId("calendar-agenda")
+                  .filter({ visible: true })
+                  .locator(
+                    `a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`,
+                  )
+                  .first(),
+              ).toBeVisible();
+            }
             await checkpoint(path, {
               calendarMessages: [],
               calendarTokenCreated,

@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
 import { withBrowserWorkflow } from "./browser-workflow";
+import { DEV_SEED_ANCHOR } from "./dev-seed";
 import {
   type HomeworkEffectContext,
   withHomeworkEffects,
@@ -90,7 +91,7 @@ export const test = workerTest.extend<{
                     const landing =
                       mobileRole === "admin"
                         ? "/admin/users"
-                        : "/workspace/overview";
+                        : `/workspace/overview?snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`;
                     await gotoAndWaitForReady(page, landing);
                     await expect(page).toHaveURL(
                       new URL(landing, isolatedWorker.origin).href,
