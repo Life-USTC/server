@@ -106,11 +106,10 @@ it("publications.ingestion-query-budget", async () => {
   expect(first.result.results.map(({ status }) => status)).toEqual(
     Array(50).fill("created"),
   );
-  // The previous nested upserts issued over 4,100 SQL queries for this batch.
-  // Keep enough margin for fixed transaction/connection work while forbidding
-  // a query for every image or object link.
+  // Core revision decisions stay sequential; associations are registered once
+  // per batch. Count actual SQL so per-item preloads or links cannot return.
   expect(first.queries).toBeGreaterThan(50);
-  expect(first.queries).toBeLessThanOrEqual(750);
+  expect(first.queries).toBeLessThanOrEqual(200);
   const replay = await ingest(payload);
   expect(replay).toEqual(first.result);
 
@@ -118,8 +117,12 @@ it("publications.ingestion-query-budget", async () => {
     ...payload,
     batchId: `${payload.batchId}-redelivery`,
   });
-  expect(redelivery.queries).toBeGreaterThan(50);
-  expect(redelivery.queries).toBeLessThanOrEqual(750);
+  expect(redelivery.queries).toBeGreaterThan(5);
+  expect(redelivery.queries).toBeLessThanOrEqual(40);
+  console.info("Publication ingestion SQL queries", {
+    first: first.queries,
+    unchanged: redelivery.queries,
+  });
   expect(redelivery.result.results.map(({ status }) => status)).toEqual(
     Array(50).fill("unchanged"),
   );
@@ -158,6 +161,169 @@ it("publications.ingestion-query-budget", async () => {
       ...payload.items.map((item) => (item.tombstone ? {} : item.imageSources)),
     ),
   );
+});
+
+it("rejects changed semantics of a revision staged earlier in the same batch", async () => {
+  const payload = batch("staged-conflict");
+  const first = payload.items[0];
+  if (first.tombstone) throw new Error("Expected publication");
+  payload.items.push({
+    ...first,
+    objects: first.objects.map((object, index) =>
+      index === 0
+        ? { ...object, altText: "Changed immutable metadata" }
+        : object,
+    ),
+  });
+  await expect(ingest(payload)).rejects.toThrow(
+    "A revision hash cannot change its stored publication semantics",
+  );
+  expect(
+    await db.publicationSource.count({ where: { id: first.sourceId } }),
+  ).toBe(0);
+  expect(
+    await db.ingestionBatch.count({ where: { batchId: payload.batchId } }),
+  ).toBe(0);
+  expect(
+    await db.publicationObject.count({
+      where: { sha256: { in: first.objects.map(({ sha256 }) => sha256) } },
+    }),
+  ).toBe(0);
+});
+
+it("rejects conflicting byte sizes across two new batch objects atomically", async () => {
+  const payload = batch("staged-size", 2);
+  const [first, second] = payload.items;
+  if (first.tombstone || second.tombstone)
+    throw new Error("Expected publication");
+  second.objects[0] = { ...first.objects[0], size: first.objects[0].size + 1 };
+  await expect(ingest(payload)).rejects.toThrow(
+    "Object manifest does not match",
+  );
+  expect(
+    await db.publicationSource.count({ where: { id: first.sourceId } }),
+  ).toBe(0);
+  expect(
+    await db.ingestionBatch.count({ where: { batchId: payload.batchId } }),
+  ).toBe(0);
+  expect(
+    await db.publicationObject.count({
+      where: { sha256: { in: first.objects.map(({ sha256 }) => sha256) } },
+    }),
+  ).toBe(0);
+});
+
+it("keeps staged observation ordering and excludes rejected or stale object claims", async () => {
+  const payload = batch("staged-order");
+  const first = payload.items[0];
+  if (first.tombstone) throw new Error("Expected publication");
+  first.revisionHash = "1".repeat(64);
+  first.observedAt = "2026-09-03";
+  const rejected = {
+    ...first,
+    canonicalUrl: "https://outside.example/blocked",
+    objects: first.objects.map((object) => ({
+      ...object,
+      contentType: "image/png",
+    })),
+  };
+  const stale = {
+    ...first,
+    revisionHash: "2".repeat(64),
+    observedAt: "2026-09-04",
+    objects: first.objects.map((object) => ({ ...object, size: 999 })),
+  };
+  const newer = {
+    ...first,
+    revisionHash: "3".repeat(64),
+    observedAt: "2026-09-05",
+  };
+  const tombstone = {
+    tombstone: true as const,
+    sourceId: first.sourceId,
+    canonicalUrl: first.canonicalUrl,
+    revisionHash: "4".repeat(64),
+    observedAt: "2026-09-06",
+  };
+  payload.items = [
+    rejected,
+    first,
+    { ...first, observedAt: "2026-09-05" },
+    stale,
+    newer,
+    tombstone,
+    tombstone,
+    { ...first, observedAt: "2026-09-07" },
+  ];
+  const response = await ingest(payload);
+  expect(response.results.map(({ status }) => status)).toEqual([
+    "rejected",
+    "created",
+    "updated",
+    "unchanged",
+    "updated",
+    "updated",
+    "unchanged",
+    "updated",
+  ]);
+  const publicationId = response.results[1].publicationId!;
+  expect(response.results[2].revisionId).toBe(response.results[1].revisionId);
+  expect(response.results[3].revisionId).toBe(response.results[1].revisionId);
+  expect(response.results[7].revisionId).toBe(response.results[1].revisionId);
+  const publication = await db.publication.findUniqueOrThrow({
+    where: { id: publicationId },
+    include: { currentRevision: true, revisions: true },
+  });
+  expect(publication.deletedAt).toBeNull();
+  expect(publication.lastSeenAt.toISOString()).toBe("2026-09-06T16:00:00.000Z");
+  expect(publication.currentRevision?.revisionHash).toBe(first.revisionHash);
+  expect(publication.currentRevision?.observedAt.toISOString()).toBe(
+    "2026-09-06T16:00:00.000Z",
+  );
+  expect(
+    publication.revisions.map(({ revisionHash }) => revisionHash).sort(),
+  ).toEqual(["1".repeat(64), "3".repeat(64), "4".repeat(64)]);
+  const stored = await db.ingestionBatch.findUniqueOrThrow({
+    where: {
+      principalKey_batchId: {
+        principalKey: principal.principalKey,
+        batchId: payload.batchId,
+      },
+    },
+    include: { objects: { include: { object: true } } },
+  });
+  expect(stored.objects).toHaveLength(3);
+  expect(
+    stored.objects.map(({ expectedContentType }) => expectedContentType),
+  ).toEqual(Array(3).fill("text/plain"));
+  expect(stored.objects.map(({ expectedSize }) => expectedSize)).toEqual([
+    8, 8, 8,
+  ]);
+  expect(
+    await db.publicationEventOutbox.count({
+      where: { aggregateId: publicationId },
+    }),
+  ).toBe(3);
+
+  await db.publicationObject.update({
+    where: { id: stored.objects[0].objectId },
+    data: { status: "verified" },
+  });
+  await db.publicationObject.update({
+    where: { id: stored.objects[1].objectId },
+    data: { status: "linked" },
+  });
+  const redelivery = await ingest({
+    ...payload,
+    batchId: `${payload.batchId}-verified-redelivery`,
+    items: [{ ...first, observedAt: "2026-09-07" }],
+  });
+  expect(redelivery.results[0].objectsNeedingUpload).toEqual([
+    {
+      kind: stored.objects[2].object.kind,
+      sha256: stored.objects[2].object.sha256,
+    },
+  ]);
 });
 
 it("preserves first MIME, per-revision metadata and sequential duplicate items", async () => {

@@ -562,14 +562,15 @@ requirements:
       name: publications.batch-item-count
 - id: publications.ingestion-query-budget
   category: behavior
-  rule: Object and image registration uses bounded bulk operations within each item's existing batch
-    transaction. A 50-item batch with three objects and ten images per item uses at most 750 database
-    queries both on first ingestion and unchanged redelivery, preserving atomic rollback and exact claims.
+  rule: Publication and revision decisions retain input order while state reads and object, image,
+    claim, link, and event registration use bulk operations within one batch transaction. A 50-item
+    batch with three objects and ten images per item uses at most 200 database queries on first ingestion
+    and 40 on unchanged redelivery, preserving atomic rollback, immutable semantics, and exact claims.
   acceptance:
     given: Fifty new publications each carry three objects and ten image sources in a real runtime-role database.
     when: Ingest the batch, replay its ID, then redeliver the revisions under a new batch ID while counting actual database queries.
     then:
-    - Each first ingestion and unchanged redelivery stays within 750 queries.
+    - First ingestion stays within 200 queries and unchanged redelivery within 40 queries.
     - Replay returns the stored result, revisions remain unique, and each batch owns all 150 object claims.
     test:
       file: tests/integration/publication-ingestion-volume.test.ts
