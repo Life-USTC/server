@@ -77,6 +77,8 @@ if (import.meta.main) {
   const vitest = await createVitest({
     config: "vitest.integration.config.ts",
     watch: false,
+    // Discovery needs declarations only. Execution still validates database roles.
+    globalSetup: [],
     // Collection executes declarations only; test execution stays serial per job.
     fileParallelism: true,
     maxWorkers: 2,

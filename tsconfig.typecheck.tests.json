@@ -3,6 +3,29 @@
   "compilerOptions": {
     "types": ["node", "vitest/globals"]
   },
-  "include": ["tests/unit/**/*.ts", "tests/integration/**/*.ts"],
+  "include": [
+    "tests/unit/**/*.ts",
+    "tests/integration/**/*.ts",
+    "src/app.d.ts",
+    "playwright.config.ts",
+    "prisma.config.ts",
+    "vitest.base.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts",
+    "tests/ci/test-matrix.ts",
+    "tests/ci/static-loader-image.ts",
+    "tests/ci/fixtures/e2e-storage-worker.ts",
+    "tests/ci/fixtures/isolated-worker-timeout.config.ts",
+    "tests/ci/fixtures/isolated-worker-timeout.scenario.ts",
+    "tests/ci/fixtures/isolated-database-timeout.config.ts",
+    "tests/ci/fixtures/isolated-database-timeout.scenario.ts",
+    "tests/ci/fixtures/mcp-fixture-failure.config.ts",
+    "tests/ci/fixtures/mcp-fixture-failure.scenario.ts",
+    "tests/fixtures/static-import-contract.ts",
+    "tests/fixtures/static-import-coverage.ts",
+    "tests/fixtures/static-loader-snapshot.ts",
+    "tests/e2e/**/*.ts",
+    "scripts/specifications/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

@@ -405,11 +405,6 @@ export async function checkSpecifications(root = repositoryRoot) {
       ),
     ),
   );
-  const domainReferences: {
-    requirement: string;
-    validatedPaths: string[];
-    bindingPaths: string[];
-  }[] = [];
   const domainErrors: string[] = [];
   if (domainRequirements.length) {
     const needsWire = domainRequirements.some((r) =>
@@ -446,22 +441,12 @@ export async function checkSpecifications(root = repositoryRoot) {
       domainErrors.push(
         ...result.errors.map((error) => `${requirement.id}: ${error}`),
       );
-      domainReferences.push({
-        requirement: requirement.id,
-        validatedPaths: result.validatedPaths,
-        bindingPaths: result.bindingPaths,
-      });
     }
   }
   const errors = [...references.errors, ...domainErrors];
   if (errors.length) throw new Error(errors.join("\n"));
   return {
     files: files.length,
-    validation: {
-      schema: "passed" as const,
-      consistency: "passed" as const,
-      domainReferences,
-    },
     ...references,
   };
 }
