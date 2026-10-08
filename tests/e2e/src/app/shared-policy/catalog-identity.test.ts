@@ -393,254 +393,241 @@ test("ui.global-search-results-3", { tag: "@Search/Web" }, async ({
   });
 });
 
-test(
-  "ui.global-search-results-4",
-  { tag: "@Search/Web" },
-  async ({ preferenceFlow, isolatedWorker, page }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      const fixture = await createFixture(isolatedWorker.database.owner);
-      const marker = crypto.randomUUID().slice(0, 8);
-      const department = await isolatedWorker.database.owner.$transaction(
-        (db) =>
-          db.department.create({
-            data: {
-              code: `DEPT-${marker}`,
-              nameCn: `测试院系 ${marker}`,
-              nameEn: `Test department ${marker}`,
-            },
-          }),
-      );
+test("ui.global-search-results-4", { tag: "@Search/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const marker = crypto.randomUUID().slice(0, 8);
+    const department = await isolatedWorker.database.owner.$transaction((db) =>
+      db.department.create({
+        data: {
+          code: `DEPT-${marker}`,
+          nameCn: `测试院系 ${marker}`,
+          nameEn: `Test department ${marker}`,
+        },
+      }),
+    );
 
-      const withDepartment = await isolatedWorker.database.owner.$transaction(
-        (db) =>
-          db.teacher.update({
-            where: { id: fixture.teacher.id },
-            data: {
-              departmentId: department.id,
-              nameCn: `教师 ${marker} 甲`,
-              nameEn: `Teacher ${marker} A`,
-            },
-          }),
-      );
-      const codeOnly = await isolatedWorker.database.owner.$transaction((db) =>
-        db.teacher.create({
+    const withDepartment = await isolatedWorker.database.owner.$transaction(
+      (db) =>
+        db.teacher.update({
+          where: { id: fixture.teacher.id },
           data: {
-            id: fixture.teacher.id + 6,
-            jwId: fixture.teacher.jwId + 6,
-            code: `TC-${marker}`,
-            nameCn: `教师 ${marker} 乙`,
-            nameEn: `Teacher ${marker} B`,
+            departmentId: department.id,
+            nameCn: `教师 ${marker} 甲`,
+            nameEn: `Teacher ${marker} A`,
           },
         }),
-      );
+    );
+    const codeOnly = await isolatedWorker.database.owner.$transaction((db) =>
+      db.teacher.create({
+        data: {
+          id: fixture.teacher.id + 6,
+          jwId: fixture.teacher.jwId + 6,
+          code: `TC-${marker}`,
+          nameCn: `教师 ${marker} 乙`,
+          nameEn: `Teacher ${marker} B`,
+        },
+      }),
+    );
 
-      const noContext = await isolatedWorker.database.owner.$transaction((db) =>
-        db.teacher.create({
-          data: {
-            id: fixture.teacher.id + 8,
-            jwId: fixture.teacher.jwId + 8,
-            code: "",
-            nameCn: `教师 ${marker} 丙`,
-            nameEn: `Teacher ${marker} C`,
-          },
-        }),
-      );
+    const noContext = await isolatedWorker.database.owner.$transaction((db) =>
+      db.teacher.create({
+        data: {
+          id: fixture.teacher.id + 8,
+          jwId: fixture.teacher.jwId + 8,
+          code: "",
+          nameCn: `教师 ${marker} 丙`,
+          nameEn: `Teacher ${marker} C`,
+        },
+      }),
+    );
 
-      for (const locale of ["zh-cn", "en-us"]) {
-        expect(
-          (
-            await preferenceFlow.http(() =>
-              page.request.post("/api/account/preferences", {
-                headers: preferenceFlow.headers,
-                data: { locale },
-              }),
-            )
-          ).status(),
-        ).toBe(200);
-        await gotoAndWaitForReady(page, `/search?q=${marker}`);
-        for (const teacher of [withDepartment, codeOnly, noContext]) {
-          const name = locale === "zh-cn" ? teacher.nameCn : teacher.nameEn;
-          if (!name)
-            throw new Error(
-              "Teacher fixture must provide both localized names",
-            );
-          const context =
-            teacher.id === withDepartment.id
-              ? locale === "zh-cn"
-                ? department.nameCn
-                : department.nameEn
-              : teacher.code;
-          const result = page
-            .getByRole("option")
-            .filter({ has: page.getByText(name, { exact: true }) });
-          if (locale === "en-us" && teacher.id === withDepartment.id)
-            await page.screenshot({
-              path: testInfo.outputPath("teacher-search-context.png"),
-              fullPage: true,
-            });
-          await expect(result).toHaveCount(1);
-          const visible = await result.innerText();
-          expect(visible.trim()).toBe(context ? `${name}\n${context}` : name);
-          expect(visible).not.toContain(String(teacher.id));
-          expect(visible).not.toContain(String(teacher.jwId));
-        }
-        const name =
-          locale === "zh-cn" ? withDepartment.nameCn : withDepartment.nameEn;
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      await gotoAndWaitForReady(page, `/search?q=${marker}`);
+      for (const teacher of [withDepartment, codeOnly, noContext]) {
+        const name = locale === "zh-cn" ? teacher.nameCn : teacher.nameEn;
         if (!name)
           throw new Error("Teacher fixture must provide both localized names");
-        await page
+        const context =
+          teacher.id === withDepartment.id
+            ? locale === "zh-cn"
+              ? department.nameCn
+              : department.nameEn
+            : teacher.code;
+        const result = page
           .getByRole("option")
-          .filter({ has: page.getByText(name, { exact: true }) })
-          .click();
-        await expect(page).toHaveURL(
-          new RegExp(`/catalog/teachers/${withDepartment.id}$`),
-        );
+          .filter({ has: page.getByText(name, { exact: true }) });
+
+        await expect(result).toHaveCount(1);
+        const visible = await result.innerText();
+        expect(visible.trim()).toBe(context ? `${name}\n${context}` : name);
+        expect(visible).not.toContain(String(teacher.id));
+        expect(visible).not.toContain(String(teacher.jwId));
       }
+      const name =
+        locale === "zh-cn" ? withDepartment.nameCn : withDepartment.nameEn;
+      if (!name)
+        throw new Error("Teacher fixture must provide both localized names");
+      await page
+        .getByRole("option")
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .click();
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/teachers/${withDepartment.id}$`),
+      );
+    }
+  });
+});
+
+test("ui.data-table-cells-2", { tag: "@Section/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+  baseURL,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const courseName =
+      "Complete course title with extensive catalog context and a distinguishing final phrase";
+    const teacherName =
+      "Complete teacher name with extensive catalog context and a distinguishing final phrase";
+    const sectionCode = `${fixture.section.code}-COMPLETE-PUBLIC-SECTION-CODE-END`;
+    const values = [courseName, sectionCode, teacherName];
+    const path = `/catalog/sections?search=${fixture.course.code}`;
+    const touchContext = await preferenceFlow.newContext({
+      baseURL,
+      hasTouch: true,
+      viewport: { width: 1280, height: 900 },
     });
-  },
-);
-
-test(
-  "ui.data-table-cells-2",
-  { tag: "@Section/Web" },
-  async ({ preferenceFlow, isolatedWorker, page, baseURL }, testInfo) => {
-    await preferenceFlow.run(async () => {
-      const fixture = await createFixture(isolatedWorker.database.owner);
-      const courseName =
-        "Complete course title with extensive catalog context and a distinguishing final phrase";
-      const teacherName =
-        "Complete teacher name with extensive catalog context and a distinguishing final phrase";
-      const sectionCode = `${fixture.section.code}-COMPLETE-PUBLIC-SECTION-CODE-END`;
-      const values = [courseName, sectionCode, teacherName];
-      const path = `/catalog/sections?search=${fixture.course.code}`;
-      const touchContext = await preferenceFlow.newContext({
-        baseURL,
-        hasTouch: true,
-        viewport: { width: 1280, height: 900 },
+    await isolatedWorker.database.owner.$transaction(async (db) => {
+      await db.course.update({
+        where: { id: fixture.course.id },
+        data: { nameCn: courseName, nameEn: courseName },
       });
-      await isolatedWorker.database.owner.$transaction(async (db) => {
-        await db.course.update({
-          where: { id: fixture.course.id },
-          data: { nameCn: courseName, nameEn: courseName },
-        });
-        await db.teacher.update({
-          where: { id: fixture.teacher.id },
-          data: { nameCn: teacherName, nameEn: teacherName },
-        });
-        await db.section.update({
-          where: { id: fixture.section.id },
-          data: { code: sectionCode },
-        });
+      await db.teacher.update({
+        where: { id: fixture.teacher.id },
+        data: { nameCn: teacherName, nameEn: teacherName },
       });
-      const touchPage = await preferenceFlow.newPage(touchContext);
-      for (const width of [1280, 390]) {
-        await touchPage.setViewportSize({ width, height: 900 });
-        await gotoAndWaitForReady(touchPage, path, {
-          browserHealth: {},
-          expectMeaningfulContent: true,
-        });
-        expect(
-          await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
-        ).toBe(true);
-        await touchPage.screenshot({
-          path: testInfo.outputPath(`truncation-touch-${width}.png`),
-          fullPage: true,
-        });
-        for (const value of values) {
-          const text = touchPage
-            .locator("#main-content")
-            .getByText(value, { exact: width !== 390 || value !== teacherName })
-            .filter({ visible: true });
-          await expect(text).toHaveCount(1);
-          const geometry = await text.evaluate((element) => ({
-            width: element.clientWidth,
-            scrollWidth: element.scrollWidth,
-            height: element.clientHeight,
-            scrollHeight: element.scrollHeight,
-          }));
-          expect(
-            geometry.scrollWidth,
-            `Touch value is horizontally clipped: ${value}`,
-          ).toBeLessThanOrEqual(geometry.width + 1);
-          expect(
-            geometry.scrollHeight,
-            `Touch value is vertically clipped: ${value}`,
-          ).toBeLessThanOrEqual(geometry.height + 1);
-        }
-        expect(
-          await touchPage.evaluate(
-            () =>
-              document.documentElement.scrollWidth <=
-              document.documentElement.clientWidth,
-          ),
-        ).toBe(true);
-      }
-      const expectSectionDetailReady = observeSectionDetailNavigation(
-        touchPage,
-        preferenceFlow,
-        fixture.section.jwId,
-      );
-      await touchPage
-        .getByRole("link")
-        .filter({ has: touchPage.getByText(courseName, { exact: true }) })
-        .tap();
-      await expect(touchPage).toHaveURL(
-        new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
-      );
-      await expectSectionDetailReady();
-
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await gotoAndWaitForReady(page, path, {
+      await db.section.update({
+        where: { id: fixture.section.id },
+        data: { code: sectionCode },
+      });
+    });
+    const touchPage = await preferenceFlow.newPage(touchContext);
+    for (const width of [1280, 390]) {
+      await touchPage.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(touchPage, path, {
         browserHealth: {},
         expectMeaningfulContent: true,
       });
+      expect(
+        await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
+      ).toBe(true);
+
       for (const value of values) {
-        const text = page
-          .locator('#main-content [data-slot="truncated-text"]')
-          .filter({ hasText: value, visible: true });
+        const text = touchPage
+          .locator("#main-content")
+          .getByText(value, { exact: width !== 390 || value !== teacherName })
+          .filter({ visible: true });
+        await expect(text).toHaveCount(1);
+        const geometry = await text.evaluate((element) => ({
+          width: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          height: element.clientHeight,
+          scrollHeight: element.scrollHeight,
+        }));
         expect(
-          await text.evaluate(
-            (element) => element.scrollWidth > element.clientWidth,
-          ),
-        ).toBe(true);
-        await text.hover();
-        const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
-        await expect(tooltip).toHaveText(value);
-        await page.keyboard.press("Escape");
-        await expect(tooltip).toHaveCount(0);
+          geometry.scrollWidth,
+          `Touch value is horizontally clipped: ${value}`,
+        ).toBeLessThanOrEqual(geometry.width + 1);
+        expect(
+          geometry.scrollHeight,
+          `Touch value is vertically clipped: ${value}`,
+        ).toBeLessThanOrEqual(geometry.height + 1);
       }
-      const link = page
-        .getByRole("link", { name: courseName, exact: true })
-        .filter({ visible: true });
-      await link.focus();
-      for (const value of values) {
-        const focused = page.locator(":focus");
-        await expect(focused).toContainText(value);
-        await expect(
-          page.locator('[data-slot="tooltip-content"]:visible'),
-        ).toHaveText(value);
-        expect(await focused.ariaSnapshot()).toContain(value);
-        await page.keyboard.press("Escape");
-        await expect(
-          page.locator('[data-slot="tooltip-content"]:visible'),
-        ).toHaveCount(0);
-        await page.keyboard.press("Tab");
-      }
-      const code = page
-        .locator("#main-content")
-        .getByText(sectionCode, { exact: true })
-        .filter({ visible: true });
-      await code.hover();
+      expect(
+        await touchPage.evaluate(
+          () =>
+            document.documentElement.scrollWidth <=
+            document.documentElement.clientWidth,
+        ),
+      ).toBe(true);
+    }
+    const expectSectionDetailReady = observeSectionDetailNavigation(
+      touchPage,
+      preferenceFlow,
+      fixture.section.jwId,
+    );
+    await touchPage
+      .getByRole("link")
+      .filter({ has: touchPage.getByText(courseName, { exact: true }) })
+      .tap();
+    await expect(touchPage).toHaveURL(
+      new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
+    );
+    await expectSectionDetailReady();
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoAndWaitForReady(page, path, {
+      browserHealth: {},
+      expectMeaningfulContent: true,
+    });
+    for (const value of values) {
+      const text = page
+        .locator('#main-content [data-slot="truncated-text"]')
+        .filter({ hasText: value, visible: true });
+      expect(
+        await text.evaluate(
+          (element) => element.scrollWidth > element.clientWidth,
+        ),
+      ).toBe(true);
+      await text.hover();
+      const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
+      await expect(tooltip).toHaveText(value);
+      await page.keyboard.press("Escape");
+      await expect(tooltip).toHaveCount(0);
+    }
+    const link = page
+      .getByRole("link", { name: courseName, exact: true })
+      .filter({ visible: true });
+    await link.focus();
+    for (const value of values) {
+      const focused = page.locator(":focus");
+      await expect(focused).toContainText(value);
       await expect(
         page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toHaveText(sectionCode);
-      await page.screenshot({
-        path: testInfo.outputPath("truncation-pointer.png"),
-        fullPage: true,
-      });
-    });
-  },
-);
+      ).toHaveText(value);
+      expect(await focused.ariaSnapshot()).toContain(value);
+      await page.keyboard.press("Escape");
+      await expect(
+        page.locator('[data-slot="tooltip-content"]:visible'),
+      ).toHaveCount(0);
+      await page.keyboard.press("Tab");
+    }
+    const code = page
+      .locator("#main-content")
+      .getByText(sectionCode, { exact: true })
+      .filter({ visible: true });
+    await code.hover();
+    await expect(
+      page.locator('[data-slot="tooltip-content"]:visible'),
+    ).toHaveText(sectionCode);
+  });
+});
 
 for (const { domain, select } of [
   {
@@ -1253,7 +1240,7 @@ test("cases.disambiguation.duplicate-course-names-1 Search", {
 subscriptionTest(
   "cases.disambiguation.multiple-sections-same-course-1 Search Web",
   { tag: "@Search/Web" },
-  async ({ page, isolatedWorker, run, catalogSubscriptionRun }, testInfo) => {
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
     subscriptionTest.setTimeout(60_000);
     const db = isolatedWorker.database.owner;
     const { fixture, current, previous, sections } = await run(() =>
@@ -1299,12 +1286,7 @@ subscriptionTest(
                   : locale === "zh-cn"
                     ? "未知"
                     : "Unknown";
-            if (section.id === fixture.section.id && locale === "zh-cn") {
-              await page.screenshot({
-                path: testInfo.outputPath("section-semester-after.png"),
-                fullPage: true,
-              });
-            }
+
             await expect(result).toContainText(semesterLabel);
           }
         }

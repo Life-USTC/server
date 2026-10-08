@@ -61,7 +61,7 @@ export const test = ownedTest.extend<{
   commentState: CommentState;
   _commentEffects: CommentEffects;
 }>({
-  _commentEffects: async ({ request }, use, testInfo) => {
+  _commentEffects: async ({ request }, use) => {
     const probeId = crypto.randomUUID();
     const pending = new Set<Promise<unknown>>();
     const requestErrors: unknown[] = [];
@@ -136,10 +136,6 @@ export const test = ownedTest.extend<{
     await Promise.allSettled([...pending]);
     failures.push(...requestErrors);
     try {
-      await testInfo.attach("comment-effect-probe", {
-        body: JSON.stringify({ probeId }),
-        contentType: "application/json",
-      });
       const response = await probe("get");
       if (probeCreated) expect(response.status()).toBe(200);
       if (response.status() !== 404) {

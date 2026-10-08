@@ -133,41 +133,14 @@ for (const [domain, method, feature] of [
               expect(
                 new URL(page.url()).searchParams.get("calendarSemester"),
               ).toBe(String(semester.id));
-              try {
-                await expect(
-                  page
-                    .locator(
-                      `a[href="/catalog/sections/${fixture.section.jwId}"]`,
-                    )
-                    .filter({ visible: true })
-                    .first(),
-                ).toBeVisible();
-              } catch (error) {
-                try {
-                  await page.screenshot({
-                    path: test
-                      .info()
-                      .outputPath(
-                        `life-spec-business-history-calendar-${width}.png`,
-                      ),
-                    fullPage: true,
-                  });
-                } catch (screenshotError) {
-                  throw new AggregateError(
-                    [error, screenshotError],
-                    "Historical calendar visibility and screenshot failed",
-                  );
-                }
-                throw error;
-              }
-              await page.screenshot({
-                path: test
-                  .info()
-                  .outputPath(
-                    `life-spec-business-history-calendar-${width}.png`,
-                  ),
-                fullPage: true,
-              });
+              await expect(
+                page
+                  .locator(
+                    `a[href="/catalog/sections/${fixture.section.jwId}"]`,
+                  )
+                  .filter({ visible: true })
+                  .first(),
+              ).toBeVisible();
             }
             if (path === "exams") {
               await page

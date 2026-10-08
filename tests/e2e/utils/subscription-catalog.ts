@@ -168,7 +168,6 @@ export const test = workerTest.extend<{
   subscriptionRun: async (
     { page, account, semesters: _semesters, isolatedWorker, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work) => {
@@ -436,10 +435,7 @@ export const test = workerTest.extend<{
               while (pending.size) await Promise.all(pending);
               if (registered)
                 try {
-                  await testInfo.attach("subscription-effects", {
-                    body: JSON.stringify(await settleEffects(), null, 2),
-                    contentType: "application/json",
-                  });
+                  await settleEffects();
                 } catch (error) {
                   errors.push(error);
                 }

@@ -51,192 +51,177 @@ async function reachable(locator: Locator) {
   await expect(locator).toBeInViewport();
 }
 
-test(
-  "course.mobile-detail-hierarchy",
-  { tag: "@Course/Web" },
-  async (
-    { page, mobile: { fixture, user }, catalogSubscriptionRun },
-    testInfo,
-  ) => {
-    await catalogSubscriptionRun(
-      user,
-      { calendarMessages: [] },
-      async (effects) => {
-        for (const width of [320, 390]) {
-          await page.setViewportSize({ width, height: 844 });
-          for (const language of ["zh-cn", "en-us"] as const) {
-            await locale(page, language, effects.headers);
-            await gotoAndWaitForReady(
-              page,
-              `/catalog/courses/${fixture.courses[0].jwId}`,
-            );
-            await readableHeading(
-              page,
-              language === "en-us"
-                ? `${courseNames[language]} (${courseNames["zh-cn"]})`
-                : courseNames[language],
-            );
-            const code = page.getByTestId("course-public-code");
-            await expect(code).toHaveText("MATH-MOBILE-101");
-            await expect(code).toBeInViewport();
-            expect(
-              await code.evaluate(
-                (element) => getComputedStyle(element).fontFamily,
-              ),
-            ).toMatch(/mono/i);
-            const offering = page.locator(
-              `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
-            );
-            await reachable(offering);
-            await expect(offering).toContainText(teacherNames[language]);
-            await expect(offering).toContainText(
-              language === "zh-cn" ? "2026年秋季学期" : "Fall 2026",
-            );
-            await page.screenshot({
-              path: testInfo.outputPath(`course-${language}-${width}.png`),
-            });
-            const expectSectionDetailReady = observeSectionDetailNavigation(
-              page,
-              effects,
-              fixture.sections[0].jwId,
-            );
-            await offering.click();
-            await expect(page).toHaveURL(
-              new RegExp(`/catalog/sections/${fixture.sections[0].jwId}$`),
-            );
-            await expectSectionDetailReady();
-          }
-        }
-      },
-    );
-  },
-);
+test("course.mobile-detail-hierarchy", { tag: "@Course/Web" }, async ({
+  page,
+  mobile: { fixture, user },
+  catalogSubscriptionRun,
+}) => {
+  await catalogSubscriptionRun(
+    user,
+    { calendarMessages: [] },
+    async (effects) => {
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const language of ["zh-cn", "en-us"] as const) {
+          await locale(page, language, effects.headers);
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/courses/${fixture.courses[0].jwId}`,
+          );
+          await readableHeading(
+            page,
+            language === "en-us"
+              ? `${courseNames[language]} (${courseNames["zh-cn"]})`
+              : courseNames[language],
+          );
+          const code = page.getByTestId("course-public-code");
+          await expect(code).toHaveText("MATH-MOBILE-101");
+          await expect(code).toBeInViewport();
+          expect(
+            await code.evaluate(
+              (element) => getComputedStyle(element).fontFamily,
+            ),
+          ).toMatch(/mono/i);
+          const offering = page.locator(
+            `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
+          );
+          await reachable(offering);
+          await expect(offering).toContainText(teacherNames[language]);
+          await expect(offering).toContainText(
+            language === "zh-cn" ? "2026年秋季学期" : "Fall 2026",
+          );
 
-test(
-  "teacher.mobile-detail-hierarchy",
-  { tag: "@Teacher/Web" },
-  async (
-    { page, mobile: { fixture, user }, catalogSubscriptionRun },
-    testInfo,
-  ) => {
-    await catalogSubscriptionRun(
-      user,
-      { calendarMessages: [] },
-      async (effects) => {
-        for (const width of [320, 390]) {
-          await page.setViewportSize({ width, height: 844 });
-          for (const language of ["zh-cn", "en-us"] as const) {
-            await locale(page, language, effects.headers);
-            await gotoAndWaitForReady(
-              page,
-              `/catalog/teachers/${fixture.teachers[0].id}`,
-            );
-            await readableHeading(
-              page,
-              language === "en-us"
-                ? `${teacherNames[language]} (${teacherNames["zh-cn"]})`
-                : teacherNames[language],
-            );
-            const department = page
-              .locator("#main-content")
-              .getByText(
-                language === "zh-cn"
-                  ? fixture.departments[0].nameCn
-                  : (fixture.departments[0].nameEn ?? ""),
-                { exact: true },
-              );
-            await reachable(department);
-            const title = page
-              .locator("#main-content")
-              .getByText(
-                language === "zh-cn"
-                  ? fixture.titles[0].nameCn
-                  : (fixture.titles[0].nameEn ?? ""),
-                { exact: true },
-              );
-            await reachable(title);
-            const offering = page.locator(
-              `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
-            );
-            await reachable(offering);
-            await expect(offering).toContainText(courseNames[language]);
-            await page.screenshot({
-              path: testInfo.outputPath(`teacher-${language}-${width}.png`),
-            });
-            const expectSectionDetailReady = observeSectionDetailNavigation(
-              page,
-              effects,
-              fixture.sections[0].jwId,
-            );
-            await offering.click();
-            await expect(page).toHaveURL(
-              new RegExp(`/catalog/sections/${fixture.sections[0].jwId}$`),
-            );
-            await expectSectionDetailReady();
-          }
+          const expectSectionDetailReady = observeSectionDetailNavigation(
+            page,
+            effects,
+            fixture.sections[0].jwId,
+          );
+          await offering.click();
+          await expect(page).toHaveURL(
+            new RegExp(`/catalog/sections/${fixture.sections[0].jwId}$`),
+          );
+          await expectSectionDetailReady();
         }
-      },
-    );
-  },
-);
+      }
+    },
+  );
+});
 
-test(
-  "section.mobile-detail-actions",
-  { tag: "@Section/Web" },
-  async (
-    { page, mobile: { fixture, user }, catalogSubscriptionRun },
-    testInfo,
-  ) => {
-    await catalogSubscriptionRun(
-      user,
-      { calendarMessages: [] },
-      async (effects) => {
-        for (const width of [320, 390]) {
-          await page.setViewportSize({ width, height: 844 });
-          for (const language of ["zh-cn", "en-us"] as const) {
-            await locale(page, language, effects.headers);
-            await gotoAndWaitForReady(
-              page,
-              `/catalog/sections/${fixture.sections[0].jwId}`,
+test("teacher.mobile-detail-hierarchy", { tag: "@Teacher/Web" }, async ({
+  page,
+  mobile: { fixture, user },
+  catalogSubscriptionRun,
+}) => {
+  await catalogSubscriptionRun(
+    user,
+    { calendarMessages: [] },
+    async (effects) => {
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const language of ["zh-cn", "en-us"] as const) {
+          await locale(page, language, effects.headers);
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/teachers/${fixture.teachers[0].id}`,
+          );
+          await readableHeading(
+            page,
+            language === "en-us"
+              ? `${teacherNames[language]} (${teacherNames["zh-cn"]})`
+              : teacherNames[language],
+          );
+          const department = page
+            .locator("#main-content")
+            .getByText(
+              language === "zh-cn"
+                ? fixture.departments[0].nameCn
+                : (fixture.departments[0].nameEn ?? ""),
+              { exact: true },
             );
-            await readableHeading(page, courseNames[language]);
-            const overview = page.locator("#overview");
-            const code = overview.getByText(fixture.sections[0].code, {
-              exact: true,
-            });
-            await reachable(code);
-            expect(
-              await code.evaluate(
-                (element) => getComputedStyle(element).fontFamily,
-              ),
-            ).toMatch(/mono/i);
-            for (const value of ["3.5", "12 / 40", "32 / 32"])
-              await reachable(overview.getByText(value, { exact: true }));
-            await reachable(
-              page.getByRole("definition").filter({
-                hasText: language === "zh-cn" ? "2026年秋季学期" : "Fall 2026",
-              }),
+          await reachable(department);
+          const title = page
+            .locator("#main-content")
+            .getByText(
+              language === "zh-cn"
+                ? fixture.titles[0].nameCn
+                : (fixture.titles[0].nameEn ?? ""),
+              { exact: true },
             );
-            const teacher = page
-              .locator("#main-content")
-              .locator(`a[href="/catalog/teachers/${fixture.teachers[0].id}"]`)
-              .first();
-            await reachable(teacher);
-            await expect(teacher).toContainText(teacherNames[language]);
-            await expectNoPageHorizontalOverflow(page);
-            await page.screenshot({
-              path: testInfo.outputPath(`section-${language}-${width}.png`),
-            });
-            await teacher.click();
-            await expect(page).toHaveURL(
-              new RegExp(`/catalog/teachers/${fixture.teachers[0].id}$`),
-            );
-          }
+          await reachable(title);
+          const offering = page.locator(
+            `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
+          );
+          await reachable(offering);
+          await expect(offering).toContainText(courseNames[language]);
+
+          const expectSectionDetailReady = observeSectionDetailNavigation(
+            page,
+            effects,
+            fixture.sections[0].jwId,
+          );
+          await offering.click();
+          await expect(page).toHaveURL(
+            new RegExp(`/catalog/sections/${fixture.sections[0].jwId}$`),
+          );
+          await expectSectionDetailReady();
         }
-      },
-    );
-  },
-);
+      }
+    },
+  );
+});
+
+test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
+  page,
+  mobile: { fixture, user },
+  catalogSubscriptionRun,
+}) => {
+  await catalogSubscriptionRun(
+    user,
+    { calendarMessages: [] },
+    async (effects) => {
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const language of ["zh-cn", "en-us"] as const) {
+          await locale(page, language, effects.headers);
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/sections/${fixture.sections[0].jwId}`,
+          );
+          await readableHeading(page, courseNames[language]);
+          const overview = page.locator("#overview");
+          const code = overview.getByText(fixture.sections[0].code, {
+            exact: true,
+          });
+          await reachable(code);
+          expect(
+            await code.evaluate(
+              (element) => getComputedStyle(element).fontFamily,
+            ),
+          ).toMatch(/mono/i);
+          for (const value of ["3.5", "12 / 40", "32 / 32"])
+            await reachable(overview.getByText(value, { exact: true }));
+          await reachable(
+            page.getByRole("definition").filter({
+              hasText: language === "zh-cn" ? "2026年秋季学期" : "Fall 2026",
+            }),
+          );
+          const teacher = page
+            .locator("#main-content")
+            .locator(`a[href="/catalog/teachers/${fixture.teachers[0].id}"]`)
+            .first();
+          await reachable(teacher);
+          await expect(teacher).toContainText(teacherNames[language]);
+          await expectNoPageHorizontalOverflow(page);
+
+          await teacher.click();
+          await expect(page).toHaveURL(
+            new RegExp(`/catalog/teachers/${fixture.teachers[0].id}$`),
+          );
+        }
+      }
+    },
+  );
+});
 
 async function actionBarAboveNavigation(page: Page) {
   const bar = page.getByTestId("section-mobile-primary-actions");
@@ -266,108 +251,101 @@ async function actionBarAboveNavigation(page: Page) {
   return bar;
 }
 for (const domain of ["Calendar", "Subscription"] as const) {
-  test(
-    `section.mobile-sticky-actions ${domain}`,
-    { tag: `@${domain}/Web` },
-    async (
+  test(`section.mobile-sticky-actions ${domain}`, {
+    tag: `@${domain}/Web`,
+  }, async ({
+    page,
+    mobile: { fixture, user },
+    catalogSubscriptionRun,
+    isolatedWorker,
+    mobileDb,
+  }) => {
+    await catalogSubscriptionRun(
+      user,
       {
-        page,
-        mobile: { fixture, user },
-        catalogSubscriptionRun,
-        isolatedWorker,
-        mobileDb,
+        calendarMessages: Array.from(
+          { length: domain === "Subscription" ? 4 : 0 },
+          () => ({
+            type: "user" as const,
+            userId: user.id,
+          }),
+        ),
       },
-      testInfo,
-    ) => {
-      await catalogSubscriptionRun(
-        user,
-        {
-          calendarMessages: Array.from(
-            { length: domain === "Subscription" ? 4 : 0 },
-            () => ({
-              type: "user" as const,
-              userId: user.id,
-            }),
-          ),
-        },
-        async (effects) => {
-          await page
-            .context()
-            .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
-          await locale(page, "zh-cn", effects.headers);
-          for (const width of [320, 390]) {
-            await page.setViewportSize({ width, height: 844 });
-            await gotoAndWaitForReady(
-              page,
-              `/catalog/sections/${fixture.sections[0].jwId}`,
-            );
-            await actionBarAboveNavigation(page);
-            await page.evaluate(() => {
-              document
-                .querySelectorAll("[data-detail-scroll-container]")
-                .forEach((element) => {
-                  element.scrollTop = element.scrollHeight;
-                });
-              window.scrollTo(0, document.documentElement.scrollHeight);
-            });
-            const bar = await actionBarAboveNavigation(page);
-            await page.screenshot({
-              path: testInfo.outputPath(`sticky-actions-${width}.png`),
-            });
-            if (domain === "Calendar") {
-              await bar
-                .getByRole("button", { name: "添加到日历", exact: true })
-                .click();
-              await expect(page.getByRole("dialog")).toBeVisible();
-              await page.keyboard.press("Escape");
-              await expect(page.getByRole("dialog")).toHaveCount(0);
-            }
-            if (domain === "Subscription") {
-              await bar
-                .getByRole("button", { name: "订阅教学班", exact: true })
-                .click();
-              const dialog = page.getByRole("dialog");
-              await expect(dialog).toBeVisible();
-              await dialog
-                .getByRole("button", { name: "订阅教学班", exact: true })
-                .click();
-              await expect(
-                bar.getByRole("button", { name: "取消订阅", exact: true }),
-              ).toBeVisible();
-              await expect
-                .poll(() =>
-                  mobileDb((db) =>
-                    db.userSectionSubscription.count({
-                      where: {
-                        userId: user.id,
-                        sectionId: fixture.sections[0].id,
-                      },
-                    }),
-                  ),
-                )
-                .toBe(1);
-              await bar
-                .getByRole("button", { name: "取消订阅", exact: true })
-                .click();
-              await expect(
-                bar.getByRole("button", { name: "订阅教学班", exact: true }),
-              ).toBeVisible();
-              await expect
-                .poll(() =>
-                  mobileDb((db) =>
-                    db.userSectionSubscription.count({
-                      where: {
-                        userId: user.id,
-                        sectionId: fixture.sections[0].id,
-                      },
-                    }),
-                  ),
-                )
-                .toBe(0);
-            }
+      async (effects) => {
+        await page
+          .context()
+          .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+        await locale(page, "zh-cn", effects.headers);
+        for (const width of [320, 390]) {
+          await page.setViewportSize({ width, height: 844 });
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/sections/${fixture.sections[0].jwId}`,
+          );
+          await actionBarAboveNavigation(page);
+          await page.evaluate(() => {
+            document
+              .querySelectorAll("[data-detail-scroll-container]")
+              .forEach((element) => {
+                element.scrollTop = element.scrollHeight;
+              });
+            window.scrollTo(0, document.documentElement.scrollHeight);
+          });
+          const bar = await actionBarAboveNavigation(page);
+
+          if (domain === "Calendar") {
+            await bar
+              .getByRole("button", { name: "添加到日历", exact: true })
+              .click();
+            await expect(page.getByRole("dialog")).toBeVisible();
+            await page.keyboard.press("Escape");
+            await expect(page.getByRole("dialog")).toHaveCount(0);
           }
-        },
-      );
-    },
-  );
+          if (domain === "Subscription") {
+            await bar
+              .getByRole("button", { name: "订阅教学班", exact: true })
+              .click();
+            const dialog = page.getByRole("dialog");
+            await expect(dialog).toBeVisible();
+            await dialog
+              .getByRole("button", { name: "订阅教学班", exact: true })
+              .click();
+            await expect(
+              bar.getByRole("button", { name: "取消订阅", exact: true }),
+            ).toBeVisible();
+            await expect
+              .poll(() =>
+                mobileDb((db) =>
+                  db.userSectionSubscription.count({
+                    where: {
+                      userId: user.id,
+                      sectionId: fixture.sections[0].id,
+                    },
+                  }),
+                ),
+              )
+              .toBe(1);
+            await bar
+              .getByRole("button", { name: "取消订阅", exact: true })
+              .click();
+            await expect(
+              bar.getByRole("button", { name: "订阅教学班", exact: true }),
+            ).toBeVisible();
+            await expect
+              .poll(() =>
+                mobileDb((db) =>
+                  db.userSectionSubscription.count({
+                    where: {
+                      userId: user.id,
+                      sectionId: fixture.sections[0].id,
+                    },
+                  }),
+                ),
+              )
+              .toBe(0);
+          }
+        }
+      },
+    );
+  });
 }

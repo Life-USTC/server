@@ -86,7 +86,6 @@ export const test = workerTest.extend<{
   activityRun: async (
     { page, account, activity, isolatedWorker, run },
     use,
-    testInfo,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((work) => {
@@ -107,7 +106,6 @@ export const test = workerTest.extend<{
             });
             const pending = new Set<Promise<void>>();
             const errors: unknown[] = [];
-            const commentAudits: unknown[] = [];
             let accepting = true;
             let registered = false;
             let expectedMessages = 0;
@@ -353,7 +351,6 @@ export const test = workerTest.extend<{
                             oauthGrantId: null,
                           },
                         ]);
-                        commentAudits.push(...audits);
                       } else
                         throw new Error(
                           `Unexpected activity mutation: ${incoming.method()} ${url.pathname}`,
@@ -417,15 +414,7 @@ export const test = workerTest.extend<{
               while (pending.size) await Promise.all(pending);
               if (registered) {
                 try {
-                  const settled = await settleEffects();
-                  await testInfo.attach("activity-effects", {
-                    body: JSON.stringify(
-                      { ...settled, commentAudits },
-                      null,
-                      2,
-                    ),
-                    contentType: "application/json",
-                  });
+                  await settleEffects();
                 } catch (error) {
                   errors.push(error);
                 }

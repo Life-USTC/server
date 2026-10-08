@@ -158,68 +158,67 @@ async function secondaryHeight(cell: Locator) {
     });
 }
 
-test(
-  "ui.data-table-cells-1",
-  { tag: "@Admin/Web" },
-  async ({ adminFlow, run, page, fixture }, testInfo) => {
-    await run(() =>
-      adminFlow.run(
-        async () => {
-          for (const matrix of matrices(fixture)) {
-            await gotoAndWaitForReady(page, matrix.path);
-            const populated = fixtureRow(page, matrix.labels[0]);
-            const missing = fixtureRow(page, matrix.labels[1]);
-            await expect(populated).toHaveCount(1);
-            await expect(missing).toHaveCount(1);
-            await page.locator("table:visible").screenshot({
-              path: testInfo.outputPath(`secondary-${matrix.name}.png`),
-            });
-            const first = await secondaryHeight(
-              populated.locator("td").nth(matrix.cell),
+test("ui.data-table-cells-1", { tag: "@Admin/Web" }, async ({
+  adminFlow,
+  run,
+  page,
+  fixture,
+}) => {
+  await run(() =>
+    adminFlow.run(
+      async () => {
+        for (const matrix of matrices(fixture)) {
+          await gotoAndWaitForReady(page, matrix.path);
+          const populated = fixtureRow(page, matrix.labels[0]);
+          const missing = fixtureRow(page, matrix.labels[1]);
+          await expect(populated).toHaveCount(1);
+          await expect(missing).toHaveCount(1);
+
+          const first = await secondaryHeight(
+            populated.locator("td").nth(matrix.cell),
+          );
+          const second = await secondaryHeight(
+            missing.locator("td").nth(matrix.cell),
+          );
+          expect
+            .soft(first, `${matrix.name}: populated secondary line`)
+            .toBeGreaterThan(0);
+          expect
+            .soft(
+              second,
+              `${matrix.name}: missing secondary line reserves space`,
+            )
+            .toBe(first);
+          const longRow = fixtureRow(page, matrix.labels[2]);
+          if (matrix.name === "bus" || matrix.name === "comments") {
+            const context = longRow.getByText(
+              matrix.name === "comments"
+                ? `Moderation note (optional): ${longText}`
+                : longText,
+              { exact: true },
             );
-            const second = await secondaryHeight(
-              missing.locator("td").nth(matrix.cell),
-            );
-            expect
-              .soft(first, `${matrix.name}: populated secondary line`)
-              .toBeGreaterThan(0);
-            expect
-              .soft(
-                second,
-                `${matrix.name}: missing secondary line reserves space`,
-              )
-              .toBe(first);
-            const longRow = fixtureRow(page, matrix.labels[2]);
-            if (matrix.name === "bus" || matrix.name === "comments") {
-              const context = longRow.getByText(
-                matrix.name === "comments"
-                  ? `Moderation note (optional): ${longText}`
-                  : longText,
-                { exact: true },
-              );
-              await context.hover();
-              await expect(
-                page.locator('[data-slot="tooltip-content"]:visible'),
-              ).toContainText(longText);
-              await page.keyboard.press("Escape");
-            }
-            const buttons = longRow.getByRole("button");
-            expect(await buttons.count()).toBeGreaterThan(0);
-            for (const button of await buttons.all()) {
-              await button.scrollIntoViewIfNeeded();
-              await expect(button).toBeInViewport({ ratio: 1 });
-              const box = await button.boundingBox();
-              expect(box?.width).toBeGreaterThan(0);
-              expect(box?.height).toBeGreaterThan(0);
-            }
+            await context.hover();
+            await expect(
+              page.locator('[data-slot="tooltip-content"]:visible'),
+            ).toContainText(longText);
+            await page.keyboard.press("Escape");
           }
-        },
-        {},
-        adminWriteChecks([]),
-      ),
-    );
-  },
-);
+          const buttons = longRow.getByRole("button");
+          expect(await buttons.count()).toBeGreaterThan(0);
+          for (const button of await buttons.all()) {
+            await button.scrollIntoViewIfNeeded();
+            await expect(button).toBeInViewport({ ratio: 1 });
+            const box = await button.boundingBox();
+            expect(box?.width).toBeGreaterThan(0);
+            expect(box?.height).toBeGreaterThan(0);
+          }
+        }
+      },
+      {},
+      adminWriteChecks([]),
+    ),
+  );
+});
 
 for (const domain of ["Admin", "Teacher"] as const) {
   test(`ui.data-table-cells-5 ${domain}`, { tag: `@${domain}/Web` }, async ({

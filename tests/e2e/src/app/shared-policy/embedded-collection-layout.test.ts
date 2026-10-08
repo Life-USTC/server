@@ -119,56 +119,49 @@ for (const [domain, names] of [
   ["Schedule", ["section-calendar"]],
   ["Young", ["organizer-history"]],
 ] as const) {
-  test(
-    `ui.embedded-collection-order ${domain}`,
-    { tag: `@${domain}/Web` },
-    async ({ page, baseURL, isolatedWorker, embedded: fixture }, testInfo) => {
-      test.setTimeout(120_000);
-      if (!baseURL) throw new Error("Missing Playwright baseURL");
-      await page
-        .context()
-        .addCookies([
-          (await isolatedWorker.createSession(fixture.admin.id)).cookie,
-          { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
-        ]);
-      for (const width of [390, 1280]) {
-        await page.setViewportSize({ width, height: 900 });
-        for (const item of cases(width, fixture)) {
-          if (!names.some((name) => name === item.name)) continue;
-          await gotoAndWaitForReady(page, item.path);
-          const records = page.locator(item.records);
-          await expect(records.first()).toBeVisible();
-          let previous = page.locator(item.heading).first();
-          for (const selector of [item.filter, item.summary].filter(Boolean)) {
-            const next = page.locator(selector).first();
-            await precedes(
-              previous,
-              next,
-              `${item.name}: heading/filter/summary`,
-            );
-            previous = next;
-          }
+  test(`ui.embedded-collection-order ${domain}`, {
+    tag: `@${domain}/Web`,
+  }, async ({ page, baseURL, isolatedWorker, embedded: fixture }) => {
+    test.setTimeout(120_000);
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
+    await page
+      .context()
+      .addCookies([
+        (await isolatedWorker.createSession(fixture.admin.id)).cookie,
+        { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
+      ]);
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const item of cases(width, fixture)) {
+        if (!names.some((name) => name === item.name)) continue;
+        await gotoAndWaitForReady(page, item.path);
+        const records = page.locator(item.records);
+        await expect(records.first()).toBeVisible();
+        let previous = page.locator(item.heading).first();
+        for (const selector of [item.filter, item.summary].filter(Boolean)) {
+          const next = page.locator(selector).first();
           await precedes(
             previous,
-            records.first(),
-            `${item.name}: records after context`,
+            next,
+            `${item.name}: heading/filter/summary`,
           );
-          if (item.pagination) {
-            await precedes(
-              records.last(),
-              page.locator('[data-slot="list-pagination"]'),
-              `${item.name}: pagination after records`,
-            );
-          }
-          if (["course-history", "teacher-history"].includes(item.name)) {
-            await page.locator("#sections").screenshot({
-              path: testInfo.outputPath(`embedded-${width}-${item.name}.png`),
-            });
-          }
+          previous = next;
+        }
+        await precedes(
+          previous,
+          records.first(),
+          `${item.name}: records after context`,
+        );
+        if (item.pagination) {
+          await precedes(
+            records.last(),
+            page.locator('[data-slot="list-pagination"]'),
+            `${item.name}: pagination after records`,
+          );
         }
       }
-    },
-  );
+    }
+  });
 }
 
 for (const [domain, names] of [
