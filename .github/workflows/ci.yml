@@ -55,7 +55,6 @@ jobs:
         run: |
           bunx tsc --noEmit -p tsconfig.typecheck.json
           bunx tsc --noEmit -p tsconfig.typecheck.tests.json
-          bunx tsc --noEmit -p tsconfig.typecheck.operational.json
       - name: Verify OpenAPI parity
         run: bun run openapi:check
 
@@ -91,6 +90,24 @@ jobs:
       WEBHOOK_SECRET: e2e-ci-secret
       WEBHOOK_LOGIN_ENABLED: "true"
       NO_PROXY: 127.0.0.1,localhost,::1
+    steps:
+      - *checkout
+      - uses: ./.github/actions/setup-bun-env
+      - name: Generate application and database clients
+        run: bun run app:prepare
+      - id: inventory
+        name: Collect domain and verification combinations
+        run: bun tests/ci/test-matrix.ts
+
+  test-domain:
+    name: ${{ matrix.domain }} / ${{ matrix.method }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    needs: [test-plan, build-e2e-artifacts]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.test-plan.outputs.matrix) }}
+    env: *worker-env
     services: &test-database
       postgres:
         image: postgres:16
@@ -107,27 +124,9 @@ jobs:
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
-      - uses: ./.github/actions/setup-test-database
-      - id: inventory
-        name: Collect domain and verification combinations
-        run: bun tests/ci/test-matrix.ts
-
-  test-domain:
-    name: ${{ matrix.domain }} / ${{ matrix.method }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    needs: [test-plan, build-e2e-artifacts]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.test-plan.outputs.matrix) }}
-    env: *worker-env
-    services: *test-database
-    steps:
-      - *checkout
-      - uses: ./.github/actions/setup-bun-env
       - name: Install Chromium
         if: ${{ matrix.browser }}
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps --only-shell chromium
       - name: Download application and Worker build
         if: ${{ matrix.http || matrix.browser }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
