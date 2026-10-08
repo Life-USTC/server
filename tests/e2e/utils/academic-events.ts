@@ -22,9 +22,17 @@ export const test = academicTest.extend<{
     );
     await use(exam);
   },
-  calendarUrl: async ({ academic, academicDb }, use) => {
+  calendarUrl: async ({ academic, academicDb, semesters }, use) => {
     await academicDb((db) =>
       db.$transaction(async (tx) => {
+        // Calendar events and snapshotAt share this fixed, bounded semester.
+        await tx.semester.update({
+          where: { id: semesters.current.id },
+          data: {
+            startDate: new Date("2026-04-08T00:00:00Z"),
+            endDate: new Date("2026-09-06T00:00:00Z"),
+          },
+        });
         const group = await tx.scheduleGroup.create({
           data: {
             jwId: academic.section.jwId,

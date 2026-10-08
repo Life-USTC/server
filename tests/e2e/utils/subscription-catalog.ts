@@ -55,7 +55,7 @@ export const test = workerTest.extend<{
   semesters: async ({ subscriptionDb }, use) => {
     // Preserve the original display names and relative semester ordering while
     // creating the prerequisites in this case's private database.
-    const endDate = new Date(Date.now() + 180 * 86_400_000);
+    const now = Date.now();
     await use(
       await subscriptionDb((db) =>
         db.$transaction(async (tx) => ({
@@ -64,8 +64,8 @@ export const test = workerTest.extend<{
               jwId: 9900001,
               nameCn: "2026年春季学期",
               code: "421",
-              startDate: new Date("2026-04-08"),
-              endDate,
+              startDate: new Date(now - 30 * 86_400_000),
+              endDate: new Date(now + 180 * 86_400_000),
             },
           }),
           previous: await tx.semester.create({

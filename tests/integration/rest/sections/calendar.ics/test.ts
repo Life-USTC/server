@@ -1,23 +1,7 @@
-import { type APIRequestContext, expect } from "@playwright/test";
-import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
+import { expect } from "@playwright/test";
+import { resolveSeedSectionId } from "../../../../e2e/utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
 import { test } from "../../_shared/catalog-reader-fixture";
-
-async function getSeedSectionId(request: APIRequestContext) {
-  const matchResponse = await request.post(
-    "/api/catalog/sections/match-codes",
-    {
-      data: { codes: [DEV_SEED.section.code] },
-    },
-  );
-  expect(matchResponse.status()).toBe(200);
-  const matchBody = (await matchResponse.json()) as {
-    sections?: Array<{ id?: number }>;
-  };
-  const sectionId = matchBody.sections?.[0]?.id;
-  expect(sectionId).toBeDefined();
-  return sectionId as number;
-}
 
 test("/api/catalog/sections/calendar.ics 契约", {
   tag: "@Calendar/ICS",
@@ -33,7 +17,7 @@ test("/api/catalog/sections/calendar.ics 返回日历文本", {
   tag: "@Calendar/ICS",
 }, async ({ run, request }) => {
   return run(async () => {
-    const sectionId = await getSeedSectionId(request);
+    const sectionId = await resolveSeedSectionId(request);
 
     const response = await request.get(
       `/api/catalog/sections/calendar.ics?sectionIds=${sectionId}`,
@@ -49,7 +33,7 @@ test("/api/catalog/sections/calendar.ics accepts exactly 50 unique IDs", {
   tag: "@Calendar/ICS",
 }, async ({ run, request }) => {
   return run(async () => {
-    const sectionId = await getSeedSectionId(request);
+    const sectionId = await resolveSeedSectionId(request);
     const unusedIds = Array.from(
       { length: 49 },
       (_, index) => 2_000_000_000 + index,

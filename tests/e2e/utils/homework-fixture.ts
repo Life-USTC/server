@@ -60,6 +60,7 @@ export const test = workerTest.extend<{
     );
   },
   semesters: async ({ academicDb }, use) => {
+    const now = Date.now();
     await use(
       await academicDb((db) =>
         db.$transaction(async (tx) => ({
@@ -68,8 +69,8 @@ export const test = workerTest.extend<{
               jwId: DEV_SEED.semesterJwId,
               code: "421",
               nameCn: DEV_SEED.semesterNameCn,
-              startDate: new Date("2026-04-08T00:00:00Z"),
-              endDate: new Date(Date.now() + 180 * 86_400_000),
+              startDate: new Date(now - 30 * 86_400_000),
+              endDate: new Date(now + 180 * 86_400_000),
             },
           }),
           previous: await tx.semester.create({

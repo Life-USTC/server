@@ -12,16 +12,15 @@ import { test as workerTest } from "./owned-worker";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
-function shanghaiDateFromOffset(offsetDays: number) {
-  return formatShanghaiDate(new Date(Date.now() + offsetDays * DAY_MS));
-}
-
 /** Arrange only domain rows in the calling test's private database. */
 export async function createWorkspaceTaskFilterState(
   prisma: TestPrismaClient,
   userId: string,
   options: { includePending?: boolean } = {},
 ) {
+  const now = Date.now();
+  const shanghaiDateFromOffset = (offsetDays: number) =>
+    formatShanghaiDate(new Date(now + offsetDays * DAY_MS));
   const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 9);
   const marker = `e2e-filter-${suffix}`;
   const includePending = options.includePending ?? false;
@@ -41,8 +40,8 @@ export async function createWorkspaceTaskFilterState(
         jwId: DEV_SEED.semesterJwId,
         code: "421",
         nameCn: DEV_SEED.semesterNameCn,
-        startDate: new Date("2026-04-08T00:00:00Z"),
-        endDate: new Date(Date.now() + 180 * DAY_MS),
+        startDate: new Date(now - 30 * DAY_MS),
+        endDate: new Date(now + 180 * DAY_MS),
       },
     });
     // Stable identifiers are local to this test's empty private database.
@@ -73,9 +72,9 @@ export async function createWorkspaceTaskFilterState(
     const homework = await tx.homework.create({
       data: {
         createdById: userId,
-        publishedAt: new Date(),
+        publishedAt: new Date(now),
         sectionId: section.id,
-        submissionDueAt: new Date(Date.now() + 7 * DAY_MS),
+        submissionDueAt: new Date(now + 7 * DAY_MS),
         title: completedHomeworkTitle,
       },
       select: { id: true },
@@ -87,9 +86,9 @@ export async function createWorkspaceTaskFilterState(
       await tx.homework.create({
         data: {
           createdById: userId,
-          publishedAt: new Date(),
+          publishedAt: new Date(now),
           sectionId: section.id,
-          submissionDueAt: new Date(Date.now() + 7 * DAY_MS),
+          submissionDueAt: new Date(now + 7 * DAY_MS),
           title: pendingHomeworkTitle,
         },
       });
@@ -99,7 +98,7 @@ export async function createWorkspaceTaskFilterState(
       data: {
         completed: true,
         content: `${marker} todo content`,
-        dueAt: new Date(Date.now() + 7 * DAY_MS),
+        dueAt: new Date(now + 7 * DAY_MS),
         priority: "high",
         title: completedTodoTitle,
         userId: userId,
@@ -110,7 +109,7 @@ export async function createWorkspaceTaskFilterState(
         data: {
           completed: false,
           content: `${marker} pending todo content`,
-          dueAt: new Date(Date.now() + 7 * DAY_MS),
+          dueAt: new Date(now + 7 * DAY_MS),
           priority: "medium",
           title: pendingTodoTitle,
           userId: userId,

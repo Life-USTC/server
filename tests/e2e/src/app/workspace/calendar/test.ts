@@ -23,6 +23,7 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/academic-events";
 import { test as calendarTest } from "../../../../utils/calendar-presentation-fixture";
+import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 
 test.describe("仪表盘日历", () => {
@@ -33,9 +34,27 @@ test.describe("仪表盘日历", () => {
   }, async ({ page, calendarUrl, homeworkRun }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, calendarUrl);
-
+        const calendarResponse = await observeAction(
+          () =>
+            page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname ===
+                  "/api/workspace/calendar/events" &&
+                response.request().method() === "GET",
+            ),
+          () => gotoAndWaitForReady(page, calendarUrl),
+        );
+        expect(calendarResponse.status()).toBe(200);
+        expect(await calendarResponse.json()).toMatchObject({
+          data: expect.arrayContaining([
+            expect.objectContaining({ type: "schedule" }),
+            expect.objectContaining({ type: "exam" }),
+          ]),
+        });
         await expect(page.locator("#main-content")).toBeVisible();
+        await expect(
+          page.locator("#main-content").getByRole("alert"),
+        ).toHaveCount(0);
 
         // Weekday labels (Mon-Sun) — calendar.yml personal-calendar-view.display.fields
         await expect(

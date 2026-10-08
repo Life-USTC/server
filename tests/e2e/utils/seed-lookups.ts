@@ -1,7 +1,7 @@
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "./dev-seed";
 
-type SeedSectionMatch = {
+type SeedSection = {
   id: number;
   jwId: number | null;
   code: string;
@@ -11,24 +11,21 @@ function getRequestContext(source: APIRequestContext | Page) {
   return "request" in source ? source.request : source;
 }
 
-export async function resolveSeedSectionMatch(
+export async function resolveSeedSection(
   source: APIRequestContext | Page,
-): Promise<SeedSectionMatch> {
-  const response = await getRequestContext(source).post(
-    "/api/catalog/sections/match-codes",
-    {
-      data: { codes: [DEV_SEED.section.code] },
-    },
+): Promise<SeedSection> {
+  const response = await getRequestContext(source).get(
+    `/api/catalog/sections?jwIds=${DEV_SEED.section.jwId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    sections?: Array<{
+    data?: Array<{
       id?: number;
       jwId?: number | null;
       code?: string | null;
     }>;
   };
-  const section = body.sections?.find(
+  const section = body.data?.find(
     (entry) =>
       typeof entry.id === "number" &&
       typeof entry.code === "string" &&
@@ -41,7 +38,7 @@ export async function resolveSeedSectionMatch(
     typeof section.code !== "string"
   ) {
     throw new Error(
-      `Seed section ${DEV_SEED.section.code} not found via /api/catalog/sections/match-codes`,
+      `Seed section ${DEV_SEED.section.code} not found via /api/catalog/sections`,
     );
   }
 
@@ -49,7 +46,7 @@ export async function resolveSeedSectionMatch(
 }
 
 export async function resolveSeedSectionId(source: APIRequestContext | Page) {
-  return (await resolveSeedSectionMatch(source)).id;
+  return (await resolveSeedSection(source)).id;
 }
 
 export async function resolveSeedTeacherId(

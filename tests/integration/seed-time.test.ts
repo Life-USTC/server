@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe } from "vitest";
-import { formatShanghaiDate } from "@/lib/time/shanghai-format";
-import { DEV_SEED } from "../fixtures/dev-seed";
+import { parsePersonalCalendarRange } from "@/features/calendar/server/personal-calendar-range";
+import { getSemesterWeeks } from "@/features/workspace/server/workspace-calendar-helpers";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 import { nodeProtocolTest as it } from "../shared/node-protocol-fixture";
 
 function readSemesterSeedInserts() {
@@ -18,18 +20,8 @@ function readSemesterSeedInserts() {
     .filter((line) => line.startsWith('INSERT INTO public."Semester"'));
 }
 
-function readCurrentSemesterSeedInsert() {
-  const insert = readSemesterSeedInserts().find((line) =>
-    line.includes("9900001"),
-  );
-  if (!insert) {
-    throw new Error("Current semester seed INSERT is missing");
-  }
-  return insert.replace('public."Semester"', "pg_temp.seed_semester");
-}
-
 describe("named seed semester dates", () => {
-  it("keeps the current fixture active on the Shanghai calendar day", {
+  it("preserves the bounded sample semester and calendar range when reseeded", {
     tags: ["@Infrastructure/Runtime"],
   }, async ({
     isolatedDatabase: { owner: prisma },
@@ -37,82 +29,46 @@ describe("named seed semester dates", () => {
     expect,
   }) => {
     await protocolRuntime.run(async () => {
-      // Execute the checked-in semester seed statements against this case's
-      // empty private schema. Expected dates stay independent of the seed SQL.
+      const inserts = readSemesterSeedInserts();
+      // Reapplying the development sample must preserve its named dates.
       await prisma.$transaction(async (tx) => {
-        for (const insert of readSemesterSeedInserts())
-          await tx.$executeRawUnsafe(insert);
+        for (let pass = 0; pass < 2; pass++)
+          for (const insert of inserts) await tx.$executeRawUnsafe(insert);
       });
       const [current, previous] = await Promise.all([
-        prisma.semester.findUnique({
+        prisma.semester.findUniqueOrThrow({
           where: { jwId: DEV_SEED.semesterJwId },
           select: { startDate: true, endDate: true },
         }),
-        prisma.semester.findUnique({
+        prisma.semester.findUniqueOrThrow({
           where: { jwId: DEV_SEED.previousSemesterJwId },
           select: { startDate: true, endDate: true },
         }),
       ]);
 
-      expect(current).toBeTruthy();
-      expect(previous).toBeTruthy();
-      if (!current || !previous || !current.startDate || !current.endDate) {
-        throw new Error("Named semester fixtures are missing date ranges");
-      }
-
-      const today = formatShanghaiDate(new Date());
-      const currentEnd = current.endDate.toISOString().slice(0, 10);
-      expect(current.startDate.toISOString().slice(0, 10)).toBe("2026-04-08");
-      expect(currentEnd >= today).toBe(true);
-      expect(previous.startDate?.toISOString().slice(0, 10)).toBe("2025-10-21");
-      expect(previous.endDate?.toISOString().slice(0, 10)).toBe("2026-03-30");
-    });
-  });
-
-  it("refreshes the current fixture horizon when reseeded in a later year", {
-    tags: ["@Infrastructure/Runtime"],
-  }, async ({
-    isolatedDatabase: { owner: prisma },
-    protocolRuntime,
-    expect,
-  }) => {
-    await protocolRuntime.run(async () => {
-      await prisma.$transaction(async (tx) => {
-        await tx.$executeRawUnsafe(`
-        CREATE TEMP TABLE seed_semester (
-          id integer PRIMARY KEY,
-          "jwId" integer UNIQUE NOT NULL,
-          "nameCn" text NOT NULL,
-          code text NOT NULL,
-          "startDate" date,
-          "endDate" date
-        ) ON COMMIT DROP
-      `);
-
-        const seedInsert = readCurrentSemesterSeedInsert();
-        const reseedAt = async (timestamp: string) => {
-          await tx.$executeRawUnsafe(
-            seedInsert.replace(
-              "CURRENT_TIMESTAMP",
-              `TIMESTAMPTZ '${timestamp}'`,
-            ),
-          );
-          return tx.$queryRawUnsafe<
-            Array<{ startDate: string; endDate: string }>
-          >(
-            `SELECT "startDate"::text AS "startDate", "endDate"::text AS "endDate"
-           FROM pg_temp.seed_semester
-           WHERE "jwId" = 9900001`,
-          );
-        };
-
-        await expect(reseedAt("2026-09-10 15:59:59+00")).resolves.toEqual([
-          { startDate: "2026-04-08", endDate: "2027-03-09" },
-        ]);
-        await expect(reseedAt("2030-01-02 16:00:00+00")).resolves.toEqual([
-          { startDate: "2026-04-08", endDate: "2030-07-02" },
-        ]);
+      expect(current).toEqual({
+        startDate: new Date("2026-04-08T00:00:00Z"),
+        endDate: new Date("2026-09-06T00:00:00Z"),
       });
+      expect(previous).toEqual({
+        startDate: new Date("2025-10-21T00:00:00Z"),
+        endDate: new Date("2026-03-30T00:00:00Z"),
+      });
+      const weeks = getSemesterWeeks(
+        shanghaiDayjs(current.startDate),
+        shanghaiDayjs(current.endDate),
+      );
+      const dateFrom = weeks[0][0].format("YYYY-MM-DD");
+      const dateTo = weeks.at(-1)?.at(-1)?.format("YYYY-MM-DD");
+      expect({ dateFrom, dateTo }).toEqual({
+        dateFrom: "2026-04-06",
+        dateTo: "2026-09-06",
+      });
+      expect(dateFrom <= DEV_SEED_ANCHOR.date).toBe(true);
+      expect(dateTo && DEV_SEED_ANCHOR.date <= dateTo).toBe(true);
+      expect(() =>
+        parsePersonalCalendarRange({ dateFrom, dateTo }),
+      ).not.toThrow();
     });
   });
 });

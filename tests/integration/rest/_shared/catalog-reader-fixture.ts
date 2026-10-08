@@ -36,8 +36,7 @@ async function prepareCatalog(worker: IsolatedWorker) {
         code: "421",
         nameCn: DEV_SEED.semesterNameCn,
         startDate: new Date("2026-04-01T00:00:00Z"),
-        // Match-code contracts select the current semester using the Worker clock.
-        endDate: new Date(Date.now() + 180 * 86_400_000),
+        endDate: new Date("2026-09-06T00:00:00Z"),
       },
     });
     const course = await db.course.create({
