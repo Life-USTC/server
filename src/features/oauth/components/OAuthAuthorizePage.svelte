@@ -35,7 +35,7 @@ $: pageDescription =
 
 <svelte:head><title>{pageTitle} - Life@USTC</title></svelte:head>
 
-<section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-2xl place-items-center px-4 py-10">
+<section class="mx-auto grid min-h-[calc(100dvh-14rem)] w-full max-w-2xl place-items-center py-10">
   <Card.Root class="w-full">
     <Card.Header class="gap-5 p-6">
       <OAuthAuthorizeSidePanel
