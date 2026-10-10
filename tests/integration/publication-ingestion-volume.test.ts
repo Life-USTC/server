@@ -100,7 +100,9 @@ afterAll(async () => {
   await Promise.all([db.$disconnect(), runtime.$disconnect()]);
 });
 
-it("publications.ingestion-query-budget", async () => {
+it("publications.ingestion-query-budget", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const payload = batch("budget", 50);
   const first = await countQueries(payload);
   expect(first.result.results.map(({ status }) => status)).toEqual(
@@ -163,7 +165,9 @@ it("publications.ingestion-query-budget", async () => {
   );
 });
 
-it("rejects changed semantics of a revision staged earlier in the same batch", async () => {
+it("rejects changed semantics of a revision staged earlier in the same batch", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const payload = batch("staged-conflict");
   const first = payload.items[0];
   if (first.tombstone) throw new Error("Expected publication");
@@ -191,7 +195,9 @@ it("rejects changed semantics of a revision staged earlier in the same batch", a
   ).toBe(0);
 });
 
-it("rejects conflicting byte sizes across two new batch objects atomically", async () => {
+it("rejects conflicting byte sizes across two new batch objects atomically", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const payload = batch("staged-size", 2);
   const [first, second] = payload.items;
   if (first.tombstone || second.tombstone)
@@ -213,7 +219,9 @@ it("rejects conflicting byte sizes across two new batch objects atomically", asy
   ).toBe(0);
 });
 
-it("keeps staged observation ordering and excludes rejected or stale object claims", async () => {
+it("keeps staged observation ordering and excludes rejected or stale object claims", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const payload = batch("staged-order");
   const first = payload.items[0];
   if (first.tombstone) throw new Error("Expected publication");
@@ -326,7 +334,9 @@ it("keeps staged observation ordering and excludes rejected or stale object clai
   ]);
 });
 
-it("preserves first MIME, per-revision metadata and sequential duplicate items", async () => {
+it("preserves first MIME, per-revision metadata and sequential duplicate items", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const payload = batch("shared");
   const first = payload.items[0];
   if (first.tombstone) throw new Error("Expected publication");
@@ -411,7 +421,9 @@ it("preserves first MIME, per-revision metadata and sequential duplicate items",
   ]);
 });
 
-it("rolls back the entire batch after a conflicting bulk object manifest", async () => {
+it("rolls back the entire batch after a conflicting bulk object manifest", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const initial = batch("registered");
   await ingest(initial);
   const original = initial.items[0];
@@ -460,7 +472,9 @@ it("rolls back the entire batch after a conflicting bulk object manifest", async
   ).toBe(8);
 });
 
-it("rejects a stored image URL mismatch and rolls back new bulk rows", async () => {
+it("rejects a stored image URL mismatch and rolls back new bulk rows", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const payload = batch("image-conflict");
   const item = payload.items[0];
   if (item.tombstone) throw new Error("Expected publication");
@@ -496,7 +510,9 @@ it("rejects a stored image URL mismatch and rolls back new bulk rows", async () 
   ).toBe("https://publication.example/wrong.jpg");
 });
 
-it("rejects a noncanonical stored object key without repairing it", async () => {
+it("rejects a noncanonical stored object key without repairing it", {
+  tags: ["@Publication/Service"],
+}, async () => {
   const payload = batch("key-conflict");
   const item = payload.items[0];
   if (item.tombstone) throw new Error("Expected publication");
