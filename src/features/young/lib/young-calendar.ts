@@ -1,5 +1,17 @@
-import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import {
+  type CalendarDate,
+  endOfMonth,
+  endOfWeek,
+  fromDate,
+  parseDate,
+  startOfMonth,
+  startOfWeek,
+  Time,
+  toCalendarDate,
+  toCalendarDateTime,
+} from "@internationalized/date";
+import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import type {
   YoungEventSummary,
   YoungEventTimeBasis,
@@ -16,6 +28,7 @@ export type YoungCalendarDay = {
   key: string;
   date: Date;
   events: YoungEventSummary[];
+  startingEvents: YoungEventSummary[];
   isToday: boolean;
   isMuted?: boolean;
 };
@@ -30,70 +43,39 @@ function eventTimes(event: YoungEventSummary, timeBasis: YoungEventTimeBasis) {
     : { startAt: event.startAt, endAt: event.endAt };
 }
 
-export function youngEventStartsOnDay(
-  event: YoungEventSummary,
-  key: string,
-  timeBasis: YoungEventTimeBasis = "activity",
-) {
-  const start = dayStart(key).toDate().getTime();
-  const end = dayStart(key).endOf("day").toDate().getTime();
-  return startsOnDay(event, start, end, timeBasis);
-}
-
-function startsOnDay(
-  event: YoungEventSummary,
-  dayStartMs: number,
-  dayEnd: number,
-  timeBasis: YoungEventTimeBasis,
-) {
-  const startAt = eventTimes(event, timeBasis).startAt;
-  if (!startAt) return false;
-  const eventStart = new Date(startAt).getTime();
-  return eventStart >= dayStartMs && eventStart <= dayEnd;
-}
-
-function dayKey(input: Date) {
-  return formatShanghaiDate(input);
-}
-
-function dayStart(key: string) {
-  return shanghaiDayjs(`${key}T00:00:00`).startOf("day");
-}
-
-function addDays(key: string, amount: number) {
-  return dayKey(dayStart(key).add(amount, "day").toDate());
-}
-
-function sundayOf(key: string) {
-  const date = dayStart(key);
-  return dayKey(date.subtract(date.day(), "day").toDate());
+function calendarDate(value: string | null | undefined): CalendarDate {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    try {
+      return parseDate(value);
+    } catch {
+      // Invalid deep links use the same Shanghai today as a missing date.
+    }
+  }
+  return toCalendarDate(fromDate(new Date(), APP_TIME_ZONE));
 }
 
 export function normalizeYoungCalendarDate(value: string | null | undefined) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return dayKey(new Date());
-  }
-  const parsed = shanghaiDayjs(`${value}T00:00:00`);
-  return parsed.isValid() ? dayKey(parsed.toDate()) : dayKey(new Date());
+  return calendarDate(value).toString();
 }
 
 export function youngCalendarRange(
   view: YoungCalendarView,
   anchorDate: string,
 ): YoungCalendarRange {
-  const anchor = normalizeYoungCalendarDate(anchorDate);
-  if (view === "day") return { start: anchor, end: anchor };
-  if (view === "week") {
-    const start = sundayOf(anchor);
-    return { start, end: addDays(start, 6) };
+  const anchor = calendarDate(anchorDate);
+  if (view === "day") {
+    return { start: anchor.toString(), end: anchor.toString() };
   }
-
-  const month = dayStart(anchor).startOf("month");
-  const first = dayKey(month.toDate());
-  const gridStart = sundayOf(first);
-  const last = dayKey(month.endOf("month").toDate());
-  const gridEnd = addDays(sundayOf(last), 6);
-  return { start: gridStart, end: gridEnd };
+  if (view === "week") {
+    return {
+      start: startOfWeek(anchor, "en-US", "sun").toString(),
+      end: endOfWeek(anchor, "en-US", "sun").toString(),
+    };
+  }
+  return {
+    start: startOfWeek(startOfMonth(anchor), "en-US", "sun").toString(),
+    end: endOfWeek(endOfMonth(anchor), "en-US", "sun").toString(),
+  };
 }
 
 export function youngCalendarDays(
@@ -104,77 +86,68 @@ export function youngCalendarDays(
   timeBasis: YoungEventTimeBasis = "activity",
   monthAnchor = range.start,
 ): YoungCalendarDay[] {
-  const selected = normalizeYoungCalendarDate(range.start);
-  const end = normalizeYoungCalendarDate(range.end);
-  const todayKey = dayKey(today);
-  const calendarMonth = dayStart(
-    normalizeYoungCalendarDate(monthAnchor),
-  ).month();
+  const selected = calendarDate(range.start);
+  const end = calendarDate(range.end);
+  const todayKey = toCalendarDate(fromDate(today, APP_TIME_ZONE)).toString();
+  const calendarMonth = calendarDate(monthAnchor).month;
+  // Parse and order each activity once. Day membership uses numeric boundaries,
+  // while the original timestamp text retains the public list's tie ordering.
+  const timedEvents = events
+    .map((event) => {
+      const times = eventTimes(event, timeBasis);
+      return {
+        event,
+        start: times.startAt ? new Date(times.startAt).getTime() : NaN,
+        end: times.endAt ? new Date(times.endAt).getTime() : null,
+        startText: times.startAt ?? "",
+      };
+    })
+    .sort(
+      (left, right) =>
+        left.startText.localeCompare(right.startText) ||
+        left.event.youngId.localeCompare(right.event.youngId),
+    );
   const days: YoungCalendarDay[] = [];
-  let key = selected;
-  while (key <= end) {
-    const date = dayStart(key).toDate();
-    const dayEnd = dayStart(key).endOf("day").toDate().getTime();
-    const dayStartMs = date.getTime();
-    const dayEvents = events
-      .filter((event) => {
-        const times = eventTimes(event, timeBasis);
-        if (!times.startAt) return false;
-        const eventStart = new Date(times.startAt).getTime();
-        if (!times.endAt) {
-          // A known start without an end is shown only on its start day. The
-          // calendar must not invent a duration for an incomplete interval.
-          return eventStart >= dayStartMs && eventStart <= dayEnd;
-        }
-        const eventEnd = new Date(times.endAt).getTime();
-        return (
-          eventStart <= dayEnd &&
-          (eventEnd > dayStartMs ||
-            (eventStart === eventEnd && eventStart === dayStartMs))
-        );
-      })
-      .sort((left, right) => {
-        const leftStarts = startsOnDay(left, dayStartMs, dayEnd, timeBasis)
-          ? 0
-          : 1;
-        const rightStarts = startsOnDay(right, dayStartMs, dayEnd, timeBasis)
-          ? 0
-          : 1;
-        if (leftStarts !== rightStarts) return leftStarts - rightStarts;
-        return (
-          (eventTimes(left, timeBasis).startAt ?? "").localeCompare(
-            eventTimes(right, timeBasis).startAt ?? "",
-          ) || left.youngId.localeCompare(right.youngId)
-        );
-      });
+  for (let current = selected; current.compare(end) <= 0; ) {
+    const key = current.toString();
+    const date = current.toDate(APP_TIME_ZONE);
+    const dayStart = date.getTime();
+    const next = current.add({ days: 1 });
+    const dayEnd = toCalendarDateTime(current, new Time(23, 59, 59, 999))
+      .toDate(APP_TIME_ZONE)
+      .getTime();
+    const startingEvents: YoungEventSummary[] = [];
+    const ongoingEvents: YoungEventSummary[] = [];
+    for (const item of timedEvents) {
+      const startsToday = item.start >= dayStart && item.start <= dayEnd;
+      const overlaps =
+        item.end == null
+          ? startsToday
+          : item.start <= dayEnd &&
+            (item.end > dayStart ||
+              (item.start === item.end && item.start === dayStart));
+      if (overlaps) {
+        (startsToday ? startingEvents : ongoingEvents).push(item.event);
+      }
+    }
     days.push({
       key,
       date,
-      events: dayEvents,
+      events: [...startingEvents, ...ongoingEvents],
+      startingEvents,
       isToday: key === todayKey,
-      isMuted: view === "month" && dayStart(key).month() !== calendarMonth,
+      isMuted: view === "month" && current.month !== calendarMonth,
     });
-    key = addDays(key, 1);
+    // CalendarDate constrains arithmetic at its supported year boundary.
+    if (next.compare(current) <= 0) break;
+    current = next;
   }
   return days;
 }
 
 export function youngCalendarWeeks(
-  view: YoungCalendarView,
-  range: YoungCalendarRange,
-  events: YoungEventSummary[],
-  today = new Date(),
-  timeBasis: YoungEventTimeBasis = "activity",
-  monthAnchor = range.start,
+  days: YoungCalendarDay[],
 ): YoungCalendarWeek[] {
-  const days = youngCalendarDays(
-    view,
-    range,
-    events,
-    today,
-    timeBasis,
-    monthAnchor,
-  );
   const weeks: YoungCalendarWeek[] = [];
   for (let index = 0; index < days.length; index += 7) {
     weeks.push({ days: days.slice(index, index + 7) });
@@ -186,26 +159,22 @@ export function youngCalendarPreviousDate(
   view: YoungCalendarView,
   anchorDate: string,
 ) {
-  const anchor = normalizeYoungCalendarDate(anchorDate);
-  const amount = view === "day" ? 1 : view === "week" ? 7 : 1;
-  return dayKey(
-    dayStart(anchor)
-      .subtract(amount, view === "month" ? "month" : "day")
-      .toDate(),
-  );
+  const anchor = calendarDate(anchorDate);
+  return anchor
+    .subtract(
+      view === "month" ? { months: 1 } : { days: view === "week" ? 7 : 1 },
+    )
+    .toString();
 }
 
 export function youngCalendarNextDate(
   view: YoungCalendarView,
   anchorDate: string,
 ) {
-  const anchor = normalizeYoungCalendarDate(anchorDate);
-  const amount = view === "day" ? 1 : view === "week" ? 7 : 1;
-  return dayKey(
-    dayStart(anchor)
-      .add(amount, view === "month" ? "month" : "day")
-      .toDate(),
-  );
+  const anchor = calendarDate(anchorDate);
+  return anchor
+    .add(view === "month" ? { months: 1 } : { days: view === "week" ? 7 : 1 })
+    .toString();
 }
 
 /** Match the visible date range, rather than always naming a single day. */
@@ -217,14 +186,14 @@ export function youngCalendarHeading(
   const date = (key: string) => new Date(`${key}T00:00:00+08:00`);
   if (view === "week") {
     const range = youngCalendarRange(view, anchorDate);
-    return new Intl.DateTimeFormat(locale, {
+    return createShanghaiDateTimeFormatter(locale, {
       timeZone: "Asia/Shanghai",
       year: "numeric",
       month: "short",
       day: "numeric",
     }).formatRange(date(range.start), date(range.end));
   }
-  return new Intl.DateTimeFormat(
+  return createShanghaiDateTimeFormatter(
     locale,
     view === "month"
       ? { timeZone: "Asia/Shanghai", year: "numeric", month: "long" }

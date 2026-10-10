@@ -1,9 +1,11 @@
 <script lang="ts">
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "$lib/components/ui/button";
 import * as Collapsible from "$lib/components/ui/collapsible";
 import {
+  normalizeYoungCalendarDate,
   type YoungCalendarView,
   youngCalendarAgenda,
   youngCalendarDays,
@@ -12,7 +14,6 @@ import {
   youngCalendarPreviousDate,
   youngCalendarRange,
   youngCalendarWeeks,
-  youngEventStartsOnDay,
 } from "../lib/young-calendar";
 import type {
   YoungEventSummary,
@@ -57,29 +58,17 @@ $: days = youngCalendarDays(
   timeBasis,
   anchorDate,
 );
-$: weeks = youngCalendarWeeks(
-  view,
-  range,
-  events,
-  undefined,
-  timeBasis,
-  anchorDate,
-).map((week) => ({
+$: weeks = youngCalendarWeeks(days).map((week) => ({
   days: week.days.map((day) => ({
     key: day.key,
     moreHref: hrefFor("day", day.key),
-    label: new Intl.DateTimeFormat(locale, {
+    label: createShanghaiDateTimeFormatter(locale, {
       timeZone: "Asia/Shanghai",
       day: "numeric",
     }).format(day.date),
     isToday: day.isToday,
     isMuted: day.isMuted,
-    events: (view === "day"
-      ? day.events
-      : day.events.filter((event) =>
-          youngEventStartsOnDay(event, day.key, timeBasis),
-        )
-    ).map((event) => ({
+    events: (view === "day" ? day.events : day.startingEvents).map((event) => ({
       href: eventHref(event),
       label: event.name,
       meta: formatClock(event),
@@ -103,7 +92,7 @@ function formatClock(event: YoungEventSummary) {
   const start =
     timeBasis === "registration" ? event.applyStartAt : event.startAt;
   if (!start) return "";
-  return new Intl.DateTimeFormat(locale, {
+  return createShanghaiDateTimeFormatter(locale, {
     timeZone: "Asia/Shanghai",
     hour: "2-digit",
     minute: "2-digit",
@@ -116,7 +105,7 @@ function formatTime(event: YoungEventSummary) {
     timeBasis === "registration" ? event.applyStartAt : event.startAt;
   const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
   if (!start && !end) return "";
-  const formatter = new Intl.DateTimeFormat(locale, {
+  const formatter = createShanghaiDateTimeFormatter(locale, {
     timeZone: "Asia/Shanghai",
     hour: "2-digit",
     minute: "2-digit",
@@ -138,12 +127,12 @@ function eventMeta(event: YoungEventSummary) {
 
 {#snippet agendaRows(agendaDays: typeof days)}
       {#each agendaDays as day}
-        {@const visible = view === "day" ? day.events : day.events.filter((event) => youngEventStartsOnDay(event, day.key, timeBasis))}
+        {@const visible = view === "day" ? day.events : day.startingEvents}
         {@const limit = view === "week" ? 6 : view === "month" ? 3 : visible.length}
         <section aria-labelledby={`young-agenda-${day.key}`} class="grid gap-2">
           <h3 id={`young-agenda-${day.key}`} class="text-sm font-medium">
             <a class="hover:underline" href={hrefFor("day", day.key)}>
-              {new Intl.DateTimeFormat(locale, {
+              {createShanghaiDateTimeFormatter(locale, {
                 timeZone: "Asia/Shanghai",
                 weekday: "long",
                 month: "short",
@@ -181,7 +170,7 @@ function eventMeta(event: YoungEventSummary) {
   <div class="flex min-w-0 items-center justify-between gap-1 sm:gap-3">
     <div class="flex shrink-0 items-center gap-1 sm:gap-2">
       <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.previous} variant="outline" href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}>‹</Button>
-      <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant="outline" href={hrefFor(view, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date()))}>{labels.today}</Button>
+      <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant="outline" href={hrefFor(view, normalizeYoungCalendarDate(null))}>{labels.today}</Button>
       <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.next} variant="outline" href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}>›</Button>
     </div>
     <h2 class="min-w-0 flex-1 truncate text-center font-medium text-sm sm:text-base">{heading}</h2>
@@ -210,7 +199,7 @@ function eventMeta(event: YoungEventSummary) {
       {#if day}
         <div class="grid gap-2 rounded-xl border p-4">
           <div class="font-medium text-sm">
-            {new Intl.DateTimeFormat(locale, {
+            {createShanghaiDateTimeFormatter(locale, {
               timeZone: "Asia/Shanghai",
               dateStyle: "full",
             }).format(day.date)}
@@ -234,7 +223,7 @@ function eventMeta(event: YoungEventSummary) {
         {weeks}
         variant={view === "week" ? "week" : "month"}
         weekdays={weeks[0]?.days.map((day) =>
-          new Intl.DateTimeFormat(locale, {
+          createShanghaiDateTimeFormatter(locale, {
             timeZone: "Asia/Shanghai",
             weekday: "short",
           }).format(new Date(`${day.key}T12:00:00+08:00`)),
