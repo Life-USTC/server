@@ -81,6 +81,29 @@ describe("crawler discovery routes", () => {
     expect(body).not.toContain("Sitemap: /sitemap.xml");
   });
 
+  it("excludes Young query variants from crawling while retaining canonical discovery", async () => {
+    const response = await getDiscoveryDocument(getRobotsTxt, "robots.txt");
+    const lines = (await response.text()).split("\n");
+
+    expect(lines).toContain("Allow: /");
+    expect(
+      lines.filter((line) => line.includes("/catalog/young-events")),
+    ).toEqual([
+      "Disallow: /catalog/young-events?",
+      "Disallow: /catalog/young-events/*?",
+    ]);
+    // The root rule ends at '?'; the child rule requires '/' before its wildcard.
+    // Keep canonical list/calendar/detail URLs outside both disallowed forms.
+    for (const path of [
+      "/catalog/young-events",
+      "/catalog/young-events/calendar",
+      "/catalog/young-events/young-1",
+      "/catalog/young-events/organizers/club",
+    ]) {
+      expect(lines).not.toContain(`Disallow: ${path}`);
+    }
+  });
+
   it("lists only stable public discovery and protocol links", async () => {
     vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);
 
