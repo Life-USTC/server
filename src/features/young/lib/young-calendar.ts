@@ -44,7 +44,7 @@ function eventTimes(event: YoungEventSummary, timeBasis: YoungEventTimeBasis) {
 }
 
 function calendarDate(value: string | null | undefined): CalendarDate {
-  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  if (value && /^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) {
     try {
       return parseDate(value);
     } catch {
@@ -52,6 +52,11 @@ function calendarDate(value: string | null | undefined): CalendarDate {
     }
   }
   return toCalendarDate(fromDate(new Date(), APP_TIME_ZONE));
+}
+
+/** Public date keys cover four-digit CE years only. */
+function calendarDateKey(date: CalendarDate): string {
+  return date.era === "BC" ? "0001-01-01" : date.toString();
 }
 
 export function normalizeYoungCalendarDate(value: string | null | undefined) {
@@ -68,12 +73,12 @@ export function youngCalendarRange(
   }
   if (view === "week") {
     return {
-      start: startOfWeek(anchor, "en-US", "sun").toString(),
+      start: calendarDateKey(startOfWeek(anchor, "en-US", "sun")),
       end: endOfWeek(anchor, "en-US", "sun").toString(),
     };
   }
   return {
-    start: startOfWeek(startOfMonth(anchor), "en-US", "sun").toString(),
+    start: calendarDateKey(startOfWeek(startOfMonth(anchor), "en-US", "sun")),
     end: endOfWeek(endOfMonth(anchor), "en-US", "sun").toString(),
   };
 }
@@ -160,11 +165,11 @@ export function youngCalendarPreviousDate(
   anchorDate: string,
 ) {
   const anchor = calendarDate(anchorDate);
-  return anchor
-    .subtract(
+  return calendarDateKey(
+    anchor.subtract(
       view === "month" ? { months: 1 } : { days: view === "week" ? 7 : 1 },
-    )
-    .toString();
+    ),
+  );
 }
 
 export function youngCalendarNextDate(

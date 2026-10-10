@@ -270,6 +270,7 @@ describe("Young calendar", () => {
     undefined,
     "",
     "not-a-date",
+    "0000-01-01",
     "2026-2-03",
     "2026-02-30",
     "2026-13-01",
@@ -278,6 +279,33 @@ describe("Young calendar", () => {
     vi.setSystemTime(new Date("2026-12-31T18:00:00Z"));
     expect(normalizeYoungCalendarDate(value)).toBe("2027-01-01");
   });
+
+  it.each(["day", "week", "month"] as const)(
+    "keeps %s navigation and ranges within CE dates",
+    (view) => {
+      const range = youngCalendarRange(view, "0001-01-01");
+      expect(range).toEqual({
+        start: "0001-01-01",
+        end:
+          view === "day"
+            ? "0001-01-01"
+            : view === "week"
+              ? "0001-01-06"
+              : "0001-02-03",
+      });
+      expect(youngCalendarPreviousDate(view, "0001-01-01")).toBe("0001-01-01");
+      expect(normalizeYoungCalendarDate(range.start)).toBe(range.start);
+      const days = youngCalendarDays(
+        view,
+        range,
+        [],
+        new Date("2026-10-10T00:00:00Z"),
+      );
+      expect(days).toHaveLength(view === "day" ? 1 : view === "week" ? 6 : 34);
+      expect(days[0].key).toBe("0001-01-01");
+      expect(days.at(-1)?.key).toBe(range.end);
+    },
+  );
 
   it("includes the final supported calendar day without looping past it", () => {
     const item = event("last-day", "9999-12-31T12:00:00+08:00", null);
