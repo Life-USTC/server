@@ -51,7 +51,11 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
       },
     ];
     for (const { view, title, href } of views) {
-      await page.locator(`nav a[href="?view=${view}"]`).click();
+      await page
+        .locator('[data-shell-navigation="desktop"]')
+        .locator(`a[href="/workspace/subscriptions/activities?view=${view}"]`)
+        .first()
+        .click();
       await expect(page).toHaveURL(new RegExp(`view=${view}`));
       await expect(page.locator("main")).toBeVisible();
       const link = page
@@ -119,26 +123,43 @@ for (const viewport of [
         const errors: string[] = [];
         page.on("pageerror", (error) => errors.push(error.message));
         await page.setViewportSize(viewport);
-        const reminder = page.getByRole("checkbox", {
+        // The redesigned detail page owns subscribing only; reminder settings
+        // live on the activity subscription list that renders them.
+        const subscription = page.locator('[data-slot="item"]').filter({
+          has: page.getByRole("link", { name: activity.name, exact: true }),
+        });
+        const reminder = subscription.getByRole("checkbox", {
           name: /报名截止前|registration closes/i,
         });
+        const reminderSettings = subscription.getByRole("button", {
+          name: /^(提醒设置|Reminder settings)$/,
+        });
         if (action !== "remove") {
-          await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
-          await settleActivityEffects();
           if (action === "add") {
+            await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
+            await settleActivityEffects();
             await page
               .getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ })
               .click();
             await expect(
               page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
             ).toBeVisible();
-          } else {
+            await expect(
+              page.getByRole("button", {
+                name: /^(提醒设置|Reminder settings)$/,
+              }),
+            ).toHaveCount(0);
+          }
+          await gotoAndWaitForReady(
+            page,
+            "/workspace/subscriptions/activities?view=events",
+          );
+          await settleActivityEffects();
+          if (action === "settings") {
             await expect(reminder).toBeHidden();
-            await page
-              .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
-              .click();
+            await reminderSettings.click();
             await reminder.uncheck();
-            await observeAction(
+            const saved = await observeAction(
               () =>
                 page.waitForResponse(
                   (response) =>
@@ -149,14 +170,16 @@ for (const viewport of [
                       ) && response.request().method() === "PUT",
                 ),
               () =>
-                page
+                subscription
                   .getByRole("button", {
                     name: /^(保存提醒设置|Save reminders)$/,
                   })
                   .click(),
             );
+            expect(saved.status()).toBe(200);
+            expect((await saved.json()).remindDeadline).toBe(false);
             await expect(
-              page.getByRole("button", {
+              subscription.getByRole("button", {
                 name: /^(保存提醒设置|Save reminders)$/,
               }),
             ).toBeEnabled();
@@ -168,9 +191,7 @@ for (const viewport of [
           await page.reload();
           await waitForUiSettled(page);
           await expect(reminder).toBeHidden();
-          await page
-            .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
-            .click();
+          await reminderSettings.click();
           await expect(reminder).toBeChecked({ checked: action === "add" });
         }
         const link = page.getByRole("link", {
@@ -440,7 +461,7 @@ test("reading the last unread reminder on page two returns to the remaining remi
     ).toBeVisible();
     const reminderNavigation = page
       .locator('[data-shell-navigation="desktop"]')
-      .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
+      .getByRole("link", { name: /^(活动通知|Activity notifications)$/ });
     await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
     const reminderBadge = page
       .locator(
