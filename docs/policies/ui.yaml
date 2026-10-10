@@ -1417,12 +1417,12 @@ requirements:
 - id: ui.navigation-landmarks-7
   category: presentation
   topic: navigation-landmarks
-  rule: Activity detail links record the originating list or calendar URL. The second-classroom sidebar identifies the active list or calendar view. The detail page does not render a return link.
+  rule: Activity detail links use one query-free URL per event. The browser history preserves the originating list or calendar context. The second-classroom sidebar identifies the active list or calendar view. The detail page does not render a return link.
   acceptance:
     given: Isolated activities match every supported list and calendar filter, with activity and signup dates and more than one result page.
     when: A browser opens a detail from page two of the activity list and from day, week and month calendar views under both time bases, then uses the browser back control.
     then:
-    - Detail links record the exact originating filters, pagination and calendar date/view.
+    - Detail links use the same query-free event URL regardless of originating filters, pagination and calendar date/view.
     - The detail page has no return link.
     - Browser back restores the originating records, and the active sidebar and calendar views stay programmatically identified.
     test:

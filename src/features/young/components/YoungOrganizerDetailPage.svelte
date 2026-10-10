@@ -7,7 +7,6 @@ import type {
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { page } from "$app/stores";
 import CollectionPage from "$lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
@@ -77,7 +76,7 @@ function pageHref(page: number) {
               <div role="listitem">
                 <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
                   {#snippet child({ props })}
-                    <a href={youngDetailHref(event.youngId, $page.url)} {...props}>
+                    <a href={youngDetailHref(event.youngId)} {...props}>
                       <Item.Content>
                         <Item.Title>{event.name}</Item.Title>
                         <Item.Description>

@@ -220,6 +220,10 @@ test("ui.data-table-cells-4", async ({ page, baseURL }) => {
       "anonymous-links",
     );
     await gotoAndWaitForReady(page, "/catalog/bus");
+    // The seeded routes have weekday trips; layout checks must not depend on today.
+    const weekday = page.getByRole("radio", { name: "Weekday", exact: true });
+    await weekday.click();
+    await expect(weekday).toHaveAttribute("aria-checked", "true");
     await page
       .getByRole("switch", { name: "Show departed trips", exact: true })
       .click();

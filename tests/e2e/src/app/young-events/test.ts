@@ -110,13 +110,16 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     ).toBeVisible();
     const browseUrl = page.url();
     await page
-      .locator(
-        `a[href^="/catalog/young-events/${DEV_SEED.youngEvent.youngId}?"]`,
-      )
+      .locator(`a[href="/catalog/young-events/${DEV_SEED.youngEvent.youngId}"]`)
       .filter({ visible: true })
       .first()
       .click();
-    await expect(page).toHaveURL(/returnTo=/);
+    await expect(page).toHaveURL(
+      new URL(
+        `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+        browseUrl,
+      ).toString(),
+    );
     await expect(page.getByTestId("young-event-banner")).toBeVisible();
     await expect(
       page.getByRole("link", { name: /返回活动列表|Back to all events/ }),

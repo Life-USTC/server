@@ -116,6 +116,29 @@ describe("public Young page loaders", () => {
       ),
     ).rejects.toThrow("database unavailable");
   });
+  it("renders a filtered calendar independently of unused filter-option reads", async () => {
+    service.listYoungEventCategories.mockRejectedValue(
+      new Error("category options unavailable"),
+    );
+    options.mockRejectedValue(new Error("organizer options unavailable"));
+
+    const result = await loadYoungCalendarPage(
+      event(
+        "/catalog/young-events/calendar?view=day&date=2035-09-15&organizerId=club&category=sport",
+      ),
+    );
+
+    expect(result.filters).toMatchObject({
+      organizerId: "club",
+      category: "sport",
+    });
+    expect(result.data).toEqual([]);
+    expect(result.source).toEqual(source);
+    expect(result).not.toHaveProperty("categories");
+    expect(result).not.toHaveProperty("organizers");
+    expect(service.listYoungEventCategories).not.toHaveBeenCalled();
+    expect(options).not.toHaveBeenCalled();
+  });
   it("defaults invalid view and date values to a usable month", async () => {
     const result = await loadYoungCalendarPage(
       event(

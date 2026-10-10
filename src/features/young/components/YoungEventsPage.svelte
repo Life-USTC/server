@@ -124,7 +124,7 @@ function listDateTime(value: string | null | undefined) {
                       <div role="listitem">
                         <Item.Root size="sm">
                           {#snippet child({ props })}
-                            <a href={youngDetailHref(event.youngId, $appPage.url)} {...props}>
+                            <a href={youngDetailHref(event.youngId)} {...props}>
                               <Item.Content>
                                 <Item.Title>{event.name}</Item.Title>
                                 <p class="text-sm leading-normal text-muted-foreground">
@@ -166,7 +166,7 @@ function listDateTime(value: string | null | undefined) {
                 {#each data as event (event.youngId)}
                   <Table.Row>
                     <Table.Cell>
-                      <a class="font-medium underline-offset-4 hover:underline" href={youngDetailHref(event.youngId, $appPage.url)}>
+                      <a class="font-medium underline-offset-4 hover:underline" href={youngDetailHref(event.youngId)}>
                         <span>{event.name}</span>
                       </a>
                       {#if event.category}<span class="mt-0.5 block text-xs text-muted-foreground">{event.category}</span>{/if}

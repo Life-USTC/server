@@ -71,14 +71,16 @@ test("ui.navigation-landmarks-7", async ({ page, baseURL }) => {
         item.calendarView[0].toUpperCase() + item.calendarView.slice(1),
       );
     }
-    const event = page.locator('main a[href*="returnTo="]:visible').first();
+    const event = page
+      .locator(
+        `main a[href^="/catalog/young-events/${fixture.marker}"]:visible`,
+      )
+      .first();
     const href = await event.getAttribute("href");
     if (!href) throw new Error("Expected an event detail link");
     const detail = new URL(href, baseURL);
-    expect(
-      destination(detail.searchParams.get("returnTo")),
-      item.calendarView ?? "events",
-    ).toEqual(expected);
+    expect(detail.search).toBe("");
+    expect(detail.hash).toBe("");
     await event.click();
     await expect(page).toHaveURL(detail.toString());
     await waitForUiSettled(page);
@@ -94,7 +96,11 @@ test("ui.navigation-landmarks-7", async ({ page, baseURL }) => {
     await expect.poll(() => destination(page.url())).toEqual(expected);
     await waitForUiSettled(page);
     await expect(
-      page.locator('main a[href*="returnTo="]:visible').first(),
+      page
+        .locator(
+          `main a[href^="/catalog/young-events/${fixture.marker}"]:visible`,
+        )
+        .first(),
     ).toBeVisible();
     await expect(active).toHaveCount(1);
     if (item.calendarView) {

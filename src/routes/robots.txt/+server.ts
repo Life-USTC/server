@@ -11,6 +11,8 @@ export const GET: RequestHandler = async ({ request }) => {
       "Allow: /",
       "Allow: /api/docs$",
       "Allow: /api/docs/",
+      "Disallow: /catalog/young-events?",
+      "Disallow: /catalog/young-events/*?",
       "Disallow: /admin$",
       "Disallow: /admin/",
       "Disallow: /api$",

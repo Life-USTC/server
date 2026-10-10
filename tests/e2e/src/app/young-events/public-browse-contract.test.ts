@@ -17,7 +17,7 @@ test.afterEach(async () => {
 });
 function eventLink(page: Page, index: number) {
   return page
-    .locator(`a[href^="${root}/${fixture.eventIds[index]}?"]:visible`)
+    .locator(`a[href="${root}/${fixture.eventIds[index]}"]:visible`)
     .first();
 }
 async function openYoungSidebar(page: Page) {

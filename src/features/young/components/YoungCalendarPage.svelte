@@ -13,7 +13,6 @@ import type {
 import type { YoungCalendarPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
-import { page } from "$app/stores";
 import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { youngDetailHref } from "../lib/young-navigation";
@@ -161,7 +160,7 @@ const calendarLabels = $derived({
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}
       {anchorDate}
-      eventHref={(event) => youngDetailHref(event.youngId, $page.url)}
+      eventHref={(event) => youngDetailHref(event.youngId)}
       events={data}
       hrefFor={calendarHref}
       labels={calendarLabels}

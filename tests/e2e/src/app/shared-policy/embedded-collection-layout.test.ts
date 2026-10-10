@@ -234,6 +234,10 @@ test("ui.list-table-6", async ({ page, baseURL }) => {
     await page
       .getByRole("button", { name: "Change route", exact: true })
       .click();
+    // The seeded routes have weekday trips; layout checks must not depend on today.
+    const weekday = page.getByRole("radio", { name: "Weekday", exact: true });
+    await weekday.click();
+    await expect(weekday).toHaveAttribute("aria-checked", "true");
     const departed = page.getByRole("switch", {
       name: "Show departed trips",
       exact: true,
