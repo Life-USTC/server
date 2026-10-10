@@ -21,8 +21,8 @@ function eventLink(page: Page, fixture: YoungBrowseFixture, index: number) {
     .locator(`a[href="${root}/${fixture.eventIds[index]}"]:visible`)
     .first();
 }
-// Browse links still carry their return context; the detail page no longer
-// renders an in-page back link, so the browser history returns to the list.
+// Browse links address the detail page directly, and it renders no in-page
+// back link, so the browser history is what returns to the list.
 async function returnFromDetail(
   page: Page,
   fixture: YoungBrowseFixture,
@@ -33,9 +33,8 @@ async function returnFromDetail(
   await expect(page).toHaveURL(
     (url) => url.pathname === `${root}/${fixture.eventIds[index]}`,
   );
-  expect(new URL(page.url()).searchParams.get("returnTo")).toBe(
-    new URL(origin).pathname + new URL(origin).search,
-  );
+  expect(new URL(page.url()).search).toBe("");
+  expect(new URL(page.url()).hash).toBe("");
   await expect(
     page.getByRole("link", {
       name: /返回活动列表|Back to all events|返回日历|Back to calendar|返回主办方|Back to organizers/,
