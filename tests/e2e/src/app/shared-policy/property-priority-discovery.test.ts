@@ -633,7 +633,7 @@ test("ui.model-property-priority-discovery-views", async ({
             `/catalog/young-events?search=${encodeURIComponent(f.young.name)}`,
           );
           const link = main
-            .locator(`a[href^="/catalog/young-events/${f.young.youngId}?"]`)
+            .locator(`a[href="/catalog/young-events/${f.young.youngId}"]`)
             .filter({ visible: true })
             .first();
           const row =
@@ -761,7 +761,7 @@ test("ui.model-property-priority-discovery-views", async ({
             `/catalog/young-events/calendar?date=2035-09-15&view=day&search=${encodeURIComponent(f.young.name)}`,
           );
           const event = main
-            .locator(`a[href^="/catalog/young-events/${f.young.youngId}?"]`)
+            .locator(`a[href="/catalog/young-events/${f.young.youngId}"]`)
             .filter({ visible: true })
             .first();
           const eventTitle =
