@@ -33,16 +33,22 @@ describe("domain / method CI matrix", () => {
     ).toEqual({
       include: [
         {
-          domain: "Homework",
-          method: "MCP",
+          name: "Homework / MCP",
+          slug: "homework-mcp",
+          weight: 8,
+          tags: "@Homework/MCP",
+          grep: "@(Homework/MCP)( |$)",
           integration: true,
           integrationFiles: ["tests/integration/a.test.ts"],
           http: true,
           browser: true,
         },
         {
-          domain: "Homework",
-          method: "Web",
+          name: "Homework / Web",
+          slug: "homework-web",
+          weight: 4,
+          tags: "@Homework/Web",
+          grep: "@(Homework/Web)( |$)",
           integration: false,
           integrationFiles: [],
           http: false,
@@ -50,6 +56,65 @@ describe("domain / method CI matrix", () => {
         },
       ],
     });
+  });
+
+  it("packs light combinations together and leaves a heavy one alone", () => {
+    // One combination far heavier than an even share keeps its own job; the
+    // rest are collected so the run does not pay a job's fixed cost per tag.
+    const owners = [
+      ...Array.from({ length: 40 }, (_, index) => ({
+        name: `heavy ${index}`,
+        file: "heavy.ts",
+        engine: "browser" as const,
+        tags: ["@Account/Web"],
+      })),
+      ...["@Todo/Service", "@Exam/Service", "@Bus/Service"].map((tag) => ({
+        name: `light ${tag}`,
+        file: `${tag.slice(1).replace("/", "-")}.test.ts`,
+        engine: "integration" as const,
+        tags: [tag],
+      })),
+    ];
+    const jobs = testMatrix(owners).include;
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]).toMatchObject({
+      name: "Account / Web",
+      tags: "@Account/Web",
+      browser: true,
+      integration: false,
+    });
+    // Every light combination still runs, through one filter and one job.
+    expect(jobs[1]).toMatchObject({
+      name: "Bus / Service +2",
+      slug: "bus-service",
+      tags: "@Bus/Service || @Exam/Service || @Todo/Service",
+      grep: "@(Bus/Service|Exam/Service|Todo/Service)( |$)",
+      integration: true,
+      browser: false,
+    });
+    expect(jobs[1].integrationFiles).toHaveLength(3);
+  });
+
+  it("keeps every collected combination in exactly one job", () => {
+    const tags = [
+      "@Account/Web",
+      "@Todo/Service",
+      "@Exam/REST",
+      "@Bus/MCP",
+      "@Course/GraphQL",
+    ];
+    const jobs = testMatrix(
+      tags.flatMap((tag, index) =>
+        Array.from({ length: index + 1 }, (_, n) => ({
+          name: `${tag} ${n}`,
+          file: "case.ts",
+          engine: "browser" as const,
+          tags: [tag],
+        })),
+      ),
+    ).include;
+    const placed = jobs.flatMap((job) => job.tags.split(" || "));
+    expect(placed.toSorted()).toEqual(tags.toSorted());
   });
 
   it("deduplicates files within each combination without losing shared files", () => {
@@ -67,19 +132,22 @@ describe("domain / method CI matrix", () => {
           tags: [tag],
           engine: "integration" as const,
         })),
-      ).include.map(({ method, integrationFiles }) => ({
-        method,
+      ).include.map(({ name, integrationFiles }) => ({
+        name,
         integrationFiles,
       })),
     ).toEqual([
       {
-        method: "MCP",
+        name: "Homework / MCP",
         integrationFiles: [
           "tests/integration/a.test.ts",
           "tests/integration/b.test.ts",
         ],
       },
-      { method: "REST", integrationFiles: ["tests/integration/a.test.ts"] },
+      {
+        name: "Homework / REST",
+        integrationFiles: ["tests/integration/a.test.ts"],
+      },
     ]);
   });
 
@@ -98,7 +166,7 @@ describe("domain / method CI matrix", () => {
     ).toThrow("case: expected exactly one");
   });
 
-  it("creates larger groups first and breaks equal counts by name", () => {
+  it("places heavier combinations first and breaks equal weights by name", () => {
     const tags = ["@Account/REST", "@Todo/Web", "@Course/Web", "@Course/Web"];
     expect(
       testMatrix(
@@ -108,8 +176,8 @@ describe("domain / method CI matrix", () => {
           engine: "browser" as const,
           tags: [tag],
         })),
-      ).include.map(({ domain, method }) => `${domain}/${method}`),
-    ).toEqual(["Course/Web", "Account/REST", "Todo/Web"]);
+      ).include.map(({ name }) => name),
+    ).toEqual(["Course / Web", "Account / REST", "Todo / Web"]);
   });
 
   it("rejects spelling variants instead of creating new groups", () => {

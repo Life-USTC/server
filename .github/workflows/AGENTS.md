@@ -35,8 +35,9 @@ docs.
 - Preserve external job names used by protection. The aggregate gate always runs
   and rejects every non-success mandatory result; specifications run in
   `Source / Checks`.
-- Name each business test job `Domain / Method`, for example `Homework / REST`
-  or `Course / MCP`. A native test has exactly one `@Domain/Method` tag.
+- A native test has exactly one `@Domain/Method` tag, for example
+  `@Homework/REST` or `@Course/MCP`. A job is named after the heaviest
+  combination it carries, with `+N` for the rest, such as `Homework / REST +3`.
   Use the behavior under test as the owner; setup requests and independent
   database observations do not create another verification method.
   Use concrete features rather than the `catalog` route/directory umbrella:
@@ -44,13 +45,17 @@ docs.
   owns the combined filter dictionaries. Related projections stay with their
   consumer; shared templates and individual dictionary tables are not domains.
 - `Tests / Inventory` collects native Vitest and Playwright test metadata and
-  deduplicates the tags into a matrix, creating groups with more collected cases
-  first. Missing or ambiguous ownership fails the
-  inventory. Do not maintain a file-to-job registry, numbered shards, or timing
-  scheduler. One combination runs all its applicable engines sequentially.
+  deduplicates the tags into a matrix. Missing or ambiguous ownership fails the
+  inventory. A job's fixed cost — checkout, install, database, Chromium — is
+  comparable to a small combination's tests, so combinations are packed into
+  jobs of roughly equal weight, counted from the collected cases and their
+  engines. A combination heavier than an even share keeps a job to itself.
+  Packing stays derived from the inventory: do not maintain a file-to-job
+  registry, numbered shards, or recorded timings. One combination still runs
+  all its applicable engines sequentially, and runs in exactly one job.
 - Role contracts remain in `Database / Permissions`. Chromium and Mobile Chrome
   cases share their domain's Web job.
-  Playwright uses two native workers; Vitest files remain serial. Keep local
+  Playwright uses four native workers; Vitest files remain serial. Keep local
   defaults conservative, private case state, zero test retries and native reports.
   The protected aggregate retains `Specification execution evidence / run`.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
