@@ -141,10 +141,10 @@ jobs:
         run: bunx vitest run --config vitest.integration.config.ts --tags-filter='${{ matrix.tags }}'
       - name: Worker request contracts
         if: ${{ matrix.http }}
-        run: bunx playwright test --config playwright.api.config.ts --fully-parallel --workers=4 --grep='${{ matrix.grep }}'
+        run: bunx playwright test --config playwright.api.config.ts --fully-parallel --workers=2 --grep='${{ matrix.grep }}'
       - name: Browser and consumer contracts
         if: ${{ matrix.browser }}
-        run: bunx playwright test --project=chromium --project=mobile-chrome --fully-parallel --workers=4 --grep='${{ matrix.grep }}'
+        run: bunx playwright test --project=chromium --project=mobile-chrome --fully-parallel --workers=2 --grep='${{ matrix.grep }}'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() && (matrix.http || matrix.browser) }}
         with:

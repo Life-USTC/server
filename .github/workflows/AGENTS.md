@@ -55,7 +55,10 @@ docs.
   all its applicable engines sequentially, and runs in exactly one job.
 - Role contracts remain in `Database / Permissions`. Chromium and Mobile Chrome
   cases share their domain's Web job.
-  Playwright uses four native workers; Vitest files remain serial. Keep local
+  Playwright uses two native workers; Vitest files remain serial. Four workers
+  were measured on a packed run and made browser jobs flaky: the runner has four
+  vCPUs, and every case already owns a Worker and a database, so the suite's
+  short default timeouts started expiring under the contention. Keep local
   defaults conservative, private case state, zero test retries and native reports.
   The protected aggregate retains `Specification execution evidence / run`.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
