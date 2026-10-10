@@ -1,0 +1,21 @@
+name: Setup test database
+description: Prepare generated clients and production database roles on the job's disposable PostgreSQL service.
+
+runs:
+  using: composite
+  steps:
+    - name: Select PostgreSQL 16 client
+      shell: bash
+      run: |
+        /usr/lib/postgresql/16/bin/psql --version
+        /usr/lib/postgresql/16/bin/pg_dump --version
+        echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+    - name: Generate application and database clients
+      shell: bash
+      run: bun run app:prepare
+    - name: Apply migrations and production database permissions
+      shell: bash
+      run: |
+        DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bunx prisma migrate deploy
+        psql "$FUNCTION_OWNER_DATABASE_URL" -X --quiet --single-transaction \
+          --file=tests/integration/fixtures/rls-runtime-bootstrap.sql

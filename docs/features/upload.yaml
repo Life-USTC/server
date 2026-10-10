@@ -66,8 +66,8 @@ requirements:
     - Every storage deletion runs while the metadata exists; successful deletion removes both and records one audit.
     - Replays return not_found without another storage delete or audit event; declared deletedSize matches the removed content.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
-      name: upload.storage-delete-retry
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
+      name: "upload storage deletion failure and retry through rest"
 - id: upload.comment-attachments-only
   category: behavior
   rule: This upload capability manages comment attachment drafts and their completed attachments. It is
@@ -239,14 +239,15 @@ requirements:
   rule: A completed upload can be attached to at most one comment. Reusing an upload id across comments
     is rejected instead of treated as implicit file sharing.
   acceptance:
-    given: A user owns one completed unattached upload.
-    when: The user attaches it to one comment and then reuses it in another create and edit.
+    given: A user owns an available upload and a separate upload directly attached to another comment.
+    when: Independently prepared create and edit cases reject the occupied upload and accept the available
+      or already retained owned upload.
     then:
-    - The first attachment succeeds; both reuse attempts reject without changing comments.
+    - Valid attachment creation succeeds; both occupied-upload attempts reject without changing comments.
     - Exactly one attachment references the upload.
     test:
       file: tests/integration/comment-write-contracts.test.ts
-      name: upload.one-upload-one-comment
+      name: comment attachments retain rejects invalid references and preserves occupied uploads
 - id: upload.mcp-transfer-boundary
   category: privacy
   rule: MCP registered GraphQL operations may reserve quota, return the on-site authenticated PUT workflow
@@ -255,7 +256,8 @@ requirements:
     bearer tokens cannot be replayed at the REST PUT URL, so byte-transfer clients need a browser session
     or separately authorized REST upload token.
   acceptance:
-    given: A real OAuth grant authorizes separate signed MCP and REST resource tokens.
+    given: A private database, Node HTTP production routes, private in-memory R2 and a real OAuth
+      grant authorizing separate signed MCP and REST resource tokens.
     when: HTTP MCP registered operations reserve, complete, rename and delete metadata around separately
       authenticated HTTP PUT and download.
     then:
@@ -314,7 +316,7 @@ requirements:
     then:
     - Completion cannot create upload metadata.
     test:
-      file: tests/integration/upload-finalization.test.ts
+      file: tests/integration/upload-cleanup-fence.test.ts
       name: upload.completion-cleanup-fence
 - id: upload.completion-quota-rejection
   category: consistency
@@ -367,7 +369,7 @@ requirements:
     - The persisted lease lasts exactly 30 seconds and can only be reclaimed at expiry.
     - The stale attempt cannot release the successor; only release by the current attempt permits completion.
     test:
-      file: tests/integration/upload-finalization.test.ts
+      file: tests/integration/upload-completion-clock.test.ts
       name: upload.completion-lease-duration
 - id: upload.download-filename-header
   category: privacy

@@ -190,3 +190,8 @@ export async function validateIntegrationDatabaseRoles(
     await disconnectTestPrisma(ownerClient);
   }
 }
+
+// Runner hooks receive their own configuration argument, not a database env.
+export default async function globalSetup() {
+  await validateIntegrationDatabaseRoles();
+}

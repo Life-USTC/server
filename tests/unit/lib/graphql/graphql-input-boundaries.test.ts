@@ -1,5 +1,5 @@
 import { Kind } from "graphql";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
@@ -212,13 +212,15 @@ describe("GraphQL protocol input boundaries", () => {
 
   it("aborts the request signal at the configured deadline", async () => {
     vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const deadline = createDeadline(new AbortController().signal, 25);
+    onTestFinished(() => deadline.cleanup());
 
     await vi.advanceTimersByTimeAsync(25);
 
     expect(deadline.signal.aborted).toBe(true);
     expect(deadline.timedOut()).toBe(true);
-    deadline.cleanup();
-    vi.useRealTimers();
   });
 });

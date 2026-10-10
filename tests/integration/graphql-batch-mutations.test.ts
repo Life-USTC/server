@@ -1,19 +1,10 @@
-import type { RequestEvent } from "@sveltejs/kit";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { authPrisma } from "@/lib/db/auth-prisma";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
-import { createGraphqlRequestHandler } from "@/lib/graphql/server";
-import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
+import { describe, expect } from "vitest";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
-import { DEV_SEED } from "../fixtures/dev-seed";
-import { createFixturePrisma } from "../shared/prisma";
+import {
+  type GraphqlPayload,
+  isolatedGraphqlTest,
+} from "../shared/isolated-graphql-fixture";
 
-const fixturePrisma = createFixturePrisma();
-
-const handler = createGraphqlRequestHandler(false);
-const marker = `[integration-test] graphql-batches-${Date.now()}`;
-const oauthClientId = `graphql-batches-${crypto.randomUUID()}`;
 const batchScopes = [
   restReadScope("workspace.todo"),
   restWriteScope("workspace.todo"),
@@ -21,185 +12,144 @@ const batchScopes = [
   restWriteScope("workspace.subscription"),
 ];
 
-let userAId = "";
-let userBId = "";
-let ownedCompletionTodoId = "";
-let ownedDeleteTodoId = "";
-let otherTodoId = "";
-let activeHomeworkId = "";
-let deletedHomeworkId = "";
-let sectionId = 0;
-let semesterId = 0;
-
-type GraphqlPayload = {
-  data?: Record<string, unknown> | null;
-  errors?: Array<{
-    message: string;
-    extensions?: Record<string, unknown>;
-  }>;
-};
-
-function requestEvent(body: unknown, token?: string): RequestEvent {
-  return {
-    request: new Request("https://life.example/api/graphql", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
-    }),
-    locals: {
-      authUser: null,
-      locale: "en-us",
-      requestId: "graphql-batches-integration",
-    },
-  } as unknown as RequestEvent;
-}
-
-async function execute(body: unknown, token?: string) {
-  const response = await handler(requestEvent(body, token));
-  return {
-    response,
-    payload: (await response.json()) as GraphqlPayload,
-  };
-}
-
-async function signToken(userId: string, scopes: string[]) {
-  const consent = await fixturePrisma.oAuthConsent.findFirstOrThrow({
-    where: {
-      clientId: oauthClientId,
-      scopes: { hasEvery: scopes },
-      userId,
-    },
-    select: { grantId: true },
-  });
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const token = await signResourceBoundOAuthAccessToken({
-    clientId: oauthClientId,
-    grantId: consent.grantId,
-    expiresAt: issuedAt + 300,
-    issuedAt,
-    resources: [getOAuthGraphqlResourceUrl()],
-    scopes,
-    userId,
-  });
-  if (!token) throw new Error("Expected a signed GraphQL access token");
-  return token;
-}
+const it = isolatedGraphqlTest.extend(
+  "batch",
+  async ({ isolatedDatabase, graphqlRuntime, task }) => {
+    const batch = await graphqlRuntime.run(async () => {
+      const fixturePrisma = isolatedDatabase.owner;
+      const marker = `[integration-test] graphql-batches-${crypto.randomUUID().slice(0, 12)}`;
+      const oauthClientId = `graphql-batches-${crypto.randomUUID().slice(0, 12)}`;
+      const sectionCode = "GRAPHQL-BATCH.01";
+      const semester = await fixturePrisma.semester.create({
+        data: {
+          jwId: 1,
+          nameCn: "GraphQL batch semester",
+          code: "GRAPHQL-BATCH",
+        },
+      });
+      const course = await fixturePrisma.course.create({
+        data: {
+          jwId: 1,
+          nameCn: "GraphQL batch course",
+          code: "GRAPHQL-BATCH",
+        },
+      });
+      const section = await fixturePrisma.section.create({
+        data: {
+          jwId: 1,
+          code: sectionCode,
+          courseId: course.id,
+          semesterId: semester.id,
+        },
+      });
+      const sectionId = section.id;
+      const semesterId = semester.id;
+      const [userA, userB] = await Promise.all([
+        fixturePrisma.user.create({
+          data: { email: `${marker}-a@example.test`, name: "GraphQL Batch A" },
+        }),
+        fixturePrisma.user.create({
+          data: { email: `${marker}-b@example.test`, name: "GraphQL Batch B" },
+        }),
+      ]);
+      const userAId = userA.id;
+      const userBId = userB.id;
+      const [ownedCompletionTodo, ownedDeleteTodo, otherTodo, active, deleted] =
+        await Promise.all([
+          fixturePrisma.todo.create({
+            data: {
+              userId: userAId,
+              title: `${marker} completion`,
+              completed: false,
+            },
+          }),
+          fixturePrisma.todo.create({
+            data: {
+              userId: userAId,
+              title: `${marker} delete`,
+              completed: false,
+            },
+          }),
+          fixturePrisma.todo.create({
+            data: {
+              userId: userBId,
+              title: `${marker} other`,
+              completed: false,
+            },
+          }),
+          fixturePrisma.homework.create({
+            data: {
+              createdById: userAId,
+              sectionId,
+              title: `${marker} active homework`,
+            },
+          }),
+          fixturePrisma.homework.create({
+            data: {
+              createdById: userAId,
+              sectionId,
+              deletedAt: new Date("2026-07-20T00:00:00.000Z"),
+              title: `${marker} deleted homework`,
+            },
+          }),
+          fixturePrisma.oAuthClient.create({
+            data: {
+              clientId: oauthClientId,
+              consents: { create: { scopes: batchScopes, userId: userAId } },
+              name: "GraphQL batches integration",
+              redirectUris: ["https://graphql.example/callback"],
+            },
+          }),
+        ]);
+      return {
+        fixturePrisma,
+        marker,
+        userAId,
+        userBId,
+        sectionId,
+        semesterId,
+        sectionCode,
+        ownedCompletionTodoId: ownedCompletionTodo.id,
+        ownedDeleteTodoId: ownedDeleteTodo.id,
+        otherTodoId: otherTodo.id,
+        activeHomeworkId: active.id,
+        deletedHomeworkId: deleted.id,
+        execute: graphqlRuntime.execute,
+        signToken: (userId: string, scopes: string[]) =>
+          graphqlRuntime.signToken(userId, oauthClientId, scopes),
+      };
+    });
+    task.context.signal.throwIfAborted();
+    return batch;
+  },
+);
 
 function expectErrorCode(payload: GraphqlPayload, code: string) {
   expect(payload.data).toBeNull();
   expect(payload.errors?.[0]?.extensions?.code).toBe(code);
 }
 
-beforeAll(async () => {
-  const section = await fixturePrisma.section.findUniqueOrThrow({
-    where: { jwId: DEV_SEED.section.jwId },
-    select: { id: true, semesterId: true },
-  });
-  sectionId = section.id;
-  if (section.semesterId == null) {
-    throw new Error("GraphQL batch integration requires a semester section");
-  }
-  semesterId = section.semesterId;
-
-  const [userA, userB] = await Promise.all([
-    fixturePrisma.user.create({
-      data: {
-        email: `${marker}-a@example.test`,
-        name: "GraphQL Batch A",
-      },
-      select: { id: true },
-    }),
-    fixturePrisma.user.create({
-      data: {
-        email: `${marker}-b@example.test`,
-        name: "GraphQL Batch B",
-      },
-      select: { id: true },
-    }),
-  ]);
-  userAId = userA.id;
-  userBId = userB.id;
-
-  const [ownedCompletionTodo, ownedDeleteTodo, otherTodo, active, deleted] =
-    await Promise.all([
-      fixturePrisma.todo.create({
-        data: { userId: userAId, title: `${marker} completion` },
-        select: { id: true },
-      }),
-      fixturePrisma.todo.create({
-        data: { userId: userAId, title: `${marker} delete` },
-        select: { id: true },
-      }),
-      fixturePrisma.todo.create({
-        data: { userId: userBId, title: `${marker} other` },
-        select: { id: true },
-      }),
-      fixturePrisma.homework.create({
-        data: {
-          createdById: userAId,
-          sectionId,
-          title: `${marker} active homework`,
-        },
-        select: { id: true },
-      }),
-      fixturePrisma.homework.create({
-        data: {
-          createdById: userAId,
-          deletedAt: new Date("2026-07-20T00:00:00.000Z"),
-          sectionId,
-          title: `${marker} deleted homework`,
-        },
-        select: { id: true },
-      }),
-      fixturePrisma.oAuthClient.create({
-        data: {
-          clientId: oauthClientId,
-          consents: {
-            create: { scopes: batchScopes, userId: userAId },
-          },
-          name: "GraphQL batches integration",
-          redirectUris: ["https://graphql.example/callback"],
-        },
-      }),
-    ]);
-  ownedCompletionTodoId = ownedCompletionTodo.id;
-  ownedDeleteTodoId = ownedDeleteTodo.id;
-  otherTodoId = otherTodo.id;
-  activeHomeworkId = active.id;
-  deletedHomeworkId = deleted.id;
-});
-
-afterAll(async () => {
-  await fixturePrisma.oAuthClient.deleteMany({
-    where: { clientId: oauthClientId },
-  });
-  await fixturePrisma.homework.deleteMany({
-    where: { id: { in: [activeHomeworkId, deletedHomeworkId] } },
-  });
-  await fixturePrisma.todo.deleteMany({
-    where: { userId: { in: [userAId, userBId] } },
-  });
-  await fixturePrisma.user.deleteMany({
-    where: { id: { in: [userAId, userBId] } },
-  });
-  await Promise.all([
-    fixturePrisma.$disconnect(),
-    authPrisma.$disconnect(),
-    runtimePrisma.$disconnect(),
-  ]);
-});
-
 describe("GraphQL batch mutations", () => {
-  it("requires the exact write scope before any batch item changes", async () => {
-    const readToken = await signToken(userAId, [
-      restReadScope("workspace.todo"),
-    ]);
-    const result = await execute(
-      {
-        query: /* GraphQL */ `
+  it("requires the exact write scope before any batch item changes", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma,
+        execute,
+        signToken,
+        userAId,
+        ownedCompletionTodoId,
+      } = batch;
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
+      const readToken = await signToken(userAId, [
+        restReadScope("workspace.todo"),
+      ]);
+      const result = await execute(
+        {
+          query: /* GraphQL */ `
           mutation SetWithoutWrite($items: [TodoCompletionBatchItemInput!]!) {
             todoCompletionsSet(items: $items) {
               results {
@@ -208,30 +158,45 @@ describe("GraphQL batch mutations", () => {
             }
           }
         `,
-        variables: {
-          items: [{ todoId: ownedCompletionTodoId, completed: true }],
+          variables: {
+            items: [{ todoId: ownedCompletionTodoId, completed: true }],
+          },
         },
-      },
-      readToken,
-    );
+        readToken,
+      );
 
-    expectErrorCode(result.payload, "FORBIDDEN");
-    expect(result.payload.errors?.[0]?.extensions?.requiredScopes).toEqual([
-      "workspace.todo:write",
-    ]);
-    await expect(
-      fixturePrisma.todo.findUniqueOrThrow({
-        where: { id: ownedCompletionTodoId },
-        select: { completed: true },
-      }),
-    ).resolves.toEqual({ completed: false });
+      expectErrorCode(result.payload, "FORBIDDEN");
+      expect(result.payload.errors?.[0]?.extensions?.requiredScopes).toEqual([
+        "workspace.todo:write",
+      ]);
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before);
+      expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
+    });
   });
 
-  it("graphql.todo-batch-results", async () => {
-    const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
-    const completion = await execute(
-      {
-        query: /* GraphQL */ `
+  it("todo completion batch returns ordered mixed-owner results", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma,
+        execute,
+        signToken,
+        userAId,
+        ownedCompletionTodoId,
+        otherTodoId,
+      } = batch;
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const completion = await execute(
+        {
+          query: /* GraphQL */ `
           mutation SetTodoBatch($items: [TodoCompletionBatchItemInput!]!) {
             todoCompletionsSet(items: $items) {
               results {
@@ -250,39 +215,70 @@ describe("GraphQL batch mutations", () => {
             }
           }
         `,
-        variables: {
-          items: [
-            { todoId: ownedCompletionTodoId, completed: true },
-            { todoId: otherTodoId, completed: true },
-          ],
+          variables: {
+            items: [
+              { todoId: ownedCompletionTodoId, completed: true },
+              { todoId: otherTodoId, completed: true },
+            ],
+          },
         },
-      },
-      token,
-    );
+        token,
+      );
 
-    expect(completion.payload.errors).toBeUndefined();
-    expect(completion.payload.data?.todoCompletionsSet).toEqual({
-      results: [
-        {
-          success: true,
-          todoId: ownedCompletionTodoId,
-          completed: true,
-          todo: { id: ownedCompletionTodoId, completed: true },
-          error: null,
-        },
-        {
-          success: false,
-          todoId: otherTodoId,
-          completed: true,
-          todo: null,
-          error: { code: "NOT_FOUND", message: "not_found" },
-        },
-      ],
+      expect(completion.payload.errors).toBeUndefined();
+      expect(completion.payload.data?.todoCompletionsSet).toEqual({
+        results: [
+          {
+            success: true,
+            todoId: ownedCompletionTodoId,
+            completed: true,
+            todo: { id: ownedCompletionTodoId, completed: true },
+            error: null,
+          },
+          {
+            success: false,
+            todoId: otherTodoId,
+            completed: true,
+            todo: null,
+            error: { code: "NOT_FOUND", message: "not_found" },
+          },
+        ],
+      });
+
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(
+        before.map((row) =>
+          row.id === ownedCompletionTodoId
+            ? { ...row, completed: true, updatedAt: expect.any(Date) }
+            : row,
+        ),
+      );
     });
+  });
 
-    const deletion = await execute(
-      {
-        query: /* GraphQL */ `
+  it("todo deletion batch returns ordered owned, missing, and foreign results", {
+    tags: ["@Todo/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        ownedDeleteTodoId,
+        otherTodoId,
+      } = batch;
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const deletion = await execute(
+        {
+          query: /* GraphQL */ `
           mutation DeleteTodoBatch($ids: [ID!]!) {
             todosDelete(ids: $ids) {
               results {
@@ -295,52 +291,50 @@ describe("GraphQL batch mutations", () => {
             }
           }
         `,
-        variables: {
-          ids: [ownedDeleteTodoId, `${marker}-missing`, otherTodoId],
+          variables: {
+            ids: [ownedDeleteTodoId, `${marker}-missing`, otherTodoId],
+          },
         },
-      },
-      token,
-    );
-    expect(deletion.payload.errors).toBeUndefined();
-    expect(deletion.payload.data?.todosDelete).toEqual({
-      results: [
-        { success: true, id: ownedDeleteTodoId, error: null },
-        {
-          success: false,
-          id: `${marker}-missing`,
-          error: { code: "NOT_FOUND" },
-        },
-        {
-          success: false,
-          id: otherTodoId,
-          error: { code: "NOT_FOUND" },
-        },
-      ],
+        token,
+      );
+      expect(deletion.payload.errors).toBeUndefined();
+      expect(deletion.payload.data?.todosDelete).toEqual({
+        results: [
+          { success: true, id: ownedDeleteTodoId, error: null },
+          {
+            success: false,
+            id: `${marker}-missing`,
+            error: { code: "NOT_FOUND" },
+          },
+          {
+            success: false,
+            id: otherTodoId,
+            error: { code: "NOT_FOUND" },
+          },
+        ],
+      });
+
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before.filter(({ id }) => id !== ownedDeleteTodoId));
     });
-    await expect(
-      fixturePrisma.todo.findUniqueOrThrow({
-        where: { id: otherTodoId },
-        select: { userId: true, completed: true },
-      }),
-    ).resolves.toEqual({ userId: userBId, completed: false });
-    await expect(
-      fixturePrisma.todo.findUnique({ where: { id: ownedDeleteTodoId } }),
-    ).resolves.toBeNull();
-    await expect(
-      fixturePrisma.todo.findUniqueOrThrow({
-        where: { id: ownedCompletionTodoId },
-        select: { completed: true },
-      }),
-    ).resolves.toEqual({ completed: true });
   });
 
-  it("rejects duplicate, extra, and null inputs before writing", async () => {
-    const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
-    await fixturePrisma.todo.update({
-      where: { id: ownedCompletionTodoId },
-      data: { completed: false },
-    });
-    const query = /* GraphQL */ `
+  it("rejects duplicate, extra, and null inputs before writing", {
+    tags: ["@GraphQL/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma,
+        execute,
+        signToken,
+        userAId,
+        ownedCompletionTodoId,
+      } = batch;
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.todo"),
+      ]);
+      const query = /* GraphQL */ `
       mutation StrictTodoBatch($items: [TodoCompletionBatchItemInput!]!) {
         todoCompletionsSet(items: $items) {
           results {
@@ -350,44 +344,75 @@ describe("GraphQL batch mutations", () => {
       }
     `;
 
-    const duplicate = await execute(
-      {
-        query,
-        variables: {
-          items: [
-            { todoId: ownedCompletionTodoId, completed: true },
-            { todoId: ` ${ownedCompletionTodoId} `, completed: false },
-          ],
+      const before = await fixturePrisma.todo.findMany({
+        orderBy: { id: "asc" },
+      });
+      const duplicate = await execute(
+        {
+          query,
+          variables: {
+            items: [
+              { todoId: ownedCompletionTodoId, completed: true },
+              { todoId: ` ${ownedCompletionTodoId} `, completed: false },
+            ],
+          },
         },
-      },
-      token,
-    );
-    expectErrorCode(duplicate.payload, "BAD_USER_INPUT");
+        token,
+      );
+      expectErrorCode(duplicate.payload, "BAD_USER_INPUT");
+      expect(
+        await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(before);
+      expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
 
-    for (const items of [
-      [{ todoId: ownedCompletionTodoId, completed: true, extra: "reject" }],
-      [{ todoId: ownedCompletionTodoId, completed: null }],
-    ]) {
-      const invalid = await execute({ query, variables: { items } }, token);
-      expect(invalid.payload.errors?.length).toBeGreaterThan(0);
-      expect(invalid.payload.data).toBeUndefined();
-    }
-
-    await expect(
-      fixturePrisma.todo.findUniqueOrThrow({
-        where: { id: ownedCompletionTodoId },
-        select: { completed: true },
-      }),
-    ).resolves.toEqual({ completed: false });
+      for (const items of [
+        [{ todoId: ownedCompletionTodoId, completed: true, extra: "reject" }],
+        [{ todoId: ownedCompletionTodoId, completed: null }],
+      ]) {
+        const invalid = await execute({ query, variables: { items } }, token);
+        expect(invalid.payload.errors?.length).toBeGreaterThan(0);
+        expect(invalid.payload.data).toBeUndefined();
+        expect(
+          await fixturePrisma.todo.findMany({ orderBy: { id: "asc" } }),
+        ).toEqual(before);
+        expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
+      }
+    });
   });
 
-  it("graphql.homework-batch-results", async () => {
-    const token = await signToken(userAId, [
-      restWriteScope("workspace.homework"),
-    ]);
-    const result = await execute(
-      {
-        query: /* GraphQL */ `
+  it("graphql.homework-batch-results", { tags: ["@Homework/GraphQL"] }, async ({
+    graphqlRuntime,
+    batch,
+  }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma,
+        userBId,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        activeHomeworkId,
+        deletedHomeworkId,
+      } = batch;
+      await fixturePrisma.homeworkCompletion.createMany({
+        data: [
+          { userId: userBId, homeworkId: activeHomeworkId },
+          { userId: userBId, homeworkId: deletedHomeworkId },
+        ],
+      });
+      const foreign = await fixturePrisma.homeworkCompletion.findMany({
+        orderBy: { homeworkId: "asc" },
+      });
+      const homeworks = await fixturePrisma.homework.findMany({
+        orderBy: { id: "asc" },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.homework"),
+      ]);
+      const result = await execute(
+        {
+          query: /* GraphQL */ `
           mutation SetHomeworkBatch(
             $items: [HomeworkCompletionBatchItemInput!]!
           ) {
@@ -404,130 +429,184 @@ describe("GraphQL batch mutations", () => {
             }
           }
         `,
-        variables: {
-          items: [
-            { homeworkId: activeHomeworkId, completed: true },
-            { homeworkId: deletedHomeworkId, completed: true },
-            { homeworkId: `${marker}-missing`, completed: false },
-          ],
+          variables: {
+            items: [
+              { homeworkId: activeHomeworkId, completed: true },
+              { homeworkId: deletedHomeworkId, completed: true },
+              { homeworkId: `${marker}-missing`, completed: false },
+            ],
+          },
         },
-      },
-      token,
-    );
+        token,
+      );
 
-    expect(result.payload.errors).toBeUndefined();
-    expect(result.payload.data?.homeworkCompletionsSet).toEqual({
-      results: [
+      expect(result.payload.errors).toBeUndefined();
+      expect(result.payload.data?.homeworkCompletionsSet).toEqual({
+        results: [
+          {
+            success: true,
+            homeworkId: activeHomeworkId,
+            completed: true,
+            completedAt: expect.any(String),
+            error: null,
+          },
+          {
+            success: false,
+            homeworkId: deletedHomeworkId,
+            completed: true,
+            completedAt: null,
+            error: { code: "DELETED" },
+          },
+          {
+            success: false,
+            homeworkId: `${marker}-missing`,
+            completed: false,
+            completedAt: null,
+            error: { code: "NOT_FOUND" },
+          },
+        ],
+      });
+      expect(
+        await fixturePrisma.homeworkCompletion.findMany({
+          where: { userId: userBId },
+          orderBy: { homeworkId: "asc" },
+        }),
+      ).toEqual(foreign);
+      const own = await fixturePrisma.homeworkCompletion.findMany({
+        where: { userId: userAId },
+      });
+      expect(own).toEqual([
         {
-          success: true,
+          userId: userAId,
           homeworkId: activeHomeworkId,
-          completed: true,
-          completedAt: expect.any(String),
-          error: null,
+          completedAt: expect.any(Date),
         },
-        {
-          success: false,
-          homeworkId: deletedHomeworkId,
-          completed: true,
-          completedAt: null,
-          error: { code: "DELETED" },
-        },
-        {
-          success: false,
-          homeworkId: `${marker}-missing`,
-          completed: false,
-          completedAt: null,
-          error: { code: "NOT_FOUND" },
-        },
-      ],
+      ]);
+      const payload = result.payload.data?.homeworkCompletionsSet as {
+        results: Array<{ completedAt: string | null }>;
+      };
+      expect(new Date(payload.results[0].completedAt ?? "").getTime()).toBe(
+        own[0].completedAt.getTime(),
+      );
+      expect(
+        await fixturePrisma.homework.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(homeworks);
+      expect(await fixturePrisma.auditLog.findMany()).toEqual([]);
     });
   });
 
-  it("graphql.subscription-batch-results", async () => {
-    const token = await signToken(userAId, [
-      restWriteScope("workspace.subscription"),
-    ]);
-    const mutation = /* GraphQL */ `
-      mutation UpdateSubscriptions($input: UpdateSectionSubscriptionsInput!) {
-        subscriptionsImport(input: $input) {
-          action
-          semesterId
-          matchedCodes
-          unmatchedCodes
-          addedCount
-          removedCount
-          unchangedCount
-          total
-        }
-      }
-    `;
-    const added = await execute(
-      {
-        query: mutation,
-        variables: {
-          input: {
-            action: "ADD",
-            codes: [DEV_SEED.section.code, `${marker}-unknown`],
-            semesterId,
+  it("subscription import adds matched codes without changing foreign membership", {
+    tags: ["@Subscription/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        marker,
+        userAId,
+        userBId,
+        sectionId,
+        semesterId,
+        sectionCode,
+      } = batch;
+      const foreign = await db.userSectionSubscription.create({
+        data: { userId: userBId, sectionId },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.subscription"),
+      ]);
+      const result = await execute(
+        {
+          query: /* GraphQL */ `
+          mutation AddSubscriptions($input: UpdateSectionSubscriptionsInput!) {
+            subscriptionsImport(input: $input) { action semesterId matchedCodes unmatchedCodes addedCount removedCount unchangedCount total }
+          }
+        `,
+          variables: {
+            input: {
+              action: "ADD",
+              codes: [sectionCode, `${marker}-unknown`],
+              semesterId,
+            },
           },
         },
-      },
-      token,
-    );
-    expect(added.payload.errors).toBeUndefined();
-    expect(added.payload.data?.subscriptionsImport).toMatchObject({
-      action: "ADD",
-      semesterId,
-      matchedCodes: [DEV_SEED.section.code],
-      unmatchedCodes: [`${marker}-unknown`],
-      addedCount: 1,
-      removedCount: 0,
+        token,
+      );
+      expect(result.payload.errors).toBeUndefined();
+      expect(result.payload.data?.subscriptionsImport).toMatchObject({
+        action: "ADD",
+        semesterId,
+        matchedCodes: [sectionCode],
+        unmatchedCodes: [`${marker}-unknown`],
+        addedCount: 1,
+        removedCount: 0,
+      });
+      expect(
+        await db.userSectionSubscription.findMany({
+          orderBy: { userId: "asc" },
+        }),
+      ).toEqual(
+        [
+          foreign,
+          {
+            userId: userAId,
+            sectionId,
+            kind: "regular",
+            createdAt: expect.any(Date),
+          },
+        ].sort((a, b) => a.userId.localeCompare(b.userId)),
+      );
     });
-    await expect(
-      fixturePrisma.user.findUniqueOrThrow({
-        where: { id: userAId },
-        select: {
-          sectionSubscriptions: {
-            where: { sectionId },
-            select: { sectionId: true },
-          },
-        },
-      }),
-    ).resolves.toEqual({ sectionSubscriptions: [{ sectionId }] });
+  });
 
-    const removed = await execute(
-      {
-        query: mutation,
-        variables: {
-          input: {
-            action: "REMOVE",
-            codes: [DEV_SEED.section.code],
-            semesterId,
+  it("subscription import removes only the seeded owner's membership", {
+    tags: ["@Subscription/GraphQL"],
+  }, async ({ graphqlRuntime, batch }) => {
+    await graphqlRuntime.run(async () => {
+      const {
+        fixturePrisma: db,
+        execute,
+        signToken,
+        userAId,
+        userBId,
+        sectionId,
+        semesterId,
+        sectionCode,
+      } = batch;
+      await db.userSectionSubscription.create({
+        data: { userId: userAId, sectionId },
+      });
+      const foreign = await db.userSectionSubscription.create({
+        data: { userId: userBId, sectionId },
+      });
+      const token = await signToken(userAId, [
+        restWriteScope("workspace.subscription"),
+      ]);
+      const result = await execute(
+        {
+          query: /* GraphQL */ `
+          mutation RemoveSubscriptions($input: UpdateSectionSubscriptionsInput!) {
+            subscriptionsImport(input: $input) { action semesterId matchedCodes unmatchedCodes addedCount removedCount unchangedCount total }
+          }
+        `,
+          variables: {
+            input: { action: "REMOVE", codes: [sectionCode], semesterId },
           },
         },
-      },
-      token,
-    );
-    expect(removed.payload.errors).toBeUndefined();
-    expect(removed.payload.data?.subscriptionsImport).toMatchObject({
-      action: "REMOVE",
-      semesterId,
-      matchedCodes: [DEV_SEED.section.code],
-      unmatchedCodes: [],
-      addedCount: 0,
-      removedCount: 1,
-      total: 1,
+        token,
+      );
+      expect(result.payload.errors).toBeUndefined();
+      expect(result.payload.data?.subscriptionsImport).toMatchObject({
+        action: "REMOVE",
+        semesterId,
+        matchedCodes: [sectionCode],
+        unmatchedCodes: [],
+        addedCount: 0,
+        removedCount: 1,
+        total: 1,
+      });
+      expect(await db.userSectionSubscription.findMany()).toEqual([foreign]);
     });
-    await expect(
-      fixturePrisma.user.findUniqueOrThrow({
-        where: { id: userAId },
-        select: {
-          sectionSubscriptions: {
-            where: { section: { semesterId } },
-            select: { sectionId: true },
-          },
-        },
-      }),
-    ).resolves.toEqual({ sectionSubscriptions: [] });
   });
 });

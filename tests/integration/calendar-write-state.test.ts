@@ -1,125 +1,117 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { expect } from "vitest";
 import { getIncompleteHomeworkCalendarItems } from "@/features/calendar/server/calendar-export-data";
-import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
 import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import {
   setHomeworkCompletion,
   setHomeworkCompletions,
 } from "@/features/homeworks/server/homework-completion";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
-import { createFixturePrisma } from "../shared/prisma";
+import { test as calendarTest } from "../shared/calendar-commit-fixture";
 
-const db = createFixturePrisma();
-const userId = crypto.randomUUID();
-const homeworkIds = [crypto.randomUUID(), crypto.randomUUID()];
 const originalCompletedAt = new Date("2026-01-01T00:00:00Z");
-let sectionId: number;
-
-beforeAll(async () => {
-  const source = await db.section.findFirstOrThrow({
-    where: { retiredAt: null },
-    select: { courseId: true, semesterId: true },
-  });
-  const section = await db.section.create({
-    data: {
-      ...source,
-      jwId: -Math.floor(Math.random() * 1_000_000_000) - 1,
-      code: `[integration-test] calendar-${crypto.randomUUID()}`,
-    },
-  });
-  sectionId = section.id;
-  await db.user.create({
-    data: {
-      id: userId,
-      name: "Calendar state test",
-      email: `${userId}@test.invalid`,
-    },
-  });
-  await db.userSectionSubscription.create({ data: { userId, sectionId } });
-  await db.homework.createMany({
-    data: homeworkIds.map((id) => ({
-      id,
-      sectionId,
-      title: "[integration-test] Calendar state",
-      submissionDueAt: new Date("2027-01-01T00:00:00Z"),
-    })),
-  });
-});
-
-afterAll(async () => {
-  setCalendarExportRebuildSenderForTest();
-  await db.auditLog.deleteMany({ where: { userId } });
-  if (sectionId) await db.section.delete({ where: { id: sectionId } });
-  await db.user.deleteMany({ where: { id: userId } });
-  await Promise.all([db.$disconnect(), runtimePrisma.$disconnect()]);
-});
-
-describe("calendar write state", () => {
-  it("description.homework-calendar-invalidation", async () => {
-    const reads: Promise<string | undefined>[] = [];
-    const messages: unknown[] = [];
-    setCalendarExportRebuildSenderForTest(async (message) => {
-      messages.push(message);
-      reads.push(
-        getIncompleteHomeworkCalendarItems(userId, [sectionId]).then(
-          (rows) =>
-            rows.find((row) => row.id === homeworkIds[0])?.description?.content,
-        ),
-      );
-    });
-    try {
-      for (const content of [
-        "Original content",
-        "Updated content",
-        "Updated content",
-      ]) {
-        await expect(
-          upsertDescriptionContent({
-            targetType: "homework",
-            targetId: homeworkIds[0],
-            userId,
-            content,
-          }),
-        ).resolves.toMatchObject({ ok: true });
-        expect(messages.at(-1)).toEqual({ type: "section", sectionId });
-        expect(await reads.at(-1)).toBe(content);
-      }
-      expect(messages).toHaveLength(3);
-    } finally {
-      await Promise.all(reads);
-      setCalendarExportRebuildSenderForTest();
-    }
-  });
-
-  it("homework.completion-set-idempotency", async () => {
-    for (const mode of ["single", "batch"] as const) {
-      setCalendarExportRebuildSenderForTest(async () => {});
-      const homeworkId = homeworkIds[mode === "single" ? 0 : 1];
-      const set = async (completed: boolean) => {
-        if (mode === "single") {
-          return setHomeworkCompletion({ userId, homeworkId, completed });
-        }
-        const batch = await setHomeworkCompletions({
-          userId,
-          items: [{ homeworkId, completed }],
+const test = calendarTest.extend<{ homeworkId: string }>({
+  homeworkId: async (
+    { calendar: { db, userId, sectionId, workflow }, task },
+    use,
+  ) => {
+    const homework = await workflow(() =>
+      db.$transaction(async (tx) => {
+        await tx.userSectionSubscription.create({
+          data: { userId, sectionId },
         });
-        return batch.results[0];
-      };
-      await db.homeworkCompletion.create({
-        data: { userId, homeworkId, completedAt: originalCompletedAt },
-      });
-      try {
-        for (let attempt = 0; attempt < 2; attempt += 1) {
+        return tx.homework.create({
+          data: {
+            sectionId,
+            title: "Calendar homework",
+            submissionDueAt: new Date("2027-01-01T00:00:00Z"),
+          },
+        });
+      }),
+    );
+    task.context.signal.throwIfAborted();
+    await use(homework.id);
+  },
+});
+
+for (const [label, before, content] of [
+  ["creation", null, "Original content"],
+  ["update", "Original content", "Updated content"],
+  ["unchanged retry", "Updated content", "Updated content"],
+] as const) {
+  test(
+    `homework description ${label} rebuild observes committed content`,
+    { tags: ["@Calendar/Service"] },
+    async ({ calendar, homeworkId }) =>
+      calendar.workflow(async () => {
+        const { db, userId, sectionId } = calendar;
+        if (before !== null)
+          await db.description.create({
+            data: { homeworkId, content: before, lastEditedById: userId },
+          });
+        const visibleContent: (string | undefined)[] = [];
+        const result = await calendar.run(
+          () =>
+            upsertDescriptionContent({
+              targetType: "homework",
+              targetId: homeworkId,
+              userId,
+              content,
+            }),
+          async () => {
+            const rows = await getIncompleteHomeworkCalendarItems(userId, [
+              sectionId,
+            ]);
+            visibleContent.push(
+              rows.find((row) => row.id === homeworkId)?.description?.content,
+            );
+            // Also read independently of the calendar projection's query logic.
+            expect(
+              await db.description.findUnique({ where: { homeworkId } }),
+            ).toMatchObject({ content });
+          },
+        );
+        expect(result).toMatchObject({ ok: true, updated: before !== content });
+        expect(calendar.messages).toEqual([{ type: "section", sectionId }]);
+        expect(visibleContent).toEqual([content]);
+        expect(await db.descriptionEdit.count()).toBe(
+          before === content ? 0 : 1,
+        );
+        expect(await db.auditLog.count()).toBe(before === content ? 0 : 1);
+      }),
+  );
+}
+
+for (const mode of ["single", "batch"] as const) {
+  test(
+    `${mode} homework completion preserves timestamps across idempotent writes`,
+    { tags: ["@Calendar/Service"] },
+    async ({ calendar, homeworkId }) =>
+      calendar.workflow(async () => {
+        const { db, userId } = calendar;
+        await db.homeworkCompletion.create({
+          data: { userId, homeworkId, completedAt: originalCompletedAt },
+        });
+        const set = (completed: boolean) =>
+          calendar.run(async () => {
+            if (mode === "single")
+              return setHomeworkCompletion({ userId, homeworkId, completed });
+            const batch = await setHomeworkCompletions({
+              userId,
+              items: [{ homeworkId, completed }],
+            });
+            return batch.results[0];
+          });
+        for (let attempt = 0; attempt < 2; attempt++)
           expect(await set(true)).toMatchObject({
             success: true,
             completed: true,
             completedAt: originalCompletedAt,
           });
-        }
         expect(await set(false)).toMatchObject({
           success: true,
+          completed: false,
           completedAt: null,
         });
+        expect(await db.homeworkCompletion.count()).toBe(0);
         const recompleted = await set(true);
         expect(recompleted.success).toBe(true);
         if (!recompleted.success)
@@ -134,9 +126,6 @@ describe("calendar write state", () => {
             select: { completedAt: true },
           }),
         ).toEqual({ completedAt: recompleted.completedAt });
-      } finally {
-        setCalendarExportRebuildSenderForTest();
-      }
-    }
-  });
-});
+      }),
+  );
+}

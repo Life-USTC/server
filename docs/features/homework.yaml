@@ -42,8 +42,8 @@ requirements:
     - The first request stores deletedAt and deletedById and exactly one audit event.
     - A replay succeeds, preserves the exact committed row and audit count, and reports alreadyDeleted where that field is part of the transport.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
-      name: homework.single-delete-replay
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
+      name: "homework delete replay through graphql preserves the committed state"
 - id: homework.no-subscription-required
   category: authorization
   rule: Creating homework does not require the user to be subscribed to the section first.
@@ -102,7 +102,7 @@ requirements:
     - The specified reminder is hidden when complete and restored when incomplete.
     test:
       file: tests/e2e/src/app/workspace/homeworks/list-state.test.ts
-      name: homework.completed-deadline-display
+      name: homework.completed-deadline-display (workspace-card, overdue)
 - id: homework.teaching-assistant-completion
   category: consistency
   applies_to:
@@ -122,7 +122,7 @@ requirements:
     - The existing completion record is preserved.
     test:
       file: tests/unit/features/homeworks/homework-completion-state.test.ts
-      name: homework.teaching-assistant-completion
+      name: "attaches a requirement per section without changing homework records"
 - id: homework.mobile-status-controls
   category: presentation
   rule: Mobile homework completion filters and the create action are directly reachable within the viewport
@@ -254,24 +254,27 @@ requirements:
     - Rejected cases perform none of the specified side effects.
     test:
       file: tests/unit/features/homeworks/homework-delete-authority.test.ts
-      name: homework.creator-only-delete
+      name: "homework deletion authority > ordinary deletion > active user creator"
 - id: homework.completion-set-idempotency
   category: consistency
   rule: Setting completed=true on an existing completion preserves its original completedAt; repeated
     single and batch completion requests are idempotent. Setting false removes the completion, and a subsequent
     true records a new completion time.
   acceptance:
-    given: A persisted completion already has an original timestamp.
-    when: Real single and batch setters receive repeated true, false, then repeated true writes.
+    given: Independent single and batch cases each own a database with a persisted completion and its original timestamp.
+    when: Each setter receives repeated true, false, then repeated true writes.
     then:
     - Repeated true preserves the original timestamp.
     - False removes completion; the next true creates a new timestamp that later retries preserve.
     - The final persisted database timestamp matches the returned state.
     test:
       file: tests/integration/calendar-write-state.test.ts
-      name: homework.completion-set-idempotency
+      name: single homework completion preserves timestamps across idempotent writes
 - id: homework.moderation-delete
   category: authorization
+  rationale: Authority cases remain covered by tests/unit/features/homeworks/homework-delete-authority.test.ts.
+    The representative connection scenario additionally observes the real REST producer, local queue
+    consumer and stored subscriber ICS; successful database deletion alone cannot establish calendar freshness.
   applies_to:
   - homework-governance
   expectation:
@@ -308,14 +311,21 @@ requirements:
     - audit
     - calendar
   acceptance:
-    given: Each specified identity attempts to delete an active homework.
-    when: The explicit moderation delete service runs.
+    given: Each specified identity attempts to delete an active homework; an independently prepared
+      subscriber has a stored calendar containing that homework and another active homework.
+    when: The explicit moderation delete service runs, including a real administrator REST deletion
+      followed by replay of the same request.
     then:
     - Only allowed cases change the homework and write the deletion audit.
     - Rejected cases perform none of the specified side effects.
+    - The first allowed deletion records administrator attribution and one deletion audit, enqueues one
+      section rebuild and completes its native consumer without retry or error.
+    - The subscriber's stored ICS loses the deleted homework while retaining the other active homework;
+      no calendar feed read after deletion may rebuild the expected result on demand.
+    - Replay preserves the committed rows, single audit, single rebuild delivery and stored ICS.
     test:
-      file: tests/unit/features/homeworks/homework-delete-authority.test.ts
-      name: homework.moderation-delete
+      file: tests/integration/rest/admin/homeworks/calendar-invalidation.test.ts
+      name: administrator homework deletion rebuilds a subscriber calendar once across replay
 - id: homework.teaching-assistant-pending
   category: consistency
   applies_to:
@@ -335,7 +345,7 @@ requirements:
     - Every boundary returns its specified pending value.
     test:
       file: tests/unit/features/homeworks/homework-completion-state.test.ts
-      name: homework.teaching-assistant-pending
+      name: "derives TA pending state when homework is exactly at its deadline"
 - id: homework.teaching-assistant-label
   category: presentation
   rule: Authenticated personal homework views display 无需完成 / No completion required for teaching-assistant
@@ -373,7 +383,7 @@ requirements:
     - Duplicate target IDs follow the specified uniqueness policy.
     test:
       file: tests/integration/rest/homeworks/completions/test.ts
-      name: homework.rest-completion-batch-input
+      name: accepts 100 completion writes and preserves another owner's state
   rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: homework.graphql-completion-batch-input
   category: behavior
@@ -394,8 +404,8 @@ requirements:
     - Both inclusive size boundaries are accepted and out-of-range sizes rejected before writes.
     - Duplicate target IDs follow the specified uniqueness policy.
     test:
-      file: tests/integration/graphql-homework-mutations.test.ts
-      name: homework.graphql-completion-batch-input
+      file: tests/integration/graphql-homework-completion-batches.test.ts
+      name: accepts 100 items and persists every completion
   rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: homework.public-section-read
   category: authorization
@@ -411,7 +421,7 @@ requirements:
     - The anonymous result does not reveal another owner’s completion state.
     - The existing private completion remains intact.
     test:
-      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      file: tests/integration/mcp/community/homework-public-section-read.test.ts
       name: homework.public-section-read
 - id: homework.active-collaborator-write
   category: authorization
@@ -419,15 +429,15 @@ requirements:
   acceptance:
     given: An isolated section has homework authored by one user, with another active user, an active
       administrator and a suspended user.
-    when: Active actors use the real service and loopback REST, GraphQL and native MCP writes with
+    when: Active actors use the real service and Worker REST, GraphQL and native MCP writes with
       resource-bound OAuth or supported sessions; anonymous, read-only, suspended and invalid-target writes are attempted.
     then:
     - Active collaborators can create and update shared homework while preserving the original creator; returned homework identity, title, flags and timestamps match committed rows. GraphQL completion fields and REST/MCP completion objects retain their declared shapes.
     - Suspended, unauthenticated and read-only credentials are rejected consistently; deleted, missing and wrong-JW targets cannot be edited.
-    - Rejected writes preserve homework, completion, description/history and business audit rows and produce no cache invalidation.
+    - Rejected writes preserve homework, completion, description/history and business audit rows and produce neither cache purge-hook calls nor calendar rebuild enqueue calls.
     test:
-      file: tests/integration/homework-state-contract.test.ts
-      name: homework.active-collaborator-write
+      file: tests/integration/rest/protocol-contracts/homework-authority.test.ts
+      name: homework update by editor 1 through graphql
 - id: homework.completion-owner
   category: authorization
   rule: Each authenticated user can only manage their own homework completion state, including while
@@ -457,7 +467,8 @@ requirements:
     given: The authenticated owner has a real OAuth client/grant; tokens carry either collaborative-homework
       write or personal-homework completion write permission.
     when: Signed REST, signed GraphQL and a real MCP HTTP SDK client exercise create, update, delete,
-      single completion and available batch completion operations with the wrong and correct feature scope.
+      single completion and available batch completion operations with the wrong feature scope; independent
+      cases prepare each successful operation with only its required feature scope.
     then:
     - A scope for the other feature cannot authorize the mutation, and rejected attempts leave homework/completion
       data unchanged.
@@ -466,7 +477,7 @@ requirements:
     - MCP uses the actual HTTP scope guard and verifies signed JWTs against the real issuer’s JWKS handler;
       the in-memory tool harness is not used to prove scope enforcement.
     test:
-      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      file: tests/integration/mcp/community/homework-oauth-write-gates.test.ts
       name: homework.oauth-write-gates
 - id: homework.responsive-workspace-view
   category: presentation
@@ -541,15 +552,15 @@ requirements:
   acceptance:
     given: An ordinary user authored homework under an isolated section; another ordinary user and an
       administrator have valid OAuth grants.
-    when: REST, signed GraphQL and registered MCP attempt ordinary deletion as each foreign actor and
-      then as the creator.
+    when: Independently prepared Worker REST, signed GraphQL and native MCP HTTP cases attempt ordinary
+      deletion as each foreign actor and as the creator.
     then:
-    - Foreign users and administrators are rejected through every ordinary delete surface, leaving deletedAt
-      unset.
+    - Foreign users and administrators are rejected through every ordinary delete surface, leaving homework
+      unchanged; the administrator denial produces no deletion audit.
     - The creator succeeds through each surface and the stored deletion attribution names that creator.
     test:
-      file: tests/integration/mcp/community/homework-transport-contract.test.ts
-      name: homework.transport-creator-delete
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
+      name: homework ordinary delete rejects a non-creator admin
 - id: homework.section-completed-deadline-display
   category: presentation
   applies_to:
@@ -557,9 +568,10 @@ requirements:
   rule: Completed homework in a personal section view retains due datetime, completion state and non-default
     major/team badges while hiding the deadline reminder; reopening restores the reminder.
   acceptance:
-    given: A personal section view contains an incomplete, dated major homework requiring a team.
-    when: On desktop and mobile the owner completes it in the detail dialog, closes/reopens the detail
-      and marks it incomplete.
+    given: A personal section view has independently prepared incomplete and completed dated major
+      homework requiring a team.
+    when: Desktop and mobile consumers open and reopen each known detail state; separate owner mutation
+      cases complete an incomplete homework and reopen a pre-completed homework through the actual dialog.
     then:
     - Completion preserves the due datetime, completion status and major/team details while removing the
       deadline reminder.

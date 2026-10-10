@@ -56,8 +56,10 @@ A topic reference does not create another requirement or prove test coverage; av
 duplicating an umbrella requirement when every obligation already has a specific owner.
 
 Feature test files stay in the appropriate runner's directory, grouped by domain.
-Use independent mutation tests, consumer tests and a small set of connection or
-complete-journey tests. See `tests/AGENTS.md` for the isolation and oracle rules.
+Use independent mutation and consumer cases, each with its own prepared state.
+Keep promised refresh, cache and asynchronous checks in their owning modules;
+do not require duplicate cross-entrypoint or complete-journey layers. See
+`tests/AGENTS.md` for the isolation and oracle rules.
 A mocked permission helper does not prove HTTP authentication, database isolation,
 or rendered UI. Source assertions establish architecture constraints, not
 user-visible behavior.
@@ -76,16 +78,15 @@ mapping, or establish acceptance completeness. Ordinary runner results decide
 whether tests pass; reviewers decide whether their observations cover the intended
 requirements.
 
-New tests keep their expected outcomes independent of runtime specification
-loading. Existing assertion helpers used by other features remain ordinary test
-utilities; their comparison records do not prove coverage or observation quality
-and are not CI gates. Do not extend this into a receipt or specification-consumption
-system. Never compare expectations with themselves or derive both expected and
+Tests keep their expected outcomes independent of runtime specification
+loading. Shared assertion utilities observe actual behavior and take explicit
+expected values from the test. Do not add a receipt, test-owner registry or
+specification-consumption system. Never compare expectations with themselves or derive both expected and
 observed results from the same production operation.
 
 CI must run the unit, integration, REST, role-isolation and browser partitions,
 plus static and build checks. The protected check named Specification execution
-evidence aggregates those job results and validates document structure only.
+evidence aggregates those job results; `Source / Checks` validates document structure.
 Passing these jobs establishes execution success,
 not exhaustive requirements coverage. Retain runner reports and failed browser
 traces for review.

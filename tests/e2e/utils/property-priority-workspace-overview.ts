@@ -1,8 +1,8 @@
-import { type Locator, type Page, test } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
-import type {
-  createPriorityViewAudit,
-  VisiblePriorityField,
+import {
+  assertPriorityView,
+  type VisiblePriorityField,
 } from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
 
@@ -13,7 +13,6 @@ const field = (
 const text = (scope: Locator, expected: string | RegExp) =>
   field(scope.getByText(expected).filter({ visible: true }).first(), expected);
 export async function checkWorkspaceOverviewPriorityViews(
-  audit: ReturnType<typeof createPriorityViewAudit>,
   page: Page,
   data: WorkspacePriorityFixture,
   locale: "zh-cn" | "en-us",
@@ -26,7 +25,7 @@ export async function checkWorkspaceOverviewPriorityViews(
   );
   const main = page.locator("#main-content");
   const focus = main.getByTestId("workspace-overview-focus");
-  const identity = focus.getByText(todo.title, { exact: true });
+  const identity = focus.getByTestId("overview-focus-title");
   const today = main
     .locator("section")
     .filter({
@@ -70,24 +69,34 @@ export async function checkWorkspaceOverviewPriorityViews(
     locale === "en-us" ? "en-US" : "zh-CN",
     { timeZone: "Asia/Shanghai", weekday: "long" },
   ).format(date);
-  await audit.check({
-    feature: "overview",
-    capability: "authenticated-overview",
-    view: "web",
+  await assertPriorityView({
     scope: main,
     identity,
     primary: {
       "focus.title": field(identity, todo.title),
-      "focus.label": text(focus, locale === "en-us" ? "Todo" : "待办"),
-      "focus.status": text(
-        focus,
+      "focus.label": field(
+        focus.getByTestId("overview-focus-label"),
+        locale === "en-us" ? "To-do" : "待办",
+      ),
+      "focus.status": field(
+        focus.getByTestId("overview-focus-status"),
         locale === "en-us" ? "Needs attention" : "需要关注",
       ),
+      "focus.time": field(focus.getByTestId("overview-focus-time"), "11:45"),
     },
     secondary: {
-      "focus.dateLabel": text(focus, dateLabel),
-      "focus.weekdayLabel": text(focus, weekday),
-      "focus.meta": text(focus, todo.content ?? ""),
+      "focus.dateLabel": field(
+        focus.getByTestId("overview-focus-date"),
+        dateLabel,
+      ),
+      "focus.weekdayLabel": field(
+        focus.getByTestId("overview-focus-weekday"),
+        weekday,
+      ),
+      "focus.detail": field(
+        focus.getByTestId("overview-focus-detail"),
+        todo.content ?? "",
+      ),
       "todaySessions.startTime": text(today, "08:00"),
       "todaySessions.section.course.namePrimary": text(today, courseName),
       "dueTodayHomeworks.title": text(today, homework.title),
@@ -142,10 +151,7 @@ export async function checkWorkspaceOverviewPriorityViews(
           .first(),
         expected,
       );
-    await audit.check({
-      feature: "overview",
-      capability: "authenticated-overview",
-      view: "web-week-strip",
+    await assertPriorityView({
       scope: card,
       identity: cardTitle,
       primary: { "days.events.title": field(cardTitle, item.title) },
@@ -156,10 +162,7 @@ export async function checkWorkspaceOverviewPriorityViews(
       tertiary: {},
     });
   }
-  await test.info().attach(`overview-week-priority-${locale}-${width}`, {
-    body: await week.screenshot(),
-    contentType: "image/png",
-  });
+
   if (width < 768)
     await page.getByRole("button", { name: /^(菜单|Menu)$/i }).click();
   const navigation = page.locator(
@@ -172,10 +175,7 @@ export async function checkWorkspaceOverviewPriorityViews(
     name: locale === "en-us" ? "Todos" : "待办",
     exact: true,
   });
-  await audit.check({
-    feature: "overview",
-    capability: "workspace-shell-navigation",
-    view: "web",
+  await assertPriorityView({
     scope: item,
     identity: title.locator("span").last(),
     primary: {

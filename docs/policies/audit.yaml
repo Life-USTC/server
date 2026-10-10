@@ -68,7 +68,7 @@ requirements:
       and safe metadata survive until event expiry.
     test:
       file: tests/integration/audit-policy-retention.test.ts
-      name: audit.writer-4
+      name: "audit retention clears network data at 30 days, attribution at 90, and events at 400 inclusively"
   applies_to:
   - writer
 - id: audit.auth-hook-failure-isolation
@@ -85,8 +85,8 @@ requirements:
     then:
     - Sign-in reaches the account page and creates one persistent session that the authenticated session
       endpoint accepts, while the audit row remains absent during failure.
-    - Actual Worker diagnostics identify an audit database-write retry without session credentials, passkey
-      names, or user profile values.
+    - Actual Worker diagnostics identify an audit database-write retry and its distinct validated action
+      categories without session credentials, passkey names, user profile values, or audit metadata.
     - Removing the constraint lets the real queue persist one successful audit for that same session.
     test:
       file: tests/e2e/src/app/account-policy/audit.test.ts
@@ -120,7 +120,7 @@ requirements:
       call it or directly delete audit rows.
     test:
       file: tests/integration/audit-policy-retention.test.ts
-      name: audit.retention-maintenance-authority
+      name: only maintenance can execute audit retention while direct table deletion remains forbidden
 - id: audit.action-comment-create
   category: privacy
   topic: actions
@@ -360,7 +360,7 @@ requirements:
     - The persisted client and one audit event have matching IDs.
     - Audit metadata contains changed field names, never client secret, client name or redirect URI values.
     test:
-      file: tests/integration/oauth-admin-client-contracts.test.ts
+      file: tests/integration/rest/oauth/admin-client-contracts.test.ts
       name: audit.action-admin-oauth-client-create
 - id: audit.action-admin-oauth-client-delete
   category: privacy
@@ -373,7 +373,7 @@ requirements:
     - The client is deleted and exactly one successful event records its ID and administrator.
     - The retry reports not found without producing another event or leaking the secret.
     test:
-      file: tests/integration/oauth-admin-client-contracts.test.ts
+      file: tests/integration/rest/oauth/admin-client-contracts.test.ts
       name: audit.action-admin-oauth-client-delete
 - id: audit.action-admin-bus-version-activate
   category: privacy
@@ -417,7 +417,7 @@ requirements:
     - One event records the imported version ID and aggregate campus, route and trip counts.
     - Private source message, URL, campus names and timetable values are absent from audit metadata.
     test:
-      file: tests/integration/audit-bus-actions.test.ts
+      file: tests/integration/audit-bus-import.test.ts
       name: audit.action-admin-bus-import
 - id: audit.action-homework-create
   category: privacy

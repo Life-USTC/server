@@ -1,4 +1,3 @@
-import type { TestInfo } from "@playwright/test";
 import { expect, type Page } from "@playwright/test";
 import {
   type BrowserHealthAllowlist,
@@ -11,8 +10,6 @@ import { expectRenderedUiQuality, type UiQualityAllowlist } from "./ui-quality";
 type GotoOptions = {
   expectMainContent?: boolean;
   waitUntil?: "load" | "domcontentloaded" | "networkidle" | "commit";
-  testInfo?: TestInfo;
-  screenshotLabel?: string;
   /** Assert console errors, uncaught page errors, and framework overlays during navigation. */
   browserHealth?: false | BrowserHealthAllowlist;
   /** Assert the main region contains rendered, meaningful UI rather than an empty shell. */

@@ -6,9 +6,9 @@ import {
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
 
-test("raw numeric absence distinguishes date substrings and nested visible enum values", async ({
-  page,
-}) => {
+test("raw numeric absence distinguishes date substrings and nested visible enum values", {
+  tag: "@Infrastructure/Web",
+}, async ({ page }) => {
   await page.setContent(
     "<main><time>2026-09-27</time><span>星期日 Sunday</span><span hidden>7</span></main>",
   );
@@ -22,17 +22,13 @@ test("raw numeric absence distinguishes date substrings and nested visible enum 
   await expect(assertNoStandaloneInternalText(scope, "7")).rejects.toThrow();
 });
 
-test("priority fields reject transparent and hidden elements through their ancestors", async ({
-  page,
-}) => {
-  test.setTimeout(120_000);
+test("priority fields reject transparent and hidden elements through their ancestors", {
+  tag: "@Infrastructure/Web",
+}, async ({ page }) => {
   const html =
     '<main><h1 id="title" style="font-size:20px;font-weight:600">Public task</h1><div><span id="due">Tomorrow 12:30</span></div><span id="completed">Pending</span><div><span id="priority" style="font-size:14px;font-weight:400">High</span></div><div><span id="raw-id" style="font-size:14px;font-weight:400">internal-id-42</span></div></main>';
   function check(): PriorityViewCheck {
     return {
-      feature: "todo",
-      capability: "todo-list",
-      view: "web-list",
       scope: page.locator("main"),
       identity: page.locator("#title"),
       primary: {
@@ -82,16 +78,20 @@ test("priority fields reject transparent and hidden elements through their ances
             },
             { ancestor, style },
           );
-          await expect(assertPriorityView(check())).rejects.toThrow();
+          // setContent has settled: fail fast for this intentional defect, while
+          // real-page assertions retain their normal readiness timeout.
+          await expect(
+            assertPriorityView(check(), { timeout: 100 }),
+          ).rejects.toThrow();
         });
       }
     }
   }
 });
 
-test("internal-field absence checks displayed form values without exposing hidden controls", async ({
-  page,
-}) => {
+test("internal-field absence checks displayed form values without exposing hidden controls", {
+  tag: "@Infrastructure/Web",
+}, async ({ page }) => {
   for (const field of [
     { value: "internal-id-42" },
     { value: "7", exactText: true },

@@ -9,7 +9,7 @@ import {
   type CalendarQueueBatchOutcome,
   writeCalendarQueueBatchAnalytics,
 } from "@/features/calendar/server/calendar-queue-batch-analytics";
-import { prisma } from "@/lib/db/prisma";
+import { maintenancePrisma } from "@/lib/db/maintenance-prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { writeCalendarExportRebuildAnalytics } from "@/lib/metrics/analytics-engine";
@@ -36,11 +36,19 @@ export async function rebuildUserCalendarExport(userId: string) {
 }
 
 async function listSectionSubscriberUserIds(sectionId: number) {
-  const subscribers = await prisma.userSectionSubscription.findMany({
-    where: { sectionId },
-    select: { userId: true },
-  });
-  return subscribers.map((subscriber) => subscriber.userId);
+  const userIds: string[] = [];
+  let afterUserId: string | null = null;
+  // Queue messages have no user context. Only this bounded recipient discovery
+  // uses maintenance authority; each export still reads through its owner's RLS.
+  while (true) {
+    const subscribers: Array<{ userId: string }> =
+      await maintenancePrisma.$queryRaw<Array<{ userId: string }>>`
+      SELECT "userId" FROM public.list_section_calendar_subscribers(${sectionId}, ${afterUserId}, 100)
+    `;
+    userIds.push(...subscribers.map((subscriber) => subscriber.userId));
+    if (subscribers.length < 100) return userIds;
+    afterUserId = subscribers[subscribers.length - 1].userId;
+  }
 }
 
 type CalendarExportRebuildTargets = {

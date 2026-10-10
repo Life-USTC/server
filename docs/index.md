@@ -33,9 +33,10 @@ machine-enforced coverage bindings. Tests may cover multiple requirements and
 requirements may need multiple scenarios. The checker validates schema and
 business references without interpreting test names or execution reports.
 
-Acceptance tests separate mutations, consumers and selected complete journeys.
-Independent observations verify persisted effects; consumer tests start from
-known state; connection tests verify refresh, cache and cross-interface behavior.
+Acceptance tests separate independent mutation and consumer cases. Each mutation
+prepares its own precondition and independently verifies persisted effects;
+consumers start from known state. Promised refresh, cache and asynchronous behavior
+is checked in its owning module without a duplicate journey layer.
 Passing runner jobs proves those assertions passed, not that all requirements or
 possible behaviors are covered. See [editing specifications](AGENTS.md) and
 [test conventions](../tests/AGENTS.md) for review and isolation rules.

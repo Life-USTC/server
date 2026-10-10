@@ -75,7 +75,7 @@ requirements:
     - Course/Teacher history and the owner subscription list retain both records.
     test:
       file: tests/integration/retired-section-contract.test.ts
-      name: section.retired-read-semantics
+      name: section.retired-read-semantics Section
 - id: section.jwid-url-only
   category: behavior
   rule: Opaque Section jwId values remain routing/API identifiers and are not displayed as ordinary student-facing
@@ -120,7 +120,7 @@ requirements:
     - Cookie and Accept-Language do not change the same URL response or its public cache policy.
     - Different pages and supported filters return the correct isolated records and totals.
     test:
-      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      file: tests/integration/rest/catalog/public-lists.test.ts
       name: section.public-list-cache
 - id: section.mobile-detail-actions
   category: presentation
@@ -227,7 +227,7 @@ requirements:
     - The new committed revision refreshes API and page data and makes the previously missing identity
       readable.
     test:
-      file: tests/integration/catalog-public-read-contracts.test.ts
+      file: tests/integration/section-public-detail-cache.test.ts
       name: section.public-detail-cache
 - id: section.relational-course-filter
   category: validation
@@ -399,7 +399,7 @@ requirements:
     - The calendar dialog opens and the subscription actions persist and remove the exact membership.
     test:
       file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
-      name: section.mobile-sticky-actions
+      name: section.mobile-sticky-actions Subscription
 - id: section.teacher-assignment-reference
   category: privacy
   applies_to:
@@ -446,7 +446,7 @@ requirements:
     - The shared teachers list resolves that identity and no private teacher contact appears.
     test:
       file: tests/integration/section-teacher-assignment-contract.test.ts
-      name: section.teacher-assignment-reference
+      name: "section teacher assignment preserves fields and resolves its public teacher (en-us)"
 - id: section.retired-subscription-mutations
   category: consistency
   rule: New subscription add operations reject retired rows. Existing owners can remove retired subscriptions

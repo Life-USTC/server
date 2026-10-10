@@ -1,24 +1,12 @@
-import { type APIRequestContext, expect, test } from "@playwright/test";
-import { symmetricDecrypt } from "better-auth/crypto";
-import { importJWK, SignJWT } from "jose";
-import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
-import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
-import { DEV_SEED } from "../../../e2e/utils/dev-seed";
+import { type APIRequestContext, expect } from "@playwright/test";
 import {
-  getCurrentSessionUser,
-  PLAYWRIGHT_BASE_URL,
-} from "../../../e2e/utils/e2e-db";
-import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
-import { signInAsDebugUserApi } from "../_harness/auth";
-
-const GRAPHQL_RESOURCE = `${PLAYWRIGHT_BASE_URL}/api/graphql`;
-const WRONG_RESOURCE = `${PLAYWRIGHT_BASE_URL}/api/auth`;
-const PROFILE_READ_SCOPE = restReadScope("account.profile");
-const TODO_READ_SCOPE = restReadScope("workspace.todo");
-const TODO_WRITE_SCOPE = restWriteScope("workspace.todo");
-const GRAPHQL_SCOPES = [PROFILE_READ_SCOPE, TODO_READ_SCOPE, TODO_WRITE_SCOPE];
-const FIXTURE_MARKER = `rest-graphql-${crypto.randomUUID()}`;
-const OAUTH_CLIENT_ID = `${FIXTURE_MARKER}-client`;
+  GRAPHQL_SCOPES,
+  PROFILE_READ_SCOPE,
+  signGraphqlToken,
+  TODO_READ_SCOPE,
+  TODO_WRITE_SCOPE,
+  test,
+} from "./_fixture";
 
 type GraphqlError = {
   message?: string;
@@ -33,149 +21,8 @@ type GraphqlPayload = {
   errors?: GraphqlError[];
 };
 
-type GraphqlFixture = {
-  clientId: string;
-  users: {
-    a: { id: string; todoId: string; todoTitle: string; grantId: string };
-    b: { id: string; todoId: string; todoTitle: string; grantId: string };
-  };
-};
-
-let graphqlFixture: GraphqlFixture | undefined;
-
-async function createGraphqlFixture(): Promise<GraphqlFixture> {
-  return withE2ePrisma((prisma) =>
-    prisma.$transaction(async (tx) => {
-      const userA = await tx.user.create({
-        data: {
-          email: `${FIXTURE_MARKER}-a@example.test`,
-          name: "REST GraphQL A",
-        },
-        select: { id: true },
-      });
-      const userB = await tx.user.create({
-        data: {
-          email: `${FIXTURE_MARKER}-b@example.test`,
-          name: "REST GraphQL B",
-        },
-        select: { id: true },
-      });
-      const todoA = await tx.todo.create({
-        data: {
-          title: `${FIXTURE_MARKER}-todo-a`,
-          userId: userA.id,
-        },
-        select: { id: true, title: true },
-      });
-      const todoB = await tx.todo.create({
-        data: {
-          title: `${FIXTURE_MARKER}-todo-b`,
-          userId: userB.id,
-        },
-        select: { id: true, title: true },
-      });
-      const client = await tx.oAuthClient.create({
-        data: {
-          clientId: OAUTH_CLIENT_ID,
-          name: "REST GraphQL Worker test",
-          redirectUris: [`${PLAYWRIGHT_BASE_URL}/graphql-test/callback`],
-          scopes: GRAPHQL_SCOPES,
-          consents: {
-            create: [
-              {
-                resources: [GRAPHQL_RESOURCE],
-                scopes: GRAPHQL_SCOPES,
-                userId: userA.id,
-              },
-              {
-                resources: [GRAPHQL_RESOURCE],
-                scopes: GRAPHQL_SCOPES,
-                userId: userB.id,
-              },
-            ],
-          },
-        },
-        select: {
-          clientId: true,
-          consents: { select: { grantId: true, userId: true } },
-        },
-      });
-      const consentA = client.consents.find(
-        (consent) => consent.userId === userA.id,
-      );
-      const consentB = client.consents.find(
-        (consent) => consent.userId === userB.id,
-      );
-      if (!consentA || !consentB) {
-        throw new Error("Expected OAuth consent fixtures for both users");
-      }
-
-      return {
-        clientId: client.clientId,
-        users: {
-          a: {
-            grantId: consentA.grantId,
-            id: userA.id,
-            todoId: todoA.id,
-            todoTitle: todoA.title,
-          },
-          b: {
-            grantId: consentB.grantId,
-            id: userB.id,
-            todoId: todoB.id,
-            todoTitle: todoB.title,
-          },
-        },
-      };
-    }),
-  );
-}
-
-async function deleteGraphqlFixture(fixture: GraphqlFixture) {
-  await withE2ePrisma(async (prisma) => {
-    await prisma.oAuthClient.deleteMany({
-      where: { clientId: fixture.clientId },
-    });
-    await prisma.user.deleteMany({
-      where: {
-        id: { in: [fixture.users.a.id, fixture.users.b.id] },
-      },
-    });
-  });
-}
-
-async function signGraphqlToken(
-  userId: string,
-  grantId: string,
-  scopes: string[],
-  resource = GRAPHQL_RESOURCE,
-) {
-  // Sign fixtures with the real Worker's key. Loading the application auth
-  // singleton here would initialize the Cloudflare Prisma client inside Node.
-  const key = await withE2ePrisma((prisma) =>
-    prisma.jwks.findFirstOrThrow({ orderBy: { createdAt: "desc" } }),
-  );
-  expect(key.alg).toBe("EdDSA");
-  const privateJwk = await symmetricDecrypt({
-    key: "e2e-dev-secret-not-for-production", // wrangler.e2e.jsonc
-    data: JSON.parse(key.privateKey),
-  });
-  return new SignJWT({
-    azp: OAUTH_CLIENT_ID,
-    scope: scopes.join(" "),
-    [OAUTH_GRANT_ID_CLAIM]: grantId,
-  })
-    .setProtectedHeader({ alg: "EdDSA", kid: key.id, typ: "JWT" })
-    .setSubject(userId)
-    .setAudience(resource)
-    .setIssuer(`${PLAYWRIGHT_BASE_URL}/api/auth`)
-    .setIssuedAt()
-    .setExpirationTime("5m")
-    .sign(await importJWK(JSON.parse(privateJwk), "EdDSA"));
-}
-
 async function postGraphql(
-  request: APIRequestContext,
+  request: Pick<APIRequestContext, "post">,
   query: string,
   options: {
     headers?: Record<string, string>;
@@ -210,110 +57,102 @@ function expectGraphqlError(
   }
 }
 
-test("Cloudflare Worker serves the public GraphQL endpoint", async ({
-  request,
-}) => {
-  const response = await request.post("/api/graphql", {
-    data: {
-      query: /* GraphQL */ `
-        query WorkerSmoke($courseJwId: Int!, $sectionJwId: Int!) {
+for (const domain of ["Course", "Section"] as const) {
+  test(`Cloudflare Worker serves the public GraphQL endpoint ${domain}`, {
+    tag: `@${domain}/GraphQL`,
+  }, async ({ graphql }) => {
+    await graphql.run(async () => {
+      const { request } = graphql;
+      const response = await request.post("/api/graphql", {
+        data: {
+          query: /* GraphQL */ `
+        query WorkerSmoke($jwId: Int!) {
           catalog {
-            course(jwId: $courseJwId) {
-              jwId
-              code
-            }
-            section(jwId: $sectionJwId) {
-              jwId
-              code
-              course {
-                jwId
-              }
-            }
+            ${domain === "Course" ? `course(jwId: $jwId) { jwId code }` : `section(jwId: $jwId) { jwId code course { jwId } }`}
           }
         }
       `,
-      variables: {
-        courseJwId: DEV_SEED.course.jwId,
-        sectionJwId: DEV_SEED.section.jwId,
-      },
-    },
-  });
+          variables: {
+            jwId:
+              domain === "Course"
+                ? graphql.catalog.course.jwId
+                : graphql.catalog.section.jwId,
+          },
+        },
+      });
 
-  expect(response.status()).toBe(200);
-  expect(response.headers()["cache-control"]).toBe("no-store");
-  expect(await response.json()).toEqual({
-    data: {
-      catalog: {
-        course: {
-          jwId: DEV_SEED.course.jwId,
-          code: DEV_SEED.course.code,
+      expect(response.status()).toBe(200);
+      expect(response.headers()["cache-control"]).toBe("no-store");
+      expect(await response.json()).toEqual({
+        data: {
+          catalog: {
+            ...(domain === "Course"
+              ? {
+                  course: {
+                    jwId: graphql.catalog.course.jwId,
+                    code: graphql.catalog.course.code,
+                  },
+                }
+              : {
+                  section: {
+                    jwId: graphql.catalog.section.jwId,
+                    code: graphql.catalog.section.code,
+                    course: { jwId: graphql.catalog.course.jwId },
+                  },
+                }),
+          },
         },
-        section: {
-          jwId: DEV_SEED.section.jwId,
-          code: DEV_SEED.section.code,
-          course: { jwId: DEV_SEED.course.jwId },
-        },
-      },
-    },
+      });
+    });
   });
-});
+}
 
 test.describe("Cloudflare Worker authenticated GraphQL", () => {
-  test.describe.configure({ mode: "serial" });
+  test("accepts a session cookie only from a trusted Origin", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
+    await graphql.run(async () => {
+      const { request, users } = graphql;
+      const user = users.a;
+      const { cookie } = await graphql.createSession(user.id);
+      const cookieHeader = `${cookie.name}=${cookie.value}`;
 
-  test.beforeAll(async ({ request }) => {
-    // Provision signing keys through the Worker, not through a Node auth clone.
-    const jwks = await request.get("/api/auth/jwks");
-    expect(jwks.status()).toBe(200);
-    expect((await jwks.json()).keys.length).toBeGreaterThan(0);
-    graphqlFixture = await createGraphqlFixture();
-  });
+      const trusted = await postGraphql(
+        request,
+        "{ account { profile { id email } } }",
+        { headers: { Origin: graphql.origin, Cookie: cookieHeader } },
+      );
+      expect(trusted.response.status()).toBe(200);
+      expect(trusted.response.headers()["cache-control"]).toBe("no-store");
+      expect(trusted.payload.errors).toBeUndefined();
+      expect(trusted.payload.data?.account).toMatchObject({
+        profile: { id: user.id },
+      });
 
-  test.afterAll(async () => {
-    if (graphqlFixture) await deleteGraphqlFixture(graphqlFixture);
-    graphqlFixture = undefined;
-  });
-
-  test("accepts a session cookie only from a trusted Origin", async ({
-    request,
-  }) => {
-    await signInAsDebugUserApi(request, "/");
-    const debugUser = await getCurrentSessionUser(request);
-
-    const trusted = await postGraphql(
-      request,
-      "{ account { profile { id email } } }",
-      { headers: { Origin: PLAYWRIGHT_BASE_URL } },
-    );
-    expect(trusted.response.status()).toBe(200);
-    expect(trusted.response.headers()["cache-control"]).toBe("no-store");
-    expect(trusted.payload.errors).toBeUndefined();
-    expect(trusted.payload.data?.account).toMatchObject({
-      profile: { id: debugUser.id },
+      const untrusted = await postGraphql(
+        request,
+        "{ account { profile { id } } }",
+        { headers: { Origin: "https://evil.example", Cookie: cookieHeader } },
+      );
+      expect(untrusted.response.status()).toBe(403);
+      expectGraphqlError(untrusted.payload, "FORBIDDEN");
     });
-
-    const untrusted = await postGraphql(
-      request,
-      "{ account { profile { id } } }",
-      { headers: { Origin: "https://evil.example" } },
-    );
-    expect(untrusted.response.status()).toBe(403);
-    expectGraphqlError(untrusted.payload, "FORBIDDEN");
   });
 
-  test("accepts a GraphQL audience bearer and rejects a wrong audience", async ({
-    request,
-  }) => {
-    if (!graphqlFixture) throw new Error("GraphQL fixture was not initialized");
-    const user = graphqlFixture.users.a;
-    const token = await signGraphqlToken(user.id, user.grantId, [
-      PROFILE_READ_SCOPE,
-      TODO_READ_SCOPE,
-    ]);
+  test("accepts a GraphQL audience bearer and rejects a wrong audience", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
+    await graphql.run(async () => {
+      const { request } = graphql;
+      const user = graphql.users.a;
+      const token = await signGraphqlToken(graphql, user.id, user.grantId, [
+        PROFILE_READ_SCOPE,
+        TODO_READ_SCOPE,
+      ]);
 
-    const authorized = await postGraphql(
-      request,
-      /* GraphQL */ `
+      const authorized = await postGraphql(
+        request,
+        /* GraphQL */ `
         {
           account {
             profile { id }
@@ -326,96 +165,107 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
           }
         }
       `,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    expect(authorized.response.status()).toBe(200);
-    expect(authorized.response.headers()["cache-control"]).toBe("no-store");
-    expect(authorized.payload.errors).toBeUndefined();
-    expect(authorized.payload.data).toMatchObject({
-      account: { profile: { id: user.id } },
-      viewer: {
-        todos: {
-          items: [{ id: user.todoId, title: user.todoTitle }],
-          pageInfo: { total: 1 },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      expect(authorized.response.status()).toBe(200);
+      expect(authorized.response.headers()["cache-control"]).toBe("no-store");
+      expect(authorized.payload.errors).toBeUndefined();
+      expect(authorized.payload.data).toMatchObject({
+        account: { profile: { id: user.id } },
+        viewer: {
+          todos: {
+            items: [{ id: user.todoId, title: user.todoTitle }],
+            pageInfo: { total: 1 },
+          },
         },
-      },
-    });
+      });
 
-    const wrongAudienceToken = await signGraphqlToken(
-      user.id,
-      user.grantId,
-      [PROFILE_READ_SCOPE],
-      WRONG_RESOURCE,
-    );
-    const wrongAudience = await postGraphql(
-      request,
-      "{ account { profile { id } } }",
-      { headers: { Authorization: `Bearer ${wrongAudienceToken}` } },
-    );
-    expect(wrongAudience.response.status()).toBe(401);
-    expectGraphqlError(wrongAudience.payload, "UNAUTHENTICATED");
+      const wrongAudienceToken = await signGraphqlToken(
+        graphql,
+        user.id,
+        user.grantId,
+        [PROFILE_READ_SCOPE],
+        `${graphql.origin}/api/auth`,
+      );
+      const wrongAudience = await postGraphql(
+        request,
+        "{ account { profile { id } } }",
+        { headers: { Authorization: `Bearer ${wrongAudienceToken}` } },
+      );
+      expect(wrongAudience.response.status()).toBe(401);
+      expectGraphqlError(wrongAudience.payload, "UNAUTHENTICATED");
+    });
   });
 
-  test("rejects a bearer without the selected field scope", async ({
-    request,
-  }) => {
-    if (!graphqlFixture) throw new Error("GraphQL fixture was not initialized");
-    const user = graphqlFixture.users.a;
-    const profileToken = await signGraphqlToken(user.id, user.grantId, [
-      PROFILE_READ_SCOPE,
-    ]);
-    const response = await postGraphql(
-      request,
-      "{ viewer: workspace { todos { pageInfo { total } } } }",
-      { headers: { Authorization: `Bearer ${profileToken}` } },
-    );
+  test("rejects a bearer without the selected field scope", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
+    await graphql.run(async () => {
+      const { request, marker } = graphql;
+      const user = graphql.users.a;
+      const profileToken = await signGraphqlToken(
+        graphql,
+        user.id,
+        user.grantId,
+        [PROFILE_READ_SCOPE],
+      );
+      const response = await postGraphql(
+        request,
+        "{ viewer: workspace { todos { pageInfo { total } } } }",
+        { headers: { Authorization: `Bearer ${profileToken}` } },
+      );
 
-    expect(response.response.status()).toBe(403);
-    expectGraphqlError(response.payload, "FORBIDDEN", [TODO_READ_SCOPE], {
-      viewer: null,
-    });
+      expect(response.response.status()).toBe(403);
+      expectGraphqlError(response.payload, "FORBIDDEN", [TODO_READ_SCOPE], {
+        viewer: null,
+      });
 
-    const readOnlyToken = await signGraphqlToken(user.id, user.grantId, [
-      TODO_READ_SCOPE,
-    ]);
-    const attemptedMutation = await postGraphql(
-      request,
-      /* GraphQL */ `
+      const readOnlyToken = await signGraphqlToken(
+        graphql,
+        user.id,
+        user.grantId,
+        [TODO_READ_SCOPE],
+      );
+      const attemptedMutation = await postGraphql(
+        request,
+        /* GraphQL */ `
         mutation CreateTodo($title: String!) {
           todoCreate(input: { title: $title }) { id }
         }
       `,
-      {
-        headers: { Authorization: `Bearer ${readOnlyToken}` },
-        variables: { title: `${FIXTURE_MARKER}-read-only-mutation` },
-      },
-    );
-    expect(attemptedMutation.response.status()).toBe(403);
-    expectGraphqlError(attemptedMutation.payload, "FORBIDDEN", [
-      TODO_WRITE_SCOPE,
-    ]);
-    await expect(
-      withE2ePrisma((prisma) =>
-        prisma.todo.findMany({
-          where: { title: `${FIXTURE_MARKER}-read-only-mutation` },
-          select: { id: true },
-        }),
-      ),
-    ).resolves.toEqual([]);
+        {
+          headers: { Authorization: `Bearer ${readOnlyToken}` },
+          variables: { title: `${marker}-read-only-mutation` },
+        },
+      );
+      expect(attemptedMutation.response.status()).toBe(403);
+      expectGraphqlError(attemptedMutation.payload, "FORBIDDEN", [
+        TODO_WRITE_SCOPE,
+      ]);
+      await expect(
+        graphql.observe((prisma) =>
+          prisma.todo.findMany({
+            where: { title: `${marker}-read-only-mutation` },
+            select: { id: true },
+          }),
+        ),
+      ).resolves.toEqual([]);
+    });
   });
 
-  test("keeps A/B reads and todo mutations isolated by bearer subject", async ({
-    request,
-  }) => {
-    if (!graphqlFixture) throw new Error("GraphQL fixture was not initialized");
-    const userA = graphqlFixture.users.a;
-    const userB = graphqlFixture.users.b;
-    const [tokenA, tokenB] = await Promise.all([
-      signGraphqlToken(userA.id, userA.grantId, GRAPHQL_SCOPES),
-      signGraphqlToken(userB.id, userB.grantId, GRAPHQL_SCOPES),
-    ]);
+  test("keeps A/B reads and todo mutations isolated by bearer subject", {
+    tag: "@Account/GraphQL",
+  }, async ({ graphql }) => {
+    await graphql.run(async () => {
+      const { request, marker } = graphql;
+      const userA = graphql.users.a;
+      const userB = graphql.users.b;
+      const [tokenA, tokenB] = await Promise.all([
+        signGraphqlToken(graphql, userA.id, userA.grantId, GRAPHQL_SCOPES),
+        signGraphqlToken(graphql, userB.id, userB.grantId, GRAPHQL_SCOPES),
+      ]);
 
-    const query = /* GraphQL */ `
+      const query = /* GraphQL */ `
       {
         account { profile { id } }
         viewer: workspace {
@@ -426,61 +276,61 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
         }
       }
     `;
-    for (const [token, user, otherUser] of [
-      [tokenA, userA, userB],
-      [tokenB, userB, userA],
-    ] as const) {
-      const response = await postGraphql(request, query, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      expect(response.response.status()).toBe(200);
-      expect(response.payload.errors).toBeUndefined();
-      expect(response.payload.data).toMatchObject({
-        account: { profile: { id: user.id } },
-        viewer: {
-          todos: {
-            items: [{ id: user.todoId, title: user.todoTitle }],
-            pageInfo: { total: 1 },
+      for (const [token, user, otherUser] of [
+        [tokenA, userA, userB],
+        [tokenB, userB, userA],
+      ] as const) {
+        const response = await postGraphql(request, query, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        expect(response.response.status()).toBe(200);
+        expect(response.payload.errors).toBeUndefined();
+        expect(response.payload.data).toMatchObject({
+          account: { profile: { id: user.id } },
+          viewer: {
+            todos: {
+              items: [{ id: user.todoId, title: user.todoTitle }],
+              pageInfo: { total: 1 },
+            },
           },
-        },
-      });
-      const items =
-        (
-          response.payload.data?.viewer as {
-            todos?: { items?: Array<{ id?: string }> };
-          }
-        )?.todos?.items ?? [];
-      expect(items.some((item) => item.id === otherUser.todoId)).toBe(false);
-    }
+        });
+        const items =
+          (
+            response.payload.data?.viewer as {
+              todos?: { items?: Array<{ id?: string }> };
+            }
+          )?.todos?.items ?? [];
+        expect(items.some((item) => item.id === otherUser.todoId)).toBe(false);
+      }
 
-    const created = await postGraphql(
-      request,
-      /* GraphQL */ `
+      const created = await postGraphql(
+        request,
+        /* GraphQL */ `
         mutation CreateTodo($title: String!) {
           todoCreate(input: { title: $title }) { id }
         }
       `,
-      {
-        headers: { Authorization: `Bearer ${tokenA}` },
-        variables: { title: `${FIXTURE_MARKER}-created-by-a` },
-      },
-    );
-    expect(created.response.status()).toBe(200);
-    expect(created.payload.errors).toBeUndefined();
-    const createdTodoId = (
-      created.payload.data?.todoCreate as { id?: string } | undefined
-    )?.id;
-    expect(createdTodoId).toEqual(expect.any(String));
-    if (!createdTodoId) throw new Error("Expected todoCreate to return an id");
+        {
+          headers: { Authorization: `Bearer ${tokenA}` },
+          variables: { title: `${marker}-created-by-a` },
+        },
+      );
+      expect(created.response.status()).toBe(200);
+      expect(created.payload.errors).toBeUndefined();
+      const createdTodoId = (
+        created.payload.data?.todoCreate as { id?: string } | undefined
+      )?.id;
+      expect(createdTodoId).toEqual(expect.any(String));
+      if (!createdTodoId)
+        throw new Error("Expected todoCreate to return an id");
 
-    try {
       const crossUserUpdate = await postGraphql(
         request,
         /* GraphQL */ `
-          mutation UpdateOtherTodo($id: ID!) {
-            todoUpdate(id: $id, input: { completed: true }) { id }
-          }
-        `,
+        mutation UpdateOtherTodo($id: ID!) {
+          todoUpdate(id: $id, input: { completed: true }) { id }
+        }
+      `,
         {
           headers: { Authorization: `Bearer ${tokenB}` },
           variables: { id: createdTodoId },
@@ -489,7 +339,7 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
       expect(crossUserUpdate.response.status()).toBe(404);
       expectGraphqlError(crossUserUpdate.payload, "NOT_FOUND");
       await expect(
-        withE2ePrisma((prisma) =>
+        graphql.observe((prisma) =>
           prisma.todo.findUniqueOrThrow({
             where: { id: createdTodoId },
             select: { completed: true, userId: true },
@@ -500,10 +350,10 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
       const ownUpdate = await postGraphql(
         request,
         /* GraphQL */ `
-          mutation UpdateOwnTodo($id: ID!) {
-            todoUpdate(id: $id, input: { completed: true }) { id }
-          }
-        `,
+        mutation UpdateOwnTodo($id: ID!) {
+          todoUpdate(id: $id, input: { completed: true }) { id }
+        }
+      `,
         {
           headers: { Authorization: `Bearer ${tokenA}` },
           variables: { id: createdTodoId },
@@ -515,15 +365,14 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
       });
 
       await expect(
-        withE2ePrisma((prisma) =>
+        graphql.observe((prisma) =>
           prisma.todo.findUniqueOrThrow({
             where: { id: createdTodoId },
             select: { completed: true, userId: true },
           }),
         ),
       ).resolves.toEqual({ completed: true, userId: userA.id });
-    } finally {
-      await postGraphql(
+      const deleted = await postGraphql(
         request,
         "mutation DeleteOwnTodo($id: ID!) { todoDelete(id: $id) { id success } }",
         {
@@ -531,6 +380,15 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
           variables: { id: createdTodoId },
         },
       );
-    }
+      expect(deleted.response.status()).toBe(200);
+      expect(deleted.payload).toEqual({
+        data: { todoDelete: { id: createdTodoId, success: true } },
+      });
+      await expect(
+        graphql.observe((db) =>
+          db.todo.findUnique({ where: { id: createdTodoId } }),
+        ),
+      ).resolves.toBeNull();
+    });
   });
 });

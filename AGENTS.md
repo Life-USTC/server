@@ -37,7 +37,7 @@ docs/schemas/            Strict JSON Schemas for specification data
 docs/graphql/            Generated SDL snapshot
 docs/reference/          Structured interface reference data
 tests/unit|integration|e2e
-.github/workflows/       CI phases in bun-job.yml / db-backed-bun-job.yml
+.github/workflows/       CI jobs and shared setup actions
 ```
 
 **Do not edit:** `src/generated/prisma/`, `src/generated/prisma-node/`,
@@ -45,7 +45,8 @@ tests/unit|integration|e2e
 
 ## Local checks
 
-Needs Bun (`.bun-version`), Docker Compose, and host `psql`. Locally you can use
+Needs Bun (`.bun-version`), Docker Compose, and host PostgreSQL 16 clients
+(`psql` and `pg_dump`). Locally you can use
 one `DATABASE_URL` for development. Database-backed tests require a disposable
 database and separate app/auth/maintenance roles, prepared below. First
 Playwright run: `bunx playwright install --with-deps chromium`.
@@ -55,43 +56,73 @@ Playwright run: `bunx playwright install --with-deps chromium`.
 bun install --frozen-lockfile && bun run hooks:install
 cp .env.example .env   # once
 docker compose -f docker-compose.dev.yml up -d
-bun run app:prepare && bun run db:migrate:deploy && bunx prisma db seed
+bun run app:prepare && bun run db:migrate:deploy
+ALLOW_DATABASE_SEED=true bunx prisma db seed
 bun run dev            # http://127.0.0.1:3000
 
 # Local static, unit, type, specification, and schema checks
 bun run check
 
-# Integration (same shape as CI ci:integration), in Bash
-export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
-export ALLOW_DATABASE_SEED=true
-source tests/ci/setup-runtime-database.sh
+# Disposable test service; separate from the development database above.
+docker run --detach --rm --name life-ustc-test \
+  --env POSTGRES_DB=life_ustc_test --env POSTGRES_USER=postgres \
+  --env POSTGRES_PASSWORD=postgres --publish 127.0.0.1:55432:5432 postgres:16
+# Continue once this reports "accepting connections".
+docker exec life-ustc-test pg_isready -U postgres -d life_ustc_test
+
+export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:55432/life_ustc_test"
+export DATABASE_URL="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:55432/life_ustc_test"
+export AUTH_DATABASE_URL="postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:55432/life_ustc_test"
+export MAINTENANCE_DATABASE_URL="postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:55432/life_ustc_test"
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$DATABASE_URL"
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH="$AUTH_DATABASE_URL"
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE="$MAINTENANCE_DATABASE_URL"
+export AUTH_SECRET=e2e-dev-secret-not-for-production
+bun run app:prepare
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bunx prisma migrate deploy
+psql "$FUNCTION_OWNER_DATABASE_URL" -X --quiet --single-transaction \
+  --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
+
+# Include every role contract in a complete local integration run.
+export RLS_TEST_ENABLED=true AUTH_ROLE_TEST_ENABLED=true
+export FUNCTION_OWNER_ROLE_TEST_ENABLED=true MAINTENANCE_ROLE_TEST_ENABLED=true
 bunx vitest run --config vitest.integration.config.ts
-bun run build && bun run rest:test
 
-# Parallel integration: provisions and cleans up four isolated databases
-bun run integration:test:parallel
+# Native filters, projects and worker counts pass directly to Playwright.
+bun run build && bun run build:test-worker
+bun run rest:test
+bun run e2e:test --workers=2
 
-# E2E — resets the disposable database before each shard
-ALLOW_DATABASE_SEED=true bun run e2e:test
-# FUNCTION_OWNER_DATABASE_URL must still identify the disposable test database.
-
+# Stop this service explicitly after testing, including after interrupted runs.
+docker rm -f -v life-ustc-test
+# Stop the development service separately when finished with development.
 docker compose -f docker-compose.dev.yml down
 ```
 
-CI phases live in `.github/workflows/bun-job.yml` (static, unit, build) and
-`.github/workflows/db-backed-bun-job.yml` (database-backed tests). Uploads in
-E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
+CI jobs live directly in `.github/workflows/ci.yml`. Shared actions install Bun
+dependencies and prepare production-equivalent test database roles. The shared
+`test-build` artifact contains the application and precompiled test Worker in
+`.svelte-kit/test-worker`. Manual HTTP/browser runs build both in the order above.
+Rebuild after changing application or Worker fixture code. Cases share only the compiled code; databases,
+Worker processes and local storage remain private. Native fixtures release their
+owned resources on test completion, failure and timeout. The PostgreSQL source
+service belongs to the person running the commands and stays up until explicitly
+stopped. Force-killing a runner can bypass fixture teardown; stop only that run's
+remaining processes and remove its recorded temporary directories if necessary.
+Uploads in E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
 specifically testing object storage.
 
 ## Delivery gate
 
-Before opening a PR, run local checks and the complete CI workflow on the
-pushed branch with `gh workflow run ci.yml --ref <branch>`. Verify the run's
-head SHA and every mandatory job: static checks, unit coverage, build/client
-budget, static-loader image, RLS, all integration/REST/E2E shards, and the aggregate required-jobs gate.
-The protected check named Specification execution evidence now validates native
-job outcomes and document structure; it does not infer requirement coverage. `bun run check` alone is insufficient.
-Visual changes also require the visual suite and matched before/after evidence.
+Run local checks and the complete CI workflow on the current PR head. Pushes to
+an open PR trigger CI automatically; wait for that run instead of dispatching
+a duplicate branch run. Verify its head SHA and every mandatory job: static
+checks, unit coverage, build/client budget, static-loader image, RLS, all
+domain/method combinations, and the aggregate required-jobs gate.
+The protected check named Specification execution evidence aggregates mandatory
+native job outcomes. `Source / Checks` validates document structure separately; neither
+establishes requirement coverage. `bun run check` alone is insufficient.
+Visual changes require matched before/after evidence in the PR.
 
 After review changes, revalidate the current head. Merge only when main's
 required checks pass and review conversations are resolved; never bypass

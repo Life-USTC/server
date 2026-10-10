@@ -1,7 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { withE2ePrisma } from "./prisma";
+import type { TestPrismaClient } from "../../../shared/prisma";
 
 export type PublicationFixture = {
   canonicalUrl: string;
@@ -23,33 +22,18 @@ export type PublicationFixture = {
   markdownHash: string;
 };
 
-export function publicationFixtureObjectCommand(
-  action: "put" | "delete",
+export type PutPublicationObject = (
   key: string,
-  body?: Buffer,
-  contentType?: string,
-) {
-  execFileSync(
-    "bunx",
-    [
-      "wrangler",
-      "r2",
-      "object",
-      action,
-      `life-ustc-publications/${key}`,
-      "--local",
-      "--config",
-      process.env.E2E_WRANGLER_CONFIG ?? "wrangler.e2e.jsonc",
-      ...(process.env.E2E_PERSIST_TO
-        ? ["--persist-to", process.env.E2E_PERSIST_TO]
-        : []),
-      ...(body && contentType ? ["--pipe", "--content-type", contentType] : []),
-    ],
-    { input: body, timeout: 30_000, stdio: ["pipe", "pipe", "pipe"] },
-  );
-}
+  body: Buffer,
+  contentType: string,
+) => Promise<void>;
 
-export async function createPublicationFixture(prefix: string) {
+/** Arrange known content through explicit database and object-store adapters. */
+export async function arrangePublicationFixture(
+  db: TestPrismaClient,
+  putObject: PutPublicationObject,
+  prefix: string,
+) {
   const sourceId = `e2e-publication-${prefix}`;
   const sourceName = `E2E publication source ${prefix}`;
   const officeSourceId = `e2e-publication-office-${prefix}`;
@@ -78,20 +62,14 @@ export async function createPublicationFixture(prefix: string) {
   );
   const markdownHash = createHash("sha256").update(markdown).digest("hex");
   const markdownKey = `publications/body_markdown/sha256/${markdownHash.slice(0, 2)}/${markdownHash}`;
-  publicationFixtureObjectCommand(
-    "put",
-    markdownKey,
-    markdown,
-    "text/markdown",
-  );
-  publicationFixtureObjectCommand(
-    "put",
+  await putObject(markdownKey, markdown, "text/markdown");
+  await putObject(
     `publications/images/url-sha256/${imageId}`,
     readFileSync("public/images/icon.png"),
     "image/png",
   );
 
-  return withE2ePrisma(async (prisma) => {
+  return db.$transaction(async (prisma) => {
     const markdownObject = await prisma.publicationObject.create({
       data: {
         kind: "body_markdown",
@@ -214,29 +192,4 @@ export async function createPublicationFixture(prefix: string) {
       markdownHash,
     } satisfies PublicationFixture;
   });
-}
-
-export async function deletePublicationFixture(fixture: PublicationFixture) {
-  await withE2ePrisma(async (prisma) => {
-    await prisma.publicationSource.delete({ where: { id: fixture.sourceId } });
-    await prisma.publicationSource.delete({
-      where: { id: fixture.officeSourceId },
-    });
-    await prisma.publicationImageSource.delete({
-      where: { id: fixture.imageId },
-    });
-    await prisma.publicationObject.delete({
-      where: {
-        kind_sha256: { kind: "body_markdown", sha256: fixture.markdownHash },
-      },
-    });
-  });
-  publicationFixtureObjectCommand(
-    "delete",
-    `publications/body_markdown/sha256/${fixture.markdownHash.slice(0, 2)}/${fixture.markdownHash}`,
-  );
-  publicationFixtureObjectCommand(
-    "delete",
-    `publications/images/url-sha256/${fixture.imageId}`,
-  );
 }

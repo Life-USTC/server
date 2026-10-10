@@ -61,7 +61,7 @@ requirements:
     - The session and persisted new account retain an empty nickname, with no generated ID.
     - Exactly one account links the user to the expected provider subject, without a password credential.
     test:
-      file: tests/integration/social-login-contract.test.ts
+      file: tests/integration/social-login-providers.test.ts
       name: user.sign-in-providers
 - id: user.explicit-provider-linking
   category: authorization
@@ -75,7 +75,7 @@ requirements:
     - Explicit owner linking succeeds.
     - The second user's attempt fails and the identity remains attached only to its original owner.
     test:
-      file: tests/integration/social-login-contract.test.ts
+      file: tests/integration/social-login-provider-linking.test.ts
       name: user.explicit-provider-linking
 - id: user.passkey-server-boundary
   category: authorization
@@ -142,6 +142,43 @@ requirements:
     test:
       file: tests/e2e/src/app/welcome/contracts.test.ts
       name: user.welcome-flow-required
+- id: user.profile-field-write-boundary
+  category: authorization
+  rule: The authenticated profile update endpoint permits nickname (name) and valid ID (username) edits.
+    Administrator status (isAdmin) and provider picture history (profilePictures) are server-controlled
+    and cannot be assigned through this endpoint. A request rejected for forbidden or invalid fields
+    leaves all profile data unchanged, including otherwise valid fields supplied in the same request.
+  rationale: Showing a field in a user projection does not make it client-writable. The displayed avatar
+    field (image) is distinct from provider picture history (profilePictures); ordinary profile edits cannot grant privileges.
+  acceptance:
+    given: Two isolated users exist and one has a valid signed session.
+    when: The actual profile request handler receives self-promotion, picture-history replacement and
+      reserved-username requests, both alone and mixed with a valid nickname edit, then a valid profile update.
+    then:
+    - Each invalid request returns 400 with its field error and preserves both users' complete persisted profiles.
+    - A valid nickname and ID update returns 200 and persists the values without changing administrator status or picture history.
+    test:
+      file: tests/integration/better-auth-update-user-security.test.ts
+      name: rejects self-promotion while preserving legitimate profile updates
+- id: user.profile-update-session-owner
+  category: authorization
+  rule: Ordinary nickname and ID updates require a valid session but do not require recent authentication.
+    The session identifies the profile being updated; client-supplied id or userId fields cannot redirect
+    the update to another user. The same field-write boundary applies to recent and older valid sessions.
+  rationale: Editing display identity does not modify sign-in credentials or grant authority. Sensitive
+    credential changes remain governed by user.sensitive-account-recent-auth.
+  acceptance:
+    given: Two isolated users exist and the owner has a valid session created 30 minutes ago.
+    when: The actual profile request handler processes an anonymous edit carrying a known user's identifiers,
+      then authenticated forbidden fields, legitimate edits and an edit carrying the other user's identifiers.
+    then:
+    - The anonymous edit returns 401 and preserves both profiles.
+    - Forbidden fields and invalid usernames are rejected without partial changes.
+    - Valid edits succeed for the session owner, including when unused id and userId fields name the other user.
+    - The other user's profile remains unchanged.
+    test:
+      file: tests/integration/better-auth-update-user-security.test.ts
+      name: valid older sessions retain the same profile field and ownership boundaries
 - id: user.profile-field-labels
   category: presentation
   rule: Welcome and profile settings label the user-controlled name field 昵称 in Chinese and Nickname in English, and the username field ID in both languages. Required-field indicators may follow these labels; neither field is presented as a legal name.
@@ -239,7 +276,7 @@ requirements:
     - Missing image fields are filled from the provider without filling or changing name or username.
     - The account remains singly linked and no delegated API consent is created.
     test:
-      file: tests/integration/social-login-contract.test.ts
+      file: tests/integration/social-login-welcome-refresh.test.ts
       name: user.welcome-oauth-refresh
 - id: user.welcome-completion-resume
   category: consistency
@@ -362,13 +399,14 @@ requirements:
   rule: The database account-deletion boundary accepts only a live session owned by the subject with a creation age of at least zero and strictly less than 15 minutes. Stale, future-dated, expired, revoked and other-user sessions cannot delete the subject.
   acceptance:
     given: Isolated users have stale, future-dated, expired, revoked, other-user and fresh sessions.
-    when: The actual account deletion service invokes the production database function for each authority.
+    when: Independent cases call the actual account deletion service for each authority; separate boundary cases update and validate session age in one database statement at timestamp(3) precision.
     then:
     - Every invalid authority is denied with the subject preserved.
     - A fresh owned session deletes only its owner.
+    - At the database clock boundary, ages of -1 and 900000 milliseconds are denied; ages of 0 and 899999 milliseconds permit deletion.
     test:
       file: tests/integration/account-deletion-contract.test.ts
-      name: user.account-deletion-session-authority
+      name: user.account-deletion-session-authority deletes only the fresh session owner
 - id: user.account-deletion-last-admin
   category: authorization
   rule: Self-service administrator deletion is allowed only while another administrator remains.
@@ -392,12 +430,13 @@ requirements:
     Password and email mutation availability remains governed by the configured sign-in policy; freshness
     alone does not enable disabled endpoints. Revocation of application grants is distinct from removing a sign-in credential.
   acceptance:
-    given: An isolated account has a persisted passkey and signed cookies referencing stale, future, expired,
-      revoked and recent sessions.
+    given: An isolated account has a persisted passkey, a linked provider account and signed cookies
+      referencing stale, future, expired, revoked and recent sessions.
     when: Actual authentication HTTP endpoints process each invalid session, then a recent session renames
       the passkey.
     then:
-    - Every invalid-authority request is rejected before changing the user, passkey or linked accounts.
+    - Immediately after every invalid-authority request, the complete persisted user, passkey collection
+      and linked-account collection remain unchanged, including the existing account targeted for unlinking.
     - Missing, expired and revoked sessions return401; stale and future sessions return403 SESSION_NOT_FRESH.
     - A valid recent session successfully renames the persisted passkey.
     test:
@@ -434,7 +473,7 @@ requirements:
       name: user.sign-in-identities-separate
 - id: user.oauth-authorization-management
   category: presentation
-  rule: Authorized application entries display escaped client name, client URI, granted permissions and
+  rule: Authorized application entries belong to the signed-in user and display escaped client name, client URI, granted permissions and
     content-free usage totals for the current grant over the last 30 Shanghai calendar days, plus the
     latest channel and feature. Visible content excludes client secrets, redirect URIs, session credentials,
     internal grant/client identifiers and request metadata.
@@ -442,11 +481,12 @@ requirements:
     by oauth.trusted-clients-admin-backend. These controls apply independently of a client's displayed name or domain.
   acceptance:
     given: An isolated owner's grant has an HTML-like client name, private client metadata, current usage,
-      a row on the inclusive 30-day boundary, an older row and a previous-generation row.
+      a row on the inclusive 30-day boundary, an older row and a previous-generation row. A second user has a separately named application grant.
     when: Desktop and mobile browsers render Authorized apps.
     then:
     - The client name remains escaped text and the URI is displayed.
     - Read, write and error counts include exactly the current grant's 30-day rows; latest channel and feature are labeled.
+    - The second user's authorization does not appear in the list.
     - No private metadata, credential, redirect URI or internal grant/client identifier appears in visible page content.
     test:
       file: tests/e2e/src/app/account-policy/authorization-presentation.test.ts
@@ -479,7 +519,7 @@ requirements:
     - Pagination follows descending event IDs across the equal-timestamp cursor boundary; forged query identities cannot change ownership.
     - The REST client-specific view rejects a cookie session.
     test:
-      file: tests/integration/account-profile-contract.test.ts
+      file: tests/integration/account-client-activity-isolation.test.ts
       name: user.oauth-client-activity-isolation
 - id: user.account-profile-oauth-projection
   category: privacy
@@ -493,7 +533,7 @@ requirements:
     - OAuth projections always hide admin status and expose email only with its scope.
     - A caller-supplied userId cannot replace the authenticated profile owner.
     test:
-      file: tests/integration/account-profile-contract.test.ts
+      file: tests/integration/account-profile-oauth-projection.test.ts
       name: user.account-profile-oauth-projection
 - id: user.public-comment-contribution-privacy
   category: privacy

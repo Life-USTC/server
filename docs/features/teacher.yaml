@@ -56,7 +56,7 @@ requirements:
     - Cookie and Accept-Language do not change the same URL response or its public cache policy.
     - Different pages and supported filters return the correct isolated records and totals.
     test:
-      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      file: tests/integration/rest/catalog/public-lists.test.ts
       name: teacher.public-list-cache
 - id: teacher.mobile-detail-hierarchy
   category: presentation
@@ -153,7 +153,7 @@ requirements:
     - The new committed revision refreshes API and page data and makes the previously missing identity
       readable.
     test:
-      file: tests/integration/catalog-public-read-contracts.test.ts
+      file: tests/integration/teacher-public-detail-cache.test.ts
       name: teacher.public-detail-cache
 - id: teacher.history-page-default
   category: behavior

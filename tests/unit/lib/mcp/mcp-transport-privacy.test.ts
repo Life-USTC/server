@@ -48,6 +48,7 @@ vi.mock(
   () => ({
     WebStandardStreamableHTTPServerTransport: class {
       handleRequest = handleRequest;
+      send = vi.fn(async () => undefined);
     },
   }),
 );

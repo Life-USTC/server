@@ -26,27 +26,19 @@ it("graphql.schema-change-review", { timeout: 30_000 }, async () => {
     expect.arrayContaining(["labeled", "unlabeled", "synchronize"]),
   );
   const steps = workflow.jobs["breaking-changes"].steps;
-  const snapshot = steps.find(
-    (step) => step.name === "Verify canonical GraphQL schema snapshot",
-  );
-  const gate = steps.find(
-    (step) => step.name === "Block unapproved breaking changes",
-  );
-  expect(snapshot?.if).toBeUndefined();
-  expect(snapshot?.run).toBe(
+  const checks = steps.filter((step) => step.run?.includes("bunx vitest"));
+  expect(checks).toHaveLength(1);
+  const [check] = checks;
+  expect(check.if).toBeUndefined();
+  expect(check.run).toBe(
     "bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts",
   );
-  expect(snapshot?.env).toEqual({
-    GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true",
-  });
-  expect(gate?.if).toBe(
-    "$" +
-      "{{ !contains(github.event.pull_request.labels.*.name, 'graphql-breaking-approved') }}",
-  );
-  expect(gate?.env).toEqual({
+  expect(check.env).toEqual({
     GRAPHQL_SCHEMA_BASE_REF: "origin/$" + "{{ github.base_ref }}",
+    GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY:
+      "$" +
+      "{{ contains(github.event.pull_request.labels.*.name, 'graphql-breaking-approved') }}",
   });
-  expect(gate?.run).toContain('-t "does not break the configured base schema"');
 
   // Execute the actual snapshot/gate test against isolated Git base fixtures.
   const fixture = mkdtempSync(join(tmpdir(), "graphql-review-fixture-"));

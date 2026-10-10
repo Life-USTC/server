@@ -17,7 +17,7 @@ requirements:
       and comments in the main reading column.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.layout-principles-1
+      name: ui.layout-principles-1 Course
 - id: ui.layout-principles-2
   category: presentation
   topic: layout-principles
@@ -32,7 +32,7 @@ requirements:
       sidebar.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.layout-principles-2
+      name: ui.layout-principles-2 Course
 - id: ui.layout-principles-3
   category: presentation
   topic: layout-principles
@@ -51,7 +51,7 @@ requirements:
     - Desktop places identity and remaining facts to the right of the reading stream.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.layout-principles-3
+      name: ui.layout-principles-3 Course
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
@@ -88,6 +88,9 @@ requirements:
     when: Each actual detail overlay opens at 1280, 390 and 320 pixels, and the user scrolls to its reading end and discussion where available.
     then:
     - Due date, relative urgency, facts and reading content have one column in the required order, followed by homework discussion.
+    - Within each deadline summary, the due datetime has no smaller computed font size or lighter weight than
+      its relative urgency text. The two differ in size, weight or text color; urgency colors may convey
+      status without making the relative label larger or heavier than the due datetime.
     - Exactly one content viewport scrolls; the title remains visible at the same position while the reading content moves.
     - Bottom actions remain visible, enabled and keyboard-focusable without horizontal overflow.
     test:
@@ -105,7 +108,7 @@ requirements:
     - The shared page frame contains its heading and panel; visible filters precede the result summary and records, and pagination follows in the panel footer.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
-      name: ui.list-table-1
+      name: ui.list-table-1 Course
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
@@ -130,7 +133,7 @@ requirements:
     - Headings precede applicable filters and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
     test:
       file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
-      name: ui.embedded-collection-order
+      name: ui.embedded-collection-order Course
 - id: ui.list-table-2
   category: presentation
   topic: list-table
@@ -160,7 +163,7 @@ requirements:
     - Apply is visible and Close dismisses the sheet.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
-      name: ui.list-table-3
+      name: ui.list-table-3 Course
 - id: ui.list-table-4
   category: presentation
   topic: list-table
@@ -174,7 +177,7 @@ requirements:
     - Dismissing without Apply preserves both the exact URL and rendered results.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
-      name: ui.list-table-4
+      name: ui.list-table-4 Course
 - id: ui.list-table-5
   category: presentation
   topic: list-table
@@ -188,7 +191,7 @@ requirements:
     - Primary search changes preserve every applied advanced filter and still show the matching result.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
-      name: ui.list-table-5
+      name: ui.list-table-5 Course
 - id: ui.list-table-6
   category: presentation
   topic: list-table
@@ -202,7 +205,7 @@ requirements:
     - Bus rows retain every stop column, matching the desktop headers, and their final column remains reachable within the local table region.
     test:
       file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
-      name: ui.list-table-6
+      name: ui.list-table-6 Course
 - id: ui.other-browse-responsive-lists
   category: presentation
   topic: list-table
@@ -226,7 +229,7 @@ requirements:
     - Twenty compact records remain rendered and fit within the viewport; the document has no horizontal overflow and the active pagination page remains identified.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
-      name: ui.public-browse-responsive-lists
+      name: ui.public-browse-responsive-lists Course
 - id: ui.list-table-7
   category: presentation
   topic: list-table
@@ -310,7 +313,7 @@ requirements:
     - None of those code labels is rendered inside a badge.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
-      name: ui.data-table-cells-3
+      name: ui.data-table-cells-3 Course
 - id: ui.catalog-table-column-alignment
   category: presentation
   topic: data-table-cells
@@ -322,7 +325,7 @@ requirements:
     - Text headers and values share a left edge, and each numeric header and value shares a right edge.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.catalog-table-column-alignment
+      name: ui.catalog-table-column-alignment Course
 - id: ui.data-table-cells-4
   category: presentation
   topic: data-table-cells
@@ -336,7 +339,7 @@ requirements:
     - Bus stop headers and their times align left at the origin, center at intermediate stops and right at the destination.
     test:
       file: tests/e2e/src/app/shared-policy/remaining-table-alignment.test.ts
-      name: ui.data-table-cells-4
+      name: ui.data-table-cells-4 Schedule
 - id: ui.numeric-measure-table-alignment
   category: presentation
   topic: data-table-cells
@@ -361,7 +364,7 @@ requirements:
     - Blank placeholders are empty and aria-hidden; meaningful No ID and Unknown labels remain exposed.
     test:
       file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
-      name: ui.data-table-cells-5
+      name: ui.data-table-cells-5 Teacher
 - id: ui.data-table-cells-6
   category: presentation
   topic: data-table-cells
@@ -389,7 +392,7 @@ requirements:
       without requiring browser history.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.detail-hero-2
+      name: ui.detail-hero-2 Course
 - id: ui.detail-hero-3
   category: presentation
   topic: detail-hero
@@ -402,7 +405,7 @@ requirements:
     - h1 uses the primary display name of the current object, not an internal ID.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.detail-hero-3
+      name: ui.detail-hero-3 Course
 - id: ui.detail-hero-4
   category: presentation
   topic: detail-hero
@@ -419,7 +422,7 @@ requirements:
     - Hero content never substitutes the database row ID or JW ID for the public display identity.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.detail-hero-4
+      name: ui.detail-hero-4 Course
 - id: ui.detail-hero-5
   category: presentation
   topic: detail-hero
@@ -446,7 +449,7 @@ requirements:
     - Every applicable section remains visible in the same ordered stream without changing the entity URL; in-page links do not use detail-tab queries or detail subroutes.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.detail-two-column-stream-1
+      name: ui.detail-two-column-stream-1 Course
 - id: ui.detail-two-column-stream-2
   category: presentation
   topic: detail-two-column-stream
@@ -493,7 +496,7 @@ requirements:
     - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.detail-two-column-stream-3
+      name: ui.detail-two-column-stream-3 Course
   applies_to:
   - detail-two-column-stream
 - id: ui.detail-two-column-stream-4
@@ -513,7 +516,7 @@ requirements:
     - Course and teacher pages expose applicable facts and section links without presenting section subscription or calendar actions before selection.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-detail-facts.test.ts
-      name: ui.detail-two-column-stream-4
+      name: ui.detail-two-column-stream-4 Section
 - id: ui.detail-two-column-stream-6
   category: presentation
   topic: detail-two-column-stream
@@ -545,7 +548,7 @@ requirements:
     - The existing page or detail scroll container moves to the discussion target and brings it into the viewport.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.detail-two-column-stream-7
+      name: ui.detail-two-column-stream-7 Course
 - id: ui.model-property-priority-community-views
   category: presentation
   topic: model-property-priority
@@ -559,6 +562,9 @@ requirements:
     then:
     - Every declared primary field is visible in its identifying content, input or version title;
       before-and-after history content remains equally readable and upload state stays task-critical.
+    - Within one description revision, before-and-after bodies and their diff segments share the same
+      computed base font size and line height. Added and removed segment colors may differ; the responsive
+      side-by-side or stacked arrangement does not impose a vertical order between the two bodies.
     - Secondary metadata remains visible and subordinate to its local identity, including rendered image
       previews, storage usage, attribution, timestamps and profile statistics.
     - Public comment text omits its raw moderation state and private badge; ordinary views omit internal
@@ -567,7 +573,7 @@ requirements:
       returns the fixture bytes; rejected rename feedback retains the filename without changing the record.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-community.test.ts
-      name: ui.model-property-priority-community-views
+      name: "ui.model-property-priority-community-views en-us/1280"
 - id: ui.model-property-priority-admin-views
   category: presentation
   topic: model-property-priority
@@ -587,7 +593,7 @@ requirements:
       derived description edit display uses lastEditedAt or updatedAt only when lastEditedAt is absent.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-admin.test.ts
-      name: ui.model-property-priority-admin-views
+      name: "ui.model-property-priority-admin-views en-us/1280"
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority
@@ -626,7 +632,7 @@ requirements:
     - Locale-specific secondary names are either rendered in English views or explicitly absent in Chinese views.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-catalog.test.ts
-      name: ui.model-property-priority-catalog-views
+      name: "ui.model-property-priority-catalog-views zh-cn/1280 Course"
 - id: ui.model-property-priority-account-views
   category: presentation
   topic: model-property-priority
@@ -647,7 +653,7 @@ requirements:
       and internal record identifiers do not appear as ordinary identifying content.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-account.test.ts
-      name: ui.model-property-priority-account-views
+      name: "ui.model-property-priority-account-views en-us/1280"
 - id: ui.model-property-priority-discovery-views
   category: presentation
   topic: model-property-priority
@@ -667,7 +673,7 @@ requirements:
       identifiers are absent from ordinary display content.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-discovery.test.ts
-      name: ui.model-property-priority-discovery-views
+      name: "ui.model-property-priority-discovery-views zh-cn/1280"
 - id: ui.model-property-priority-workspace-views
   category: presentation
   topic: model-property-priority
@@ -689,7 +695,7 @@ requirements:
       identifiers and raw numeric enums are absent from ordinary text and visible form values.
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-workspace.test.ts
-      name: ui.model-property-priority-workspace-views
+      name: "workspace presentation calendar en-us/390"
 - id: ui.basic-info-card-2
   category: presentation
   topic: basic-info-card
@@ -951,17 +957,17 @@ requirements:
     results, and completing the last pending task. Only an explicit selection or clear action changes the applied
     filter.
   acceptance:
-    given: An isolated signed-in user has completed task records and, in a second case, one pending record,
-      on each homework, todo, and exam page at desktop and mobile widths.
+    given: Independent completed-only and pending scenarios each visit homework, todo, and exam pages at desktop
+      and mobile widths, with completed records and either no pending record or one pending record.
     when: The user repeatedly clicks and keyboard-activates filters while offline; after reconnecting, the user
-      completes the last pending record and clears the resulting filter-empty state.
+      completes the last pending homework or todo and clears the resulting filter-empty state.
     then:
     - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
       results, and completing the last pending task. Only an explicit selection or clear action changes the
       applied filter.
     test:
       file: tests/e2e/src/app/workspace/task-filters.test.ts
-      name: ui.workspace-filters-and-empty-states-1
+      name: ui.workspace-filters-and-empty-states-1 (desktop, pending)
 - id: ui.workspace-filters-and-empty-states-2
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -977,7 +983,7 @@ requirements:
       visual and accessible state without waiting for the results request to finish.
     test:
       file: tests/e2e/src/app/workspace/task-filter-readiness.test.ts
-      name: ui.workspace-filters-and-empty-states-2
+      name: ui.workspace-filters-and-empty-states-2 (homeworks)
 - id: ui.workspace-filters-and-empty-states-3
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -1020,7 +1026,7 @@ requirements:
     - Setup actions reach the public section/course pages, and the authorized todo action creates the first task in the database and displays it.
     test:
       file: tests/e2e/src/app/shared-policy/setup-empty.test.ts
-      name: ui.workspace-filters-and-empty-states-6
+      name: "ui.workspace-filters-and-empty-states-6 en-us/1280"
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
@@ -1138,40 +1144,40 @@ requirements:
   topic: workspace-page-identity
   rule: Every signed-in workspace branch exposes exactly one localized level-one heading.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
       and reads each level-one heading.
     then:
     - Every signed-in workspace branch exposes exactly one localized level-one heading.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-1
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-2
   category: presentation
   topic: workspace-page-identity
   rule: The main content landmark uses the same localized branch label.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
       and reads the accessible name of each main landmark.
     then:
     - The main content landmark uses the same localized branch label.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-2
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-3
   category: presentation
   topic: workspace-page-identity
   rule: The document title identifies the active branch before the Life@USTC suffix.
   acceptance:
-    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    given: Independent users with private databases and Workers use Chinese at 1280 pixels and English at 390 pixels.
     when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and reads
       each document title.
     then:
     - The document title identifies the active branch before the Life@USTC suffix.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
-      name: ui.workspace-page-identity-3
+      name: "workspace branch identities zh-cn/1280"
 - id: ui.workspace-page-identity-4
   category: presentation
   topic: workspace-page-identity
@@ -1250,7 +1256,7 @@ requirements:
     - Authored description content is present in page data but never copied into social descriptions or titles.
     test:
       file: tests/e2e/src/app/courses/social-metadata.test.ts
-      name: ui.social-sharing-metadata-3
+      name: ui.social-sharing-metadata-3 Course
 - id: ui.social-sharing-metadata-4
   category: presentation
   topic: social-sharing-metadata
@@ -1291,22 +1297,99 @@ requirements:
     test:
       file: tests/e2e/src/app/courses/social-metadata.test.ts
       name: ui.social-sharing-metadata-6
-- id: ui.localized-count-copy-1
+- id: ui.young-count-copy
   category: presentation
   topic: localized-count-copy
-  rule: Outside catalog result summaries and profile contribution-day labels, user-visible English count copy distinguishes singular from plural forms; Chinese may share one count template when its grammar does not change.
-  rationale: Catalog result summaries and profile contribution-day labels have the independent owners ui.catalog-count-copy and ui.profile-count-copy. Count-neutral labels need no invented singular variant, and zero-count notices/results may be absent where their component only renders nonempty records.
+  rule: Activity and organizer summaries and digest notices report actual counts with singular/plural English
+    grammar. Chinese and count-neutral labels may keep unchanged templates; nonempty-only notices may be absent at zero.
+  rationale: The linked count=1 case represents this domain; count=0 and count=2 cases complete the matrix, each in both languages.
   acceptance:
-    given: Isolated database fixtures provide zero, one and two activities, organizers, publications, sources, private comments, administrative records, importable sections and account security events.
-    when: English and Chinese browsers open the activity list/calendar/organizer history/directory, news and source directory, course comments, administrative users/OAuth/descriptions, activity digests, account security, subscription search/import and welcome import; publication folding and subscription selection are changed through reachable states.
+    given: Independent fixtures provide zero, one and two matching activities, organizers and notifications.
+    when: English and Chinese browsers open the activity list, day calendar, organizer history/directory and authenticated notifications.
     then:
-    - Visible summaries, digest/hidden-comment notices, folded sibling badges, search legends and import headings/actions use the actual count and natural singular/plural grammar.
-    - Source and publication totals choose their grammar independently, including sources with no publications; empty-only branches omit inapplicable count notices.
-    - Selecting zero sections updates the confirmation title, accessible legend and disabled action; importing one or two sections renders the correct success message and included-section summary in workspace and welcome.
-    - Security repetition badges appear only for groups larger than one and report their actual repeated count.
+    - Summaries report actual shown/total counts and digests report the actual activity count with natural localized grammar.
+    - Notification rows match the prepared count; an empty notification list requires no digest notice.
     test:
-      file: tests/e2e/src/app/shared-policy/remaining-count-copy.test.ts
-      name: ui.localized-count-copy-1
+      file: tests/e2e/src/app/young-events/count-copy.test.ts
+      name: young.localized-count-copy count=1
+- id: ui.news-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: News results, source totals/groups and folded sibling badges report actual counts with independent
+    singular/plural English grammar for each noun. Chinese and count-neutral labels may keep unchanged
+    templates; nonempty-only notices may be absent at zero.
+  rationale: The linked count=1 case represents this domain; count=0 and count=2 cases complete the matrix, each in both languages.
+  acceptance:
+    given: Independent fixtures provide zero, one and two sources/publications, folded siblings and sources with no publications.
+    when: English and Chinese browsers open news and source directories, fold publications and revisit changed publication totals.
+    then:
+    - Result and sibling badges use actual counts; source and publication totals choose grammar independently, including zero publications.
+    - Source group labels retain correct localized counts; an empty source directory omits its inapplicable summary.
+    test:
+      file: tests/e2e/src/app/news/count-copy.test.ts
+      name: news.localized-count-copy count=1
+- id: ui.account-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Hidden-comment notices, administrative user/client/description counts and security repetition badges
+    use actual counts and singular/plural English grammar. Chinese and count-neutral labels may keep unchanged
+    templates; nonempty-only notices may be absent at zero. Repetition badges appear only for groups larger than one.
+  rationale: The linked count=1 case is representative; count=0 and count=2 cases include empty and repeated-event branches, each in both languages.
+  acceptance:
+    given: Independent fixtures provide zero, one and two private comments, administrative records and security events.
+    when: English and Chinese anonymous browsers open course comments, then the administrator opens security, users, OAuth clients and description moderation.
+    then:
+    - Hidden-comment notices use correct counts and localized noun/verb/pronoun agreement; zero hidden comments produce no notice.
+    - Administrative summaries use actual counts and natural grammar; repetition badges are absent at zero/one and report the actual repeated count otherwise.
+    test:
+      file: tests/e2e/src/app/account-policy/count-copy.test.ts
+      name: account.localized-count-copy count=1
+- id: ui.subscription-search-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Subscription search legends report actual matching-section counts with singular/plural English
+    grammar. Chinese and count-neutral labels may keep unchanged templates; zero results may omit a nonempty-only legend.
+  rationale: The linked count=1 case is representative; count=0 and count=2 cases complete the matrix, each in both languages.
+  acceptance:
+    given: Independent fixtures provide zero, one and two sections matching a semester and course code.
+    when: English and Chinese users open Add Subscription, select the semester, search by code and cancel.
+    then:
+    - Nonempty search legends use actual counts and natural localized grammar; zero results show the localized no-sections-found state.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/search-count-copy.test.ts
+      name: subscriptions.search-count-copy count=1
+- id: ui.subscription-bulk-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Bulk import headings, accessible legends, actions, success messages and included-section summaries
+    use actual counts and singular/plural English grammar. Chinese and count-neutral labels may keep unchanged
+    templates. Zero selection updates count copy and disables the subscription action.
+  rationale: The linked English count=1 case is representative; count=2 and Chinese cases complete the import matrix, and every case checks zero selection.
+  acceptance:
+    given: Each English or Chinese operation independently owns an account and one or two unsubscribed sections.
+    when: The user matches codes, changes confirmation selection from all to zero and back, then imports.
+    then:
+    - Title, accessible legend and action use the selected count and natural grammar; zero selection disables the action and positive selection enables it.
+    - Importing one or two sections renders the correct localized success message and included-section summary in the workspace.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/bulk-count-copy.test.ts
+      name: subscriptions.bulk-count-copy en-us count=1
+- id: ui.welcome-import-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Welcome import success messages and included-section summaries use actual counts and singular/plural
+    English grammar. Chinese and count-neutral labels may keep unchanged templates; nonempty-only notices may be absent at zero.
+  rationale: The linked English count=1 success-notice case is representative; count=2 and Chinese cases complete that matrix.
+    The included-section summary obligation is currently unmet by both the implementation and its tests;
+    the pointer represents only the success notice.
+  acceptance:
+    given: Each English or Chinese welcome import independently owns an account and one or two unsubscribed sections.
+    when: The user selects a semester, matches codes and imports results on the welcome subscriptions step.
+    then:
+    - Importing one or two sections renders the correct localized success message and included-section summary in welcome, with the actual added count and natural grammar.
+    test:
+      file: tests/e2e/src/app/welcome/import-count-copy.test.ts
+      name: welcome.import-count-copy en-us count=1
 - id: ui.catalog-count-copy
   category: presentation
   topic: localized-count-copy
@@ -1318,7 +1401,7 @@ requirements:
     - The rendered summary reports the actual shown and total counts with correct singular, plural or Chinese classifier wording.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
-      name: ui.catalog-count-copy
+      name: ui.catalog-count-copy Course
 - id: ui.profile-count-copy
   category: presentation
   topic: localized-count-copy
@@ -1384,7 +1467,7 @@ requirements:
     - The first focusable shell control is a localized skip link that moves keyboard focus to main content.
     test:
       file: tests/e2e/src/app/test.ts
-      name: ui.navigation-landmarks-4
+      name: anonymous landing and keyboard access
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
@@ -1403,14 +1486,19 @@ requirements:
   category: presentation
   topic: navigation-landmarks
   rule: Public notices and private activity reminders are separate navigation destinations. A user's reminder
-    badge counts only unread, unexpired notifications belonging to that user.
+    badge counts only unread, unexpired notifications belonging to that user. Marking a notice read refreshes
+    the page only after consuming a valid JSON acknowledgement with the requested ID and success true;
+    HTTP failure or an invalid acknowledgement shows a localized error and allows retry.
   acceptance:
     given: Two isolated users, with and without academic subscriptions, have different unread, read and expired activity notices.
     when: Each signed-in browser opens desktop/mobile navigation, visits activity reminders and marks one owned notice read.
+      Localized reminder flows also encounter failed or invalid acknowledgements before retrying the action.
     then:
     - Public News & Notices and Activity reminders have distinct links; only private reminders display the exact owner count.
     - Reminder lists exclude expired and foreign-owner notices while retaining the owner's read history.
-    - Marking a notice read updates the badge and removes the badge at zero.
+    - A complete acknowledgement for the requested notice updates the badge and removes the badge at zero.
+    - HTTP failure, malformed JSON, a different notice ID or success false leaves the current reminder visible,
+      shows a fresh localized error and re-enables the action; a subsequent confirmed write updates the read state.
     test:
       file: tests/e2e/src/app/shared-policy/navigation-context.test.ts
       name: ui.navigation-landmarks-6
@@ -1441,7 +1529,7 @@ requirements:
     - Links change only page or sectionsPage while preserving the collection query; second-page records are disjoint, and history restores the exact records and active-page state for both pages.
     test:
       file: tests/e2e/src/app/shared-policy/other-collection-pagination.test.ts
-      name: ui.list-pagination-filter-state
+      name: ui.list-pagination-filter-state Course
 - id: ui.public-browse-pagination-state
   category: presentation
   topic: list-table
@@ -1453,7 +1541,7 @@ requirements:
     - Every link preserves the applied query apart from page; the two pages show disjoint records and browser history restores each page's query, records and active page marker.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
-      name: ui.public-browse-pagination-state
+      name: ui.public-browse-pagination-state Course
 - id: ui.theme-system-response
   category: presentation
   topic: shell-layout
@@ -1595,6 +1683,15 @@ topics:
   title: Social Sharing Metadata
 - id: localized-count-copy
   title: Localized Count Copy
+  requirement_refs:
+  - ui.young-count-copy
+  - ui.news-count-copy
+  - ui.account-count-copy
+  - ui.subscription-search-count-copy
+  - ui.subscription-bulk-count-copy
+  - ui.welcome-import-count-copy
+  - ui.catalog-count-copy
+  - ui.profile-count-copy
 - id: navigation-landmarks
   title: Navigation Landmarks
 rationale:

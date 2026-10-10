@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { semanticContract } from "../../../shared/specifications/semantic-contract";
-import { todoExpectation } from "../../../shared/specifications/todo";
 
-const requireAuthMock = vi.fn();
-const updateOwnedTodoMock = vi.fn();
-const deleteOwnedTodoMock = vi.fn();
+const { requireAuthMock, updateOwnedTodoMock, deleteOwnedTodoMock } =
+  vi.hoisted(() => ({
+    requireAuthMock: vi.fn(),
+    updateOwnedTodoMock: vi.fn(),
+    deleteOwnedTodoMock: vi.fn(),
+  }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
@@ -14,6 +15,11 @@ vi.mock("@/features/todos/server/todo-service", () => ({
   updateOwnedTodo: updateOwnedTodoMock,
   deleteOwnedTodo: deleteOwnedTodoMock,
 }));
+
+import {
+  deleteTodoBatchRoute,
+  patchTodoBatchRoute,
+} from "@/lib/api/routes/todo-batch-route";
 
 function patchRequest(body: unknown) {
   return new Request("https://example.test/api/workspace/todos/batch", {
@@ -47,79 +53,50 @@ const sampleTodo = {
 };
 
 describe("patchTodoBatchRoute", () => {
-  it("todo.rest-batch-patch-bounds", async (context) => {
-    const contract = await semanticContract(
-      context.task.name,
-      "collection_input",
-    );
-    contract.equal("/surface", "rest");
-    contract.equal("/input", "items");
-    contract.equal("/operation", "PATCH /api/workspace/todos/batch");
-    const rule = await todoExpectation(
-      "todo.rest-batch-patch-bounds",
-      "collection_input",
-    );
-    expect(rule.surface).toBe("rest");
-    expect(rule.operation).toBe("PATCH /api/workspace/todos/batch");
+  it.each([1, 100])("accepts %s unique items", async (count) => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     updateOwnedTodoMock.mockResolvedValue({ ok: true, todo: sampleTodo });
-    const { patchTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
+    const ids = Array.from({ length: count }, (_, index) => `todo-${index}`);
+    const response = await patchTodoBatchRoute(
+      patchRequest({
+        items: ids.map((todoId) => ({ todoId, completed: true })),
+      }),
     );
-    const [method, path] = rule.operation.split(" ");
-    const send = (ids: string[]) =>
-      patchTodoBatchRoute(
-        new Request(`https://example.test${path}`, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            [rule.input]: ids.map((todoId) => ({ todoId, completed: true })),
-          }),
-        }),
-      );
-    for (const count of [rule.min_items, rule.max_items]) {
-      updateOwnedTodoMock.mockClear();
-      const response = await send(
-        Array.from({ length: count }, (_, i) => `todo-${i}`),
-      );
-      expect(response.status).toBe(200);
-      expect((await response.json()).results).toHaveLength(count);
-      expect(updateOwnedTodoMock).toHaveBeenCalledTimes(count);
-      contract.equal(
-        count === rule.min_items ? "/min_items" : "/max_items",
-        updateOwnedTodoMock.mock.calls.length,
-      );
-    }
-    for (const count of [rule.min_items - 1, rule.max_items + 1]) {
-      updateOwnedTodoMock.mockClear();
-      expect(
-        (await send(Array.from({ length: count }, (_, i) => `todo-${i}`)))
-          .status,
-      ).toBe(400);
-      expect(updateOwnedTodoMock).not.toHaveBeenCalled();
-    }
-    updateOwnedTodoMock.mockClear();
-    const duplicateResponse = await send(["todo-duplicate", "todo-duplicate"]);
-    expect(duplicateResponse.status).toBe(rule.unique_items ? 400 : 200);
-    expect(updateOwnedTodoMock).toHaveBeenCalledTimes(
-      rule.unique_items ? 0 : 2,
+    expect(response.status).toBe(200);
+    expect((await response.json()).results).toHaveLength(count);
+    expect(updateOwnedTodoMock).toHaveBeenCalledTimes(count);
+  });
+
+  it.each([
+    {
+      name: "more than 100 targets",
+      ids: Array.from({ length: 101 }, (_, index) => `todo-${index}`),
+    },
+    { name: "duplicate targets", ids: ["todo-duplicate", "todo-duplicate"] },
+    {
+      name: "duplicate normalized targets",
+      ids: ["todo-duplicate", " todo-duplicate "],
+    },
+  ])("rejects $name before any mutation", async ({ ids }) => {
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    const response = await patchTodoBatchRoute(
+      patchRequest({
+        items: ids.map((todoId) => ({ todoId, completed: true })),
+      }),
     );
-    contract.equal("/unique_items", duplicateResponse.status === 400);
-    contract.recordVitest(context);
+    expect(response.status).toBe(400);
+    expect(updateOwnedTodoMock).not.toHaveBeenCalled();
+    expect(deleteOwnedTodoMock).not.toHaveBeenCalled();
   });
 
   afterEach(() => {
     requireAuthMock.mockReset();
     updateOwnedTodoMock.mockReset();
     deleteOwnedTodoMock.mockReset();
-    vi.resetModules();
   });
 
   it("在解析 JSON 请求体之前先认证", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
-    const { patchTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
 
     const response = await patchTodoBatchRoute(
       patchRequest({ items: [{ todoId: "todo-1", completed: true }] }),
@@ -138,10 +115,6 @@ describe("patchTodoBatchRoute", () => {
         ok: true,
         todo: { ...sampleTodo, id: "todo-2", completed: false },
       });
-
-    const { patchTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
 
     const response = await patchTodoBatchRoute(
       patchRequest({
@@ -196,10 +169,6 @@ describe("patchTodoBatchRoute", () => {
       .mockResolvedValueOnce({ ok: false, error: "not_found" })
       .mockResolvedValueOnce({ ok: false, error: "forbidden" });
 
-    const { patchTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
-
     const response = await patchTodoBatchRoute(
       patchRequest({
         items: [
@@ -237,10 +206,6 @@ describe("patchTodoBatchRoute", () => {
   it("拒绝无效批量 payload", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
 
-    const { patchTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
-
     const response = await patchTodoBatchRoute(
       patchRequest({ items: [{ todoId: "", completed: true }] }),
     );
@@ -254,10 +219,6 @@ describe("patchTodoBatchRoute", () => {
   it("要求至少一个 item", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
 
-    const { patchTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
-
     const response = await patchTodoBatchRoute(patchRequest({ items: [] }));
 
     expect(response.status).toBe(400);
@@ -267,76 +228,41 @@ describe("patchTodoBatchRoute", () => {
 });
 
 describe("deleteTodoBatchRoute", () => {
-  it("todo.rest-batch-delete-bounds", async (context) => {
-    const contract = await semanticContract(
-      context.task.name,
-      "collection_input",
-    );
-    contract.equal("/surface", "rest");
-    contract.equal("/input", "ids");
-    contract.equal("/operation", "DELETE /api/workspace/todos/batch");
-    const rule = await todoExpectation(
-      "todo.rest-batch-delete-bounds",
-      "collection_input",
-    );
-    expect(rule.surface).toBe("rest");
-    expect(rule.operation).toBe("DELETE /api/workspace/todos/batch");
+  it.each([1, 100])("accepts %s unique items", async (count) => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     deleteOwnedTodoMock.mockResolvedValue({ ok: true });
-    const { deleteTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
-    const [method, path] = rule.operation.split(" ");
-    const send = (ids: string[]) =>
-      deleteTodoBatchRoute(
-        new Request(`https://example.test${path}`, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ [rule.input]: ids }),
-        }),
-      );
-    for (const count of [rule.min_items, rule.max_items]) {
-      deleteOwnedTodoMock.mockClear();
-      const response = await send(
-        Array.from({ length: count }, (_, i) => `todo-${i}`),
-      );
-      expect(response.status).toBe(200);
-      expect((await response.json()).results).toHaveLength(count);
-      expect(deleteOwnedTodoMock).toHaveBeenCalledTimes(count);
-      contract.equal(
-        count === rule.min_items ? "/min_items" : "/max_items",
-        deleteOwnedTodoMock.mock.calls.length,
-      );
-    }
-    for (const count of [rule.min_items - 1, rule.max_items + 1]) {
-      deleteOwnedTodoMock.mockClear();
-      expect(
-        (await send(Array.from({ length: count }, (_, i) => `todo-${i}`)))
-          .status,
-      ).toBe(400);
-      expect(deleteOwnedTodoMock).not.toHaveBeenCalled();
-    }
-    deleteOwnedTodoMock.mockClear();
-    const duplicateResponse = await send(["todo-duplicate", "todo-duplicate"]);
-    expect(duplicateResponse.status).toBe(rule.unique_items ? 400 : 200);
-    expect(deleteOwnedTodoMock).toHaveBeenCalledTimes(
-      rule.unique_items ? 0 : 2,
-    );
-    contract.equal("/unique_items", duplicateResponse.status === 400);
-    contract.recordVitest(context);
+    const ids = Array.from({ length: count }, (_, index) => `todo-${index}`);
+    const response = await deleteTodoBatchRoute(deleteRequest({ ids }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).results).toHaveLength(count);
+    expect(deleteOwnedTodoMock).toHaveBeenCalledTimes(count);
+  });
+
+  it.each([
+    {
+      name: "more than 100 targets",
+      ids: Array.from({ length: 101 }, (_, index) => `todo-${index}`),
+    },
+    { name: "duplicate targets", ids: ["todo-duplicate", "todo-duplicate"] },
+    {
+      name: "duplicate normalized targets",
+      ids: ["todo-duplicate", " todo-duplicate "],
+    },
+  ])("rejects $name before any mutation", async ({ ids }) => {
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    const response = await deleteTodoBatchRoute(deleteRequest({ ids }));
+    expect(response.status).toBe(400);
+    expect(updateOwnedTodoMock).not.toHaveBeenCalled();
+    expect(deleteOwnedTodoMock).not.toHaveBeenCalled();
   });
 
   afterEach(() => {
     requireAuthMock.mockReset();
     deleteOwnedTodoMock.mockReset();
-    vi.resetModules();
   });
 
   it("在解析 JSON 请求体之前先认证", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
-    const { deleteTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
 
     const response = await deleteTodoBatchRoute(
       deleteRequest({ ids: ["todo-1"] }),
@@ -352,10 +278,6 @@ describe("deleteTodoBatchRoute", () => {
     deleteOwnedTodoMock
       .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({ ok: true });
-
-    const { deleteTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
 
     const response = await deleteTodoBatchRoute(
       deleteRequest({ ids: ["todo-1", "todo-2"] }),
@@ -377,10 +299,6 @@ describe("deleteTodoBatchRoute", () => {
       .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({ ok: false, error: "not_found" })
       .mockResolvedValueOnce({ ok: false, error: "forbidden" });
-
-    const { deleteTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
 
     const response = await deleteTodoBatchRoute(
       deleteRequest({ ids: ["todo-1", "todo-missing", "todo-owned-by-other"] }),
@@ -406,10 +324,6 @@ describe("deleteTodoBatchRoute", () => {
   it("拒绝空 ids 数组", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
 
-    const { deleteTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
-
     const response = await deleteTodoBatchRoute(deleteRequest({ ids: [] }));
 
     expect(response.status).toBe(400);
@@ -420,10 +334,6 @@ describe("deleteTodoBatchRoute", () => {
 
   it("拒绝包含空字符串 id 的 payload", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
-
-    const { deleteTodoBatchRoute } = await import(
-      "@/lib/api/routes/todo-batch-route"
-    );
 
     const response = await deleteTodoBatchRoute(
       deleteRequest({ ids: ["todo-1", ""] }),

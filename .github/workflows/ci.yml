@@ -7,468 +7,231 @@ on:
   pull_request:
     branches: ["**"]
 
+# Keep PR checks on their pull-request ref, separate from manual branch runs.
+# New runs replace obsolete work on that ref without stopping main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  # Only jobs declaring PostgreSQL connect; builds use the same datasource URL.
+  FUNCTION_OWNER_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test
+  DATABASE_URL: postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/life_ustc_test
+  AUTH_DATABASE_URL: postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/life_ustc_test
+  MAINTENANCE_DATABASE_URL: postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/life_ustc_test
+  CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/life_ustc_test
+  CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH: postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/life_ustc_test
+  CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE: postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/life_ustc_test
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   check:
-    name: Check
-    permissions:
-      contents: read
-    uses: ./.github/workflows/bun-job.yml
-    with:
-      job-phase: ci:verify
+    name: Source / Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-bun-env
+      - name: Verify development seed guard
+        run: bash tests/ci/seed-guard.test.sh
+      - name: Generate application and database clients
+        run: bun run app:prepare
+      - name: Check Cloudflare bindings
+        run: bunx wrangler types --include-runtime=false --check
+      - name: Check formatting and lint
+        run: bunx biome check
+      - name: Validate feature specifications
+        run: bun run specs:check
+      - name: Check Svelte components
+        run: bunx svelte-check --tsconfig ./tsconfig.json
+      - name: Check TypeScript
+        run: |
+          bunx tsc --noEmit -p tsconfig.typecheck.json
+          bunx tsc --noEmit -p tsconfig.typecheck.tests.json
+      - name: Verify OpenAPI parity
+        run: bun run openapi:check
 
   test-unit:
-    name: Unit test coverage
-    permissions:
-      contents: read
-    uses: ./.github/workflows/bun-job.yml
-    with:
-      job-phase: ci:unit
-      upload-artifact-name: vitest-coverage
-      upload-artifact-path: coverage
-      upload-artifact-no-files-found: warn
-      upload-artifact-always: true
+    name: Application / Unit coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
+    steps:
+      - *checkout
+      - uses: ./.github/actions/setup-bun-env
+      - name: Generate application and database clients
+        run: bun run app:prepare
+      - name: Run unit tests and check coverage
+        run: bunx vitest run --coverage
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: vitest-coverage
+          path: coverage
+          if-no-files-found: warn
+          retention-days: 14
 
-  test-integration:
-    name: MCP Integration Test (${{ matrix.index }}/4)
+  test-plan:
+    name: Tests / Inventory
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.inventory.outputs.matrix }}
+    env: &worker-env
+      AUTH_SECRET: e2e-dev-secret-not-for-production
+      WEBHOOK_SECRET: e2e-ci-secret
+      WEBHOOK_LOGIN_ENABLED: "true"
+      NO_PROXY: 127.0.0.1,localhost,::1
+    steps:
+      - *checkout
+      - uses: ./.github/actions/setup-bun-env
+      - name: Generate application and database clients
+        run: bun run app:prepare
+      - id: inventory
+        name: Collect domain and verification combinations
+        run: bun tests/ci/test-matrix.ts
+
+  test-domain:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    needs: [test-plan, build-e2e-artifacts]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - index: 1
-            database: life_ustc_integration_1
-          - index: 2
-            database: life_ustc_integration_2
-          - index: 3
-            database: life_ustc_integration_3
-          - index: 4
-            database: life_ustc_integration_4
-    permissions:
-      contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
-    with:
-      # Runtime connection URLs are derived from this disposable database.
-      database-name: ${{ matrix.database }}
-      job-phase: ci:integration
-      vitest-shard: ${{ matrix.index }}/4
-      timeout-minutes: 60
+      matrix: ${{ fromJSON(needs.test-plan.outputs.matrix) }}
+    env: *worker-env
+    services: &test-database
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: life_ustc_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - *checkout
+      - uses: ./.github/actions/setup-bun-env
+      - name: Install Chromium
+        if: ${{ matrix.browser }}
+        run: bunx playwright install --with-deps --only-shell chromium
+      - name: Download application and Worker build
+        if: ${{ matrix.http || matrix.browser }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: test-build
+          path: .svelte-kit
+      - uses: ./.github/actions/setup-test-database
+      - name: Service and in-process contracts
+        if: ${{ matrix.integration }}
+        env:
+          INTEGRATION_FILES: ${{ toJSON(matrix.integrationFiles) }}
+        run: bunx vitest run --config vitest.integration.config.ts --tags-filter='${{ matrix.tags }}'
+      - name: Worker request contracts
+        if: ${{ matrix.http }}
+        run: bunx playwright test --config playwright.api.config.ts --fully-parallel --workers=2 --grep='${{ matrix.grep }}'
+      - name: Browser and consumer contracts
+        if: ${{ matrix.browser }}
+        run: bunx playwright test --project=chromium --project=mobile-chrome --fully-parallel --workers=2 --grep='${{ matrix.grep }}'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() && (matrix.http || matrix.browser) }}
+        with:
+          name: playwright-report-${{ matrix.slug }}
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
 
-  test-rest:
-    name: REST API Test (${{ matrix.shard }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - shard: 1/2
-            database: life_ustc_rest_1
-            artifact: api-1
-          - shard: 2/2
-            database: life_ustc_rest_2
-            artifact: api-2
-    needs: build-e2e-artifacts
-    permissions:
-      contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
-    with:
-      database-name: ${{ matrix.database }}
-      job-phase: ci:rest
-      e2e-shard: ${{ matrix.shard }}
-      timeout-minutes: 60
-      download-artifact-name: e2e-svelte-kit
-      download-artifact-path: .svelte-kit
-      upload-artifact-name: playwright-report-integration-${{ matrix.artifact }}
-      # Keep API Playwright and Worker-supervisor diagnostics when integration
-      # infrastructure fails before a report can be rendered.
-      upload-artifact-path: playwright-report/
-      upload-artifact-no-files-found: ignore
-      upload-artifact-always: true
   test-rls:
-    name: PostgreSQL RLS Isolation Test
-    permissions:
-      contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
-    with:
-      database-name: life_ustc_rls
-      job-phase: ci:rls
+    name: Database / Permissions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services: *test-database
+    steps:
+      - *checkout
+      - uses: ./.github/actions/setup-bun-env
+      - uses: ./.github/actions/setup-test-database
+      - name: Verify permission bootstrap is repeatable
+        run: psql "$FUNCTION_OWNER_DATABASE_URL" -X --quiet --single-transaction --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
+      - name: Verify runtime roles
+        env:
+          RLS_TEST_ENABLED: "true"
+          AUTH_ROLE_TEST_ENABLED: "true"
+          FUNCTION_OWNER_ROLE_TEST_ENABLED: "true"
+          MAINTENANCE_ROLE_TEST_ENABLED: "true"
+        run: |
+          bunx vitest run \
+            --config vitest.integration.config.ts \
+            tests/integration/rls-database-contract.test.ts \
+            tests/integration/auth-runtime-contract.test.ts \
+            tests/integration/maintenance-runtime-contract.test.ts \
+            tests/integration/function-owner-role-contract.test.ts \
+            tests/integration/*-rls.test.ts
+          bunx vitest run \
+            --config vitest.integration.config.ts \
+            --tags-filter=@Database/Permissions \
+            tests/integration/feature-event-store.test.ts
 
   build-e2e-artifacts:
-    name: Build E2E artifacts
-    permissions:
-      contents: read
-    uses: ./.github/workflows/bun-job.yml
-    with:
-      webhook-secret: e2e-ci-secret
-      extra-env: NO_PROXY=127.0.0.1,localhost,::1
-      job-phase: ci:e2e:build-artifacts
-      upload-artifact-name: e2e-svelte-kit
-      upload-artifact-path: .svelte-kit
-      upload-artifact-no-files-found: error
-      upload-artifact-include-hidden-files: true
+    name: Application / Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env: *worker-env
+    steps:
+      - *checkout
+      - uses: ./.github/actions/setup-bun-env
+      - name: Build application
+        run: bun run build
+      - name: Build isolated test Worker
+        run: bun run build:test-worker
+      - name: Check public page client budgets
+        run: bun tests/ci/public-route-client-budget.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-build
+          path: |
+            .svelte-kit/cloudflare
+            .svelte-kit/test-worker
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
 
   static-loader-image:
-    name: Static Loader Image
-    permissions:
-      contents: read
+    name: Static loader / Container image
     runs-on: ubuntu-latest
+    services: *test-database
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - *checkout
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
       - name: Build static loader image
-        shell: bash
-        run: |
-          source .github/scripts/retry.sh
-          retry_command 3 15 "docker build" : \
-            docker build --target loader -t life-ustc-static-loader:check .
-      - name: Smoke test static loader image
-        run: |
-          docker run --rm --entrypoint sh life-ustc-static-loader:check -c '
-            command -v bun
-            command -v curl
-            test -x /usr/local/bin/docker-entrypoint.load.sh
-            test -x scripts/load-static-sqlite.sh
-            test -f src/static-loader/cli.ts
-            test -d src/generated/prisma-node
-          '
-      - name: Dry-run static loader image
-        shell: bash
-        run: |
-          set -euo pipefail
+        run: docker build --target loader -t life-ustc-static-loader:check .
+      - name: Verify static loader image and dry-run rollback
+        env:
+          DATABASE_URL: ${{ env.FUNCTION_OWNER_DATABASE_URL }}
+        run: bun tests/ci/static-loader-image.ts
 
-          network="static-loader-check-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          postgres="static-loader-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          report_dir="${RUNNER_TEMP}/static-loader-report"
-          mkdir -p "${report_dir}"
-          bun tests/fixtures/static-loader-snapshot.ts "${report_dir}/fixture.sqlite"
-
-          cleanup() {
-            docker rm -f "${postgres}" >/dev/null 2>&1 || true
-            docker network rm "${network}" >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-
-          docker network create "${network}"
-          docker run -d --rm \
-            --name "${postgres}" \
-            --network "${network}" \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_DB=life_ustc_static_loader \
-            postgres:16
-
-          for attempt in $(seq 1 60); do
-            if docker exec "${postgres}" pg_isready -U postgres -d life_ustc_static_loader >/dev/null 2>&1; then
-              break
-            fi
-            if [ "${attempt}" -eq 60 ]; then
-              echo "Postgres did not become ready" >&2
-              exit 1
-            fi
-            sleep 1
-          done
-
-          docker run --rm \
-            --network "${network}" \
-            -v "${report_dir}:/tmp/static-loader-report" \
-            -v "${report_dir}/fixture.sqlite:/tmp/static-loader-fixture.sqlite:ro" \
-            -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
-            -e STATIC_SNAPSHOT_PATH=/tmp/static-loader-fixture.sqlite \
-            -e STATIC_LOADER_DRY_RUN=true \
-            -e STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json \
-            life-ustc-static-loader:check
-
-          REPORT_PATH="${report_dir}/report.json" bun -e '
-            const report = await Bun.file(process.env.REPORT_PATH).json();
-            if (
-              report.mode !== "dry-run" ||
-              report.outcome !== "rolled-back" ||
-              report.databaseRecordCounts !== null ||
-              report.snapshot?.schemaVersion !== "6" ||
-              report.reconciliation?.sectionPresence?.status !== "applied" ||
-              !Number.isInteger(
-                report.reconciliation?.sectionPresence
-                  ?.missingSectionCount,
-              ) ||
-              !/^[a-f0-9]{64}$/.test(report.snapshot?.sha256 ?? "")
-            ) {
-              throw new Error("Static loader report has invalid dry-run semantics");
-            }
-            for (const [table, count] of Object.entries({
-              semesters: 1, courses: 1, sections: 1, teachers: 1,
-              scheduleGroups: 1, schedules: 1, exams: 1,
-              rooms: 1, buildings: 1, campuses: 1,
-            })) {
-              if (report.plannedRecordCounts?.[table] !== count) {
-                throw new Error(`Static loader fixture did not exercise ${table}`);
-              }
-            }
-          '
-
-          # Check the real database as well as the reported rollback outcome.
-          remaining_rows="$(docker exec "${postgres}" psql -U postgres -d life_ustc_static_loader -X -qAt -v ON_ERROR_STOP=1 -c '
-            SELECT (SELECT COUNT(*) FROM "Course")
-                 + (SELECT COUNT(*) FROM "Section")
-                 + (SELECT COUNT(*) FROM "Teacher")
-                 + (SELECT COUNT(*) FROM "TeacherAssignment")
-                 + (SELECT COUNT(*) FROM "RoomType")
-                 + (SELECT COUNT(*) FROM "Schedule")
-                 + (SELECT COUNT(*) FROM "Exam")
-                 + (SELECT COUNT(*) FROM "StaticImportState");
-          ')"
-          test "${remaining_rows}" = "0"
-
-  test-e2e:
-    name: E2E Test (${{ matrix.shard }})
-    needs: build-e2e-artifacts
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - shard: 1/8
-            artifact: shard-1
-            database: life_ustc_e2e_1
-          - shard: 2/8
-            artifact: shard-2
-            database: life_ustc_e2e_2
-          - shard: 3/8
-            artifact: shard-3
-            database: life_ustc_e2e_3
-          - shard: 4/8
-            artifact: shard-4
-            database: life_ustc_e2e_4
-          - shard: 5/8
-            artifact: shard-5
-            database: life_ustc_e2e_5
-          - shard: 6/8
-            artifact: shard-6
-            database: life_ustc_e2e_6
-          - shard: 7/8
-            artifact: shard-7
-            database: life_ustc_e2e_7
-          - shard: 8/8
-            artifact: shard-8
-            database: life_ustc_e2e_8
-    permissions:
-      contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
-    with:
-      database-name: ${{ matrix.database }}
-      install-playwright: true
-      webhook-secret: e2e-ci-secret
-      extra-env: |
-        NO_PROXY=127.0.0.1,localhost,::1
-        CAPTURE_STEP_SCREENSHOTS=1
-      download-artifact-name: e2e-svelte-kit
-      download-artifact-path: .svelte-kit
-      job-phase: ci:e2e:test
-      e2e-shard: ${{ matrix.shard }}
-      upload-artifact-name: playwright-report-${{ matrix.artifact }}
-      # Includes Playwright output and attempt-specific Wrangler logs/status
-      # written under playwright-report/worker/ by the E2E server wrapper.
-      upload-artifact-path: playwright-report/
-      upload-artifact-no-files-found: ignore
-      upload-artifact-always: true
-
-  test-visual-regression:
-    name: Visual regression (opt-in)
-    if: ${{ vars.VISUAL_REGRESSION == '1' }}
-    needs: build-e2e-artifacts
-    permissions:
-      contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
-    with:
-      database-name: life_ustc_visual
-      install-playwright: true
-      webhook-secret: e2e-ci-secret
-      extra-env: |
-        NO_PROXY=127.0.0.1,localhost,::1
-        VISUAL_REGRESSION=1
-      download-artifact-name: e2e-svelte-kit
-      download-artifact-path: .svelte-kit
-      job-phase: ci:visual-regression
-      timeout-minutes: 45
-      upload-artifact-name: playwright-report-visual
-      # Includes visual Playwright output and attempt-specific Worker logs.
-      upload-artifact-path: playwright-report/
-      upload-artifact-no-files-found: ignore
-      upload-artifact-always: true
-
-  # This protected check name is retained for branch protection. It aggregates
-  # native CI outcomes and document validity, not requirement/test coverage.
   specification-evidence:
-    name: Specification execution evidence
-    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-integration, test-rest, test-rls, test-e2e]
-    if: ${{ always() }}
-    permissions:
-      contents: read
-    uses: ./.github/workflows/bun-job.yml
-    with:
-      job-phase: ci:required-jobs
-      required-job-results: ${{ toJSON(needs) }}
-
-  publish-e2e-html-report:
-    name: Publish E2E HTML report
-    needs: test-e2e
-    if: ${{ always() && needs.test-e2e.result != 'skipped' }}
-    continue-on-error: true
+    # Keep the protected check name; documents are validated by Source / Checks.
+    name: Specification execution evidence / run
     runs-on: ubuntu-latest
-    concurrency:
-      group: publish-e2e-html-report
-      queue: max
-      cancel-in-progress: false
-    permissions:
-      contents: write
-      pull-requests: write
+    timeout-minutes: 5
+    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-plan, test-domain, test-rls]
+    if: ${{ always() }}
+    permissions: {}
     steps:
-      - name: Checkout source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 1
-
-      - name: Check report publication credentials
-        id: report-auth
-        shell: bash
-        env:
-          E2E_ARTIFACTS_TOKEN: ${{ secrets.E2E_ARTIFACTS_TOKEN }}
-        run: |
-          if [[ -n "${E2E_ARTIFACTS_TOKEN}" ]]; then
-            echo "available=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "available=false" >> "${GITHUB_OUTPUT}"
-            echo "E2E report publication skipped: E2E_ARTIFACTS_TOKEN is unavailable."
-          fi
-
-      - name: Checkout e2e-snapshot-artifacts repo
-        if: ${{ steps.report-auth.outputs.available == 'true' }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: Life-USTC/e2e-snapshot-artifacts
-          ref: main
-          path: e2e-snapshot-artifacts
-          token: ${{ secrets.E2E_ARTIFACTS_TOKEN }}
-          fetch-depth: 1
-
-      - name: Setup Bun
-        if: ${{ steps.report-auth.outputs.available == 'true' }}
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: .bun-version
-
-      - name: Install dependencies
-        if: ${{ steps.report-auth.outputs.available == 'true' }}
-        run: bun install --frozen-lockfile
-
-      - name: Download all Playwright report artifacts
-        if: ${{ steps.report-auth.outputs.available == 'true' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          path: downloaded-reports
-          pattern: playwright-report-*
-
-      - name: Merge blob reports into HTML
-        id: merge-report
-        if: ${{ steps.report-auth.outputs.available == 'true' }}
-        run: |
-          mkdir -p all-blobs
-          for dir in downloaded-reports/playwright-report-*; do
-            scope=$(basename "$dir")
-            for blob in "$dir"/blob/*.zip; do
-              [ -e "$blob" ] || continue
-              cp "$blob" "all-blobs/${scope}-$(basename "$blob")"
-            done
-          done
-          if ! find all-blobs -maxdepth 1 -type f -name '*.zip' -print -quit | grep -q .; then
-            echo "available=false" >> "${GITHUB_OUTPUT}"
-            echo "E2E HTML report publication skipped: no Playwright blob reports were uploaded."
-            exit 0
-          fi
-          echo "available=true" >> "${GITHUB_OUTPUT}"
-          bunx playwright merge-reports all-blobs --config playwright.report.config.ts
-
-      - name: Publish report to e2e-snapshot-artifacts branch
-        if: ${{ steps.report-auth.outputs.available == 'true' && steps.merge-report.outputs.available == 'true' }}
-        env:
-          REPORTS_TO_KEEP: 20
-          RUN_ID: ${{ github.run_id }}
-          SHA: ${{ github.sha }}
-        run: |
-          report_dir="e2e-snapshot-artifacts/reports/${RUN_ID}"
-          mkdir -p "$report_dir"
-          cp -R playwright-report/html/. "$report_dir/"
-
-          cd e2e-snapshot-artifacts
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Disable Jekyll so GitHub Pages serves the static HTML and assets as-is.
-          touch .nojekyll
-
-          # Keep only the latest reports to avoid unbounded growth in the
-          # artifacts repo. The new report has already been copied in above.
-          find reports -mindepth 1 -maxdepth 1 -type d -printf '%f\n' \
-            | sort -rn \
-            | tail -n +"$((REPORTS_TO_KEEP + 1))" \
-            | while IFS= read -r dir; do
-                rm -rf "reports/${dir}"
-              done
-
-          cat > index.html <<'INDEX_EOF'
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>Life@USTC E2E Reports</title>
-            </head>
-            <body>
-              <h1>Life@USTC E2E HTML Reports</h1>
-              <ul>
-          INDEX_EOF
-
-          for dir in $(find reports -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -rn); do
-            echo "                <li><a href=\"reports/${dir}/index.html\">Run ${dir}</a></li>" >> index.html
-          done
-
-          cat >> index.html <<'INDEX_EOF'
-              </ul>
-            </body>
-          </html>
-          INDEX_EOF
-
-          # Recreate main as a single-commit branch so deleted report folders
-          # do not remain reachable through the artifacts repo history.
-          git checkout --orphan publish-e2e-report
-          git add -A .
-          git commit -m "chore: publish e2e html report for run ${RUN_ID} (${SHA}) [skip ci]" || exit 0
-          git push --force origin HEAD:main
-
-      - name: Comment report link on commit and PR
-        if: ${{ steps.report-auth.outputs.available == 'true' && steps.merge-report.outputs.available == 'true' }}
-        env:
-          RUN_ID: ${{ github.run_id }}
-          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-        run: |
-          marker="<!-- e2e-report -->"
-          report_url="https://life-ustc.github.io/e2e-snapshot-artifacts/reports/${RUN_ID}/index.html"
-          index_url="https://life-ustc.github.io/e2e-snapshot-artifacts/"
-          body=$(printf '%s\nE2E HTML report is ready: %s\nAll reports: %s' "$marker" "$report_url" "$index_url")
-
-          # Commit comment (create or update existing report comment)
-          commit_comment_id=$(gh api "repos/${REPO}/commits/${COMMIT_SHA}/comments" --jq ".[] | select(.body | contains(\"${marker}\")) | .id" | head -n1)
-          if [ -n "$commit_comment_id" ]; then
-            gh api --method PATCH "repos/${REPO}/comments/${commit_comment_id}" -f body="$body" >/dev/null
-          else
-            gh api --method POST "repos/${REPO}/commits/${COMMIT_SHA}/comments" -f body="$body" >/dev/null
-          fi
-
-          # PR comment (create or update existing report comment)
-          if [ -n "$PR_NUMBER" ]; then
-            pr_comment_id=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --jq ".[] | select(.body | contains(\"${marker}\")) | .id" | head -n1)
-            if [ -n "$pr_comment_id" ]; then
-              gh api --method PATCH "repos/${REPO}/issues/comments/${pr_comment_id}" -f body="$body" >/dev/null
-            else
-              gh pr comment "$PR_NUMBER" --body "$body"
-            fi
-          fi
+      - name: Reject unsuccessful test or build jobs
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: exit 1

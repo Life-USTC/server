@@ -1,4 +1,5 @@
 import {
+  calendarEventParts,
   calendarEventsForDay,
   weekDaysFor,
 } from "@/features/workspace/lib/calendar";
@@ -44,7 +45,10 @@ export function overviewCalendarWeekDays(
             : item.sort === 2400
               ? item.label
               : `${fmtTime(item.sort)} ${item.label}`,
-        detail: item.label === item.title ? item.detail : item.meta,
+        detail:
+          item.label === item.title
+            ? item.detail
+            : calendarEventParts([item.meta, item.detail]),
         tone: item.tone,
         done: item.done,
       })),

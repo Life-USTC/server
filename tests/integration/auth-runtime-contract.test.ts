@@ -1,20 +1,64 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
-import {
-  createFixturePrisma,
-  createTestPrisma,
-  disconnectTestPrisma,
-} from "../shared/prisma";
+import { nodeProtocolTest } from "../shared/node-protocol-fixture";
+import { createTestPrisma, type TestPrismaClient } from "../shared/prisma";
 
-const authDatabaseUrl = process.env.AUTH_DATABASE_URL;
-if (!authDatabaseUrl) {
-  throw new Error("AUTH_DATABASE_URL is required for auth role tests");
-}
-const authPrisma = createTestPrisma(authDatabaseUrl, {
-  user: { calendarFeedToken: true },
+type RoleClients = {
+  authPrisma: TestPrismaClient;
+  adminPrisma: TestPrismaClient;
+};
+type Records = {
+  marker: string;
+  userId: string;
+  auditId: string;
+  clientId: string;
+  grantId: string;
+  adminInsertId: string;
+  picturesInsertId: string;
+};
+const it = nodeProtocolTest.extend<{
+  roleClients: RoleClients;
+  records: Records;
+}>({
+  roleClients: async (
+    { isolatedDatabase, protocolRuntime, onTestFinished },
+    use,
+  ) => {
+    // Auth may read only the audited User columns, so its dedicated client must
+    // omit calendarFeedToken even though the owner observer can read that field.
+    const authPrisma = createTestPrisma(isolatedDatabase.connections.auth, {
+      user: { calendarFeedToken: true },
+    });
+    try {
+      await use({ authPrisma, adminPrisma: isolatedDatabase.owner });
+    } finally {
+      // Keep this client until every admitted role operation finishes. The
+      // enclosing runtime reports its own original cached cleanup error.
+      await Promise.allSettled([protocolRuntime.close()]);
+      try {
+        await authPrisma.$disconnect();
+      } catch (error) {
+        onTestFinished(() => {
+          throw error;
+        });
+      }
+    }
+  },
+  // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
+  records: async ({}, use) => {
+    const marker = `auth-role-${crypto.randomUUID()}`;
+    await use({
+      marker,
+      userId: `${marker}-user`,
+      auditId: `${marker}-audit`,
+      clientId: `${marker}-client`,
+      grantId: `${marker}-grant`,
+      adminInsertId: `${marker}-admin-insert`,
+      picturesInsertId: `${marker}-pictures-insert`,
+    });
+  },
 });
-const adminPrisma = createFixturePrisma();
 
 const expectedTablePrivileges = [
   "Account:DELETE",
@@ -107,27 +151,25 @@ const expectedColumnPrivileges = [
 describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
   "authentication runtime role contract",
   () => {
-    afterAll(async () => {
-      await Promise.all([
-        disconnectTestPrisma(authPrisma),
-        disconnectTestPrisma(adminPrisma),
-      ]);
-    });
-
-    it("is an unprivileged standalone login role", async () => {
-      const [role] = await authPrisma.$queryRaw<
-        Array<{
-          bypassRls: boolean;
-          canCreateDatabase: boolean;
-          canCreateRole: boolean;
-          canLogin: boolean;
-          currentUser: string;
-          inheritsRoles: boolean;
-          replication: boolean;
-          sessionUser: string;
-          superuser: boolean;
-        }>
-      >`
+    it("is an unprivileged standalone login role", async ({
+      roleClients: { authPrisma },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const [role] = await authPrisma.$queryRaw<
+          Array<{
+            bypassRls: boolean;
+            canCreateDatabase: boolean;
+            canCreateRole: boolean;
+            canLogin: boolean;
+            currentUser: string;
+            inheritsRoles: boolean;
+            replication: boolean;
+            sessionUser: string;
+            superuser: boolean;
+          }>
+        >`
         SELECT
           current_user AS "currentUser",
           session_user AS "sessionUser",
@@ -142,23 +184,29 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         WHERE rolname = current_user
       `;
 
-      expect(role).toEqual({
-        bypassRls: false,
-        canCreateDatabase: false,
-        canCreateRole: false,
-        canLogin: true,
-        currentUser: "life_ustc_auth_runtime",
-        inheritsRoles: false,
-        replication: false,
-        sessionUser: "life_ustc_auth_runtime",
-        superuser: false,
+        expect(role).toEqual({
+          bypassRls: false,
+          canCreateDatabase: false,
+          canCreateRole: false,
+          canLogin: true,
+          currentUser: "life_ustc_auth_runtime",
+          inheritsRoles: false,
+          replication: false,
+          sessionUser: "life_ustc_auth_runtime",
+          superuser: false,
+        });
       });
     });
 
-    it("has only the audited auth table and unlink-function grants", async () => {
-      const tableGrants = await authPrisma.$queryRaw<
-        Array<{ privilege: string; tableName: string }>
-      >`
+    it("has only the audited auth table and unlink-function grants", async ({
+      roleClients: { authPrisma },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const tableGrants = await authPrisma.$queryRaw<
+          Array<{ privilege: string; tableName: string }>
+        >`
         SELECT
           table_name AS "tableName",
           privilege_type AS privilege
@@ -166,15 +214,15 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         WHERE grantee = current_user AND table_schema = 'public'
         ORDER BY table_name, privilege_type
       `;
-      expect(
-        tableGrants.map(
-          ({ privilege, tableName }) => `${tableName}:${privilege}`,
-        ),
-      ).toEqual(expectedTablePrivileges);
+        expect(
+          tableGrants.map(
+            ({ privilege, tableName }) => `${tableName}:${privilege}`,
+          ),
+        ).toEqual(expectedTablePrivileges);
 
-      const columnGrants = await authPrisma.$queryRaw<
-        Array<{ columnName: string; privilege: string; tableName: string }>
-      >`
+        const columnGrants = await authPrisma.$queryRaw<
+          Array<{ columnName: string; privilege: string; tableName: string }>
+        >`
         SELECT
           relation.relname AS "tableName",
           attribute.attname AS "columnName",
@@ -193,16 +241,16 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
           )
         ORDER BY relation.relname, attribute.attname, privilege.privilege_type
       `;
-      expect(
-        columnGrants.map(
-          ({ columnName, privilege, tableName }) =>
-            `${tableName}:${columnName}:${privilege}`,
-        ),
-      ).toEqual(expectedColumnPrivileges);
+        expect(
+          columnGrants.map(
+            ({ columnName, privilege, tableName }) =>
+              `${tableName}:${columnName}:${privilege}`,
+          ),
+        ).toEqual(expectedColumnPrivileges);
 
-      const functionGrants = await authPrisma.$queryRaw<
-        Array<{ signature: string }>
-      >`
+        const functionGrants = await authPrisma.$queryRaw<
+          Array<{ signature: string }>
+        >`
         SELECT pg_catalog.format(
           '%s.%s(%s):EXECUTE',
           namespace.nspname,
@@ -220,26 +268,30 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
           AND privilege.privilege_type = 'EXECUTE'
         ORDER BY signature
       `;
-      expect(functionGrants).toEqual([
-        {
-          signature:
-            'public.delete_own_account(p_user_id text, p_audit_id text, p_channel "AuditChannel", p_ip_address text, p_user_agent text, p_session_id text, p_request_id text):EXECUTE',
-        },
-        {
-          signature:
-            "public.remove_sign_in_method(p_user_id text, p_kind text, p_key text, p_enabled_providers jsonb):EXECUTE",
-        },
-      ]);
+        expect(functionGrants).toEqual([
+          {
+            signature:
+              'public.delete_own_account(p_user_id text, p_audit_id text, p_channel "AuditChannel", p_ip_address text, p_user_agent text, p_session_id text, p_request_id text):EXECUTE',
+          },
+          {
+            signature:
+              "public.remove_sign_in_method(p_user_id text, p_kind text, p_key text, p_enabled_providers jsonb):EXECUTE",
+          },
+        ]);
+      });
     });
 
-    it("can append audit records but cannot read or mutate them", async () => {
-      const marker = `auth-role-${crypto.randomUUID()}`;
-      const auditId = `${marker}-audit`;
-      const user = await authPrisma.user.create({
-        data: { email: `${marker}@example.test`, name: marker },
-        select: { id: true },
-      });
-      try {
+    it("can append audit records but cannot read or mutate them", async ({
+      roleClients: { authPrisma, adminPrisma },
+      records: { marker, userId, auditId },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const user = await authPrisma.user.create({
+          data: { id: userId, email: `${marker}@example.test`, name: marker },
+          select: { id: true },
+        });
         await expect(
           authPrisma.account.create({
             data: {
@@ -282,28 +334,27 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         await expect(
           authPrisma.auditLog.deleteMany({ where: { id: auditId } }),
         ).rejects.toThrow("permission denied for table AuditLog");
-      } finally {
-        await adminPrisma.auditLog.deleteMany({ where: { id: auditId } });
-        await adminPrisma.user.delete({ where: { id: user.id } });
-      }
+      });
     });
 
-    it("can atomically manage OAuth usage while retaining no app-table access", async () => {
-      const marker = `auth-role-usage-${crypto.randomUUID()}`;
-      const clientId = `${marker}-client`;
-      const grantId = `${marker}-grant`;
-      const user = await authPrisma.user.create({
-        data: { email: `${marker}@example.test`, name: marker },
-        select: { id: true },
-      });
-      await authPrisma.oAuthClient.create({
-        data: {
-          clientId,
-          name: marker,
-          redirectUris: ["https://client.example.test/callback"],
-        },
-      });
-      try {
+    it("can atomically manage OAuth usage while retaining no app-table access", async ({
+      roleClients: { authPrisma },
+      records: { marker, userId, clientId, grantId },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const user = await authPrisma.user.create({
+          data: { id: userId, email: `${marker}@example.test`, name: marker },
+          select: { id: true },
+        });
+        await authPrisma.oAuthClient.create({
+          data: {
+            clientId,
+            name: marker,
+            redirectUris: ["https://client.example.test/callback"],
+          },
+        });
         await recordOAuthGrantUsage(
           {
             userId: user.id,
@@ -326,22 +377,24 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
           }),
         ).resolves.toMatchObject({ count: 1 });
         await expect(authPrisma.auditLog.count()).rejects.toThrow();
-      } finally {
-        await authPrisma.oAuthClient.deleteMany({ where: { clientId } });
-        await adminPrisma.user.deleteMany({ where: { id: user.id } });
-      }
+      });
     });
 
-    it("can update profile columns but not application-owned User fields", async () => {
-      const marker = `auth-role-user-update-${crypto.randomUUID()}`;
-      const user = await authPrisma.user.create({
-        data: { email: `${marker}@example.test`, name: marker },
-        select: { id: true },
-      });
-      try {
+    it("can update profile columns but not application-owned User fields", async ({
+      roleClients: { authPrisma },
+      records: { marker, userId, adminInsertId, picturesInsertId },
+      protocolRuntime,
+      expect,
+    }) => {
+      await protocolRuntime.run(async () => {
+        const user = await authPrisma.user.create({
+          data: { id: userId, email: `${marker}@example.test`, name: marker },
+          select: { id: true },
+        });
         await expect(
           authPrisma.user.create({
             data: {
+              id: adminInsertId,
               email: `${marker}-admin-insert@example.test`,
               isAdmin: true,
               name: marker,
@@ -352,6 +405,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         await expect(
           authPrisma.user.create({
             data: {
+              id: picturesInsertId,
               email: `${marker}-pictures-insert@example.test`,
               name: marker,
               profilePictures: ["https://attacker.example/avatar.svg"],
@@ -424,9 +478,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
           isAdmin: false,
           profilePictures: [],
         });
-      } finally {
-        await adminPrisma.user.deleteMany({ where: { id: user.id } });
-      }
+      });
     });
   },
 );

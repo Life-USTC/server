@@ -1,23 +1,25 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, type Page, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { expect, type Page } from "@playwright/test";
+import { test as publicTest } from "../../../utils/public-worker";
+import { test } from "./interaction-fixture";
 
 declare global {
   interface Window {
     youngContractFetches: { path: string; cache: string | undefined }[];
   }
 }
-async function identify(page: Page, owner?: string) {
+async function identify(
+  page: Page,
+  origin: string,
+  cookie?: { name: string; value: string; url: string },
+) {
   await page.context().clearCookies();
   await page
     .context()
     .addCookies([
-      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
-      ...(owner ? [await createSignedSessionCookie(owner)] : []),
+      { name: "NEXT_LOCALE", value: "en-us", url: origin },
+      ...(cookie ? [cookie] : []),
     ]);
 }
 async function observePrivateFetches(page: Page) {
@@ -42,10 +44,13 @@ async function observePrivateFetches(page: Page) {
   });
 }
 
-test("young-event.private-client-overlays", async ({ page }) => {
-  const fixture = await createCalendarContractFixture();
-  await observePrivateFetches(page);
-  try {
+test("young-event.private-client-overlays", { tag: "@Young/Web" }, async ({
+  page,
+  calendar: fixture,
+  youngRun,
+}) => {
+  await youngRun(async (observation) => {
+    await observePrivateFetches(page);
     for (const surface of ["detail", "calendar"]) {
       const target =
         surface === "detail"
@@ -66,14 +71,18 @@ test("young-event.private-client-overlays", async ({ page }) => {
               exact: true,
             })
           : page.getByTestId("young-calendar-conflict-status");
-      await identify(page);
+      await identify(page, fixture.origin);
       await page.goto(target);
       if (surface === "detail") await expect(signIn()).toBeEnabled();
       else await expect(signIn()).toContainText(/Sign in/);
       expect(await page.evaluate(() => window.youngContractFetches)).toEqual(
         [],
       );
-      await identify(page, fixture.users[0].id);
+      await identify(
+        page,
+        fixture.origin,
+        await fixture.createSignedSessionCookie(fixture.users[0].id),
+      );
       await page.goto(target);
       if (surface === "detail") await expect(ready()).toBeEnabled();
       else await expect(ready()).toContainText("Conflicts use");
@@ -83,14 +92,21 @@ test("young-event.private-client-overlays", async ({ page }) => {
       expect(signedReads.length).toBeGreaterThan(0);
       expect(signedReads.every((read) => read.cache === "no-store")).toBe(true);
       let rejectedReads = 0;
-      await page.route(endpoint, async (route) => {
-        const response = await route.fetch({
-          headers: { ...route.request().headers(), cookie: "" },
-        });
-        expect(response.status()).toBe(401);
-        rejectedReads++;
-        await route.fulfill({ response });
-      });
+      await page.route(endpoint, (route) =>
+        observation.own(async () => {
+          const response = await route.fetch({
+            maxRedirects: 0,
+            headers: {
+              ...observation.readHeaders(route.request()),
+              cookie: "",
+            },
+          });
+          expect(response.status()).toBe(401);
+          rejectedReads++;
+          await response.body();
+          await route.fulfill({ response });
+        }),
+      );
       await page.goto(target);
       if (surface === "detail") await expect(signIn()).toBeEnabled();
       else await expect(signIn()).toContainText(/Sign in/);
@@ -102,53 +118,72 @@ test("young-event.private-client-overlays", async ({ page }) => {
       ).toBe(true);
       await page.unroute(endpoint);
     }
-  } finally {
-    await fixture.cleanup();
-  }
+  });
 });
 
-test("young-event.overlay-shared-viewer-state", async ({ page }) => {
-  const fixture = await createCalendarContractFixture();
-  try {
-    await identify(page, fixture.users[0].id);
+test("young-event.overlay-shared-viewer-state", { tag: "@Young/Web" }, async ({
+  page,
+  calendar: fixture,
+  youngRun,
+}) => {
+  await youngRun(async (observation) => {
+    await identify(
+      page,
+      fixture.origin,
+      await fixture.createSignedSessionCookie(fixture.users[0].id),
+    );
     let bootstrap = 0;
     let viewerId: string | undefined;
-    page.on("response", async (response) => {
-      if (new URL(response.url()).pathname === "/_internal/shell-bootstrap") {
-        const body = await response.json();
-        viewerId = body.viewer?.id;
-      }
-    });
-    page.on("request", (request) => {
+    const readBootstrap = (response: import("@playwright/test").Response) => {
+      if (new URL(response.url()).pathname === "/_internal/shell-bootstrap")
+        void observation.ownBrowser(async () => {
+          const body = await response.json();
+          viewerId = body.viewer?.id;
+        });
+    };
+    const countBootstrap = (request: import("@playwright/test").Request) => {
       if (new URL(request.url()).pathname === "/_internal/shell-bootstrap")
         bootstrap++;
-    });
-    for (const target of [
-      `/catalog/young-events/${fixture.young.youngId}`,
-      "/catalog/young-events/calendar?view=day&date=2026-04-30",
-    ]) {
-      bootstrap = 0;
-      viewerId = undefined;
-      await page.goto(target);
-      if (target.startsWith("/catalog/young-events/calendar?"))
-        await expect(
-          page.getByTestId("young-calendar-conflict-status"),
-        ).toContainText("Conflicts use");
-      else
-        await expect(
-          page.getByRole("button", { name: "Unsubscribe", exact: true }),
-        ).toBeEnabled();
-      expect(bootstrap).toBe(1);
-      await expect.poll(() => viewerId).toBe(fixture.users[0].id);
+    };
+    page.on("response", readBootstrap);
+    page.on("request", countBootstrap);
+    try {
+      for (const target of [
+        `/catalog/young-events/${fixture.young.youngId}`,
+        "/catalog/young-events/calendar?view=day&date=2026-04-30",
+      ]) {
+        bootstrap = 0;
+        viewerId = undefined;
+        await page.goto(target);
+        if (target.startsWith("/catalog/young-events/calendar?"))
+          await expect(
+            page.getByTestId("young-calendar-conflict-status"),
+          ).toContainText("Conflicts use");
+        else
+          await expect(
+            page.getByRole("button", { name: "Unsubscribe", exact: true }),
+          ).toBeEnabled();
+        expect(bootstrap).toBe(1);
+        await expect.poll(() => viewerId).toBe(fixture.users[0].id);
+        await observation.drainBrowser();
+      }
+    } finally {
+      page.off("response", readBootstrap);
+      page.off("request", countBootstrap);
+      // youngRun joins body callbacks after calendarRun closes the page.
+      // A failed viewer assertion must not wait for a stalled body here.
     }
-  } finally {
-    await fixture.cleanup();
-  }
+  });
 });
 
-test("young-event.web-detail-priority", async ({ page }) => {
-  const fixture = await createCalendarContractFixture();
-  await withE2ePrisma((db) =>
+test("young-event.web-detail-priority", { tag: "@Young/Web" }, async ({
+  page,
+  calendar: fixture,
+  calendarDb,
+  youngRun,
+  youngPoster,
+}) => {
+  await calendarDb((db) =>
     db.youngEvent.update({
       where: { youngId: fixture.young.youngId },
       data: {
@@ -162,20 +197,24 @@ test("young-event.web-detail-priority", async ({ page }) => {
       },
     }),
   );
-  try {
-    await identify(page);
+  await youngRun(async (observation) => {
+    await identify(page, fixture.origin);
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 1000 });
+      // Register immediately: the banner poster loads during navigation.
+      const observedPoster = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname ===
+          "/api/catalog/young-events/images/group1/contract/poster.jpg",
+      );
+      const posterResponse = observation.ownBrowser(() => observedPoster);
       await page.goto(`/catalog/young-events/${fixture.young.youngId}`);
       const banner = page.getByTestId("young-event-banner");
       await expect(
         banner.getByRole("heading", { level: 1, name: fixture.young.name }),
       ).toBeVisible();
       await expect(
-        banner.getByRole("button", {
-          name: "Subscribe to event",
-          exact: true,
-        }),
+        banner.getByRole("button", { name: "Subscribe to event", exact: true }),
       ).toBeVisible();
       await expect(banner.getByTestId("young-event-badges")).toBeVisible();
       await expect(banner.locator("img")).toHaveAttribute(
@@ -201,123 +240,194 @@ test("young-event.web-detail-priority", async ({ page }) => {
           exact: true,
         }),
       ).toHaveCount(0);
-    }
-  } finally {
-    await fixture.cleanup();
-  }
-});
-
-test("young-event.web-mobile-calendar", async ({ page }) => {
-  await identify(page);
-  await page.setViewportSize({ width: 390, height: 1000 });
-  await page.goto("/catalog/young-events/calendar?view=month&date=2035-09-25");
-  const calendar = page.getByTestId("young-calendar");
-  await expect(
-    calendar.getByRole("link", { name: "Month", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
-  const headings = page
-    .getByTestId("young-calendar-agenda")
-    .getByRole("heading", { level: 3 });
-  await expect(headings.first()).toHaveAttribute(
-    "id",
-    "young-agenda-2035-09-25",
-  );
-  await expect(headings.last()).toHaveAttribute(
-    "id",
-    "young-agenda-2035-09-30",
-  );
-  await calendar
-    .getByRole("button", { name: "Show earlier dates", exact: true })
-    .click();
-  await expect(page.locator("#young-agenda-2035-09-01")).toBeVisible();
-  await expect(page.locator("#young-agenda-2035-08-31")).toHaveCount(0);
-  await expect(page.locator("#young-agenda-2035-10-01")).toHaveCount(0);
-  for (const [label, value, heading] of [
-    ["Day", "day", "Tuesday, September 25, 2035"],
-    ["Week", "week", /Sep 23\s*–\s*29, 2035/],
-    ["Month", "month", "September 2035"],
-  ] as const) {
-    await calendar.getByRole("link", { name: label, exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`view=${value}`));
-    await expect(
-      calendar.getByRole("link", { name: label, exact: true }),
-    ).toHaveAttribute("aria-current", "page");
-    await expect(calendar.getByRole("heading", { level: 2 })).toHaveText(
-      heading,
-    );
-  }
-});
-
-test("young-event.read-only", async ({ page, request }) => {
-  const fixture = await createCalendarContractFixture();
-  const client = new Client({ name: "young-read-only", version: "1" });
-  try {
-    await identify(page, fixture.users[0].id);
-    for (const path of [
-      "/api/catalog/young-events",
-      `/api/catalog/young-events/${fixture.young.youngId}`,
-    ]) {
-      for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-        const response = await page.request.fetch(path, {
-          method,
-          headers: { Origin: PLAYWRIGHT_BASE_URL },
-          data: { name: "forbidden replacement" },
+      const actualPoster = await posterResponse;
+      expect(actualPoster.status()).toBe(200);
+      expect(actualPoster.headers()["content-type"]).toBe("image/png");
+      expect(await actualPoster.body()).toEqual(youngPoster);
+      await page
+        .getByRole("img", { name: fixture.young.name, exact: true })
+        .evaluate(async (node) => {
+          await (node as HTMLImageElement).decode();
         });
-        expect(response.status(), `${method} ${path}`).toBe(405);
-      }
+      expect(
+        await page
+          .getByRole("img", { name: fixture.young.name, exact: true })
+          .evaluate(
+            (node) =>
+              (node as HTMLImageElement).naturalWidth > 0 &&
+              (node as HTMLImageElement).naturalHeight > 0,
+          ),
+      ).toBe(true);
     }
-    const graph = await request.post("/api/graphql", {
-      headers: { Origin: PLAYWRIGHT_BASE_URL },
-      data: { query: "{__schema{mutationType{fields{name}}}}" },
-    });
-    expect(graph.status()).toBe(200);
-    const schema = await graph.json();
-    expect(schema.errors).toBeUndefined();
-    expect(
-      schema.data.__schema.mutationType.fields
-        .map((field: { name: string }) => field.name)
-        .filter((name: string) => name.toLowerCase().includes("young")),
-    ).toEqual([
-      "youngEventSubscriptionSet",
-      "youngOrganizerSubscriptionSet",
-      "youngNotificationRead",
-    ]);
-    await client.connect(
-      new StreamableHTTPClientTransport(
-        new URL("/api/mcp", PLAYWRIGHT_BASE_URL),
-      ),
-    );
-    const tools = await client.listTools();
-    expect(
-      tools.tools
-        .filter((tool) => tool.name.startsWith("catalog_young_"))
-        .map((tool) => tool.name)
-        .sort(),
-    ).toEqual([
-      "catalog_young_event_get",
-      "catalog_young_event_list",
-      "catalog_young_organizer_get",
-      "catalog_young_organizer_list",
-    ]);
-    await page.goto(`/catalog/young-events/${fixture.young.youngId}`);
-    await expect(
-      page.getByRole("heading", { level: 1, name: fixture.young.name }),
-    ).toBeVisible();
-    await expect(
-      page.locator("#main-content").getByRole("button", {
-        name: /^(Edit event|Delete event|Create event|Save event)$/,
-      }),
-    ).toHaveCount(0);
-    expect(
-      await withE2ePrisma((db) =>
-        db.youngEvent.findUnique({
-          where: { youngId: fixture.young.youngId },
-          select: { name: true },
-        }),
-      ),
-    ).toEqual({ name: fixture.young.name });
-  } finally {
-    await client.close();
-    await fixture.cleanup();
-  }
+  });
 });
+
+publicTest(
+  "young-event.web-mobile-calendar",
+  { tag: "@Young/Web" },
+  async ({ page, isolatedWorker, publicFlow }) => {
+    await publicFlow.run(async () => {
+      await identify(page, isolatedWorker.origin);
+      await page.setViewportSize({ width: 390, height: 1000 });
+      await page.goto(
+        "/catalog/young-events/calendar?view=month&date=2035-09-25",
+      );
+      const calendar = page.getByTestId("young-calendar");
+      await expect(
+        calendar.getByRole("link", { name: "Month", exact: true }),
+      ).toHaveAttribute("aria-current", "page");
+      const headings = page
+        .getByTestId("young-calendar-agenda")
+        .getByRole("heading", { level: 3 });
+      await expect(headings.first()).toHaveAttribute(
+        "id",
+        "young-agenda-2035-09-25",
+      );
+      await expect(headings.last()).toHaveAttribute(
+        "id",
+        "young-agenda-2035-09-30",
+      );
+      await calendar
+        .getByRole("button", { name: "Show earlier dates", exact: true })
+        .click();
+      await expect(page.locator("#young-agenda-2035-09-01")).toBeVisible();
+      await expect(page.locator("#young-agenda-2035-08-31")).toHaveCount(0);
+      await expect(page.locator("#young-agenda-2035-10-01")).toHaveCount(0);
+      for (const [label, value, heading] of [
+        ["Day", "day", "Tuesday, September 25, 2035"],
+        ["Week", "week", /Sep 23\s*–\s*29, 2035/],
+        ["Month", "month", "September 2035"],
+      ] as const) {
+        await calendar.getByRole("link", { name: label, exact: true }).click();
+        await expect(page).toHaveURL(new RegExp(`view=${value}`));
+        await expect(
+          calendar.getByRole("link", { name: label, exact: true }),
+        ).toHaveAttribute("aria-current", "page");
+        await expect(calendar.getByRole("heading", { level: 2 })).toHaveText(
+          heading,
+        );
+      }
+    });
+  },
+);
+
+for (const entry of ["Web", "REST", "GraphQL", "MCP"] as const) {
+  test(`young-event.read-only ${entry}`, { tag: `@Young/${entry}` }, async ({
+    page,
+    request,
+    calendar: fixture,
+    calendarDb,
+    youngRun,
+  }) => {
+    await youngRun(async (observation) => {
+      const client = new Client({ name: "young-read-only", version: "1" });
+      const errors: unknown[] = [];
+      client.onerror = (error) => errors.push(error);
+      try {
+        await identify(
+          page,
+          fixture.origin,
+          await fixture.createSignedSessionCookie(fixture.users[0].id),
+        );
+        if (entry === "REST") {
+          for (const path of [
+            "/api/catalog/young-events",
+            `/api/catalog/young-events/${fixture.young.youngId}`,
+          ]) {
+            for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+              const response = await page.request.fetch(path, {
+                method,
+                headers: {
+                  Origin: fixture.origin,
+                  ...observation.headers(method, path, 405),
+                },
+                data: { name: "forbidden replacement" },
+              });
+              expect(response.status(), `${method} ${path}`).toBe(405);
+            }
+          }
+        }
+        if (entry === "GraphQL") {
+          const graph = await request.post("/api/graphql", {
+            headers: {
+              Origin: fixture.origin,
+              ...observation.headers("POST", "/api/graphql", 200),
+            },
+            data: { query: "{__schema{mutationType{fields{name}}}}" },
+          });
+          expect(graph.status()).toBe(200);
+          const schema = await graph.json();
+          expect(schema.errors).toBeUndefined();
+          expect(
+            schema.data.__schema.mutationType.fields
+              .map((field: { name: string }) => field.name)
+              .filter((name: string) => name.toLowerCase().includes("young")),
+          ).toEqual([
+            "youngEventSubscriptionSet",
+            "youngOrganizerSubscriptionSet",
+            "youngNotificationRead",
+          ]);
+        }
+        if (entry === "MCP") {
+          await client.connect(
+            new StreamableHTTPClientTransport(
+              new URL("/api/mcp", fixture.origin),
+              {
+                fetch: observation.sdkFetch,
+                reconnectionOptions: {
+                  maxRetries: 0,
+                  initialReconnectionDelay: 0,
+                  maxReconnectionDelay: 0,
+                  reconnectionDelayGrowFactor: 1,
+                },
+              },
+            ),
+          );
+          const tools = await client.listTools();
+          expect(
+            tools.tools
+              .filter((tool) => tool.name.startsWith("catalog_young_"))
+              .map((tool) => tool.name)
+              .sort(),
+          ).toEqual([
+            "catalog_young_event_get",
+            "catalog_young_event_list",
+            "catalog_young_organizer_get",
+            "catalog_young_organizer_list",
+          ]);
+          await observation.settleSdk();
+        }
+        if (entry === "Web") {
+          await page.goto(`/catalog/young-events/${fixture.young.youngId}`);
+          await expect(
+            page.getByRole("heading", { level: 1, name: fixture.young.name }),
+          ).toBeVisible();
+          await expect(
+            page.locator("#main-content").getByRole("button", {
+              name: /^(Edit event|Delete event|Create event|Save event)$/,
+            }),
+          ).toHaveCount(0);
+        }
+        expect(
+          await calendarDb((db) =>
+            db.youngEvent.findUnique({
+              where: { youngId: fixture.young.youngId },
+              select: { name: true },
+            }),
+          ),
+        ).toEqual({ name: fixture.young.name });
+      } catch (error) {
+        errors.push(error);
+      } finally {
+        try {
+          await client.close();
+        } catch (error) {
+          errors.push(error);
+        }
+        await observation.drain();
+      }
+      if (errors.length)
+        throw new AggregateError(errors, "Young read-only interfaces failed");
+    });
+  });
+}

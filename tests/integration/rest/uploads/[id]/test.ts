@@ -1,125 +1,150 @@
-/**
- * E2E tests for PATCH /api/workspace/uploads/[id] and DELETE /api/workspace/uploads/[id].
- *
- * ## PATCH /api/workspace/uploads/[id]
- * - Body: { filename }
- * - Response: { upload: { id, key, filename, size, createdAt } }
- * - Auth required (401) + ownership check (404 if not owner)
- * - Returns 400 for empty filename
- *
- * ## DELETE /api/workspace/uploads/[id]
- * - Response: { deletedId, deletedSize }
- * - Auth required (401) + ownership check (404 if not owner)
- * - Deletes object from R2 then removes DB record
- *
- * ## Edge cases
- * - Renamed filename reflects in subsequent download
- * - Deleted upload no longer appears in GET /api/workspace/uploads
- * - Non-existent id on DELETE → 404
- */
-import { expect, test } from "@playwright/test";
-import { createUploadedFileViaApi } from "../../../../e2e/utils/uploads";
-import { signInAsDebugUserApi } from "../../_harness/auth";
-import { assertApiContract } from "../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { base, test } from "../_fixture";
 
-test("/api/workspace/uploads/[id]", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/workspace/uploads/[id]",
-  });
-});
-
-test("/api/workspace/uploads/[id] PATCH 未登录返回 401", async ({
-  request,
-}) => {
-  const response = await request.patch("/api/workspace/uploads/invalid-e2e", {
-    data: { filename: "should-fail.txt" },
-  });
-  expect(response.status()).toBe(401);
-});
-
-test("/api/workspace/uploads/[id] PATCH 可重命名上传文件", async ({
-  request,
-}) => {
-  test.setTimeout(60_000);
-  await signInAsDebugUserApi(request, "/");
-
-  const filename = `e2e-api-upload-${Date.now()}.txt`;
-  const renamedFilename = `renamed-${filename}`;
-  const uploaded = await createUploadedFileViaApi(request, {
-    filename,
-    contents: "rename test content",
+for (const method of ["patch", "delete"] as const) {
+  test(`anonymous upload ${method} returns JSON 401 without changing metadata or bytes`, {
+    tag: "@Upload/REST",
+  }, async ({ run, request, uploadState }) => {
+    await run(async () => {
+      const { db, knownUpload, bucket } = uploadState;
+      const upload = await knownUpload();
+      const before = await db.upload.findUniqueOrThrow({
+        where: { id: upload.id },
+      });
+      const response = await request[method](`${base}/${upload.id}`, {
+        data: { filename: "denied.txt" },
+      });
+      expect(response.status()).toBe(401);
+      expect((await response.json()).error).toEqual(expect.any(String));
+      expect(
+        await db.upload.findUniqueOrThrow({ where: { id: upload.id } }),
+      ).toEqual(before);
+      expect(
+        await new Response((await bucket.get(upload.key))?.body).text(),
+      ).toBe(upload.contents);
+    });
   });
 
-  try {
-    const renameResponse = await request.patch(
-      `/api/workspace/uploads/${uploaded.uploadId}`,
-      { data: { filename: renamedFilename } },
-    );
-    expect(renameResponse.status()).toBe(200);
-    const renameBody = (await renameResponse.json()) as {
-      upload?: { id?: string; filename?: string };
-    };
-    expect(renameBody.upload?.filename).toBe(renamedFilename);
-    expect(renameBody.upload?.id).toBe(uploaded.uploadId);
-
-    // Verify the download uses the new filename
-    const downloadResponse = await request.get(
-      `/api/workspace/uploads/${uploaded.uploadId}/download`,
-    );
-    expect(downloadResponse.status()).toBe(200);
-    expect(downloadResponse.headers()["content-disposition"]).toContain(
-      renamedFilename,
-    );
-  } finally {
-    await request.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
+  for (const isAdmin of [false, true]) {
+    test(`non-owner ${isAdmin ? "admin" : "user"} cannot ${method} an upload`, {
+      tag: "@Upload/REST",
+    }, async ({ run, createActor, uploadState }) => {
+      await run(async () => {
+        const { db, knownUpload, bucket } = uploadState;
+        const actor = await createActor({ isAdmin });
+        const upload = await knownUpload();
+        const before = await db.upload.findUniqueOrThrow({
+          where: { id: upload.id },
+        });
+        const response = await actor.request[method](`${base}/${upload.id}`, {
+          data: { filename: "denied.txt" },
+        });
+        expect(response.status()).toBe(404);
+        expect(
+          await db.upload.findUniqueOrThrow({ where: { id: upload.id } }),
+        ).toEqual(before);
+        expect(
+          await new Response((await bucket.get(upload.key))?.body).text(),
+        ).toBe(upload.contents);
+      });
+    });
   }
-});
+}
 
-test("/api/workspace/uploads/[id] DELETE 未登录返回 401", async ({
-  request,
-}) => {
-  const response = await request.delete("/api/workspace/uploads/invalid-e2e");
-  expect(response.status()).toBe(401);
-});
-
-test("/api/workspace/uploads/[id] DELETE 可删除上传文件并返回大小", async ({
-  request,
-}) => {
-  test.setTimeout(60_000);
-  await signInAsDebugUserApi(request, "/");
-
-  const filename = `e2e-api-upload-delete-${Date.now()}.txt`;
-  const uploaded = await createUploadedFileViaApi(request, {
-    filename,
-    contents: "delete test content",
+test("rename changes only metadata and the subsequent download filename", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
+  await run(async () => {
+    const { db, owner, knownUpload, bucket } = uploadState;
+    const upload = await knownUpload();
+    const response = await owner.request.patch(`${base}/${upload.id}`, {
+      data: { filename: "renamed.txt" },
+    });
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({
+      upload: { id: upload.id, filename: "renamed.txt" },
+    });
+    expect(
+      await db.upload.findUniqueOrThrow({ where: { id: upload.id } }),
+    ).toMatchObject({
+      filename: "renamed.txt",
+      key: upload.key,
+      size: upload.size,
+      userId: owner.id,
+    });
+    expect(
+      await new Response((await bucket.get(upload.key))?.body).text(),
+    ).toBe(upload.contents);
+    const download = await owner.request.get(`${base}/${upload.id}/download`);
+    expect(download.status()).toBe(200);
+    expect(download.headers()["content-disposition"]).toContain("renamed.txt");
+    expect(await download.text()).toBe(upload.contents);
   });
-
-  const deleteResponse = await request.delete(
-    `/api/workspace/uploads/${uploaded.uploadId}`,
-  );
-  expect(deleteResponse.status()).toBe(200);
-  const deleteBody = (await deleteResponse.json()) as {
-    deletedId?: string;
-    deletedSize?: number;
-  };
-  expect(deleteBody.deletedId).toBe(uploaded.uploadId);
-  expect(typeof deleteBody.deletedSize).toBe("number");
-
-  // Verify file no longer appears in uploads list
-  const listResponse = await request.get("/api/workspace/uploads");
-  expect(listResponse.status()).toBe(200);
-  const listBody = (await listResponse.json()) as {
-    data?: Array<{ id?: string }>;
-  };
-  expect(listBody.data?.some((u) => u.id === uploaded.uploadId)).toBe(false);
 });
 
-test("/api/workspace/uploads/[id] DELETE 不存在的 id 返回 404", async ({
-  request,
+test("empty rename leaves metadata and bytes unchanged", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
+  await run(async () => {
+    const { db, owner, knownUpload, bucket } = uploadState;
+    const upload = await knownUpload();
+    const before = await db.upload.findUniqueOrThrow({
+      where: { id: upload.id },
+    });
+    const response = await owner.request.patch(`${base}/${upload.id}`, {
+      data: { filename: "" },
+    });
+    expect(response.status()).toBe(400);
+    expect(
+      await db.upload.findUniqueOrThrow({ where: { id: upload.id } }),
+    ).toEqual(before);
+    expect(
+      await new Response((await bucket.get(upload.key))?.body).text(),
+    ).toBe(upload.contents);
+  });
+});
+
+test("delete removes the object and metadata, reports exact size and disappears from the list", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
+  await run(async () => {
+    const { db, owner, other, knownUpload, bucket } = uploadState;
+    const upload = await knownUpload();
+    const foreign = await knownUpload({
+      userId: other.id,
+      contents: "foreign bytes",
+    });
+    const response = await owner.request.delete(`${base}/${upload.id}`);
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({
+      deletedId: upload.id,
+      deletedSize: upload.size,
+    });
+    expect(await db.upload.findUnique({ where: { id: upload.id } })).toBeNull();
+    expect(await bucket.head(upload.key)).toBeNull();
+    expect(
+      await db.upload.findUniqueOrThrow({ where: { id: foreign.id } }),
+    ).toMatchObject({ userId: other.id });
+    expect(
+      await new Response((await bucket.get(foreign.key))?.body).text(),
+    ).toBe(foreign.contents);
+    const list = await owner.request.get(base);
+    expect(list.status()).toBe(200);
+    expect((await list.json()).data).toEqual([]);
+    expect((await owner.request.delete(`${base}/${upload.id}`)).status()).toBe(
+      404,
+    );
+  });
+});
+
+test("deleting an unknown upload returns 404", { tag: "@Upload/REST" }, async ({
+  run,
+  createActor,
 }) => {
-  await signInAsDebugUserApi(request, "/");
-  const response = await request.delete(
-    "/api/workspace/uploads/00000000-0000-0000-0000-000000000000",
-  );
-  expect(response.status()).toBe(404);
+  await run(async () => {
+    const owner = await createActor();
+    expect(
+      (await owner.request.delete(`${base}/${crypto.randomUUID()}`)).status(),
+    ).toBe(404);
+  });
 });

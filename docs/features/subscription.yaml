@@ -48,7 +48,7 @@ requirements:
     - Changing the search clears earlier manual selection.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/sections/test.ts
-      name: subscription.web-quick-add-selection
+      name: subscription.web-quick-add-selection (390px)
 - id: subscription.user-scoped
   category: authorization
   rule: Only the authenticated owner may read or change their section subscriptions. Personal academic
@@ -76,11 +76,11 @@ requirements:
   rationale: Independent database observations verify committed effects; reading the mutation response
     alone cannot establish that the state was persisted. Native protocol responses remain separately checked.
   acceptance:
-    given: An isolated acting owner and another owner have distinct memberships. The acting owner
-      is checked independently as a regular user and as a suspended administrator.
-    when: Browser journeys add and remove memberships, REST and GraphQL session and OAuth clients
-      and an HTTP MCP client independently add, update and remove memberships, and anonymous and
-      read-only clients attempt writes.
+    given: Each mutation case independently prepares an isolated acting owner, another owner and
+      the memberships required by that operation. The acting owner is checked as a regular user
+      and as a suspended administrator.
+    when: A browser, REST or GraphQL session or OAuth client, or an HTTP MCP client performs one
+      supported add, update or remove operation; separate anonymous and read-only cases attempt writes.
     then:
     - Each successful transition produces the explicitly expected persisted membership and personal kind.
     - The other owner's complete membership records and unrelated own membership remain unchanged.
@@ -88,32 +88,54 @@ requirements:
       preserve state.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/mutation-state.test.ts
-      name: 'REST session: regular modifies only personal subscription state'
+      name: 'REST session: regular add preserves other owners'
 - id: subscription.cross-surface-refresh
   category: consistency
   rule: A successful subscription change is visible after the consumer's supported navigation or
     explicit refresh. Unsubscribing removes academic projections without deleting personal todos or
     independent activity subscriptions; subscribing restores the corresponding academic projections.
-  rationale: Known-state consumer tests do not exercise stale page state or cache invalidation. A small
-    set of cross-entrypoint journeys verifies these connections without repeating every writer-reader pair.
+  rationale: Known-state consumers establish academic projections. Mutation cases additionally own
+    checks of their changed controls and supported refresh behavior, which stored state alone cannot prove.
   acceptance:
-    given: An isolated owner uses a teaching section with a deterministic schedule, homework and exam,
-      and also has an unrelated personal todo and activity subscription.
-    when: The owner subscribes and unsubscribes through the section page, navigates and reloads personal
-      pages, or refreshes an already open subscription page after an HTTP MCP mutation.
+    given: Independent add and remove cases prepare their required section membership. Consumer cases
+      prepare subscribed or unsubscribed owners with a dated schedule, homework, exam, personal todo
+      and independent activity subscription.
+    when: A Web mutation checks the section action after its change and reload, an HTTP MCP mutation
+      refreshes an already open subscription page, and consumers load their independently prepared states.
     then:
-    - The subscription list, calendar and time-appropriate overview agree with the committed membership.
-    - Reload preserves a completed subscription change and removes cancelled academic entries.
-    - The owner's personal todo and independently subscribed activity remain available.
+    - The section action and refreshed subscription list reflect the committed membership.
+    - Known-state calendar and time-appropriate overview contain academic entries only for subscribed
+      sections; personal todos and independently subscribed activities remain available.
+    - Reload preserves the resulting subscription state.
     test:
-      file: tests/e2e/src/app/workspace/subscriptions/subscription-journeys.test.ts
-      name: subscription.journey-web-projections-and-cancellation
+      file: tests/e2e/src/app/workspace/subscriptions/mutation-state.test.ts
+      name: 'Web: regular add refreshes the section subscription state'
+- id: subscription.calendar-export-membership
+  category: consistency
+  rule: A committed section unsubscribe requests an asynchronous rebuild of the owner's stored iCalendar
+    export. The real consumer removes that section's academic events without requiring a calendar-feed
+    read to repair the cache. Failed transactions and missing owners do not request a rebuild.
+  rationale: A successful mutation response and an empty subscription table do not establish that an
+    already stored calendar stopped exposing the removed section.
+  acceptance:
+    given: An isolated owner has subscribed to a dated academic event and the native queue consumer has
+      stored an export containing its UID, title and location.
+    when: REST batch removal or GraphQL subscriptionRemove deletes the membership, and the native calendar
+      queue consumes the resulting rebuild request.
+    then:
+    - The mutation response and independently read membership confirm removal.
+    - A second native delivery completes without retry and stores an export without the removed event.
+    - No calendar-feed read or direct exporter invocation repairs the cache during verification.
+    test:
+      file: tests/integration/rest/protocol-contracts/subscription-calendar-invalidation.test.ts
+      name: subscription removal rebuilds the stored calendar through rest-batch
 - id: subscription.bounded-batch-input
   category: validation
   rule: Subscription query and mutation requests accept at most 500 section ID entries and at most 500
     lookup-code entries per request.
   acceptance:
-    given: Five isolated owners and 500 newly created active Sections have distinct IDs and codes.
+    given: Each independent operation or query scenario prepares an isolated owner and 500 newly created
+      active Sections with distinct IDs and codes; removal scenarios seed their own memberships.
     when: Real REST query, append/remove, batch add/remove and import, GraphQL import, and OAuth HTTP
       MCP import receive 500 and 501 entries.
     then:
@@ -122,7 +144,22 @@ requirements:
       an earlier one.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/bounds-contract.test.ts
-      name: subscription.bounded-batch-input
+      name: subscription.bounded-batch-input REST append
+- id: subscription.literal-code-matching
+  category: validation
+  rule: Subscription lookup matches complete section or course codes after trimming whitespace,
+    without case sensitivity. Percent signs and underscores are literal code characters, not wildcards.
+    A course code matches its sections within the selected semester.
+  acceptance:
+    given: An isolated catalog has distinct section codes, two sections in one course, and similar
+      codes that would match a wildcard pattern.
+    when: Authenticated REST preview receives a lowercase section or course code with surrounding whitespace.
+    then:
+    - Only the exact section or the matching course's sections are returned.
+    - Preview leaves all memberships unchanged.
+    test:
+      file: tests/integration/rest/calendar-subscriptions/code-matching.test.ts
+      name: subscription.literal-code-matching course
 - id: subscription.per-user-rate-limit
   category: validation
   rule: Subscription batch writes enforce the configured per-user request budget. Exhausting one owner’s
@@ -153,7 +190,7 @@ requirements:
     - GraphQL rejects duplicates without a membership change and accepts unique add and remove requests.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/mutation-contract.test.ts
-      name: subscription.duplicate-input-semantics
+      name: subscription.duplicate-input-semantics REST batch present
 - id: subscription.membership-atomicity
   category: consistency
   rule: Each subscription membership mutation commits all of its matched additions or removals in one
@@ -171,7 +208,7 @@ requirements:
     - Retrying reports zero additions and preserves existing membership rows and timestamps.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/mutation-contract.test.ts
-      name: subscription.membership-atomicity
+      name: subscription.membership-atomicity append
 - id: subscription.personal-kind
   category: behavior
   applies_to:
@@ -272,7 +309,7 @@ requirements:
     - Every path preserves the existing kind and avoids duplicate memberships.
     test:
       file: tests/integration/subscription-kind.test.ts
-      name: subscription.import-preserves-kind
+      name: "existing teaching_assistant subscription > code import preserves the existing kind and creation timestamp"
 - id: subscription.kind-web-editor-location
   category: behavior
   rule: Web subscription-kind editing is available in workspace subscriptions.

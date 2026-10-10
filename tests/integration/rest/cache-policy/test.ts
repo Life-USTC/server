@@ -1,36 +1,47 @@
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../e2e/utils/dev-seed";
-import { signInAsDebugUserApi } from "../_harness/auth";
+import { expect } from "@playwright/test";
+import { signIn, test } from "../_harness/auth";
 
-test("private API successes and authentication errors never permit HTTP storage", async ({
-  request,
-}) => {
-  for (const path of ["/api/account/profile", "/api/workspace/overview"]) {
-    const response = await request.get(path);
-    expect(response.status()).toBe(401);
-    expect(response.headers()["cache-control"]).toBe("private, no-store");
-    expect(response.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
-  }
+for (const domain of ["Account", "Overview", "Comment", "Homework"] as const)
+  test(`${domain} private API responses never permit HTTP storage`, {
+    tag: `@${domain}/REST`,
+  }, async ({ run, request, account, catalogSection }) => {
+    await run(async () => {
+      const path = {
+        Account: "/api/account/profile",
+        Overview: "/api/workspace/overview",
+        Comment: `/api/community/comments?targetType=section&sectionJwId=${catalogSection.jwId}`,
+        Homework: `/api/community/section-homeworks?sectionJwId=${catalogSection.jwId}`,
+      }[domain];
+      if (domain === "Account" || domain === "Overview") {
+        const response = await request.get(path);
+        expect(response.status()).toBe(401);
+        expect(response.headers()["cache-control"]).toBe("private, no-store");
+        expect(response.headers()["cloudflare-cdn-cache-control"]).toBe(
+          "no-store",
+        );
+      }
+      await signIn(request, account);
+      const response = await request.get(path);
+      expect(response.status(), path).toBe(200);
+      expect(response.headers()["cache-control"], path).toBe(
+        "private, no-store",
+      );
+      expect(response.headers()["cloudflare-cdn-cache-control"], path).toBe(
+        "no-store",
+      );
+    });
+  });
 
-  await signInAsDebugUserApi(request, "/");
-  for (const path of [
-    "/api/account/profile",
-    "/api/workspace/overview",
-    `/api/community/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
-    `/api/community/section-homeworks?sectionJwId=${DEV_SEED.section.jwId}`,
-  ]) {
-    const response = await request.get(path);
-    expect(response.status(), path).toBe(200);
-    expect(response.headers()["cache-control"], path).toBe("private, no-store");
-    expect(response.headers()["cloudflare-cdn-cache-control"], path).toBe(
-      "no-store",
+test("Catalog public API responses permit HTTP storage", {
+  tag: "@Course/REST",
+}, async ({ run, request, account }) => {
+  await run(async () => {
+    await signIn(request, account);
+    const response = await request.get("/api/catalog/courses?locale=zh-cn");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toContain("public");
+    expect(response.headers()["cloudflare-cdn-cache-control"]).toContain(
+      "public",
     );
-  }
-
-  const publicResponse = await request.get("/api/catalog/courses?locale=zh-cn");
-  expect(publicResponse.status()).toBe(200);
-  expect(publicResponse.headers()["cache-control"]).toContain("public");
-  expect(publicResponse.headers()["cloudflare-cdn-cache-control"]).toContain(
-    "public",
-  );
+  });
 });

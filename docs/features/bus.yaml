@@ -36,17 +36,17 @@ requirements:
   acceptance:
     given: Two isolated owners have independent preference rows and resource-bound OAuth credentials;
       the real services use the restricted application database role.
-    when: Actual loopback REST, GraphQL and native MCP HTTP requests save null-campus preferences and
-      toggle the departed-trip setting, attempt anonymous or read-scope writes and unknown origin or
-      destination IDs, then repeat successful writes during an active suspension.
+    when: Independent cases send real Worker REST, GraphQL and MCP HTTP requests for successful updates,
+      anonymous or read-scope rejection, invalid origin or destination IDs, and updates during suspension.
+      Each case prepares its own owners and initial preference state.
     then:
     - Successful writes change only the authenticated owner's row, including during suspension; the returned preference contains exactly origin, destination and showDepartedTrips with their committed values.
     - Anonymous and insufficient-scope writes are rejected before persistence.
     - Unknown campuses retain both owners' exact rows and produce REST 400, GraphQL BAD_USER_INPUT
       or native MCP invalid_bus_preference according to the declared transport error shape.
     test:
-      file: tests/integration/personal-setting-authority.test.ts
-      name: bus.preference-owner-state
+      file: tests/integration/rest/protocol-contracts/personal-setting-authority.test.ts
+      name: "bus preferences disable preserves ownership through rest"
 - id: bus.public-web-personal-overlay
   category: privacy
   rule: Public bus HTML contains public timetable data without saved user preferences.

@@ -1,135 +1,136 @@
-/**
- * E2E tests for PUT /api/workspace/uploads/object.
- *
- * ## PUT /api/workspace/uploads/object
- * - Query: key (required, must belong to current user)
- * - Body: binary file contents
- * - Headers: Content-Length (required)
- * - Response: { success: true }
- * - Auth required (401 if unauthenticated)
- * - Returns 400 for missing key or expired session
- * - Returns 403 if key does not start with uploads/{userId}/
- * - Returns 413 if content length exceeds max file size
- *
- * ## Edge cases
- * - Unauthenticated PUT → 401
- * - Missing key → 400
- * - Key prefix mismatch → 403
- * - Full flow: POST /api/workspace/uploads session → PUT object → POST /api/workspace/uploads/complete
- */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUserApi } from "../../_harness/auth";
-import { assertApiContract } from "../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { base, test } from "../_fixture";
 
-test("/api/workspace/uploads/object", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/workspace/uploads/object",
-  });
-});
+const path = `${base}/object`;
 
-test("PUT /api/workspace/uploads/object 未登录返回 401", async ({
-  request,
-}) => {
-  const response = await request.put(
-    "/api/workspace/uploads/object?key=uploads/test/key.txt",
-    {
+test("anonymous object PUT returns JSON 401 without changing a reservation", {
+  tag: "@Upload/REST",
+}, async ({ run, request, uploadState }) => {
+  await run(async () => {
+    const { db, pending, bucket } = uploadState;
+    const reservation = await pending();
+    const before = await db.uploadPending.findUniqueOrThrow({
+      where: { id: reservation.id },
+    });
+    const response = await request.put(`${path}?key=${reservation.key}`, {
       data: Buffer.from("hello"),
-      headers: {
-        "Content-Type": "text/plain",
-        "Content-Length": "5",
-      },
-    },
-  );
-  expect(response.status()).toBe(401);
-});
-
-test("PUT /api/workspace/uploads/object 缺少 key 返回 400", async ({
-  request,
-}) => {
-  await signInAsDebugUserApi(request, "/");
-  const response = await request.put("/api/workspace/uploads/object", {
-    data: Buffer.from("hello"),
-    headers: {
-      "Content-Type": "text/plain",
-      "Content-Length": "5",
-    },
+    });
+    expect(response.status()).toBe(401);
+    expect((await response.json()).error).toEqual(expect.any(String));
+    expect(
+      await db.uploadPending.findUniqueOrThrow({
+        where: { id: reservation.id },
+      }),
+    ).toEqual(before);
+    expect(await bucket.head(reservation.key)).toBeNull();
   });
-  expect(response.status()).toBe(400);
 });
 
-test("PUT /api/workspace/uploads/object key 前缀不匹配返回 403", async ({
-  request,
+test("object PUT requires a key", { tag: "@Upload/REST" }, async ({
+  run,
+  createActor,
 }) => {
-  await signInAsDebugUserApi(request, "/");
-  const response = await request.put(
-    "/api/workspace/uploads/object?key=uploads/other-user/test.txt",
-    {
+  await run(async () => {
+    const owner = await createActor();
+    const response = await owner.request.put(path, {
       data: Buffer.from("hello"),
-      headers: {
-        "Content-Type": "text/plain",
-        "Content-Length": "5",
-      },
-    },
-  );
-  expect(response.status()).toBe(403);
+    });
+    expect(response.status()).toBe(400);
+    expect((await response.json()).error).toEqual(expect.any(String));
+  });
 });
 
-test("PUT /api/workspace/uploads/object 可上传二进制对象并完成", async ({
-  request,
-}) => {
-  test.setTimeout(60_000);
-  await signInAsDebugUserApi(request, "/");
-
-  const filename = `e2e-api-upload-object-${Date.now()}.txt`;
-  const contents = "hello upload object endpoint";
-  const size = Buffer.byteLength(contents);
-
-  const sessionResponse = await request.post("/api/workspace/uploads", {
-    data: {
-      filename,
-      contentType: "text/plain",
-      size,
-    },
+test("object PUT rejects another owner's key without changing its bytes or reservation", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
+  await run(async () => {
+    const { db, owner, other, pending, bucket } = uploadState;
+    const reservation = await pending({
+      userId: other.id,
+      phase: "uploaded",
+      contents: "prior",
+    });
+    const before = await db.uploadPending.findUniqueOrThrow({
+      where: { id: reservation.id },
+    });
+    const response = await owner.request.put(`${path}?key=${reservation.key}`, {
+      data: Buffer.from("hello"),
+    });
+    expect(response.status()).toBe(403);
+    expect(
+      await db.uploadPending.findUniqueOrThrow({
+        where: { id: reservation.id },
+      }),
+    ).toEqual(before);
+    expect(
+      await new Response((await bucket.get(reservation.key))?.body).text(),
+    ).toBe("prior");
   });
-  expect(sessionResponse.status()).toBe(200);
-  const sessionBody = (await sessionResponse.json()) as {
-    key?: string;
-    url?: string;
-    maxFileSizeBytes?: number;
-  };
-  expect(typeof sessionBody.key).toBe("string");
-  expect(typeof sessionBody.url).toBe("string");
-  expect(typeof sessionBody.maxFileSizeBytes).toBe("number");
-
-  const putResponse = await request.put(sessionBody.url as string, {
-    data: Buffer.from(contents),
-    headers: {
-      "Content-Type": "text/plain",
-      "Content-Length": String(size),
-    },
-  });
-  expect(putResponse.status(), await putResponse.text()).toBe(200);
-  const putBody = (await putResponse.json()) as { success?: boolean };
-  expect(putBody.success).toBe(true);
-
-  const completeResponse = await request.post(
-    "/api/workspace/uploads/complete",
-    {
-      data: {
-        key: sessionBody.key,
-        filename,
-        contentType: "text/plain",
-      },
-    },
-  );
-  expect(completeResponse.status()).toBe(200);
-  const completeBody = (await completeResponse.json()) as {
-    upload?: { id?: string; filename?: string; size?: number };
-  };
-  expect(typeof completeBody.upload?.id).toBe("string");
-  expect(completeBody.upload?.filename).toBe(filename);
-  expect(completeBody.upload?.size).toBe(size);
-
-  // Cleanup
-  await request.delete(`/api/workspace/uploads/${completeBody.upload?.id}`);
 });
+
+test("object PUT stores exact bytes and metadata and settles its reservation lease", {
+  tag: "@Upload/REST",
+}, async ({ run, uploadState }) => {
+  await run(async () => {
+    const { db, owner, pending, bucket } = uploadState;
+    const reservation = await pending();
+    const response = await owner.request.put(`${path}?key=${reservation.key}`, {
+      data: Buffer.from("hello"),
+      headers: { "content-type": "text/plain", "content-length": "5" },
+    });
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(await bucket.head(reservation.key)).toMatchObject({
+      size: 5,
+      httpMetadata: { contentType: "text/plain" },
+    });
+    expect(
+      await new Response((await bucket.get(reservation.key))?.body).text(),
+    ).toBe("hello");
+    expect(
+      await db.uploadPending.findUniqueOrThrow({
+        where: { id: reservation.id },
+      }),
+    ).toMatchObject({ phase: "uploaded", leaseExpiresAt: null });
+    expect(await db.upload.count({ where: { userId: owner.id } })).toBe(0);
+  });
+});
+
+for (const failure of ["expired", "exceeds reservation"] as const) {
+  test(`object PUT ${failure} preserves previous bytes and reservation state`, {
+    tag: "@Upload/REST",
+  }, async ({ run, uploadState }) => {
+    await run(async () => {
+      const { db, owner, pending, bucket } = uploadState;
+      const reservation = await pending({
+        contents: "prior",
+        phase: "uploaded",
+        ...(failure === "expired"
+          ? { expiresAt: new Date(Date.now() - 60_000) }
+          : {}),
+      });
+      const before = await db.uploadPending.findUniqueOrThrow({
+        where: { id: reservation.id },
+      });
+      const response = await owner.request.put(
+        `${path}?key=${reservation.key}`,
+        {
+          data: Buffer.from(failure === "expired" ? "hello" : "longer"),
+        },
+      );
+      expect(response.status()).toBe(failure === "expired" ? 400 : 413);
+      expect(await response.json()).toEqual({
+        error:
+          failure === "expired" ? "Upload session expired" : "File too large",
+      });
+      expect(
+        await db.uploadPending.findUniqueOrThrow({
+          where: { id: reservation.id },
+        }),
+      ).toEqual(before);
+      expect(
+        await new Response((await bucket.get(reservation.key))?.body).text(),
+      ).toBe("prior");
+    });
+  });
+}

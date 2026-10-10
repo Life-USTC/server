@@ -1,21 +1,21 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
+import { expect, type Page } from "@playwright/test";
+import type { CalendarProtocol } from "../../../../utils/calendar-protocol-lifecycle";
+import { test } from "../../../../utils/private-calendar-fixture";
+import { type OAuthOwner, parseTextContent } from "../../api/mcp/helpers";
+import { memberships, prepareContract } from "./_contract";
 
-test("subscription.bounded-batch-input", async ({ page, request }) => {
-  test.setTimeout(180_000);
+async function prepare(
+  page: Page,
+  owner: OAuthOwner,
+  io: CalendarProtocol,
+  semesterId: number,
+  messages: number,
+) {
+  const db = owner.worker.database.owner;
   const marker = crypto.randomUUID().slice(0, 8);
-  const fixture = await withE2ePrisma(async (db) => {
-    const seed = await db.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.section.jwId },
-    });
+  const fixture = await db.$transaction(async (tx) => {
     const base = 1_700_000_000 + Math.floor(Math.random() * 10_000_000);
-    const course = await db.course.create({
+    const course = await tx.course.create({
       data: {
         jwId: base,
         code: `BOUND${marker}`,
@@ -23,55 +23,54 @@ test("subscription.bounded-batch-input", async ({ page, request }) => {
         nameEn: `Subscription bounds ${marker}`,
       },
     });
-    await db.section.createMany({
+    await tx.section.createMany({
       data: Array.from({ length: 500 }, (_, i) => ({
         jwId: base + i + 1,
         code: `${course.code}.${String(i + 1).padStart(3, "0")}`,
         courseId: course.id,
-        semesterId: seed.semesterId,
+        semesterId,
       })),
     });
-    const sections = await db.section.findMany({
+    const sections = await tx.section.findMany({
       where: { courseId: course.id },
       orderBy: { id: "asc" },
     });
-    const users = [];
-    for (let i = 0; i < 5; i++) {
-      const username = `sub-bound-${marker}-${i}`;
-      users.push(
-        await db.user.create({
-          data: {
-            username,
-            name: username,
-            email: `${username}@example.test`,
-            emailVerified: true,
-          },
-        }),
-      );
-    }
-    return { course, sections, users, semesterId: seed.semesterId };
+    const username = `sub-bound-${marker}`;
+    const user = await tx.user.create({
+      data: {
+        id: crypto.randomUUID(),
+        username,
+        name: username,
+        email: `${username}@example.test`,
+        emailVerified: true,
+      },
+    });
+    return { course, sections, user, semesterId };
   });
-  let clientId: string | undefined;
-  const ids = fixture.sections.map(({ id }) => id);
-  const codes = fixture.sections.map(({ code }) => code);
-  const oversizeIds = [...ids, ids[0]];
-  const oversizeCodes = [...codes, codes[0]];
-  async function owner(index: number) {
-    await page.context().clearCookies();
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[index].id)]);
-  }
-  async function memberships(index: number) {
-    return withE2ePrisma((db) =>
-      db.userSectionSubscription.findMany({
-        where: { userId: fixture.users[index].id },
-        orderBy: { sectionId: "asc" },
-      }),
+  const userId = fixture.user.id;
+  const contract = await prepareContract(page, owner, io, [userId], messages);
+  return {
+    db,
+    fixture,
+    userId,
+    contract,
+    ids: fixture.sections.map(({ id }) => id),
+    codes: fixture.sections.map(({ code }) => code),
+  };
+}
+
+test("subscription.bounded-batch-input REST query", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
+  test.setTimeout(180_000);
+  await calendarProtocolRun(async (io) => {
+    const { db, fixture, userId, contract, ids, codes } = await prepare(
+      page,
+      oauthOwner,
+      io,
+      calendarSemester,
+      0,
     );
-  }
-  try {
-    await owner(0);
     for (const field of ["sectionIds", "codes"] as const) {
       const values = field === "sectionIds" ? ids : codes;
       const query = await page.request.post(
@@ -89,89 +88,253 @@ test("subscription.bounded-batch-input", async ({ page, request }) => {
           },
         },
       );
+      await oversized.body();
       expect(oversized.status()).toBe(400);
     }
-    expect(await memberships(0)).toHaveLength(0);
+    expect(await memberships(db, userId)).toEqual([]);
+    return contract.checks(
+      [],
+      [["POST", "/api/workspace/subscriptions/query", [200, 400, 200, 400]]],
+    );
+  });
+});
+
+test("subscription.bounded-batch-input REST append", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
+  test.setTimeout(180_000);
+  await calendarProtocolRun(async (io) => {
+    const { db, userId, contract, ids } = await prepare(
+      page,
+      oauthOwner,
+      io,
+      calendarSemester,
+      1,
+    );
+    expect(await memberships(db, userId)).toEqual([]);
     const appended = await page.request.patch("/api/workspace/subscriptions", {
       data: { sectionIds: ids },
     });
     expect(appended.status()).toBe(200);
     expect((await appended.json()).addedCount).toBe(500);
-    const baseline = await memberships(0);
+    const baseline = await memberships(db, userId);
     expect(baseline).toHaveLength(500);
-    for (const method of ["patch", "delete"] as const) {
-      expect(
-        (
-          await page.request[method]("/api/workspace/subscriptions", {
-            data: { sectionIds: oversizeIds },
-          })
-        ).status(),
-      ).toBe(400);
-      expect(await memberships(0)).toEqual(baseline);
-    }
-    expect(
-      (
-        await page.request.delete("/api/workspace/subscriptions", {
-          data: { sectionIds: ids },
-        })
-      ).status(),
-    ).toBe(200);
-    expect(await memberships(0)).toHaveLength(0);
+    const oversized = await page.request.patch("/api/workspace/subscriptions", {
+      data: { sectionIds: [...ids, ids[0]] },
+    });
+    await oversized.body();
+    expect(oversized.status()).toBe(400);
+    expect(await memberships(db, userId)).toEqual(baseline);
 
-    await owner(1);
-    for (const field of ["sectionIds", "codes"] as const) {
+    return contract.checks(ids, [
+      ["PATCH", "/api/workspace/subscriptions", [200, 400]],
+    ]);
+  });
+});
+
+test("subscription.bounded-batch-input REST remove", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
+  test.setTimeout(180_000);
+  await calendarProtocolRun(async (io) => {
+    const { db, userId, contract, ids } = await prepare(
+      page,
+      oauthOwner,
+      io,
+      calendarSemester,
+      1,
+    );
+    await db.userSectionSubscription.createMany({
+      data: ids.map((sectionId) => ({ userId, sectionId })),
+    });
+    const baseline = await memberships(db, userId);
+    expect(baseline).toHaveLength(500);
+    const oversized = await page.request.delete(
+      "/api/workspace/subscriptions",
+      {
+        data: { sectionIds: [...ids, ids[0]] },
+      },
+    );
+    await oversized.body();
+    expect(oversized.status()).toBe(400);
+    expect(await memberships(db, userId)).toEqual(baseline);
+    const removed = await page.request.delete("/api/workspace/subscriptions", {
+      data: { sectionIds: ids },
+    });
+    await removed.body();
+    expect(removed.status()).toBe(200);
+    expect(await memberships(db, userId)).toEqual([]);
+
+    return contract.checks(
+      [],
+      [["DELETE", "/api/workspace/subscriptions", [400, 200]]],
+    );
+  });
+});
+
+for (const field of ["sectionIds", "codes"] as const) {
+  test(`subscription.bounded-batch-input REST batch add ${field}`, {
+    tag: "@Subscription/REST",
+  }, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
+    test.setTimeout(180_000);
+    await calendarProtocolRun(async (io) => {
+      const { db, fixture, userId, contract, ids, codes } = await prepare(
+        page,
+        oauthOwner,
+        io,
+        calendarSemester,
+        1,
+      );
       const values = field === "sectionIds" ? ids : codes;
-      for (const action of ["add", "remove"]) {
-        const result = await page.request.post(
-          "/api/workspace/subscriptions/batch",
-          { data: { action, [field]: values, semesterId: fixture.semesterId } },
-        );
-        expect(result.status()).toBe(200);
-        expect(
-          (await result.json())[
-            action === "add" ? "addedCount" : "removedCount"
-          ],
-        ).toBe(500);
-        const beforeOversize = await memberships(1);
-        expect(
-          (
-            await page.request.post("/api/workspace/subscriptions/batch", {
-              data: {
-                action,
-                [field]: [...values, values[0]],
-                semesterId: fixture.semesterId,
-              },
-            })
-          ).status(),
-        ).toBe(400);
-        expect(await memberships(1)).toEqual(beforeOversize);
-      }
-    }
+      expect(await memberships(db, userId)).toEqual([]);
+      const added = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "add",
+            [field]: values,
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      expect(added.status()).toBe(200);
+      expect((await added.json()).addedCount).toBe(500);
+      const baseline = await memberships(db, userId);
+      expect(baseline).toHaveLength(500);
+      const oversized = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "add",
+            [field]: [...values, values[0]],
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      await oversized.body();
+      expect(oversized.status()).toBe(400);
+      expect(await memberships(db, userId)).toEqual(baseline);
 
-    await owner(2);
+      return contract.checks(ids, [
+        ["POST", "/api/workspace/subscriptions/batch", [200, 400]],
+      ]);
+    });
+  });
+
+  test(`subscription.bounded-batch-input REST batch remove ${field}`, {
+    tag: "@Subscription/REST",
+  }, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
+    test.setTimeout(180_000);
+    await calendarProtocolRun(async (io) => {
+      const { db, fixture, userId, contract, ids, codes } = await prepare(
+        page,
+        oauthOwner,
+        io,
+        calendarSemester,
+        1,
+      );
+      await db.userSectionSubscription.createMany({
+        data: ids.map((sectionId) => ({ userId, sectionId })),
+      });
+      const baseline = await memberships(db, userId);
+      expect(baseline).toHaveLength(500);
+      const values = field === "sectionIds" ? ids : codes;
+      const oversized = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "remove",
+            [field]: [...values, values[0]],
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      await oversized.body();
+      expect(oversized.status()).toBe(400);
+      expect(await memberships(db, userId)).toEqual(baseline);
+      const removed = await page.request.post(
+        "/api/workspace/subscriptions/batch",
+        {
+          data: {
+            action: "remove",
+            [field]: values,
+            semesterId: fixture.semesterId,
+          },
+        },
+      );
+      expect(removed.status()).toBe(200);
+      expect((await removed.json()).removedCount).toBe(500);
+      expect(await memberships(db, userId)).toEqual([]);
+
+      return contract.checks(
+        [],
+        [["POST", "/api/workspace/subscriptions/batch", [400, 200]]],
+      );
+    });
+  });
+}
+
+test("subscription.bounded-batch-input REST import", {
+  tag: "@Subscription/REST",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
+  test.setTimeout(180_000);
+  await calendarProtocolRun(async (io) => {
+    const { db, fixture, userId, contract, ids, codes } = await prepare(
+      page,
+      oauthOwner,
+      io,
+      calendarSemester,
+      1,
+    );
+    const oversizeCodes = [...codes, codes[0]];
     const imported = await page.request.post(
       "/api/workspace/subscriptions/import-codes",
       { data: { codes, semesterId: fixture.semesterId } },
     );
     expect(imported.status()).toBe(200);
     expect((await imported.json()).addedCount).toBe(500);
-    const restImportState = await memberships(2);
-    expect(
-      (
-        await page.request.post("/api/workspace/subscriptions/import-codes", {
-          data: { codes: oversizeCodes, semesterId: fixture.semesterId },
-        })
-      ).status(),
-    ).toBe(400);
-    expect(await memberships(2)).toEqual(restImportState);
+    const restImportState = await memberships(db, userId);
+    const oversized = await page.request.post(
+      "/api/workspace/subscriptions/import-codes",
+      {
+        data: { codes: oversizeCodes, semesterId: fixture.semesterId },
+      },
+    );
+    await oversized.body();
+    expect(oversized.status()).toBe(400);
+    expect(await memberships(db, userId)).toEqual(restImportState);
 
-    await owner(3);
+    return contract.checks(ids, [
+      ["POST", "/api/workspace/subscriptions/import-codes", [200, 400]],
+    ]);
+  });
+});
+
+test("subscription.bounded-batch-input GraphQL import", {
+  tag: "@Subscription/GraphQL",
+}, async ({
+  page,
+  oauthOwner,
+  calendarProtocolRun,
+  calendarSemester,
+  isolatedWorker,
+}) => {
+  test.setTimeout(180_000);
+  await calendarProtocolRun(async (io) => {
+    const { db, fixture, userId, contract, ids, codes } = await prepare(
+      page,
+      oauthOwner,
+      io,
+      calendarSemester,
+      1,
+    );
+    const oversizeCodes = [...codes, codes[0]];
     const mutation =
       "mutation($input: UpdateSectionSubscriptionsInput!) { subscriptionsImport(input: $input) { addedCount } }";
     const gql = async (values: string[]) =>
       (
         await page.request.post("/api/graphql", {
-          headers: { origin: PLAYWRIGHT_BASE_URL },
+          headers: { origin: isolatedWorker.origin },
           data: {
             query: mutation,
             variables: {
@@ -187,54 +350,36 @@ test("subscription.bounded-batch-input", async ({ page, request }) => {
     const gqlImport = await gql(codes);
     expect(gqlImport.errors).toBeUndefined();
     expect(gqlImport.data.subscriptionsImport.addedCount).toBe(500);
-    const gqlState = await memberships(3);
+    const gqlState = await memberships(db, userId);
     expect((await gql(oversizeCodes)).errors[0].extensions.code).toBe(
       "BAD_USER_INPUT",
     );
-    expect(await memberships(3)).toEqual(gqlState);
+    expect(await memberships(db, userId)).toEqual(gqlState);
 
-    await owner(4);
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    const scope = "workspace.subscription:write";
-    const token = await issueAccessToken(page, request, {
-      resource,
-      scope,
-      clientScopes: [scope],
-    });
-    clientId = token.clientId;
-    const client = new Client({ name: "subscription-bounds", version: "1" });
-    try {
-      await client.connect(
-        new StreamableHTTPClientTransport(new URL(resource), {
-          requestInit: {
-            headers: { Authorization: `Bearer ${token.accessToken}` },
-          },
-        }),
-      );
-      const result = await client.callTool({
-        name: "workspace_subscription_import",
-        arguments: { codes, semesterId: fixture.semesterId },
-      });
-      expect(result.isError).not.toBe(true);
-      expect(parseTextContent(result).addedCount).toBe(500);
-      const mcpState = await memberships(4);
-      const rejected = await client.callTool({
-        name: "workspace_subscription_import",
-        arguments: { codes: oversizeCodes, semesterId: fixture.semesterId },
-      });
-      expect(rejected.isError).toBe(true);
-      expect(await memberships(4)).toEqual(mcpState);
-    } finally {
-      await client.close();
-    }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      if (clientId) await db.oAuthClient.delete({ where: { clientId } });
-      const userIds = fixture.users.map(({ id }) => id);
-      await db.auditLog.deleteMany({ where: { userId: { in: userIds } } });
-      await db.user.deleteMany({ where: { id: { in: userIds } } });
-      await db.section.deleteMany({ where: { courseId: fixture.course.id } });
-      await db.course.delete({ where: { id: fixture.course.id } });
-    });
-  }
+    return contract.checks(ids, [["POST", "/api/graphql", [200, 400]]]);
+  });
+});
+
+test("subscription.bounded-batch-input MCP import", {
+  tag: "@Subscription/MCP",
+}, async ({ page, oauthOwner, calendarProtocolRun, calendarSemester }) => {
+  test.setTimeout(180_000);
+  await calendarProtocolRun(async (io) => {
+    const { db, fixture, userId, contract, ids, codes } = await prepare(
+      page,
+      oauthOwner,
+      io,
+      calendarSemester,
+      1,
+    );
+    const call = await contract.authorizeImports("subscription-bounds");
+    const result = await call(codes, fixture.semesterId);
+    expect(result.isError).not.toBe(true);
+    expect(parseTextContent(result).addedCount).toBe(500);
+    const mcpState = await memberships(db, userId);
+    const rejected = await call([...codes, codes[0]], fixture.semesterId, true);
+    expect(rejected.isError).toBe(true);
+    expect(await memberships(db, userId)).toEqual(mcpState);
+    return contract.checks(ids, [], 2, 1);
+  });
 });

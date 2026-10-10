@@ -1,10 +1,6 @@
-import { expect, type Locator, test } from "@playwright/test";
-import {
-  cleanupEmbeddedTablePolicyFixture,
-  createEmbeddedTablePolicyFixture,
-} from "../../../utils/embedded-table-policy-fixture";
+import { expect, type Locator } from "@playwright/test";
+import { test } from "../../../utils/embedded-table-policy-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
 type Alignment = "left" | "right" | "center" | null;
 
@@ -67,15 +63,42 @@ async function checkFacts(table: Locator, name: string) {
   }
 }
 
-test("ui.data-table-cells-4", async ({ page, baseURL }) => {
-  test.setTimeout(120_000);
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  const f = await createEmbeddedTablePolicyFixture();
-  try {
+for (const [domain, names] of [
+  ["Young", ["young-events", "young-organizers"]],
+  ["Upload", ["uploads"]],
+  ["Homework", ["section-homeworks", "homeworks"]],
+  ["Exam", ["section-exams", "exams"]],
+  ["Schedule", ["section-calendar"]],
+  ["Todo", ["todos"]],
+  ["Subscription", ["subscriptions"]],
+  ["CatalogLink", ["signed-links"]],
+  ["Publication", ["sources"]],
+  [
+    "Admin",
+    [
+      "admin-users",
+      "admin-comments",
+      "admin-descriptions",
+      "admin-homeworks",
+      "admin-suspensions",
+      "admin-oauth",
+      "admin-bus",
+    ],
+  ],
+  ["Bus", []],
+] as const) {
+  test(`ui.data-table-cells-4 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    page,
+    baseURL,
+    isolatedWorker,
+    busEmbedded: f,
+  }) => {
+    test.setTimeout(120_000);
+    if (!baseURL) throw new Error("Missing Playwright baseURL");
     await page
       .context()
       .addCookies([
-        await createSignedSessionCookie(f.admin.id),
+        (await isolatedWorker.createSession(f.admin.id)).cookie,
         { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
       ]);
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -185,64 +208,74 @@ test("ui.data-table-cells-4", async ({ page, baseURL }) => {
         columns: ["left", "left", "right", "left", "right", "center", "right"],
       },
     ];
+    let currentPath: string | undefined;
     for (const item of cases) {
-      await gotoAndWaitForReady(page, item.path);
+      if (!names.some((name) => name === item.name)) continue;
+      if (item.path !== currentPath) {
+        await gotoAndWaitForReady(page, item.path);
+        currentPath = item.path;
+      }
       await checkColumns(
         page.locator(item.selector ?? "main table:visible").first(),
         item.columns,
         item.name,
       );
+      if (item.name === "todos") {
+        await page
+          .getByRole("button", { name: f.todo.title, exact: true })
+          .click();
+        await checkFacts(
+          page.getByRole("dialog").locator("table"),
+          "todo-details",
+        );
+        await page.keyboard.press("Escape");
+      } else if (item.name === "homeworks") {
+        await page
+          .getByRole("button", { name: f.homework.title, exact: true })
+          .click();
+        await checkFacts(
+          page.getByTestId("homework-secondary-details").locator("table"),
+          "homework-details",
+        );
+        await page.keyboard.press("Escape");
+      }
     }
-    await gotoAndWaitForReady(page, "/workspace/todos");
-    await page.getByRole("button", { name: f.todo.title, exact: true }).click();
-    await checkFacts(page.getByRole("dialog").locator("table"), "todo-details");
-    await page.keyboard.press("Escape");
-    await gotoAndWaitForReady(
-      page,
-      `/workspace/homeworks?semester=${f.catalog.semester.code}`,
-    );
-    await page
-      .getByRole("button", { name: f.homework.title, exact: true })
-      .click();
-    await checkFacts(
-      page.getByTestId("homework-secondary-details").locator("table"),
-      "homework-details",
-    );
-    await page.keyboard.press("Escape");
     await page.context().clearCookies();
     await page
       .context()
       .addCookies([{ name: "NEXT_LOCALE", value: "en-us", url: baseURL }]);
-    await gotoAndWaitForReady(page, "/catalog/links?linkView=list");
-    await checkColumns(
-      page.locator("main table:visible").first(),
-      ["left", "left"],
-      "anonymous-links",
-    );
-    await gotoAndWaitForReady(page, "/catalog/bus");
-    // The seeded routes have weekday trips; layout checks must not depend on today.
-    const weekday = page.getByRole("radio", { name: "Weekday", exact: true });
-    await weekday.click();
-    await expect(weekday).toHaveAttribute("aria-checked", "true");
-    await page
-      .getByRole("switch", { name: "Show departed trips", exact: true })
-      .click();
-    const groups = page.getByTestId("bus-route-section");
-    expect(await groups.count()).toBeGreaterThan(0);
-    for (const bus of await groups.all()) {
-      const count = await bus.locator('th[scope="col"]').count();
-      expect(count).toBeGreaterThanOrEqual(2);
+    if (domain === "CatalogLink") {
+      await gotoAndWaitForReady(page, "/catalog/links?linkView=list");
       await checkColumns(
-        bus,
-        Array.from({ length: count }, (_, index) =>
-          index === 0 ? "left" : index === count - 1 ? "right" : "center",
-        ),
-        "bus-stops",
-        'th[scope="col"]',
-        "tr:has(td[headers])",
+        page.locator("main table:visible").first(),
+        ["left", "left"],
+        "anonymous-links",
       );
     }
-  } finally {
-    await cleanupEmbeddedTablePolicyFixture(f);
-  }
-});
+    if (domain === "Bus") {
+      await gotoAndWaitForReady(page, "/catalog/bus");
+      // The seeded routes have weekday trips; layout checks must not depend on today.
+      const weekday = page.getByRole("radio", { name: "Weekday", exact: true });
+      await weekday.click();
+      await expect(weekday).toHaveAttribute("aria-checked", "true");
+      await page
+        .getByRole("switch", { name: "Show departed trips", exact: true })
+        .click();
+      const groups = page.getByTestId("bus-route-section");
+      expect(await groups.count()).toBeGreaterThan(0);
+      for (const bus of await groups.all()) {
+        const count = await bus.locator('th[scope="col"]').count();
+        expect(count).toBeGreaterThanOrEqual(2);
+        await checkColumns(
+          bus,
+          Array.from({ length: count }, (_, index) =>
+            index === 0 ? "left" : index === count - 1 ? "right" : "center",
+          ),
+          "bus-stops",
+          'th[scope="col"]',
+          "tr:has(td[headers])",
+        );
+      }
+    }
+  });
+}

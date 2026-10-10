@@ -1,5 +1,3 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect, type Page } from "@playwright/test";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
@@ -9,77 +7,37 @@ import {
 } from "@/lib/oauth/constants";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { sha256Base64Url } from "../../../../../shared/crypto";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import {
-  getCurrentSessionUser,
-  PLAYWRIGHT_BASE_URL,
-} from "../../../../utils/e2e-db";
+import type { IsolatedWorker } from "../../../../utils/isolated-worker";
 
 async function generateCodeChallenge(codeVerifier: string) {
   return sha256Base64Url(codeVerifier);
 }
 
-const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
+/** The private Worker owns anonymous DCR clients, unexchanged codes and queues,
+ * including failures before any HTTP response can be decoded. */
+export type OAuthOwner = {
+  worker: IsolatedWorker;
+  clientNames: string[];
+};
 export const MCP_CLIENT_SCOPES = [
   ...DEFAULT_OAUTH_CLIENT_SCOPES,
   ...PUBLIC_REST_SCOPES,
 ];
 export const MCP_CLIENT_SCOPE = MCP_CLIENT_SCOPES.join(" ");
 export const DEFAULT_CLIENT_SCOPE = DEFAULT_OAUTH_CLIENT_SCOPES.join(" ");
-export const TRUSTED_BROWSER_ORIGIN = PLAYWRIGHT_BASE_URL.includes("127.0.0.1")
-  ? PLAYWRIGHT_BASE_URL.replace("127.0.0.1", "localhost")
-  : PLAYWRIGHT_BASE_URL.replace("localhost", "127.0.0.1");
-
-async function resumeConsentIfSignInPage(page: Page) {
-  const allowButton = page.getByRole("button", { name: /允许|Allow/i });
-  const debugSignInButton = page
-    .getByRole("button", {
-      name: /Sign in with Debug User \(Dev\)|调试用户（开发）/i,
-    })
-    .first();
-  const expectConsentDestination = async () => {
-    await expect(page.getByText(/回调主机|Redirect host/i)).toBeVisible();
-    await expect(
-      page.getByText(/本地应用|application on your device/i),
-    ).toBeVisible();
-  };
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const visibleTarget = await Promise.race([
-      allowButton
-        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
-        .then(() => "allow" as const)
-        .catch(() => null),
-      debugSignInButton
-        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
-        .then(() => "signin" as const)
-        .catch(() => null),
-    ]);
-
-    if (visibleTarget === "allow") {
-      await expectConsentDestination();
-      return;
-    }
-    if (visibleTarget === "signin") {
-      await debugSignInButton.click();
-      await page.waitForURL(/\/oauth\/authorize\?/);
-    }
-  }
-
-  await allowButton.waitFor({ state: "visible" });
-  await expectConsentDestination();
-}
 
 export async function registerPublicClient(
   request: Page["request"],
   scope: string,
+  owner: OAuthOwner,
 ) {
+  const clientName = `mcp-e2e-${crypto.randomUUID()}`;
+  owner.clientNames.push(clientName);
   const response = await request.post("/api/auth/oauth2/register", {
     data: {
       application_type: "native",
-      client_name: `mcp-e2e-${Date.now()}`,
-      redirect_uris: [REDIRECT_URI],
+      client_name: clientName,
+      redirect_uris: [`${owner.worker.origin}/e2e/oauth/callback`],
       token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
       grant_types: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
       response_types: [OAUTH_CODE_RESPONSE_TYPE],
@@ -98,18 +56,20 @@ async function authorizeAndGetCode(
   options: {
     scope: string;
     codeChallenge?: string;
+    owner: OAuthOwner;
     resource?: string;
   },
 ) {
+  const state = crypto.randomUUID();
   const authorizeResponse = await page.request.get(
     "/api/auth/oauth2/authorize",
     {
       params: {
         response_type: OAUTH_CODE_RESPONSE_TYPE,
         client_id: clientId,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: `${options.owner.worker.origin}/e2e/oauth/callback`,
         scope: options.scope,
-        state: `mcp-e2e-state-${Date.now()}`,
+        state,
         prompt: "consent",
         ...(options.codeChallenge
           ? {
@@ -123,20 +83,27 @@ async function authorizeAndGetCode(
     },
   );
 
+  await authorizeResponse.body();
   expect(authorizeResponse.status()).toBe(302);
   const consentLocation = authorizeResponse.headers().location;
   expect(typeof consentLocation).toBe("string");
   expect(consentLocation).toContain("/oauth/authorize?");
 
   await page.goto(consentLocation);
-  await resumeConsentIfSignInPage(page);
+  await expect(page.getByText(/回调主机|Redirect host/i)).toBeVisible();
+  await expect(
+    page.getByText(/本地应用|application on your device/i),
+  ).toBeVisible();
   await page.getByRole("button", { name: /允许|Allow/i }).click();
   await page.waitForURL("**/e2e/oauth/callback**");
 
   const callbackUrl = new URL(page.url());
+  expect(callbackUrl.searchParams.get("state")).toBe(state);
   const code = callbackUrl.searchParams.get("code");
   expect(typeof code).toBe("string");
-  return code as string;
+  expect(code).toBeTruthy();
+  if (!code) throw new Error("Missing authorization code");
+  return code;
 }
 
 export async function issueAccessTokenForClient(
@@ -145,17 +112,18 @@ export async function issueAccessTokenForClient(
   options: {
     clientId: string;
     scope: string;
+    owner: OAuthOwner;
     resource?: string;
     /** Whether to repeat the authorization request's `resource` at token exchange. */
     includeResourceInTokenExchange?: boolean;
   },
 ) {
-  const codeVerifier =
-    "mcp-public-client-verifier-012345678901234567890123456789";
+  const codeVerifier = `${crypto.randomUUID()}${crypto.randomUUID()}`;
   const codeChallenge = await generateCodeChallenge(codeVerifier);
 
   const code = await authorizeAndGetCode(page, options.clientId, {
     scope: options.scope,
+    owner: options.owner,
     codeChallenge,
     resource: options.resource,
   });
@@ -168,7 +136,7 @@ export async function issueAccessTokenForClient(
       client_id: options.clientId,
       code,
       code_verifier: codeVerifier,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: `${options.owner.worker.origin}/e2e/oauth/callback`,
       ...(includeResourceInToken ? { resource: options.resource } : {}),
     },
   });
@@ -186,6 +154,7 @@ export async function issueAccessToken(
   options: {
     scope: string;
     clientScopes: string[];
+    owner: OAuthOwner;
     resource?: string;
     /** Whether to repeat the authorization request's `resource` at token exchange. */
     includeResourceInTokenExchange?: boolean;
@@ -194,11 +163,13 @@ export async function issueAccessToken(
   const clientId = await registerPublicClient(
     request,
     options.clientScopes.join(" "),
+    options.owner,
   );
 
   const { response: tokenResponse, tokenBody } =
     await issueAccessTokenForClient(page, request, {
       clientId,
+      owner: options.owner,
       scope: options.scope,
       resource: options.resource,
       includeResourceInTokenExchange: options.includeResourceInTokenExchange,
@@ -212,101 +183,6 @@ export async function issueAccessToken(
     accessToken: tokenBody.access_token as string,
     refreshToken: tokenBody.refresh_token,
   };
-}
-
-export async function createAuthenticatedMcpClient(
-  page: Page,
-  request: Page["request"],
-) {
-  const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-  await signInAsDebugUser(page, "/");
-  const currentUser = await getCurrentSessionUser(page);
-  const { accessToken } = await issueAccessToken(page, request, {
-    scope: MCP_CLIENT_SCOPE,
-    clientScopes: MCP_CLIENT_SCOPES,
-    resource,
-  });
-
-  const transport = new StreamableHTTPClientTransport(new URL(resource), {
-    requestInit: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-  });
-  const client = new Client({
-    name: "life-ustc-e2e-client",
-    version: "1.0.0",
-  });
-  try {
-    await client.connect(transport);
-  } catch (error) {
-    await transport.close();
-    throw error;
-  }
-
-  return {
-    client,
-    currentUser,
-    resource,
-    transport,
-    close: () => transport.close(),
-  };
-}
-
-export async function getCurrentSubscriptionSectionIds(
-  request: Page["request"],
-) {
-  const response = await request.get("/api/workspace/subscriptions/current");
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    subscription?: { sections?: Array<{ id?: number }> } | null;
-  };
-  return (
-    body.subscription?.sections
-      ?.map((section) => section.id)
-      .filter((id): id is number => typeof id === "number") ?? []
-  );
-}
-
-export async function getSeedSectionId(request: Page["request"]) {
-  const response = await request.post("/api/catalog/sections/match-codes", {
-    data: { codes: [DEV_SEED.section.code] },
-  });
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    sections?: Array<{ id?: number; code?: string | null }>;
-  };
-  const seedSection = body.sections?.find(
-    (section) => section.code === DEV_SEED.section.code,
-  );
-  expect(seedSection?.id).toBeDefined();
-  if (seedSection?.id == null) {
-    throw new Error("Expected seed section id");
-  }
-  return seedSection.id;
-}
-
-export async function setCalendarSubscriptionForTest(
-  request: Page["request"],
-  sectionIds: number[],
-) {
-  const currentSectionIds = await getCurrentSubscriptionSectionIds(request);
-  if (currentSectionIds.length > 0) {
-    const removeResponse = await request.delete(
-      "/api/workspace/subscriptions",
-      {
-        data: { sectionIds: currentSectionIds },
-      },
-    );
-    expect(removeResponse.status()).toBe(200);
-  }
-  if (sectionIds.length > 0) {
-    const appendResponse = await request.patch("/api/workspace/subscriptions", {
-      data: { sectionIds },
-    });
-    expect(appendResponse.status()).toBe(200);
-  }
 }
 
 export function getTextContent(result: unknown) {
@@ -391,26 +267,6 @@ export async function expectAccessTokenCannotInitializeMcp(
     },
   });
 
+  await response.body();
   expect([401, 403]).toContain(response.status());
-}
-
-export type BusPreference = {
-  preferredDestinationCampusId?: number | null;
-  preferredOriginCampusId?: number | null;
-  showDepartedTrips?: boolean;
-};
-
-export async function saveBusPreference(
-  request: Page["request"],
-  preference: BusPreference,
-) {
-  const response = await request.post("/api/workspace/bus-preferences", {
-    data: {
-      preferredOriginCampusId: preference.preferredOriginCampusId ?? null,
-      preferredDestinationCampusId:
-        preference.preferredDestinationCampusId ?? null,
-      showDepartedTrips: preference.showDepartedTrips ?? false,
-    },
-  });
-  expect(response.status()).toBe(200);
 }

@@ -1,25 +1,17 @@
-import { execFile } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
-import { expect, it } from "vitest";
+import { staticImportProcessTest as it } from "../shared/static-import-process-fixture";
 
-async function verify(name: string) {
-  const { stdout } = await promisify(execFile)("bun", [
-    fileURLToPath(
-      new URL("../fixtures/static-import-contract.ts", import.meta.url),
-    ),
+for (const name of [
+  "course.static-section-course-link",
+  "course.static-classification-unsupported",
+  "section.source-lifecycle",
+  "section.source-import-atomicity",
+  "section.source-section-presence",
+  "section.retirement-audit",
+  "section.retirement-report",
+]) {
+  it(
     name,
-  ]);
-  expect(stdout).toContain(`CONTRACT_PASSED:${name}`);
+    { tags: ["@StaticImport/Runtime"] },
+    async ({ staticImportProcess }) => staticImportProcess.verify(name),
+  );
 }
-it("course.static-section-course-link", () =>
-  verify("course.static-section-course-link"));
-it("course.static-classification-unsupported", () =>
-  verify("course.static-classification-unsupported"));
-it("section.source-lifecycle", () => verify("section.source-lifecycle"));
-it("section.source-import-atomicity", () =>
-  verify("section.source-import-atomicity"));
-it("section.source-section-presence", () =>
-  verify("section.source-section-presence"));
-it("section.retirement-audit", () => verify("section.retirement-audit"));
-it("section.retirement-report", () => verify("section.retirement-report"));

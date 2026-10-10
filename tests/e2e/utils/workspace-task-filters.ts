@@ -1,69 +1,26 @@
-import { createHmac } from "node:crypto";
-import type { Page } from "@playwright/test";
-import { getCookies } from "better-auth/cookies";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import type { TestPrismaClient } from "../../shared/prisma";
+import { withBrowserWorkflow } from "./browser-workflow";
 import { DEV_SEED } from "./dev-seed";
-import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
-import { withE2ePrisma } from "./e2e-db/prisma";
-
-// Matches the local Worker configuration in wrangler.e2e.jsonc.
-const E2E_AUTH_SECRET = "e2e-dev-secret-not-for-production";
+import {
+  type HomeworkEffectContext,
+  type HomeworkEffects,
+  withHomeworkEffects,
+} from "./homework-effects";
+import type { IsolatedWorker } from "./isolated-worker";
+import { test as workerTest } from "./owned-worker";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
-type WorkspaceTaskFilterFixtureData = {
-  userId: string;
-  courseId: number;
-  sectionId: number;
-};
-
-type WorkspaceTaskFilterTitles = {
-  homeworks: string;
-  todos: string;
-  exams: string;
-};
-
-export type WorkspaceTaskFilterFixture = {
-  completedTitle: WorkspaceTaskFilterTitles;
-  pendingTitle: WorkspaceTaskFilterTitles;
-  cleanup: () => Promise<void>;
-};
-
-function shanghaiDateFromOffset(offsetDays: number) {
-  return formatShanghaiDate(new Date(Date.now() + offsetDays * DAY_MS));
-}
-
-export async function createSignedSessionCookie(
+/** Arrange only domain rows in the calling test's private database. */
+export async function createWorkspaceTaskFilterState(
+  prisma: TestPrismaClient,
   userId: string,
-  secret = E2E_AUTH_SECRET,
-) {
-  const sessionToken = crypto.randomUUID();
-  await withE2ePrisma((prisma) =>
-    prisma.session.create({
-      data: {
-        expires: new Date(Date.now() + 60 * 60 * 1_000),
-        sessionToken,
-        userId,
-      },
-    }),
-  );
-
-  const signature = createHmac("sha256", secret)
-    .update(sessionToken)
-    .digest("base64");
-  const signedValue = encodeURIComponent(`${sessionToken}.${signature}`);
-
-  return {
-    name: getCookies({ baseURL: PLAYWRIGHT_BASE_URL }).sessionToken.name,
-    url: PLAYWRIGHT_BASE_URL,
-    value: signedValue,
-  };
-}
-
-export async function createWorkspaceTaskFilterFixture(
-  page: Page,
   options: { includePending?: boolean } = {},
-): Promise<WorkspaceTaskFilterFixture> {
+) {
+  const now = Date.now();
+  const shanghaiDateFromOffset = (offsetDays: number) =>
+    formatShanghaiDate(new Date(now + offsetDays * DAY_MS));
   const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 9);
   const marker = `e2e-filter-${suffix}`;
   const includePending = options.includePending ?? false;
@@ -77,182 +34,201 @@ export async function createWorkspaceTaskFilterFixture(
   const completedExamRoom = `${marker}-past-room`;
   const pendingExamRoom = `${marker}-upcoming-room`;
 
-  const created = await withE2ePrisma(async (prisma) => {
-    const semester = await prisma.semester.findUnique({
-      where: { jwId: DEV_SEED.semesterJwId },
+  return prisma.$transaction(async (tx) => {
+    const semester = await tx.semester.create({
+      data: {
+        jwId: DEV_SEED.semesterJwId,
+        code: "421",
+        nameCn: DEV_SEED.semesterNameCn,
+        startDate: new Date(now - 30 * DAY_MS),
+        endDate: new Date(now + 180 * DAY_MS),
+      },
+    });
+    // Stable identifiers are local to this test's empty private database.
+    const firstJwId = 1_500_000_000;
+    const course = await tx.course.create({
+      data: {
+        code: courseCode,
+        jwId: firstJwId,
+        nameCn: courseName,
+        nameEn: courseName,
+      },
       select: { id: true },
     });
-    if (!semester) {
-      throw new Error(
-        `Seed semester ${DEV_SEED.semesterJwId} is required for workspace filter fixtures`,
-      );
+    const section = await tx.section.create({
+      data: {
+        code: sectionCode,
+        courseId: course.id,
+        jwId: firstJwId + 1,
+        semesterId: semester.id,
+      },
+      select: { id: true },
+    });
+
+    await tx.userSectionSubscription.create({
+      data: { sectionId: section.id, userId: userId },
+    });
+
+    const homework = await tx.homework.create({
+      data: {
+        createdById: userId,
+        publishedAt: new Date(now),
+        sectionId: section.id,
+        submissionDueAt: new Date(now + 7 * DAY_MS),
+        title: completedHomeworkTitle,
+      },
+      select: { id: true },
+    });
+    await tx.homeworkCompletion.create({
+      data: { homeworkId: homework.id, userId: userId },
+    });
+    if (includePending) {
+      await tx.homework.create({
+        data: {
+          createdById: userId,
+          publishedAt: new Date(now),
+          sectionId: section.id,
+          submissionDueAt: new Date(now + 7 * DAY_MS),
+          title: pendingHomeworkTitle,
+        },
+      });
     }
 
-    const maxCourse = await prisma.course.aggregate({
-      _max: { jwId: true },
+    await tx.todo.create({
+      data: {
+        completed: true,
+        content: `${marker} todo content`,
+        dueAt: new Date(now + 7 * DAY_MS),
+        priority: "high",
+        title: completedTodoTitle,
+        userId: userId,
+      },
     });
-    const firstJwId = Math.max(1_500_000_000, (maxCourse._max.jwId ?? 0) + 1);
-
-    return await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: `${marker}@example.test`,
-          emailVerified: true,
-          name: marker,
-          username: marker,
-        },
-        select: { id: true },
-      });
-      const course = await tx.course.create({
-        data: {
-          code: courseCode,
-          jwId: firstJwId,
-          nameCn: courseName,
-          nameEn: courseName,
-        },
-        select: { id: true },
-      });
-      const section = await tx.section.create({
-        data: {
-          code: sectionCode,
-          courseId: course.id,
-          jwId: firstJwId + 1,
-          semesterId: semester.id,
-        },
-        select: { id: true },
-      });
-
-      await tx.userSectionSubscription.create({
-        data: { sectionId: section.id, userId: user.id },
-      });
-
-      const homework = await tx.homework.create({
-        data: {
-          createdById: user.id,
-          publishedAt: new Date(),
-          sectionId: section.id,
-          submissionDueAt: new Date(Date.now() + 7 * DAY_MS),
-          title: completedHomeworkTitle,
-        },
-        select: { id: true },
-      });
-      await tx.homeworkCompletion.create({
-        data: { homeworkId: homework.id, userId: user.id },
-      });
-      if (includePending) {
-        await tx.homework.create({
-          data: {
-            createdById: user.id,
-            publishedAt: new Date(),
-            sectionId: section.id,
-            submissionDueAt: new Date(Date.now() + 7 * DAY_MS),
-            title: pendingHomeworkTitle,
-          },
-        });
-      }
-
+    if (includePending) {
       await tx.todo.create({
         data: {
-          completed: true,
-          content: `${marker} todo content`,
-          dueAt: new Date(Date.now() + 7 * DAY_MS),
-          priority: "high",
-          title: completedTodoTitle,
-          userId: user.id,
+          completed: false,
+          content: `${marker} pending todo content`,
+          dueAt: new Date(now + 7 * DAY_MS),
+          priority: "medium",
+          title: pendingTodoTitle,
+          userId: userId,
         },
       });
-      if (includePending) {
-        await tx.todo.create({
-          data: {
-            completed: false,
-            content: `${marker} pending todo content`,
-            dueAt: new Date(Date.now() + 7 * DAY_MS),
-            priority: "medium",
-            title: pendingTodoTitle,
-            userId: user.id,
-          },
-        });
-      }
+    }
 
+    await tx.exam.create({
+      data: {
+        endTime: 1100,
+        examDate: new Date(`${shanghaiDateFromOffset(-3)}T00:00:00Z`),
+        examMode: "E2E closed book",
+        examRooms: {
+          create: [{ count: 1, room: completedExamRoom }],
+        },
+        examTakeCount: 1,
+        examType: 1,
+        jwId: firstJwId + 2,
+        sectionId: section.id,
+        startTime: 900,
+      },
+    });
+
+    if (includePending) {
       await tx.exam.create({
         data: {
           endTime: 1100,
-          examDate: new Date(`${shanghaiDateFromOffset(-3)}T00:00:00Z`),
-          examMode: "E2E closed book",
+          examDate: new Date(`${shanghaiDateFromOffset(3)}T00:00:00Z`),
+          examMode: "E2E open book",
           examRooms: {
-            create: [{ count: 1, room: completedExamRoom }],
+            create: [{ count: 1, room: pendingExamRoom }],
           },
           examTakeCount: 1,
           examType: 1,
-          jwId: firstJwId + 2,
+          jwId: firstJwId + 3,
           sectionId: section.id,
           startTime: 900,
         },
       });
+    }
 
-      if (includePending) {
-        await tx.exam.create({
-          data: {
-            endTime: 1100,
-            examDate: new Date(`${shanghaiDateFromOffset(3)}T00:00:00Z`),
-            examMode: "E2E open book",
-            examRooms: {
-              create: [{ count: 1, room: pendingExamRoom }],
-            },
-            examTakeCount: 1,
-            examType: 1,
-            jwId: firstJwId + 3,
-            sectionId: section.id,
-            startTime: 900,
-          },
-        });
-      }
-
-      return {
-        courseId: course.id,
-        sectionId: section.id,
-        userId: user.id,
-      };
-    });
+    return {
+      courseId: course.id,
+      sectionId: section.id,
+      semesterId: semester.id,
+      userId,
+      completedTitle: {
+        exams: completedExamRoom,
+        homeworks: completedHomeworkTitle,
+        todos: completedTodoTitle,
+      },
+      pendingTitle: {
+        exams: pendingExamRoom,
+        homeworks: pendingHomeworkTitle,
+        todos: pendingTodoTitle,
+      },
+    };
   });
+}
 
-  try {
-    const sessionCookie = await createSignedSessionCookie(
-      created.userId,
-      E2E_AUTH_SECRET,
+export type WorkspaceTaskFilterState = Awaited<
+  ReturnType<typeof createWorkspaceTaskFilterState>
+>;
+export type TaskFilterDb = <T>(
+  work: (db: TestPrismaClient) => Promise<T>,
+) => Promise<T>;
+export type TaskFilterEffects = HomeworkEffects & { sectionId?: number };
+
+export const test = workerTest.extend<{
+  taskFilterActor: Awaited<ReturnType<IsolatedWorker["createActor"]>>;
+  taskFilterDb: TaskFilterDb;
+  taskFilterState: (
+    includePending: boolean,
+  ) => Promise<WorkspaceTaskFilterState>;
+  taskFilterRun: (
+    work: (context: HomeworkEffectContext) => Promise<void>,
+    effects: TaskFilterEffects,
+  ) => Promise<void>;
+}>({
+  taskFilterActor: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => isolatedWorker.createActor()));
+  },
+  taskFilterDb: async ({ isolatedWorker, run }, use) => {
+    await use((work) => run(() => work(isolatedWorker.database.owner)));
+  },
+  taskFilterState: async ({ taskFilterActor, taskFilterDb }, use) => {
+    await use((includePending) =>
+      taskFilterDb((db) =>
+        createWorkspaceTaskFilterState(db, taskFilterActor.id, {
+          includePending,
+        }),
+      ),
     );
-    await page.context().addCookies([sessionCookie]);
-  } catch (error) {
-    await cleanupWorkspaceTaskFilterFixture(created);
-    throw error;
-  }
-
-  let cleaned = false;
-  return {
-    completedTitle: {
-      exams: completedExamRoom,
-      homeworks: completedHomeworkTitle,
-      todos: completedTodoTitle,
-    },
-    pendingTitle: {
-      exams: pendingExamRoom,
-      homeworks: pendingHomeworkTitle,
-      todos: pendingTodoTitle,
-    },
-    cleanup: async () => {
-      if (cleaned) return;
-      cleaned = true;
-      await cleanupWorkspaceTaskFilterFixture(created);
-    },
-  };
-}
-
-export async function cleanupWorkspaceTaskFilterFixture(
-  fixture: WorkspaceTaskFilterFixtureData,
-) {
-  await withE2ePrisma(async (prisma) => {
-    await prisma.section.deleteMany({ where: { id: fixture.sectionId } });
-    await prisma.course.deleteMany({ where: { id: fixture.courseId } });
-    await prisma.user.deleteMany({ where: { id: fixture.userId } });
-  });
-}
+  },
+  taskFilterRun: async (
+    { isolatedWorker, page, taskFilterActor, run },
+    use,
+  ) => {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use((work, effects) =>
+        workflow.run(() =>
+          run(() =>
+            withHomeworkEffects(
+              {
+                page,
+                isolatedWorker,
+                account: taskFilterActor,
+                runBody: workflow.body,
+                ...effects,
+                observeReads: true,
+              },
+              async (context) => {
+                await page.context().addCookies([taskFilterActor.cookie]);
+                await work(context);
+              },
+            ),
+          ),
+        ),
+      );
+    });
+  },
+});

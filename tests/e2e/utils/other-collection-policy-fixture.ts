@@ -1,17 +1,18 @@
-import { youngEventState } from "../../../src/features/young/server/young-notification-state";
-import { withE2ePrisma } from "./e2e-db/prisma";
+import type { TestPrismaClient } from "../../shared/prisma";
 import {
-  cleanupPublicBrowsePolicyFixture,
-  createPublicBrowsePolicyFixture,
+  test as browseTest,
+  type PublicBrowsePolicyFixture,
 } from "./public-browse-policy-fixture";
 
-export async function createOtherCollectionPolicyFixture() {
-  const catalog = await createPublicBrowsePolicyFixture();
-  const privateData = await withE2ePrisma(async (db) => {
+export async function arrangeOtherCollectionPolicyFixture(
+  db: TestPrismaClient,
+  catalog: PublicBrowsePolicyFixture,
+) {
+  const privateData = await db.$transaction(async (db) => {
     const admin = await db.user.create({
       data: {
         name: "Collection policy administrator",
-        username: `ca${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`,
+        username: `ca${catalog.marker.replaceAll("-", "")}`,
         email: `admin-${catalog.marker}@example.test`,
         isAdmin: true,
       },
@@ -42,9 +43,17 @@ export async function createOtherCollectionPolicyFixture() {
         data: {
           userId: admin.id,
           youngId,
-          observedState: youngEventState(
-            await db.youngEvent.findUniqueOrThrow({ where: { youngId } }),
-          ),
+          observedState: JSON.stringify([
+            `${catalog.marker} event ${suffix} with a complete public activity title`,
+            null,
+            null,
+            null,
+            false,
+            "2035-09-15T02:00:00.000Z",
+            "2035-09-15T04:00:00.000Z",
+            "2035-09-14T00:00:00.000Z",
+            "2035-09-14T04:00:00.000Z",
+          ]),
         },
       });
       await db.userYoungOrganizerSubscription.create({
@@ -74,15 +83,19 @@ export async function createOtherCollectionPolicyFixture() {
   return { ...privateData, catalog };
 }
 export type OtherCollectionPolicyFixture = Awaited<
-  ReturnType<typeof createOtherCollectionPolicyFixture>
+  ReturnType<typeof arrangeOtherCollectionPolicyFixture>
 >;
-export async function cleanupOtherCollectionPolicyFixture(
-  f: OtherCollectionPolicyFixture,
-) {
-  await withE2ePrisma((db) =>
-    db.user.deleteMany({
-      where: { id: { in: [f.admin.id, ...f.members.map((user) => user.id)] } },
-    }),
-  );
-  await cleanupPublicBrowsePolicyFixture(f.catalog);
-}
+export const test = browseTest.extend<{
+  collection: OtherCollectionPolicyFixture;
+}>({
+  collection: async ({ isolatedWorker, browse, run }, use) => {
+    await use(
+      await run(() =>
+        arrangeOtherCollectionPolicyFixture(
+          isolatedWorker.database.owner,
+          browse,
+        ),
+      ),
+    );
+  },
+});
