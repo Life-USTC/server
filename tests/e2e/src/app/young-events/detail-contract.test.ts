@@ -64,20 +64,29 @@ test("young-event.display-known-values", { tag: "@Young/Web" }, async ({
           externalSponsor: "External sponsor fixture",
         },
         async () => {
+          // The detail page presents identity, badges and copy only; upstream
+          // registration fields stay out of the rendered page.
+          const banner = page.getByTestId("young-event-banner");
+          await expect(banner.getByRole("heading", { level: 1 })).toBeVisible();
+          await expect(
+            banner.getByRole("button", {
+              name: /^(订阅活动|Subscribe to event)$/,
+            }),
+          ).toBeVisible();
           await expect(
             page.getByText("800-414-186", { exact: true }),
-          ).toBeVisible();
+          ).toHaveCount(0);
           await expect(
             page.getByText("PDF, DOCX", { exact: true }),
-          ).toBeVisible();
+          ).toHaveCount(0);
           await expect(
             page.getByText("External sponsor fixture", { exact: true }),
-          ).toBeVisible();
+          ).toHaveCount(0);
           await expect(
             page.getByText(
               /报名时需填写补充信息|Additional information required at registration/,
             ),
-          ).toBeVisible();
+          ).toHaveCount(0);
         },
       );
     });
@@ -135,7 +144,7 @@ test("young-event.scope-uncertainty", { tag: "@Young/Web" }, async ({
             page.getByText(
               /报名资格与面向范围请以第二课堂平台为准|Check the Second Classroom platform for eligibility/,
             ),
-          ).toBeVisible();
+          ).toHaveCount(0);
           await expect(
             page.getByText("unrecognized-scope-99", { exact: true }),
           ).toHaveCount(0);
@@ -171,13 +180,10 @@ test("young-event.partial-time-uncertainty", { tag: "@Young/Web" }, async ({
           events,
           { [endpoint]: new Date("2035-09-24T00:30:00Z") },
           async () => {
-            const overview = page.getByTestId("young-event-overview");
-            await expect(overview).toContainText(
-              endpoint === "startAt"
-                ? /开始：2035-09-24 08:30|Starts: 2035-09-24 08:30/
-                : /截止：2035-09-24 08:30|Ends: 2035-09-24 08:30/,
+            await expect(page.getByTestId("young-event-overview")).toHaveCount(
+              0,
             );
-            await expect(overview).not.toContainText("Invalid Date");
+            await expect(page.getByText("Invalid Date")).toHaveCount(0);
           },
         );
       }
@@ -203,25 +209,23 @@ test("young-event.occupancy-uncertainty", { tag: "@Young/Web" }, async ({
           events,
           { appliedCount, capacity: 20 },
           async (youngId) => {
-            const registered = page
-              .locator("dt")
-              .filter({ hasText: /^(已报名|Applied)$/ });
-            if (appliedCount === null) await expect(registered).toHaveCount(0);
-            else await expect(registered).toBeVisible();
+            await expect(
+              page
+                .locator("dt")
+                .filter({ hasText: /^(已报名|Applied|Registered)$/ }),
+            ).toHaveCount(0);
             await gotoAndWaitForReady(
               page,
               `/catalog/young-events?search=${encodeURIComponent(youngId)}`,
             );
-            if ((page.viewportSize()?.width ?? 0) >= 1280) {
-              await expect(
-                page.getByRole("cell", {
-                  name:
-                    appliedCount === null
-                      ? /未提供 \/ 20|Not provided \/ 20/
-                      : /^0 \/ 20$/,
-                }),
-              ).toBeVisible();
-            }
+            await expect(
+              page.locator(`a[href*="${youngId}"]:visible`).first(),
+            ).toBeVisible();
+            await expect(
+              page.getByRole("cell", {
+                name: /0 \/ 20|未提供 \/ 20|Not provided/,
+              }),
+            ).toHaveCount(0);
           },
         );
       }
