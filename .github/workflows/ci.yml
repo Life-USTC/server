@@ -100,7 +100,7 @@ jobs:
         run: bun tests/ci/test-matrix.ts
 
   test-domain:
-    name: ${{ matrix.domain }} / ${{ matrix.method }}
+    name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     needs: [test-plan, build-e2e-artifacts]
@@ -138,17 +138,17 @@ jobs:
         if: ${{ matrix.integration }}
         env:
           INTEGRATION_FILES: ${{ toJSON(matrix.integrationFiles) }}
-        run: bunx vitest run --config vitest.integration.config.ts --tags-filter='@${{ matrix.domain }}/${{ matrix.method }}'
+        run: bunx vitest run --config vitest.integration.config.ts --tags-filter='${{ matrix.tags }}'
       - name: Worker request contracts
         if: ${{ matrix.http }}
-        run: bunx playwright test --config playwright.api.config.ts --fully-parallel --workers=2 --grep='@${{ matrix.domain }}/${{ matrix.method }}( |$)'
+        run: bunx playwright test --config playwright.api.config.ts --fully-parallel --workers=4 --grep='${{ matrix.grep }}'
       - name: Browser and consumer contracts
         if: ${{ matrix.browser }}
-        run: bunx playwright test --project=chromium --project=mobile-chrome --fully-parallel --workers=2 --grep='@${{ matrix.domain }}/${{ matrix.method }}( |$)'
+        run: bunx playwright test --project=chromium --project=mobile-chrome --fully-parallel --workers=4 --grep='${{ matrix.grep }}'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() && (matrix.http || matrix.browser) }}
         with:
-          name: playwright-report-${{ matrix.domain }}-${{ matrix.method }}
+          name: playwright-report-${{ matrix.slug }}
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 14
