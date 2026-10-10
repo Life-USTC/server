@@ -258,7 +258,7 @@ requirements:
       name: young-event.display-known-values
 - id: young-event.web-browse-context
   category: presentation
-  rule: The activity list retains search/category/module/level/organizer/source-list filters. The calendar does not show that toolbar. The second-classroom sidebar links to the list, calendar, and organizers. Unknown-date results show their active filter on the list.
+  rule: The activity list retains search/category/module/level/organizer/source-list filters. The calendar does not show that toolbar and its loader does not read or transfer unused category and organizer options; supported URL filters still constrain its events. The second-classroom sidebar links to the list, calendar, and organizers. Unknown-date results show their active filter on the list.
   acceptance:
     given: Isolated events have shared search, category, module, level, organizer and source-list filters plus missing activity or registration starts.
     when: Desktop and mobile browsers open the filtered list, the calendar, and an event detail, then return through the sidebar.
@@ -319,6 +319,19 @@ requirements:
     test:
       file: tests/unit/features/young/young-calendar.test.ts
       name: young-event.web-calendar-density
+- id: young-event.web-crawler-query-space
+  category: presentation
+  rule: Crawler discovery excludes query-bearing Young event list, calendar, detail and organizer URLs
+    while retaining query-free public pages. Human browsing keeps all supported filters, dates and pagination.
+  acceptance:
+    given: Public Young routes have canonical paths and query variants for filters, dates, pagination and obsolete return context.
+    when: The robots discovery route emits the crawling policy.
+    then:
+    - The Young root query and child-path query forms are disallowed for crawlers.
+    - Query-free public Young routes remain allowed.
+    test:
+      file: tests/unit/lib/seo/seo-discovery-routes.test.ts
+      name: excludes Young query variants from crawling while retaining canonical discovery
 - id: young-event.web-mobile-calendar
   category: presentation
   rule: Month mobile agendas exclude adjacent-month padding and initially show the selected date onward;

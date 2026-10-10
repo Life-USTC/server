@@ -147,21 +147,17 @@ export async function loadYoungCalendarPage({ locals, url }: AppPageLoadEvent) {
     organizerId: optionalValue(url.searchParams.get("organizerId")),
     timeBasis: parseTimeBasis(url.searchParams.get("timeBasis")),
   };
-  const [result, categories, organizers] = await Promise.all([
-    listAllYoungEventsForRange({
-      search: filters.search,
-      module: filters.module,
-      activityLevel: filters.activityLevel,
-      active: filters.active,
-      category: filters.category,
-      organizerId: filters.organizerId,
-      dateFrom: range.start,
-      dateTo: range.end,
-      timeBasis: filters.timeBasis,
-    }),
-    listYoungEventCategories(),
-    listYoungOrganizerOptions(),
-  ]);
+  const result = await listAllYoungEventsForRange({
+    search: filters.search,
+    module: filters.module,
+    activityLevel: filters.activityLevel,
+    active: filters.active,
+    category: filters.category,
+    organizerId: filters.organizerId,
+    dateFrom: range.start,
+    dateTo: range.end,
+    timeBasis: filters.timeBasis,
+  });
 
   return toLoadData({
     copy: getWorkspacePageCopy(locals.locale),
@@ -170,8 +166,6 @@ export async function loadYoungCalendarPage({ locals, url }: AppPageLoadEvent) {
     anchorDate,
     range,
     filters,
-    categories,
-    organizers,
     data: result.data,
     unknownDateCount: result.unknownDateCount,
     source: result.source,
