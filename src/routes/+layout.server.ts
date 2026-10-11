@@ -4,13 +4,16 @@ import {
   buildLayoutCopy,
   layoutUserSummary,
 } from "@/lib/shell/layout-server-data";
+import { isPublicNavigationPath } from "@/lib/shell/public-navigation-contract";
 import { buildSocialMetadata } from "@/lib/social-metadata";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
   const copy = buildLayoutCopy(locals.locale);
   const resolveViewerOnClient =
-    locals.publicSsr || isViewerIndependentPublicPath(url.pathname);
+    locals.publicSsr ||
+    isViewerIndependentPublicPath(url.pathname) ||
+    isPublicNavigationPath(url.pathname);
   const user = resolveViewerOnClient
     ? null
     : layoutUserSummary(locals.authUser);

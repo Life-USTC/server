@@ -4,11 +4,16 @@ import {
   resetPublicNavigationCacheForTests,
 } from "@/lib/shell/public-navigation-cache";
 
+import { PUBLIC_NAVIGATION_HEADER } from "@/lib/shell/public-navigation-contract";
+
 const noon = Date.parse("2026-09-28T04:00:00.000Z");
 const beforeMidnight = Date.parse("2026-09-28T15:59:50.000Z");
 
 function jsonResponse(body: unknown, headers?: HeadersInit) {
-  return Response.json(body, { headers });
+  return Response.json(
+    { type: "data", nodes: [{ type: "skip" }, { type: "data", data: [body] }] },
+    { headers: { [PUBLIC_NAVIGATION_HEADER]: "1", ...headers } },
+  );
 }
 
 beforeEach(() => {
@@ -34,7 +39,7 @@ test("rendering-and-cache.cacheable-public-pages-15", async () => {
     "zh-cn",
   );
   expect(fetchCourse).toHaveBeenCalledTimes(1);
-  expect(await second.json()).toEqual({ page: "courses" });
+  expect((await second.json()).nodes[1].data[0]).toEqual({ page: "courses" });
   expect(first.headers.get("content-type")).toContain("application/json");
 
   const otherLocale = vi.fn(async () => jsonResponse({ page: "courses-en" }));
@@ -63,7 +68,9 @@ test("rendering-and-cache.cacheable-public-pages-15", async () => {
     "zh-cn",
   );
   expect(refreshed).toHaveBeenCalledTimes(2);
-  expect(await afterEdit.json()).toEqual({ page: "courses-new" });
+  expect((await afterEdit.json()).nodes[1].data[0]).toEqual({
+    page: "courses-new",
+  });
 
   const young = vi.fn(async () => jsonResponse({ page: "young" }));
   const youngUrl =
@@ -111,11 +118,124 @@ test("rendering-and-cache.cacheable-public-pages-15", async () => {
   }
 
   const cookied = vi.fn(async () =>
-    jsonResponse({ page: "news" }, { "set-cookie": "theme=dark" }),
+    jsonResponse({ page: "news" }, { [PUBLIC_NAVIGATION_HEADER]: "" }),
   );
   const newsUrl =
     "https://life.example/news/story/__data.json?x-sveltekit-invalidated=01";
   await cachedPublicNavigationFetch(cookied, newsUrl, undefined, noon, "zh-cn");
   await cachedPublicNavigationFetch(cookied, newsUrl, undefined, noon, "zh-cn");
   expect(cookied).toHaveBeenCalledTimes(2);
+});
+
+test.each([
+  { type: "redirect", location: "/account/welcome" },
+  {
+    type: "data",
+    nodes: [{ type: "error", status: 403, error: { message: "Forbidden" } }],
+  },
+  {
+    type: "data",
+    nodes: [
+      { type: "data", data: [{}] },
+      { type: "error", status: 500 },
+    ],
+  },
+  { type: "data", nodes: [{ type: "unexpected" }] },
+  { type: "data", nodes: [{ type: "data" }] },
+  { type: "data" },
+  {},
+  null,
+])("does not retain unsuccessful SvelteKit envelopes: %j", async (body) => {
+  const fetcher = vi.fn(async () =>
+    Response.json(body, {
+      headers: { [PUBLIC_NAVIGATION_HEADER]: "1" },
+    }),
+  );
+  const url =
+    "https://life.example/news/__data.json?x-sveltekit-invalidated=01";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await cachedPublicNavigationFetch(
+      fetcher,
+      url,
+      undefined,
+      noon,
+    );
+    expect(await response.json()).toEqual(body);
+  }
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+test.each([
+  { type: "application/json", body: "malformed" },
+  {
+    type: "text/sveltekit-data",
+    body: '{"type":"data","nodes":[{"type":"data","data":[{"later":1},["Promise",1]]}]}\n{"type":"chunk","id":1,"error":[{"message":1},"failed"]}\n',
+  },
+])("preserves uncached protocol bodies for $type", async ({ type, body }) => {
+  const fetcher = vi.fn(
+    async () =>
+      new Response(body, {
+        headers: { "content-type": type, [PUBLIC_NAVIGATION_HEADER]: "1" },
+      }),
+  );
+  const url =
+    "https://life.example/news/__data.json?x-sveltekit-invalidated=01";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await cachedPublicNavigationFetch(
+      fetcher,
+      url,
+      undefined,
+      noon,
+    );
+    expect(await response.text()).toBe(body);
+  }
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+test("does not consume a streaming response before returning it", async () => {
+  const response = new Response(new ReadableStream(), {
+    headers: {
+      "content-type": "text/sveltekit-data",
+      [PUBLIC_NAVIGATION_HEADER]: "1",
+    },
+  });
+  const returned = await cachedPublicNavigationFetch(
+    async () => response,
+    "https://life.example/news/__data.json?x-sveltekit-invalidated=01",
+    undefined,
+    noon,
+  );
+  expect(returned).toBe(response);
+  expect(response.bodyUsed).toBe(false);
+  await response.body?.cancel();
+});
+
+test("expires date-sensitive data at midnight even with less than one second left", async () => {
+  const now = Date.parse("2026-09-28T15:59:59.900Z");
+  for (const path of [
+    "/catalog/sections/12",
+    "/catalog/young-events/calendar",
+  ]) {
+    const fetcher = vi.fn(async () => jsonResponse({ day: "2026-09-28" }));
+    const url = `https://life.example${path}/__data.json?x-sveltekit-invalidated=01`;
+    await cachedPublicNavigationFetch(fetcher, url, undefined, now);
+    await cachedPublicNavigationFetch(fetcher, url, undefined, now + 99);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    await cachedPublicNavigationFetch(fetcher, url, undefined, now + 100);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  }
+});
+
+test("keeps different partial invalidation node masks separate", async () => {
+  const fetcher = vi.fn(async () => jsonResponse({ page: "courses" }));
+  for (const mask of ["01", "10", "01", "10"]) {
+    await cachedPublicNavigationFetch(
+      fetcher,
+      `https://life.example/catalog/courses/__data.json?x-sveltekit-invalidated=${mask}`,
+      undefined,
+      noon,
+      "zh-cn",
+    );
+  }
+  expect(fetcher).toHaveBeenCalledTimes(2);
 });

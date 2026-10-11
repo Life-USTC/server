@@ -63,6 +63,10 @@ import {
   formActionSourceFromOAuthRedirectUri,
 } from "@/lib/security/csp";
 import { setContentSignal } from "@/lib/seo/content-signal";
+import {
+  isPublicNavigationPath,
+  PUBLIC_NAVIGATION_HEADER,
+} from "@/lib/shell/public-navigation-contract";
 
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
@@ -350,6 +354,20 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
 
     const mutableResponse = responseWithSecurityHeaders(response);
     appendSessionCookies(mutableResponse.headers, sessionResult?.headers);
+    // Unlike browser fetch, the server can see all Set-Cookie headers here,
+    // including cookies emitted by SvelteKit resolve and session refresh.
+    mutableResponse.headers.delete(PUBLIC_NAVIGATION_HEADER);
+    if (
+      event.isDataRequest &&
+      event.request.method === "GET" &&
+      isPublicNavigationPath(event.url.pathname) &&
+      mutableResponse.ok &&
+      !mutableResponse.headers.has("set-cookie") &&
+      mutableResponse.headers.get("content-type")?.split(";", 1)[0].trim() ===
+        "application/json"
+    ) {
+      mutableResponse.headers.set(PUBLIC_NAVIGATION_HEADER, "1");
+    }
     if (apiObservability) {
       recordObservedApiResponse(event.request, mutableResponse.status);
       mutableResponse.headers.set("x-request-id", apiObservability.requestId);
