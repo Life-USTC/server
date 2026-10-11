@@ -132,12 +132,47 @@ async function mapWithConcurrency<T, R>(
 async function findOwnedBatchClaims(
   principal: PublicationIngestionServicePrincipal,
   batchId: string,
+  requestedObjects: PublicationObjectPlanRequest["objects"],
 ) {
+  const hashesByKind = new Map<ObjectKind, string[]>();
+  for (const { kind, sha256 } of requestedObjects) {
+    const hashes = hashesByKind.get(kind) ?? [];
+    hashes.push(sha256);
+    hashesByKind.set(kind, hashes);
+  }
   const principalKey = publicationPrincipalKey(principal);
   const batch = await prisma.ingestionBatch.findUnique({
     where: { principalKey_batchId: { principalKey, batchId } },
-    include: {
-      objects: { include: { object: true } },
+    // A batch receipt and its unrelated claims can be much larger than the
+    // requested plan. Keep ownership in the parent lookup, then load only
+    // the matching manifests; group hashes to bound the predicate by kind.
+    select: {
+      objects: {
+        where: {
+          object: {
+            is: {
+              OR: [...hashesByKind].map(([kind, hashes]) => ({
+                kind,
+                sha256: { in: hashes },
+              })),
+            },
+          },
+        },
+        select: {
+          expectedContentType: true,
+          expectedSha256: true,
+          expectedSize: true,
+          object: {
+            select: {
+              id: true,
+              kind: true,
+              sha256: true,
+              r2Key: true,
+              status: true,
+            },
+          },
+        },
+      },
     },
   });
   if (!batch)
@@ -199,7 +234,11 @@ export async function planPublicationObjects(input: {
     seen.add(lookupKey);
   }
 
-  const claims = await findOwnedBatchClaims(input.principal, payload.batchId);
+  const claims = await findOwnedBatchClaims(
+    input.principal,
+    payload.batchId,
+    payload.objects,
+  );
   const requestedObjects = payload.objects.map((requested) => {
     const lookupKey = `${requested.kind}:${requested.sha256}`;
     const claim = claims.get(lookupKey);

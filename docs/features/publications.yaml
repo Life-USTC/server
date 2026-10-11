@@ -420,7 +420,7 @@ requirements:
     before bytes. Planning permits only claims belonging to the accepted caller batch and distinguishes
     already verified objects from objects requiring upload. An authenticated Worker PUT verifies the declared
     size, content type and SHA-256 before linking the uploaded object; there is no separate completion
-    endpoint.
+    endpoint. Object planning reads only the requested owned manifests and does not reload the stored batch receipt.
   acceptance:
     given: A real registered batch and local workerd R2 bucket with pending content-addressed manifests.
     when: Plan and PUT actual fixture bytes through production routes, including foreign-batch claims,

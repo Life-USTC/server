@@ -921,3 +921,83 @@ it("publications.object-content-disposition", async () => {
     expect(await response.text()).toBe(new TextDecoder().decode(f.bytes));
   }
 });
+
+it("plans only the requested owned manifests and rejects a mixed missing claim before storage effects", async () => {
+  const first = await fixture("selective-first");
+  const second = await fixture("selective-second");
+  const unrequested = await fixture("selective-unrequested");
+  const batchId = `${marker}-selective-mixed`;
+  await ingest({
+    ...first.payload,
+    batchId,
+    sources: [
+      ...first.payload.sources,
+      ...second.payload.sources,
+      ...unrequested.payload.sources,
+    ],
+    items: [
+      ...first.payload.items,
+      ...second.payload.items.map((item) => ({
+        ...item,
+        revisionHash: "b".repeat(64),
+        objects: [{ ...second.object, kind: "body_html" as const }],
+      })),
+      ...unrequested.payload.items,
+    ],
+  });
+  await bucket.put(first.key, first.bytes, {
+    customMetadata: { kind: first.object.kind, sha256: first.object.sha256 },
+    httpMetadata: { contentType: first.object.contentType },
+    sha256: first.object.sha256,
+  });
+  const requestPlan = (
+    objects: { kind: "body_markdown" | "body_html"; sha256: string }[],
+  ) =>
+    runtime(() =>
+      postPublicationObjectPlanRoute(
+        new Request(`${origin}/api/ingestion/publications/objects/plan`, {
+          method: "POST",
+          headers: { ...auth, "content-type": "application/json" },
+          body: JSON.stringify({ batchId, objects }),
+        }),
+      ),
+    );
+  const firstManifest = {
+    kind: first.object.kind,
+    sha256: first.object.sha256,
+  };
+  const secondManifest = {
+    kind: "body_html" as const,
+    sha256: second.object.sha256,
+  };
+  const invalid = await requestPlan([
+    firstManifest,
+    { kind: "body_markdown", sha256: "f".repeat(64) },
+  ]);
+  expect(invalid.status).toBe(404);
+  expect(await objectRow(first)).toMatchObject({
+    status: "pending",
+    verifiedAt: null,
+  });
+
+  const response = await requestPlan([secondManifest, firstManifest]);
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  expect(body.objects).toMatchObject([
+    { ...secondManifest, status: "upload_required" },
+    { ...firstManifest, status: "already_present", uploadUrl: null },
+  ]);
+  expect(body.objects).toHaveLength(2);
+  expect(await objectRow(first)).toMatchObject({ status: "linked" });
+  expect(
+    await db.publicationObject.findUniqueOrThrow({
+      where: {
+        kind_sha256: { kind: "body_html", sha256: second.object.sha256 },
+      },
+    }),
+  ).toMatchObject({ status: "pending" });
+  expect(await objectRow(unrequested)).toMatchObject({
+    status: "pending",
+    verifiedAt: null,
+  });
+});
