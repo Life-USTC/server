@@ -12,6 +12,7 @@
  * ## Edge Cases
  * - Unknown youngId renders the 404 error page
  */
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
@@ -22,10 +23,20 @@ const DETAIL_PATH = `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`;
 
 test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => {
   test("页面契约", async ({ page }, testInfo) => {
+    const posterResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname ===
+        `/api/catalog/young-events/images/${DEV_SEED.youngEvent.imageUrl}`,
+    );
     await assertPageContract(page, {
       routePath: "/catalog/young-events/[youngId]",
       testInfo,
     });
+    const poster = await posterResponse;
+    expect(poster.status()).toBe(200);
+    expect(poster.headers()["content-type"]).toBe("image/png");
+    expect(poster.headers().etag).toBeTruthy();
+    expect(await poster.body()).toEqual(readFileSync("public/images/icon.png"));
   });
 
   test("young-event.public-no-signin", async ({ page }) => {
