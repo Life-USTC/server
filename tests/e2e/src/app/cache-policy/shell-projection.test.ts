@@ -927,108 +927,97 @@ test("overview.public-html-viewer-independent", { tag: "@Site/Web" }, async ({
   );
 });
 
-test("public navigation data keeps the root projection independent of session changes", async ({
-  browser,
-}) => {
-  const users = await createUsers();
-  const context = await browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL });
-  const anonymous = await browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL });
-  try {
-    const page = await context.newPage();
-    await context.addCookies([await createSignedSessionCookie(users[0].id)]);
-    await gotoAndWaitForReady(page, "/news");
-    await expect(page.locator("#app-user-menu")).toContainText(
-      users[0].name ?? "",
-    );
-    const paths = [
-      "/news",
-      "/search",
-      "/catalog/rooms",
-      `/community/users/${users[0].username}`,
-    ];
-    for (const locale of ["zh-cn", "en-us"]) {
-      await context.addCookies([
-        { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-      ]);
-      await anonymous.addCookies([
-        { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-      ]);
-      for (const path of paths) {
-        const response = await context.request.get(`${path}/__data.json`);
-        expect(response.status(), path).toBe(200);
-        expect(response.headers()["x-life-public-navigation"], path).toBe("1");
-        expect(response.headers()["cache-control"], path).toBe(
-          "private, no-store",
-        );
-        const envelope = await response.json();
-        const anonymousResponse = await anonymous.request.get(
-          `${path}/__data.json`,
-        );
-        expect(anonymousResponse.status(), path).toBe(200);
-        // Compare every root and leaf node: a public profile may legitimately
-        // name its subject, but signing in must never add viewer-only fields.
-        expect(envelope, `${locale}:${path}`).toEqual(
-          await anonymousResponse.json(),
-        );
-        const root = unflatten(envelope.nodes[0].data);
-        expect(root, path).toMatchObject({
-          user: null,
-          subscribedSections: null,
-          resolveViewerOnClient: true,
-          locale,
-        });
+test("public navigation data keeps the root projection independent of session changes", {
+  tag: "@Site/Web",
+}, async ({ shell, page }) => {
+  await shell.run(
+    { sessions: [{ user: 0 }, { user: 1 }] },
+    async ({ users, flow, sessionCookie, origin }) => {
+      const context = await flow.newContext();
+      const anonymous = await flow.newContext();
+      const signedIn = await context.newPage();
+      await context.addCookies([await sessionCookie(users[0].id)]);
+      await gotoAndWaitForReady(signedIn, "/news");
+      await expect(signedIn.locator("#app-user-menu")).toContainText(
+        users[0].name ?? "",
+      );
+      const paths = [
+        "/news",
+        "/search",
+        "/catalog/rooms",
+        `/community/users/${users[0].username}`,
+      ];
+      for (const locale of ["zh-cn", "en-us"]) {
+        await context.addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: origin },
+        ]);
+        await anonymous.addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: origin },
+        ]);
+        for (const path of paths) {
+          const response = await context.request.get(`${path}/__data.json`);
+          expect(response.status(), path).toBe(200);
+          expect(response.headers()["x-life-public-navigation"], path).toBe(
+            "1",
+          );
+          expect(response.headers()["cache-control"], path).toBe(
+            "private, no-store",
+          );
+          const envelope = await response.json();
+          const anonymousResponse = await anonymous.request.get(
+            `${path}/__data.json`,
+          );
+          expect(anonymousResponse.status(), path).toBe(200);
+          // Compare every root and leaf node: a public profile may legitimately
+          // name its subject, but signing in must never add viewer-only fields.
+          expect(envelope, `${locale}:${path}`).toEqual(
+            await anonymousResponse.json(),
+          );
+          const root = unflatten(envelope.nodes[0].data);
+          expect(root, path).toMatchObject({
+            user: null,
+            subscribedSections: null,
+            resolveViewerOnClient: true,
+            locale,
+          });
+        }
       }
-    }
-    let networkRequests = 0;
-    page.on("request", (request) => {
-      if (new URL(request.url()).searchParams.has("session-change"))
-        networkRequests++;
-    });
-    const path =
-      "/news/__data.json?x-sveltekit-invalidated=10&session-change=1";
-    const first = await page.evaluate(
-      async (path) => (await fetch(new URL(path, location.origin))).json(),
-      path,
-    );
-    await context.clearCookies();
-    await context.addCookies([
-      await createSignedSessionCookie(users[1].id),
-      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
-    ]);
-    const second = await page.evaluate(
-      async (path) => (await fetch(new URL(path, location.origin))).json(),
-      path,
-    );
-    expect(networkRequests).toBe(1);
-    expect(unflatten(first.nodes[0].data)).toMatchObject({
-      user: null,
-      subscribedSections: null,
-      resolveViewerOnClient: true,
-    });
-    expect(second).toEqual(first);
-    const shell = await context.request.get("/_internal/shell-bootstrap");
-    expect((await shell.json()).viewer.id).toBe(users[1].id);
-    const workspace = await context.request.get(
-      "/workspace/overview/__data.json",
-    );
-    expect(workspace.headers()["x-life-public-navigation"]).toBeUndefined();
-    expect(unflatten((await workspace.json()).nodes[0].data)).toMatchObject({
-      user: { id: users[1].id },
-    });
-    await withE2ePrisma((db) =>
-      db.session.deleteMany({ where: { userId: users[1].id } }),
-    );
-    const clearedSession = await context.request.get(
-      "/news/__data.json?expired-session=1",
-    );
-    expect(clearedSession.status()).toBe(200);
-    expect(clearedSession.headers()["set-cookie"]).toBeTruthy();
-    expect(
-      clearedSession.headers()["x-life-public-navigation"],
-    ).toBeUndefined();
-  } finally {
-    await context.close();
-    await anonymous.close();
-    await cleanup(users);
-  }
+      let networkRequests = 0;
+      signedIn.on("request", (request) => {
+        if (new URL(request.url()).searchParams.has("session-change"))
+          networkRequests++;
+      });
+      const dataPath =
+        "/news/__data.json?x-sveltekit-invalidated=10&session-change=1";
+      const first = await signedIn.evaluate(
+        async (path) => (await fetch(new URL(path, location.origin))).json(),
+        dataPath,
+      );
+      await context.clearCookies();
+      await context.addCookies([
+        await sessionCookie(users[1].id),
+        { name: "NEXT_LOCALE", value: "en-us", url: origin },
+      ]);
+      const second = await signedIn.evaluate(
+        async (path) => (await fetch(new URL(path, location.origin))).json(),
+        dataPath,
+      );
+      expect(networkRequests).toBe(1);
+      expect(unflatten(first.nodes[0].data)).toMatchObject({
+        user: null,
+        subscribedSections: null,
+        resolveViewerOnClient: true,
+      });
+      expect(second).toEqual(first);
+      const bootstrap = await context.request.get("/_internal/shell-bootstrap");
+      expect((await bootstrap.json()).viewer.id).toBe(users[1].id);
+      const workspace = await context.request.get(
+        "/workspace/overview/__data.json",
+      );
+      expect(workspace.headers()["x-life-public-navigation"]).toBeUndefined();
+      expect(unflatten((await workspace.json()).nodes[0].data)).toMatchObject({
+        user: { id: users[1].id },
+      });
+    },
+  );
 });

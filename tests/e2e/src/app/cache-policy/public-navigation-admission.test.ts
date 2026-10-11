@@ -10,9 +10,9 @@ const publicData = {
   ],
 };
 
-test("browser caches only attested successful public navigation responses", async ({
-  page,
-}) => {
+test("browser caches only attested successful public navigation responses", {
+  tag: "@Site/Web",
+}, async ({ page }) => {
   await gotoAndWaitForReady(page, "/privacy");
   const cases = [
     {

@@ -123,7 +123,9 @@ afterAll(async () => {
 });
 
 describe("compact public calendar projection", () => {
-  it("preserves more than two list pages, overlap, Shanghai end-of-day and stable ordering", async () => {
+  it("preserves more than two list pages, overlap, Shanghai end-of-day and stable ordering", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const result = await listYoungCalendarEvents(input);
     const expectedIds = [
       id("overnight"),
@@ -171,7 +173,9 @@ describe("compact public calendar projection", () => {
     expect(conflicts.has(id("overnight"))).toBe(false);
   });
 
-  it("keeps registration filters and unknown dates separate from activity dates", async () => {
+  it("keeps registration filters and unknown dates separate from activity dates", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const result = await listYoungCalendarEvents({
       ...input,
       timeBasis: "registration",
@@ -198,7 +202,9 @@ describe("compact public calendar projection", () => {
     ]);
   });
 
-  it("leaves full public list fields and pagination intact after warming calendar facts", async () => {
+  it("leaves full public list fields and pagination intact after warming calendar facts", {
+    tags: ["@Young/Service"],
+  }, async () => {
     await listYoungCalendarEvents(input);
     const list = await listYoungEvents({ ...input, page: 3, pageSize: 100 });
     expect(list.pagination).toEqual({
