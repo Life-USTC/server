@@ -68,10 +68,10 @@ async function textStyle(locator: Locator) {
 }
 async function assertVisibleField(field: VisiblePriorityField) {
   await expect(async () => {
-    await field.locator.scrollIntoViewIfNeeded();
+    await field.locator.scrollIntoViewIfNeeded({ timeout: 5_000 });
     await expect(field.locator).toBeVisible();
-  }).toPass();
-  await field.locator.scrollIntoViewIfNeeded();
+  }, "declared field must be visible").toPass({ timeout: 5_000 });
+  await field.locator.scrollIntoViewIfNeeded({ timeout: 5_000 });
   await expect(field.locator).toBeVisible();
   await expect
     .poll(
@@ -89,9 +89,9 @@ async function assertVisibleField(field: VisiblePriorityField) {
     )
     .toBe(true);
   await expect(async () => {
-    await field.locator.scrollIntoViewIfNeeded();
+    await field.locator.scrollIntoViewIfNeeded({ timeout: 5_000 });
     await expect(field.locator).toBeInViewport({ timeout: 500 });
-  }).toPass();
+  }).toPass({ timeout: 5_000 });
   if (field.attribute)
     await expect(field.locator).toHaveAttribute(
       field.attribute,

@@ -473,6 +473,7 @@ const PAGE_ROUTE_IDS = new Set([
   "/catalog/teachers",
   "/catalog/teachers/[id]",
   "/catalog/teachers/[id]/[section]",
+  "/catalog/young-events/calendar",
   "/community/comments/[id]",
   "/community/comments/guide",
   "/community/users/[identifier]",

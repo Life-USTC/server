@@ -53,6 +53,19 @@ export function resolveDatabaseTimeouts(database: RuntimeDatabase) {
       };
 }
 
+export function reportDatabaseConnectionError(error: unknown) {
+  writeDatabaseEventAnalytics({
+    errorName: getSafeErrorName(error),
+    event: "connection_error",
+  });
+  logAppEvent(
+    "error",
+    "Postgres connection error",
+    { source: "prisma", event: "postgres.connection-error" },
+    error,
+  );
+}
+
 function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
   const hyperdriveConnectionString =
     database === "auth"
@@ -95,6 +108,7 @@ function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
 export function createPrismaAdapter(
   connectionString: string | undefined = undefined,
   database: RuntimeDatabase = "app",
+  connectionTimeoutMillis?: number,
 ) {
   const resolvedConnectionString =
     connectionString ?? getRuntimeDatabaseUrl(database);
@@ -130,20 +144,12 @@ export function createPrismaAdapter(
       idleTimeoutMillis: 5_000,
       // Never wait indefinitely on a wedged database; see the timeout constants.
       ...resolveDatabaseTimeouts(database),
+      ...(connectionTimeoutMillis === undefined
+        ? {}
+        : { connectionTimeoutMillis }),
     },
     {
-      onConnectionError: (error) => {
-        writeDatabaseEventAnalytics({
-          errorName: getSafeErrorName(error),
-          event: "connection_error",
-        });
-        logAppEvent(
-          "error",
-          "Postgres connection error",
-          { source: "prisma", event: "postgres.connection-error" },
-          error,
-        );
-      },
+      onConnectionError: reportDatabaseConnectionError,
       onPoolError: (error) => {
         writeDatabaseEventAnalytics({
           errorName: getSafeErrorName(error),
