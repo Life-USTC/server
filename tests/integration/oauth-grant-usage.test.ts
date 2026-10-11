@@ -13,44 +13,35 @@ describe("OAuth authorization usage summary", () => {
     async ({ usage, nodeRuntime }) =>
       nodeRuntime.run(async () => {
         const { userId, clientId, grantId } = usage;
-        await recordOAuthGrantUsage(
-          {
-            userId,
-            clientId,
-            grantId,
-            channel: "rest",
-            feature: "account.profile",
-            action: "read",
-            count: 2,
-            usedAt: new Date(anchor.getTime() - 1_000),
-          },
-          authPrisma,
-        );
-        await recordOAuthGrantUsage(
-          {
-            userId,
-            clientId,
-            grantId,
-            channel: "graphql",
-            feature: "workspace.todo",
-            action: "read",
-            usedAt: anchor,
-          },
-          authPrisma,
-        );
-        await recordOAuthGrantUsage(
-          {
-            userId,
-            clientId,
-            grantId,
-            channel: "mcp",
-            feature: "workspace.todo",
-            action: "write",
-            outcome: "error",
-            usedAt: new Date(anchor.getTime() + 1_000),
-          },
-          authPrisma,
-        );
+        await recordOAuthGrantUsage({
+          userId,
+          clientId,
+          grantId,
+          channel: "rest",
+          feature: "account.profile",
+          action: "read",
+          count: 2,
+          usedAt: new Date(anchor.getTime() - 1_000),
+        });
+        await recordOAuthGrantUsage({
+          userId,
+          clientId,
+          grantId,
+          channel: "graphql",
+          feature: "workspace.todo",
+          action: "read",
+          usedAt: anchor,
+        });
+        await recordOAuthGrantUsage({
+          userId,
+          clientId,
+          grantId,
+          channel: "mcp",
+          feature: "workspace.todo",
+          action: "write",
+          outcome: "error",
+          usedAt: new Date(anchor.getTime() + 1_000),
+        });
 
         const authorizations = await listUserOAuthAuthorizations(
           userId,
@@ -85,8 +76,8 @@ describe("OAuth authorization usage summary", () => {
           action: "read" as const,
         };
 
-        await recordOAuthGrantUsage({ ...input, usedAt: newer }, authPrisma);
-        await recordOAuthGrantUsage({ ...input, usedAt: older }, authPrisma);
+        await recordOAuthGrantUsage({ ...input, usedAt: newer });
+        await recordOAuthGrantUsage({ ...input, usedAt: older });
 
         const row = await db.oAuthGrantUsageDaily.findUniqueOrThrow({
           where: {
@@ -137,17 +128,14 @@ describe("OAuth authorization usage summary", () => {
         });
 
         await expect(
-          recordOAuthGrantUsage(
-            {
-              userId,
-              clientId: deletedClientId,
-              channel: "mcp",
-              feature: "account.profile",
-              action: "read",
-              usedAt: anchor,
-            },
-            authPrisma,
-          ),
+          recordOAuthGrantUsage({
+            userId,
+            clientId: deletedClientId,
+            channel: "mcp",
+            feature: "account.profile",
+            action: "read",
+            usedAt: anchor,
+          }),
         ).resolves.toBe(true);
         await expect(
           adminPrisma.oAuthGrantUsageDaily.count({

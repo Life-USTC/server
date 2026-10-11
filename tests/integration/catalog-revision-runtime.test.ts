@@ -4,7 +4,9 @@ import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revisi
 import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import { createFixturePrisma } from "../shared/prisma";
 
-it("reads committed catalog revisions with the app role and preserves timestamp precision", async () => {
+it("reads committed catalog revisions with the app role and preserves timestamp precision", {
+  tags: ["@StaticImport/Runtime"],
+}, async () => {
   const db = createFixturePrisma();
   const original = await db.staticImportState.findUnique({
     where: { id: "global" },
