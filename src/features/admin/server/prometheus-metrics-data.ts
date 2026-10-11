@@ -1,6 +1,5 @@
 import * as z from "zod";
-import { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { withRuntimeDatabaseSnapshot } from "@/lib/db/runtime-database-snapshot";
 
 export const PROMETHEUS_METRICS_WINDOWS = ["24h", "7d", "30d"] as const;
 const windowSchema = z.enum(PROMETHEUS_METRICS_WINDOWS);
@@ -77,19 +76,26 @@ export type PrometheusMetricsSnapshot = ReturnType<
 
 /** Fresh persistent counters and an independently cached exact activity snapshot. */
 export async function readPrometheusMetrics(): Promise<PrometheusMetricsSnapshot> {
-  const row = await prisma.$transaction(
-    async (tx) => {
-      await tx.$executeRawUnsafe("SET LOCAL statement_timeout = '10s'");
-      const [snapshot] = await tx.$queryRaw<
-        Array<{ generatedAt: Date; payload: unknown }>
-      >(
-        Prisma.sql`SELECT "generatedAt", payload FROM public.read_prometheus_metrics_snapshot()`,
+  const row = await withRuntimeDatabaseSnapshot(
+    "app",
+    { maxWaitMs: 2_000, timeoutMs: 15_000 },
+    async (connection) => {
+      await connection.query("SET LOCAL statement_timeout = '10s'");
+      const { rows } = await connection.query<{
+        generatedAt: Date;
+        payload: unknown;
+      }>(
+        `SELECT "generatedAt" AT TIME ZONE 'UTC' AS "generatedAt", payload
+         FROM public.read_prometheus_metrics_snapshot()`,
       );
-      return snapshot;
+      return rows[0];
     },
-    { isolationLevel: "RepeatableRead", maxWait: 2_000, timeout: 15_000 },
   );
-  if (!row || !(row.generatedAt instanceof Date))
+  if (
+    !row ||
+    !(row.generatedAt instanceof Date) ||
+    !Number.isFinite(row.generatedAt.getTime())
+  )
     throw new Error("Prometheus metrics snapshot is unavailable");
   return decodePrometheusMetricsSnapshot(row.generatedAt, row.payload);
 }
