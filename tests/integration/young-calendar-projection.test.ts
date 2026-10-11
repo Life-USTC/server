@@ -221,7 +221,9 @@ describe("compact public calendar projection", () => {
     expect(list.data[0]).toHaveProperty("contactTel", "fixture-only");
     expect(list.unknownDateCount).toBe(1);
   });
-  it("matches Prisma search wildcards, escapes, Unicode and bound quotes", async () => {
+  it("matches Prisma search wildcards, escapes, Unicode and bound quotes", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const cases: [string, string[], number][] = [
       ["100%", ["percent", "percent-wildcard"], 1],
       ["under_score", ["underscore", "underscore-wildcard"], 0],
@@ -279,7 +281,9 @@ describe("compact public calendar projection", () => {
     }
   });
 
-  it("refreshes calendar and source facts on a committed revision change", async () => {
+  it("refreshes calendar and source facts on a committed revision change", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const original = await db.staticImportState.findUnique({
       where: { id: "global" },
     });
