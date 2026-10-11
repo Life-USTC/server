@@ -91,6 +91,19 @@ export type YoungEventSummary = {
   places: YoungEventPlace[] | null;
 };
 
+/** Public calendar facts shared by the grid, agenda, and personal conflict overlay. */
+export type YoungCalendarEvent = Pick<
+  YoungEventSummary,
+  | "youngId"
+  | "name"
+  | "startAt"
+  | "endAt"
+  | "applyStartAt"
+  | "applyEndAt"
+  | "location"
+  | "sourceMissing"
+>;
+
 export type YoungEventDetail = YoungEventSummary & {
   /** Sanitized upstream HTML with inline images pointed at our own proxy. */
   description: string | null;
@@ -384,10 +397,7 @@ export async function getYoungSourceFreshness(): Promise<YoungSourceFreshness> {
   };
 }
 
-export async function listYoungEvents(
-  input: YoungEventListInput = {},
-): Promise<YoungEventPage> {
-  const { page, pageSize, skip } = normalizePagination(input);
+function buildYoungEventListQuery(input: YoungEventListInput) {
   const baseWhere = buildEventWhere(input);
   const dateRange = buildDateRangeWhere(input);
   const where: Prisma.YoungEventWhereInput = input.dateUnknown
@@ -416,6 +426,16 @@ export async function listYoungEvents(
           { youngId: "asc" as const },
         ];
 
+  return { where, unknownWhere, dateOrderBy, hasRange: dateRange.hasRange };
+}
+
+export async function listYoungEvents(
+  input: YoungEventListInput = {},
+): Promise<YoungEventPage> {
+  const { page, pageSize, skip } = normalizePagination(input);
+  const { where, unknownWhere, dateOrderBy, hasRange } =
+    buildYoungEventListQuery(input);
+
   const [result, source] = await Promise.all([
     cachedCatalogRuntimeData(
       "catalog:young-events-list",
@@ -431,7 +451,7 @@ export async function listYoungEvents(
             skip,
             take: pageSize,
           }),
-          dateRange.hasRange
+          hasRange
             ? prisma.youngEvent.count({ where: unknownWhere })
             : Promise.resolve(0),
         ]);
@@ -442,6 +462,79 @@ export async function listYoungEvents(
             pageSize,
             total,
           ),
+          unknownDateCount,
+        };
+      },
+    ),
+    getYoungSourceFreshness(),
+  ]);
+  return { ...result, source };
+}
+
+type YoungCalendarInput = Pick<
+  YoungEventListInput,
+  | "active"
+  | "category"
+  | "module"
+  | "activityLevel"
+  | "search"
+  | "organizerId"
+  | "timeBasis"
+> & {
+  dateFrom: Date | string;
+  dateTo: Date | string;
+};
+
+const YOUNG_CALENDAR_SELECT = {
+  youngId: true,
+  name: true,
+  startAt: true,
+  endAt: true,
+  applyStartAt: true,
+  applyEndAt: true,
+  location: true,
+  sourceMissing: true,
+} as const satisfies Prisma.YoungEventSelect;
+
+/** Read the complete visible range without repeating aggregates for each list page. */
+export async function listYoungCalendarEvents(
+  input: YoungCalendarInput,
+): Promise<{
+  data: YoungCalendarEvent[];
+  unknownDateCount: number;
+  source: YoungSourceFreshness;
+}> {
+  const { where, unknownWhere, dateOrderBy } = buildYoungEventListQuery(input);
+  const [result, source] = await Promise.all([
+    cachedCatalogRuntimeData(
+      "catalog:young-events-list",
+      JSON.stringify({
+        shape: "calendar-v1",
+        where,
+        unknownWhere,
+        dateOrderBy,
+      }),
+      getCanonicalOrigin(),
+      async () => {
+        const [records, unknownDateCount] = await Promise.all([
+          prisma.youngEvent.findMany({
+            where,
+            select: YOUNG_CALENDAR_SELECT,
+            orderBy: dateOrderBy,
+          }),
+          prisma.youngEvent.count({ where: unknownWhere }),
+        ]);
+        return {
+          data: records.map((record) => ({
+            youngId: record.youngId,
+            name: record.name,
+            startAt: toShanghaiIso(record.startAt),
+            endAt: toShanghaiIso(record.endAt),
+            applyStartAt: toShanghaiIso(record.applyStartAt),
+            applyEndAt: toShanghaiIso(record.applyEndAt),
+            location: record.location,
+            sourceMissing: record.sourceMissing,
+          })),
           unknownDateCount,
         };
       },

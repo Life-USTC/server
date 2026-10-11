@@ -8,10 +8,10 @@ import {
   getYoungEvent,
   getYoungOrganizer,
   getYoungSourceFreshness,
+  listYoungCalendarEvents,
   listYoungEventCategories,
   listYoungEvents,
   listYoungOrganizers,
-  type YoungEventPage,
   type YoungEventTimeBasis,
 } from "@/features/young/server/young-event-service";
 import {
@@ -102,38 +102,6 @@ function parseTimeBasis(value: string | null): YoungEventTimeBasis {
   return value === "registration" ? "registration" : "activity";
 }
 
-async function listAllYoungEventsForRange(input: {
-  search?: string;
-  module?: string;
-  activityLevel?: string;
-  active?: boolean;
-  category?: string;
-  organizerId?: string;
-  dateFrom: string;
-  dateTo: string;
-  timeBasis: YoungEventTimeBasis;
-}): Promise<YoungEventPage> {
-  const pageSize = 100;
-  const first = await listYoungEvents({ ...input, page: 1, pageSize });
-  if (first.pagination.totalPages <= 1) return first;
-  const pages: YoungEventPage[] = [];
-  for (let page = 2; page <= first.pagination.totalPages; page++) {
-    pages.push(await listYoungEvents({ ...input, page, pageSize }));
-  }
-
-  return {
-    data: [first, ...pages].flatMap((page) => page.data),
-    pagination: {
-      page: 1,
-      pageSize,
-      total: first.pagination.total,
-      totalPages: 1,
-    },
-    unknownDateCount: first.unknownDateCount,
-    source: first.source,
-  };
-}
-
 export async function loadYoungCalendarPage({ locals, url }: AppPageLoadEvent) {
   const view = parseCalendarView(url.searchParams.get("view"));
   const anchorDate = normalizeYoungCalendarDate(url.searchParams.get("date"));
@@ -147,7 +115,7 @@ export async function loadYoungCalendarPage({ locals, url }: AppPageLoadEvent) {
     organizerId: optionalValue(url.searchParams.get("organizerId")),
     timeBasis: parseTimeBasis(url.searchParams.get("timeBasis")),
   };
-  const result = await listAllYoungEventsForRange({
+  const result = await listYoungCalendarEvents({
     search: filters.search,
     module: filters.module,
     activityLevel: filters.activityLevel,

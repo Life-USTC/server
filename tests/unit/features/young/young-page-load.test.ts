@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const service = vi.hoisted(() => ({
   listYoungEvents: vi.fn(),
+  listYoungCalendarEvents: vi.fn(),
   listYoungEventCategories: vi.fn(),
   listYoungOrganizers: vi.fn(),
   getYoungOrganizer: vi.fn(),
@@ -47,6 +48,11 @@ const event = (url: string) => ({
 beforeEach(() => {
   vi.resetAllMocks();
   service.listYoungEvents.mockResolvedValue(page());
+  service.listYoungCalendarEvents.mockResolvedValue({
+    data: [],
+    source,
+    unknownDateCount: 7,
+  });
   service.listYoungEventCategories.mockResolvedValue(["Workshop"]);
   service.getYoungSourceFreshness.mockResolvedValue(source);
   service.listYoungOrganizers.mockResolvedValue(page());
@@ -75,27 +81,25 @@ describe("public Young page loaders", () => {
     expect(result.organizers).toEqual([{ id: "club", name: "Club" }]);
     expect(service.listYoungOrganizers).not.toHaveBeenCalled();
   });
-  it("loads every calendar page and retains unknown-date counts separately", async () => {
-    service.listYoungEvents
-      .mockResolvedValueOnce(page([{ youngId: "first" }], 201, 1))
-      .mockResolvedValueOnce(page([{ youngId: "second" }], 201, 2))
-      .mockResolvedValueOnce(page([{ youngId: "last" }], 201, 3));
+  it("loads the complete calendar range and retains unknown-date counts separately", async () => {
+    const events = Array.from({ length: 201 }, (_, index) => ({
+      youngId: String(index),
+    }));
+    service.listYoungCalendarEvents.mockResolvedValue({
+      data: events,
+      source,
+      unknownDateCount: 7,
+    });
     const result = await loadYoungCalendarPage(
       event(
         "/catalog/young-events/calendar?view=week&date=2035-09-15&timeBasis=registration&organizerId=club&search=reading&module=智&activityLevel=校级",
       ),
     );
-    expect(result.data).toEqual([
-      { youngId: "first" },
-      { youngId: "second" },
-      { youngId: "last" },
-    ]);
+    expect(result.data).toEqual(events);
     expect(result.range).toEqual({ start: "2035-09-09", end: "2035-09-15" });
     expect(result.unknownDateCount).toBe(7);
-    expect(service.listYoungEvents).toHaveBeenLastCalledWith(
+    expect(service.listYoungCalendarEvents).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
-        page: 3,
-        pageSize: 100,
         dateFrom: "2035-09-09",
         dateTo: "2035-09-15",
         timeBasis: "registration",
@@ -105,11 +109,12 @@ describe("public Young page loaders", () => {
         activityLevel: "校级",
       }),
     );
+    expect(service.listYoungEvents).not.toHaveBeenCalled();
   });
-  it("rejects a failed later page rather than displaying an incomplete calendar", async () => {
-    service.listYoungEvents
-      .mockResolvedValueOnce(page([], 101))
-      .mockRejectedValueOnce(new Error("database unavailable"));
+  it("rejects a failed range read rather than displaying an incomplete calendar", async () => {
+    service.listYoungCalendarEvents.mockRejectedValue(
+      new Error("database unavailable"),
+    );
     await expect(
       loadYoungCalendarPage(
         event("/catalog/young-events/calendar?view=day&date=2035-09-15"),

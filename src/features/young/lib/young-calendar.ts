@@ -13,7 +13,7 @@ import {
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import type {
-  YoungEventSummary,
+  YoungCalendarEvent,
   YoungEventTimeBasis,
 } from "../server/young-event-service";
 
@@ -27,8 +27,8 @@ export type YoungCalendarRange = {
 export type YoungCalendarDay = {
   key: string;
   date: Date;
-  events: YoungEventSummary[];
-  startingEvents: YoungEventSummary[];
+  events: YoungCalendarEvent[];
+  startingEvents: YoungCalendarEvent[];
   isToday: boolean;
   isMuted?: boolean;
 };
@@ -37,7 +37,7 @@ export type YoungCalendarWeek = {
   days: YoungCalendarDay[];
 };
 
-function eventTimes(event: YoungEventSummary, timeBasis: YoungEventTimeBasis) {
+function eventTimes(event: YoungCalendarEvent, timeBasis: YoungEventTimeBasis) {
   return timeBasis === "registration"
     ? { startAt: event.applyStartAt, endAt: event.applyEndAt }
     : { startAt: event.startAt, endAt: event.endAt };
@@ -86,7 +86,7 @@ export function youngCalendarRange(
 export function youngCalendarDays(
   view: YoungCalendarView,
   range: YoungCalendarRange,
-  events: YoungEventSummary[],
+  events: YoungCalendarEvent[],
   today = new Date(),
   timeBasis: YoungEventTimeBasis = "activity",
   monthAnchor = range.start,
@@ -121,8 +121,8 @@ export function youngCalendarDays(
     const dayEnd = toCalendarDateTime(current, new Time(23, 59, 59, 999))
       .toDate(APP_TIME_ZONE)
       .getTime();
-    const startingEvents: YoungEventSummary[] = [];
-    const ongoingEvents: YoungEventSummary[] = [];
+    const startingEvents: YoungCalendarEvent[] = [];
+    const ongoingEvents: YoungCalendarEvent[] = [];
     for (const item of timedEvents) {
       const startsToday = item.start >= dayStart && item.start <= dayEnd;
       const overlaps =

@@ -16,12 +16,12 @@ import {
   youngCalendarWeeks,
 } from "../lib/young-calendar";
 import type {
-  YoungEventSummary,
+  YoungCalendarEvent,
   YoungEventTimeBasis,
 } from "../server/young-event-service";
 
 export let anchorDate: string;
-export let events: YoungEventSummary[] = [];
+export let events: YoungCalendarEvent[] = [];
 export let locale = "zh-cn";
 export let timeBasis: YoungEventTimeBasis = "activity";
 export let view: YoungCalendarView = "month";
@@ -46,7 +46,7 @@ export let hrefFor: (view: YoungCalendarView, date: string) => string = (
   targetView,
   date,
 ) => `/catalog/young-events/calendar?view=${targetView}&date=${date}`;
-export let eventHref = (event: YoungEventSummary) =>
+export let eventHref = (event: YoungCalendarEvent) =>
   `/catalog/young-events/${event.youngId}`;
 
 $: range = youngCalendarRange(view, anchorDate);
@@ -88,7 +88,7 @@ $: weeks = youngCalendarWeeks(days).map((week) => ({
 $: heading = youngCalendarHeading(view, anchorDate, locale);
 $: agenda = youngCalendarAgenda(days, anchorDate);
 
-function formatClock(event: YoungEventSummary) {
+function formatClock(event: YoungCalendarEvent) {
   const start =
     timeBasis === "registration" ? event.applyStartAt : event.startAt;
   if (!start) return "";
@@ -100,7 +100,7 @@ function formatClock(event: YoungEventSummary) {
   }).format(new Date(start));
 }
 
-function formatTime(event: YoungEventSummary) {
+function formatTime(event: YoungCalendarEvent) {
   const start =
     timeBasis === "registration" ? event.applyStartAt : event.startAt;
   const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
@@ -114,7 +114,7 @@ function formatTime(event: YoungEventSummary) {
   return `${start ? formatter.format(new Date(start)) : "?"} – ${end ? formatter.format(new Date(end)) : "?"}`;
 }
 
-function eventMeta(event: YoungEventSummary) {
+function eventMeta(event: YoungCalendarEvent) {
   return [
     formatTime(event),
     event.location,
