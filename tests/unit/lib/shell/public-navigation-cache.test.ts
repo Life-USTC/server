@@ -239,3 +239,47 @@ test("keeps different partial invalidation node masks separate", async () => {
   }
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+test("isolates cached navigation data and full invalidation by origin", async () => {
+  const external = "https://external.example";
+  const local = "https://life.example";
+  const path = "/news/__data.json?x-sveltekit-invalidated=";
+  const fetcher = vi.fn(async (input: RequestInfo | URL) =>
+    jsonResponse({ origin: new URL(String(input)).origin }),
+  );
+  for (const origin of [external, local, external, local]) {
+    const response = await cachedPublicNavigationFetch(
+      fetcher,
+      `${origin}${path}01`,
+      undefined,
+      noon,
+      "zh-cn",
+    );
+    expect((await response.json()).nodes[1].data[0]).toEqual({ origin });
+  }
+  expect(fetcher).toHaveBeenCalledTimes(2);
+
+  await cachedPublicNavigationFetch(
+    fetcher,
+    `${external}${path}11`,
+    undefined,
+    noon,
+    "zh-cn",
+  );
+  await cachedPublicNavigationFetch(
+    fetcher,
+    `${local}${path}01`,
+    undefined,
+    noon,
+    "zh-cn",
+  );
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  await cachedPublicNavigationFetch(
+    fetcher,
+    `${external}${path}01`,
+    undefined,
+    noon,
+    "zh-cn",
+  );
+  expect(fetcher).toHaveBeenCalledTimes(4);
+});

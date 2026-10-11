@@ -48,7 +48,7 @@ export async function cachedPublicNavigationFetch(
     return original(input, init);
   }
   const mask = url.searchParams.get("x-sveltekit-invalidated");
-  const prefix = `${locale} ${url.pathname}`;
+  const prefix = `${locale} ${url.origin}${url.pathname}`;
   if (mask !== null && /^1+$/.test(mask)) {
     for (const key of entries.keys()) {
       if (key.startsWith(prefix)) entries.delete(key);
