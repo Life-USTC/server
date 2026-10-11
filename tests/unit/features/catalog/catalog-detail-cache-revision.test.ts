@@ -14,30 +14,39 @@ import {
   resetPublicRuntimeCacheForTest,
 } from "@/lib/public-runtime-cache";
 
-const { findUniqueMock } = vi.hoisted(() => ({
-  findUniqueMock: vi.fn(),
+const { queryRawMock } = vi.hoisted(() => ({
+  queryRawMock: vi.fn(),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    staticImportState: {
-      findUnique: findUniqueMock,
-    },
-  },
+vi.mock("@/lib/db/prisma-adapter", () => ({
+  withRuntimeDatabaseAdapter: vi.fn(async (database, action) => {
+    expect(database).toBe("app");
+    return action({ queryRaw: queryRawMock });
+  }),
 }));
+
+function revisionRows(
+  state: { snapshotSha256: string; updatedAt: Date } | null,
+) {
+  return {
+    rows: state ? [[state.snapshotSha256, state.updatedAt.toISOString()]] : [],
+  };
+}
 
 describe("catalog detail cache revision", () => {
   afterEach(() => {
     resetPublicRuntimeCacheForTest();
-    findUniqueMock.mockReset();
+    queryRawMock.mockReset();
   });
 
   it("scopes the snapshot SHA and materialization time by payload schema", async () => {
-    findUniqueMock.mockResolvedValue({
-      snapshotSha256:
-        "abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
-      updatedAt: new Date("2026-08-16T03:00:00.000Z"),
-    });
+    queryRawMock.mockResolvedValue(
+      revisionRows({
+        snapshotSha256:
+          "abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+        updatedAt: new Date("2026-08-16T03:00:00.000Z"),
+      }),
+    );
 
     await runWithCloudflareRuntimeEnv({}, async () => {
       const revisions = await Promise.all([
@@ -50,20 +59,24 @@ describe("catalog detail cache revision", () => {
       ]);
       await expect(getCatalogDetailCacheRevision()).resolves.toBe(revisions[0]);
     });
-    expect(findUniqueMock).toHaveBeenCalledOnce();
+    expect(queryRawMock).toHaveBeenCalledOnce();
   });
 
   it("changes revision when the same snapshot is rematerialized", async () => {
-    findUniqueMock.mockResolvedValue({
-      snapshotSha256: "abcdef0123456789",
-      updatedAt: new Date("2026-08-16T03:00:00.000Z"),
-    });
+    queryRawMock.mockResolvedValue(
+      revisionRows({
+        snapshotSha256: "abcdef0123456789",
+        updatedAt: new Date("2026-08-16T03:00:00.000Z"),
+      }),
+    );
     const first = await getCatalogDetailCacheRevision();
 
-    findUniqueMock.mockResolvedValue({
-      snapshotSha256: "abcdef0123456789",
-      updatedAt: new Date("2026-08-16T03:01:00.000Z"),
-    });
+    queryRawMock.mockResolvedValue(
+      revisionRows({
+        snapshotSha256: "abcdef0123456789",
+        updatedAt: new Date("2026-08-16T03:01:00.000Z"),
+      }),
+    );
 
     await expect(getCatalogDetailCacheRevision()).resolves.not.toBe(first);
   });
@@ -73,7 +86,7 @@ describe("catalog detail cache revision", () => {
       snapshotSha256: "snapshot-before",
       updatedAt: new Date("2026-08-16T03:00:00.000Z"),
     };
-    findUniqueMock.mockImplementation(async () => ({ ...state }));
+    queryRawMock.mockImplementation(async () => revisionRows(state));
     const load = vi.fn(async () => ({ title: "before import" }));
     const render = () =>
       runWithCloudflareRuntimeEnv({}, () =>
@@ -90,13 +103,13 @@ describe("catalog detail cache revision", () => {
     load.mockResolvedValue({ title: "after import" });
     expect(await render()).toEqual({ title: "after import" });
     expect(load).toHaveBeenCalledTimes(2);
-    expect(findUniqueMock).toHaveBeenCalledTimes(2);
+    expect(queryRawMock).toHaveBeenCalledTimes(2);
   });
 
   it("retries a failed revision read within a request", async () => {
-    findUniqueMock
+    queryRawMock
       .mockRejectedValueOnce(new Error("database unavailable"))
-      .mockResolvedValue(null);
+      .mockResolvedValue(revisionRows(null));
     await runWithCloudflareRuntimeEnv({}, async () => {
       await expect(getCatalogDetailCacheRevision()).rejects.toThrow(
         "database unavailable",
@@ -105,15 +118,29 @@ describe("catalog detail cache revision", () => {
         "schema2:bootstrap",
       );
     });
-    expect(findUniqueMock).toHaveBeenCalledTimes(2);
+    expect(queryRawMock).toHaveBeenCalledTimes(2);
   });
 
   it("falls back to bootstrap when static import state is missing", async () => {
-    findUniqueMock.mockResolvedValue(null);
+    queryRawMock.mockResolvedValue(revisionRows(null));
 
     await expect(getCatalogDetailCacheRevision()).resolves.toBe(
       "schema2:bootstrap",
     );
+  });
+
+  it("rejects an invalid timestamp rather than caching an invalid revision", async () => {
+    queryRawMock
+      .mockResolvedValueOnce({ rows: [["snapshot", "infinity"]] })
+      .mockResolvedValueOnce(revisionRows(null));
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      await expect(getCatalogDetailCacheRevision()).rejects.toThrow(
+        "Invalid catalog revision timestamp",
+      );
+      await expect(getCatalogDetailCacheRevision()).resolves.toBe(
+        "schema2:bootstrap",
+      );
+    });
   });
 
   it.each([
@@ -133,7 +160,7 @@ describe("catalog detail cache revision", () => {
   ])(
     "isolates every list/detail cache layer from old payloads ($oldRevision)",
     async ({ state, oldRevision, dataRevision }) => {
-      findUniqueMock.mockResolvedValue(state);
+      queryRawMock.mockResolvedValue(revisionRows(state));
       const namespace = "page:teachers-list:zh-cn";
       const origin = "https://life-ustc.example";
       const detailKey = `v2:${oldRevision}:teacher:zh-cn:1:detail-v1`;
@@ -194,10 +221,12 @@ describe("catalog detail cache revision", () => {
   );
 
   it("traces only the revision origin read with fixed cache attributes", async () => {
-    findUniqueMock.mockResolvedValue({
-      snapshotSha256: "abcdef0123456789",
-      updatedAt: new Date("2026-08-16T03:00:00.000Z"),
-    });
+    queryRawMock.mockResolvedValue(
+      revisionRows({
+        snapshotSha256: "abcdef0123456789",
+        updatedAt: new Date("2026-08-16T03:00:00.000Z"),
+      }),
+    );
     const setAttribute = vi.fn();
     const enterSpan = vi.fn(
       <T>(
