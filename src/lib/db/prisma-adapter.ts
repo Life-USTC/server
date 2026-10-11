@@ -11,6 +11,20 @@ import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeDatabaseEventAnalytics } from "@/lib/metrics/analytics-engine";
 
 export type RuntimeDatabase = "app" | "auth" | "maintenance";
+export type RuntimeDatabaseAdapter = Awaited<ReturnType<PrismaPg["connect"]>>;
+
+/** Own the connection for fixed SQL that does not need a full ORM client. */
+export async function withRuntimeDatabaseAdapter<T>(
+  database: RuntimeDatabase,
+  action: (adapter: RuntimeDatabaseAdapter) => Promise<T>,
+): Promise<T> {
+  const adapter = await createPrismaAdapter(undefined, database).connect();
+  try {
+    return await action(adapter);
+  } finally {
+    await adapter.dispose();
+  }
+}
 
 /**
  * pg defaults `connectionTimeoutMillis` and `query_timeout` to "wait forever".

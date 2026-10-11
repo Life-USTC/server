@@ -53,44 +53,35 @@ describe("OAuth authorization usage summary", { concurrent: false }, () => {
   });
 
   it("汇总当前 grant 最近 30 天的 feature/channel 维度并选择最新使用", async () => {
-    await recordOAuthGrantUsage(
-      {
-        userId,
-        clientId,
-        grantId,
-        channel: "rest",
-        feature: "account.profile",
-        action: "read",
-        count: 2,
-        usedAt: new Date(anchor.getTime() - 1_000),
-      },
-      authPrisma,
-    );
-    await recordOAuthGrantUsage(
-      {
-        userId,
-        clientId,
-        grantId,
-        channel: "graphql",
-        feature: "workspace.todo",
-        action: "read",
-        usedAt: anchor,
-      },
-      authPrisma,
-    );
-    await recordOAuthGrantUsage(
-      {
-        userId,
-        clientId,
-        grantId,
-        channel: "mcp",
-        feature: "workspace.todo",
-        action: "write",
-        outcome: "error",
-        usedAt: new Date(anchor.getTime() + 1_000),
-      },
-      authPrisma,
-    );
+    await recordOAuthGrantUsage({
+      userId,
+      clientId,
+      grantId,
+      channel: "rest",
+      feature: "account.profile",
+      action: "read",
+      count: 2,
+      usedAt: new Date(anchor.getTime() - 1_000),
+    });
+    await recordOAuthGrantUsage({
+      userId,
+      clientId,
+      grantId,
+      channel: "graphql",
+      feature: "workspace.todo",
+      action: "read",
+      usedAt: anchor,
+    });
+    await recordOAuthGrantUsage({
+      userId,
+      clientId,
+      grantId,
+      channel: "mcp",
+      feature: "workspace.todo",
+      action: "write",
+      outcome: "error",
+      usedAt: new Date(anchor.getTime() + 1_000),
+    });
 
     const authorizations = await listUserOAuthAuthorizations(
       userId,
@@ -119,8 +110,8 @@ describe("OAuth authorization usage summary", { concurrent: false }, () => {
       action: "read" as const,
     };
 
-    await recordOAuthGrantUsage({ ...input, usedAt: newer }, authPrisma);
-    await recordOAuthGrantUsage({ ...input, usedAt: older }, authPrisma);
+    await recordOAuthGrantUsage({ ...input, usedAt: newer });
+    await recordOAuthGrantUsage({ ...input, usedAt: older });
 
     const row = await authPrisma.oAuthGrantUsageDaily.findUniqueOrThrow({
       where: {
@@ -153,22 +144,82 @@ describe("OAuth authorization usage summary", { concurrent: false }, () => {
     });
 
     await expect(
-      recordOAuthGrantUsage(
-        {
-          userId,
-          clientId: deletedClientId,
-          channel: "mcp",
-          feature: "account.profile",
-          action: "read",
-          usedAt: anchor,
-        },
-        authPrisma,
-      ),
+      recordOAuthGrantUsage({
+        userId,
+        clientId: deletedClientId,
+        channel: "mcp",
+        feature: "account.profile",
+        action: "read",
+        usedAt: anchor,
+      }),
     ).resolves.toBe(true);
     await expect(
       authPrisma.oAuthGrantUsageDaily.count({
         where: { userId, clientId: deletedClientId },
       }),
     ).resolves.toBe(0);
+  });
+
+  it("keeps SQL-looking dimensions as bound values and skips a deleted user", async () => {
+    const feature = `profile'); DROP TABLE "OAuthGrantUsageDaily"; --`;
+    await recordOAuthGrantUsage({
+      userId,
+      clientId,
+      grantId,
+      feature,
+      channel: "graphql",
+      action: "write",
+      count: 3,
+      outcome: "error",
+      usedAt: anchor,
+    });
+    expect(
+      await adminPrisma.oAuthGrantUsageDaily.findFirst({
+        where: { userId, clientId, feature },
+      }),
+    ).toMatchObject({ feature, writeCount: 3, readCount: 0, errorCount: 3 });
+    const missingUserId = `deleted-usage-user-${marker}`;
+    await adminPrisma.user.create({
+      data: { id: missingUserId, email: `${missingUserId}@example.test` },
+    });
+    await adminPrisma.user.delete({ where: { id: missingUserId } });
+    await expect(
+      recordOAuthGrantUsage({
+        userId: missingUserId,
+        clientId,
+        feature,
+        channel: "rest",
+        action: "read",
+        usedAt: anchor,
+      }),
+    ).resolves.toBe(true);
+    expect(
+      await adminPrisma.oAuthGrantUsageDaily.count({
+        where: { userId: missingUserId, clientId },
+      }),
+    ).toBe(0);
+  });
+
+  it("rejects non-finite and overflowing counts without persisting a row", async () => {
+    const feature = "invalid-count";
+    for (const count of [Number.NaN, Number.POSITIVE_INFINITY, 2 ** 31]) {
+      await expect(
+        recordOAuthGrantUsage({
+          userId,
+          clientId,
+          grantId,
+          feature,
+          channel: "rest",
+          action: "read",
+          count,
+          usedAt: anchor,
+        }),
+      ).rejects.toThrow();
+    }
+    expect(
+      await adminPrisma.oAuthGrantUsageDaily.count({
+        where: { userId, clientId, feature },
+      }),
+    ).toBe(0);
   });
 });

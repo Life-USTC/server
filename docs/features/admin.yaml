@@ -193,7 +193,9 @@ requirements:
   category: consistency
   rule: Observation capture is best effort and is bounded to 256 events per request. Records older than
     90 days are removed in bounded batches. Overflow, process termination, and storage failure may lose
-    observations; missing history must not be presented as zero activity.
+    observations; missing history must not be presented as zero activity. Each persistence batch owns its
+    app-role database resources until completion, commits both event types atomically, and ignores replayed
+    event IDs without double-counting.
   rationale: Raw-observation retention and aggregate metrics are separate from the security audit history.
     Observation writes do not participate in business transactions.
   acceptance:

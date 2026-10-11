@@ -2,7 +2,7 @@ import {
   getCloudflareRuntimeContext,
   runCloudflareTraceSpan,
 } from "@/lib/adapters/cloudflare-runtime";
-import { prisma } from "@/lib/db/prisma";
+import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 
 // Bump whenever a cached catalog payload changes shape or ordering, even if source data is unchanged.
 // Shared by list/detail L1, colo, and KV keys; never reuse an older payload revision.
@@ -35,10 +35,26 @@ async function loadCatalogDetailCacheRevision() {
     },
     async (span) => {
       try {
-        const state = await prisma.staticImportState.findUnique({
-          where: { id: "global" },
-          select: { snapshotSha256: true, updatedAt: true },
-        });
+        // Even a data-cache hit needs this fresh revision. Use the driver
+        // directly so that read does not deserialize the full Prisma schema.
+        const state = await withRuntimeDatabaseAdapter(
+          "app",
+          async (adapter) => {
+            const result = await adapter.queryRaw({
+              sql: 'SELECT "snapshotSha256", "updatedAt" FROM "StaticImportState" WHERE "id" = $1',
+              args: ["global"],
+              argTypes: [{ scalarType: "string", arity: "scalar" }],
+            });
+            const row = result.rows[0] as [string, string] | undefined;
+            if (!row) return null;
+            // PrismaPg normalizes PostgreSQL timestamps to UTC strings.
+            const updatedAt = new Date(row[1]);
+            if (!Number.isFinite(updatedAt.getTime())) {
+              throw new Error("Invalid catalog revision timestamp");
+            }
+            return { snapshotSha256: row[0], updatedAt };
+          },
+        );
         span?.setAttribute("cache.outcome", "success");
         return state;
       } catch (error) {

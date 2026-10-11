@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import {
   finishOAuthRequestUsage,
   recordOAuthGrantUsage,
@@ -46,9 +47,12 @@ afterAll(async () => {
 
 it("oauth.authorization-management.oauth-usage-aggregation", async () => {
   const scheduled: Promise<unknown>[] = [];
-  await runWithCloudflareRuntimeEnv(
+  const response = await runWithCloudflareRuntimeEnv(
     runtimeEnv,
     async () => {
+      // An earlier auth query registers response cleanup; the delayed usage
+      // batch must still own its connection after that cleanup has run.
+      await authPrisma.oAuthGrantUsageDaily.count({ where: { clientId } });
       for (const [offset, count] of [
         [-1, 1],
         [1, 1],
@@ -82,6 +86,7 @@ it("oauth.authorization-management.oauth-usage-aggregation", async () => {
         usedAt: new Date(anchor.getTime() + 120000),
       });
       await finishOAuthRequestUsage(failed, 403);
+      return new Response("completed");
     },
     {
       waitUntil(task: Promise<unknown>) {
@@ -89,6 +94,7 @@ it("oauth.authorization-management.oauth-usage-aggregation", async () => {
       },
     },
   );
+  expect(await response.text()).toBe("completed");
   await Promise.all(scheduled);
   const rows = await db.oAuthGrantUsageDaily.findMany({
     where: { clientId, channel: "rest" },

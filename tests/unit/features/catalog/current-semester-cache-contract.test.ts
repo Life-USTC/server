@@ -9,8 +9,21 @@ const { findFirst, findRevision } = vi.hoisted(() => ({
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     semester: { findFirst },
-    staticImportState: { findUnique: findRevision },
   },
+}));
+vi.mock("@/lib/db/prisma-adapter", () => ({
+  withRuntimeDatabaseAdapter: async (
+    _database: string,
+    action: (adapter: unknown) => Promise<unknown>,
+  ) =>
+    action({
+      queryRaw: async () => {
+        const state = await findRevision();
+        return {
+          rows: [[state.snapshotSha256, state.updatedAt.toISOString()]],
+        };
+      },
+    }),
 }));
 afterEach(() => {
   resetPublicRuntimeCacheForTest();

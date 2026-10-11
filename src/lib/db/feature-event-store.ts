@@ -1,4 +1,4 @@
-import { createBasePrisma } from "@/lib/db/prisma-query-events";
+import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 
 export const FEATURE_EVENT_STORE_MAX_BATCH_SIZE = 256;
 
@@ -44,11 +44,96 @@ function assertBatchSize(
   }
 }
 
+// Both inserts (including their metrics triggers) succeed or roll back together.
+// No RETURNING: anonymous app-role writers do not have RLS read access.
+const insertBatchSql = `
+  WITH feature_insert AS (
+    INSERT INTO "FeatureOperationEvent" (
+      "id", "occurredAt", "feature", "operation", "protocol", "surface",
+      "authMode", "outcome", "errorClass", "durationMs", "requestId", "userId"
+    ) SELECT
+      "id", COALESCE("occurredAt", CURRENT_TIMESTAMP), "feature", "operation",
+      "protocol", "surface", "authMode", "outcome", "errorClass", "durationMs",
+      "requestId", "userId"
+    FROM jsonb_to_recordset($1::jsonb) AS event(
+      "id" text, "occurredAt" timestamp(3), "feature" text, "operation" text,
+      "protocol" text, "surface" text, "authMode" text, "outcome" text,
+      "errorClass" text, "durationMs" double precision, "requestId" text, "userId" text
+    )
+    ON CONFLICT DO NOTHING
+  )
+  INSERT INTO "RuntimeIssueEvent" (
+    "id", "occurredAt", "level", "event", "requestId", "route", "status"
+  ) SELECT
+    "id", COALESCE("occurredAt", CURRENT_TIMESTAMP), "level", "event", "requestId", "route", "status"
+  FROM jsonb_to_recordset($2::jsonb) AS issue(
+    "id" text, "occurredAt" timestamp(3), "level" text, "event" text,
+    "requestId" text, "route" text, "status" integer
+  )
+  ON CONFLICT DO NOTHING
+`;
+
+function requiredString(value: string) {
+  if (typeof value !== "string") {
+    throw new TypeError("Observation text fields must be strings");
+  }
+  return value;
+}
+
+function optionalString(value: string | null | undefined) {
+  return value == null ? null : requiredString(value);
+}
+
+function occurredAt(value: Date | undefined) {
+  if (value == null) return null;
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) {
+    throw new TypeError("Observation occurredAt must be a valid Date");
+  }
+  return value.toISOString();
+}
+
+function featureRecord(event: FeatureEventInput) {
+  // JSON would turn non-finite numbers into null. Reject them before binding,
+  // and leave the database's dimension/range constraints authoritative.
+  if (!Number.isFinite(event.durationMs)) {
+    throw new TypeError("Observation durationMs must be finite");
+  }
+  return {
+    id: requiredString(event.id),
+    occurredAt: occurredAt(event.occurredAt),
+    feature: requiredString(event.feature),
+    operation: requiredString(event.operation),
+    protocol: requiredString(event.protocol),
+    surface: requiredString(event.surface),
+    authMode: requiredString(event.authMode),
+    outcome: requiredString(event.outcome),
+    errorClass: requiredString(event.errorClass),
+    durationMs: event.durationMs,
+    requestId: optionalString(event.requestId),
+    userId: optionalString(event.userId),
+  };
+}
+
+function issueRecord(issue: RuntimeIssueInput) {
+  if (issue.status != null && !Number.isInteger(issue.status)) {
+    throw new TypeError("Observation status must be an integer");
+  }
+  return {
+    id: requiredString(issue.id),
+    occurredAt: occurredAt(issue.occurredAt),
+    level: requiredString(issue.level),
+    event: requiredString(issue.event),
+    requestId: optionalString(issue.requestId),
+    route: optionalString(issue.route),
+    status: issue.status ?? null,
+  };
+}
+
 /**
  * Persist bounded, content-free observations without inheriting a request's
  * ambient RLS transaction or its Cloudflare cleanup lifetime. The caller owns
- * scheduling, retries, and failure reporting; this function only performs one
- * short-lived database transaction.
+ * scheduling, retries, and failure reporting; this function owns one atomic
+ * statement and its short-lived database adapter.
  */
 export async function writeObservabilityBatch({
   features = [],
@@ -56,53 +141,16 @@ export async function writeObservabilityBatch({
 }: ObservabilityBatch): Promise<void> {
   assertBatchSize(features, issues);
   if (features.length === 0 && issues.length === 0) return;
-
-  const client = createBasePrisma();
-  try {
-    const writes = [];
-    if (features.length > 0) {
-      writes.push(
-        client.featureOperationEvent.createMany({
-          data: features.map((event) => ({
-            id: event.id,
-            ...(event.occurredAt ? { occurredAt: event.occurredAt } : {}),
-            feature: event.feature,
-            operation: event.operation,
-            protocol: event.protocol,
-            surface: event.surface,
-            authMode: event.authMode,
-            outcome: event.outcome,
-            errorClass: event.errorClass,
-            durationMs: event.durationMs,
-            ...(event.requestId === undefined
-              ? {}
-              : { requestId: event.requestId }),
-            ...(event.userId === undefined ? {} : { userId: event.userId }),
-          })),
-          skipDuplicates: true,
-        }),
-      );
-    }
-    if (issues.length > 0) {
-      writes.push(
-        client.runtimeIssueEvent.createMany({
-          data: issues.map((issue) => ({
-            id: issue.id,
-            ...(issue.occurredAt ? { occurredAt: issue.occurredAt } : {}),
-            level: issue.level,
-            event: issue.event,
-            ...(issue.requestId === undefined
-              ? {}
-              : { requestId: issue.requestId }),
-            ...(issue.route === undefined ? {} : { route: issue.route }),
-            ...(issue.status === undefined ? {} : { status: issue.status }),
-          })),
-          skipDuplicates: true,
-        }),
-      );
-    }
-    await client.$transaction(writes);
-  } finally {
-    await client.$disconnect();
-  }
+  const featureJson = JSON.stringify(features.map(featureRecord));
+  const issueJson = JSON.stringify(issues.map(issueRecord));
+  await withRuntimeDatabaseAdapter("app", async (adapter) => {
+    await adapter.executeRaw({
+      sql: insertBatchSql,
+      args: [featureJson, issueJson],
+      argTypes: [
+        { scalarType: "json", arity: "scalar" },
+        { scalarType: "json", arity: "scalar" },
+      ],
+    });
+  });
 }

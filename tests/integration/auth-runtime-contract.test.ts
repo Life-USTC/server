@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
 import {
   createFixturePrisma,
@@ -304,17 +305,29 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         },
       });
       try {
-        await recordOAuthGrantUsage(
-          {
-            userId: user.id,
-            clientId,
-            grantId,
-            channel: "rest",
-            feature: "account.profile",
-            action: "read",
-          },
-          authPrisma,
-        );
+        await withRuntimeDatabaseAdapter("auth", async (adapter) => {
+          const result = await adapter.queryRaw({
+            sql: "SELECT current_user::text",
+            args: [],
+            argTypes: [],
+          });
+          expect(result.rows).toEqual([["life_ustc_auth_runtime"]]);
+          await expect(
+            adapter.queryRaw({
+              sql: 'SELECT * FROM "Todo" LIMIT 1',
+              args: [],
+              argTypes: [],
+            }),
+          ).rejects.toThrow();
+        });
+        await recordOAuthGrantUsage({
+          userId: user.id,
+          clientId,
+          grantId,
+          channel: "rest",
+          feature: "account.profile",
+          action: "read",
+        });
         await expect(
           authPrisma.oAuthGrantUsageDaily.findFirstOrThrow({
             where: { userId: user.id, clientId, grantId },
