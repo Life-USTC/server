@@ -1,6 +1,12 @@
-import { type AuditChannel, Prisma } from "@/generated/prisma/client";
-import { getCloudflareRuntimeTaskScheduler } from "@/lib/adapters/cloudflare-runtime";
-import { authPrisma } from "@/lib/db/auth-prisma";
+import type { AuditChannel } from "@/generated/prisma/client";
+import {
+  getCloudflareRuntimeContext,
+  getCloudflareRuntimeTaskScheduler,
+} from "@/lib/adapters/cloudflare-runtime";
+import {
+  type RuntimeDatabaseAdapter,
+  withRuntimeDatabaseAdapter,
+} from "@/lib/db/prisma-adapter";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
@@ -18,78 +24,97 @@ export type OAuthGrantUsageInput = {
 
 const USAGE_BATCH_DELAY_MS = 100;
 const MAX_PENDING_USAGE_DIMENSIONS = 256;
-const pendingUsage = new Map<string, OAuthGrantUsageInput>();
-let pendingFlush: Promise<void> | undefined;
+type UsageBatch = {
+  pending: Map<string, OAuthGrantUsageInput>;
+  flush?: Promise<void>;
+};
+// A background task may use IO only from its originating Worker request.
+// Weak keys retain neither completed request contexts nor database connections.
+const requestBatches = new WeakMap<
+  NonNullable<ReturnType<typeof getCloudflareRuntimeContext>>,
+  UsageBatch
+>();
 
-type OAuthGrantUsageClient = Pick<Prisma.TransactionClient, "$executeRaw">;
-
-function shanghaiDatabaseDay(value: Date) {
-  return new Date(`${shanghaiDayjs(value).format("YYYY-MM-DD")}T00:00:00.000Z`);
-}
+type UsageQuery = Parameters<RuntimeDatabaseAdapter["executeRaw"]>[0];
+const usageSql = `
+  INSERT INTO "OAuthGrantUsageDaily" (
+    "id", "userId", "clientId", "grantId", "grantKey", "day", "feature", "channel",
+    "readCount", "writeCount", "errorCount", "lastUsedAt", "updatedAt"
+  ) SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8::"AuditChannel", $9, $10, $11, $12, CURRENT_TIMESTAMP
+  WHERE EXISTS (SELECT 1 FROM "User" WHERE "id" = $2)
+    AND EXISTS (SELECT 1 FROM "OAuthClient" WHERE "clientId" = $3)
+  ON CONFLICT ("userId", "clientId", "grantKey", "day", "feature", "channel")
+  DO UPDATE SET
+    "readCount" = "OAuthGrantUsageDaily"."readCount" + EXCLUDED."readCount",
+    "writeCount" = "OAuthGrantUsageDaily"."writeCount" + EXCLUDED."writeCount",
+    "errorCount" = "OAuthGrantUsageDaily"."errorCount" + EXCLUDED."errorCount",
+    "lastUsedAt" = GREATEST("OAuthGrantUsageDaily"."lastUsedAt", EXCLUDED."lastUsedAt"),
+    "updatedAt" = CURRENT_TIMESTAMP
+`;
+const usageArgTypes: UsageQuery["argTypes"] = [
+  { scalarType: "string", arity: "scalar" },
+  { scalarType: "string", arity: "scalar" },
+  { scalarType: "string", arity: "scalar" },
+  { scalarType: "string", arity: "scalar" },
+  { scalarType: "string", arity: "scalar" },
+  { scalarType: "datetime", dbType: "DATE", arity: "scalar" },
+  { scalarType: "string", arity: "scalar" },
+  { scalarType: "enum", arity: "scalar" },
+  { scalarType: "int", arity: "scalar" },
+  { scalarType: "int", arity: "scalar" },
+  { scalarType: "int", arity: "scalar" },
+  { scalarType: "datetime", arity: "scalar" },
+];
 
 export function oauthGrantUsageKey(grantId?: string) {
   return grantId ? `grant:${grantId}` : "none";
 }
 
-export async function recordOAuthGrantUsage(
-  input: OAuthGrantUsageInput,
-  client: OAuthGrantUsageClient = authPrisma,
-) {
+function usageQuery(input: OAuthGrantUsageInput): UsageQuery {
   const usedAt = input.usedAt ?? new Date();
   const count = Math.max(1, Math.trunc(input.count ?? 1));
-  const readCount = input.action === "read" ? count : 0;
-  const writeCount = input.action === "write" ? count : 0;
-  const errorCount = input.outcome === "error" ? count : 0;
+  return {
+    sql: usageSql,
+    args: [
+      crypto.randomUUID(),
+      input.userId,
+      input.clientId,
+      input.grantId ?? null,
+      oauthGrantUsageKey(input.grantId),
+      new Date(`${shanghaiDayjs(usedAt).format("YYYY-MM-DD")}T00:00:00.000Z`),
+      input.feature,
+      input.channel,
+      input.action === "read" ? count : 0,
+      input.action === "write" ? count : 0,
+      input.outcome === "error" ? count : 0,
+      usedAt,
+    ],
+    argTypes: usageArgTypes,
+  };
+}
 
-  // Keep the counters and timestamp in one PostgreSQL statement. In
-  // particular, GREATEST prevents a delayed request from moving lastUsedAt
-  // backwards after a newer request has already committed in another isolate.
-  await client.$executeRaw(Prisma.sql`
-    INSERT INTO "OAuthGrantUsageDaily" (
-      "id",
-      "userId",
-      "clientId",
-      "grantId",
-      "grantKey",
-      "day",
-      "feature",
-      "channel",
-      "readCount",
-      "writeCount",
-      "errorCount",
-      "lastUsedAt",
-      "updatedAt"
-    ) SELECT
-      ${crypto.randomUUID()},
-      ${input.userId},
-      ${input.clientId},
-      ${input.grantId ?? null},
-      ${oauthGrantUsageKey(input.grantId)},
-      ${shanghaiDatabaseDay(usedAt)},
-      ${input.feature},
-      ${input.channel}::"AuditChannel",
-      ${readCount},
-      ${writeCount},
-      ${errorCount},
-      ${usedAt},
-      CURRENT_TIMESTAMP
-    WHERE EXISTS (
-      SELECT 1 FROM "User" WHERE "id" = ${input.userId}
-    ) AND EXISTS (
-      SELECT 1 FROM "OAuthClient" WHERE "clientId" = ${input.clientId}
-    )
-    ON CONFLICT (
-      "userId", "clientId", "grantKey", "day", "feature", "channel"
-    ) DO UPDATE SET
-      "readCount" = "OAuthGrantUsageDaily"."readCount" + EXCLUDED."readCount",
-      "writeCount" = "OAuthGrantUsageDaily"."writeCount" + EXCLUDED."writeCount",
-      "errorCount" = "OAuthGrantUsageDaily"."errorCount" + EXCLUDED."errorCount",
-      "lastUsedAt" = GREATEST(
-        "OAuthGrantUsageDaily"."lastUsedAt",
-        EXCLUDED."lastUsedAt"
-      ),
-      "updatedAt" = CURRENT_TIMESTAMP
-  `);
+async function writeUsageBatch(inputs: OAuthGrantUsageInput[]) {
+  const queries = inputs.map(usageQuery);
+  await withRuntimeDatabaseAdapter("auth", async (adapter) => {
+    // A rejected statement must not dispose the pool while sibling writes run.
+    const results = await Promise.allSettled(
+      queries.map((query) => adapter.executeRaw(query)),
+    );
+    const failures = results
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason);
+    if (failures.length > 0) {
+      throw new AggregateError(
+        failures,
+        "OAuth grant usage batch write failed",
+      );
+    }
+  });
+}
+
+export async function recordOAuthGrantUsage(input: OAuthGrantUsageInput) {
+  await writeUsageBatch([input]);
   return true;
 }
 
@@ -106,20 +131,20 @@ function usageBatchKey(input: OAuthGrantUsageInput, usedAt: Date) {
   ].join("\u0000");
 }
 
-async function flushPendingUsage() {
-  const batch = [...pendingUsage.values()];
-  pendingUsage.clear();
-  await Promise.all(batch.map((input) => recordOAuthGrantUsage(input)));
+async function flushPendingUsage(state: UsageBatch) {
+  const batch = [...state.pending.values()];
+  state.pending.clear();
+  await writeUsageBatch(batch);
 }
 
-function startUsageFlush() {
-  pendingFlush ??= (async () => {
+function startUsageFlush(state: UsageBatch) {
+  state.flush ??= (async () => {
     do {
       await new Promise<void>((resolve) => {
         setTimeout(resolve, USAGE_BATCH_DELAY_MS);
       });
-      await flushPendingUsage();
-    } while (pendingUsage.size > 0);
+      await flushPendingUsage(state);
+    } while (state.pending.size > 0);
   })()
     .catch((error: unknown) => {
       logAppEvent(
@@ -130,13 +155,13 @@ function startUsageFlush() {
       );
     })
     .finally(() => {
-      pendingFlush = undefined;
-      if (pendingUsage.size > 0) {
-        const followup = startUsageFlush();
+      state.flush = undefined;
+      if (state.pending.size > 0) {
+        const followup = startUsageFlush(state);
         getCloudflareRuntimeTaskScheduler()?.(followup);
       }
     });
-  return pendingFlush;
+  return state.flush;
 }
 
 /**
@@ -165,10 +190,24 @@ export function scheduleOAuthGrantUsage(input: OAuthGrantUsageInput) {
       logUsageFailure(input, error);
     });
   }
+  const context = getCloudflareRuntimeContext();
+  if (!context) {
+    schedule(
+      recordOAuthGrantUsage(input).catch((error: unknown) => {
+        logUsageFailure(input, error);
+      }),
+    );
+    return Promise.resolve();
+  }
+  let state = requestBatches.get(context);
+  if (!state) {
+    state = { pending: new Map() };
+    requestBatches.set(context, state);
+  }
   const usedAt = input.usedAt ?? new Date();
   const key = usageBatchKey(input, usedAt);
-  const existing = pendingUsage.get(key);
-  if (!existing && pendingUsage.size >= MAX_PENDING_USAGE_DIMENSIONS) {
+  const existing = state.pending.get(key);
+  if (!existing && state.pending.size >= MAX_PENDING_USAGE_DIMENSIONS) {
     // Bound coalescing memory without losing completed-operation counts.
     const write = recordOAuthGrantUsage({ ...input, usedAt }).catch(
       (error: unknown) => {
@@ -178,7 +217,7 @@ export function scheduleOAuthGrantUsage(input: OAuthGrantUsageInput) {
     schedule(write);
     return Promise.resolve();
   }
-  pendingUsage.set(key, {
+  state.pending.set(key, {
     ...input,
     count: (existing?.count ?? 0) + Math.max(1, Math.trunc(input.count ?? 1)),
     usedAt:
@@ -186,7 +225,7 @@ export function scheduleOAuthGrantUsage(input: OAuthGrantUsageInput) {
         ? existing.usedAt
         : usedAt,
   });
-  schedule(startUsageFlush());
+  schedule(startUsageFlush(state));
   return Promise.resolve();
 }
 

@@ -472,8 +472,10 @@ requirements:
       name: oauth.transport-origin-validation
 - id: oauth.authorization-management.oauth-usage-aggregation
   category: privacy
-  rule: Successful and failed completed OAuth operations are coalesced within a Worker into bounded per-grant,
-    Shanghai-day, feature, and channel counters before atomic upsert. Rows contain no request targets,
+  rule: Successful and failed completed OAuth operations are coalesced within each Worker request into bounded per-grant,
+    Shanghai-day, feature, and channel counters before atomic upsert. Each background batch owns authentication-role
+    database resources until all its writes settle, including after response cleanup; it does not reuse another request's
+    connection. Rows contain no request targets,
     arguments, content, network, device, token, or secret data. The authorization page sums the current
     grant's last 30 days and selects the latest feature/channel by lastUsedAt.
   applies_to:
@@ -488,6 +490,7 @@ requirements:
       never regresses.
     - Current-grant summaries include only the last thirty Shanghai dates through today, select the latest
       feature/channel, and exclude other generations.
+    - Batches finish and release their connections after response cleanup, without merging separate requests.
     - Overflow persists as singleton batches without losing counts; rows contain no request payload, target,
       network, token, or credential data.
     test:
