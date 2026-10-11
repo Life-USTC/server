@@ -222,26 +222,27 @@ requirements:
 - id: rendering-and-cache.cacheable-public-pages-15
   category: consistency
   topic: cacheable-public-pages
-  rule: The open tab reuses successful public SvelteKit __data.json navigations so a later visit does not
-    request them again. Stable catalog, news, search, room, guide, and community pages stay reusable for
-    300 seconds. Young event pages and section details stay reusable for at most 60 seconds and never past
-    the next Asia/Shanghai midnight. A full invalidation mask drops the stored page and requests again.
-    Clock-driven bus and weather pages, the site root, workspace, and other private routes are never stored.
-    Responses that set a cookie or are not successful are never stored. HTTP responses stay private, no-store.
+  rule: The open tab reuses only server-attested public SvelteKit __data.json navigations. The response
+    must set no cookie and contain a nonstreaming application/json data envelope with only null, skip or
+    successful data nodes. Redirects, error nodes, malformed payloads and deferred streams are never retained.
+    Stable admitted catalog, news, search, room, guide and public profile pages stay reusable for 300 seconds;
+    their root and leaf projections contain no private viewer or subscription state. Young event pages and
+    section details stay reusable for at most 60 seconds and never past the next Asia/Shanghai midnight.
+    A full invalidation mask drops the stored page and requests again. Clock-driven bus and weather pages,
+    the site root, workspace and other private routes are never stored. HTTP responses stay private, no-store.
   acceptance:
-    given: A tab cache in front of a controlled fetch, covering a partial invalidation, a repeat visit, an
-      all-ones invalidation, a Set-Cookie response, and young/section reads at noon and ten seconds before
-      Shanghai midnight.
-    when: The same public navigation URL is requested twice, then fully invalidated, and excluded URLs are
-      requested.
+    given: Actual browsers and a Worker serve successful public page data, private projections, cookie-setting
+      responses, redirects, errors and deferred payloads, with two distinct session viewers and locales.
+    when: Repeat eligible partial-mask navigations, fully invalidate a page, switch session viewers, and
+      read Young or section data within the final second before Shanghai midnight.
     then:
-    - The second stable navigation is served from the tab cache and does not call fetch. Young data at noon
-      expires after 60 seconds. Section detail stored ten seconds before midnight expires at midnight.
-    - A full invalidation calls fetch again and the following partial navigation calls fetch again.
-    - Workspace, bus, weather, the site root, and Set-Cookie responses always call fetch.
+    - Only explicitly attested successful public data is reused; root and leaf envelopes are viewer-independent.
+    - Cookie-setting responses, private projections, redirects, errors, deferred streams and malformed data are fetched again.
+    - Full invalidation drops the matching page; clock-sensitive entries expire at midnight without a grace interval.
+    - Workspace retains its private server-rendered viewer and never uses the public tab cache.
     test:
-      file: tests/unit/lib/shell/public-navigation-cache.test.ts
-      name: rendering-and-cache.cacheable-public-pages-15
+      file: tests/e2e/src/app/cache-policy/public-navigation-admission.test.ts
+      name: browser caches only attested successful public navigation responses
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
@@ -489,17 +490,46 @@ requirements:
   category: consistency
   topic: cache-layers-and-invalidation
   rule: Catalog public data keys include revision, locale where applicable, entity kind, ID or canonical filters,
-    and payload shape.
+    and payload shape. Canonical list/filter keys use a fixed-length digest so supported multibyte queries
+    stay within the KV key limit without truncating distinguishing input.
   acceptance:
     given: The same catalog-list query with separately varied revision, locale, kind, filter values and shape,
       plus equivalent reordered filters.
     when: Production cache key builders construct keys.
     then:
     - Every meaningful variation has a distinct key.
-    - Equivalent canonical filter sets share one key.
+    - Equivalent canonical filter sets share one key, and long multibyte keys remain bounded without dropping suffix differences.
     test:
-      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      file: tests/unit/features/catalog/catalog-runtime-cache.test.ts
       name: rendering-and-cache.cache-layers-and-invalidation-10
+- id: rendering-and-cache.catalog-filter-options-cache
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: Academic list filter options are cached independently of search and pagination, scoped by import
+    revision, list kind and locale. Course, active-section and teacher option eligibility remain distinct.
+  acceptance:
+    given: Different searches and pages share one revision and locale, with separately scoped list option loaders.
+    when: Read those variants, then change locale or the committed import revision.
+    then:
+    - Result selections stay distinct while invariant option rows are read only once per list kind and locale.
+    - Changing locale or revision reads fresh options and preserves each list's eligibility predicates.
+    test:
+      file: tests/unit/features/catalog/public-catalog-filter-options.test.ts
+      name: isolates option locale and invalidates them on a committed import revision
+- id: rendering-and-cache.cache-recency
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: The bounded public data cache retains recently accessed entries ahead of less recently accessed
+    entries. Access does not extend the original freshness deadline.
+  acceptance:
+    given: A full process cache has an old entry accessed recently and an older unaccessed entry.
+    when: Insert a new entry, read both prior entries, and advance to the accessed entry's original expiry.
+    then:
+    - The recently accessed entry is retained while the least recently accessed entry reloads.
+    - The retained entry reloads at its original deadline even after a recent hit.
+    test:
+      file: tests/unit/lib/adapters/public-runtime-cache.test.ts
+      name: retains a recently used entry when the bounded cache is full
 - id: rendering-and-cache.cache-layers-and-invalidation-11
   category: consistency
   topic: cache-layers-and-invalidation
@@ -824,6 +854,9 @@ cache_contracts:
       course.history-cache-page-isolation,
       rendering-and-cache.cache-layers-and-invalidation-7,
       rendering-and-cache.cache-layers-and-invalidation-10,
+      rendering-and-cache.catalog-filter-options-cache,
+      rendering-and-cache.cache-recency,
+      young-event.calendar-compact-facts,
       rendering-and-cache.cache-layers-and-invalidation-11,
       rendering-and-cache.cache-origin-recovery,
       young-event.shared-public-cache,
