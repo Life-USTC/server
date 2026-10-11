@@ -1,11 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { resolveCatalogListPublicSsrMode } from "@/features/catalog/lib/catalog-list-query";
 import {
-  catalogListReadCacheKey,
-  catalogListReadCacheNamespace,
-} from "@/features/catalog/server/catalog-list-cache";
-import { publicCatalogKvCacheKey } from "@/lib/catalog-runtime-cache";
-import {
   publicSsrCacheHeaders,
   resolvePublicSsrMode,
 } from "@/lib/cloudflare/public-ssr-gateway";
@@ -188,43 +183,5 @@ describe("public cache policy acceptance", () => {
         "Cloudflare-CDN-Cache-Control": "no-store",
       });
     }
-  });
-
-  test("rendering-and-cache.cache-layers-and-invalidation-10", () => {
-    const base = {
-      filters: { search: "math", ids: [3, 1] },
-      pagination: { page: 1, pageSize: 20 },
-      shape: "summary",
-    };
-    const key = (
-      revision: string,
-      kind: "courses" | "sections",
-      locale: "zh-cn" | "en-us",
-      input = base,
-    ) =>
-      publicCatalogKvCacheKey(
-        revision,
-        catalogListReadCacheNamespace(kind, locale),
-        catalogListReadCacheKey(input),
-      );
-    const baseline = key("revision-1", "courses", "zh-cn");
-    expect(key("revision-2", "courses", "zh-cn")).not.toBe(baseline);
-    expect(key("revision-1", "sections", "zh-cn")).not.toBe(baseline);
-    expect(key("revision-1", "courses", "en-us")).not.toBe(baseline);
-    expect(
-      key("revision-1", "courses", "zh-cn", { ...base, shape: "full" }),
-    ).not.toBe(baseline);
-    expect(
-      key("revision-1", "courses", "zh-cn", {
-        ...base,
-        filters: { search: "physics", ids: [3, 1] },
-      }),
-    ).not.toBe(baseline);
-    expect(
-      key("revision-1", "courses", "zh-cn", {
-        ...base,
-        filters: { ids: [1, 3], search: "math" },
-      }),
-    ).toBe(baseline);
   });
 });

@@ -1,13 +1,13 @@
 import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import { listSectionSummaries } from "@/features/catalog/server/course-section-queries";
+import { getSectionListFilterOptions } from "@/features/catalog/server/public-catalog-filter-options";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import {
   cachedCatalogListRuntimeData,
   catalogListCacheNamespace,
 } from "@/lib/catalog-runtime-cache";
-import { getPrisma } from "@/lib/db/prisma";
 import {
   optionalValue,
   parsePositivePage,
@@ -23,9 +23,21 @@ export async function getSectionListPage(
     url.searchParams,
   );
   const namespace = catalogListCacheNamespace("sections", locale, "page");
-  return cachedCatalogListRuntimeData(namespace, url.origin, searchParams, () =>
-    getUncachedSectionListPage(searchParams, locale),
-  );
+  const [result, filterOptions, messages] = await Promise.all([
+    cachedCatalogListRuntimeData(namespace, url.origin, searchParams, () =>
+      getUncachedSectionListPage(searchParams, locale),
+    ),
+    getSectionListFilterOptions(locale, url.origin),
+    getMessages(locale),
+  ]);
+  return {
+    ...result,
+    filterOptions,
+    labels: {
+      common: messages.common,
+      sections: { ...messages.sections, close: messages.sectionDetail.close },
+    },
+  };
 }
 
 async function getUncachedSectionListPage(
@@ -51,74 +63,15 @@ async function getUncachedSectionListPage(
     sort: optionalValue(searchParams.get("sort")),
     teacher: optionalValue(searchParams.get("teacher")),
   };
-  const prisma = getPrisma(locale);
 
-  const [
-    result,
-    semesters,
-    campuses,
-    departments,
-    categories,
-    educationLevels,
-    classTypes,
-    messages,
-  ] = await Promise.all([
-    listSectionSummaries({
-      filters,
-      locale,
-      pagination: { page, pageSize: CATALOG_PAGE_SIZE },
-    }),
-    prisma.semester.findMany({
-      select: { id: true, nameCn: true },
-      take: 100,
-      orderBy: { jwId: "desc" },
-    }),
-    prisma.campus.findMany({
-      where: { sections: { some: { retiredAt: null } } },
-      orderBy: { nameCn: "asc" },
-    }),
-    prisma.department.findMany({
-      where: { sections: { some: { retiredAt: null } } },
-      orderBy: { nameCn: "asc" },
-    }),
-    prisma.courseCategory.findMany({
-      where: {
-        courses: { some: { sections: { some: { retiredAt: null } } } },
-      },
-      orderBy: { nameCn: "asc" },
-    }),
-    prisma.educationLevel.findMany({
-      where: {
-        courses: { some: { sections: { some: { retiredAt: null } } } },
-      },
-      orderBy: { nameCn: "asc" },
-    }),
-    prisma.classType.findMany({
-      where: {
-        courses: { some: { sections: { some: { retiredAt: null } } } },
-      },
-      orderBy: { nameCn: "asc" },
-    }),
-    getMessages(locale),
-  ]);
+  const result = await listSectionSummaries({
+    filters,
+    locale,
+    pagination: { page, pageSize: CATALOG_PAGE_SIZE },
+  });
 
   return toLoadData({
     ...result,
     filters,
-    filterOptions: {
-      campuses,
-      categories,
-      classTypes,
-      departments,
-      educationLevels,
-      semesters,
-    },
-    labels: {
-      common: messages.common,
-      sections: {
-        ...messages.sections,
-        close: messages.sectionDetail.close,
-      },
-    },
   });
 }

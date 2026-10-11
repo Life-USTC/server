@@ -7,7 +7,7 @@ import {
 } from "@/features/young/lib/personal-calendar-client";
 import { youngCalendarConflicts } from "@/features/young/lib/young-calendar-conflicts";
 import type {
-  YoungEventSummary,
+  YoungCalendarEvent,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { YoungCalendarPageFilters } from "@/features/young/server/young-page-load";
@@ -21,7 +21,7 @@ import YoungSourceNote from "./YoungSourceNote.svelte";
 type Props = {
   anchorDate: string;
   copy: AppPageCopy;
-  data: YoungEventSummary[];
+  data: YoungCalendarEvent[];
   filters: YoungCalendarPageFilters;
   locale: string;
   range: { start: string; end: string };

@@ -1,6 +1,7 @@
 import type { Handle } from "@sveltejs/kit";
 import { afterEach, expect, it, vi } from "vitest";
 import { handle } from "@/hooks.server";
+import { PUBLIC_NAVIGATION_HEADER } from "@/lib/shell/public-navigation-contract";
 import { createDeferred } from "../../../shared/deferred";
 import { createWaitUntil } from "../../../shared/wait-until";
 
@@ -31,9 +32,12 @@ async function respond(
   path: string,
   response: Response,
   headers: HeadersInit = {},
+  dataRequest = false,
+  sessionHeaders?: Headers,
 ) {
   vi.stubEnv("NODE_ENV", "development");
   session.mockResolvedValue({
+    headers: sessionHeaders,
     session: {
       user: { id: "viewer-1", name: "Viewer", username: "viewer" },
     },
@@ -42,6 +46,7 @@ async function respond(
   return handle({
     event: {
       url,
+      isDataRequest: dataRequest,
       request: new Request(url, { headers }),
       route: { id: path },
       params: {},
@@ -185,5 +190,98 @@ it("rendering-and-cache.personal-overlays-10", async () => {
       );
       expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     }
+  }
+});
+
+it("attests public navigation projections while keeping HTTP caches disabled", async () => {
+  for (const path of [
+    "/catalog/courses",
+    "/news",
+    "/search",
+    "/catalog/rooms",
+    "/community/users/viewer",
+  ]) {
+    const response = await respond(
+      path,
+      Response.json({ type: "data", nodes: [] }),
+      { cookie: "better-auth.session_token=viewer-session" },
+      true,
+    );
+    expect(response.headers.get(PUBLIC_NAVIGATION_HEADER), path).toBe("1");
+    expect(response.headers.get("cache-control"), path).toBe(
+      "private, no-store",
+    );
+    expect(response.headers.get("cloudflare-cdn-cache-control"), path).toBe(
+      "no-store",
+    );
+  }
+});
+
+it.each([
+  "/workspace/overview",
+  "/account/profile",
+  "/community/private",
+  "/catalog/bus",
+  "/catalog/young-events-private",
+  "/usage/private",
+  "/__data.json",
+])("does not attest non-public navigation paths: %s", async (path) => {
+  const response = await respond(
+    path,
+    Response.json(
+      {},
+      {
+        headers: { [PUBLIC_NAVIGATION_HEADER]: "1" },
+      },
+    ),
+    {},
+    true,
+  );
+  expect(response.headers.has(PUBLIC_NAVIGATION_HEADER)).toBe(false);
+});
+
+it("does not attest responses that set cookies through resolve or session refresh", async () => {
+  const resolvedCookie = await respond(
+    "/news",
+    Response.json(
+      {},
+      {
+        headers: { "set-cookie": "preference=changed; Path=/" },
+      },
+    ),
+    {},
+    true,
+  );
+  expect(resolvedCookie.headers.has(PUBLIC_NAVIGATION_HEADER)).toBe(false);
+  const refreshedCookie = await respond(
+    "/news",
+    Response.json({}),
+    { cookie: "better-auth.session_token=viewer-session" },
+    true,
+    new Headers({ "set-cookie": "better-auth.session_token=renewed; Path=/" }),
+  );
+  expect(refreshedCookie.headers.has(PUBLIC_NAVIGATION_HEADER)).toBe(false);
+  expect(refreshedCookie.headers.has("set-cookie")).toBe(true);
+});
+
+it("does not attest documents, streams, or failed responses", async () => {
+  for (const [response, dataRequest] of [
+    [Response.json({}), false],
+    [
+      new Response("<html></html>", {
+        headers: { "content-type": "text/html" },
+      }),
+      true,
+    ],
+    [
+      new Response("stream", {
+        headers: { "content-type": "text/sveltekit-data" },
+      }),
+      true,
+    ],
+    [Response.json({}, { status: 500 }), true],
+  ] as const) {
+    const result = await respond("/news", response, {}, dataRequest);
+    expect(result.headers.has(PUBLIC_NAVIGATION_HEADER)).toBe(false);
   }
 });

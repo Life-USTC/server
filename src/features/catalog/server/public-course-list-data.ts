@@ -1,13 +1,13 @@
 import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import { listCourseSummaries } from "@/features/catalog/server/course-section-queries";
+import { getCourseListFilterOptions } from "@/features/catalog/server/public-catalog-filter-options";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import {
   cachedCatalogListRuntimeData,
   catalogListCacheNamespace,
 } from "@/lib/catalog-runtime-cache";
-import { getPrisma } from "@/lib/db/prisma";
 import {
   optionalValue,
   parsePositivePage,
@@ -23,9 +23,21 @@ export async function getCourseListPage(
     url.searchParams,
   );
   const namespace = catalogListCacheNamespace("courses", locale, "page");
-  return cachedCatalogListRuntimeData(namespace, url.origin, searchParams, () =>
-    getUncachedCourseListPage(searchParams, locale),
-  );
+  const [result, filterOptions, messages] = await Promise.all([
+    cachedCatalogListRuntimeData(namespace, url.origin, searchParams, () =>
+      getUncachedCourseListPage(searchParams, locale),
+    ),
+    getCourseListFilterOptions(locale, url.origin),
+    getMessages(locale),
+  ]);
+  return {
+    ...result,
+    filterOptions,
+    labels: {
+      common: messages.common,
+      courses: messages.courses,
+    },
+  };
 }
 
 async function getUncachedCourseListPage(
@@ -37,33 +49,15 @@ async function getUncachedCourseListPage(
   const educationLevelId = optionalValue(searchParams.get("educationLevelId"));
   const categoryId = optionalValue(searchParams.get("categoryId"));
   const classTypeId = optionalValue(searchParams.get("classTypeId"));
-  const prisma = getPrisma(locale);
 
-  const [result, educationLevels, categories, classTypes, messages] =
-    await Promise.all([
-      listCourseSummaries({
-        filters: {
-          search,
-          educationLevelId,
-          categoryId,
-          classTypeId,
-        },
-        locale,
-        pagination: { page, pageSize: CATALOG_PAGE_SIZE },
-      }),
-      prisma.educationLevel.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.courseCategory.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.classType.findMany({ orderBy: { nameCn: "asc" } }),
-      getMessages(locale),
-    ]);
+  const result = await listCourseSummaries({
+    filters: { search, educationLevelId, categoryId, classTypeId },
+    locale,
+    pagination: { page, pageSize: CATALOG_PAGE_SIZE },
+  });
 
   return toLoadData({
     ...result,
     filters: { search, educationLevelId, categoryId, classTypeId },
-    filterOptions: { educationLevels, categories, classTypes },
-    labels: {
-      common: messages.common,
-      courses: messages.courses,
-    },
   });
 }

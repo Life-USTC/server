@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/i18n/config";
 import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
 import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-edge-cache-tag";
+import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import {
   cachedPublicRuntimeData,
@@ -18,46 +19,25 @@ export const PUBLIC_CATALOG_KV_CACHE_TTL_MS = 24 * HOUR_MS;
 export { CATALOG_EDGE_CACHE_TAG };
 
 const PUBLIC_CATALOG_COLO_CACHE_PATH =
-  "/_life-ustc-internal-cache/catalog-runtime/v1";
-
-export function publicCatalogKvCacheKey(
-  revision: string,
-  namespace: string,
-  cacheKey: string,
-) {
-  return `list:v1:${revision}:${namespace}:${cacheKey}`;
-}
-
-export function publicCatalogColoCacheKey(
-  origin: string,
-  revision: string,
-  namespace: string,
-  cacheKey: string,
-) {
-  return new URL(
-    `${PUBLIC_CATALOG_COLO_CACHE_PATH}/${encodeURIComponent(revision)}/${encodeURIComponent(namespace)}/${encodeURIComponent(cacheKey)}`,
-    origin,
-  ).toString();
-}
+  "/_life-ustc-internal-cache/catalog-runtime/v2";
 
 export async function buildPublicCatalogRuntimeCacheOptions(input: {
   cacheKey: string;
   namespace: PublicRuntimeCacheAnalyticsNamespace;
   origin: string;
 }) {
-  const revision = await getCatalogDetailCacheRevision();
+  // Canonical filters can exceed KV's key limit, especially after Unicode
+  // query encoding. Hash the complete key once for all three cache layers.
+  const [revision, digest] = await Promise.all([
+    getCatalogDetailCacheRevision(),
+    sha256Base64Url(input.cacheKey),
+  ]);
   return {
-    coloCacheKey: publicCatalogColoCacheKey(
+    coloCacheKey: new URL(
+      `${PUBLIC_CATALOG_COLO_CACHE_PATH}/${encodeURIComponent(revision)}/${encodeURIComponent(input.namespace)}/${digest}`,
       input.origin,
-      revision,
-      input.namespace,
-      input.cacheKey,
-    ),
-    kvCacheKey: publicCatalogKvCacheKey(
-      revision,
-      input.namespace,
-      input.cacheKey,
-    ),
+    ).toString(),
+    kvCacheKey: `list:v2:${revision}:${input.namespace}:${digest}`,
     kvTtlMs: PUBLIC_CATALOG_KV_CACHE_TTL_MS,
   };
 }

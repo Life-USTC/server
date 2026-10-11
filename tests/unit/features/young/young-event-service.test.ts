@@ -38,6 +38,7 @@ import {
   getYoungEvent,
   getYoungOrganizer,
   getYoungSourceFreshness,
+  listYoungCalendarEvents,
   listYoungEventCategories,
   listYoungEvents,
   listYoungOrganizers,
@@ -702,4 +703,92 @@ test("rendering-and-cache.cacheable-public-pages-10", async () => {
       where: expect.objectContaining({ module: "智" }),
     }),
   );
+});
+
+describe("compact public Young calendar facts", () => {
+  const input = {
+    dateFrom: "2026-09-10",
+    dateTo: "2026-09-10",
+    search: "读书",
+  };
+  it("returns every row with only calendar fields and counts unknown dates once", async () => {
+    const records = Array.from({ length: 205 }, (_, index) => ({
+      ...RECORD,
+      youngId: String(index),
+    }));
+    youngEventMock.findMany.mockResolvedValue(records);
+    youngEventMock.count.mockResolvedValue(7);
+    const result = await listYoungCalendarEvents(input);
+    expect(result.data).toHaveLength(205);
+    expect(result.data[204]).toEqual({
+      youngId: "204",
+      name: "秋日读书会",
+      location: "东区图书馆",
+      sourceMissing: false,
+      startAt: "2026-09-10T14:00:00+08:00",
+      endAt: null,
+      applyStartAt: null,
+      applyEndAt: null,
+    });
+    expect(result.unknownDateCount).toBe(7);
+    expect(result.source).toEqual({ status: "unknown", lastSyncedAt: null });
+    expect(youngEventMock.count).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        AND: [
+          { name: { contains: "读书", mode: "insensitive" } },
+          { startAt: null },
+        ],
+      },
+    });
+    expect(youngEventMock.findMany).toHaveBeenCalledOnce();
+    const query = youngEventMock.findMany.mock.calls[0]?.[0];
+    expect(query).not.toHaveProperty("skip");
+    expect(query).not.toHaveProperty("take");
+    expect(query.select).toEqual({
+      youngId: true,
+      name: true,
+      location: true,
+      sourceMissing: true,
+      startAt: true,
+      endAt: true,
+      applyStartAt: true,
+      applyEndAt: true,
+    });
+    expect(query.orderBy).toEqual([{ startAt: "asc" }, { youngId: "asc" }]);
+  });
+  it("isolates calendar facts from full lists and invalidates changed filters, basis, and revisions", async () => {
+    youngEventMock.findMany.mockResolvedValue([RECORD]);
+    youngEventMock.count.mockResolvedValue(1);
+    await listYoungCalendarEvents(input);
+    await listYoungCalendarEvents({ ...input, search: " 读书 " });
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(1);
+    const full = await listYoungEvents({ ...input, pageSize: 100 });
+    expect(full.data[0]).toHaveProperty("contactName", "张三");
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(2);
+    await listYoungCalendarEvents({ ...input, organizerId: "other" });
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(3);
+    await listYoungCalendarEvents({ ...input, timeBasis: "registration" });
+    expect(youngEventMock.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        orderBy: [{ applyStartAt: "asc" }, { youngId: "asc" }],
+      }),
+    );
+    revision.value = "snapshot-2";
+    youngEventMock.findMany.mockResolvedValue([{ ...RECORD, name: "Updated" }]);
+    expect((await listYoungCalendarEvents(input)).data[0]?.name).toBe(
+      "Updated",
+    );
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(5);
+  });
+  it("does not retain a failed range", async () => {
+    youngEventMock.findMany.mockRejectedValueOnce(new Error("unavailable"));
+    youngEventMock.count.mockResolvedValue(0);
+    await expect(listYoungCalendarEvents(input)).rejects.toThrow("unavailable");
+    youngEventMock.findMany.mockResolvedValue([]);
+    await expect(listYoungCalendarEvents(input)).resolves.toMatchObject({
+      data: [],
+      unknownDateCount: 0,
+    });
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(2);
+  });
 });
