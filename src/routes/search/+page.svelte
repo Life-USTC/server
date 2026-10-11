@@ -1,6 +1,7 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
 import { onMount } from "svelte";
+import { get } from "svelte/store";
 import GlobalSearchResults from "@/features/search/components/GlobalSearchResults.svelte";
 import {
   GLOBAL_SEARCH_MAX_QUERY_LENGTH,
@@ -14,6 +15,7 @@ import {
   GLOBAL_SEARCH_LISTBOX_ID,
   globalSearchItemDomId,
 } from "@/features/search/lib/global-search-keyboard";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { afterNavigate, goto } from "$app/navigation";
 import { page } from "$app/stores";
 import CollectionPage from "$lib/components/CollectionPage.svelte";
@@ -24,10 +26,12 @@ import type { PageData } from "./$types";
 export let data: PageData;
 
 let inputElement: HTMLInputElement | null = null;
+const shellViewer = getShellViewer();
+let viewerId: string | null = null;
 
 const search = createGlobalSearchController({
   getRequestContext: () => ({
-    includeWorkspace: Boolean(data.user),
+    includeWorkspace: viewerId !== null,
     locale: data.locale,
   }),
   limit: GLOBAL_SEARCH_PAGE_LIMIT,
@@ -55,10 +59,24 @@ const {
 let urlSyncMount: ReturnType<typeof mountGlobalSearchUrlSync>;
 
 onMount(() => {
+  const unsubscribe = shellViewer.subscribe(({ status, viewer }) => {
+    const nextViewerId = status === "ready" ? (viewer?.id ?? null) : null;
+    if (nextViewerId === viewerId) return;
+    viewerId = nextViewerId;
+    // Cancel the previous identity's request and remove its results before
+    // repeating the current query with the newly resolved private scope.
+    const currentQuery = get(search.query);
+    search.reset();
+    search.applyQueryFromUrl(currentQuery, true);
+  });
   urlSyncMount = mountGlobalSearchUrlSync(search, {
     getPageUrl: () => $page.url,
   });
   queueMicrotask(() => inputElement?.focus());
+  return () => {
+    unsubscribe();
+    search.reset();
+  };
 });
 
 afterNavigate(({ to }) => {
