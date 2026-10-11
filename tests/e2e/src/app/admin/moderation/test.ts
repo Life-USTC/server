@@ -212,7 +212,7 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", {
 });
 
 test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", {
-  tag: "@Account/Web",
+  tag: "@Admin/Web",
 }, async ({ adminFlow, run, page, moderation }) => {
   await run(() =>
     adminFlow.run(
@@ -417,7 +417,7 @@ test("/admin/moderation 可切换状态筛选下拉", { tag: "@Comment/Web" }, a
   );
 });
 
-test("/admin/moderation 封禁列表可解除封禁", { tag: "@Account/Web" }, async ({
+test("/admin/moderation 封禁列表可解除封禁", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -498,7 +498,7 @@ test("/admin/moderation 封禁列表可解除封禁", { tag: "@Account/Web" }, a
   );
 });
 
-test("/admin/moderation 可从评论弹窗封禁用户", { tag: "@Account/Web" }, async ({
+test("/admin/moderation 可从评论弹窗封禁用户", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
