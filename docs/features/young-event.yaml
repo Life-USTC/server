@@ -313,7 +313,8 @@ requirements:
     and registration start/end times, location and source-missing status. Range reads do not truncate at
     list pagination boundaries or expose unused contact/detail fields. Filters, selected time basis,
     Shanghai date overlap, stable start-time/identity ordering, unknown-date counts and personal conflict
-    calculations retain the same meaning as the public event list.
+    calculations retain the same meaning as the public event list, including case-insensitive SQL search
+    wildcard and escape behavior.
   acceptance:
     given: More than two list pages of matching events include equal starts, overnight overlap, a midnight
       endpoint, unknown dates, inactive records and separately matching registration dates.
@@ -323,6 +324,7 @@ requirements:
     - Every matching event appears in stable order with exactly the eight calendar fields, including late-day and overlapping events.
     - Unknown-date counts follow the selected filters and time basis; private conflicts are computed separately.
     - Full list pagination and contact/detail fields remain intact and cannot reuse the compact calendar shape.
+    - Search percent, underscore, backslash, Unicode and quoted values agree with the public list; committed revisions refresh calendar and source facts.
     test:
       file: tests/integration/young-calendar-projection.test.ts
       name: preserves more than two list pages, overlap, Shanghai end-of-day and stable ordering

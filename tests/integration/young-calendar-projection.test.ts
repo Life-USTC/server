@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { youngCalendarDays } from "@/features/young/lib/young-calendar";
 import { youngCalendarConflicts } from "@/features/young/lib/young-calendar-conflicts";
 import {
+  getYoungSourceFreshness,
   listYoungCalendarEvents,
   listYoungEvents,
 } from "@/features/young/server/young-event-service";
@@ -81,6 +82,37 @@ beforeAll(async () => {
       isActive: true,
       ...row,
     })),
+  });
+  await db.youngEvent.createMany({
+    data: [
+      ["percent", "Literal 100%"],
+      ["percent-wildcard", "Literal 100x"],
+      ["underscore", "under_score"],
+      ["underscore-wildcard", "underXscore"],
+      ["backslash", String.raw`slash\path`],
+      ["no-backslash", "slashpath"],
+      ["unicode", "MixedCase 中文"],
+      ["quoted", "quoted' OR true --"],
+    ].map(([suffix, name]) => ({
+      youngId: id(suffix),
+      name,
+      organizerId: marker,
+      category: "Pattern",
+      startAt: date("15T10:00:00"),
+      endAt: null,
+      isActive: true,
+      rawJson: {},
+    })),
+  });
+  await db.youngEvent.create({
+    data: {
+      youngId: id("pattern-unknown"),
+      name: "Literal 100% Unknown",
+      organizerId: marker,
+      category: "Pattern",
+      isActive: true,
+      rawJson: {},
+    },
   });
 });
 
@@ -182,5 +214,122 @@ describe("compact public calendar projection", () => {
     );
     expect(list.data[0]).toHaveProperty("contactTel", "fixture-only");
     expect(list.unknownDateCount).toBe(1);
+  });
+  it("matches Prisma search wildcards, escapes, Unicode and bound quotes", async () => {
+    const cases: [string, string[], number][] = [
+      ["100%", ["percent", "percent-wildcard"], 1],
+      ["under_score", ["underscore", "underscore-wildcard"], 0],
+      [String.raw`slash\path`, ["no-backslash"], 0],
+      [String.raw`slash\\path`, ["backslash"], 0],
+      [String.raw`\%`, ["percent"], 1],
+      [String.raw`\_`, ["underscore"], 0],
+      ["mixedcase 中文", ["unicode"], 0],
+      ["' OR true --", ["quoted"], 0],
+    ];
+    for (const [search, suffixes, unknownDateCount] of cases) {
+      const filters = {
+        organizerId: marker,
+        category: "Pattern",
+        search,
+        dateFrom: "2035-09-15",
+        dateTo: "2035-09-15",
+      };
+      const calendar = await listYoungCalendarEvents(filters);
+      const list = await listYoungEvents({ ...filters, pageSize: 100 });
+      const ids = suffixes.map(id).sort();
+      expect(
+        calendar.data.map((row) => row.youngId),
+        search,
+      ).toEqual(ids);
+      expect(
+        list.data.map((row) => row.youngId),
+        search,
+      ).toEqual(ids);
+      expect(calendar.unknownDateCount, search).toBe(unknownDateCount);
+      expect(list.unknownDateCount, search).toBe(unknownDateCount);
+      expect(calendar.data).toEqual(
+        list.data.map(
+          ({
+            youngId,
+            name,
+            startAt,
+            endAt,
+            applyStartAt,
+            applyEndAt,
+            location,
+            sourceMissing,
+          }) => ({
+            youngId,
+            name,
+            startAt,
+            endAt,
+            applyStartAt,
+            applyEndAt,
+            location,
+            sourceMissing,
+          }),
+        ),
+      );
+    }
+  });
+
+  it("refreshes calendar and source facts on a committed revision change", async () => {
+    const original = await db.staticImportState.findUnique({
+      where: { id: "global" },
+    });
+    const filters = { ...input, search: id("late-point") };
+    const before = new Date("2035-09-01T00:00:00Z");
+    const after = new Date("2035-09-02T00:00:00Z");
+    try {
+      await db.staticImportState.upsert({
+        where: { id: "global" },
+        create: {
+          id: "global",
+          snapshotSha256: "a".repeat(64),
+          youngSyncedAt: before,
+          snapshotGeneratedAt: before,
+          transformRevision: 1,
+        },
+        update: {
+          youngSyncedAt: before,
+          updatedAt: new Date("2035-09-01T00:00:00Z"),
+        },
+      });
+      resetPublicRuntimeCacheForTest();
+      const first = await listYoungCalendarEvents(filters);
+      expect(first.data[0]?.name).toBe(id("late-point"));
+      expect(first.source.lastSyncedAt).toBe("2035-09-01T08:00:00+08:00");
+      await db.$transaction([
+        db.youngEvent.update({
+          where: { youngId: id("late-point") },
+          data: { location: "Changed location" },
+        }),
+        db.staticImportState.update({
+          where: { id: "global" },
+          data: {
+            youngSyncedAt: after,
+            updatedAt: new Date("2035-09-02T00:00:00Z"),
+          },
+        }),
+      ]);
+      const next = await listYoungCalendarEvents(filters);
+      expect(next.data[0]?.location).toBe("Changed location");
+      expect(next.source.lastSyncedAt).toBe("2035-09-02T08:00:00+08:00");
+      expect((await getYoungSourceFreshness()).lastSyncedAt).toBe(
+        next.source.lastSyncedAt,
+      );
+    } finally {
+      await db.youngEvent.update({
+        where: { youngId: id("late-point") },
+        data: { location: "Library" },
+      });
+      if (original)
+        await db.staticImportState.update({
+          where: { id: "global" },
+          data: original,
+        });
+      else await db.staticImportState.deleteMany({ where: { id: "global" } });
+      resetPublicRuntimeCacheForTest();
+    }
   });
 });

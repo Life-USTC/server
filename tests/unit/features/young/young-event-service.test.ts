@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 
-const { youngEventMock, youngOrganizerMock, staticImportStateMock } =
+const { youngEventMock, youngOrganizerMock, sourceReadMock, calendarReadMock } =
   vi.hoisted(() => ({
     youngEventMock: {
       groupBy: vi.fn(),
@@ -13,17 +13,20 @@ const { youngEventMock, youngOrganizerMock, staticImportStateMock } =
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
-    staticImportStateMock: {
-      findUnique: vi.fn(),
-    },
+    sourceReadMock: vi.fn(),
+    calendarReadMock: vi.fn(),
   }));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     youngEvent: youngEventMock,
     youngOrganizer: youngOrganizerMock,
-    staticImportState: staticImportStateMock,
   },
+}));
+
+vi.mock("@/features/young/server/young-calendar-query", () => ({
+  readYoungSyncedAt: sourceReadMock,
+  readYoungCalendarFacts: calendarReadMock,
 }));
 
 const revision = vi.hoisted(() => ({ value: "snapshot-1" }));
@@ -101,7 +104,8 @@ beforeEach(() => {
   resetPublicRuntimeCacheForTest();
   revision.value = "snapshot-1";
   youngEventMock.groupBy.mockResolvedValue([]);
-  staticImportStateMock.findUnique.mockResolvedValue(null);
+  sourceReadMock.mockResolvedValue(null);
+  calendarReadMock.mockResolvedValue({ data: [], unknownDateCount: 0 });
 });
 
 afterEach(() => vi.useRealTimers());
@@ -505,13 +509,11 @@ describe("young public runtime cache", () => {
     vi.useFakeTimers();
     const syncedAt = new Date("2026-09-10T00:00:00Z");
     vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
-    staticImportStateMock.findUnique.mockResolvedValue({
-      youngSyncedAt: syncedAt,
-    });
+    sourceReadMock.mockResolvedValue(syncedAt.getTime());
     expect((await getYoungSourceFreshness()).status).toBe("fresh");
     vi.advanceTimersByTime(1);
     expect((await getYoungSourceFreshness()).status).toBe("stale");
-    expect(staticImportStateMock.findUnique).toHaveBeenCalledTimes(1);
+    expect(sourceReadMock).toHaveBeenCalledTimes(1);
   });
 
   it("caches organizer facts and options while recalculating moving activity counts", async () => {
@@ -582,9 +584,7 @@ test("young-event.shared-public-cache", async () => {
   }));
   youngOrganizerMock.findMany.mockResolvedValue([identity]);
   youngOrganizerMock.count.mockResolvedValue(1);
-  staticImportStateMock.findUnique.mockResolvedValue({
-    youngSyncedAt: new Date("2026-09-10T00:00:00Z"),
-  });
+  sourceReadMock.mockResolvedValue(new Date("2026-09-10T00:00:00Z").getTime());
   youngEventMock.groupBy.mockImplementation(async ({ where }) => {
     const filter = where.AND[1];
     const count = filter.startAt
@@ -614,7 +614,7 @@ test("young-event.shared-public-cache", async () => {
   expect(youngOrganizerMock.findUnique).toHaveBeenCalledTimes(1);
   vi.advanceTimersByTime(1);
   expect((await getYoungSourceFreshness()).status).toBe("stale");
-  expect(staticImportStateMock.findUnique).toHaveBeenCalledTimes(1);
+  expect(sourceReadMock).toHaveBeenCalledTimes(1);
   expect((await listYoungOrganizers()).data[0]).toMatchObject({
     upcomingCount: 0,
     historyCount: 1,
@@ -677,20 +677,24 @@ test("rendering-and-cache.cacheable-public-pages-10", async () => {
     resetPublicRuntimeCacheForTest();
     youngEventMock.findMany.mockClear();
     youngEventMock.count.mockClear();
+    calendarReadMock.mockClear();
+    const readMock = path.includes("/calendar?")
+      ? calendarReadMock
+      : youngEventMock.findMany;
     const input = event(path);
     expect(
       resolvePublicSsrMode(input.request, resolveCatalogListPublicSsrMode),
     ).toBeNull();
     const first = await load(input);
-    const reads = youngEventMock.findMany.mock.calls.length;
+    const reads = readMock.mock.calls.length;
     const counts = youngEventMock.count.mock.calls.length;
     expect(reads).toBeGreaterThan(0);
     expect(await load(input)).toEqual(first);
-    expect(youngEventMock.findMany).toHaveBeenCalledTimes(reads);
+    expect(readMock).toHaveBeenCalledTimes(reads);
     expect(youngEventMock.count).toHaveBeenCalledTimes(counts);
     revision.value += "-new";
     await load(input);
-    expect(youngEventMock.findMany.mock.calls.length).toBeGreaterThan(reads);
+    expect(readMock.mock.calls.length).toBeGreaterThan(reads);
   }
   resetPublicRuntimeCacheForTest();
   youngEventMock.findMany.mockClear();
@@ -711,84 +715,68 @@ describe("compact public Young calendar facts", () => {
     dateTo: "2026-09-10",
     search: "读书",
   };
-  it("returns every row with only calendar fields and counts unknown dates once", async () => {
-    const records = Array.from({ length: 205 }, (_, index) => ({
-      ...RECORD,
+  const event = {
+    youngId: "42",
+    name: "秋日读书会",
+    location: "东区图书馆",
+    sourceMissing: false,
+    startAt: "2026-09-10T14:00:00+08:00",
+    endAt: null,
+    applyStartAt: null,
+    applyEndAt: null,
+  };
+  it("returns every calendar row without constructing a Prisma read", async () => {
+    const data = Array.from({ length: 205 }, (_, index) => ({
+      ...event,
       youngId: String(index),
     }));
-    youngEventMock.findMany.mockResolvedValue(records);
-    youngEventMock.count.mockResolvedValue(7);
+    calendarReadMock.mockResolvedValue({ data, unknownDateCount: 7 });
     const result = await listYoungCalendarEvents(input);
-    expect(result.data).toHaveLength(205);
-    expect(result.data[204]).toEqual({
-      youngId: "204",
-      name: "秋日读书会",
-      location: "东区图书馆",
-      sourceMissing: false,
-      startAt: "2026-09-10T14:00:00+08:00",
-      endAt: null,
-      applyStartAt: null,
-      applyEndAt: null,
+    expect(result).toEqual({
+      data,
+      unknownDateCount: 7,
+      source: { status: "unknown", lastSyncedAt: null },
     });
-    expect(result.unknownDateCount).toBe(7);
-    expect(result.source).toEqual({ status: "unknown", lastSyncedAt: null });
-    expect(youngEventMock.count).toHaveBeenCalledExactlyOnceWith({
-      where: {
-        AND: [
-          { name: { contains: "读书", mode: "insensitive" } },
-          { startAt: null },
-        ],
-      },
-    });
-    expect(youngEventMock.findMany).toHaveBeenCalledOnce();
-    const query = youngEventMock.findMany.mock.calls[0]?.[0];
-    expect(query).not.toHaveProperty("skip");
-    expect(query).not.toHaveProperty("take");
-    expect(query.select).toEqual({
-      youngId: true,
-      name: true,
-      location: true,
-      sourceMissing: true,
-      startAt: true,
-      endAt: true,
-      applyStartAt: true,
-      applyEndAt: true,
-    });
-    expect(query.orderBy).toEqual([{ startAt: "asc" }, { youngId: "asc" }]);
+    expect(calendarReadMock).toHaveBeenCalledOnce();
+    expect(youngEventMock.findMany).not.toHaveBeenCalled();
+    expect(youngEventMock.count).not.toHaveBeenCalled();
   });
   it("isolates calendar facts from full lists and invalidates changed filters, basis, and revisions", async () => {
+    calendarReadMock.mockResolvedValue({ data: [event], unknownDateCount: 1 });
     youngEventMock.findMany.mockResolvedValue([RECORD]);
     youngEventMock.count.mockResolvedValue(1);
     await listYoungCalendarEvents(input);
     await listYoungCalendarEvents({ ...input, search: " 读书 " });
-    expect(youngEventMock.findMany).toHaveBeenCalledTimes(1);
+    expect(calendarReadMock).toHaveBeenCalledTimes(1);
     const full = await listYoungEvents({ ...input, pageSize: 100 });
     expect(full.data[0]).toHaveProperty("contactName", "张三");
-    expect(youngEventMock.findMany).toHaveBeenCalledTimes(2);
+    expect(youngEventMock.findMany).toHaveBeenCalledOnce();
     await listYoungCalendarEvents({ ...input, organizerId: "other" });
-    expect(youngEventMock.findMany).toHaveBeenCalledTimes(3);
+    expect(calendarReadMock).toHaveBeenCalledTimes(2);
     await listYoungCalendarEvents({ ...input, timeBasis: "registration" });
-    expect(youngEventMock.findMany).toHaveBeenLastCalledWith(
+    expect(calendarReadMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        orderBy: [{ applyStartAt: "asc" }, { youngId: "asc" }],
+        dateRange: expect.objectContaining({ timeBasis: "registration" }),
       }),
     );
     revision.value = "snapshot-2";
-    youngEventMock.findMany.mockResolvedValue([{ ...RECORD, name: "Updated" }]);
+    calendarReadMock.mockResolvedValue({
+      data: [{ ...event, name: "Updated" }],
+      unknownDateCount: 1,
+    });
     expect((await listYoungCalendarEvents(input)).data[0]?.name).toBe(
       "Updated",
     );
-    expect(youngEventMock.findMany).toHaveBeenCalledTimes(5);
+    expect(calendarReadMock).toHaveBeenCalledTimes(4);
   });
   it("does not retain a failed range", async () => {
-    youngEventMock.findMany.mockRejectedValueOnce(new Error("unavailable"));
-    youngEventMock.count.mockResolvedValue(0);
+    calendarReadMock.mockRejectedValueOnce(new Error("unavailable"));
     await expect(listYoungCalendarEvents(input)).rejects.toThrow("unavailable");
-    youngEventMock.findMany.mockResolvedValue([]);
+    calendarReadMock.mockResolvedValue({ data: [], unknownDateCount: 0 });
     await expect(listYoungCalendarEvents(input)).resolves.toMatchObject({
       data: [],
       unknownDateCount: 0,
     });
-    expect(youngEventMock.findMany).toHaveBeenCalledTimes(2);
+    expect(calendarReadMock).toHaveBeenCalledTimes(2);
   });
 });
