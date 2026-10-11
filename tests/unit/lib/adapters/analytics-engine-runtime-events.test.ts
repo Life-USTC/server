@@ -395,6 +395,38 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);
   });
 
+  it("attributes calendar SSR without accepting query values as metric labels", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    for (const route of [
+      "/catalog/young-events/calendar",
+      "/catalog/young-events/calendar?search=private-query",
+    ]) {
+      writePageRequestAnalytics({
+        appIoObservedDurationMs: 12,
+        authIoObservedDurationMs: 0,
+        authMode: "anonymous",
+        authSignalPresence: "absent",
+        catalogDetailTab: "not_applicable",
+        event: "finish",
+        ioObservedDurationMs: 12,
+        locale: "en-us",
+        method: "GET",
+        responseBytes: 1200,
+        route,
+        ssrClass: "dynamic-ssr",
+        status: 200,
+      });
+    }
+    const points = writeDataPoint.mock.calls.map(([point]) => point);
+    expect(points.map((point) => point.indexes)).toEqual([
+      ["page:/catalog/young-events/calendar"],
+      ["page:unknown"],
+    ]);
+    expect(points[0].blobs).toContain("response_bytes_known");
+    expect(points[0].blobs).toContain("en-us");
+    expect(JSON.stringify(points)).not.toContain("private-query");
+  });
+
   it("uses only current schemas and finite boundary dimensions", () => {
     const writeDataPoint = installAnalyticsBinding();
     const secret = "secret-route-or-locale-123";
