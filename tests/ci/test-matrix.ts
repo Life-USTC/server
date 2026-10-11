@@ -34,10 +34,12 @@ const ENGINE_WEIGHT: Record<Engine, number> = {
 // the run on that fixed cost than on tests, so combinations are packed into
 // roughly this many jobs instead.
 //
-// This is the account's concurrent job limit. Asking for more jobs than can
-// start at once does not finish any sooner: the extra ones queue, and a run
-// ends when the last of them finishes rather than when the longest job does.
-const TARGET_JOBS = 20;
+// Runners do not all arrive at once: measured runs got 11 and 18 of them
+// immediately and the rest over the following ten minutes, with the account's
+// concurrency limit nowhere near reached. A run therefore ends at roughly the
+// last runner's arrival plus one job, which favours more and smaller jobs over
+// fewer large ones. Keep this above the number that start immediately.
+const TARGET_JOBS = 24;
 
 function slug(tag: string) {
   return tag.slice(1).replace("/", "-").toLowerCase();
