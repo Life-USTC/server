@@ -603,6 +603,23 @@ requirements:
     test:
       file: tests/integration/public-discovery-cache-contract.test.ts
       name: rendering-and-cache.global-search-freshness
+- id: rendering-and-cache.global-search-viewer
+  category: privacy
+  topic: personal-overlays
+  rule: The public search page resolves personal search scope from the shell viewer. Loading or failed
+    viewer resolution permits only public searches. A resolved viewer change cancels the previous request,
+    removes its displayed results and repeats the current query for the new viewer, including an initial URL query.
+  acceptance:
+    given: A real browser opens a query URL with delayed session resolution, then changes between two owners
+      with distinct private todos and an anonymous session.
+    when: Resolve the shell viewer and repeat the query while delaying the next owner's search response.
+    then:
+    - No private search is requested before viewer resolution; the initial query gains the resolved owner's results.
+    - The previous owner's results disappear before the next response and cannot overwrite the new owner's results.
+    - Anonymous searches omit workspace scope and private results.
+    test:
+      file: tests/e2e/src/app/search/personal-overlay.test.ts
+      name: an open search clears the previous viewer's results before receiving the next viewer's results
 - id: rendering-and-cache.sitemap-freshness
   category: consistency
   topic: cache-layers-and-invalidation
