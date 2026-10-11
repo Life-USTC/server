@@ -678,6 +678,42 @@ describe("public runtime cache", () => {
     ]);
   });
 
+  it("retains a recently used entry when the bounded cache is full", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-11T00:00:00Z"));
+    const hot = vi.fn(async () => "hot");
+    const oldestCold = vi.fn(async () => "cold");
+    const read = (key: string, load: () => Promise<string>) =>
+      cachedPublicRuntimeData("api:metadata", key, 60_000, load);
+    await read("hot", hot);
+    await read("cold", oldestCold);
+    for (let index = 0; index < 98; index++) {
+      await read(`other-${index}`, async () => "other");
+    }
+    await read("hot", hot);
+    await read("new", async () => "new");
+    await read("hot", hot);
+    await read("cold", oldestCold);
+    expect(hot).toHaveBeenCalledOnce();
+    expect(oldestCold).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not renew freshness when promoting a hit", async () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-10-11T00:00:00Z").getTime();
+    vi.setSystemTime(now);
+    const load = vi.fn(async () => "value");
+    const read = () =>
+      cachedPublicRuntimeData("api:metadata", "hot", 60_000, load);
+    await read();
+    vi.setSystemTime(now + 59_999);
+    await read();
+    expect(load).toHaveBeenCalledOnce();
+    vi.setSystemTime(now + 60_000);
+    await read();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
   it("isolates identical L1 keys across namespaces", async () => {
     const chineseLoad = vi.fn(async () => ({ locale: "zh-cn" }));
     const englishLoad = vi.fn(async () => ({ locale: "en-us" }));

@@ -41,6 +41,12 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("@/lib/catalog-runtime-cache", () => ({
   cachedCatalogListRuntimeData: mocks.cacheList,
+  cachedCatalogRuntimeData: (
+    _namespace: string,
+    _key: string,
+    _origin: string,
+    load: () => Promise<unknown>,
+  ) => load(),
   catalogListCacheNamespace: (
     kind: "courses" | "sections" | "teachers",
     locale: string,

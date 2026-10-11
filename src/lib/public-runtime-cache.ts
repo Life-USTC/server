@@ -559,6 +559,9 @@ export function cachedPublicRuntimeData<T>(
 
   const existing = store.get(storeKey) as CacheEntry<T> | undefined;
   if (existing && existing.expiresAt > now) {
+    // Map iteration is insertion ordered; promote hits without renewing TTL.
+    store.delete(storeKey);
+    store.set(storeKey, existing);
     writeCacheEventAnalytics({
       event: "hit",
       ioObservedDurationMs: elapsedMs(start),

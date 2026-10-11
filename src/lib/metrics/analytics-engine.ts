@@ -116,6 +116,7 @@ export type PublicRuntimeCacheAnalyticsNamespace =
       | "sections"
       | "teachers"}-list:${AppLocale}`
   | `catalog:${"course" | "section" | "teacher"}-detail:${AppLocale}`
+  | `catalog:${"courses" | "sections" | "teachers"}-filter-options:${AppLocale}`
   | `${
       | "api:courses"
       | "api:courses-list"
@@ -548,6 +549,9 @@ const CACHE_LOCALE_NAMESPACE_PREFIXES = [
   "catalog:schedules-list",
   "catalog:sections-list",
   "catalog:teachers-list",
+  "catalog:courses-filter-options",
+  "catalog:sections-filter-options",
+  "catalog:teachers-filter-options",
   "page:course-detail",
   "page:course-list",
   "page:courses-list",

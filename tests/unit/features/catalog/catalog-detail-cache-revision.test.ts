@@ -164,7 +164,7 @@ describe("catalog detail cache revision", () => {
       const namespace = "page:teachers-list:zh-cn";
       const origin = "https://life-ustc.example";
       const detailKey = `v2:${oldRevision}:teacher:zh-cn:1:detail-v1`;
-      const listKey = `list:v1:${oldRevision}:${namespace}:page=1`;
+      const listKey = `list:v2:${oldRevision}:${namespace}:xcNPD98JGknXXMUbT2SrNMuuSc9JFLsKChwMWZt6Q3M`;
       const oldPayload = { id: 1 };
       await cachedPublicRuntimeData(
         "catalog:teacher-detail:zh-cn",
