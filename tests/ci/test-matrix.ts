@@ -33,7 +33,11 @@ const ENGINE_WEIGHT: Record<Engine, number> = {
 // work) a Chromium download. Running one job per combination spends more of
 // the run on that fixed cost than on tests, so combinations are packed into
 // roughly this many jobs instead.
-const TARGET_JOBS = 24;
+//
+// This is the account's concurrent job limit. Asking for more jobs than can
+// start at once does not finish any sooner: the extra ones queue, and a run
+// ends when the last of them finishes rather than when the longest job does.
+const TARGET_JOBS = 20;
 
 function slug(tag: string) {
   return tag.slice(1).replace("/", "-").toLowerCase();
