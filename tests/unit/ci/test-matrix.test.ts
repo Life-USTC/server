@@ -1,44 +1,39 @@
 import { describe, expect, it } from "vitest";
 import { testMatrix } from "../../ci/test-matrix";
 
+const owner = (
+  tag: string,
+  engine: "integration" | "http" | "browser",
+  file = "case.ts",
+) => ({
+  name: `${tag} ${engine} ${file}`,
+  file,
+  tags: [tag],
+  engine,
+});
+
 describe("feature CI matrix", () => {
-  it("runs a feature's methods in one job across engines", () => {
+  it("collects a feature's methods and files into one job", () => {
     expect(
       testMatrix([
-        {
-          file: "tests/integration/a.test.ts",
-          name: "tool",
-          tags: ["@Homework/MCP"],
-          engine: "integration",
-        },
-        {
-          file: "b.test.ts",
-          name: "worker",
-          tags: ["@Homework/MCP"],
-          engine: "http",
-        },
-        {
-          file: "c.test.ts",
-          name: "consumer",
-          tags: ["@Homework/MCP"],
-          engine: "browser",
-        },
-        {
-          file: "d.test.ts",
-          name: "form",
-          tags: ["@Homework/Web"],
-          engine: "browser",
-        },
+        owner("@Homework/MCP", "integration", "tests/integration/a.test.ts"),
+        owner("@Homework/MCP", "integration", "tests/integration/a.test.ts"),
+        owner("@Homework/REST", "integration", "tests/integration/b.test.ts"),
+        owner("@Homework/MCP", "http"),
+        owner("@Homework/Web", "browser"),
       ]),
     ).toEqual({
       include: [
         {
           name: "Homework",
           slug: "homework",
-          tags: "@Homework/MCP || @Homework/Web",
+          tags: "@Homework/MCP || @Homework/REST || @Homework/Web",
           grep: "@Homework/",
           integration: true,
-          integrationFiles: ["tests/integration/a.test.ts"],
+          integrationFiles: [
+            "tests/integration/a.test.ts",
+            "tests/integration/b.test.ts",
+          ],
           http: true,
           browser: true,
         },
@@ -46,80 +41,26 @@ describe("feature CI matrix", () => {
     });
   });
 
-  it("gives each feature its own job and names it after the feature", () => {
+  it("gives every feature its own job, longest first, then by name", () => {
     const jobs = testMatrix([
-      {
-        name: "page",
-        file: "page.ts",
-        engine: "browser",
-        tags: ["@Account/Web"],
-      },
-      {
-        name: "service",
-        file: "tests/integration/todo.test.ts",
-        engine: "integration",
-        tags: ["@Todo/Service"],
-      },
+      owner("@Course/Web", "browser"),
+      owner("@Course/Web", "browser"),
+      owner("@Account/REST", "browser"),
+      owner("@Todo/Web", "browser"),
+      owner("@Bus/Service", "integration", "tests/integration/bus.test.ts"),
     ]).include;
-    expect(jobs.map((job) => job.name)).toEqual(["Account", "Todo"]);
-    expect(jobs[1]).toMatchObject({
-      slug: "todo",
-      tags: "@Todo/Service",
-      grep: "@Todo/",
-      integration: true,
-      browser: false,
-    });
-  });
-
-  it("keeps every collected combination in exactly one job", () => {
-    const tags = [
-      "@Account/Web",
-      "@Todo/Service",
-      "@Exam/REST",
-      "@Bus/MCP",
-      "@Course/GraphQL",
-    ];
-    const jobs = testMatrix(
-      tags.flatMap((tag, index) =>
-        Array.from({ length: index + 1 }, (_, n) => ({
-          name: `${tag} ${n}`,
-          file: "case.ts",
-          engine: "browser" as const,
-          tags: [tag],
-        })),
-      ),
-    ).include;
-    const placed = jobs.flatMap((job) => job.tags.split(" || "));
-    expect(placed.toSorted()).toEqual(tags.toSorted());
-  });
-
-  it("deduplicates files within each feature without losing shared files", () => {
-    const owners = [
-      ["a", "tests/integration/a.test.ts", "@Homework/MCP"],
-      ["b", "tests/integration/a.test.ts", "@Homework/MCP"],
-      ["c", "tests/integration/b.test.ts", "@Homework/MCP"],
-      ["d", "tests/integration/a.test.ts", "@Homework/REST"],
-    ];
-    expect(
-      testMatrix(
-        owners.map(([name, file, tag]) => ({
-          name,
-          file,
-          tags: [tag],
-          engine: "integration" as const,
-        })),
-      ).include.map(({ name, integrationFiles }) => ({
-        name,
-        integrationFiles,
-      })),
-    ).toEqual([
-      {
-        name: "Homework",
-        integrationFiles: [
-          "tests/integration/a.test.ts",
-          "tests/integration/b.test.ts",
-        ],
-      },
+    expect(jobs.map((job) => job.name)).toEqual([
+      "Course",
+      "Account",
+      "Todo",
+      "Bus",
+    ]);
+    // Nothing is dropped and nothing runs twice.
+    expect(jobs.flatMap((job) => job.tags.split(" || ")).toSorted()).toEqual([
+      "@Account/REST",
+      "@Bus/Service",
+      "@Course/Web",
+      "@Todo/Web",
     ]);
   });
 
@@ -138,31 +79,10 @@ describe("feature CI matrix", () => {
     ).toThrow("case: expected exactly one");
   });
 
-  it("lists the longest feature first and breaks equal weights by name", () => {
-    const tags = ["@Account/REST", "@Todo/Web", "@Course/Web", "@Course/Web"];
-    expect(
-      testMatrix(
-        tags.map((tag, index) => ({
-          name: `case ${index}`,
-          file: "case.ts",
-          engine: "browser" as const,
-          tags: [tag],
-        })),
-      ).include.map(({ name }) => name),
-    ).toEqual(["Course", "Account", "Todo"]);
-  });
-
   it("rejects spelling variants instead of creating new groups", () => {
-    expect(() =>
-      testMatrix([
-        {
-          name: "typo",
-          file: "case.ts",
-          engine: "browser",
-          tags: ["@Todos/Rest"],
-        },
-      ]),
-    ).toThrow("unknown test tag");
+    expect(() => testMatrix([owner("@Todos/Rest", "browser")])).toThrow(
+      "unknown test tag",
+    );
   });
 
   it("rejects an empty inventory", () => {

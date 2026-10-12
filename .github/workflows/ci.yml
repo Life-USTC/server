@@ -32,7 +32,7 @@ defaults:
 
 jobs:
   check:
-    name: Source / Checks
+    name: Checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -59,7 +59,7 @@ jobs:
         run: bun run openapi:check
 
   test-unit:
-    name: Application / Unit coverage
+    name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -79,35 +79,19 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  test-plan:
-    name: Tests / Inventory
+  test-domain:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    outputs:
-      matrix: ${{ steps.inventory.outputs.matrix }}
+    timeout-minutes: 60
+    needs: [build-e2e-artifacts]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.build-e2e-artifacts.outputs.matrix) }}
     env: &worker-env
       AUTH_SECRET: e2e-dev-secret-not-for-production
       WEBHOOK_SECRET: e2e-ci-secret
       WEBHOOK_LOGIN_ENABLED: "true"
       NO_PROXY: 127.0.0.1,localhost,::1
-    steps:
-      - *checkout
-      - uses: ./.github/actions/setup-bun-env
-      - name: Generate application and database clients
-        run: bun run app:prepare
-      - id: inventory
-        name: Collect domain and verification combinations
-        run: bun tests/ci/test-matrix.ts
-
-  test-domain:
-    name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    needs: [test-plan, build-e2e-artifacts]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.test-plan.outputs.matrix) }}
-    env: *worker-env
     services: &test-database
       postgres:
         image: postgres:16
@@ -154,7 +138,7 @@ jobs:
           retention-days: 14
 
   test-rls:
-    name: Database / Permissions
+    name: Permissions
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services: *test-database
@@ -184,9 +168,11 @@ jobs:
             tests/integration/feature-event-store.test.ts
 
   build-e2e-artifacts:
-    name: Application / Build
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      matrix: ${{ steps.inventory.outputs.matrix }}
     env: *worker-env
     steps:
       - *checkout
@@ -197,6 +183,9 @@ jobs:
         run: bun run build:test-worker
       - name: Check public page client budgets
         run: bun tests/ci/public-route-client-budget.mjs
+      - id: inventory
+        name: Collect feature test inventory
+        run: bun tests/ci/test-matrix.ts
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-build
@@ -208,7 +197,7 @@ jobs:
           retention-days: 14
 
   static-loader-image:
-    name: Static loader / Container image
+    name: Static loader
     runs-on: ubuntu-latest
     services: *test-database
     steps:
@@ -224,11 +213,11 @@ jobs:
         run: bun tests/ci/static-loader-image.ts
 
   specification-evidence:
-    # Keep the protected check name; documents are validated by Source / Checks.
+    # Keep this name: branch protection requires it as a status check.
     name: Specification execution evidence / run
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-plan, test-domain, test-rls]
+    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-domain, test-rls]
     if: ${{ always() }}
     permissions: {}
     steps:

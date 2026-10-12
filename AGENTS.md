@@ -120,7 +120,7 @@ a duplicate branch run. Verify its head SHA and every mandatory job: static
 checks, unit coverage, build/client budget, static-loader image, RLS, all
 domain/method combinations, and the aggregate required-jobs gate.
 The protected check named Specification execution evidence aggregates mandatory
-native job outcomes. `Source / Checks` validates document structure separately; neither
+native job outcomes. `Checks` validates document structure separately; neither
 establishes requirement coverage. `bun run check` alone is insufficient.
 Visual changes require matched before/after evidence in the PR.
 

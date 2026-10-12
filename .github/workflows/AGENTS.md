@@ -34,7 +34,7 @@ docs.
   a duplicate manual run after pushing review changes.
 - Preserve external job names used by protection. The aggregate gate always runs
   and rejects every non-success mandatory result; specifications run in
-  `Source / Checks`.
+  `Checks`.
 - A native test has exactly one `@Domain/Method` tag, for example
   `@Homework/REST` or `@Course/MCP`. One job covers one feature and is named
   after it, such as `Homework`.
@@ -44,14 +44,16 @@ docs.
   Course, Section, Teacher, Schedule, Semester and RoomMap. CatalogMetadata
   owns the combined filter dictionaries. Related projections stay with their
   consumer; shared templates and individual dictionary tables are not domains.
-- `Tests / Inventory` collects native Vitest and Playwright test metadata and
-  groups the tags by feature. Missing or ambiguous ownership fails the
+- `Build` collects native Vitest and Playwright test metadata and groups the
+  tags by feature, because it already prepares everything that collection
+  needs; the feature jobs read the matrix from it rather than from a job of
+  their own. Missing or ambiguous ownership fails the
   inventory. Features are listed longest first, because GitHub hands out
   runners in that order and a run ends when the last job to start finishes.
   The matrix stays derived from the inventory: do not maintain a file-to-job
   registry, numbered shards, or recorded timings. A feature runs all its
   applicable engines sequentially, in exactly one job.
-- Role contracts remain in `Database / Permissions`. Chromium and Mobile Chrome
+- Role contracts remain in `Permissions`. Chromium and Mobile Chrome
   cases share their domain's Web job.
   Playwright uses two native workers; Vitest files remain serial. Four workers
   were measured and made browser jobs flaky: the runner has four
