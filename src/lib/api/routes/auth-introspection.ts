@@ -1,6 +1,7 @@
 import { decodeJwt } from "jose";
 import { resolveOpaqueIntrospectionGrant } from "@/features/oauth/server/oauth-introspection-grant.server";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
+import { getLocalJwksVerificationOptions } from "@/lib/auth/local-jwks";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
@@ -89,11 +90,6 @@ export async function prepareIntrospectionParams(
   return { params };
 }
 
-async function getLocalJwks() {
-  const { authApi } = await import("@/lib/auth/core");
-  return authApi.getJwks({});
-}
-
 function inactiveIntrospectionResponse(response: Response) {
   const headers = new Headers(response.headers);
   headers.delete("Content-Length");
@@ -126,7 +122,7 @@ export async function enforceIntrospectionGrant(
       const verified = await verifyAccessTokenJwt(token, {
         audience: getOAuthProviderValidAudiences(),
         issuer: getOAuthTokenVerificationIssuers(),
-        jwksFetch: getLocalJwks,
+        ...getLocalJwksVerificationOptions(),
         jwksUrl: getJwksUrlForOAuthVerification(),
       });
       if (

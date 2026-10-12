@@ -19,6 +19,7 @@ export interface VerifiedAccessToken {
 
 export type AccessTokenJwtVerificationOptions = {
   jwksFetch?: () => Promise<JSONWebKeySet | undefined>;
+  jwksCacheKey?: object;
   jwksUrl: string;
   issuer: string | string[];
   audience: string | string[];
@@ -50,6 +51,7 @@ export async function verifyAccessTokenJwtPayload(
   return options.jwksFetch
     ? await verifyJwsAccessToken(token, {
         jwksFetch: options.jwksFetch,
+        jwksCacheKey: options.jwksCacheKey,
         verifyOptions,
       })
     : (

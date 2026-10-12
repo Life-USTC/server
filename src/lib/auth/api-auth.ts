@@ -3,6 +3,7 @@ import {
   suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
+import { getLocalJwksVerificationOptions } from "@/lib/auth/local-jwks";
 import { identifyObservedUser } from "@/lib/db/observability-context";
 import {
   getJwksUrlForOAuthVerification,
@@ -50,11 +51,6 @@ export type RestAuthOptions = {
   };
 };
 
-async function getLocalJwks() {
-  const { authApi } = await import("@/lib/auth/core");
-  return authApi.getJwks({});
-}
-
 /** Resolve either a scoped OAuth principal or a Better Auth session. */
 export async function resolveApiPrincipal(
   request: Request,
@@ -71,7 +67,7 @@ export async function resolveApiPrincipal(
     if (!token) return null;
     try {
       const verified = await verifyAccessTokenJwt(token, {
-        jwksFetch: getLocalJwks,
+        ...getLocalJwksVerificationOptions(),
         jwksUrl: getJwksUrlForOAuthVerification(),
         issuer: getOAuthTokenVerificationIssuers(),
         audience: getOAuthRestAudienceUrls(),

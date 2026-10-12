@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { parseBearerAuthorizationHeader } from "@/lib/auth/authorization-header";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
+import { getLocalJwksVerificationOptions } from "@/lib/auth/local-jwks";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import { scheduleOAuthGrantUsage } from "@/lib/oauth/grant-usage";
@@ -59,11 +60,6 @@ export class GraphqlAuthError extends GraphQLError {
   }
 }
 
-async function getLocalJwks() {
-  const { authApi } = await import("@/lib/auth/core");
-  return authApi.getJwks({});
-}
-
 function getAudienceValues(audience: string | string[]) {
   return Array.isArray(audience) ? audience : [audience];
 }
@@ -90,7 +86,7 @@ async function resolveBearerPrincipal(
 
   try {
     const verified = await verifyAccessTokenJwt(token, {
-      jwksFetch: getLocalJwks,
+      ...getLocalJwksVerificationOptions(),
       jwksUrl: getJwksUrlForOAuthVerification(),
       issuer: getOAuthTokenVerificationIssuers(),
       audience: getOAuthGraphqlAudienceUrls(),
