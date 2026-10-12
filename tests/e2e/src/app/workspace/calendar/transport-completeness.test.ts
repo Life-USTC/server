@@ -1,7 +1,10 @@
 import { expect } from "@playwright/test";
 import { auditLogProjection } from "../../../../utils/audit-log-projection";
+import {
+  issueAccessToken,
+  parseTextContent,
+} from "../../../../utils/mcp-helpers";
 import { test } from "../../../../utils/private-calendar-fixture";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 
 type CalendarEvent = {
   id: string;

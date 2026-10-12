@@ -4,8 +4,8 @@ import {
   countCopyCheck,
   prepareCountObservation,
 } from "../../../../utils/localized-count-observation";
+import { test } from "../../../../utils/mcp-worker";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { test } from "../../api/mcp/_fixture";
 
 for (const count of [0, 1, 2]) {
   test(`subscriptions.search-count-copy count=${count}`, {

@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { base, test } from "./_fixture";
+import { base, test } from "../../../shared/upload-request-fixture";
 
 for (const method of ["get", "post"] as const) {
   test(`anonymous upload ${method} returns JSON 401`, {

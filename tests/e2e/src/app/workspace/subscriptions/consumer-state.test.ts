@@ -1,4 +1,5 @@
 import { type APIRequestContext, expect } from "@playwright/test";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -16,7 +17,6 @@ import {
   subscriptionOverviewUrl,
   useSubscriptionSession,
 } from "../../../../utils/subscription-consumption";
-import { parseTextContent } from "../../api/mcp/helpers";
 
 async function createOwners(
   createCalendar: () => Promise<SubscriptionFixture>,

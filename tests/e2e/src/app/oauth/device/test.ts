@@ -27,12 +27,12 @@ import {
 } from "@/lib/oauth/constants";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
+import { test as isolatedTest } from "../../../../utils/mcp-worker";
 import { expectOAuthUsage } from "../../../../utils/oauth-usage";
 import { test as requestTest } from "../../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test } from "../../../../utils/public-worker";
 import { assertPageContract } from "../../_shared/page-contract";
-import { test as isolatedTest } from "../../api/mcp/_fixture";
 
 test.describe.configure({ mode: "parallel" });
 type DeviceAuthorizationResult = {

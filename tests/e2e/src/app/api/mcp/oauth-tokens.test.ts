@@ -7,7 +7,6 @@ import {
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
   restReadScope,
 } from "@/lib/oauth/constants";
-import { test } from "./_fixture";
 import {
   expectAccessTokenCannotInitializeMcp,
   issueAccessToken,
@@ -15,7 +14,8 @@ import {
   MCP_CLIENT_SCOPE,
   MCP_CLIENT_SCOPES,
   registerPublicClient,
-} from "./helpers";
+} from "../../../../utils/mcp-helpers";
+import { test } from "../../../../utils/mcp-worker";
 import { oauthProtocolChecks, prepareProtocolAccount } from "./protocol-checks";
 
 test.describe("/api/mcp - OAuth token 资源绑定", () => {

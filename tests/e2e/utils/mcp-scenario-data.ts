@@ -1,4 +1,4 @@
-import type { Prisma } from "../../../../../../src/generated/prisma-node/client";
+import type { Prisma } from "../../../src/generated/prisma-node/client";
 
 type Database = Prisma.TransactionClient;
 export const facts = {

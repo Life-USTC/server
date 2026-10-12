@@ -14,13 +14,13 @@ import {
 import { restWriteScope } from "@/lib/oauth/scope-registry";
 import { auditLogProjection } from "../../../utils/audit-log-projection";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { test as protocolTest } from "../../../utils/mcp-worker";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import {
   expectOAuthUsage,
   type OAuthUsageWindow,
 } from "../../../utils/oauth-usage";
 import { createUploadBucket } from "../../../utils/upload-bucket";
-import { test as protocolTest } from "../api/mcp/_fixture";
 
 type UploadAudit = {
   db: IsolatedWorker["database"]["owner"];

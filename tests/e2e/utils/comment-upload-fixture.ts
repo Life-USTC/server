@@ -6,8 +6,8 @@ import type {
   UploadPending,
   User,
 } from "../../../src/generated/prisma-node/client";
-import { test as storageTest } from "../../integration/rest/uploads/_fixture";
 import type { TestPrismaClient } from "../../shared/prisma";
+import { test as storageTest } from "../../shared/upload-request-fixture";
 import { type CommunityFlow, withCommunityFlow } from "./community-flow";
 
 type UploadSnapshot = {

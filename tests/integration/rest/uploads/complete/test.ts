@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { base, test } from "../_fixture";
+import { base, test } from "../../../../shared/upload-request-fixture";
 
 const path = `${base}/complete`;
 

@@ -2,14 +2,14 @@ import { type APIResponse, expect } from "@playwright/test";
 import { MCP_JSON_RPC_BATCH_LIMIT } from "@/lib/mcp/request-body";
 import { DEFAULT_OAUTH_CLIENT_SCOPES } from "@/lib/oauth/constants";
 import { MCP_BOOTSTRAP_SCOPE } from "@/lib/oauth/scope-registry";
-import { test } from "./_fixture";
 import {
   DEFAULT_CLIENT_SCOPE,
   expectMcpCorsHeaders,
   issueAccessToken,
   MCP_CLIENT_SCOPE,
   MCP_CLIENT_SCOPES,
-} from "./helpers";
+} from "../../../../utils/mcp-helpers";
+import { test } from "../../../../utils/mcp-worker";
 import {
   anonymousProtocolChecks,
   oauthProtocolChecks,

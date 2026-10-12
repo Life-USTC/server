@@ -5,8 +5,8 @@ import {
   countCopyCheck,
   prepareCountObservation,
 } from "../../../utils/localized-count-observation";
+import { test } from "../../../utils/mcp-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { test } from "../api/mcp/_fixture";
 
 async function createYoungCountFixture(
   db: Prisma.TransactionClient,

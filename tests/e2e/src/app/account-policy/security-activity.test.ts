@@ -3,10 +3,10 @@ import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
+import { test } from "../../../utils/mcp-worker";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import { expectOAuthUsage } from "../../../utils/oauth-usage";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { test } from "../api/mcp/_fixture";
 
 test("user.account-security-activity", { tag: "@Account/Web" }, async ({
   page,

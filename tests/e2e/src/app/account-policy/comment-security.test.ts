@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
+import { parseTextContent } from "../../../utils/mcp-helpers";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { parseTextContent } from "../api/mcp/helpers";
 import { test } from "./content-security-fixture";
 
 for (const method of ["Web", "REST", "GraphQL", "MCP"] as const)

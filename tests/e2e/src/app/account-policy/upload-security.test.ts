@@ -9,6 +9,8 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { parseTextContent } from "../../../utils/mcp-helpers";
+import { test } from "../../../utils/mcp-worker";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import {
   expectOAuthUsage,
@@ -16,8 +18,6 @@ import {
 } from "../../../utils/oauth-usage";
 import { createUploadBucket } from "../../../utils/upload-bucket";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
-import { test } from "../api/mcp/_fixture";
-import { parseTextContent } from "../api/mcp/helpers";
 
 type UploadRequest = Pick<
   APIRequestContext,

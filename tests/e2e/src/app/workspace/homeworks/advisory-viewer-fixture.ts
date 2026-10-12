@@ -13,13 +13,13 @@ import {
   withCommunityFlow,
 } from "../../../../utils/community-flow";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
+import type { OAuthOwner } from "../../../../utils/mcp-helpers";
+import { arrangeSection, facts } from "../../../../utils/mcp-scenario-data";
+import { test as oauthTest } from "../../../../utils/mcp-worker";
 import {
   expectOAuthUsage,
   type OAuthUsageWindow,
 } from "../../../../utils/oauth-usage";
-import { arrangeSection, facts } from "../../api/mcp/_data";
-import { test as oauthTest } from "../../api/mcp/_fixture";
-import type { OAuthOwner } from "../../api/mcp/helpers";
 import { REGISTERED_CLIENT_CAPABILITIES } from "../../api/mcp/protocol-checks";
 
 export type Target = {

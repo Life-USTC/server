@@ -3,8 +3,8 @@
  */
 
 import { expect } from "@playwright/test";
-import { test } from "./_fixture";
-import { parseTextContent } from "./helpers";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
+import { test } from "../../../../utils/mcp-worker";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
   test("种子工具：账号资料与社区用户", { tag: "@Account/MCP" }, async ({

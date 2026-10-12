@@ -5,13 +5,13 @@ import {
   type Page,
   type Request,
 } from "@playwright/test";
+import type { CalendarProtocolObservation } from "./calendar-protocol-lifecycle";
+import type { IsolatedWorker } from "./isolated-worker";
 import {
   issueAccessTokenForClient,
   type OAuthOwner,
   registerPublicClient,
-} from "../src/app/api/mcp/helpers";
-import type { CalendarProtocolObservation } from "./calendar-protocol-lifecycle";
-import type { IsolatedWorker } from "./isolated-worker";
+} from "./mcp-helpers";
 import { gotoAndWaitForReady } from "./page-ready";
 import type { PrivateCalendar } from "./private-calendar-fixture";
 

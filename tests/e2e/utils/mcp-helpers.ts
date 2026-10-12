@@ -6,8 +6,8 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
-import { sha256Base64Url } from "../../../../../shared/crypto";
-import type { IsolatedWorker } from "../../../../utils/isolated-worker";
+import { sha256Base64Url } from "../../shared/crypto";
+import type { IsolatedWorker } from "./isolated-worker";
 
 async function generateCodeChallenge(codeVerifier: string) {
   return sha256Base64Url(codeVerifier);

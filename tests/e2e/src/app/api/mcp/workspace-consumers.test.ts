@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
 import {
   anchor,
   arrangeAcademic,
@@ -6,9 +7,8 @@ import {
   arrangeHomework,
   arrangeSection,
   facts,
-} from "./_data";
-import { test } from "./_fixture";
-import { parseTextContent } from "./helpers";
+} from "../../../../utils/mcp-scenario-data";
+import { test } from "../../../../utils/mcp-worker";
 
 for (const [domain, feature] of [
   ["Todo", "workspace.todo"],

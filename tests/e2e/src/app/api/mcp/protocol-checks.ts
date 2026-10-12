@@ -4,11 +4,11 @@ import type { Semester } from "@/generated/prisma-node/client";
 import { auditLogProjection } from "../../../../utils/audit-log-projection";
 import type { CalendarProtocolChecks } from "../../../../utils/calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
+import type { OAuthOwner } from "../../../../utils/mcp-helpers";
 import {
   expectOAuthUsage,
   type OAuthUsageWindow,
 } from "../../../../utils/oauth-usage";
-import type { OAuthOwner } from "./helpers";
 
 /** Independently maintained DCR capability contract. Consent remains narrower. */
 export const REGISTERED_CLIENT_CAPABILITIES = [

@@ -1,6 +1,6 @@
-import { test as oauthTest } from "../src/app/api/mcp/_fixture";
 import { createCalendarContractFixture } from "./calendar-contract";
 import { DEV_SEED } from "./dev-seed";
+import { test as oauthTest } from "./mcp-worker";
 
 export type PrivateCalendar = Omit<
   Awaited<ReturnType<typeof createCalendarContractFixture>>,

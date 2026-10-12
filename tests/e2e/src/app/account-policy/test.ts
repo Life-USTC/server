@@ -3,9 +3,9 @@ import type { Session } from "@/generated/prisma-node/client";
 import { auditLogProjection } from "../../../utils/audit-log-projection";
 import type { CalendarProtocol } from "../../../utils/calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { test } from "../../../utils/mcp-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { createUploadBucket } from "../../../utils/upload-bucket";
-import { test } from "../api/mcp/_fixture";
 
 type AccountDatabase = IsolatedWorker["database"]["owner"];
 async function accountFixture(

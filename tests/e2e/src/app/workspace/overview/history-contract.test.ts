@@ -3,8 +3,8 @@ import {
   prepareCalendarRead,
   readCalendarState,
 } from "../../../../utils/calendar-read-observation";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
 import { test } from "../../../../utils/private-calendar-fixture";
-import { parseTextContent } from "../../api/mcp/helpers";
 
 for (const [domain, method, feature] of [
   ["Overview", "Web", ""],

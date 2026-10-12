@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
+import { test } from "../../../utils/mcp-worker";
 import { createUploadBucket } from "../../../utils/upload-bucket";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
-import { test } from "../api/mcp/_fixture";
 
 for (const kind of ["settings", "rest"] as const)
   test(`${kind} browser responses correlate with audit rows and replace spoofed request IDs`, {

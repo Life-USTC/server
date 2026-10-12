@@ -1,10 +1,10 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
-import { type OAuthOwner, parseTextContent } from "../src/app/api/mcp/helpers";
 import type {
   CalendarProtocol,
   CalendarProtocolChecks,
 } from "./calendar-protocol-lifecycle";
+import { type OAuthOwner, parseTextContent } from "./mcp-helpers";
 import type { PrivateCalendar } from "./private-calendar-fixture";
 import {
   authorizeSubscription,

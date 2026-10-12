@@ -30,8 +30,8 @@ import {
   restWriteScope,
 } from "@/lib/oauth/constants";
 import { sha256Base64Url } from "../../../../../../shared/crypto";
+import { test as isolatedTest } from "../../../../../utils/mcp-worker";
 import { test } from "../../../../../utils/owned-worker";
-import { test as isolatedTest } from "../../mcp/_fixture";
 
 async function generateCodeChallenge(codeVerifier: string) {
   return sha256Base64Url(codeVerifier);

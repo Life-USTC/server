@@ -1,4 +1,4 @@
-import { parseTextContent } from "../../api/mcp/helpers";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
 import { expect, roles, browserTest as test } from "./_ownership";
 
 for (const role of roles)

@@ -4,16 +4,16 @@ import type {
   CalendarProtocol,
   CalendarProtocolChecks,
 } from "../../../../utils/calendar-protocol-lifecycle";
+import type { OAuthOwner } from "../../../../utils/mcp-helpers";
+import {
+  issueAccessTokenForClient,
+  registerPublicClient,
+} from "../../../../utils/mcp-helpers";
 import {
   expectOAuthUsage,
   type OAuthUsageWindow,
 } from "../../../../utils/oauth-usage";
 import { expectMcpToolCalls } from "../../../../utils/subscription-consumption";
-import type { OAuthOwner } from "../../api/mcp/helpers";
-import {
-  issueAccessTokenForClient,
-  registerPublicClient,
-} from "../../api/mcp/helpers";
 
 type Database = OAuthOwner["worker"]["database"]["owner"];
 type RequestExpectation = readonly [

@@ -3,9 +3,13 @@
  */
 
 import { expect } from "@playwright/test";
-import { anchor, arrangeAcademic, facts } from "./_data";
-import { test } from "./_fixture";
-import { parseTextContent } from "./helpers";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
+import {
+  anchor,
+  arrangeAcademic,
+  facts,
+} from "../../../../utils/mcp-scenario-data";
+import { test } from "../../../../utils/mcp-worker";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
   for (const domain of ["Course", "Section", "Schedule", "Exam"] as const) {

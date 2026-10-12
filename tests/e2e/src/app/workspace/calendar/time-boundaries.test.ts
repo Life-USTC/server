@@ -3,8 +3,8 @@ import {
   prepareCalendarRead,
   readCalendarState,
 } from "../../../../utils/calendar-read-observation";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
 import { test } from "../../../../utils/private-calendar-fixture";
-import { parseTextContent } from "../../api/mcp/helpers";
 
 type Event = { type: string; at: string; endsAt: string | null };
 const instants = (events: Event[]) =>

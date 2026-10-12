@@ -1,7 +1,10 @@
 import { expect, type Page } from "@playwright/test";
 import type { CalendarProtocol } from "../../../../utils/calendar-protocol-lifecycle";
+import {
+  type OAuthOwner,
+  parseTextContent,
+} from "../../../../utils/mcp-helpers";
 import { test } from "../../../../utils/private-calendar-fixture";
-import { type OAuthOwner, parseTextContent } from "../../api/mcp/helpers";
 import { memberships, prepareContract } from "./_contract";
 
 async function prepare(

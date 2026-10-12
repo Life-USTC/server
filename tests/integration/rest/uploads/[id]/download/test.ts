@@ -1,5 +1,8 @@
 import { expect } from "@playwright/test";
-import { base, test as uploadTest } from "../../_fixture";
+import {
+  base,
+  test as uploadTest,
+} from "../../../../../shared/upload-request-fixture";
 
 const test = uploadTest.extend<{ attachmentTarget: number }>({
   attachmentTarget: async ({ uploadState, run }, use) => {

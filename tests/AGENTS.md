@@ -8,11 +8,11 @@ when changing behavior: `$life-ustc-implement`.
 | Unit | `tests/unit/` | `bunx vitest run --coverage`; files run in parallel with isolated mocks |
 | Integration | `tests/integration/` | `bunx vitest run --config vitest.integration.config.ts`; prepared disposable database, serial files |
 | RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job; the root local recipe explicitly enables all four role-test gates against the production bootstrap |
-| HTTP | `tests/integration/rest/` | `bun run rest:test`; domain/method CI jobs with two workers each; each case owns its database and real Worker |
-| Browser | `tests/e2e/` | domain/method jobs including Chromium and Mobile Chrome, two workers each; locally `bun run e2e:test --workers=2` with prepared roles |
+| HTTP | `tests/integration/rest/` | `bun run rest:test`; one CI job per feature with two workers each; each case owns its database and real Worker |
+| Browser | `tests/e2e/` | one CI job per feature including Chromium and Mobile Chrome, two workers each; locally `bun run e2e:test --workers=2` with prepared roles |
 
 CI collects each test's native `@Domain/Method` tag, for example
-`@Homework/REST` or `@Course/Web`, and runs one job per combination. A combination
+`@Homework/REST` or `@Course/Web`, and runs one job per feature. A feature
 can execute Vitest, Worker request and browser contracts; those are execution
 engines, not additional ownership labels. Missing or multiple tags fail collection.
 Shared UI policies belong to the feature whose view they verify; site-wide shell
@@ -27,11 +27,12 @@ rendered by a feature stay with that consumer (for example, Course history);
 subscription writes belong to Subscription, including on a Section page.
 Shared templates and database tables do not create additional test domains.
 
-Source checks, unit coverage, role contracts, native inventory and the shared test
-build start independently. Domain jobs consume the `test-build` artifact:
+Source checks, unit coverage, role contracts and the shared test build start
+independently; the build also collects the inventory. Feature jobs consume the
+`test-build` artifact:
 the application plus immutable compiled Worker code in `.svelte-kit/test-worker`.
 Playwright jobs use native `--fully-parallel --workers=2`; Vitest files remain
-serial. Chromium and Mobile Chrome run in the same domain/method job.
+serial. Chromium and Mobile Chrome run in the same feature job.
 Local defaults remain one Playwright worker.
 Local commands use the separately provisioned disposable PostgreSQL service in
 the root recipe. `e2e:test` and `rest:test` invoke Playwright directly after database
@@ -44,6 +45,14 @@ tests separately verify real permissions and transport behavior. Keep every
 layer enabled when changing orchestration.
 
 Unit tests live under `tests/unit/` only; don't colocate `*.test.ts` under `src/`.
+
+## Where a helper lives
+
+A helper used only by the tests beside it, or by a route nested under them,
+is named `_name.ts` and stays in that directory. Once a second tree needs it,
+move it to `tests/e2e/utils/` (browser and Worker) or `tests/shared/` (any
+runner) and give it a descriptive name. Those two directories are the shared
+layer: they must not import a route-local helper back.
 
 ## Shared fixtures
 

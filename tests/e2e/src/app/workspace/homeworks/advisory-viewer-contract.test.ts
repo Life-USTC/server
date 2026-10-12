@@ -1,7 +1,10 @@
 import { expect, type Page } from "@playwright/test";
+import {
+  issueAccessToken,
+  parseTextContent,
+} from "../../../../utils/mcp-helpers";
+import { facts } from "../../../../utils/mcp-scenario-data";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { facts } from "../../api/mcp/_data";
-import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 import { selectHomeworkAction } from "../../sections/[jwId]/_helpers";
 
 import {

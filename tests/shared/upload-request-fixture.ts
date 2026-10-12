@@ -1,11 +1,11 @@
 import type { APIRequestContext } from "@playwright/test";
-import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
-import { test as ownedTest } from "../../../e2e/utils/owned-worker";
+import type { IsolatedWorker } from "../e2e/utils/isolated-worker";
+import { test as ownedTest } from "../e2e/utils/owned-worker";
 import {
   createUploadBucket,
   type UploadBucket,
-} from "../../../e2e/utils/upload-bucket";
-import type { TestPrismaClient } from "../../../shared/prisma";
+} from "../e2e/utils/upload-bucket";
+import type { TestPrismaClient } from "./prisma";
 
 type Actor = { id: string; request: APIRequestContext };
 type UploadState = {

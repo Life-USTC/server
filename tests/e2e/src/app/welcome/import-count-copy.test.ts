@@ -1,8 +1,8 @@
 import { expect } from "@playwright/test";
 import { createCountSections } from "../../../utils/localized-count-fixture";
 import { prepareCountObservation } from "../../../utils/localized-count-observation";
+import { test } from "../../../utils/mcp-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { test } from "../api/mcp/_fixture";
 import { verifyCountImport } from "../workspace/subscriptions/count-import-contract";
 
 for (const count of [1, 2]) {

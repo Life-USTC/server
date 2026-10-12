@@ -1,10 +1,13 @@
 import { expect, type Page, type Route } from "@playwright/test";
 import type { CalendarProtocol } from "../../../../utils/calendar-protocol-lifecycle";
 import {
+  type OAuthOwner,
+  parseTextContent,
+} from "../../../../utils/mcp-helpers";
+import {
   type PrivateCalendar,
   test,
 } from "../../../../utils/private-calendar-fixture";
-import { type OAuthOwner, parseTextContent } from "../../api/mcp/helpers";
 import { memberships, prepareContract } from "./_contract";
 
 const base = "/api/workspace/subscriptions";

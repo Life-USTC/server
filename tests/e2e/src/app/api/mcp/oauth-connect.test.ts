@@ -2,7 +2,7 @@
  * MCP seeded tools — OAuth PKCE token 可连接 /api/mcp 并调用全部种子工具
  */
 import { expect } from "@playwright/test";
-import { test } from "./_fixture";
+import { test } from "../../../../utils/mcp-worker";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
   for (const method of ["OAuth", "MCP"] as const) {

@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { test } from "../api/mcp/_fixture";
+import { test } from "../../../utils/mcp-worker";
 
 test("audit.action-account-delete", { tag: "@Account/Web" }, async ({
   page,

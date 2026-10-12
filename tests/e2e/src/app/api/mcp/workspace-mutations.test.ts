@@ -1,8 +1,12 @@
 import { expect } from "@playwright/test";
 import type { Prisma } from "../../../../../../src/generated/prisma-node/client";
-import { arrangeHomework, arrangeSection, facts } from "./_data";
-import { test } from "./_fixture";
-import { parseTextContent } from "./helpers";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
+import {
+  arrangeHomework,
+  arrangeSection,
+  facts,
+} from "../../../../utils/mcp-scenario-data";
+import { test } from "../../../../utils/mcp-worker";
 
 for (const completed of [true, false]) {
   test(`MCP homework ${completed ? "completion" : "reopening"} commits independently`, {

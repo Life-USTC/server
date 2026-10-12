@@ -3,8 +3,8 @@ import {
   countCopyCheck,
   prepareCountObservation,
 } from "../../../utils/localized-count-observation";
+import { test } from "../../../utils/mcp-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { test } from "../api/mcp/_fixture";
 import { createNewsCountFixture, setCountPublications } from "./count-fixture";
 
 for (const count of [0, 1, 2]) {

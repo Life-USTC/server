@@ -10,9 +10,9 @@ import {
 import type { Todo } from "../../../../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../../../../shared/prisma";
 import { withBrowserWorkflow } from "../../../../utils/browser-workflow";
+import { issueAccessToken } from "../../../../utils/mcp-helpers";
 import { test as workerTest } from "../../../../utils/owned-worker";
 import { withSettledPageWrites } from "../../../../utils/settled-page-writes";
-import { issueAccessToken } from "../../api/mcp/helpers";
 
 export { expect };
 export const roles = ["member", "suspended administrator"] as const;

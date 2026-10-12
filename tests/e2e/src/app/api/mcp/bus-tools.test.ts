@@ -3,9 +3,9 @@
  */
 
 import { expect } from "@playwright/test";
-import { arrangeBus, facts } from "./_data";
-import { test } from "./_fixture";
-import { parseTextContent } from "./helpers";
+import { parseTextContent } from "../../../../utils/mcp-helpers";
+import { arrangeBus, facts } from "../../../../utils/mcp-scenario-data";
+import { test } from "../../../../utils/mcp-worker";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
   test("种子工具：校车时刻与线路", { tag: "@Bus/MCP" }, async ({ mcpRun }) => {

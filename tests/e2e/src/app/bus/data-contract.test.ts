@@ -11,10 +11,10 @@ import type {
   CalendarProtocolChecks,
 } from "../../../utils/calendar-protocol-lifecycle";
 import { readCalendarState } from "../../../utils/calendar-read-observation";
-import { arrangeBus, facts } from "../api/mcp/_data";
-import { test } from "../api/mcp/_fixture";
-import type { OAuthOwner } from "../api/mcp/helpers";
-import { issueAccessToken, parseTextContent } from "../api/mcp/helpers";
+import type { OAuthOwner } from "../../../utils/mcp-helpers";
+import { issueAccessToken, parseTextContent } from "../../../utils/mcp-helpers";
+import { arrangeBus, facts } from "../../../utils/mcp-scenario-data";
+import { test } from "../../../utils/mcp-worker";
 
 async function createFixture(db: Prisma.TransactionClient) {
   const marker = crypto.randomUUID().replaceAll("-", "");

@@ -1,29 +1,23 @@
 import { isDeepStrictEqual } from "node:util";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { expect, type Page } from "@playwright/test";
-import type {
-  AuditLog,
-  User,
-} from "../../../../../../src/generated/prisma-node/client";
-import { auditLogProjection } from "../../../../utils/audit-log-projection";
-import { withBrowserWorkflow } from "../../../../utils/browser-workflow";
+import type { AuditLog, User } from "../../../src/generated/prisma-node/client";
+import { auditLogProjection } from "./audit-log-projection";
+import { withBrowserWorkflow } from "./browser-workflow";
 import {
   type CalendarBrowserWriteVerifier,
   type CalendarProtocol,
   type CalendarProtocolChecks,
   withCalendarProtocol,
-} from "../../../../utils/calendar-protocol-lifecycle";
-import {
-  expectOAuthUsage,
-  type OAuthUsageWindow,
-} from "../../../../utils/oauth-usage";
-import { test as workerTest } from "../../../../utils/owned-worker";
+} from "./calendar-protocol-lifecycle";
 import {
   issueAccessToken,
   MCP_CLIENT_SCOPE,
   MCP_CLIENT_SCOPES,
   type OAuthOwner,
-} from "./helpers";
+} from "./mcp-helpers";
+import { expectOAuthUsage, type OAuthUsageWindow } from "./oauth-usage";
+import { test as workerTest } from "./owned-worker";
 
 type OAuth = OAuthOwner & { user: User };
 

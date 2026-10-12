@@ -1,16 +1,16 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { expect, type Page } from "@playwright/test";
-import {
-  issueAccessTokenForClient,
-  type OAuthOwner,
-  parseTextContent,
-  registerPublicClient,
-} from "../src/app/api/mcp/helpers";
 import { auditLogProjection } from "./audit-log-projection";
 import type {
   CalendarProtocol,
   CalendarProtocolChecks,
 } from "./calendar-protocol-lifecycle";
+import {
+  issueAccessTokenForClient,
+  type OAuthOwner,
+  parseTextContent,
+  registerPublicClient,
+} from "./mcp-helpers";
 import { expectOAuthUsage, type OAuthUsageWindow } from "./oauth-usage";
 import type { PrivateCalendar } from "./private-calendar-fixture";
 import { expectMcpToolCalls } from "./subscription-consumption";
