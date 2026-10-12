@@ -103,9 +103,11 @@ requirements:
     directly visible.
   acceptance:
     given: An anonymous viewer opens the planner on desktop and mobile.
-    when: The browser changes departure and arrival, reverses direction, selects every day type and toggles departed trips.
+    when: The browser changes departure and arrival, reverses direction, selects every day type, selects
+      each one a second time, and toggles departed trips.
     then:
     - All required controls are available and change the selected route or visible timetable as requested.
+    - The day type stays selected when it is chosen again, so the timetable always states which schedule it lists.
     test:
       file: tests/e2e/src/app/bus/presentation-contract.test.ts
       name: bus.core-filters-only

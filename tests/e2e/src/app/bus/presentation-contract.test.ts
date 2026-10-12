@@ -71,6 +71,10 @@ test("bus.core-filters-only", { tag: "@Bus/Web" }, async ({
         const option = page.getByRole("radio", { name: label, exact: true });
         await option.click();
         await expect(option).toHaveAttribute("aria-checked", "true");
+        // The timetable always lists one schedule, so choosing the selected
+        // day type again keeps it selected rather than leaving none.
+        await option.click();
+        await expect(option).toHaveAttribute("aria-checked", "true");
       }
       const departed = page.getByRole("switch", {
         name: "Show departed trips",
