@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import type { User } from "@/generated/prisma-node/client";
+import { auditLogProjection } from "../../../utils/audit-log-projection";
 import { test as communityTest } from "../../../utils/community-fixture";
 import type {
   CommunityChecks,
@@ -291,19 +292,7 @@ async function prepareDestructiveSecurity(
       ]))
         expect(rows).toEqual([]);
       const audits = await db.auditLog.findMany({
-        select: {
-          action: true,
-          outcome: true,
-          channel: true,
-          userId: true,
-          subjectUserId: true,
-          targetId: true,
-          targetType: true,
-          oauthClientId: true,
-          oauthGrantId: true,
-          sessionId: true,
-          metadata: true,
-        },
+        select: auditLogProjection,
       });
       const common = {
         outcome: "success",

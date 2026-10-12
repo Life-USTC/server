@@ -7,6 +7,7 @@ import {
 } from "@/lib/oauth/constants";
 import { restReadScope } from "@/lib/oauth/scope-registry";
 import type { Session } from "../../../../../src/generated/prisma-node/client";
+import { auditLogProjection } from "../../../utils/audit-log-projection";
 import { readCalendarState } from "../../../utils/calendar-read-observation";
 import {
   type CommunityFlow,
@@ -559,19 +560,7 @@ export const test = ownedTest.extend<{
                     const auditRows = async () =>
                       (
                         await db.auditLog.findMany({
-                          select: {
-                            action: true,
-                            outcome: true,
-                            channel: true,
-                            userId: true,
-                            subjectUserId: true,
-                            targetId: true,
-                            targetType: true,
-                            sessionId: true,
-                            oauthClientId: true,
-                            oauthGrantId: true,
-                            metadata: true,
-                          },
+                          select: auditLogProjection,
                         })
                       ).sort((a, b) => a.action.localeCompare(b.action));
                     const expectedAudits = [

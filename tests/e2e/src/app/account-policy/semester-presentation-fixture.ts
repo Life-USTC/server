@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import type { Prisma } from "../../../../../src/generated/prisma-node/client";
+import { auditLogProjection } from "../../../utils/audit-log-projection";
 import type { CalendarMessage } from "../../../utils/calendar-effects";
 import type {
   CalendarBrowserWriteVerifier,
@@ -238,19 +239,7 @@ export async function prepareSemesterObservation(
           );
           expect(
             await db.auditLog.findMany({
-              select: {
-                action: true,
-                outcome: true,
-                channel: true,
-                userId: true,
-                subjectUserId: true,
-                targetId: true,
-                targetType: true,
-                oauthClientId: true,
-                oauthGrantId: true,
-                sessionId: true,
-                metadata: true,
-              },
+              select: auditLogProjection,
             }),
           ).toEqual(
             feedTokenCreated

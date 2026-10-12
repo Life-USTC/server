@@ -138,25 +138,3 @@ export const DEV_SEED = {
     placeInfo: s.youngEvent.placeInfo,
   },
 } as const;
-
-export const DEV_SCENARIO_MARKER = "[DEV-SCENARIO]";
-export const DEV_SCENARIO_KEY_PREFIX = "dev-scenario/";
-
-export const DEV_SCENARIO_IDS = {
-  semesterJwId: s.semester.jwId,
-  semesterJwIds: [
-    s.semester.jwId,
-    s.previousSemester.jwId,
-  ] as readonly number[],
-  courseJwIds: s.courses.map((course) => course.jwId) as readonly number[],
-  sectionJwIds: s.sections.map((section) => section.jwId) as readonly number[],
-  scheduleGroupJwIds: s.scheduleGroups as readonly number[],
-  examJwIds: s.exams.map((exam) => exam.jwId) as readonly number[],
-  teacherCodes: s.teachers.map((teacher) => teacher.code) as readonly string[],
-  campusJwId: s.catalog.campus.jwId,
-  roomTypeJwId: s.catalog.roomType.jwId,
-  buildingJwId: s.catalog.building.jwId,
-  roomJwId: s.catalog.room.jwId,
-  teacherTitleJwId: s.catalog.teacherTitle.jwId,
-  teacherLessonTypeJwId: s.catalog.teacherLessonType.jwId,
-} as const;

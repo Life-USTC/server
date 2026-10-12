@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { auditLogProjection } from "../../../../utils/audit-log-projection";
 import type {
   CalendarProtocol,
   CalendarProtocolChecks,
@@ -192,19 +193,7 @@ export async function prepareContract(
           const audits = () =>
             db.auditLog.findMany({
               where: { action: { not: "oauth_authorization_grant" } },
-              select: {
-                action: true,
-                outcome: true,
-                channel: true,
-                userId: true,
-                subjectUserId: true,
-                targetId: true,
-                targetType: true,
-                oauthClientId: true,
-                oauthGrantId: true,
-                sessionId: true,
-                metadata: true,
-              },
+              select: auditLogProjection,
             });
           await expect
             .poll(async () => (await audits()).length, { timeout: 15_000 })

@@ -2,6 +2,7 @@ import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { expect, type Page } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
 import type { Session } from "../../../../src/generated/prisma-node/client";
+import { auditLogProjection } from "../../utils/audit-log-projection";
 import { readCalendarState } from "../../utils/calendar-read-observation";
 import {
   type CommunityFlow,
@@ -419,19 +420,7 @@ export const test = ownedTest.extend<{
                     expect(await db.session.findMany()).toEqual([loginSession]);
                     const audits = () =>
                       db.auditLog.findMany({
-                        select: {
-                          action: true,
-                          outcome: true,
-                          channel: true,
-                          userId: true,
-                          subjectUserId: true,
-                          targetId: true,
-                          targetType: true,
-                          sessionId: true,
-                          oauthClientId: true,
-                          oauthGrantId: true,
-                          metadata: true,
-                        },
+                        select: auditLogProjection,
                       });
                     await expect.poll(audits).toEqual([
                       {

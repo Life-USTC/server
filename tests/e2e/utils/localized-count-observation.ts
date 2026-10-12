@@ -1,4 +1,5 @@
 import { type APIRequestContext, expect, type Locator } from "@playwright/test";
+import { auditLogProjection } from "./audit-log-projection";
 import type { CalendarProtocolChecks } from "./calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "./isolated-worker";
 import { createUploadBucket } from "./upload-bucket";
@@ -130,19 +131,7 @@ export async function prepareCountObservation(
           expect(
             await db.auditLog.findMany({
               where: { action: { not: "account_profile_update" } },
-              select: {
-                action: true,
-                outcome: true,
-                channel: true,
-                userId: true,
-                subjectUserId: true,
-                targetId: true,
-                targetType: true,
-                oauthClientId: true,
-                oauthGrantId: true,
-                sessionId: true,
-                metadata: true,
-              },
+              select: auditLogProjection,
             }),
           ).toEqual(
             feedTokenCreated

@@ -5,6 +5,7 @@ import type {
   AuditLog,
   User,
 } from "../../../../../../src/generated/prisma-node/client";
+import { auditLogProjection } from "../../../../utils/audit-log-projection";
 import { withBrowserWorkflow } from "../../../../utils/browser-workflow";
 import {
   type CalendarBrowserWriteVerifier,
@@ -233,19 +234,7 @@ async function runMcpScenario(
           });
           const auditRows = await db.auditLog.findMany({
             where: { action: { not: "oauth_authorization_grant" } },
-            select: {
-              action: true,
-              outcome: true,
-              channel: true,
-              userId: true,
-              subjectUserId: true,
-              targetId: true,
-              targetType: true,
-              oauthClientId: true,
-              oauthGrantId: true,
-              sessionId: true,
-              metadata: true,
-            },
+            select: auditLogProjection,
           });
           const expectedAudits =
             checks.audits?.({

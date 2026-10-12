@@ -12,6 +12,7 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { restWriteScope } from "@/lib/oauth/scope-registry";
+import { auditLogProjection } from "../../../utils/audit-log-projection";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import {
@@ -220,19 +221,7 @@ export const test = protocolTest.extend<{
               await uploadBucket.list({ prefix: `uploads/${user.id}/` }),
             ).toEqual({ objects: [], truncated: false });
             const events = await db.auditLog.findMany({
-              select: {
-                action: true,
-                userId: true,
-                subjectUserId: true,
-                targetId: true,
-                targetType: true,
-                channel: true,
-                outcome: true,
-                oauthClientId: true,
-                oauthGrantId: true,
-                sessionId: true,
-                metadata: true,
-              },
+              select: auditLogProjection,
             });
             expect(events).toEqual([
               {

@@ -6,6 +6,7 @@ import {
   parseTextContent,
   registerPublicClient,
 } from "../src/app/api/mcp/helpers";
+import { auditLogProjection } from "./audit-log-projection";
 import type {
   CalendarProtocol,
   CalendarProtocolChecks,
@@ -185,19 +186,7 @@ export async function prepareCalendarRead(
             db.auditLog.findMany({
               where: { action: { not: "oauth_authorization_grant" } },
               orderBy: { action: "asc" },
-              select: {
-                action: true,
-                outcome: true,
-                channel: true,
-                userId: true,
-                subjectUserId: true,
-                targetId: true,
-                targetType: true,
-                oauthClientId: true,
-                oauthGrantId: true,
-                sessionId: true,
-                metadata: true,
-              },
+              select: auditLogProjection,
             });
           await expect
             .poll(async () => (await audits()).length, { timeout: 15_000 })

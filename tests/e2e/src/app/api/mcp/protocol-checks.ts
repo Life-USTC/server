@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 import type { Semester } from "@/generated/prisma-node/client";
+import { auditLogProjection } from "../../../../utils/audit-log-projection";
 import type { CalendarProtocolChecks } from "../../../../utils/calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
 import {
@@ -334,19 +335,7 @@ export function oauthProtocolChecks(
       expect(
         await db.auditLog.findMany({
           orderBy: { action: "asc" },
-          select: {
-            action: true,
-            outcome: true,
-            channel: true,
-            userId: true,
-            subjectUserId: true,
-            targetId: true,
-            targetType: true,
-            oauthClientId: true,
-            oauthGrantId: true,
-            sessionId: true,
-            metadata: true,
-          },
+          select: auditLogProjection,
         }),
       ).toEqual(
         expected.consentScopes.map((scopes, index) => ({

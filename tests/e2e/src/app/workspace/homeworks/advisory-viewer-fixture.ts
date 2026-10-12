@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { expect } from "@playwright/test";
 import type { Session } from "../../../../../../src/generated/prisma-node/client";
+import { auditLogProjection } from "../../../../utils/audit-log-projection";
 import type {
   CalendarBrowserWriteVerifier,
   CalendarProtocol,
@@ -677,19 +678,7 @@ export function observeAdvisory(
           ];
           const audits = () =>
             db.auditLog.findMany({
-              select: {
-                action: true,
-                outcome: true,
-                channel: true,
-                userId: true,
-                subjectUserId: true,
-                targetId: true,
-                targetType: true,
-                sessionId: true,
-                oauthClientId: true,
-                oauthGrantId: true,
-                metadata: true,
-              },
+              select: auditLogProjection,
             });
           await expect
             .poll(async () => (await audits()).length)

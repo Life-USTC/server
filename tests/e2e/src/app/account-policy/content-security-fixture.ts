@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { auditLogProjection } from "../../../utils/audit-log-projection";
 import { test as communityTest } from "../../../utils/community-fixture";
 import type {
   CommunityChecks,
@@ -325,19 +326,7 @@ async function prepareCommentSecurity(
       expect(await db.oAuthRefreshToken.count()).toBe(0);
       const audits = await db.auditLog.findMany({
         orderBy: { targetId: "asc" },
-        select: {
-          action: true,
-          outcome: true,
-          channel: true,
-          userId: true,
-          subjectUserId: true,
-          targetId: true,
-          targetType: true,
-          oauthClientId: true,
-          oauthGrantId: true,
-          sessionId: true,
-          metadata: true,
-        },
+        select: auditLogProjection,
       });
       expect(audits).toEqual(
         principals

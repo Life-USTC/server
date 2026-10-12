@@ -1,5 +1,6 @@
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import type { Session } from "@/generated/prisma-node/client";
+import { auditLogProjection } from "../../../utils/audit-log-projection";
 import type { CalendarProtocol } from "../../../utils/calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
@@ -97,19 +98,6 @@ async function expectUnusedAccountFeatures(
     }),
   ).toEqual({ objects: [], truncated: false });
 }
-const auditSelect = {
-  action: true,
-  outcome: true,
-  channel: true,
-  userId: true,
-  subjectUserId: true,
-  targetId: true,
-  targetType: true,
-  sessionId: true,
-  oauthClientId: true,
-  oauthGrantId: true,
-  metadata: true,
-} as const;
 async function expectDeletedAccount(
   db: AccountDatabase,
   fixture: Awaited<ReturnType<typeof accountFixture>>,
@@ -118,7 +106,7 @@ async function expectDeletedAccount(
   expect(await db.session.findMany()).toEqual([]);
   expect(await db.account.findMany()).toEqual([]);
   expect(await db.passkey.findMany()).toEqual([]);
-  expect(await db.auditLog.findMany({ select: auditSelect })).toEqual([
+  expect(await db.auditLog.findMany({ select: auditLogProjection })).toEqual([
     {
       action: "account_delete",
       outcome: "success",
@@ -472,7 +460,9 @@ test("cases.account.username-change-2", { tag: "@Account/Web" }, async ({
           );
           expect(await db.account.findMany()).toEqual([]);
           expect(await db.passkey.findMany()).toEqual([]);
-          expect(await db.auditLog.findMany({ select: auditSelect })).toEqual([
+          expect(
+            await db.auditLog.findMany({ select: auditLogProjection }),
+          ).toEqual([
             {
               action: "account_profile_update",
               outcome: "success",
@@ -713,7 +703,9 @@ test("cases.account.oauth-connection-error-2", { tag: "@Account/Web" }, async ({
             expect(registered.createdAt?.getTime()).toBeLessThanOrEqual(
               registrationFinished,
             );
-            const rows = await db.auditLog.findMany({ select: auditSelect });
+            const rows = await db.auditLog.findMany({
+              select: auditLogProjection,
+            });
             const common = {
               userId: user.id,
               subjectUserId: user.id,

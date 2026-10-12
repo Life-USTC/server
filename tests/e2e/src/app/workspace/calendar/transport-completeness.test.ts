@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { auditLogProjection } from "../../../../utils/audit-log-projection";
 import { test } from "../../../../utils/private-calendar-fixture";
 import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 
@@ -338,19 +339,7 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
           );
           expect(
             await db.auditLog.findMany({
-              select: {
-                action: true,
-                outcome: true,
-                channel: true,
-                userId: true,
-                subjectUserId: true,
-                targetId: true,
-                targetType: true,
-                oauthClientId: true,
-                oauthGrantId: true,
-                sessionId: true,
-                metadata: true,
-              },
+              select: auditLogProjection,
             }),
           ).toEqual([
             {
