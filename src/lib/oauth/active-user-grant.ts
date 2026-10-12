@@ -1,4 +1,4 @@
-import { authPrisma as prisma } from "@/lib/db/auth-prisma";
+import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import { OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE } from "@/lib/oauth/constants";
 
 export type OAuthUserGrantIdentity = {
@@ -33,58 +33,63 @@ export async function resolveActiveOAuthUserGrant({
   OAuthUserGrantEvidence): Promise<ActiveOAuthUserGrant | null> {
   if (!clientId || !userId) return null;
 
-  const client = await prisma.oAuthClient.findUnique({
-    where: { clientId },
-    select: {
-      disabled: true,
-      skipConsent: true,
-      consents: {
-        where: {
-          userId,
-          ...(grantId ? { grantId } : {}),
-          ...(scopes.length > 0 ? { scopes: { hasEvery: [...scopes] } } : {}),
-        },
-        select: { grantId: true, id: true },
-        take: 1,
-      },
-    },
+  // One live snapshot observes client, consent generation, user and replay
+  // revocation together, without initializing the auth ORM on every request.
+  return withRuntimeDatabaseAdapter("auth", async (adapter) => {
+    const result = await adapter.queryRaw({
+      sql: `SELECT c."skipConsent" IS TRUE, consent."id", consent."grantId"
+        FROM "OAuthClient" c
+        LEFT JOIN "OAuthConsent" consent
+          ON c."skipConsent" IS NOT TRUE
+          AND consent."clientId" = c."clientId"
+          AND consent."userId" = $2
+          AND ($3::text IS NULL OR consent."grantId" = $3)
+          AND (cardinality($4::text[]) = 0 OR consent."scopes" @> $4::text[])
+        WHERE c."clientId" = $1 AND NOT c."disabled"
+          AND CASE WHEN c."skipConsent" IS TRUE THEN
+            EXISTS (SELECT 1 FROM "User" u WHERE u."id" = $2)
+            AND NOT EXISTS (
+              SELECT 1 FROM "OAuthRefreshToken" r
+              WHERE r."clientId" = c."clientId" AND r."userId" = $2
+                AND r."revoked" IS NOT NULL
+                AND $6 = ANY(r."scopes")
+                AND CASE WHEN $3::text IS NOT NULL
+                  THEN r."grantId" = $3 OR r."referenceId" = $3
+                  ELSE r."grantId" IS NULL AND r."referenceId" IS NULL
+                END
+            )
+          ELSE (NOT $5::boolean OR $3::text IS NOT NULL)
+            AND consent."id" IS NOT NULL
+          END`,
+      args: [
+        clientId,
+        userId,
+        grantId || null,
+        [...scopes],
+        requireGrantBinding,
+        OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE,
+      ],
+      argTypes: [
+        { scalarType: "string", arity: "scalar" },
+        { scalarType: "string", arity: "scalar" },
+        { scalarType: "string", arity: "scalar" },
+        { scalarType: "string", arity: "list" },
+        { scalarType: "boolean", arity: "scalar" },
+        { scalarType: "string", arity: "scalar" },
+      ],
+    });
+    const row = result.rows[0];
+    if (!row) return null;
+    // The CASE admits a nontrusted row only when its unique consent exists.
+    const [trusted, consentId, currentGrantId] = row as [
+      boolean,
+      string,
+      string,
+    ];
+    return trusted
+      ? { kind: "trusted" }
+      : { kind: "consent", consentId, grantId: currentGrantId };
   });
-  if (!client || client.disabled) return null;
-
-  if (client.skipConsent === true) {
-    const [user, replayTombstone] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      }),
-      prisma.oAuthRefreshToken.findFirst({
-        where: {
-          clientId,
-          userId,
-          // Trusted clients have no persisted consent generation. A replay
-          // therefore invalidates their whole legacy null-grant lineage.
-          ...(grantId
-            ? { OR: [{ grantId }, { referenceId: grantId }] }
-            : { grantId: null, referenceId: null }),
-          revoked: { not: null },
-          scopes: { has: OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE },
-        },
-        select: { id: true },
-      }),
-    ]);
-    return user && !replayTombstone ? { kind: "trusted" } : null;
-  }
-
-  if (requireGrantBinding && !grantId) return null;
-
-  const consent = client.consents[0];
-  return consent
-    ? {
-        kind: "consent",
-        consentId: consent.id,
-        grantId: consent.grantId,
-      }
-    : null;
 }
 
 export async function hasActiveOAuthUserGrant(
