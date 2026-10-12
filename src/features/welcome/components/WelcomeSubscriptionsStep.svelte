@@ -33,6 +33,7 @@ export let confirmImport: WelcomeImportAction;
 export let displayName: WelcomeDisplayName;
 export let formatCopy: WelcomeFormatCopy;
 export let importError: string;
+export let importIncludedSummary: string;
 export let importMessage: string;
 export let importText: string;
 export let isImporting: boolean;
@@ -79,7 +80,14 @@ export let welcomeCopy: WelcomeCopy;
     {/if}
     {#if importMessage}
       <Alert.Root>
-        <Alert.Description>{importMessage}</Alert.Description>
+        <Alert.Description>
+          {importMessage}
+          {#if importIncludedSummary}
+            <span class="block text-muted-foreground" data-testid="welcome-import-included">
+              {importIncludedSummary}
+            </span>
+          {/if}
+        </Alert.Description>
       </Alert.Root>
     {/if}
 

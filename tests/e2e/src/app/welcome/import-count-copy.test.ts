@@ -57,6 +57,12 @@ for (const count of [1, 2]) {
               : `已新增 ${count} 个教学班订阅。`,
           }),
         ).toBeVisible();
+        // The same summary the workspace subscriptions list renders.
+        await expect(page.getByTestId("welcome-import-included")).toHaveText(
+          en
+            ? `${count} ${count === 1 ? "section" : "sections"} included`
+            : `包含 ${count} 个班级`,
+        );
 
         return observation.checks({
           sessionRefreshed: true,

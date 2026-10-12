@@ -1379,9 +1379,8 @@ requirements:
   topic: localized-count-copy
   rule: Welcome import success messages and included-section summaries use actual counts and singular/plural
     English grammar. Chinese and count-neutral labels may keep unchanged templates; nonempty-only notices may be absent at zero.
-  rationale: The linked English count=1 success-notice case is representative; count=2 and Chinese cases complete that matrix.
-    The included-section summary obligation is currently unmet by both the implementation and its tests;
-    the pointer represents only the success notice.
+  rationale: The linked English count=1 case is representative; count=2 and Chinese cases complete that matrix.
+    Welcome reuses the subscriptions list's included-section wording so one import reads the same in both places.
   acceptance:
     given: Each English or Chinese welcome import independently owns an account and one or two unsubscribed sections.
     when: The user selects a semester, matches codes and imports results on the welcome subscriptions step.

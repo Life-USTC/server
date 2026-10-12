@@ -3,6 +3,7 @@ import type { WelcomeBulkImportActionInput } from "./welcome-bulk-import-action-
 export function resetWelcomeBulkImport(input: WelcomeBulkImportActionInput) {
   input.setImportText("");
   input.setImportMessage("");
+  input.setImportIncludedSummary("");
   input.setImportError("");
   input.setMatchedSections([]);
   input.setUnmatchedCodes([]);

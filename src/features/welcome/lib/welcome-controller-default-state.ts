@@ -7,6 +7,7 @@ export function createWelcomeControllerDefaultState(input: {
   return {
     areResultsVisible: false,
     importError: "",
+    importIncludedSummary: "",
     importMessage: "",
     importText: "",
     isCompletingProfile: false,

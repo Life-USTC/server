@@ -27,6 +27,7 @@ export let form: WelcomeActionData;
 let {
   areResultsVisible,
   importError,
+  importIncludedSummary,
   importMessage,
   importText,
   isCompletingProfile: _isCompletingProfile,
@@ -74,12 +75,16 @@ const { confirmImport, matchSections, setSectionSelection } =
     getLocale: () => data.locale,
     getSelectedSectionIds: () => selectedSectionIds,
     getSelectedSemesterId: () => selectedSemesterId,
+    getSubscriptionsCopy: () => copy.subscriptions,
     getWelcomeCopy: () => welcomeCopy,
     setImportError: (value) => {
       importError = value;
     },
     setImporting: (value) => {
       isImporting = value;
+    },
+    setImportIncludedSummary: (value) => {
+      importIncludedSummary = value;
     },
     setImportMessage: (value) => {
       importMessage = value;
@@ -148,6 +153,7 @@ const completeProfileAction = createCompleteProfileAction({
       {displayName}
       {formatCopy}
       {importError}
+      {importIncludedSummary}
       {importMessage}
       bind:importText
       {isImporting}
