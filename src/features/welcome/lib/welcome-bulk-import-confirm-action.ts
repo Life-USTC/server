@@ -23,6 +23,17 @@ export async function confirmWelcomeBulkImport(
         plural: input.getLocale() === "en-us" && importedCount !== 1 ? "s" : "",
       }),
     );
+    // The same summary the subscriptions list shows, so welcome reports what
+    // the import included rather than only that it succeeded.
+    const subscriptionsCopy = input.getSubscriptionsCopy();
+    input.setImportIncludedSummary(
+      input.formatCopy(
+        importedCount === 1
+          ? subscriptionsCopy.sectionIncluded
+          : subscriptionsCopy.sectionsIncluded,
+        { count: importedCount },
+      ),
+    );
   } catch (error) {
     input.setImportError(
       error instanceof Error ? error.message : bulkCopy.importFailed,

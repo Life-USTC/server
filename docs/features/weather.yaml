@@ -130,7 +130,7 @@ requirements:
     - A failed refresh returns unavailable rather than relabeling the stale snapshot.
     test:
       file: tests/unit/features/weather/weather-freshness-specification.test.ts
-      name: weather.cache-and-history
+      name: "weather cache: exactly fifteen minutes old"
 - id: weather.location-key-boundary
   category: consistency
   rule: REST, GraphQL, and MCP accept only the canonical locationKey values ustc-main and ustc-gaoxin;

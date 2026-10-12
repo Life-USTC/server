@@ -7,6 +7,8 @@ import type {
 import { addDays } from "./calendar-date-keys";
 
 export type WorkspaceTimelineItem = CalendarGridEvent & {
+  meta: string;
+  detail: string;
   href: string;
   key: string;
   sort: number;
@@ -17,7 +19,8 @@ export type WorkspaceAgendaDay = Omit<CalendarAgendaDay, "events"> & {
   events: WorkspaceTimelineItem[];
 };
 
-export type WorkspaceFocusItem = WorkspaceTimelineItem & {
+export type WorkspaceFocusItem = Omit<WorkspaceTimelineItem, "meta"> & {
+  time: string;
   dateKey: string;
   dateLabel: string;
   status: "now" | "urgent" | "next";
@@ -141,8 +144,10 @@ function focusItem(
   day: WorkspaceAgendaDay,
   status: WorkspaceFocusItem["status"],
 ): WorkspaceFocusItem {
+  const { meta, ...fields } = item;
   return {
-    ...item,
+    ...fields,
+    time: meta,
     dateKey: day.key,
     dateLabel: day.dateLabel,
     status,

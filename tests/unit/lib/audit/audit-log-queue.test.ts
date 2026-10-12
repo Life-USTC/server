@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 const { logAppEventMock, writeAuditLogsMock, writeQueueBatchAnalyticsMock } =
   vi.hoisted(() => ({
@@ -154,6 +154,7 @@ describe("audit log write queue", () => {
       "error",
       "audit-log-write.retry",
       expect.objectContaining({
+        actions: ["comment_create"],
         event: "audit-log-write.retry",
         invalidMessageCount: 0,
         messageType: "audit-log.write.v1",
@@ -171,6 +172,54 @@ describe("audit log write queue", () => {
         retried: 1,
       }),
     );
+  });
+
+  it("classifies retry actions without logging message identities or metadata", async () => {
+    const error = new Error("database unavailable");
+    writeAuditLogsMock.mockRejectedValue(error);
+    const valid = ["account_sign_in", "comment_create", "account_sign_in"].map(
+      (action, index) =>
+        queueMessage({
+          auditId: `private-audit-${index}`,
+          type: "audit-log.write.v1",
+          params: {
+            action,
+            userId: "private-user",
+            sessionId: "private-session",
+            metadata: { name: "private-name" },
+          },
+        }),
+    );
+    const invalid = queueMessage({
+      auditId: "private-invalid-audit",
+      type: "audit-log.write.v1",
+      params: { action: "private-invalid-action" },
+    });
+
+    await handleAuditLogWriteBatch({ messages: [...valid, invalid] });
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "audit-log-write.retry",
+      {
+        actions: ["account_sign_in", "comment_create"],
+        event: "audit-log-write.retry",
+        invalidMessageCount: 1,
+        messageType: "audit-log.write.v1",
+        phase: "consumer",
+        reason: "database_write_failed",
+        source: "audit",
+        validMessageCount: 3,
+      },
+      error,
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "private-",
+    );
+    for (const message of [...valid, invalid]) {
+      expect(message.retry).toHaveBeenCalledOnce();
+      expect(message.ack).not.toHaveBeenCalled();
+    }
   });
 
   it("classifies an all-invalid batch as retry because nothing was acknowledged", async () => {
@@ -236,6 +285,13 @@ describe("audit log write queue", () => {
     );
 
     const handling = handleAuditLogWriteBatch({ messages });
+    const outcome = Promise.allSettled([handling]);
+    onTestFinished(async () => {
+      resolveWrite();
+      for (const result of await outcome) {
+        if (result.status === "rejected") throw result.reason;
+      }
+    });
     await Promise.resolve();
     expect(writeAuditLogsMock).toHaveBeenCalledOnce();
     expect(writeAuditLogsMock.mock.calls[0]?.[0]).toHaveLength(20);

@@ -15,59 +15,77 @@
  *   public resource, while authenticated requests redirect to
  *   `/workspace/overview`.
  */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import { expect } from "@playwright/test";
+import { test as privateTest } from "../../../../utils/account-fixture";
 import {
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
 } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { test } from "../../../../utils/public-worker";
 
 test.describe("仪表盘无效标签（comments）", () => {
-  test("/workspace/comments 不是仪表盘路由页面", async ({ page }, testInfo) => {
-    const response = await gotoAndWaitForReady(page, "/workspace/comments", {
-      testInfo,
-      screenshotLabel: "workspace-invalid-comments-route",
+  test("/workspace/comments 不是仪表盘路由页面", {
+    tag: "@Comment/Web",
+  }, async ({ publicFlow, page }) => {
+    await publicFlow.run(async () => {
+      const response = await gotoAndWaitForReady(page, "/workspace/comments");
+
+      expect(response?.status()).toBe(404);
+      await expect(page.getByText(/not found|找不到/i)).toBeVisible();
     });
-
-    expect(response?.status()).toBe(404);
-    await expect(page.getByText(/not found|找不到/i)).toBeVisible();
   });
 
-  test("未登录 ?tab=comments 保持轻量公共首页", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=comments", {
-      testInfo,
-      screenshotLabel: "workspace-invalid-tab",
+  test("未登录 ?tab=comments 保持轻量公共首页", {
+    tag: "@Comment/Web",
+  }, async ({ publicFlow, page }) => {
+    await publicFlow.run(async () => {
+      await gotoAndWaitForReady(page, "/?tab=comments");
+
+      // URL retains the invalid tab param
+      await expect(page).toHaveURL(/\/\?tab=comments$/);
+      await expect(page.locator("#app-logo")).toBeVisible();
+
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
+        }),
+      ).toBeVisible();
+      await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
     });
-
-    // URL retains the invalid tab param
-    await expect(page).toHaveURL(/\/\?tab=comments$/);
-    await expect(page.locator("#app-logo")).toBeVisible();
-
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
-      }),
-    ).toBeVisible();
-    await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "home-comments-public");
   });
 
-  test("登录后 ?tab=comments 回退到总览", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=comments", "/workspace/overview");
+  privateTest(
+    "登录后 ?tab=comments 回退到总览",
+    { tag: "@Comment/Web" },
+    async ({ run, accountRun, page, isolatedWorker }) => {
+      const actor = await run(async () => {
+        const actor = await isolatedWorker.createActor();
+        await page.context().addCookies([actor.cookie]);
+        return actor;
+      });
+      await accountRun({ writes: [], audits: [] }, async () => {
+        const session = await page.request.get("/api/auth/get-session");
+        expect(session.status()).toBe(200);
+        expect((await session.json()).user.id).toBe(actor.id);
+        const redirect = await page.request.get("/?tab=comments", {
+          maxRedirects: 0,
+        });
+        expect(redirect.status()).toBe(303);
+        expect(redirect.headers().location).toBe("/workspace/overview");
+        await gotoAndWaitForReady(page, "/?tab=comments");
+        await expect(page).toHaveURL(/\/workspace\/overview$/);
 
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.locator("#app-user-menu")).toBeVisible();
+        await expect(page.locator("#main-content")).toBeVisible();
+        await expect(page.locator("#app-user-menu")).toBeVisible();
 
-    // Overview is the fallback — should show the overview sidebar entry as active
-    await expandWorkspaceSidebarGroup(page);
-    await expect(
-      sidebarNavigationLink(page, /^(今天|Today)$/i),
-    ).toHaveAttribute("aria-current", "page");
-
-    await captureStepScreenshot(page, testInfo, "home-comments-seed");
-  });
+        // Overview is the fallback — should show the overview sidebar entry as active
+        await expandWorkspaceSidebarGroup(page);
+        await expect(
+          sidebarNavigationLink(page, /^(今天|Today)$/i),
+        ).toHaveAttribute("aria-current", "page");
+      });
+    },
+  );
 });

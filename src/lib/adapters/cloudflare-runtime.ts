@@ -152,6 +152,7 @@ type CloudflareRuntimeContext = {
   cache: Map<symbol, unknown>;
   cacheStorage?: CloudflareCacheStorage;
   cleanups: Set<() => Promise<void> | void>;
+  tasks: Set<Promise<unknown>>;
   env?: CloudflareRuntimeEnv;
   request?: CloudflareRequestContext;
   invalidateCatalogRepresentations?: () => Promise<void>;
@@ -216,6 +217,12 @@ function getCurrentCloudflareRuntimeEnv() {
 async function cleanupCloudflareRuntimeContext(
   context: CloudflareRuntimeContext,
 ) {
+  // waitUntil work can acquire clients after the response has finished. Keep
+  // their request scope alive until all scheduled work (including followups)
+  // settles, then disconnect clients and release their cached engine state.
+  while (context.tasks.size > 0) {
+    await Promise.allSettled([...context.tasks]);
+  }
   const cleanupResults = await Promise.allSettled(
     [...context.cleanups].map((cleanup) => Promise.resolve().then(cleanup)),
   );
@@ -312,6 +319,7 @@ export function runWithCloudflareRuntimeEnv<T>(
     cache: new Map(),
     cacheStorage: normalizeCloudflareCacheStorage(),
     cleanups: new Set(),
+    tasks: new Set(),
     env: normalizeCloudflareRuntimeEnv(env) ?? parentContext?.env,
     request: parentContext?.request,
     // SvelteKit and the outer Worker are separate bundles. Reconstruct this
@@ -324,6 +332,17 @@ export function runWithCloudflareRuntimeEnv<T>(
       parentContext?.scheduleTask,
     tracing,
   };
+  const scheduleTask = context.scheduleTask;
+  if (scheduleTask) {
+    context.scheduleTask = (task) => {
+      context.tasks.add(task);
+      void task.then(
+        () => context.tasks.delete(task),
+        () => context.tasks.delete(task),
+      );
+      scheduleTask(task);
+    };
+  }
 
   return cloudflareRuntimeStorage.run(context, async () => {
     let cleanupPromise: Promise<void> | undefined;
@@ -331,21 +350,26 @@ export function runWithCloudflareRuntimeEnv<T>(
       cleanupPromise ??= cleanupCloudflareRuntimeContext(context);
       return cleanupPromise;
     };
+    const finish = () => {
+      if (context.tasks.size > 0 && scheduleTask) {
+        // Response EOF must not wait for usage aggregation or other deferred
+        // writes. The platform still owns the final disconnect operation.
+        scheduleTask(cleanup());
+        return Promise.resolve();
+      }
+      return cleanup();
+    };
     let result: T;
     try {
       result = await callback();
     } catch (error) {
-      await cleanup().catch(() => undefined);
+      await finish().catch(() => undefined);
       throw error;
     }
-    if (
-      result instanceof Response &&
-      result.body &&
-      context.cleanups.size > 0
-    ) {
-      return responseWithRuntimeCleanup(result, cleanup) as T;
+    if (result instanceof Response && result.body) {
+      return responseWithRuntimeCleanup(result, finish) as T;
     }
-    await cleanup();
+    await finish();
     return result;
   });
 }
@@ -472,6 +496,8 @@ export function getCloudflareRuntimeTaskScheduler() {
 }
 
 export function getCloudflareTaskScheduler(platform: unknown) {
+  const schedule = getCloudflareRuntimeTaskScheduler();
+  if (schedule) return schedule;
   if (!platform || typeof platform !== "object") return undefined;
   const value = platform as { context?: unknown; ctx?: unknown };
   const context = value.ctx ?? value.context;

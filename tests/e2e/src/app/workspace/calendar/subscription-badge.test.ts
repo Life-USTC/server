@@ -1,26 +1,39 @@
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
+import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import {
+  prepareSemesterObservation,
+  test,
+} from "../../account-policy/semester-presentation-fixture";
 
-test("calendar.subscription-badges", async ({ page }, testInfo) => {
-  // Two locales × three subscription kinds × four viewport/view combinations.
-  // Each case loads and hydrates the calendar; keep individual waits unchanged.
-  test.setTimeout(60_000);
-  const fixture = await createCalendarContractFixture();
-  try {
-    await page.context().clearCookies();
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
-    for (const locale of ["zh-CN", "en-US"]) {
+for (const locale of ["zh-CN", "en-US"]) {
+  test(`calendar.subscription-badges: ${locale}`, {
+    tag: "@Calendar/Web",
+  }, async ({
+    page,
+    calendar: fixture,
+    isolatedWorker,
+    calendarProtocolRun,
+  }) => {
+    // Each locale owns three subscription kinds × four viewport/view combinations.
+    // Each case loads and hydrates the calendar; keep individual waits unchanged.
+    test.setTimeout(60_000);
+    await calendarProtocolRun(async (io) => {
+      await page.context().clearCookies();
+      const observation = await prepareSemesterObservation(
+        page,
+        isolatedWorker,
+        io,
+        fixture.users[0].id,
+        Array.from({ length: 3 }, () => ({
+          type: "user",
+          userId: fixture.users[0].id,
+        })),
+      );
       await page.context().addCookies([
         {
           name: "NEXT_LOCALE",
           value: locale.toLowerCase(),
-          url: PLAYWRIGHT_BASE_URL,
+          url: isolatedWorker.origin,
         },
       ]);
       const endpoint = `/api/workspace/subscriptions/${fixture.section.jwId}`;
@@ -34,6 +47,23 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
           data: { kind },
         });
         expect(response.status()).toBe(200);
+        expect(await response.json()).toEqual({
+          sectionJwId: fixture.section.jwId,
+          kind,
+        });
+        expect(
+          await isolatedWorker.database.owner.userSectionSubscription.findUnique(
+            {
+              where: {
+                userId_sectionId: {
+                  userId: fixture.users[0].id,
+                  sectionId: fixture.section.id,
+                },
+              },
+              select: { kind: true },
+            },
+          ),
+        ).toEqual({ kind });
         for (const [mobile, view] of [
           [false, "week"],
           [true, "week"],
@@ -82,17 +112,19 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
               () => document.documentElement.scrollWidth <= window.innerWidth,
             ),
           ).toBe(true);
-          if (kind === "teaching_assistant") {
-            await captureStepScreenshot(
-              page,
-              testInfo,
-              `calendar/badge-${view}-${mobile ? "mobile" : "desktop"}`,
-            );
-          }
         }
       }
-    }
-  } finally {
-    await fixture.cleanup();
-  }
-});
+      return observation.checks({
+        feedTokenCreated: true,
+        requests: [
+          [
+            "PATCH",
+            `/api/workspace/subscriptions/${fixture.section.jwId}`,
+            [200, 200, 200],
+          ],
+        ],
+        subscriptionKind: { sectionId: fixture.section.id, kind: "auditor" },
+      });
+    });
+  });
+}

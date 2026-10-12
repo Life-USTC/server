@@ -35,6 +35,10 @@ function createInput() {
     getLocale: () => "zh-cn",
     getSelectedSectionIds: () => state.selectedSectionIds,
     getSelectedSemesterId: () => state.selectedSemesterId,
+    getSubscriptionsCopy: () => ({
+      sectionIncluded: "{count} section included",
+      sectionsIncluded: "{count} sections included",
+    }),
     getWelcomeCopy: () => ({
       importedSummary: "Added {count} sections.",
       noMatchingSections: "No matching sections were found.",
@@ -44,6 +48,9 @@ function createInput() {
     },
     setImporting: (value) => {
       state.isImporting = value;
+    },
+    setImportIncludedSummary: (value) => {
+      state.importIncludedSummary = value;
     },
     setImportMessage: (value) => {
       state.importMessage = value;
@@ -134,5 +141,17 @@ describe("欢迎流程批量导入", () => {
     expect(state.areResultsVisible).toBe(false);
     expect(state.importText).toBe("");
     expect(state.importMessage).toBe("Added 2 sections.");
+    expect(state.importIncludedSummary).toBe("2 sections included");
+  });
+
+  it("reports one included section in the singular", async () => {
+    const { input, state } = createInput();
+    appendSubscribedSectionIds.mockResolvedValue(1);
+    state.selectedSectionIds = [11];
+    const { confirmImport } = createWelcomeBulkImportActions(input);
+
+    await confirmImport();
+
+    expect(state.importIncludedSummary).toBe("1 section included");
   });
 });

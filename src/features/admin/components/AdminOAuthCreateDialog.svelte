@@ -79,6 +79,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
                   class="grid w-full gap-2 sm:grid-cols-3"
                   spacing={2}
                   type="single"
+                  required
                   value={selectedAuthMethod}
                   variant="outline"
                   onValueChange={(value) => {

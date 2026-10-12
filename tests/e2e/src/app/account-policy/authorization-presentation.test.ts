@@ -1,59 +1,114 @@
-import { expect, type Page, test } from "@playwright/test";
+import { createOAuthAccountIssuer } from "@better-auth/core/db";
+import { expect } from "@playwright/test";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import {
-  createOAuthAuthorizationFixture,
-  deleteOAuthClientsByName,
-  ensureLinkedAccountFixture,
-} from "../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { withBrowserWorkflow } from "../../../utils/browser-workflow";
+import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { test as workerTest } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-async function fixture(page: Page) {
+async function prepareAuthorization(worker: IsolatedWorker) {
+  const db = worker.database.owner;
   const marker = crypto.randomUUID();
-  const user = await withE2ePrisma((db) =>
-    db.user.create({
+  const name = `<img src=x onerror=alert(1)> App ${marker}`;
+  const clientId = crypto.randomUUID();
+  const clientSecret = `hidden-secret-${crypto.randomUUID()}`;
+  const redirectUri = new URL("/hidden-oauth-callback", worker.origin).href;
+  const clientUri = "https://calendar.example";
+  const scopes = ["workspace.calendar:read", "profile"];
+  const { user, consent } = await db.$transaction(async (tx) => {
+    const user = await tx.user.create({
       data: {
         name: "Application owner",
         username: `ap${marker.replaceAll("-", "").slice(0, 12)}`,
         email: `${marker}@example.test`,
       },
-    }),
-  );
-  const cookie = await createSignedSessionCookie(user.id);
-  await page
-    .context()
-    .addCookies([
-      cookie,
-      { name: "NEXT_LOCALE", value: "en-us", url: cookie.url },
-    ]);
-  const name = `<img src=x onerror=alert(1)> App ${marker}`;
-  const grant = await createOAuthAuthorizationFixture({
-    name,
-    userId: user.id,
-    scopes: ["workspace.calendar:read", "profile"],
+    });
+    await tx.oAuthClient.create({
+      data: {
+        clientId,
+        clientSecret,
+        name,
+        redirectUris: [redirectUri],
+        scopes,
+        uri: clientUri,
+      },
+    });
+    const consent = await tx.oAuthConsent.create({
+      data: { clientId, scopes, userId: user.id },
+      select: { id: true },
+    });
+    return { user, consent };
   });
+  const { cookie } = await worker.createSession(user.id);
   return {
+    db,
     user,
     cookie,
-    grant,
-    async cleanup() {
-      await deleteOAuthClientsByName(name);
-      await withE2ePrisma(async (db) => {
-        await db.auditLog.deleteMany({ where: { userId: user.id } });
-        await db.user.delete({ where: { id: user.id } });
-      });
+    grant: {
+      clientId,
+      clientSecret,
+      clientUri,
+      consentId: consent.id,
+      name,
+      redirectUri,
+      scopes,
     },
   };
 }
 
-test("user.sign-in-identities-separate", async ({ page }) => {
-  const f = await fixture(page);
-  try {
-    await ensureLinkedAccountFixture({
-      userId: f.user.id,
-      provider: "github",
-      providerAccountId: `identity-${crypto.randomUUID()}`,
+const test = workerTest.extend<{
+  owned: Awaited<ReturnType<typeof prepareAuthorization>>;
+  authorizationRun: (work: () => Promise<void>) => Promise<void>;
+}>({
+  owned: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => prepareAuthorization(isolatedWorker)));
+  },
+  authorizationRun: async ({ page, owned, run }, use) => {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use((work) =>
+        workflow.run(() =>
+          run(() =>
+            workflow.body(async () => {
+              await page.context().addCookies([
+                owned.cookie,
+                {
+                  name: "NEXT_LOCALE",
+                  value: "en-us",
+                  url: owned.cookie.url,
+                },
+              ]);
+              await work();
+            }),
+          ),
+        ),
+      );
+    });
+  },
+});
+
+test("user.sign-in-identities-separate", { tag: "@Account/Web" }, async ({
+  page,
+  owned: f,
+  authorizationRun,
+}) => {
+  await authorizationRun(async () => {
+    await f.db.$transaction(async (tx) => {
+      await tx.account.create({
+        data: {
+          userId: f.user.id,
+          type: "oauth",
+          provider: "github",
+          issuer: createOAuthAccountIssuer("github"),
+          providerAccountId: `identity-${crypto.randomUUID()}`,
+        },
+      });
+      await tx.verifiedEmail.create({
+        data: {
+          userId: f.user.id,
+          provider: "github",
+          email: `github-${crypto.randomUUID()}@example.test`,
+        },
+      });
     });
     await gotoAndWaitForReady(page, "/account/settings/accounts");
     const identities = page.getByRole("region", {
@@ -86,27 +141,23 @@ test("user.sign-in-identities-separate", async ({ page }) => {
     await expect(
       apps.getByRole("button", { name: "Disconnect", exact: true }),
     ).toHaveCount(0);
+    expect(await f.db.account.count({ where: { userId: f.user.id } })).toBe(1);
     expect(
-      await withE2ePrisma((db) =>
-        db.account.count({ where: { userId: f.user.id } }),
-      ),
+      await f.db.oAuthConsent.count({ where: { userId: f.user.id } }),
     ).toBe(1);
-    expect(
-      await withE2ePrisma((db) =>
-        db.oAuthConsent.count({ where: { userId: f.user.id } }),
-      ),
-    ).toBe(1);
-  } finally {
-    await f.cleanup();
-  }
+  });
 });
 
-test("user.oauth-authorization-management", async ({ page }) => {
-  const f = await fixture(page);
-  const grantId = crypto.randomUUID();
-  const now = new Date();
-  try {
-    await withE2ePrisma(async (db) => {
+test("user.oauth-authorization-management", { tag: "@Account/Web" }, async ({
+  page,
+  owned: f,
+  authorizationRun,
+}) => {
+  await authorizationRun(async () => {
+    const grantId = crypto.randomUUID();
+    const now = new Date();
+    const otherClientName = "Other owner's application";
+    await f.db.$transaction(async (db) => {
       await db.oAuthConsent.update({
         where: { id: f.grant.consentId },
         data: { grantId },
@@ -114,6 +165,27 @@ test("user.oauth-authorization-management", async ({ page }) => {
       await db.oAuthClient.update({
         where: { clientId: f.grant.clientId },
         data: { metadata: { privateMarker: "private-request-content" } },
+      });
+      const otherUser = await db.user.create({
+        data: {
+          name: "Other application owner",
+          email: `other-authorization-${crypto.randomUUID()}@example.test`,
+        },
+      });
+      const otherClient = await db.oAuthClient.create({
+        data: {
+          clientId: crypto.randomUUID(),
+          name: otherClientName,
+          redirectUris: ["https://other.example/callback"],
+          scopes: ["profile"],
+        },
+      });
+      await db.oAuthConsent.create({
+        data: {
+          clientId: otherClient.clientId,
+          userId: otherUser.id,
+          scopes: ["profile"],
+        },
       });
       for (const [
         offset,
@@ -184,6 +256,7 @@ test("user.oauth-authorization-management", async ({ page }) => {
         item.getByText("Last 30 days", { exact: true }),
       ).toBeVisible();
       const text = await page.locator("#main-content").innerText();
+      expect(text).not.toContain(otherClientName);
       for (const privateValue of [
         f.grant.clientId,
         f.grant.clientSecret,
@@ -195,7 +268,5 @@ test("user.oauth-authorization-management", async ({ page }) => {
       ])
         expect(text).not.toContain(privateValue);
     }
-  } finally {
-    await f.cleanup();
-  }
+  });
 });

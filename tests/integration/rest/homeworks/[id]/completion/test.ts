@@ -1,114 +1,102 @@
-/**
- * E2E tests for PUT /api/workspace/homeworks/[id]/completion.
- *
- * ## PUT /api/workspace/homeworks/[id]/completion
- * - Body: { completed: boolean }
- * - Response: { completed: boolean, completedAt: string | null }
- * - Auth required (401 if unauthenticated)
- * - Toggles the homework completion status for the current user
- * - Returns 404 for non-existent homework
- *
- * ## Edge cases
- * - Unauthenticated PUT → 401
- * - Toggle off then on (seed homework is pre-completed), verifying completedAt changes
- * - Restores original completion state in finally block
- *
- * ## Test isolation note
- * The toggle test uses DEV_SEED.homeworks.completedTitle ("迭代一需求拆解"), which is
- * pre-seeded as completed.  This avoids a parallelism race with the MCP and
- * calendar.ics tests, which both check that DEV_SEED.homeworks.title
- * ("迭代二系统设计评审") appears in the incomplete-homework list.
- */
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
-import { resolveSeedSectionId } from "../../../../../e2e/utils/seed-lookups";
-import { signInAsDebugUserApi } from "../../../_harness/auth";
-import { assertApiContract } from "../../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { base, test } from "../../_fixture";
 
-/** Resolve the seed section's internal DB id via match-codes. */
-/** Find the seed homework's id by matching on known title. */
-async function findSeedHomeworkId(
-  request: import("@playwright/test").APIRequestContext,
-  sectionId: number,
-) {
-  const listResponse = await request.get(
-    `/api/community/section-homeworks?sectionId=${sectionId}`,
+const path = (id: string) => `/api/workspace/homeworks/${id}/completion`;
+const completedAt = new Date("2026-09-13T08:00:00Z");
+
+test(
+  "anonymous completion returns JSON 401 and preserves known completion",
+  { tag: "@Homework/REST" },
+  async ({ request, homeworkState, run }) =>
+    run(async () => {
+      const { db, owner, homework } = homeworkState;
+      await db.homeworkCompletion.create({
+        data: { userId: owner.id, homeworkId: homework.id, completedAt },
+      });
+      for (const data of [{}, { completed: false }]) {
+        const response = await request.put(path(homework.id), { data });
+        expect(response.status()).toBe(401);
+        expect(response.headers()["content-type"]).toContain(
+          "application/json",
+        );
+        expect((await response.json()).error).toEqual(expect.any(String));
+      }
+      expect(
+        await db.homeworkCompletion.findMany({
+          where: { homeworkId: homework.id },
+        }),
+      ).toEqual([{ userId: owner.id, homeworkId: homework.id, completedAt }]);
+    }),
+);
+
+for (const completed of [true, false]) {
+  test(
+    `completion ${completed} changes only its owner and is reflected in detail`,
+    { tag: "@Homework/REST" },
+    async ({ homeworkState, run }) =>
+      run(async () => {
+        const { db, owner, other, homework } = homeworkState;
+        await db.homeworkCompletion.createMany({
+          data: [
+            { userId: other.id, homeworkId: homework.id, completedAt },
+            ...(!completed
+              ? [{ userId: owner.id, homeworkId: homework.id, completedAt }]
+              : []),
+          ],
+        });
+        const response = await owner.request.put(path(homework.id), {
+          data: { completed },
+        });
+        expect(response.status()).toBe(200);
+        const body = await response.json();
+        expect(body).toMatchObject({
+          completed,
+          completedAt: completed ? expect.any(String) : null,
+        });
+        expect(
+          await db.homeworkCompletion.findUnique({
+            where: {
+              userId_homeworkId: { userId: owner.id, homeworkId: homework.id },
+            },
+          }),
+        ).toEqual(
+          completed
+            ? {
+                userId: owner.id,
+                homeworkId: homework.id,
+                completedAt: new Date(body.completedAt),
+              }
+            : null,
+        );
+        expect(
+          await db.homeworkCompletion.findUniqueOrThrow({
+            where: {
+              userId_homeworkId: { userId: other.id, homeworkId: homework.id },
+            },
+          }),
+        ).toEqual({ userId: other.id, homeworkId: homework.id, completedAt });
+        const detail = await owner.request.get(`${base}/${homework.id}`);
+        expect(detail.status()).toBe(200);
+        expect((await detail.json()).homework.completion).toEqual(
+          completed
+            ? expect.objectContaining({ completedAt: body.completedAt })
+            : null,
+        );
+      }),
   );
-  expect(listResponse.status()).toBe(200);
-  const listBody = (await listResponse.json()) as {
-    data?: Array<{ id?: string; title?: string }>;
-  };
-  // Use the pre-seeded completed homework to avoid racing with tests that
-  // check for the main seed homework ("迭代二系统设计评审") in the incomplete list.
-  const hw = listBody.data?.find(
-    (h) => h.title === DEV_SEED.homeworks.completedTitle,
-  );
-  expect(hw?.id).toBeTruthy();
-  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
-  return hw!.id!;
 }
 
-test("/api/workspace/homeworks/[id]/completion 接口契约", async ({
-  request,
-}) => {
-  await assertApiContract(request, {
-    routePath: "/api/workspace/homeworks/[id]/completion",
-  });
-});
-
-test("/api/workspace/homeworks/[id]/completion PUT 未登录返回 401", async ({
-  request,
-}) => {
-  const response = await request.put(
-    "/api/workspace/homeworks/invalid-e2e/completion",
-    {
-      data: { completed: true },
-    },
-  );
-  expect(response.status()).toBe(401);
-});
-
-test("/api/workspace/homeworks/[id]/completion PUT 可切换完成状态并还原", async ({
-  request,
-}) => {
-  await signInAsDebugUserApi(request, "/");
-  const sectionId = await resolveSeedSectionId(request);
-  const homeworkId = await findSeedHomeworkId(request, sectionId);
-
-  try {
-    // Undo completion (seed homework starts as completed)
-    await expect(async () => {
-      const undoResponse = await request.put(
-        `/api/workspace/homeworks/${homeworkId}/completion`,
-        { data: { completed: false } },
-      );
-      expect(undoResponse.status()).toBe(200);
-      expect(
-        (await undoResponse.json()) as {
-          completed?: boolean;
-          completedAt?: string | null;
-        },
-      ).toMatchObject({ completed: false, completedAt: null });
-    }).toPass({ timeout: 10_000 });
-
-    // Re-mark as completed
-    await expect(async () => {
-      const completeResponse = await request.put(
-        `/api/workspace/homeworks/${homeworkId}/completion`,
+test(
+  "missing homework completion returns 404",
+  { tag: "@Homework/REST" },
+  async ({ createActor, run }) =>
+    run(async () => {
+      const owner = await createActor();
+      const response = await owner.request.put(
+        path(`missing-${crypto.randomUUID()}`),
         { data: { completed: true } },
       );
-      expect(completeResponse.status()).toBe(200);
-      expect(
-        (await completeResponse.json()) as {
-          completed?: boolean;
-          completedAt?: string | null;
-        },
-      ).toMatchObject({ completed: true });
-    }).toPass({ timeout: 10_000 });
-  } finally {
-    // Restore to completed state (matches seed)
-    await request.put(`/api/workspace/homeworks/${homeworkId}/completion`, {
-      data: { completed: true },
-    });
-  }
-});
+      expect(response.status()).toBe(404);
+      expect((await response.json()).error).toEqual(expect.any(String));
+    }),
+);

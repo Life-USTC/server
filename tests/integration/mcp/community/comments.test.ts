@@ -1,1175 +1,1144 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "vitest";
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
 import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
+import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import type { TestPrismaClient } from "../../../shared/prisma";
 import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
-import * as fixtures from "../_harness";
-import { createMcpHarness } from "../_harness";
+import { isolatedMcpTest } from "../_harness/isolated-context";
 
-const context = fixtures.createMcpToolTestContext();
+// Only persisted observations; expected transitions remain in each operation case.
+function readCommentState(db: TestPrismaClient) {
+  return db.$transaction(async (tx) => ({
+    comments: await tx.comment.findMany({
+      orderBy: { id: "asc" },
+      include: {
+        attachments: { orderBy: { id: "asc" } },
+        reactions: { orderBy: { id: "asc" } },
+      },
+    }),
+    uploads: await tx.upload.findMany({ orderBy: { id: "asc" } }),
+    audits: await tx.auditLog.findMany({ orderBy: { id: "asc" } }),
+  }));
+}
+
+const readerTest = isolatedMcpTest.extend(
+  "state",
+  async ({ mcpWorkflow, signal, mcpActor: context, isolatedDatabase }) => {
+    const setupResult = await mcpWorkflow.run(async () => {
+      const catalog = await createCatalogContractFixture(
+        isolatedDatabase.owner,
+      );
+      return isolatedDatabase.owner.$transaction(async (db) => {
+        const rootBody = "Owned comment **Markdown**";
+        const root = await db.comment.create({
+          data: {
+            userId: context.userId,
+            sectionId: catalog.sections[0].id,
+            body: rootBody,
+          },
+        });
+        const reply = await db.comment.create({
+          data: {
+            userId: context.userId,
+            sectionId: catalog.sections[0].id,
+            parentId: root.id,
+            rootId: root.id,
+            body: "Owned reply **Markdown**",
+          },
+        });
+        await db.commentReaction.create({
+          data: { userId: context.userId, commentId: root.id, type: "upvote" },
+        });
+        return { catalog, rootId: root.id, rootBody, replyId: reply.id };
+      });
+    });
+    signal.throwIfAborted();
+    return setupResult;
+  },
+);
 
 describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
-  it("comment.mcp-markdown-projection", async () => {
-    type Result = {
-      found?: boolean;
-      data?: Array<{
-        id?: string;
-        body?: string;
-        renderedBody?: string;
-        author?: { name?: string | null } | null;
-        replies?: Array<{ body?: string; renderedBody?: string }>;
-        reactions?: Array<{ type?: string; count?: number }>;
-        canReact?: boolean;
-        canReply?: boolean;
-        canEdit?: boolean;
-        canDelete?: boolean;
-      }>;
-      meta?: {
-        hiddenCount?: number;
-        target?: {
-          courseJwId?: number | null;
-          courseName?: string | null;
-          type?: string;
-          targetId?: number | null;
-          sectionJwId?: number | null;
-          sectionCode?: string | null;
+  readerTest(
+    "comment.mcp-markdown-projection",
+    { tags: ["@Comment/MCP"] },
+    async ({ mcpWorkflow, state, mcpActor: context, expect }) =>
+      mcpWorkflow.run(async () => {
+        const { catalog, rootBody } = state;
+
+        type Result = {
+          found?: boolean;
+          data?: Array<{
+            id?: string;
+            body?: string;
+            renderedBody?: string;
+            author?: { name?: string | null } | null;
+            replies?: Array<{ body?: string; renderedBody?: string }>;
+            reactions?: Array<{ type?: string; count?: number }>;
+            canReact?: boolean;
+            canReply?: boolean;
+            canEdit?: boolean;
+            canDelete?: boolean;
+          }>;
+          meta?: {
+            hiddenCount?: number;
+            target?: {
+              courseJwId?: number | null;
+              courseName?: string | null;
+              type?: string;
+              targetId?: number | null;
+              sectionJwId?: number | null;
+              sectionCode?: string | null;
+            };
+            viewer?: { userId?: string | null; isAuthenticated?: boolean };
+          };
+          pagination?: { page?: number; pageSize?: number; total?: number };
         };
-        viewer?: { userId?: string | null; isAuthenticated?: boolean };
-      };
-      pagination?: { page?: number; pageSize?: number; total?: number };
-    };
 
-    const results = await Promise.all(
-      (["default", "full"] as const).map(async (mode) => ({
-        mode,
-        result: await context.client.call<Result>("community_comment_list", {
-          targetType: "section",
-          sectionJwId: fixtures.DEV_SEED.section.jwId,
-          mode,
-        }),
-      })),
-    );
-    const result = results.find(({ mode }) => mode === "full")?.result;
-    if (!result)
-      throw new Error("Missing full-mode community_comment_list result");
-
-    expect(result.found).toBe(true);
-    expect(result.meta?.target?.type).toBe("section");
-    expect(typeof result.meta?.target?.targetId).toBe("number");
-    expect(result.meta?.target?.sectionJwId).toBe(
-      fixtures.DEV_SEED.section.jwId,
-    );
-    expect(result.meta?.target?.sectionCode).toBe(
-      fixtures.DEV_SEED.section.code,
-    );
-    expect(result.meta?.target?.courseJwId).toBe(fixtures.DEV_SEED.course.jwId);
-    expect(result.meta?.target?.courseName).toBe(
-      fixtures.DEV_SEED.course.nameCn,
-    );
-    expect(result.meta?.viewer?.userId).toBe(context.devUserId);
-    expect(result.meta?.viewer?.isAuthenticated).toBe(true);
-    expect(typeof result.meta?.hiddenCount).toBe("number");
-    expect(result.pagination).toMatchObject({ page: 1, pageSize: 20 });
-
-    const root = assertCommentThreadFound(
-      result,
-      fixtures.DEV_SEED.comments.sectionRootBody,
-    );
-    expect(root.author?.name).toBe(fixtures.DEV_SEED.debugName);
-    expect(root?.canReact).toBe(true);
-    expect(root?.canReply).toBe(true);
-    expect(root?.canEdit).toBe(true);
-    expect(root?.canDelete).toBe(true);
-    expect(root?.replies?.length).toBeGreaterThan(0);
-    expect(
-      root?.reactions?.some(
-        (reaction) => reaction.type === "upvote" && reaction.count === 1,
-      ),
-    ).toBe(true);
-
-    for (const { mode, result: modeResult } of results) {
-      const modeRoot = modeResult.data?.find((comment) =>
-        comment.body?.includes(fixtures.DEV_SEED.comments.sectionRootBody),
-      );
-      expect(modeRoot).toBeDefined();
-      expect(modeRoot?.body).toBe(root.body);
-      expect(modeRoot?.replies?.[0]?.body).toBe(root.replies?.[0]?.body);
-      if (mode === "full") {
-        expect(modeRoot?.renderedBody).toContain(
-          fixtures.DEV_SEED.comments.sectionRootBody,
+        const results = await Promise.all(
+          (["default", "full"] as const).map(async (mode) => ({
+            mode,
+            result: await context.client.call<Result>(
+              "community_comment_list",
+              {
+                targetType: "section",
+                sectionJwId: catalog.sections[0].jwId,
+                mode,
+              },
+            ),
+          })),
         );
-        expect(modeRoot?.replies?.[0]?.renderedBody).toBeTruthy();
-      }
-      expect(Object.hasOwn(modeRoot ?? {}, "renderedBody")).toBe(
-        mode === "full",
-      );
-      expect(Object.hasOwn(modeRoot?.replies?.[0] ?? {}, "renderedBody")).toBe(
-        mode === "full",
-      );
-    }
-  });
+        const result = results.find(({ mode }) => mode === "full")?.result;
+        if (!result)
+          throw new Error("Missing full-mode community_comment_list result");
 
-  it("community_comment_get 返回聚焦线程及目标元数据", async () => {
-    const seedComment = await fixtures.prisma.comment.findFirst({
-      where: { body: fixtures.DEV_SEED.comments.sectionRootBody },
-      select: { id: true },
-    });
-    expect(seedComment?.id).toBeTruthy();
+        expect(result.found).toBe(true);
+        expect(result.meta?.target?.type).toBe("section");
+        expect(typeof result.meta?.target?.targetId).toBe("number");
+        expect(result.meta?.target?.sectionJwId).toBe(catalog.sections[0].jwId);
+        expect(result.meta?.target?.sectionCode).toBe(catalog.sections[0].code);
+        expect(result.meta?.target?.courseJwId).toBe(catalog.courses[0].jwId);
+        expect(result.meta?.target?.courseName).toBe(catalog.courses[0].nameCn);
+        expect(result.meta?.viewer?.userId).toBe(context.userId);
+        expect(result.meta?.viewer?.isAuthenticated).toBe(true);
+        expect(typeof result.meta?.hiddenCount).toBe("number");
+        expect(result.pagination).toMatchObject({ page: 1, pageSize: 20 });
 
-    type Result = {
-      found?: boolean;
-      focusId?: string;
-      thread?: Array<{
-        id?: string;
-        body?: string;
-        renderedBody?: string;
-        replies?: Array<{ body?: string; renderedBody?: string }>;
-      }>;
-      target?: {
-        courseJwId?: number | null;
-        courseName?: string | null;
-        sectionJwId?: number | null;
-        sectionCode?: string | null;
-      };
-    };
-    const results = await Promise.all(
-      (["default", "full"] as const).map(async (mode) => ({
-        mode,
-        result: await context.client.call<Result>("community_comment_get", {
-          commentId: seedComment?.id,
-          mode,
-        }),
-      })),
-    );
-    const result = results.find(({ mode }) => mode === "full")?.result;
-    if (!result) throw new Error("Missing full-mode comment thread result");
+        const root = assertCommentThreadFound(result, rootBody);
+        expect(root.author?.name).toBe(context.name);
+        expect(root?.canReact).toBe(true);
+        expect(root?.canReply).toBe(true);
+        expect(root?.canEdit).toBe(true);
+        expect(root?.canDelete).toBe(true);
+        expect(root?.replies?.length).toBeGreaterThan(0);
+        expect(
+          root?.reactions?.some(
+            (reaction) => reaction.type === "upvote" && reaction.count === 1,
+          ),
+        ).toBe(true);
 
-    expect(result.found).toBe(true);
-    expect(result.focusId).toBe(seedComment?.id);
-    expect(result.thread?.[0]?.id).toBe(seedComment?.id);
-    expect(result.thread?.[0]?.body).toContain(
-      fixtures.DEV_SEED.comments.sectionRootBody,
-    );
-    expect(result.thread?.[0]?.replies?.length).toBeGreaterThan(0);
-    expect(result.target?.sectionJwId).toBe(fixtures.DEV_SEED.section.jwId);
-    expect(result.target?.sectionCode).toBe(fixtures.DEV_SEED.section.code);
-    expect(result.target?.courseJwId).toBe(fixtures.DEV_SEED.course.jwId);
-    expect(result.target?.courseName).toBe(fixtures.DEV_SEED.course.nameCn);
+        for (const { mode, result: modeResult } of results) {
+          const modeRoot = modeResult.data?.find((comment) =>
+            comment.body?.includes(rootBody),
+          );
+          expect(modeRoot).toBeDefined();
+          expect(modeRoot?.body).toBe(root.body);
+          expect(modeRoot?.replies?.[0]?.body).toBe(root.replies?.[0]?.body);
+          if (mode === "full") {
+            expect(modeRoot?.renderedBody).toContain("Owned comment");
+            expect(modeRoot?.renderedBody).toContain(
+              "<strong>Markdown</strong>",
+            );
+            expect(modeRoot?.replies?.[0]?.renderedBody).toBeTruthy();
+          }
+          expect(Object.hasOwn(modeRoot ?? {}, "renderedBody")).toBe(
+            mode === "full",
+          );
+          expect(
+            Object.hasOwn(modeRoot?.replies?.[0] ?? {}, "renderedBody"),
+          ).toBe(mode === "full");
+        }
+      }),
+  );
 
-    for (const { mode, result: modeResult } of results) {
-      expect(Object.hasOwn(modeResult.thread?.[0] ?? {}, "renderedBody")).toBe(
-        mode === "full",
-      );
-      expect(
-        Object.hasOwn(
-          modeResult.thread?.[0]?.replies?.[0] ?? {},
-          "renderedBody",
-        ),
-      ).toBe(mode === "full");
-    }
-  });
+  readerTest(
+    "community_comment_get 返回聚焦线程及目标元数据",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpActor: context,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const { catalog, rootId, rootBody, replyId } = state;
 
-  it("community_comment_list 报告缺失目标而非返回空成功", async () => {
-    const result = await context.client.call<{
-      success?: boolean;
-      found?: boolean;
-      error?: string;
-    }>("community_comment_list", {
-      targetType: "section",
-      sectionJwId: 2_147_483_647,
-    });
+        const upload = await db.upload.create({
+          data: {
+            userId: context.userId,
+            key: `mcp-comment-read/${crypto.randomUUID()}`,
+            filename: "Known focused comment attachment.txt",
+            contentType: "text/plain",
+            size: 128,
+            commentAttachments: { create: { commentId: rootId } },
+          },
+        });
+        const before = await readCommentState(db);
 
-    expect(result.success).toBe(false);
-    expect(result.found).toBe(false);
-    expect(result.error).toBe("target_not_found");
-  });
+        type Result = {
+          found?: boolean;
+          focusId?: string;
+          thread?: Array<{
+            id?: string;
+            body?: string;
+            renderedBody?: string;
+            replies?: Array<{
+              id?: string;
+              body?: string;
+              renderedBody?: string;
+            }>;
+            attachments?: Array<{ filename?: string }>;
+          }>;
+          target?: {
+            courseJwId?: number | null;
+            courseName?: string | null;
+            sectionJwId?: number | null;
+            sectionCode?: string | null;
+          };
+        };
+        const results = await Promise.all(
+          (["default", "full"] as const).map(async (mode) => ({
+            mode,
+            result: await context.client.call<Result>("community_comment_get", {
+              commentId: replyId,
+              mode,
+            }),
+          })),
+        );
+        const result = results.find(({ mode }) => mode === "full")?.result;
+        if (!result) throw new Error("Missing full-mode comment thread result");
+
+        expect(result.found).toBe(true);
+        expect(result.focusId).toBe(replyId);
+        expect(result.thread?.[0]?.id).toBe(rootId);
+        expect(result.thread?.[0]?.body).toContain(rootBody);
+        expect(result.thread?.[0]?.replies).toEqual([
+          expect.objectContaining({
+            id: replyId,
+            body: "Owned reply **Markdown**",
+          }),
+        ]);
+        expect(result.thread?.[0]?.attachments).toEqual([
+          expect.objectContaining({ filename: upload.filename }),
+        ]);
+        expect(result.target?.sectionJwId).toBe(catalog.sections[0].jwId);
+        expect(result.target?.sectionCode).toBe(catalog.sections[0].code);
+        expect(result.target?.courseJwId).toBe(catalog.courses[0].jwId);
+        expect(result.target?.courseName).toBe(catalog.courses[0].nameCn);
+
+        for (const { mode, result: modeResult } of results) {
+          expect(
+            Object.hasOwn(modeResult.thread?.[0] ?? {}, "renderedBody"),
+          ).toBe(mode === "full");
+          expect(
+            Object.hasOwn(
+              modeResult.thread?.[0]?.replies?.[0] ?? {},
+              "renderedBody",
+            ),
+          ).toBe(mode === "full");
+        }
+        expect(await readCommentState(db)).toEqual(before);
+      }),
+  );
+
+  readerTest(
+    "community_comment_list 报告缺失目标而非返回空成功",
+    { tags: ["@Comment/MCP"] },
+    async ({ mcpWorkflow, mcpActor: context, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await context.client.call<{
+          success?: boolean;
+          found?: boolean;
+          error?: string;
+        }>("community_comment_list", {
+          targetType: "section",
+          sectionJwId: 2_147_483_647,
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.found).toBe(false);
+        expect(result.error).toBe("target_not_found");
+      }),
+  );
 });
 
 describe("评论读取工具 — 隔离目录夹具", () => {
-  const isolated = fixtures.createIsolatedMcpToolTestContext({
-    emailPrefix: "mcp-comment-reads-catalog",
-    name: "[integration-test] Comment Reads Catalog",
-  });
+  const ownershipTest = readerTest;
 
-  it("community_comment_list 将未关联的班级-教师对报告为缺失目标", async () => {
-    const marker = `[integration-test] mcp-section-teacher-missing-${Date.now()}`;
-    const teacher = await fixtures.prisma.teacher.create({
-      data: {
-        code: marker,
-        jwId: 2_120_000_000 + (Date.now() % 10_000_000),
-        nameCn: marker,
-      },
-      select: { id: true },
-    });
+  ownershipTest(
+    "community_comment_list 将未关联的班级-教师对报告为缺失目标",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpOtherActor: isolated,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const { catalog } = state;
 
-    try {
-      const result = await isolated.client.call<{
-        success?: boolean;
-        found?: boolean;
-        error?: string;
-      }>("community_comment_list", {
-        targetType: "section-teacher",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        teacherId: teacher.id,
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.found).toBe(false);
-      expect(result.error).toBe("target_not_found");
-    } finally {
-      await fixtures.prisma.teacher.deleteMany({ where: { id: teacher.id } });
-    }
-  });
-
-  it("comment.read-target-nonmutation", async () => {
-    const marker = `[integration-test] mcp-section-teacher-read-${Date.now()}`;
-    const sectionJwId = 2_100_000_000 + (Date.now() % 10_000_000);
-    let sectionId: number | null = null;
-    let teacherId: number | null = null;
-
-    try {
-      const course = await fixtures.prisma.course.findUnique({
-        where: { jwId: fixtures.DEV_SEED.course.jwId },
-        select: { id: true },
-      });
-      if (!course) {
-        throw new Error(
-          `Seed course ${fixtures.DEV_SEED.course.jwId} not found`,
-        );
-      }
-
-      const semester = await fixtures.prisma.semester.findUnique({
-        where: { jwId: fixtures.DEV_SEED.semesterJwId },
-        select: { id: true },
-      });
-      if (!semester) {
-        throw new Error(
-          `Seed semester ${fixtures.DEV_SEED.semesterJwId} not found`,
-        );
-      }
-
-      const teacher = await fixtures.prisma.teacher.create({
-        data: {
-          code: marker,
-          jwId: sectionJwId,
-          nameCn: marker,
-        },
-        select: { id: true },
-      });
-      teacherId = teacher.id;
-
-      const section = await fixtures.prisma.section.create({
-        data: {
-          jwId: sectionJwId,
-          code: `${marker}.01`,
-          courseId: course.id,
-          semesterId: semester.id,
-          teachers: { connect: { id: teacherId } },
-        },
-        select: { id: true },
-      });
-      sectionId = section.id;
-
-      const before = await fixtures.prisma.sectionTeacher.findUnique({
-        where: {
-          sectionId_teacherId: {
-            sectionId,
-            teacherId,
+        const marker = `[integration-test] mcp-section-teacher-missing-${Date.now()}`;
+        const teacher = await db.teacher.create({
+          data: {
+            code: marker,
+            jwId: 2_120_000_000 + (Date.now() % 10_000_000),
+            nameCn: marker,
           },
-        },
-        select: { id: true },
-      });
-      expect(before).toBeNull();
-
-      const result = await isolated.client.call<{
-        data?: unknown[];
-        found?: boolean;
-        meta?: {
-          target?: {
-            sectionId?: number | null;
-            sectionTeacherId?: number | null;
-            teacherId?: number | null;
-          };
-        };
-      }>("community_comment_list", {
-        targetType: "section-teacher",
-        sectionJwId,
-        teacherId,
-      });
-
-      expect(result.found).toBe(true);
-      expect(result.data).toEqual([]);
-      expect(result.meta?.target?.sectionId).toBe(sectionId);
-      expect(result.meta?.target?.teacherId).toBe(teacherId);
-      expect(result.meta?.target?.sectionTeacherId).toBeNull();
-      const response = await getCommentsRoute(
-        new Request(
-          `http://localhost:3000/api/community/comments?targetType=section-teacher&sectionJwId=${sectionJwId}&teacherId=${teacherId}`,
-        ),
-      );
-      expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({
-        data: [],
-        pagination: { total: 0 },
-      });
-      const resolved = await resolveCommentTargetReference({
-        targetType: "section-teacher",
-        sectionJwId,
-        teacherId,
-        verifyExistence: true,
-        includeTargetMetadata: true,
-      });
-      if (!resolved.ok) throw new Error("Expected existing relationship");
-      const web = await loadCommentThread({
-        target: resolved.target,
-        viewerUserId: isolated.userId,
-        pagination: { pageSize: 20, skip: 0 },
-      });
-      expect(web.comments).toEqual([]);
-      expect(web.total).toBe(0);
-
-      const after = await fixtures.prisma.sectionTeacher.findUnique({
-        where: {
-          sectionId_teacherId: {
-            sectionId,
-            teacherId,
-          },
-        },
-        select: { id: true },
-      });
-      expect(after).toBeNull();
-    } finally {
-      if (sectionId) {
-        await fixtures.prisma.sectionTeacher.deleteMany({
-          where: { sectionId },
+          select: { id: true },
         });
-        await fixtures.prisma.section.deleteMany({ where: { id: sectionId } });
-      }
-      if (teacherId) {
-        await fixtures.prisma.teacher.deleteMany({ where: { id: teacherId } });
-      }
-    }
-  });
 
-  it("community_comment_list 保留 active/retired 班级-教师目标合同", async () => {
-    const marker = `[integration-test] mcp-section-teacher-lifecycle-${Date.now()}`;
-    const sectionJwId = 2_110_000_000 + (Date.now() % 10_000_000);
-    let sectionId: number | null = null;
-    let teacherId: number | null = null;
-    let sectionTeacherId: number | null = null;
+        const result = await isolated.client.call<{
+          success?: boolean;
+          found?: boolean;
+          error?: string;
+        }>("community_comment_list", {
+          targetType: "section-teacher",
+          sectionJwId: catalog.sections[0].jwId,
+          teacherId: teacher.id,
+        });
 
-    try {
-      const course = await fixtures.prisma.course.findUnique({
-        where: { jwId: fixtures.DEV_SEED.course.jwId },
-        select: { id: true },
-      });
-      if (!course) {
-        throw new Error(
-          `Seed course ${fixtures.DEV_SEED.course.jwId} not found`,
-        );
-      }
+        expect(result.success).toBe(false);
+        expect(result.found).toBe(false);
+        expect(result.error).toBe("target_not_found");
+      }),
+  );
 
-      const semester = await fixtures.prisma.semester.findUnique({
-        where: { jwId: fixtures.DEV_SEED.semesterJwId },
-        select: { id: true },
-      });
-      if (!semester) {
-        throw new Error(
-          `Seed semester ${fixtures.DEV_SEED.semesterJwId} not found`,
-        );
-      }
+  for (const method of ["MCP", "REST", "Service"] as const) {
+    ownershipTest(
+      `comment.read-target-nonmutation (${method})`,
+      { tags: [`@Comment/${method}`] },
+      async ({
+        mcpWorkflow,
+        state,
+        mcpOtherActor: isolated,
+        expect,
+        isolatedDatabase: { owner: db },
+        mcpRuntime,
+      }) =>
+        mcpWorkflow.run(async () => {
+          const { catalog } = state;
 
-      const teacher = await fixtures.prisma.teacher.create({
-        data: {
-          code: marker,
-          jwId: sectionJwId,
-          nameCn: marker,
-        },
-        select: { id: true },
-      });
-      teacherId = teacher.id;
+          const marker = `[integration-test] mcp-section-teacher-read-${Date.now()}`;
+          const sectionJwId = 2_100_000_000 + (Date.now() % 10_000_000);
+          let sectionId: number | null = null;
+          let teacherId: number | null = null;
 
-      const section = await fixtures.prisma.section.create({
-        data: {
-          jwId: sectionJwId,
-          code: `${marker}.01`,
-          courseId: course.id,
-          semesterId: semester.id,
-          teachers: { connect: { id: teacherId } },
-        },
-        select: { id: true },
-      });
-      sectionId = section.id;
+          const course = await db.course.findUnique({
+            where: { jwId: catalog.courses[0].jwId },
+            select: { id: true },
+          });
+          if (!course) {
+            throw new Error(`Seed course ${catalog.courses[0].jwId} not found`);
+          }
 
-      const active = await fixtures.prisma.sectionTeacher.create({
-        data: { sectionId, teacherId },
-        select: { id: true },
-      });
-      sectionTeacherId = active.id;
+          const semester = await db.semester.findUnique({
+            where: { jwId: catalog.semester.jwId },
+            select: { id: true },
+          });
+          if (!semester) {
+            throw new Error(`Seed semester ${catalog.semester.jwId} not found`);
+          }
 
-      type Result = {
-        data?: unknown[];
-        error?: string;
-        found?: boolean;
-        meta?: {
-          target?: {
-            sectionId?: number | null;
-            sectionTeacherId?: number | null;
-            targetId?: number | null;
-            teacherId?: number | null;
+          const teacher = await db.teacher.create({
+            data: {
+              code: marker,
+              jwId: sectionJwId,
+              nameCn: marker,
+            },
+            select: { id: true },
+          });
+          teacherId = teacher.id;
+
+          const section = await db.section.create({
+            data: {
+              jwId: sectionJwId,
+              code: `${marker}.01`,
+              courseId: course.id,
+              semesterId: semester.id,
+              teachers: { connect: { id: teacherId } },
+            },
+            select: { id: true },
+          });
+          sectionId = section.id;
+
+          const before = await db.sectionTeacher.findUnique({
+            where: {
+              sectionId_teacherId: {
+                sectionId,
+                teacherId,
+              },
+            },
+            select: { id: true },
+          });
+          expect(before).toBeNull();
+
+          if (method === "MCP") {
+            const result = await isolated.client.call<{
+              data?: unknown[];
+              found?: boolean;
+              meta?: {
+                target?: {
+                  sectionId?: number | null;
+                  sectionTeacherId?: number | null;
+                  teacherId?: number | null;
+                };
+              };
+            }>("community_comment_list", {
+              targetType: "section-teacher",
+              sectionJwId,
+              teacherId,
+            });
+
+            expect(result.found).toBe(true);
+            expect(result.data).toEqual([]);
+            expect(result.meta?.target?.sectionId).toBe(sectionId);
+            expect(result.meta?.target?.teacherId).toBe(teacherId);
+            expect(result.meta?.target?.sectionTeacherId).toBeNull();
+          }
+          if (method === "REST") {
+            const response = await mcpRuntime.run(() =>
+              getCommentsRoute(
+                new Request(
+                  `http://localhost:3000/api/community/comments?targetType=section-teacher&sectionJwId=${sectionJwId}&teacherId=${teacherId}`,
+                ),
+              ),
+            );
+            expect(response.status).toBe(200);
+            expect(await response.json()).toMatchObject({
+              data: [],
+              pagination: { total: 0 },
+            });
+          }
+          if (method === "Service") {
+            const resolved = await mcpRuntime.run(() =>
+              resolveCommentTargetReference({
+                targetType: "section-teacher",
+                sectionJwId,
+                teacherId,
+                verifyExistence: true,
+                includeTargetMetadata: true,
+              }),
+            );
+            if (!resolved.ok) throw new Error("Expected existing relationship");
+            const web = await mcpRuntime.run(() =>
+              loadCommentThread({
+                target: resolved.target,
+                viewerUserId: isolated.userId,
+                pagination: { pageSize: 20, skip: 0 },
+              }),
+            );
+            expect(web.comments).toEqual([]);
+            expect(web.total).toBe(0);
+          }
+
+          const after = await db.sectionTeacher.findUnique({
+            where: {
+              sectionId_teacherId: {
+                sectionId,
+                teacherId,
+              },
+            },
+            select: { id: true },
+          });
+          expect(after).toBeNull();
+        }),
+    );
+  }
+
+  ownershipTest(
+    "community_comment_list 保留 active/retired 班级-教师目标合同",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpOtherActor: isolated,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const { catalog } = state;
+
+        const marker = `[integration-test] mcp-section-teacher-lifecycle-${Date.now()}`;
+        const sectionJwId = 2_110_000_000 + (Date.now() % 10_000_000);
+        let sectionId: number | null = null;
+        let teacherId: number | null = null;
+        let sectionTeacherId: number | null = null;
+
+        const course = await db.course.findUnique({
+          where: { jwId: catalog.courses[0].jwId },
+          select: { id: true },
+        });
+        if (!course) {
+          throw new Error(`Seed course ${catalog.courses[0].jwId} not found`);
+        }
+
+        const semester = await db.semester.findUnique({
+          where: { jwId: catalog.semester.jwId },
+          select: { id: true },
+        });
+        if (!semester) {
+          throw new Error(`Seed semester ${catalog.semester.jwId} not found`);
+        }
+
+        const teacher = await db.teacher.create({
+          data: {
+            code: marker,
+            jwId: sectionJwId,
+            nameCn: marker,
+          },
+          select: { id: true },
+        });
+        teacherId = teacher.id;
+
+        const section = await db.section.create({
+          data: {
+            jwId: sectionJwId,
+            code: `${marker}.01`,
+            courseId: course.id,
+            semesterId: semester.id,
+            teachers: { connect: { id: teacherId } },
+          },
+          select: { id: true },
+        });
+        sectionId = section.id;
+
+        const active = await db.sectionTeacher.create({
+          data: { sectionId, teacherId },
+          select: { id: true },
+        });
+        sectionTeacherId = active.id;
+
+        type Result = {
+          data?: unknown[];
+          error?: string;
+          found?: boolean;
+          meta?: {
+            target?: {
+              sectionId?: number | null;
+              sectionTeacherId?: number | null;
+              targetId?: number | null;
+              teacherId?: number | null;
+            };
           };
+          success?: boolean;
         };
-        success?: boolean;
-      };
 
-      const activeResult = await isolated.client.call<Result>(
-        "community_comment_list",
-        {
-          targetType: "section-teacher",
-          sectionJwId,
-          teacherId,
-        },
-      );
-      expect(activeResult.found).toBe(true);
-      expect(activeResult.data).toEqual([]);
-      expect(activeResult.meta?.target).toMatchObject({
-        sectionId,
-        sectionTeacherId,
-        targetId: null,
-        teacherId,
-      });
-
-      await fixtures.prisma.sectionTeacher.update({
-        where: { id: active.id },
-        data: { retiredAt: new Date("2026-01-01T00:00:00.000Z") },
-      });
-
-      const retiredResult = await isolated.client.call<Result>(
-        "community_comment_list",
-        {
-          targetType: "section-teacher",
-          sectionJwId,
-          teacherId,
-        },
-      );
-      expect(retiredResult.found).toBe(true);
-      expect(retiredResult.data).toEqual([]);
-      expect(retiredResult.meta?.target).toMatchObject({
-        sectionId,
-        sectionTeacherId: null,
-        targetId: null,
-        teacherId,
-      });
-
-      const directRetiredResult = await isolated.client.call<Result>(
-        "community_comment_list",
-        {
-          targetType: "section-teacher",
+        const activeResult = await isolated.client.call<Result>(
+          "community_comment_list",
+          {
+            targetType: "section-teacher",
+            sectionJwId,
+            teacherId,
+          },
+        );
+        expect(activeResult.found).toBe(true);
+        expect(activeResult.data).toEqual([]);
+        expect(activeResult.meta?.target).toMatchObject({
+          sectionId,
           sectionTeacherId,
-        },
-      );
-      expect(directRetiredResult.success).toBe(false);
-      expect(directRetiredResult.found).toBe(false);
-      expect(directRetiredResult.error).toBe("target_not_found");
-    } finally {
-      if (sectionTeacherId) {
-        await fixtures.prisma.sectionTeacher.deleteMany({
-          where: { id: sectionTeacherId },
+          targetId: null,
+          teacherId,
         });
-      }
-      if (sectionId) {
-        await fixtures.prisma.section.deleteMany({ where: { id: sectionId } });
-      }
-      if (teacherId) {
-        await fixtures.prisma.teacher.deleteMany({ where: { id: teacherId } });
-      }
-    }
-  });
+
+        await db.sectionTeacher.update({
+          where: { id: active.id },
+          data: { retiredAt: new Date("2026-01-01T00:00:00.000Z") },
+        });
+
+        const retiredResult = await isolated.client.call<Result>(
+          "community_comment_list",
+          {
+            targetType: "section-teacher",
+            sectionJwId,
+            teacherId,
+          },
+        );
+        expect(retiredResult.found).toBe(true);
+        expect(retiredResult.data).toEqual([]);
+        expect(retiredResult.meta?.target).toMatchObject({
+          sectionId,
+          sectionTeacherId: null,
+          targetId: null,
+          teacherId,
+        });
+
+        const directRetiredResult = await isolated.client.call<Result>(
+          "community_comment_list",
+          {
+            targetType: "section-teacher",
+            sectionTeacherId,
+          },
+        );
+        expect(directRetiredResult.success).toBe(false);
+        expect(directRetiredResult.found).toBe(false);
+        expect(directRetiredResult.error).toBe("target_not_found");
+      }),
+  );
 });
 
 describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
-  const isolated = fixtures.createIsolatedMcpToolTestContext({
-    emailPrefix: "mcp-comment-writes",
-    name: "[integration-test] Comment Writes",
-  });
+  const mutationTest = readerTest;
 
-  it("comment.mcp-write-audit-source", async () => {
-    const marker = `[integration-test] mcp-comment-write-${Date.now()}`;
-    let commentId: string | undefined;
+  for (const operation of [
+    "create",
+    "update",
+    "add reaction",
+    "remove reaction",
+    "delete",
+  ] as const) {
+    mutationTest(
+      `comment.mcp-write-audit-source ${operation}`,
+      { tags: ["@Comment/MCP"] },
+      async ({
+        mcpWorkflow,
+        state,
+        mcpActor: other,
+        mcpOtherActor: actor,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          const marker = `[integration-test] independent MCP ${operation}`;
+          const prepared =
+            operation === "create"
+              ? null
+              : await db.comment.create({
+                  data: {
+                    userId: actor.userId,
+                    sectionId: state.catalog.sections[0].id,
+                    body: `${marker} prepared`,
+                    visibility:
+                      operation === "update" ? "public" : "logged_in_only",
+                    isAnonymous: operation !== "update",
+                    createdAt: new Date("2026-01-01T00:00:00Z"),
+                    updatedAt: new Date("2026-01-01T00:00:00Z"),
+                    ...(operation === "add reaction" ||
+                    operation === "remove reaction"
+                      ? {
+                          reactions: {
+                            create: [
+                              { userId: other.userId, type: "heart" as const },
+                              ...(operation === "remove reaction"
+                                ? [
+                                    {
+                                      userId: actor.userId,
+                                      type: "heart" as const,
+                                    },
+                                  ]
+                                : []),
+                            ],
+                          },
+                        }
+                      : {}),
+                  },
+                });
+          const before = await readCommentState(db);
+          let commentId: string;
+          let action:
+            | "comment_create"
+            | "comment_edit"
+            | "comment_react"
+            | "comment_delete";
+          let metadata: Record<string, unknown> = { source: "mcp" };
+          let editedAt: Date | undefined;
+          if (operation === "create") {
+            const result = await actor.client.call<{
+              success: boolean;
+              id: string;
+            }>("community_comment_create", {
+              targetType: "section",
+              sectionJwId: state.catalog.sections[0].jwId,
+              body: `${marker} created`,
+              visibility: "public",
+              isAnonymous: false,
+            });
+            expect(result.success).toBe(true);
+            expect(result.id).toEqual(expect.any(String));
+            commentId = result.id;
+            action = "comment_create";
+          } else {
+            if (!prepared)
+              throw new Error("Expected independently seeded mutation target");
+            commentId = prepared.id;
+            if (operation === "update") {
+              const result = await actor.client.call<{
+                success: boolean;
+                comment: {
+                  id: string;
+                  body: string;
+                  isAnonymous: boolean;
+                  visibility: string;
+                  canEdit: boolean;
+                  updatedAt: string;
+                };
+              }>("community_comment_update", {
+                commentId,
+                body: `${marker} updated`,
+                visibility: "logged_in_only",
+                isAnonymous: true,
+                mode: "full",
+              });
+              expect(result.success).toBe(true);
+              expect(result.comment).toMatchObject({
+                id: commentId,
+                body: `${marker} updated`,
+                isAnonymous: true,
+                visibility: "logged_in_only",
+                canEdit: true,
+              });
+              editedAt = new Date(result.comment.updatedAt);
+              action = "comment_edit";
+            } else if (operation === "delete") {
+              expect(
+                await actor.client.call("community_comment_delete", {
+                  commentId,
+                }),
+              ).toEqual({ success: true });
+              action = "comment_delete";
+            } else {
+              const removing = operation === "remove reaction";
+              expect(
+                await actor.client.call(
+                  removing
+                    ? "community_comment_reaction_remove"
+                    : "community_comment_reaction_add",
+                  { commentId, type: "heart" },
+                ),
+              ).toEqual({ success: true, changed: true });
+              action = "comment_react";
+              metadata = {
+                operation: removing ? "remove" : "add",
+                source: "mcp",
+                type: "heart",
+              };
+            }
+          }
+          const after = await readCommentState(db);
+          const saved = after.comments.find((row) => row.id === commentId);
+          const prior = before.comments.find((row) => row.id === commentId);
+          expect(after.comments.filter((row) => row.id !== commentId)).toEqual(
+            before.comments.filter((row) => row.id !== commentId),
+          );
+          expect(after.uploads).toEqual(before.uploads);
+          if (operation === "create") {
+            expect(saved).toMatchObject({
+              id: commentId,
+              rootId: commentId,
+              parentId: null,
+              userId: actor.userId,
+              sectionId: state.catalog.sections[0].id,
+              body: `${marker} created`,
+              status: "active",
+              visibility: "public",
+              isAnonymous: false,
+              attachments: [],
+              reactions: [],
+            });
+          } else if (operation === "update") {
+            expect(saved).toEqual({
+              ...prior,
+              body: `${marker} updated`,
+              visibility: "logged_in_only",
+              isAnonymous: true,
+              updatedAt: editedAt,
+            });
+            expect(saved?.updatedAt.getTime()).toBeGreaterThan(
+              new Date("2026-01-01T00:00:00Z").getTime(),
+            );
+          } else if (operation === "delete") {
+            expect(saved).toEqual({
+              ...prior,
+              status: "deleted",
+              deletedAt: expect.any(Date),
+              updatedAt: expect.any(Date),
+            });
+          } else {
+            const reactions =
+              operation === "remove reaction"
+                ? prior?.reactions.filter((row) => row.userId !== actor.userId)
+                : expect.arrayContaining([
+                    ...(prior?.reactions ?? []),
+                    expect.objectContaining({
+                      commentId,
+                      userId: actor.userId,
+                      type: "heart",
+                    }),
+                  ]);
+            expect(saved).toEqual({ ...prior, reactions });
+            expect(saved?.reactions).toHaveLength(
+              operation === "remove reaction" ? 1 : 2,
+            );
+          }
+          expect(after.audits).toHaveLength(before.audits.length + 1);
+          const [audit] = after.audits.filter(
+            (row) => !before.audits.some((old) => old.id === row.id),
+          );
+          expect(audit).toMatchObject({
+            action,
+            targetId: commentId,
+            targetType: "comment",
+            userId: actor.userId,
+            outcome: "success",
+            metadata,
+          });
+          expect(JSON.stringify(audit.metadata)).not.toContain(marker);
+        }),
+    );
+  }
 
-    try {
-      const created = await isolated.client.call<{
-        success?: boolean;
-        id?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        body: `${marker} created`,
-        visibility: "public",
-        isAnonymous: false,
-      });
-
-      expect(created.success).toBe(true);
-      expect(typeof created.id).toBe("string");
-      commentId = created.id;
-      if (!commentId) {
-        throw new Error("community_comment_create returned no comment id");
-      }
-
-      const createAudit = await fixtures.findCommentAuditLog({
-        action: "comment_create",
-        commentId,
-        metadata: { source: "mcp" },
-        userId: isolated.userId,
-      });
-      expect(createAudit?.metadata).toMatchObject({
-        source: "mcp",
-      });
-      expect(JSON.stringify(createAudit?.metadata)).not.toContain(marker);
-
-      const updated = await isolated.client.call<{
-        success?: boolean;
-        comment?: {
-          id?: string;
-          body?: string;
-          isAnonymous?: boolean;
-          visibility?: string;
-          canEdit?: boolean;
-        };
-      }>("community_comment_update", {
-        commentId,
-        body: `${marker} updated`,
-        visibility: "logged_in_only",
-        isAnonymous: true,
-        mode: "full",
-      });
-
-      expect(updated.success).toBe(true);
-      expect(updated.comment).toMatchObject({
-        id: commentId,
-        body: `${marker} updated`,
-        isAnonymous: true,
-        visibility: "logged_in_only",
-        canEdit: true,
-      });
-
-      const editAudit = await fixtures.findCommentAuditLog({
-        action: "comment_edit",
-        commentId,
-        metadata: { source: "mcp" },
-        userId: isolated.userId,
-      });
-      expect(editAudit?.metadata).toMatchObject({
-        source: "mcp",
-      });
-      expect(JSON.stringify(editAudit?.metadata)).not.toContain(marker);
-
-      const addedReaction = await isolated.client.call<{
-        success?: boolean;
-        changed?: boolean;
-      }>("community_comment_reaction_add", {
-        commentId,
-        type: "heart",
-      });
-
-      expect(addedReaction).toEqual({ success: true, changed: true });
-
-      const addReactionAudit = await fixtures.findCommentAuditLog({
-        action: "comment_react",
-        commentId,
-        metadata: { operation: "add", source: "mcp", type: "heart" },
-        userId: isolated.userId,
-      });
-      expect(addReactionAudit?.metadata).toMatchObject({
-        operation: "add",
-        source: "mcp",
-        type: "heart",
-      });
-
-      const removedReaction = await isolated.client.call<{
-        success?: boolean;
-        changed?: boolean;
-      }>("community_comment_reaction_remove", {
-        commentId,
-        type: "heart",
-      });
-
-      expect(removedReaction).toEqual({ success: true, changed: true });
-
-      const removeReactionAudit = await fixtures.findCommentAuditLog({
-        action: "comment_react",
-        commentId,
-        metadata: { operation: "remove", source: "mcp", type: "heart" },
-        userId: isolated.userId,
-      });
-      expect(removeReactionAudit?.metadata).toMatchObject({
-        operation: "remove",
-        source: "mcp",
-        type: "heart",
-      });
-
-      const deleted = await isolated.client.call<{ success?: boolean }>(
-        "community_comment_delete",
-        { commentId },
-      );
-
-      expect(deleted).toEqual({ success: true });
-
-      const deleteAudit = await fixtures.findCommentAuditLog({
-        action: "comment_delete",
-        commentId,
-        metadata: { source: "mcp" },
-        userId: isolated.userId,
-      });
-      expect(deleteAudit?.metadata).toMatchObject({ source: "mcp" });
-    } finally {
-      if (commentId) {
-        await fixtures.sleep(50);
-        await fixtures.deleteCommentRecords([commentId]);
-      }
-    }
-  });
-
-  it("评论写入工具拒绝不支持的匿名可见性", async () => {
-    await expect(
-      isolated.client.call("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        body: `[integration-test] rejected anonymous visibility ${Date.now()}`,
-        visibility: "anonymous",
-      }),
-    ).rejects.toThrow();
-  });
-
-  it("评论写入 community_comment_create 返回序列化的无效目标失败", async () => {
-    const result = await isolated.client.call<{
-      success?: boolean;
-      found?: boolean;
-      error?: string;
-      message?: string;
-    }>("community_comment_create", {
-      targetType: "section",
-      sectionJwId: 2_147_483_647,
-      body: "[integration-test] invalid mcp comment target",
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.found).toBe(false);
-    expect(result.error).toBe("target_not_found");
-    expect(result.message).toContain("section");
-  });
-
-  it("评论写入 community_comment_create 支持通过公共 MCP 接口回复", async () => {
-    const marker = `[integration-test] mcp-comment-reply-${Date.now()}`;
-    const commentIds: string[] = [];
-
-    try {
-      const parent = await isolated.client.call<{
-        success?: boolean;
-        id?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        body: `${marker} parent`,
-      });
-      expect(parent.success).toBe(true);
-      expect(typeof parent.id).toBe("string");
-      commentIds.push(parent.id ?? "");
-
-      const reply = await isolated.client.call<{
-        success?: boolean;
-        id?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        parentId: parent.id,
-        body: `${marker} reply`,
-      });
-      expect(reply.success).toBe(true);
-      expect(typeof reply.id).toBe("string");
-      commentIds.push(reply.id ?? "");
-
-      const thread = await isolated.client.call<{
-        found?: boolean;
-        focusId?: string;
-        thread?: unknown;
-      }>("community_comment_get", {
-        commentId: reply.id,
-        mode: "full",
-      });
-      expect(thread.found).toBe(true);
-      expect(thread.focusId).toBe(reply.id);
-      expect(JSON.stringify(thread.thread)).toContain(reply.id ?? "");
-    } finally {
-      await fixtures.deleteCommentRecords(commentIds.filter(Boolean));
-    }
-  });
-
-  it("评论写入工具拒绝非所有者编辑和删除尝试", async () => {
-    const marker = `[integration-test] mcp-comment-non-owner-${Date.now()}`;
-    const otherUser = await fixtures.createEphemeralMcpUser({
-      emailPrefix: "mcp-comment-non-owner",
-      name: "MCP Comment Non Owner",
-    });
-    let commentId: string | undefined;
-
-    try {
-      const created = await isolated.client.call<{
-        success?: boolean;
-        id?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        body: `${marker} owned`,
-      });
-      expect(created.success).toBe(true);
-      commentId = created.id;
-      expect(typeof commentId).toBe("string");
-
-      const update = await otherUser.client.call<{
-        success?: boolean;
-        error?: string;
-      }>("community_comment_update", {
-        commentId,
-        body: `${marker} stolen edit`,
-      });
-      expect(update).toMatchObject({
-        success: false,
-        error: "forbidden",
-      });
-
-      const deletion = await otherUser.client.call<{
-        success?: boolean;
-        error?: string;
-      }>("community_comment_delete", { commentId });
-      expect(deletion).toMatchObject({
-        success: false,
-        error: "forbidden",
-      });
-    } finally {
-      await fixtures.deleteCommentRecords(commentId ? [commentId] : []);
-      await otherUser.close();
-    }
-  });
-
-  it("评论写入工具校验现有上传附件", async () => {
-    const marker = `[integration-test] mcp-comment-attachments-${Date.now()}`;
-    const filename = `mcp-comment-attachment-${Date.now()}.txt`;
-    const upload = await fixtures.prisma.upload.create({
-      data: {
-        userId: isolated.userId,
-        key: `integration-test/${filename}`,
-        filename,
-        contentType: "text/plain",
-        size: 128,
-      },
-      select: { id: true, filename: true },
-    });
-    const otherUser = await fixtures.prisma.user.create({
-      data: {
-        email: fixtures.integrationUserEmail("mcp-comment-attachment-owner"),
-        name: "MCP Comment Attachment Owner",
-      },
-      select: { id: true },
-    });
-    const otherUpload = await fixtures.prisma.upload.create({
-      data: {
-        userId: otherUser.id,
-        key: `integration-test/other-${filename}`,
-        filename: `other-${filename}`,
-        contentType: "text/plain",
-        size: 256,
-      },
-      select: { id: true },
-    });
-    let commentId: string | undefined;
-
-    try {
-      const created = await isolated.client.call<{
-        success?: boolean;
-        id?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        body: `${marker} attached`,
-        attachmentIds: [upload.id],
-      });
-      expect(created.success).toBe(true);
-      commentId = created.id;
-      expect(typeof commentId).toBe("string");
-
-      const thread = await isolated.client.call<{
-        found?: boolean;
-        thread?: unknown;
-      }>("community_comment_get", {
-        commentId,
-        mode: "full",
-      });
-      expect(thread.found).toBe(true);
-      expect(JSON.stringify(thread.thread)).toContain(upload.filename);
-
-      const invalidUpdate = await isolated.client.call<{
-        success?: boolean;
-        error?: string;
-      }>("community_comment_update", {
-        commentId,
-        body: `${marker} invalid attachment`,
-        attachmentIds: [otherUpload.id],
-      });
-      expect(invalidUpdate).toMatchObject({
-        success: false,
-        error: "invalid_attachments",
-      });
-    } finally {
-      await fixtures.deleteCommentRecords(commentId ? [commentId] : []);
-      await fixtures.prisma.upload.deleteMany({
-        where: { id: { in: [upload.id, otherUpload.id] } },
-      });
-      await fixtures.prisma.user.deleteMany({ where: { id: otherUser.id } });
-    }
-  });
-
-  it("上传元数据工具列出、重命名并在存储删除失败时保留重试状态", async () => {
-    const filename = `mcp-upload-${Date.now()}.txt`;
-    const upload = await fixtures.prisma.upload.create({
-      data: {
-        userId: isolated.userId,
-        key: `integration-test/${filename}`,
-        filename,
-        contentType: "text/plain",
-        size: 321,
-      },
-      select: { id: true, key: true, size: true },
-    });
-    const renamedFilename = `renamed-${filename}`;
-
-    try {
-      const listBefore = await isolated.client.call<{
-        data?: Array<{ filename?: string; id?: string; size?: number }>;
-        meta?: {
-          maxFileSizeBytes?: number;
-          quotaBytes?: number;
-          usedBytes?: number;
-        };
-        pagination?: { page?: number; pageSize?: number; total?: number };
-      }>("workspace_upload_list", { mode: "full" });
-      expect(typeof listBefore.meta?.maxFileSizeBytes).toBe("number");
-      expect(typeof listBefore.meta?.quotaBytes).toBe("number");
-      expect(typeof listBefore.meta?.usedBytes).toBe("number");
-      expect(listBefore.pagination).toMatchObject({ page: 1, pageSize: 20 });
-      expect(
-        listBefore.data?.some(
-          (item) =>
-            item.id === upload.id &&
-            item.filename === filename &&
-            item.size === upload.size,
-        ),
-      ).toBe(true);
-
-      const renamed = await isolated.client.call<{
-        success?: boolean;
-        upload?: { filename?: string; id?: string };
-      }>("workspace_upload_rename", {
-        id: upload.id,
-        filename: renamedFilename,
-      });
-      expect(renamed).toMatchObject({
-        success: true,
-        upload: { id: upload.id, filename: renamedFilename },
-      });
-
-      const deleted = await isolated.client.call<{
-        error?: string;
-        hint?: string;
-        message?: string;
-        success?: boolean;
-      }>("workspace_upload_delete", { id: upload.id });
-      expect(deleted).toMatchObject({
-        success: false,
-        error: "storage_delete_failed",
-        message: "Failed to delete upload object",
-      });
-
-      const retainedUpload = await fixtures.prisma.upload.findUnique({
-        where: { id: upload.id },
-        select: { filename: true },
-      });
-      expect(retainedUpload?.filename).toBe(renamedFilename);
-    } finally {
-      await fixtures.prisma.auditLog.deleteMany({
-        where: { targetId: upload.id, targetType: "upload" },
-      });
-      await fixtures.prisma.upload.deleteMany({ where: { id: upload.id } });
-    }
-  });
-
-  it("上传重命名拒绝控制字符文件名且不做清洗", async () => {
-    const filename = `mcp-upload-invalid-rename-${Date.now()}.txt`;
-    const upload = await fixtures.prisma.upload.create({
-      data: {
-        userId: isolated.userId,
-        key: `integration-test/${filename}`,
-        filename,
-        contentType: "text/plain",
-        size: 321,
-      },
-      select: { id: true },
-    });
-
-    try {
-      for (const invalidFilename of ["bad\u0000name.txt", "\u0000"]) {
+  mutationTest(
+    "评论写入工具拒绝不支持的匿名可见性",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpOtherActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const before = await readCommentState(db);
         await expect(
-          isolated.client.call("workspace_upload_rename", {
-            id: upload.id,
-            filename: invalidFilename,
+          actor.client.call("community_comment_create", {
+            targetType: "section",
+            sectionJwId: state.catalog.sections[0].jwId,
+            body: "[integration-test] rejected anonymous visibility",
+            visibility: "anonymous",
           }),
         ).rejects.toThrow();
-      }
+        expect(await readCommentState(db)).toEqual(before);
+      }),
+  );
 
-      const unchanged = await fixtures.prisma.upload.findUnique({
-        where: { id: upload.id },
-        select: { filename: true },
-      });
-      expect(unchanged?.filename).toBe(filename);
-    } finally {
-      await fixtures.prisma.upload.deleteMany({ where: { id: upload.id } });
-    }
-  });
+  mutationTest(
+    "评论写入 community_comment_create 返回序列化的无效目标失败",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      mcpOtherActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const before = await readCommentState(db);
+        const result = await actor.client.call<{
+          success: boolean;
+          found: boolean;
+          error: string;
+          message: string;
+        }>("community_comment_create", {
+          targetType: "section",
+          sectionJwId: 2_147_483_647,
+          body: "[integration-test] invalid mcp comment target",
+        });
+        expect(result).toMatchObject({
+          success: false,
+          found: false,
+          error: "target_not_found",
+        });
+        expect(result.message).toContain("section");
+        expect(await readCommentState(db)).toEqual(before);
+      }),
+  );
 
-  it("上传元数据工具拒绝非所有者及被禁用户写入", async () => {
-    const otherUser = await fixtures.prisma.user.create({
-      data: {
-        email: fixtures.integrationUserEmail("mcp-upload-owner"),
-        name: "MCP Upload Owner",
-      },
-      select: { id: true },
-    });
-    const otherUpload = await fixtures.prisma.upload.create({
-      data: {
-        userId: otherUser.id,
-        key: `integration-test/mcp-upload-other-${Date.now()}.txt`,
-        filename: "other-upload.txt",
-        contentType: "text/plain",
-        size: 123,
-      },
-      select: { id: true },
-    });
-    const suspendedUser = await fixtures.prisma.user.create({
-      data: {
-        email: fixtures.integrationUserEmail("mcp-upload-suspended"),
-        name: "MCP Upload Suspended",
-      },
-      select: { id: true },
-    });
-    const suspendedUpload = await fixtures.prisma.upload.create({
-      data: {
-        userId: suspendedUser.id,
-        key: `integration-test/mcp-upload-suspended-${Date.now()}.txt`,
-        filename: "suspended-upload.txt",
-        contentType: "text/plain",
-        size: 124,
-      },
-      select: { id: true },
-    });
-    const suspension = await fixtures.prisma.userSuspension.create({
-      data: {
-        userId: suspendedUser.id,
-        createdById: isolated.userId,
-        reason: "integration suspended",
-      },
-      select: { id: true },
-    });
-    const suspendedMcp = await createMcpHarness(suspendedUser.id);
-
-    try {
-      const nonOwnerRename = await isolated.client.call<{
-        error?: string;
-        success?: boolean;
-      }>("workspace_upload_rename", {
-        id: otherUpload.id,
-        filename: "stolen.txt",
-      });
-      expect(nonOwnerRename).toMatchObject({
-        success: false,
-        error: "not_found",
-      });
-
-      const nonOwnerDelete = await isolated.client.call<{
-        error?: string;
-        success?: boolean;
-      }>("workspace_upload_delete", { id: otherUpload.id });
-      expect(nonOwnerDelete).toMatchObject({
-        success: false,
-        error: "not_found",
-      });
-
-      const suspendedDelete = await suspendedMcp.call<{
-        error?: string;
-        reason?: string | null;
-        success?: boolean;
-      }>("workspace_upload_delete", { id: suspendedUpload.id });
-      expect(suspendedDelete).toMatchObject({
-        success: false,
-        error: "suspended",
-        reason: "integration suspended",
-      });
-    } finally {
-      await suspendedMcp.close();
-      await fixtures.prisma.userSuspension.deleteMany({
-        where: { id: suspension.id },
-      });
-      await fixtures.prisma.upload.deleteMany({
-        where: { id: { in: [otherUpload.id, suspendedUpload.id] } },
-      });
-      await fixtures.prisma.user.deleteMany({
-        where: { id: { in: [otherUser.id, suspendedUser.id] } },
-      });
-    }
-  });
-
-  it("评论写入 community_comment_create 在目标查找前检查封禁状态", async () => {
-    const suspendedUser = await fixtures.prisma.user.create({
-      data: {
-        email: fixtures.integrationUserEmail("mcp-comment-suspended"),
-        name: "MCP Comment Suspended",
-      },
-      select: { id: true },
-    });
-    const suspension = await fixtures.prisma.userSuspension.create({
-      data: {
-        userId: suspendedUser.id,
-        createdById: isolated.userId,
-        reason: "integration suspended",
-      },
-      select: { id: true },
-    });
-    const suspendedMcp = await createMcpHarness(suspendedUser.id);
-
-    try {
-      const result = await suspendedMcp.call<{
-        success?: boolean;
-        error?: string;
-        reason?: string | null;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: 2_147_483_647,
-        body: "[integration-test] suspended invalid target",
-      });
-
-      expect(result).toMatchObject({
-        success: false,
-        error: "suspended",
-        reason: "integration suspended",
-      });
-    } finally {
-      await suspendedMcp.close();
-      await fixtures.prisma.userSuspension.deleteMany({
-        where: { id: suspension.id },
-      });
-      await fixtures.prisma.user.deleteMany({
-        where: { id: suspendedUser.id },
-      });
-    }
-  });
-
-  it("评论写入工具拒绝已删除评论的回复和反应", async () => {
-    const marker = `[integration-test] mcp-comment-locked-${Date.now()}`;
-    let commentId: string | undefined;
-
-    try {
-      const created = await isolated.client.call<{
-        success?: boolean;
-        id?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        body: `${marker} deleted`,
-      });
-      expect(created.success).toBe(true);
-      commentId = created.id;
-      expect(typeof commentId).toBe("string");
-
-      await expect(
-        isolated.client.call<{ success?: boolean }>(
-          "community_comment_delete",
+  mutationTest(
+    "评论写入 community_comment_create 支持通过公共 MCP 接口回复",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpOtherActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const before = await readCommentState(db);
+        const body = "[integration-test] reply to independently seeded parent";
+        const reply = await actor.client.call<{ success: boolean; id: string }>(
+          "community_comment_create",
           {
-            commentId,
+            targetType: "section",
+            sectionJwId: state.catalog.sections[0].jwId,
+            parentId: state.rootId,
+            body,
           },
-        ),
-      ).resolves.toEqual({ success: true });
+        );
+        expect(reply.success).toBe(true);
+        expect(reply.id).toEqual(expect.any(String));
+        const after = await readCommentState(db);
+        expect(after.comments.find((row) => row.id === reply.id)).toMatchObject(
+          {
+            userId: actor.userId,
+            body,
+            sectionId: state.catalog.sections[0].id,
+            parentId: state.rootId,
+            rootId: state.rootId,
+            status: "active",
+            attachments: [],
+            reactions: [],
+          },
+        );
+        expect(after.comments.filter((row) => row.id !== reply.id)).toEqual(
+          before.comments,
+        );
+        expect(after.uploads).toEqual(before.uploads);
+        expect(after.audits).toHaveLength(before.audits.length + 1);
+        expect(
+          after.audits.find((row) => row.targetId === reply.id),
+        ).toMatchObject({ action: "comment_create", userId: actor.userId });
+      }),
+  );
 
-      const repeatedDelete = await isolated.client.call<{
-        success?: boolean;
-        error?: string;
-      }>("community_comment_delete", { commentId });
-      expect(repeatedDelete).toMatchObject({
-        success: false,
-        error: "locked",
-      });
+  for (const operation of ["update", "delete"] as const) {
+    mutationTest(
+      `评论写入工具拒绝非所有者 ${operation}`,
+      { tags: ["@Comment/MCP"] },
+      async ({
+        mcpWorkflow,
+        state,
+        mcpOtherActor: actor,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          const before = await readCommentState(db);
+          const result = await actor.client.call(
+            `community_comment_${operation}`,
+            {
+              commentId: state.rootId,
+              ...(operation === "update"
+                ? { body: "[integration-test] stolen edit" }
+                : {}),
+            },
+          );
+          expect(result).toMatchObject({ success: false, error: "forbidden" });
+          expect(await readCommentState(db)).toEqual(before);
+        }),
+    );
+  }
 
-      const reply = await isolated.client.call<{
-        success?: boolean;
-        error?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        parentId: commentId,
-        body: `${marker} rejected reply`,
-      });
-      expect(reply).toMatchObject({ success: false, error: "locked" });
+  mutationTest(
+    "评论写入工具创建评论时绑定已有上传附件",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpOtherActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const upload = await db.upload.create({
+          data: {
+            userId: actor.userId,
+            key: `mcp-comment-create/${crypto.randomUUID()}`,
+            filename: "Owned MCP comment attachment.txt",
+            contentType: "text/plain",
+            size: 128,
+          },
+        });
+        const before = await readCommentState(db);
+        const body = "[integration-test] independent attached comment";
+        const result = await actor.client.call<{
+          success: boolean;
+          id: string;
+        }>("community_comment_create", {
+          targetType: "section",
+          sectionJwId: state.catalog.sections[0].jwId,
+          body,
+          attachmentIds: [upload.id],
+        });
+        expect(result.success).toBe(true);
+        expect(result.id).toEqual(expect.any(String));
+        const after = await readCommentState(db);
+        expect(
+          after.comments.find((row) => row.id === result.id),
+        ).toMatchObject({
+          userId: actor.userId,
+          body,
+          sectionId: state.catalog.sections[0].id,
+          status: "active",
+          attachments: [
+            {
+              id: expect.any(String),
+              commentId: result.id,
+              uploadId: upload.id,
+              createdAt: expect.any(Date),
+            },
+          ],
+        });
+        expect(after.comments.filter((row) => row.id !== result.id)).toEqual(
+          before.comments,
+        );
+        expect(after.uploads).toEqual(before.uploads);
+        expect(after.audits).toHaveLength(before.audits.length + 1);
+        expect(
+          after.audits.find((row) => row.targetId === result.id),
+        ).toMatchObject({
+          action: "comment_create",
+          userId: actor.userId,
+          outcome: "success",
+        });
+      }),
+  );
 
-      const reaction = await isolated.client.call<{
-        success?: boolean;
-        error?: string;
-      }>("community_comment_reaction_add", {
-        commentId,
-        type: "heart",
-      });
-      expect(reaction).toMatchObject({ success: false, error: "locked" });
-    } finally {
-      await fixtures.deleteCommentRecords(commentId ? [commentId] : []);
-    }
-  });
+  mutationTest(
+    "评论写入工具拒绝编辑时绑定其他用户的上传附件",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpActor: actor,
+      mcpOtherActor: other,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        const own = await db.upload.create({
+          data: {
+            userId: actor.userId,
+            key: `mcp-comment-own/${crypto.randomUUID()}`,
+            filename: "Owned attached file.txt",
+            contentType: "text/plain",
+            size: 128,
+            commentAttachments: { create: { commentId: state.rootId } },
+          },
+        });
+        const foreign = await db.upload.create({
+          data: {
+            userId: other.userId,
+            key: `mcp-comment-other/${crypto.randomUUID()}`,
+            filename: "Other user's file.txt",
+            contentType: "text/plain",
+            size: 256,
+          },
+        });
+        const before = await readCommentState(db);
+        expect(
+          before.comments.find((row) => row.id === state.rootId)?.attachments,
+        ).toEqual([expect.objectContaining({ uploadId: own.id })]);
+        const result = await actor.client.call("community_comment_update", {
+          commentId: state.rootId,
+          body: "[integration-test] rejected foreign attachment",
+          attachmentIds: [foreign.id],
+        });
+        expect(result).toMatchObject({
+          success: false,
+          error: "invalid_attachments",
+        });
+        expect(await readCommentState(db)).toEqual(before);
+      }),
+  );
 
-  it("评论写入工具拒绝软封禁评论的所有者删除", async () => {
-    const marker = `[integration-test] mcp-comment-softbanned-delete-${Date.now()}`;
-    let commentId: string | undefined;
+  mutationTest(
+    "评论写入 community_comment_create 在目标查找前检查封禁状态",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      mcpOtherActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        await db.userSuspension.create({
+          data: { userId: actor.userId, reason: "integration suspended" },
+        });
+        const before = await readCommentState(db);
+        const result = await actor.client.call("community_comment_create", {
+          targetType: "section",
+          sectionJwId: 2_147_483_647,
+          body: "[integration-test] suspended invalid target",
+        });
+        expect(result).toMatchObject({
+          success: false,
+          error: "suspended",
+          reason: "integration suspended",
+        });
+        expect(await readCommentState(db)).toEqual(before);
+      }),
+  );
 
-    try {
-      const created = await isolated.client.call<{
-        success?: boolean;
-        id?: string;
-      }>("community_comment_create", {
-        targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
-        body: `${marker} locked`,
-      });
-      expect(created.success).toBe(true);
-      commentId = created.id;
-      expect(typeof commentId).toBe("string");
+  for (const operation of ["delete", "reply", "reaction"] as const) {
+    mutationTest(
+      `评论写入工具拒绝已删除评论的 ${operation}`,
+      { tags: ["@Comment/MCP"] },
+      async ({
+        mcpWorkflow,
+        state,
+        mcpActor: actor,
+        expect,
+        isolatedDatabase: { owner: db },
+      }) =>
+        mcpWorkflow.run(async () => {
+          await db.comment.update({
+            where: { id: state.rootId },
+            data: {
+              status: "deleted",
+              deletedAt: new Date("2026-01-02T00:00:00Z"),
+            },
+          });
+          const before = await readCommentState(db);
+          const result =
+            operation === "reply"
+              ? await actor.client.call("community_comment_create", {
+                  targetType: "section",
+                  sectionJwId: state.catalog.sections[0].jwId,
+                  parentId: state.rootId,
+                  body: "[integration-test] rejected reply",
+                })
+              : await actor.client.call(
+                  operation === "delete"
+                    ? "community_comment_delete"
+                    : "community_comment_reaction_add",
+                  {
+                    commentId: state.rootId,
+                    ...(operation === "reaction" ? { type: "heart" } : {}),
+                  },
+                );
+          expect(result).toMatchObject({ success: false, error: "locked" });
+          expect(await readCommentState(db)).toEqual(before);
+        }),
+    );
+  }
 
-      await fixtures.prisma.comment.update({
-        where: { id: commentId },
-        data: { status: "softbanned" },
-      });
-
-      const deletion = await isolated.client.call<{
-        success?: boolean;
-        error?: string;
-        message?: string;
-      }>("community_comment_delete", { commentId });
-
-      expect(deletion).toMatchObject({
-        success: false,
-        error: "locked",
-        message: "Comment locked",
-      });
-    } finally {
-      await fixtures.deleteCommentRecords(commentId ? [commentId] : []);
-    }
-  });
+  mutationTest(
+    "评论写入工具拒绝软封禁评论的所有者删除",
+    { tags: ["@Comment/MCP"] },
+    async ({
+      mcpWorkflow,
+      state,
+      mcpActor: actor,
+      expect,
+      isolatedDatabase: { owner: db },
+    }) =>
+      mcpWorkflow.run(async () => {
+        await db.comment.update({
+          where: { id: state.rootId },
+          data: { status: "softbanned" },
+        });
+        const before = await readCommentState(db);
+        expect(
+          await actor.client.call("community_comment_delete", {
+            commentId: state.rootId,
+          }),
+        ).toMatchObject({
+          success: false,
+          error: "locked",
+          message: "Comment locked",
+        });
+        expect(await readCommentState(db)).toEqual(before);
+      }),
+  );
 });
-
-// ---------------------------------------------------------------------------
-// Descriptions
-// ---------------------------------------------------------------------------

@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { mcpModeInputSchema } from "@/lib/mcp/tools/_shared/helper-schemas";
 import { listMyTodosInputSchema } from "@/lib/mcp/tools/workspace/profile-tool-helpers";
-import { readSpecification } from "../../../../scripts/specifications/yaml";
-import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: vi.fn(),
@@ -22,35 +20,23 @@ function parseToolText(result: ReturnType<typeof jsonToolResult>) {
 }
 
 describe("jsonToolResult canonical structured output", () => {
-  it("mcp.output-mode-input", async (context) => {
-    const contract = await semanticContract(context.task.name, "enum_input");
-    contract.equal("/surface", "service");
-    contract.equal("/operation", "mcpModeInputSchema");
-    contract.equal(
-      "/input",
-      Object.entries(listMyTodosInputSchema).find(
-        ([, schema]) => schema === mcpModeInputSchema,
-      )?.[0],
-    );
-    const spec = await readSpecification<{
-      requirements: {
-        id: string;
-        expectation?: { values: string[]; default: string };
-      }[];
-    }>("docs/features/mcp.yaml");
-    const expectation = spec.requirements.find(
-      (rule) => rule.id === "mcp.output-mode-input",
-    )?.expectation;
-    if (!expectation) throw new Error("Missing MCP mode input expectation");
-    contract.equal("/default", mcpModeInputSchema.parse(undefined));
-    contract.set("/values", mcpModeInputSchema.removeDefault().options);
-    for (const value of expectation.values)
-      expect(mcpModeInputSchema.parse(value)).toBe(value);
-    for (const value of ["summary", "", "DEFAULT", " full ", null, 0, {}]) {
-      expect(mcpModeInputSchema.safeParse(value).success).toBe(false);
-    }
-    contract.recordVitest(context);
+  it("mcp.output-mode-input", () => {
+    expect(listMyTodosInputSchema.mode).toBe(mcpModeInputSchema);
+    expect(mcpModeInputSchema.parse(undefined)).toBe("default");
+    expect(mcpModeInputSchema.removeDefault().options).toEqual([
+      "default",
+      "full",
+    ]);
   });
+  it.each(["default", "full"])("accepts %s output mode", (value) => {
+    expect(mcpModeInputSchema.parse(value)).toBe(value);
+  });
+  it.each(["summary", "", "DEFAULT", " full ", null, 0, {}])(
+    "rejects invalid output mode %j",
+    (value) => {
+      expect(mcpModeInputSchema.safeParse(value).success).toBe(false);
+    },
+  );
   it("preserves canonical pagination and collection fields in default mode", () => {
     const rawResult = jsonToolResult(
       {

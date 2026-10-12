@@ -38,13 +38,13 @@ requirements:
     isolation.
   acceptance:
     given: An owner and another user have todos, plus a nonexistent target.
-    when: GraphQL performs completion and deletion batches.
+    when: GraphQL performs independently prepared completion and deletion batches.
     then:
     - Owned items change successfully; foreign and missing items return NOT_FOUND, and foreign data remains
       unchanged.
     test:
       file: tests/integration/graphql-batch-mutations.test.ts
-      name: graphql.todo-batch-results
+      name: todo deletion batch returns ordered owned, missing, and foreign results
 - id: graphql.homework-batch-results
   category: behavior
   rule: Homework completion batches retain per-item success, DELETED and NOT_FOUND outcomes.
@@ -62,13 +62,13 @@ requirements:
     code results.
   acceptance:
     given: A signed user and known and unknown section codes.
-    when: GraphQL adds and removes subscriptions.
+    when: GraphQL adds and removes subscriptions in independently prepared cases.
     then:
     - Results report matching codes and affected counts, and the database reflects only the requested
       membership changes.
     test:
       file: tests/integration/graphql-batch-mutations.test.ts
-      name: graphql.subscription-batch-results
+      name: subscription import removes only the seeded owner's membership
 - id: graphql.comment-batch-results
   category: behavior
   rule: Comment deletion batches return ordered success or ownership-failure results independently for
@@ -79,7 +79,7 @@ requirements:
     then:
     - The owned comment succeeds and the foreign comment returns FORBIDDEN.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-comment-batch-results.test.ts
       name: graphql.comment-batch-results
 - id: graphql.pin-batch-order
   category: behavior
@@ -90,7 +90,7 @@ requirements:
     then:
     - The final pinned list is empty and the response reports the shared maximum pin count.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-pin-batch-order.test.ts
       name: graphql.pin-batch-order
 - id: graphql.pin-batch-failure
   category: behavior
@@ -230,7 +230,7 @@ requirements:
     - The workflow URL points to the on-site object endpoint; completion records the authoritative stored
       size, and rename/delete update owner metadata.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-upload-workflow-boundary.test.ts
       name: graphql.upload-workflow-boundary
 - id: graphql.upload-ownership
   category: authorization
@@ -242,7 +242,7 @@ requirements:
     - All attempts reject without disclosing private filenames, changing records or deleting the stored
       object.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-upload-ownership.test.ts
       name: graphql.upload-ownership
 - id: graphql.upload-suspension
   category: authorization
@@ -253,7 +253,7 @@ requirements:
     then:
     - Every mutation returns FORBIDDEN and existing upload and reservation records remain unchanged.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-upload-suspension.test.ts
       name: graphql.upload-suspension
 - id: graphql.upload-quota
   category: validation
@@ -266,7 +266,7 @@ requirements:
     - At-quota creation rejects; the one-byte reservation succeeds after space is freed.
     - Completion rejects the larger stored object without creating upload metadata or exceeding the quota.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-upload-quota.test.ts
       name: graphql.upload-quota
 - id: graphql.upload-audit
   category: consistency
@@ -279,7 +279,7 @@ requirements:
     - Metadata is removed and exactly one audit records actor/subject, upload target, OAuth client/grant,
       graphql channel and deleted size.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-upload-audit.test.ts
       name: graphql.upload-audit
 - id: graphql.upload-storage-delete-failure
   category: behavior
@@ -292,7 +292,7 @@ requirements:
     - The HTTP response is503 with SERVICE_UNAVAILABLE and no private storage exception text.
     - The upload metadata and object remain, and no success audit is written.
     test:
-      file: tests/integration/graphql-remaining-mutations.test.ts
+      file: tests/integration/graphql-upload-storage-delete-failure.test.ts
       name: graphql.upload-storage-delete-failure
 - id: graphql.pagination
   category: validation
@@ -309,7 +309,7 @@ requirements:
     - Nested schedule teachers/participations and exam rooms preserve page metadata and cap 101-item inputs
       at the requested 20 or 100.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-pagination.test.ts
       name: graphql.pagination
 - id: graphql.search-boundary
   category: validation
@@ -395,7 +395,7 @@ requirements:
     - Matching fields return the authenticated data; every missing feature produces a 403 with its exact
       required scope.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-scoped-query-auth.test.ts
       name: graphql.scoped-query-auth
 - id: graphql.workspace-ownership
   category: authorization
@@ -410,7 +410,7 @@ requirements:
     - Workspace field arguments and filter schemas do not accept userId, sectionIds or internal visibility/shape
       switches.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-workspace-ownership.test.ts
       name: graphql.workspace-ownership
 - id: graphql.homework-completion-requirement
   category: consistency
@@ -768,7 +768,7 @@ requirements:
     then:
     - The response respects the principal boundary and returns only the permitted root data.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-anonymous-roots.test.ts
       name: graphql.anonymous-roots
 - id: graphql.session-query-authority
   category: authorization
@@ -780,7 +780,7 @@ requirements:
     then:
     - The response respects the principal boundary and returns only the permitted root data.
     test:
-      file: tests/integration/graphql-viewer-query.test.ts
+      file: tests/integration/graphql-viewer-session-query-authority.test.ts
       name: graphql.session-query-authority
 - id: graphql.mcp-mutation-confirmation
   category: validation

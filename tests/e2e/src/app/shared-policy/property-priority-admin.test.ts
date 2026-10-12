@@ -1,46 +1,43 @@
-import { expect, type Locator, test } from "@playwright/test";
-import {
-  cleanupAdminPriorityFixture,
-  createAdminPriorityFixture,
-} from "../../../utils/admin-priority-fixture";
+import { expect, type Locator } from "@playwright/test";
+import { test } from "../../../utils/admin-priority-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
-  createPriorityViewAudit,
+  assertPriorityView,
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
 function required<T>(value: T | null | undefined): T {
   if (value == null) throw new Error("Missing priority fixture field");
   return value;
 }
 
-test("ui.model-property-priority-admin-views", async ({
-  page,
-  baseURL,
-}, testInfo) => {
-  test.setTimeout(240_000);
-  page.setDefaultTimeout(10_000);
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  const f = await createAdminPriorityFixture();
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(f.admin.id)]);
-    for (const locale of ["en-us", "zh-cn"] as const) {
-      await page
-        .context()
-        .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
-      const en = locale === "en-us";
-      const date = (value: Date) =>
-        new Intl.DateTimeFormat(locale, {
-          dateStyle: "medium",
-          timeStyle: "short",
-          timeZone: "Asia/Shanghai",
-        }).format(value);
-      for (const width of [390, 1280]) {
+for (const locale of ["en-us", "zh-cn"] as const)
+  for (const width of [390, 1280]) {
+    test(`ui.model-property-priority-admin-views ${locale}/${width}`, {
+      tag: "@Admin/Web",
+    }, async ({ page, baseURL, adminPriorityRun }) => {
+      test.setTimeout(240_000);
+      page.setDefaultTimeout(10_000);
+      if (!baseURL) throw new Error("Missing Playwright baseURL");
+      await adminPriorityRun(async (f) => {
+        await page
+          .context()
+          .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+        const en = locale === "en-us";
+        const date = (value: Date) =>
+          new Intl.DateTimeFormat(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Asia/Shanghai",
+          }).format(value);
+
         await page.setViewportSize({ width, height: 900 });
-        const audit = createPriorityViewAudit("admin");
+
+        const visit = async (path: string) => {
+          const response = await gotoAndWaitForReady(page, path);
+          expect(response?.status()).toBe(200);
+        };
+
         const row = (title: string) =>
           page
             .locator(
@@ -59,12 +56,9 @@ test("ui.model-property-priority-admin-views", async ({
           title: string,
           label: string,
         ) {
-          await input.scope.screenshot({
-            path: testInfo.outputPath(`admin-${locale}-${width}-${label}.png`),
-          });
           try {
             await expect(input.identity).toContainText(title);
-            await audit.check(input);
+            await assertPriorityView(input);
           } catch (error) {
             expect
               .soft(error, `${locale}/${width}/${label}: ${String(error)}`)
@@ -80,13 +74,10 @@ test("ui.model-property-priority-admin-views", async ({
                 .getByText(title, { exact: true })
                 .first();
 
-        await gotoAndWaitForReady(page, "/admin/users?search=priorityauthor");
+        await visit(`/admin/users?search=${f.author.username}`);
         let scope = row(required(f.author.name));
         await check(
           {
-            feature: "admin",
-            capability: "user-management",
-            view: "web",
             scope,
             identity: identity(scope, required(f.author.name)),
             primary: {
@@ -109,13 +100,10 @@ test("ui.model-property-priority-admin-views", async ({
           "users",
         );
 
-        await gotoAndWaitForReady(page, "/admin/oauth");
+        await visit("/admin/oauth");
         scope = row(required(f.client.name));
         await check(
           {
-            feature: "admin",
-            capability: "oauth-client-management",
-            view: "web",
             scope,
             identity: identity(scope, required(f.client.name)),
             primary: {
@@ -146,13 +134,10 @@ test("ui.model-property-priority-admin-views", async ({
           "clients",
         );
 
-        await gotoAndWaitForReady(page, "/admin/bus");
+        await visit("/admin/bus");
         scope = row(f.bus.title);
         await check(
           {
-            feature: "admin",
-            capability: "bus-management",
-            view: "web",
             scope,
             identity: identity(scope, f.bus.title),
             primary: { "version.title": field(scope, f.bus.title) },
@@ -178,18 +163,13 @@ test("ui.model-property-priority-admin-views", async ({
           "bus",
         );
 
-        await gotoAndWaitForReady(
-          page,
+        await visit(
           "/admin/moderation?tab=comments&status=softbanned&search=Priority%20review%20comment",
         );
         scope = row(f.comment.body);
         for (const feature of ["admin", "comment"]) {
           await check(
             {
-              feature,
-              capability:
-                feature === "admin" ? "moderation" : "comment-governance",
-              view: feature === "admin" ? "web-comments" : "web",
               scope,
               identity: identity(scope, f.comment.body),
               primary: {
@@ -220,8 +200,7 @@ test("ui.model-property-priority-admin-views", async ({
           );
         }
 
-        await gotoAndWaitForReady(
-          page,
+        await visit(
           "/admin/moderation?tab=descriptions&search=Priority%20review",
         );
         for (const description of [f.description, f.fallbackDescription]) {
@@ -229,10 +208,6 @@ test("ui.model-property-priority-admin-views", async ({
           for (const feature of ["admin", "description"]) {
             await check(
               {
-                feature,
-                capability:
-                  feature === "admin" ? "moderation" : "description-governance",
-                view: feature === "admin" ? "web-descriptions" : "web",
                 scope,
                 identity: identity(scope, required(description.content)),
                 primary: {
@@ -268,16 +243,10 @@ test("ui.model-property-priority-admin-views", async ({
           }
         }
 
-        await gotoAndWaitForReady(
-          page,
-          "/admin/moderation?tab=homeworks&search=Priority%20review",
-        );
+        await visit("/admin/moderation?tab=homeworks&search=Priority%20review");
         scope = row(f.homework.title);
         await check(
           {
-            feature: "homework",
-            capability: "homework-governance",
-            view: "web",
             scope,
             identity: identity(scope, f.homework.title),
             primary: {
@@ -294,14 +263,6 @@ test("ui.model-property-priority-admin-views", async ({
           f.homework.title,
           "homeworks",
         );
-        try {
-          audit.finish();
-        } catch (error) {
-          expect.soft(error).toBeUndefined();
-        }
-      }
-    }
-  } finally {
-    await cleanupAdminPriorityFixture(f);
+      });
+    });
   }
-});

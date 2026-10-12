@@ -184,7 +184,7 @@ describe("OAuth grant usage aggregation", { concurrent: false }, () => {
       expect(adapter.dispose).toHaveBeenCalledTimes(1);
   });
 
-  it("owns and disposes the background adapter after the response has already cleaned up", async () => {
+  it("owns and disposes the background adapter, releasing the request once its deferred work settles", async () => {
     vi.useFakeTimers();
     const scheduled: Promise<unknown>[] = [];
     const requestCleanup = vi.fn();
@@ -201,16 +201,18 @@ describe("OAuth grant usage aggregation", { concurrent: false }, () => {
       { waitUntil: (task: Promise<unknown>) => scheduled.push(task) },
     );
 
+    // Reading the response does not end the request scope. Deferred usage work
+    // is still owed a connection, so the runtime schedules cleanup behind it
+    // rather than releasing the request's resources at response EOF.
     expect(await response.text()).toBe("ok");
-    expect(requestCleanup).toHaveBeenCalledTimes(1);
-    expect(context?.cache.size).toBe(0);
-    expect(context?.cleanups.size).toBe(0);
+    expect(requestCleanup).toHaveBeenCalledTimes(0);
     expect(adapters).toHaveLength(0);
     await vi.advanceTimersByTimeAsync(100);
     await Promise.all(scheduled);
     expect(executeRawMock).toHaveBeenCalledTimes(1);
     expect(adapters).toHaveLength(1);
     expect(adapters[0].dispose).toHaveBeenCalledTimes(1);
+    expect(requestCleanup).toHaveBeenCalledTimes(1);
     expect(context?.cache.size).toBe(0);
     expect(context?.cleanups.size).toBe(0);
     expect(factoryMock).toHaveBeenCalledWith(

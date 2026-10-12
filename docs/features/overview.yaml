@@ -133,13 +133,15 @@ requirements:
       name: overview.focused-extracts-share-window
 - id: overview.workspace-card-priority
   category: presentation
-  rule: Workspace cards present the actionable title, time/status and direct destination before secondary
-    details.
+  rule: Workspace cards present the actionable title, type, known time, status and direct destination
+    before the secondary date, weekday and context. Missing source time is omitted rather than inferred
+    from the ordering value.
   acceptance:
     given: An isolated subscriber has a current class and an upcoming homework deadline.
     when: Desktop and mobile overview focus cards render at class and homework times.
     then:
-    - The actionable title, time and direct link are visible before secondary metadata, and the link opens the precise destination.
+    - The title, type, time and status are individually visible before the date, weekday and context.
+    - The card's direct link opens the precise class or homework destination.
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
       name: overview.workspace-card-priority
@@ -296,10 +298,11 @@ capabilities:
           - focus.title
           - focus.label
           - focus.status
+          - focus.time
           secondary:
           - focus.dateLabel
           - focus.weekdayLabel
-          - focus.meta
+          - focus.detail
           - todaySessions.startTime
           - todaySessions.section.course.namePrimary
           - dueTodayHomeworks.title

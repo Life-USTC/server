@@ -292,6 +292,9 @@ export async function handleAuditLogWriteBatch(batch: AuditLogWriteQueueBatch) {
         "error",
         "audit-log-write.retry",
         {
+          actions: [
+            ...new Set(valid.map(({ parsed }) => parsed.params.action)),
+          ],
           event: "audit-log-write.retry",
           invalidMessageCount: invalid,
           messageType: "audit-log.write.v1",

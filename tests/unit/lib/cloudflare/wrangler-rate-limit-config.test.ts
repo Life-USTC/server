@@ -1,9 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { parseConfigFileTextToJson } from "typescript";
 import { describe, expect, it } from "vitest";
-import type { FeatureSpecification } from "../../../../scripts/specifications/repository";
-import { readSpecification } from "../../../../scripts/specifications/yaml";
-import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 function parseConfig(source: string) {
   const result = parseConfigFileTextToJson("wrangler.jsonc", source);
@@ -133,40 +130,17 @@ describe("Wrangler mutation rate-limit bindings", () => {
     );
   });
 
-  it("openapi.rate-limit-production-budgets", async (context) => {
-    const contract = await semanticContract(
-      context.task.name,
-      "rate_limit_budget",
-    );
-    contract.equal("/surface", "deployment");
-    const document = await readSpecification<FeatureSpecification>(
-      "docs/features/openapi.yaml",
-    );
-    const budget = document.requirements.find(
-      (entry) => entry.id === "openapi.rate-limit-production-budgets",
-    )?.expectation;
-    if (budget?.kind !== "rate_limit_budget")
-      throw new Error("Missing production budget specification");
-    const bindings = await readRateLimits("wrangler.jsonc");
-    const standard = bindings.find((b) => b.name === "USER_WRITE_RATE_LIMITER");
-    const batch = bindings.find(
-      (b) => b.name === "USER_BATCH_WRITE_RATE_LIMITER",
-    );
-    contract.equal("/standard_limit", standard?.simple.limit);
-    contract.equal("/batch_limit", batch?.simple.limit);
-    contract.equal("/period_seconds", standard?.simple.period);
-    contract.equal("/period_seconds", batch?.simple.period);
-    contract.recordVitest(context);
+  it("openapi.rate-limit-production-budgets", async () => {
     await expect(readRateLimits("wrangler.jsonc")).resolves.toEqual([
       {
         name: "USER_WRITE_RATE_LIMITER",
         namespace_id: "414001",
-        simple: { limit: budget.standard_limit, period: budget.period_seconds },
+        simple: { limit: 60, period: 60 },
       },
       {
         name: "USER_BATCH_WRITE_RATE_LIMITER",
         namespace_id: "414002",
-        simple: { limit: budget.batch_limit, period: budget.period_seconds },
+        simple: { limit: 10, period: 60 },
       },
     ]);
   });

@@ -53,8 +53,8 @@ requirements:
     - The first request succeeds with status=deleted and a deletion timestamp stored alongside exactly one audit event.
     - Retries report the locked outcome, preserving the complete tombstone and the single audit event.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
-      name: comment.single-delete-replay
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
+      name: "comment delete replay through mcp preserves the committed state"
 - id: comment.attached-to-object
   category: behavior
   rule: Comments must be attached to a specific object; no decontextualized public feed entry is provided.
@@ -84,8 +84,10 @@ requirements:
   category: presentation
   rule: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
   acceptance:
-    given: A real comment contains bold Markdown, an emoji, a math formula and a table.
-    when: Create it through REST, reply and react as another user, then fetch the focused thread.
+    given: A directly prepared comment contains bold Markdown, an emoji, a math formula and a table,
+      with a known reply and reaction from another user.
+    when: Fetch its focused thread through REST; separately create rich text through REST and observe
+      the persisted Markdown source.
     then:
     - The server preserves Markdown source and produces bold, emoji, KaTeX and table HTML.
     - The thread contains the real reply and reaction count.
@@ -167,25 +169,47 @@ requirements:
       name: comment.thread-pagination
 - id: comment.interaction-gate
   category: authorization
-  rule: Comment writes require an authenticated, unsuspended actor and an active visible target. Public
-    editing and deletion additionally require ownership; replies and reactions do not confer ownership.
+  rule: Comment writes require an authenticated, unsuspended actor and, when the operation needs an existing
+    target, an active visible target. Removing one's own reaction is idempotent when the comment or that
+    actor's reaction is absent; this does not bypass authentication, suspension or an existing comment's
+    interaction gate. Public editing and deletion additionally require ownership; replies and reactions
+    do not confer ownership.
     Deleted or softbanned comments neither advertise nor accept ordinary edit, delete, reply, or reaction
     actions. Administrator moderation requires an unsuspended administrator using governance surfaces.
   acceptance:
     given: Signed ordinary, foreign, administrator and suspended actors access active and locked comments.
-    when: Exercise actual REST create, edit, delete, reply, reaction and moderation routes, plus loopback
+    when: Exercise actual REST create, edit, delete, reply, reaction and moderation routes, plus Worker
       GraphQL and native MCP edits, replies and reactions with signed OAuth credentials and supported sessions.
     then:
     - Anonymous requests return 401 and suspended actors return 403 for ordinary mutations.
     - Replies and reactions to another author's public active comment succeed without conferring edit/delete
       ownership.
     - Deleted and softbanned comments reject ordinary mutations across all business transports.
-    - Read-only scopes, missing actors and missing comment/parent targets are rejected without changing comments, reactions, attachments, business audits or cache invalidation state.
+    - Read-only scopes and missing actors are rejected. Operations that require an existing comment or parent reject missing targets without changing comments, reactions, attachments, business audits or request-local cache purge-hook calls.
+    - Removing one's own reaction from a missing comment or without an existing own reaction succeeds without deleting another actor's reaction or creating a business audit; anonymous and suspended actors remain rejected, and existing deleted or softbanned comments remain locked.
     - Edit responses retain the declared transport shape; returned comment bodies, public author identity and timestamps match committed rows. Reaction change flags, where exposed, match the performed change.
     - Only an unsuspended administrator can moderate through the governance route.
     test:
-      file: tests/integration/comment-write-contracts.test.ts
-      name: comment.interaction-gate
+      file: tests/integration/rest/protocol-contracts/comment-authority.test.ts
+      name: comment update suspended rejected through mcp
+- id: comment.reaction-removal-noop
+  category: behavior
+  rule: A permitted request to remove the caller's reaction succeeds without effects when the comment or
+    that caller's reaction does not exist. Repeated removals never delete another actor's reaction or add
+    business audits. Authentication, suspension, scope and existing-target interaction checks still apply.
+  acceptance:
+    given: Each REST scenario owns its actors and target state; a missing comment and an active comment
+      with only another actor's reaction are prepared independently.
+    when: Delete a reaction from the missing comment, or repeatedly delete the caller's absent reaction
+      from the active comment; separately attempt the same endpoint without authentication, while suspended,
+      and against deleted or softbanned comments.
+    then:
+    - Permitted missing-comment and absent-own-reaction requests return 200 with success=true.
+    - Existing comments and reactions remain exactly unchanged, missing comments stay absent, and no business audit is added.
+    - Anonymous requests return 401 and suspended requests return 403, including for missing comments; existing deleted or softbanned comments return 403 without changes.
+    test:
+      file: tests/integration/rest/comments/[id]/reactions/test.ts
+      name: /api/community/comments/[id]/reactions DELETE absent own reaction is idempotent and preserves another actor
 - id: comment.web-markdown-hydration
   category: presentation
   rule: Web comment surfaces consume the server-provided renderedBody and do not rerun Markdown rendering
@@ -459,7 +483,7 @@ requirements:
     invalid_attachments without revealing the foreign or occupied upload.
   acceptance:
     given: Two isolated owners have unattached owned files, foreign files and owned files attached
-      elsewhere, with resource-bound OAuth credentials and restricted application database services.
+      elsewhere, with resource-bound OAuth credentials, restricted application database services and real Worker R2 objects.
     when: Each owner creates and edits through actual REST, GraphQL and native MCP HTTP using valid,
       missing, foreign and occupied uploads, then retains, replaces and removes owned attachment links.
     then:
@@ -467,10 +491,10 @@ requirements:
       comment, attachment, reaction, audit and invalidation snapshots unchanged.
     - Creation attaches an available owned upload; editing may retain it, replace it with another available
       owned upload or detach it, without changing another comment's occupied link.
-    - All original upload records remain exactly unchanged throughout these attachment operations.
+    - All original upload records, object bytes and content metadata remain exactly unchanged throughout these attachment operations.
     test:
-      file: tests/integration/comment-write-contracts.test.ts
-      name: comment.attachment-ownership
+      file: tests/integration/rest/protocol-contracts/comment-attachment-authority.test.ts
+      name: comment attachment foreign update by author 0 rejected through rest
 - id: comment.batch-delete-limit
   category: validation
   rule: Batch comment deletion accepts at most 50 unique comment IDs.
@@ -565,7 +589,7 @@ requirements:
     - Content is not copied into audit metadata.
     test:
       file: tests/integration/mcp/community/comments.test.ts
-      name: comment.mcp-write-audit-source
+      name: comment.mcp-write-audit-source update
 - id: comment.moderation-default-status
   category: behavior
   rule: An omitted moderation comment status selects the active queue in both REST and the moderation
@@ -754,6 +778,9 @@ capabilities:
       - path: /api/community/comments/[id]/reactions
         method: DELETE
         auth: user
+        requirement_refs:
+        - comment.interaction-gate
+        - comment.reaction-removal-noop
     mcp:
       tools:
       - name: community_comment_list

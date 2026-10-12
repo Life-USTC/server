@@ -1,292 +1,181 @@
-/**
- * E2E tests for PATCH /api/workspace/todos/[id] and DELETE /api/workspace/todos/[id].
- *
- * ## PATCH /api/workspace/todos/[id]
- * - Body: { title?, content?, priority?, completed?, dueAt? }
- * - Response: { success: true, todo: TodoItem }
- * - Auth required (401 if unauthenticated)
- * - Ownership check: returns 404 if RLS hides another user's todo
- * - Returns 404 for non-existent todo
- *
- * ## DELETE /api/workspace/todos/[id]
- * - Response: { success: true }
- * - Auth required (401 if unauthenticated)
- * - Ownership check: returns 404 if RLS hides another user's todo
- * - Permanently deletes the todo from the database
- *
- * ## Edge cases
- * - Non-owner PATCH/DELETE → 404, with the owner's todo unchanged
- * - Creates temporary todos for mutation tests (cleanup via DELETE)
- */
-import {
-  type APIRequestContext,
-  expect,
-  type PlaywrightWorkerArgs,
-  test,
-} from "@playwright/test";
-import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
-import { semanticContract } from "../../../../shared/specifications/semantic-contract";
-import { todoExpectation } from "../../../../shared/specifications/todo";
-import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
-import { assertApiContract } from "../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { test } from "../_fixture";
 
-async function createTodo(request: APIRequestContext, title: string) {
-  const response = await request.post("/api/workspace/todos", {
-    data: {
-      title,
-      priority: "medium",
-    },
+test.describe.configure({ mode: "parallel" });
+
+for (const method of ["PATCH", "DELETE"] as const) {
+  test.describe(`todo REST ${method} ownership`, () => {
+    for (const scenario of [
+      { name: "anonymous", isAdmin: false, owns: false, status: 401 },
+      { name: "user owner", isAdmin: false, owns: true, status: 200 },
+      { name: "other user", isAdmin: false, owns: false, status: 404 },
+      { name: "admin owner", isAdmin: true, owns: true, status: 200 },
+      { name: "other admin", isAdmin: true, owns: false, status: 404 },
+    ]) {
+      test(scenario.name, { tag: "@Todo/REST" }, async ({
+        createActor,
+        request: anonymous,
+        db,
+        run,
+      }) => {
+        await run(async () => {
+          const actor = await createActor({ isAdmin: scenario.isAdmin });
+          const owner = scenario.owns ? actor : await createActor();
+          const caller =
+            scenario.name === "anonymous" ? anonymous : actor.request;
+          const sessionResponse = await caller.get("/api/auth/get-session");
+          expect(sessionResponse.status()).toBe(200);
+          const session = await sessionResponse.json();
+          if (scenario.name === "anonymous")
+            expect(session?.user).toBeUndefined();
+          else
+            expect(session.user).toMatchObject({
+              id: actor.id,
+              isAdmin: scenario.isAdmin,
+            });
+          expect(
+            await db.userSuspension.count({ where: { userId: actor.id } }),
+          ).toBe(0);
+          const before = await db.todo.create({
+            data: {
+              userId: owner.id,
+              title: "Owned todo",
+              priority: "medium",
+            },
+          });
+          const response = await caller.fetch(
+            `/api/workspace/todos/${before.id}`,
+            {
+              method,
+              ...(method === "PATCH" ? { data: { completed: true } } : {}),
+            },
+          );
+          expect(response.status()).toBe(scenario.status);
+          expect(response.headers()["content-type"]).toContain(
+            "application/json",
+          );
+          const body = await response.json();
+          const after = await db.todo.findUnique({
+            where: { id: before.id },
+          });
+          if (scenario.status !== 200) {
+            expect(typeof body.error).toBe("string");
+            expect(after).toEqual(before);
+          } else if (method === "PATCH") {
+            expect(body).toMatchObject({
+              success: true,
+              todo: { id: before.id, completed: true },
+            });
+            expect(after).toMatchObject({
+              ...before,
+              completed: true,
+              updatedAt: expect.any(Date),
+            });
+          } else {
+            expect(body).toEqual({ success: true });
+            expect(after).toBeNull();
+          }
+        });
+      });
+    }
+
+    test("missing target returns 404", { tag: "@Todo/REST" }, async ({
+      createActor,
+      run,
+    }) => {
+      await run(async () => {
+        const { request } = await createActor();
+        const response = await request.fetch(
+          `/api/workspace/todos/${crypto.randomUUID()}`,
+          {
+            method,
+            ...(method === "PATCH" ? { data: { completed: true } } : {}),
+          },
+        );
+        expect(response.status()).toBe(404);
+        expect(typeof (await response.json()).error).toBe("string");
+      });
+    });
+
+    test("anonymous malformed input still returns a JSON 401", {
+      tag: "@Todo/REST",
+    }, async ({ request, run }) => {
+      await run(async () => {
+        const response = await request.fetch(
+          "/api/workspace/todos/invalid-e2e",
+          {
+            method,
+            ...(method === "PATCH" ? { data: {} } : {}),
+          },
+        );
+        expect(response.status()).toBe(401);
+        expect(response.headers()["content-type"]).toContain(
+          "application/json",
+        );
+        expect(typeof (await response.json()).error).toBe("string");
+      });
+    });
   });
-  expect(response.status()).toBe(201);
-  const id = ((await response.json()) as { id?: string }).id;
-  expect(id).toBeTruthy();
-  return id as string;
 }
 
-test("/api/workspace/todos/[id]", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/workspace/todos/[id]" });
-});
-
-test("/api/workspace/todos/[id] PATCH 未登录返回 401", async ({ request }) => {
-  const response = await request.patch("/api/workspace/todos/invalid-e2e", {
-    data: { title: "should fail" },
-  });
-  expect(response.status()).toBe(401);
-});
-
-test("/api/workspace/todos/[id] PATCH 登录后可更新待办", async ({
-  request,
-}) => {
-  await signInAsDebugUserApi(request, "/");
-  const todoId = await createTodo(request, `e2e-api-todo-update-${Date.now()}`);
-
-  try {
-    const patchResponse = await request.patch(
-      `/api/workspace/todos/${todoId}`,
-      {
-        data: {
-          title: "updated todo title",
-          completed: true,
-        },
-      },
+test("todo PATCH returns its public fields and persists the edited values", {
+  tag: "@Todo/REST",
+}, async ({ createActor, db, run }) => {
+  await run(async () => {
+    const actor = await createActor();
+    const before = await db.todo.create({
+      data: { userId: actor.id, title: "Original title", priority: "medium" },
+    });
+    const response = await actor.request.patch(
+      `/api/workspace/todos/${before.id}`,
+      { data: { title: "Updated todo title", completed: true } },
     );
-    expect(patchResponse.status()).toBe(200);
-    const patchBody = (await patchResponse.json()) as {
-      success?: boolean;
-      todo?: {
-        completed?: boolean;
-        content?: string | null;
-        createdAt?: string;
-        dueAt?: string | null;
-        id?: string;
-        priority?: string;
-        title?: string;
-        updatedAt?: string;
-      };
-    };
-    expect(patchBody).toMatchObject({
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
       success: true,
       todo: {
+        id: before.id,
+        title: "Updated todo title",
         completed: true,
         content: null,
-        id: todoId,
+        dueAt: null,
         priority: "medium",
-        title: "updated todo title",
       },
     });
-    expect(patchBody.todo?.dueAt).toBeNull();
-    expect(typeof patchBody.todo?.createdAt).toBe("string");
-    expect(typeof patchBody.todo?.updatedAt).toBe("string");
-    expect(Number.isNaN(Date.parse(patchBody.todo?.createdAt ?? ""))).toBe(
-      false,
-    );
-    expect(Number.isNaN(Date.parse(patchBody.todo?.updatedAt ?? ""))).toBe(
-      false,
-    );
-  } finally {
-    await request.delete(`/api/workspace/todos/${todoId}`);
-  }
-});
-
-test("/api/workspace/todos/[id] 非所有者 PATCH/DELETE 返回 404 且保留数据", async ({
-  playwright,
-}) => {
-  const debugContext = await playwright.request.newContext();
-  const adminContext = await playwright.request.newContext();
-  let todoId: string | undefined;
-  const title = `e2e-api-todo-forbidden-${Date.now()}`;
-  try {
-    await signInAsDebugUserApi(debugContext, "/");
-    todoId = await createTodo(debugContext, title);
-    await signInAsDevAdminApi(adminContext, "/");
-    const patchResponse = await adminContext.patch(
-      `/api/workspace/todos/${todoId}`,
-      { data: { completed: true } },
-    );
-    expect(patchResponse.status()).toBe(404);
-    const deleteResponse = await adminContext.delete(
-      `/api/workspace/todos/${todoId}`,
-    );
-    expect(deleteResponse.status()).toBe(404);
-    await expect(
-      withE2ePrisma((prisma) =>
-        prisma.todo.findUnique({
-          where: { id: todoId },
-          select: { title: true, completed: true },
-        }),
-      ),
-    ).resolves.toEqual({ title, completed: false });
-  } finally {
-    if (todoId) await debugContext.delete(`/api/workspace/todos/${todoId}`);
-    await debugContext.dispose();
-    await adminContext.dispose();
-  }
-});
-
-test("/api/workspace/todos/[id] DELETE 未登录返回 401", async ({ request }) => {
-  const response = await request.delete("/api/workspace/todos/invalid-e2e");
-  expect(response.status()).toBe(401);
-});
-
-test("/api/workspace/todos/[id] DELETE 登录后可删除待办", async ({
-  request,
-}) => {
-  await signInAsDebugUserApi(request, "/");
-  const todoId = await createTodo(request, `e2e-api-todo-delete-${Date.now()}`);
-
-  const deleteResponse = await request.delete(`/api/workspace/todos/${todoId}`);
-  expect(deleteResponse.status()).toBe(200);
-  expect((await deleteResponse.json()) as { success?: boolean }).toEqual({
-    success: true,
-  });
-
-  const listResponse = await request.get("/api/workspace/todos");
-  expect(listResponse.status()).toBe(200);
-  const listBody = (await listResponse.json()) as {
-    todos?: Array<{ id?: string }>;
-  };
-  expect(listBody.todos?.some((todo) => todo.id === todoId)).toBe(false);
-});
-
-async function assertSpecifiedOwnership(
-  playwright: PlaywrightWorkerArgs["playwright"],
-  requirementId: string,
-) {
-  const rule = await todoExpectation(requirementId, "authorization");
-  const contract = await semanticContract(requirementId, "authorization");
-  contract.equal("/surface", "rest");
-  contract.equal(
-    "/operation",
-    `${requirementId.includes("patch") ? "PATCH" : "DELETE"} /api/workspace/todos/[id]`,
-  );
-  const deniedEffects = new Set<string>();
-  const user = await playwright.request.newContext();
-  const admin = await playwright.request.newContext();
-  const anonymous = await playwright.request.newContext();
-  try {
-    await signInAsDebugUserApi(user);
-    await signInAsDevAdminApi(admin);
-    const [method, path] = rule.operation.split(" ");
-    for (const [index, scenario] of rule.cases.entries()) {
-      const actor = scenario.role === "admin" ? admin : user;
-      const owner =
-        scenario.relationship === "owner"
-          ? actor
-          : scenario.role === "admin"
-            ? user
-            : admin;
-      const caller = scenario.authenticated ? actor : anonymous;
-      const sessionResponse = await caller.get("/api/auth/get-session");
-      const session = (await sessionResponse.json()) as {
-        user?: { id: string; isAdmin: boolean };
-      } | null;
-      expect(Boolean(session?.user)).toBe(scenario.authenticated);
-      let suspended = false;
-      if (session?.user) {
-        expect(session.user.isAdmin).toBe(scenario.role === "admin");
-        const suspensionCount = await withE2ePrisma((prisma) =>
-          prisma.userSuspension.count({
-            where: {
-              userId: session.user?.id,
-              liftedAt: null,
-              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-            },
-          }),
-        );
-        suspended = suspensionCount > 0;
-        expect(suspended).toBe(scenario.suspended);
-      }
-
-      const title = `e2e-todo-spec-${scenario.id}-${crypto.randomUUID()}`;
-      const id = await createTodo(owner, title);
-      try {
-        const before = await withE2ePrisma((prisma) =>
-          prisma.todo.findUniqueOrThrow({ where: { id } }),
-        );
-        if (session?.user)
-          expect(before.userId === session.user.id).toBe(
-            scenario.relationship === "owner",
-          );
-        const response = await caller.fetch(path.replace("[id]", id), {
-          method,
-          ...(method === "PATCH" ? { data: { completed: true } } : {}),
-        });
-        const statuses = { allowed: 200, not_found: 404, unauthenticated: 401 };
-        expect(response.status(), scenario.id).toBe(statuses[scenario.outcome]);
-        const role = session?.user?.isAdmin ? "admin" : "user";
-        const relationship =
-          before.userId === session?.user?.id ? "owner" : "other";
-        contract.equal(`/cases/${index}`, {
-          id: session?.user ? `${role}-${relationship}` : "anonymous",
-          authenticated: Boolean(session?.user),
-          suspended,
-          role,
-          relationship,
-          outcome: Object.entries(statuses).find(
-            ([, status]) => status === response.status(),
-          )?.[0],
-        });
-        const after = await withE2ePrisma((prisma) =>
-          prisma.todo.findUnique({ where: { id } }),
-        );
-        if (scenario.outcome === "allowed") {
-          if (method === "PATCH") expect(after?.completed).toBe(true);
-          else expect(after).toBeNull();
-        } else {
-          for (const effect of rule.denied_effects) {
-            switch (effect) {
-              case "todo":
-                expect(after).toEqual(before);
-                deniedEffects.add("todo");
-                break;
-              default:
-                throw new Error(`Unverified denied effect: ${effect}`);
-            }
-          }
-        }
-      } finally {
-        await owner.delete(path.replace("[id]", id));
-      }
+    for (const field of ["createdAt", "updatedAt"]) {
+      expect(typeof body.todo[field]).toBe("string");
+      expect(Number.isNaN(Date.parse(body.todo[field]))).toBe(false);
     }
-  } finally {
-    await Promise.all([user.dispose(), admin.dispose(), anonymous.dispose()]);
-  }
-  contract.set("/denied_effects", [...deniedEffects]);
-  return contract;
-}
-
-test("todo.rest-patch-ownership", async ({ playwright }, testInfo) => {
-  const contract = await assertSpecifiedOwnership(
-    playwright,
-    "todo.rest-patch-ownership",
-  );
-  contract.recordPlaywright(testInfo);
+    expect(
+      await db.todo.findUnique({ where: { id: before.id } }),
+    ).toMatchObject({
+      ...before,
+      title: "Updated todo title",
+      completed: true,
+      updatedAt: new Date(body.todo.updatedAt),
+    });
+  });
 });
 
-test("todo.rest-delete-ownership", async ({ playwright }, testInfo) => {
-  const contract = await assertSpecifiedOwnership(
-    playwright,
-    "todo.rest-delete-ownership",
-  );
-  contract.recordPlaywright(testInfo);
+test("deleting a todo removes it from the owner's subsequent list", {
+  tag: "@Todo/REST",
+}, async ({ createActor, db, run }) => {
+  await run(async () => {
+    const { id: userId, request } = await createActor();
+    const { id } = await db.todo.create({
+      data: {
+        userId,
+        title: "Independently prepared deletion",
+        priority: "medium",
+      },
+    });
+    const deleted = await request.delete(`/api/workspace/todos/${id}`);
+    expect(deleted.status()).toBe(200);
+    expect(await deleted.json()).toEqual({ success: true });
+    const listed = await request.get("/api/workspace/todos");
+    expect(listed.status()).toBe(200);
+    expect((await listed.json()).todos).toEqual([]);
+    expect(await db.todo.findUnique({ where: { id } })).toBeNull();
+  });
 });

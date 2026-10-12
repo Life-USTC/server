@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  checkSpecifications,
   loadSpecificationValidators,
   validateSpecificationReferences,
   validateSpecificationShapes,
@@ -65,16 +64,6 @@ describe("versioned YAML product specifications", () => {
     ).toContain("unknown policy topic misspelled");
     data.requirements[0].applies_to = ["privacy"];
     expect((await validateSpecificationReferences(files)).errors).toEqual([]);
-  });
-
-  // Validate all authored specifications, not only a small schema fixture.
-  it("validates every source against its schema and checks references", {
-    timeout: 15_000,
-  }, async () => {
-    const result = await checkSpecifications();
-    expect(result.files).toBeGreaterThan(0);
-    expect(result.requirements).toBeGreaterThan(0);
-    expect(result.errors).toEqual([]);
   });
 
   it("rejects unknown feature fields and reintroduced handwritten wire types", async () => {

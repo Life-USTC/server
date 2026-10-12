@@ -1,49 +1,42 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { test } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-async function createSearchViewers() {
-  const query = `searchviewer${crypto.randomUUID().replaceAll("-", "")}`;
-  const users = await withE2ePrisma(async (db) =>
-    Promise.all(
-      ["A", "B"].map((label) =>
-        db.user.create({
-          data: {
-            name: `Search Viewer ${label}`,
-            username: `${query}${label.toLowerCase()}`,
-            email: `${query}${label}@example.test`,
-            todos: { create: { title: `${query} note ${label}` } },
-          },
-        }),
-      ),
-    ),
-  );
-  return { query, users };
-}
-
-async function cleanupSearchViewers(
-  users: Awaited<ReturnType<typeof createSearchViewers>>["users"],
+/** Two viewers of this case's own Worker, each with one private note. */
+async function createSearchViewers(
+  isolatedWorker: Parameters<Parameters<typeof test>[2]>[0]["isolatedWorker"],
 ) {
-  const ids = users.map((user) => user.id);
-  await withE2ePrisma(async (db) => {
-    await db.auditLog.deleteMany({
-      where: { OR: [{ userId: { in: ids } }, { subjectUserId: { in: ids } }] },
-    });
-    await db.user.deleteMany({ where: { id: { in: ids } } });
-  });
+  const query = `searchviewer${crypto.randomUUID().replaceAll("-", "")}`;
+  const db = isolatedWorker.database.owner;
+  const viewers = [];
+  for (const label of ["A", "B"]) {
+    const actor = await isolatedWorker.createActor();
+    viewers.push(
+      await db.user.update({
+        where: { id: actor.id },
+        data: {
+          name: `Search Viewer ${label}`,
+          username: `${query}${label.toLowerCase()}`,
+          todos: { create: { title: `${query} note ${label}` } },
+        },
+      }),
+    );
+  }
+  // The fixture drops this database, so the case owns no teardown.
+  return { query, users: viewers };
 }
 
-test("signed-in search waits for its private scope and repeats the initial URL query after viewer resolution", async ({
-  browser,
-}) => {
-  const { query, users } = await createSearchViewers();
-  const context = await browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL });
+test("signed-in search waits for its private scope and repeats the initial URL query after viewer resolution", {
+  tag: "@Search/Web",
+}, async ({ browser, isolatedWorker }) => {
+  const { query, users } = await createSearchViewers(isolatedWorker);
+  const context = await browser.newContext({ baseURL: isolatedWorker.origin });
   const releaseBootstrap = createDeferred<void>();
   try {
-    await context.addCookies([await createSignedSessionCookie(users[0].id)]);
+    await context.addCookies([
+      (await isolatedWorker.createSession(users[0].id)).cookie,
+    ]);
     const page = await context.newPage();
     const privateRequests: string[] = [];
     page.on("request", (request) => {
@@ -97,15 +90,14 @@ test("signed-in search waits for its private scope and repeats the initial URL q
   } finally {
     releaseBootstrap.resolve();
     await context.close();
-    await cleanupSearchViewers(users);
   }
 });
 
-test("anonymous search never requests workspace scope or returns private results", async ({
-  browser,
-}) => {
-  const { query, users } = await createSearchViewers();
-  const context = await browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL });
+test("anonymous search never requests workspace scope or returns private results", {
+  tag: "@Search/Web",
+}, async ({ browser, isolatedWorker }) => {
+  const { query } = await createSearchViewers(isolatedWorker);
+  const context = await browser.newContext({ baseURL: isolatedWorker.origin });
   try {
     const page = await context.newPage();
     const scopes: Array<string | null> = [];
@@ -131,22 +123,23 @@ test("anonymous search never requests workspace scope or returns private results
     expect(scopes.every((scope) => scope === null)).toBe(true);
   } finally {
     await context.close();
-    await cleanupSearchViewers(users);
   }
 });
 
-test("an open search clears the previous viewer's results before receiving the next viewer's results", async ({
-  browser,
-}) => {
-  const { query, users } = await createSearchViewers();
-  const context = await browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL });
+test("an open search clears the previous viewer's results before receiving the next viewer's results", {
+  tag: "@Search/Web",
+}, async ({ browser, isolatedWorker }) => {
+  const { query, users } = await createSearchViewers(isolatedWorker);
+  const context = await browser.newContext({ baseURL: isolatedWorker.origin });
   const nextBootstrap = createDeferred<void>();
   const releaseBootstrap = createDeferred<void>();
   const nextSearch = createDeferred<void>();
   const releaseSearch = createDeferred<void>();
   let holdNextViewer = false;
   try {
-    await context.addCookies([await createSignedSessionCookie(users[0].id)]);
+    await context.addCookies([
+      (await isolatedWorker.createSession(users[0].id)).cookie,
+    ]);
     const page = await context.newPage();
     await page.route("**/_internal/shell-bootstrap", async (route) => {
       const response = await route.fetch();
@@ -173,7 +166,9 @@ test("an open search clears the previous viewer's results before receiving the n
       page.getByRole("option", { name: new RegExp(`${query} note A`) }),
     ).toBeVisible();
     await context.clearCookies();
-    await context.addCookies([await createSignedSessionCookie(users[1].id)]);
+    await context.addCookies([
+      (await isolatedWorker.createSession(users[1].id)).cookie,
+    ]);
     holdNextViewer = true;
     await page.getByRole("combobox").fill(`${query} note`);
     await Promise.all([nextBootstrap.promise, nextSearch.promise]);
@@ -210,6 +205,5 @@ test("an open search clears the previous viewer's results before receiving the n
     releaseBootstrap.resolve();
     releaseSearch.resolve();
     await context.close();
-    await cleanupSearchViewers(users);
   }
 });

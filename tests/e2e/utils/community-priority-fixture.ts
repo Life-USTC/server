@@ -1,21 +1,26 @@
-import type { Page } from "@playwright/test";
-import { withE2ePrisma } from "./e2e-db/prisma";
+import { createDeferred } from "../../shared/deferred";
+import type { TestPrismaClient } from "../../shared/prisma";
+import { withBrowserWorkflow } from "./browser-workflow";
+import type { IsolatedWorker } from "./isolated-worker";
+import { test as workerTest } from "./owned-worker";
+import { withSettledPageWrites } from "./settled-page-writes";
 import { createUploadedFileViaApi } from "./uploads";
-import { createSignedSessionCookie } from "./workspace-task-filters";
 
 export const PRIORITY_AVATAR =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZ1sAAAAASUVORK5CYII=";
-export async function createCommunityPriorityFixture(page: Page) {
+async function createCommunityPriorityFixture(isolatedWorker: IsolatedWorker) {
+  const owner = isolatedWorker.database.owner;
   const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
   const daysAgo = (days: number) =>
     new Date(today.getTime() - days * 86_400_000);
-  const f = await withE2ePrisma(async (db) => {
+  const f = await owner.$transaction(async (db) => {
+    const marker = crypto.randomUUID();
     const n = 1_600_000_000 + Math.floor(Math.random() * 100_000_000);
     const author = await db.user.create({
       data: {
         name: "Priority community author",
-        username: "prioritycommunity",
-        email: "priority-community@example.test",
+        username: `pc${marker.replaceAll("-", "").slice(0, 20)}`,
+        email: `priority-community-${marker}@example.test`,
         emailVerified: true,
         image: PRIORITY_AVATAR,
         createdAt: new Date("2026-01-02T00:00:00Z"),
@@ -74,14 +79,12 @@ export async function createCommunityPriorityFixture(page: Page) {
     });
     return { author, course, section, comment, description, edit, homework };
   });
-  await page
-    .context()
-    .addCookies([await createSignedSessionCookie(f.author.id)]);
-  const uploaded = await createUploadedFileViaApi(page.request, {
+  const session = await isolatedWorker.createSession(f.author.id);
+  const uploaded = await createUploadedFileViaApi(session.request, {
     filename: "community-material.txt",
     contents: "Community priority attachment",
   });
-  const upload = await withE2ePrisma(async (db) => {
+  const upload = await owner.$transaction(async (db) => {
     const upload = await db.upload.update({
       where: { id: uploaded.uploadId },
       data: { createdAt: today },
@@ -96,27 +99,64 @@ export async function createCommunityPriorityFixture(page: Page) {
 export type CommunityPriorityFixture = Awaited<
   ReturnType<typeof createCommunityPriorityFixture>
 >;
-export async function cleanupCommunityPriorityFixture(
-  page: Page,
-  f: CommunityPriorityFixture,
-) {
-  await withE2ePrisma((db) =>
-    db.userSuspension.deleteMany({ where: { userId: f.author.id } }),
-  );
-  const uploads = await withE2ePrisma((db) =>
-    db.upload.findMany({
-      where: { userId: f.author.id },
-      select: { id: true },
-    }),
-  );
-  for (const upload of uploads)
-    await page.request.delete(`/api/workspace/uploads/${upload.id}`);
-  await withE2ePrisma(async (db) => {
-    await db.auditLog.deleteMany({
-      where: { OR: [{ userId: f.author.id }, { subjectUserId: f.author.id }] },
+
+export const test = workerTest.extend<{
+  communityPriority: CommunityPriorityFixture;
+  communityPriorityDb: <T>(
+    work: (db: TestPrismaClient) => Promise<T>,
+  ) => Promise<T>;
+  communityPriorityRun: (work: () => Promise<void>) => Promise<void>;
+  communityUploadGate: { promise: Promise<void>; resolve: () => void };
+}>({
+  communityPriority: async ({ isolatedWorker, run }, use) => {
+    await use(await run(() => createCommunityPriorityFixture(isolatedWorker)));
+  },
+  communityPriorityDb: async ({ isolatedWorker, run }, use) => {
+    await use((work) => run(() => work(isolatedWorker.database.owner)));
+  },
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright reads fixture dependencies.
+  communityUploadGate: async ({}, use) => {
+    await use(createDeferred());
+  },
+  communityPriorityRun: async (
+    {
+      page,
+      isolatedWorker,
+      communityPriority: _community,
+      communityUploadGate,
+      run,
+    },
+    use,
+  ) => {
+    await withBrowserWorkflow(page, async (workflow) => {
+      await use((work) =>
+        workflow.run(() =>
+          run(() =>
+            withSettledPageWrites(
+              page,
+              (url) => url.origin === isolatedWorker.origin,
+              async () => {
+                try {
+                  await workflow.body(work);
+                } finally {
+                  // Both an assertion failure and native fixture interruption
+                  // release the admitted PUT before write cleanup joins it.
+                  communityUploadGate.resolve();
+                }
+              },
+              undefined,
+              async (request) => {
+                if (
+                  request.method() === "PUT" &&
+                  new URL(request.url()).pathname ===
+                    "/api/workspace/uploads/object"
+                )
+                  await communityUploadGate.promise;
+              },
+            ),
+          ),
+        ),
+      );
     });
-    await db.section.delete({ where: { id: f.section.id } });
-    await db.course.delete({ where: { id: f.course.id } });
-    await db.user.delete({ where: { id: f.author.id } });
-  });
-}
+  },
+});

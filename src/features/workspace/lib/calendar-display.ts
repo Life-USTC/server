@@ -5,12 +5,10 @@ export {
   calendarExamDetail,
   calendarExamRoomsLabel,
   calendarHomeworkChipFields,
-  calendarHomeworkDetail,
   calendarHomeworkHref,
   calendarSessionChipFields,
-  calendarSessionDetail,
+  calendarSessionTimelineFields,
   calendarTodoChipFields,
-  calendarTodoDetail,
 } from "@/features/workspace/lib/calendar-display-details";
 export {
   calendarSemesterIndex,

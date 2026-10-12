@@ -1,143 +1,188 @@
-/**
- * E2E tests for POST /api/workspace/link-pins
- *
- * ## Endpoint
- * - `POST /api/workspace/link-pins` — Pin or unpin a workspace link for the current user
- *
- * ## Request
- * - Form data: `{ slug: string, action?: "pin" | "unpin", returnTo?: string }`
- * - Supports both JSON (`Accept: application/json`) and redirect (HTML form) modes
- *
- * ## Response (JSON mode)
- * - 200: `{ pinnedSlugs: string[], maxPinnedLinks: number }`
- * - 400: validation error for malformed body
- * - 401: unauthorized when not signed in
- * - 500: write failure with explicit error payload
- *
- * ## Response (redirect mode)
- * - 303: redirect to `returnTo` or `/`
- *
- * ## Auth Requirements
- * - Requires session authentication (unauthenticated → 401 JSON or 303 redirect)
- *
- * ## Edge Cases
- * - Unknown slug returns 400 invalid_slug without changing existing pins
- * - Maximum 4 pinned links enforced; oldest pins are evicted on overflow
- * - Pinning an already-pinned link is a no-op
- */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUserApi } from "../../_harness/auth";
+import { expect } from "@playwright/test";
+import { test } from "../../../../e2e/utils/owned-worker";
 
-const BASE = "/api/workspace/link-pins";
-const JSON_HEADERS = { accept: "application/json" };
-const MAX_PINNED_LINKS = 4;
-
-type PinResponse = {
-  pinnedSlugs?: string[];
-  maxPinnedLinks?: number;
-  error?: string | null;
-};
-
-test.describe("POST /api/workspace/link-pins 接口", () => {
-  test("未登录时返回 401 JSON", async ({ request }) => {
-    const response = await request.post(BASE, {
-      form: { slug: "jw", action: "pin", returnTo: "/" },
-      headers: JSON_HEADERS,
-    });
-    expect(response.status()).toBe(401);
-    const body = (await response.json()) as PinResponse;
-    expect(body.pinnedSlugs).toEqual([]);
-    expect(body.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
-  });
-
-  test("非 JSON 模式未登录时重定向", async ({ request }) => {
-    const response = await request.post(BASE, {
-      form: { slug: "jw", action: "pin", returnTo: "/catalog/links" },
-      maxRedirects: 0,
-    });
-    expect(response.status()).toBe(303);
-  });
-
-  test("缺少 slug 时返回 400 JSON", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.post(BASE, {
-      form: { action: "pin", returnTo: "/" },
-      headers: JSON_HEADERS,
-    });
-    expect(response.status()).toBe(400);
-  });
-
-  test("置顶并取消置顶链接", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    // Use a less common slug to minimize interference with seeded state
-    const testSlug = "vlab";
-
-    // Ensure clean start: unpin first
-    await request.post(BASE, {
-      form: { slug: testSlug, action: "unpin", returnTo: "/" },
-      headers: JSON_HEADERS,
-    });
-
-    try {
-      // Pin the link
-      const pinRes = await request.post(BASE, {
-        form: { slug: testSlug, action: "pin", returnTo: "/" },
-        headers: JSON_HEADERS,
+const base = "/api/workspace/link-pins";
+const headers = { accept: "application/json" };
+test(
+  "anonymous JSON pin returns 401 and HTML pin redirects",
+  { tag: "@CatalogLink/REST" },
+  async ({ request, run }) =>
+    run(async () => {
+      const form = { slug: "jw", action: "pin", returnTo: "/catalog/links" };
+      const json = await request.post(base, { form, headers });
+      expect(json.status()).toBe(401);
+      expect(await json.json()).toMatchObject({
+        pinnedSlugs: [],
+        maxPinnedLinks: 4,
       });
-      expect(pinRes.status()).toBe(200);
-      const pinBody = (await pinRes.json()) as PinResponse;
-      expect(pinBody.pinnedSlugs).toContain(testSlug);
-      expect(pinBody.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
+      const html = await request.post(base, { form, maxRedirects: 0 });
+      expect(html.status()).toBe(303);
+    }),
+);
 
-      // Unpin the link
-      const unpinRes = await request.post(BASE, {
-        form: { slug: testSlug, action: "unpin", returnTo: "/" },
-        headers: JSON_HEADERS,
+test(
+  "known pins are listed in creation order for only their owner",
+  { tag: "@CatalogLink/REST" },
+  async ({ isolatedWorker, run }) =>
+    run(async () => {
+      const { createActor } = isolatedWorker;
+      const db = isolatedWorker.database.owner;
+      const owner = await createActor();
+      const other = await createActor();
+      await db.workspaceLinkPin.createMany({
+        data: [
+          { userId: owner.id, slug: "vlab", createdAt: new Date("2026-01-01") },
+          { userId: owner.id, slug: "jw", createdAt: new Date("2026-01-02") },
+          { userId: other.id, slug: "mail" },
+        ],
       });
-      expect(unpinRes.status()).toBe(200);
-      const unpinBody = (await unpinRes.json()) as PinResponse;
-      expect(unpinBody.pinnedSlugs).not.toContain(testSlug);
-    } finally {
-      // Cleanup: ensure unpin
-      await request.post(BASE, {
-        form: { slug: testSlug, action: "unpin", returnTo: "/" },
-        headers: JSON_HEADERS,
+      const response = await owner.request.get(base);
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toMatchObject({
+        pinnedSlugs: ["vlab", "jw"],
+        maxPinnedLinks: 4,
       });
-    }
-  });
+    }),
+);
 
-  test("未知 slug 在 JSON 模式下返回 400 且保留已有置顶", async ({
-    request,
-  }) => {
-    await signInAsDebugUserApi(request, "/");
-    const before = await request.get(BASE);
-    expect(before.status()).toBe(200);
-    const { pinnedSlugs } = (await before.json()) as PinResponse;
-    const response = await request.post(BASE, {
-      form: { slug: "nonexistent-slug-e2e", action: "pin", returnTo: "/" },
-      headers: JSON_HEADERS,
-    });
-    expect(response.status()).toBe(400);
-    const body = (await response.json()) as PinResponse;
-    expect(body.error).toBe("invalid_slug");
-    expect(body.pinnedSlugs).toEqual(pinnedSlugs);
-    expect(body.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
-    const after = await request.get(BASE);
-    expect(after.status()).toBe(200);
-    expect(((await after.json()) as PinResponse).pinnedSlugs).toEqual(
-      pinnedSlugs,
-    );
-  });
+for (const action of ["pin", "unpin"] as const) {
+  test(
+    `${action} persists only the current owner's pins and is idempotent`,
+    { tag: "@CatalogLink/REST" },
+    async ({ isolatedWorker, run }) =>
+      run(async () => {
+        const { createActor } = isolatedWorker;
+        const db = isolatedWorker.database.owner;
+        const owner = await createActor();
+        const other = await createActor();
+        await db.workspaceLinkPin.createMany({
+          data: [
+            { userId: other.id, slug: "vlab" },
+            ...(action === "unpin" ? [{ userId: owner.id, slug: "vlab" }] : []),
+          ],
+        });
+        const otherBefore = await db.workspaceLinkPin.findMany({
+          where: { userId: other.id },
+        });
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const response = await owner.request.post(base, {
+            form: { slug: "vlab", action, returnTo: "/" },
+            headers,
+          });
+          expect(response.status()).toBe(200);
+          expect(await response.json()).toMatchObject({
+            pinnedSlugs: action === "pin" ? ["vlab"] : [],
+            maxPinnedLinks: 4,
+          });
+        }
+        expect(
+          await db.workspaceLinkPin.findMany({
+            where: { userId: owner.id },
+            select: { slug: true },
+          }),
+        ).toEqual(action === "pin" ? [{ slug: "vlab" }] : []);
+        expect(
+          await db.workspaceLinkPin.findMany({ where: { userId: other.id } }),
+        ).toEqual(otherBefore);
+        const read = await owner.request.get(base);
+        expect(read.status()).toBe(200);
+        expect((await read.json()).pinnedSlugs).toEqual(
+          action === "pin" ? ["vlab"] : [],
+        );
+      }),
+  );
+}
 
-  test("重定向模式下登录用户返回 303", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
+test(
+  "a fifth pin evicts only the oldest pin",
+  { tag: "@CatalogLink/REST" },
+  async ({ isolatedWorker, run }) =>
+    run(async () => {
+      const { createActor } = isolatedWorker;
+      const db = isolatedWorker.database.owner;
+      const owner = await createActor();
+      await db.workspaceLinkPin.createMany({
+        data: ["jw", "mail", "library", "official"].map((slug, index) => ({
+          userId: owner.id,
+          slug,
+          createdAt: new Date(`2026-01-0${index + 1}`),
+        })),
+      });
+      const response = await owner.request.post(base, {
+        form: { slug: "vlab", action: "pin", returnTo: "/" },
+        headers,
+      });
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toMatchObject({
+        pinnedSlugs: ["mail", "library", "official", "vlab"],
+        maxPinnedLinks: 4,
+      });
+      expect(
+        await db.workspaceLinkPin.findMany({
+          where: { userId: owner.id },
+          select: { slug: true },
+          orderBy: { createdAt: "asc" },
+        }),
+      ).toEqual(
+        ["mail", "library", "official", "vlab"].map((slug) => ({ slug })),
+      );
+    }),
+);
 
-    const response = await request.post(BASE, {
-      form: { slug: "jw", action: "pin", returnTo: "/catalog/links" },
-      maxRedirects: 0,
-    });
-    expect(response.status()).toBe(303);
-  });
-});
+for (const slug of ["", "nonexistent-slug-e2e"]) {
+  test(
+    `rejects ${slug || "missing slug"} without changing known pins`,
+    { tag: "@CatalogLink/REST" },
+    async ({ isolatedWorker, run }) =>
+      run(async () => {
+        const { createActor } = isolatedWorker;
+        const db = isolatedWorker.database.owner;
+        const owner = await createActor();
+        await db.workspaceLinkPin.create({
+          data: { userId: owner.id, slug: "jw" },
+        });
+        const before = await db.workspaceLinkPin.findMany({
+          where: { userId: owner.id },
+        });
+        const response = await owner.request.post(base, {
+          form: { ...(slug ? { slug } : {}), action: "pin", returnTo: "/" },
+          headers,
+        });
+        expect(response.status()).toBe(400);
+        if (slug)
+          expect(await response.json()).toMatchObject({
+            error: "invalid_slug",
+            pinnedSlugs: ["jw"],
+            maxPinnedLinks: 4,
+          });
+        expect(
+          await db.workspaceLinkPin.findMany({ where: { userId: owner.id } }),
+        ).toEqual(before);
+      }),
+  );
+}
+
+test(
+  "authenticated HTML pin redirects after persisting the pin",
+  { tag: "@CatalogLink/REST" },
+  async ({ isolatedWorker, run }) =>
+    run(async () => {
+      const { createActor } = isolatedWorker;
+      const db = isolatedWorker.database.owner;
+      const owner = await createActor();
+      const response = await owner.request.post(base, {
+        form: { slug: "jw", action: "pin", returnTo: "/catalog/links" },
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(303);
+      expect(new URL(response.headers().location).pathname).toBe(
+        "/catalog/links",
+      );
+      expect(
+        await db.workspaceLinkPin.findMany({
+          where: { userId: owner.id },
+          select: { slug: true },
+        }),
+      ).toEqual([{ slug: "jw" }]);
+    }),
+);

@@ -54,7 +54,9 @@ describe("bounded direct SQL snapshots", () => {
   });
   afterAll(() => fixture.$disconnect());
 
-  it("commits the snapshot refresh and uses repeatable-read isolation", async () => {
+  it("commits the snapshot refresh and uses repeatable-read isolation", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async () => {
     const value = await withRuntimeDatabaseSnapshot(
       "app",
       limits,
@@ -72,7 +74,9 @@ describe("bounded direct SQL snapshots", () => {
     await expectDisconnected();
   });
 
-  it("rolls back writes on a SQL failure and releases the connection", async () => {
+  it("rolls back writes on a SQL failure and releases the connection", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async () => {
     await expect(
       withRuntimeDatabaseSnapshot("app", limits, async (connection) => {
         await connection.query(
@@ -88,7 +92,9 @@ describe("bounded direct SQL snapshots", () => {
     await expectDisconnected();
   });
 
-  it("preserves PostgreSQL statement limits and final rollback after either transaction deadline", async () => {
+  it("preserves PostgreSQL statement limits and final rollback after either transaction deadline", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async () => {
     // The old Prisma deadline also queues ROLLBACK behind active PostgreSQL
     // statements; it does not cancel them. Check both implementations against
     // the same server-side bound, independently of their return timing.
@@ -144,7 +150,9 @@ describe("bounded direct SQL snapshots", () => {
     await expectDisconnected();
   });
 
-  it("bounds a stalled connection handshake and closes its socket", async () => {
+  it("bounds a stalled connection handshake and closes its socket", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async () => {
     const sockets = new Set<import("node:net").Socket>();
     const server = createServer((socket) => {
       sockets.add(socket);
@@ -181,7 +189,9 @@ describe("bounded direct SQL snapshots", () => {
     }
   });
 
-  it("rejects a malformed persisted metrics payload with 503 and releases its connection", async () => {
+  it("rejects a malformed persisted metrics payload with 503 and releases its connection", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async () => {
     await readPrometheusMetrics();
     await fixture.$executeRaw`
       UPDATE public."PrometheusMetricsCache"
@@ -199,7 +209,9 @@ describe("bounded direct SQL snapshots", () => {
     await expectDisconnected();
   });
 
-  it("keeps the metrics ten-second SQL limit while blocked on a database lock", async () => {
+  it("keeps the metrics ten-second SQL limit while blocked on a database lock", {
+    tags: ["@Infrastructure/Runtime"],
+  }, async () => {
     const locked = createDeferred();
     const unlock = createDeferred();
     const holder = fixture.$transaction(

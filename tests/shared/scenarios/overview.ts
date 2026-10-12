@@ -50,31 +50,6 @@ export function normalizeMcpOverviewPayload(payload: {
   };
 }
 
-/** REST `GET /api/workspace/overview` JSON body. */
-export function normalizeRestOverviewPayload(body: {
-  counts?: {
-    todos?: { incomplete?: number };
-    pendingHomeworks?: number;
-    todaySchedules?: number;
-    upcomingExams?: number;
-  };
-  schedules?: { items?: unknown[] };
-  dueTodos?: { items?: unknown[] };
-  homeworks?: { items?: unknown[] };
-  exams?: { items?: unknown[] };
-}): OverviewCountSnapshot & OverviewSampleSnapshot {
-  return {
-    pendingTodosCount: body.counts?.todos?.incomplete,
-    pendingHomeworksCount: body.counts?.pendingHomeworks,
-    todaySchedulesCount: body.counts?.todaySchedules,
-    upcomingExamsCount: body.counts?.upcomingExams,
-    dueTodosCount: body.dueTodos?.items?.length,
-    dueHomeworksCount: body.homeworks?.items?.length,
-    schedulesCount: body.schedules?.items?.length,
-    examsCount: body.exams?.items?.length,
-  };
-}
-
 /** GraphQL `workspace.overview` selection. */
 export function normalizeGraphqlOverviewPayload(overview: {
   incompleteTodos?: number;

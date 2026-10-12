@@ -1,8 +1,9 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
-import type {
-  createPriorityViewAudit,
-  PriorityField,
+import {
+  assertInternalPriorityFieldAbsent,
+  assertPriorityView,
+  type PriorityField,
 } from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
 
@@ -28,7 +29,6 @@ function calendarUrl(
 }
 
 async function checkEvent(
-  audit: ReturnType<typeof createPriorityViewAudit>,
   page: Page,
   data: WorkspacePriorityFixture,
   locale: Locale,
@@ -39,6 +39,12 @@ async function checkEvent(
   const scope = page
     .getByTestId(grid ? "workspace-calendar-grid" : "calendar-agenda")
     .filter({ visible: true });
+  // Activity results rebuild the calendar, including dates without activities.
+  // Wait for that render before scrolling to and measuring an event's fields.
+  await expect(scope).toBeVisible();
+  const calendar = scope.locator("xpath=ancestor::section[1]");
+  await expect(calendar.getByRole("status")).toHaveCount(0);
+  await expect(calendar.getByRole("alert")).toHaveCount(0);
   const courseName = local(data.catalog.courses[0], locale);
   const title =
     kind === "activity"
@@ -128,10 +134,7 @@ async function checkEvent(
       : kind === "class"
         ? `session-${data.schedule.id}`
         : `${kind}-${data[kind].id}`;
-  await audit.check({
-    feature: "calendar",
-    capability: "event-card",
-    view: `web-${layout}-${kind}`,
+  await assertPriorityView({
     scope: event,
     identity,
     primary,
@@ -139,26 +142,14 @@ async function checkEvent(
     tertiary: { "event.id": { value: id } },
   });
   if (kind === "class") {
-    await audit.check({
-      feature: "calendar",
-      capability: "personal-calendar-view",
-      view: `web-${layout}`,
-      scope,
-      identity,
-      primary,
-      secondary,
-      tertiary: { "event.id": { value: id } },
-    });
+    await assertInternalPriorityFieldAbsent(scope, { value: id });
     const day = grid
       ? event.locator('xpath=ancestor::*[@role="gridcell"][1]')
       : event.locator("xpath=ancestor::section[1]");
     const date = grid
       ? day.locator("div").first().locator("div").first()
       : day.getByRole("heading");
-    await audit.check({
-      feature: "schedule",
-      capability: "my-schedule",
-      view: `web-${layout}`,
+    await assertPriorityView({
       scope: day,
       identity,
       primary: {
@@ -184,7 +175,6 @@ async function checkEvent(
 
 /** Distinct event payloads and the real responsive layouts; no hidden grid counts as mobile evidence. */
 export async function checkWorkspaceEventPriorityViews(
-  audit: ReturnType<typeof createPriorityViewAudit>,
   page: Page,
   data: WorkspacePriorityFixture,
   locale: Locale,
@@ -200,9 +190,9 @@ export async function checkWorkspaceEventPriorityViews(
   await gotoAndWaitForReady(page, calendarUrl(data, "day", data.today));
   await expect(activityLink("agenda")).toBeVisible();
   for (const kind of ["class", "homework", "todo", "activity"] as const)
-    await checkEvent(audit, page, data, locale, kind, "agenda");
+    await checkEvent(page, data, locale, kind, "agenda");
   await gotoAndWaitForReady(page, calendarUrl(data, "day", data.tomorrow));
-  await checkEvent(audit, page, data, locale, "exam", "agenda");
+  await checkEvent(page, data, locale, "exam", "agenda");
   for (const mode of ["week", "month", "semester"]) {
     await gotoAndWaitForReady(page, calendarUrl(data, mode, data.today));
     const grid = page.getByTestId("workspace-calendar-grid");
@@ -213,8 +203,8 @@ export async function checkWorkspaceEventPriorityViews(
     // before hovering a class so the initial async render cannot replace it.
     await expect(activityLink(layout)).toBeVisible();
     for (const kind of ["class", "homework", "todo", "activity"] as const)
-      await checkEvent(audit, page, data, locale, kind, layout);
+      await checkEvent(page, data, locale, kind, layout);
     await gotoAndWaitForReady(page, calendarUrl(data, mode, data.tomorrow));
-    await checkEvent(audit, page, data, locale, "exam", layout);
+    await checkEvent(page, data, locale, "exam", layout);
   }
 }

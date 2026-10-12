@@ -133,9 +133,10 @@ function refreshRow(overrides: Record<string, unknown> = {}) {
 
 describe("user OAuth authorizations", () => {
   beforeEach(() => {
+    vi.resetAllMocks();
+    // The fixture token expiry and usage windows share this explicit clock.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-15T00:00:00.000Z"));
-    vi.resetAllMocks();
     mocks.transactionRunner.mockImplementation(
       async (callback: (tx: typeof mocks.transaction) => Promise<unknown>) =>
         callback(mocks.transaction),
@@ -554,8 +555,6 @@ describe("user OAuth authorizations", () => {
   });
 
   it("marks a revoked token as a replay tombstone, rotates its consent, and purges its lineage", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-09-15T00:00:00.000Z"));
     mocks.refreshFindUnique.mockResolvedValue(
       refreshRow({
         expiresAt: new Date("2026-09-01T00:00:00.000Z"),

@@ -24,7 +24,7 @@ requirements:
     - Only the owner subscription row is created/deleted.
     - The full official source record remains unchanged and no outgoing registration request occurs.
     test:
-      file: tests/integration/young-workspace.test.ts
+      file: tests/integration/young-subscription-boundary.test.ts
       name: young-workspace.subscription
 - id: young-workspace.ownership
   category: authorization
@@ -49,7 +49,7 @@ requirements:
     - Anonymous REST and MCP reads are rejected and GraphQL returns no workspace; anonymous and
       read-scope writes across all three HTTP transports are rejected before changing stored state.
     test:
-      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      file: tests/integration/mcp/workspace/young-workspace-ownership.test.ts
       name: young-workspace.ownership
 - id: young-workspace.list-transport-pagination
   category: consistency
@@ -145,7 +145,7 @@ requirements:
     - 'Every successful REST response uses Cache-Control: private, no-store.'
     - Lists retain actual personal data and individual subscribed state remains correct.
     test:
-      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      file: tests/integration/mcp/workspace/young-workspace-private-response-cache.test.ts
       name: young-workspace.private-response-cache
 - id: young-workspace.reminder-deadline-window
   category: behavior
@@ -171,7 +171,7 @@ requirements:
     - At the deadline the expired candidate is absent.
     test:
       file: tests/unit/features/young/young-reminders.test.ts
-      name: young-workspace.reminder-deadline-window
+      name: "Young reminders > signup_deadline reminder window > at the window opening"
 - id: young-workspace.reminder-start-window
   category: behavior
   applies_to:
@@ -196,7 +196,7 @@ requirements:
     - Eligibility begins exactly one hour before the event and expires at its start.
     test:
       file: tests/unit/features/young/young-reminders.test.ts
-      name: young-workspace.reminder-start-window
+      name: "Young reminders > event_start reminder window > at the window opening"
 - id: young-workspace.reminder-settings
   category: behavior
   rule: Signup-opening, deadline and event-start reminders are independently configurable.
@@ -268,7 +268,7 @@ requirements:
       personal item identities.
     - The other owner’s REST calendar contains only their subscribed activity.
     test:
-      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      file: tests/integration/mcp/workspace/young-workspace-calendar-pagination.test.ts
       name: young-workspace.calendar-transport-pagination
 capabilities:
   workspace-young-event-subscription-list:
@@ -487,6 +487,13 @@ capabilities:
         rest_equivalent: POST /api/workspace/young-notifications/[id]/read
     requirement_refs:
     - young-event.snapshot-authoritative
+    - ui.navigation-landmarks-6
 rationale:
+- The web notification read acknowledgement and badge behavior are owned by ui.navigation-landmarks-6.
+  Its navigation scenario verifies real owner writes and badge updates; the supporting cases
+  "activity reminders filter, localize and persist read state in zh-cn" and
+  "activity reminders filter, localize and persist read state in en-us" in
+  tests/e2e/src/app/workspace/subscriptions/activities/test.ts verify HTTP and malformed/mismatched
+  acknowledgement failures, unchanged stored state, retry and read-history persistence.
 - Organizer-only digest behavior and exclusion from individual event subscriptions are canonically owned
   by young-workspace.digest; the removed organizer-digest-only rule was a strict duplicate.

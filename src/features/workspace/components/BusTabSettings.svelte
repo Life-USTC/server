@@ -22,6 +22,11 @@ export let selectBusEnd: (campusId: number) => void;
 export let selectBusStart: (campusId: number) => void;
 export let setBusDayType: (dayType: "weekday" | "saturday" | "sunday") => void;
 export let toggleBusDepartedTrips: () => void;
+
+function selectDayType(value: string) {
+  if (value === "weekday" || value === "saturday" || value === "sunday")
+    setBusDayType(value);
+}
 </script>
 
 <Field.Group class="gap-3">
@@ -75,17 +80,10 @@ export let toggleBusDepartedTrips: () => void;
           class="grid w-full grid-cols-3"
           spacing={2}
           type="single"
+          required
           value={busDayType}
           variant="outline"
-          onValueChange={(value) => {
-            if (
-              value === "weekday" ||
-              value === "saturday" ||
-              value === "sunday"
-            ) {
-              setBusDayType(value);
-            }
-          }}
+          onValueChange={selectDayType}
         >
           <ToggleGroup.Item
             class="h-11 md:h-8"

@@ -4,7 +4,7 @@
  * ## Data Represented
  * - Teachers with code, name (cn/en), department, title, sections
  * - Seed teacher: DEV_SEED.teacher (dynamic id, resolved via search)
- * - Department filter backed by getSeedTeacherDepartmentFixture
+ * - Department filter uses this test’s private teacher and department
  *
  * ## UI/UX Elements
  * - h1: "教师" / "Teachers"
@@ -15,167 +15,190 @@
  *
  * ## Edge Cases
  * - Teacher IDs are dynamic (no static DEV_SEED.teacher.id)
- * - Department fixture may return null if seed data not loaded
- * - Search and clear buttons may be absent in minimal UI
+ * - Department fixture is independently created for each case
+ * - Search and clear controls must be present
  */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import {
   expectCatalogFilterSheet,
   openCatalogFilterSheet,
 } from "../../../utils/catalog-filter-sheet";
+import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
-import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/teachers", () => {
-  test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, {
-      routePath: "/catalog/teachers",
-      testInfo,
+  test("页面契约", { tag: "@Teacher/Web" }, async ({
+    page,
+    preferenceFlow,
+    searchTeacher: _searchTeacher,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await assertPageContract(page, {
+        routePath: "/catalog/teachers",
+      });
     });
   });
 
-  test("SSR 输出包含搜索参数", async ({ baseURL }) => {
-    const response = await fetch(
-      absoluteTestUrl(
-        `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
-        baseURL,
-      ),
-    );
-    expect(response.status).toBe(200);
-    const html = await response.text();
-    expect(html).toContain('id="main-content"');
-    expect(html).toContain(DEV_SEED.teacher.nameCn);
+  test("SSR 输出包含搜索参数", { tag: "@Teacher/Web" }, async ({
+    baseURL,
+    preferenceFlow,
+    searchTeacher: _searchTeacher,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const response = await fetch(
+        absoluteTestUrl(
+          `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+          baseURL,
+        ),
+        { headers: preferenceFlow.headers },
+      );
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain('id="main-content"');
+      expect(html).toContain(DEV_SEED.teacher.nameCn);
+    });
   });
 
-  test("无匹配教师时显示明确空状态且不渲染结果链接", async ({ page }) => {
-    await gotoAndWaitForReady(
-      page,
-      "/catalog/teachers?search=e2e-no-matching-teacher-7f3c9a",
-    );
+  test("无匹配教师时显示明确空状态且不渲染结果链接", {
+    tag: "@Teacher/Web",
+  }, async ({ page, preferenceFlow, searchTeacher: _searchTeacher }) => {
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(
+        page,
+        "/catalog/teachers?search=e2e-no-matching-teacher-7f3c9a",
+      );
 
-    await expect(page.getByText(/未找到教师|No teachers found/i)).toBeVisible();
-    await expect(
-      page.locator("#main-content a[href^='/catalog/teachers/']"),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("link", { name: /^(清除|Clear)$/i }),
-    ).toBeVisible();
+      await expect(
+        page.getByText(/未找到教师|No teachers found/i),
+      ).toBeVisible();
+      await expect(
+        page.locator("#main-content a[href^='/catalog/teachers/']"),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("link", { name: /^(清除|Clear)$/i }),
+      ).toBeVisible();
+    });
   });
 
-  test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(
-      page,
-      `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
-      { testInfo, screenshotLabel: "teachers-list" },
-    );
-    await expectNoPageHorizontalOverflow(page);
-    await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
-    await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-    await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
-    await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
-    await expectCatalogFilterSheet(page, [/院系|Department/i]);
-
-    const detailLink = page
-      .locator("#main-content a[href^='/catalog/teachers/']:visible")
-      .first();
-    await expect(detailLink).toBeVisible();
-    const box = await detailLink.boundingBox();
-    expect(box?.width ?? 0).toBeGreaterThan(250);
-    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
-    await captureStepScreenshot(page, testInfo, "teachers-mobile-list");
-    await detailLink.click();
-
-    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+(?:\?.*)?$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
-  });
-
-  test("280 至 1440 像素通过筛选面板提供教师高级筛选", async ({
+  test("移动端卡片可点击并导航到详情", { tag: "@Teacher/Web" }, async ({
     page,
-  }, testInfo) => {
-    for (const width of [280, 320, 375, 1024, 1280, 1440]) {
-      await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/catalog/teachers");
+    preferenceFlow,
+    searchTeacher: _searchTeacher,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+      );
+      await expectNoPageHorizontalOverflow(page);
+      await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
+      await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
+      await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+      await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
       await expectCatalogFilterSheet(page, [/院系|Department/i]);
-      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-      if (width === 280 || width === 375) {
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `teachers-filter-sheet-${width}`,
+
+      const detailLink = page
+        .locator("#main-content a[href^='/catalog/teachers/']:visible")
+        .first();
+      await expect(detailLink).toBeVisible();
+      const box = await detailLink.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThan(250);
+      expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
+      await detailLink.click();
+
+      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+(?:\?.*)?$/);
+      await expect(page.locator("#main-content")).toBeVisible();
+    });
+  });
+
+  test("280 至 1440 像素通过筛选面板提供教师高级筛选", {
+    tag: "@Teacher/Web",
+  }, async ({ page, preferenceFlow, searchTeacher: _searchTeacher }) => {
+    await preferenceFlow.run(async () => {
+      for (const width of [280, 320, 375, 1024, 1280, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(page, "/catalog/teachers");
+        await expectCatalogFilterSheet(page, [/院系|Department/i]);
+        await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+        if (width === 280 || width === 375) {
+        }
+      }
+    });
+  });
+
+  test("搜索和清除按钮可用", { tag: "@Teacher/Web" }, async ({
+    page,
+    preferenceFlow,
+    searchTeacher: _searchTeacher,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await gotoAndWaitForReady(page, "/catalog/teachers");
+
+      const searchbox = page.getByRole("searchbox").first();
+      await expect(searchbox).toBeVisible();
+
+      await searchbox.fill(DEV_SEED.teacher.nameCn);
+      const searchButton = page.getByRole("button", {
+        name: /^(搜索|Search)$/,
+      });
+      await expect(searchButton).toBeVisible();
+      await searchButton.click();
+
+      await expect(page).toHaveURL(/search=/);
+
+      const clearLink = page
+        .getByRole("link", { name: /^(清除|Clear)$/i })
+        .first();
+      await expect(clearLink).toBeVisible();
+      await clearLink.click();
+      await expect
+        .poll(() => new URL(page.url()).searchParams.get("search"))
+        .toBe(DEV_SEED.teacher.nameCn);
+    });
+  });
+
+  test("院系筛选保留教师结果", { tag: "@Teacher/Web" }, async ({
+    page,
+    preferenceFlow,
+    searchTeacher: _searchTeacher,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const filter = {
+        departmentId: _searchTeacher.department.id,
+        departmentName: _searchTeacher.department.nameCn,
+      };
+      if (!filter.departmentName) {
+        throw new Error(
+          "Expected the seeded teacher to have a department fixture",
         );
       }
-    }
-  });
 
-  test("搜索和清除按钮可用", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/catalog/teachers", {
-      testInfo,
-      screenshotLabel: "teachers",
-    });
-
-    const searchbox = page.getByRole("searchbox").first();
-    await expect(searchbox).toBeVisible();
-
-    await searchbox.fill(DEV_SEED.teacher.nameCn);
-    const searchButton = page.getByRole("button", {
-      name: /^(搜索|Search)$/,
-    });
-    await expect(searchButton).toBeVisible();
-    await searchButton.click();
-
-    await expect(page).toHaveURL(/search=/);
-
-    const clearLink = page
-      .getByRole("link", { name: /^(清除|Clear)$/i })
-      .first();
-    await expect(clearLink).toBeVisible();
-    await clearLink.click();
-    await expect
-      .poll(() => new URL(page.url()).searchParams.get("search"))
-      .toBe(DEV_SEED.teacher.nameCn);
-
-    await captureStepScreenshot(page, testInfo, "teachers-search-clear");
-  });
-
-  test("院系筛选保留教师结果", async ({ page }, testInfo) => {
-    const filter = await getSeedTeacherDepartmentFixture(DEV_SEED.teacher.jwId);
-    if (!filter.departmentName) {
-      throw new Error(
-        "Expected the seeded teacher to have a department fixture",
+      await gotoAndWaitForReady(page, "/catalog/teachers");
+      await page.getByRole("searchbox").fill(DEV_SEED.teacher.nameCn);
+      const filterDialog = await openCatalogFilterSheet(page);
+      await filterDialog
+        .getByLabel(/院系|Department/i)
+        .selectOption(String(filter.departmentId));
+      await expect(page).not.toHaveURL(/departmentId=/);
+      await filterDialog
+        .getByRole("button", { name: /应用筛选|Apply filters/i })
+        .click();
+      await expect(filterDialog).toBeHidden();
+      await expect(page).toHaveURL(
+        new RegExp(`departmentId=${filter.departmentId}`),
       );
-    }
-
-    await gotoAndWaitForReady(page, "/catalog/teachers", {
-      testInfo,
-      screenshotLabel: "teachers-department",
+      await expect
+        .poll(() => new URL(page.url()).searchParams.get("search"))
+        .toBe(DEV_SEED.teacher.nameCn);
+      await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
     });
-    await page.getByRole("searchbox").fill(DEV_SEED.teacher.nameCn);
-    const filterDialog = await openCatalogFilterSheet(page);
-    await filterDialog
-      .getByLabel(/院系|Department/i)
-      .selectOption(String(filter.departmentId));
-    await expect(page).not.toHaveURL(/departmentId=/);
-    await filterDialog
-      .getByRole("button", { name: /应用筛选|Apply filters/i })
-      .click();
-    await expect(filterDialog).toBeHidden();
-    await expect(page).toHaveURL(
-      new RegExp(`departmentId=${filter.departmentId}`),
-    );
-    await expect
-      .poll(() => new URL(page.url()).searchParams.get("search"))
-      .toBe(DEV_SEED.teacher.nameCn);
-    await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "teachers-filter-department");
   });
 });

@@ -1,8 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { semanticContract } from "../../../shared/specifications/semantic-contract";
-import { todoExpectation } from "../../../shared/specifications/todo";
 
 const { findMany, queryRaw, requireAuth } = vi.hoisted(() => ({
   findMany: vi.fn(),
@@ -17,116 +15,80 @@ vi.mock("@/lib/db/prisma", () => ({
   ) => action({ $queryRaw: queryRaw, todo: { findMany } }),
 }));
 
-describe("Todo specification input behavior", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    findMany.mockResolvedValue([]);
-    queryRaw.mockResolvedValue([
-      { completed: 0n, incomplete: 0n, overdue: 0n, due_soon: 0n },
-    ]);
-    requireAuth.mockResolvedValue({ userId: "spec-owner" });
-  });
+import { getTodosRoute } from "@/lib/api/routes/todos";
+import { listMyTodosInputSchema } from "@/lib/mcp/tools/workspace/profile-tool-helpers";
+import { listMyTodosAction } from "@/lib/mcp/tools/workspace/profile-tool-todo-list-action";
+import { registerProfileTools } from "@/lib/mcp/tools/workspace/profile-tools";
 
-  it("todo.rest-list-limit", async (context) => {
-    const contract = await semanticContract(context.task.name, "numeric_input");
-    contract.equal("/surface", "rest");
-    contract.equal("/input", "limit");
-    const rule = await todoExpectation("todo.rest-list-limit", "numeric_input");
-    expect(rule.surface).toBe("rest");
-    contract.equal("/operation", "GET /api/workspace/todos");
-    const { getTodosRoute } = await import("@/lib/api/routes/todos");
-    const [method, path] = rule.operation.split(" ");
-    const request = (limit?: number) =>
-      new Request(
-        `https://example.test${path}${limit === undefined ? "" : `?${rule.input}=${limit}`}`,
-        { method },
-      );
-    for (const limit of [undefined, rule.minimum, rule.maximum]) {
-      const response = await getTodosRoute(request(limit));
-      expect(response.status).toBe(200);
-      expect(findMany).toHaveBeenLastCalledWith(
-        expect.objectContaining({ take: limit ?? rule.default }),
-      );
-      const field =
-        limit === undefined
-          ? "default"
-          : limit === rule.minimum
-            ? "minimum"
-            : "maximum";
-      contract.equal(`/${field}`, findMany.mock.lastCall?.[0].take);
-    }
-    findMany.mockClear();
-    queryRaw.mockClear();
-    for (const limit of [rule.minimum - 1, rule.maximum + 1]) {
+beforeEach(() => {
+  vi.clearAllMocks();
+  findMany.mockResolvedValue([]);
+  queryRaw.mockResolvedValue([
+    { completed: 0n, incomplete: 0n, overdue: 0n, due_soon: 0n },
+  ]);
+  requireAuth.mockResolvedValue({ userId: "owner" });
+});
+
+describe("REST todo list limit", () => {
+  const request = (limit?: number) =>
+    new Request(
+      `https://example.test/api/workspace/todos${limit === undefined ? "" : `?limit=${limit}`}`,
+    );
+
+  it.each([
+    [undefined, 100],
+    [1, 1],
+    [200, 200],
+  ] as const)("accepts limit %s and reads %s rows", async (limit, expected) => {
+    expect((await getTodosRoute(request(limit))).status).toBe(200);
+    expect(findMany).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ take: expected }),
+    );
+  });
+  it.each([0, 201, 1.5])(
+    "rejects limit %s before any data read",
+    async (limit) => {
       expect((await getTodosRoute(request(limit))).status).toBe(400);
-    }
-    expect(findMany).not.toHaveBeenCalled();
-    expect(queryRaw).not.toHaveBeenCalled();
-    const fractionalResponse = await getTodosRoute(request(rule.minimum + 0.5));
-    contract.equal("/integer", fractionalResponse.status === 400);
-    expect(findMany).toHaveBeenCalledTimes(rule.integer ? 0 : 1);
-    expect(queryRaw).toHaveBeenCalledTimes(rule.integer ? 0 : 1);
-    contract.recordVitest(context);
-  });
+      expect(findMany).not.toHaveBeenCalled();
+      expect(queryRaw).not.toHaveBeenCalled();
+    },
+  );
+});
 
-  it("todo.mcp-list-limit", async (context) => {
-    const contract = await semanticContract(context.task.name, "numeric_input");
-    contract.equal("/surface", "mcp");
-    contract.equal("/input", "limit");
-    const rule = await todoExpectation("todo.mcp-list-limit", "numeric_input");
-    expect(rule.surface).toBe("mcp");
-    const { listMyTodosInputSchema } = await import(
-      "@/lib/mcp/tools/workspace/profile-tool-helpers"
-    );
-    const { listMyTodosAction } = await import(
-      "@/lib/mcp/tools/workspace/profile-tool-todo-list-action"
-    );
-    const { registerProfileTools } = await import(
-      "@/lib/mcp/tools/workspace/profile-tools"
-    );
+describe("MCP todo list limit", () => {
+  const schema = z.object(listMyTodosInputSchema);
+  it("registers the validated schema and actual handler", () => {
     const registerTool = vi.fn();
     registerProfileTools({ registerTool } as unknown as McpServer);
     const registration = registerTool.mock.calls.find(
-      ([name]) => name === rule.operation,
+      ([name]) => name === "workspace_todo_list",
     );
-    expect(
-      registration,
-      "specified MCP tool must register the tested schema and handler",
-    ).toBeDefined();
-    contract.equal("/operation", registration?.[0]);
     expect(registration?.[1].inputSchema).toBe(listMyTodosInputSchema);
     expect(registration?.[2]).toBe(listMyTodosAction);
-    const schema = z.object(listMyTodosInputSchema);
-    for (const limit of [undefined, rule.minimum, rule.maximum]) {
-      const input = schema.parse(
-        limit === undefined ? {} : { [rule.input]: limit },
-      );
-      await listMyTodosAction(input, {
+  });
+  it.each([
+    [undefined, 50],
+    [1, 1],
+    [200, 200],
+  ] as const)("accepts limit %s and reads %s rows", async (limit, expected) => {
+    await listMyTodosAction(
+      schema.parse(limit === undefined ? {} : { limit }),
+      {
         authInfo: {
           token: "test",
-          clientId: "spec",
+          clientId: "unit",
           scopes: ["workspace.todo:read"],
-          extra: { userId: "spec-owner" },
+          extra: { userId: "owner" },
         },
-      } as Parameters<typeof listMyTodosAction>[1]);
-      expect(findMany).toHaveBeenLastCalledWith(
-        expect.objectContaining({ take: limit ?? rule.default }),
-      );
-      const field =
-        limit === undefined
-          ? "default"
-          : limit === rule.minimum
-            ? "minimum"
-            : "maximum";
-      contract.equal(`/${field}`, findMany.mock.lastCall?.[0].take);
-    }
-    for (const limit of [rule.minimum - 1, rule.maximum + 1]) {
-      expect(schema.safeParse({ [rule.input]: limit }).success).toBe(false);
-    }
-    contract.equal(
-      "/integer",
-      !schema.safeParse({ [rule.input]: rule.minimum + 0.5 }).success,
+      } as Parameters<typeof listMyTodosAction>[1],
     );
-    contract.recordVitest(context);
+    expect(findMany).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ take: expected }),
+    );
+  });
+  it.each([0, 201, 1.5])("rejects limit %s", (limit) => {
+    expect(schema.safeParse({ limit }).success).toBe(false);
+    expect(findMany).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 });

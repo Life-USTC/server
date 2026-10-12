@@ -85,6 +85,8 @@ export type WelcomePageCopy = WelcomeRootCopy & {
   profile: WelcomeProfileCopy;
   subscriptions: {
     bulkImport: WelcomeBulkImportCopy;
+    sectionIncluded: string;
+    sectionsIncluded: string;
   };
   welcome: WelcomeCopy;
 };

@@ -21,22 +21,43 @@ access:
     workspace.calendar-feed:read capability; MCP workspace_calendar_feed_get returns subscription information
     without the personal feed URL, path, credential, or token.
 requirements:
+- id: ical.section-rebuild-fan-out
+  category: consistency
+  rule: A committed section homework create, update or deletion rebuilds the stored personal exports
+    of that section's current subscribers through the calendar queue. All subscription kinds are included;
+    unrelated users' exports remain unchanged. Trusted recipient discovery uses a bounded maintenance-only
+    query, while export contents remain owner-scoped. Recipient discovery failure retries the message
+    instead of acknowledging an empty subscriber result.
+  acceptance:
+    given: Each independent case owns a Worker and database, two section subscribers, an unrelated section
+      subscriber and a non-subscriber. Initial exports are stored by real user queue messages.
+    when: A real REST homework create, update or deletion delivers a section message through the native queue.
+    then:
+    - The committed homework state and native completion, acknowledgement and retry counts match the operation.
+    - Both subscribers' actual stored exports contain the exact changed homework UID, title and Shanghai deadline,
+      or omit the deleted event, without a feed read repairing the cache.
+    - The unrelated subscriber's stored export is byte-for-byte unchanged and no export is created for the non-subscriber.
+    - Supporting role tests retain owner RLS and maintenance-only bounded discovery for regular, auditor and teaching-assistant subscriptions.
+    - Supporting queue tests retry enumeration errors, including failure after the first page, without reporting a successful no-op.
+    test:
+      file: tests/integration/rest/protocol-contracts/section-calendar-fan-out.test.ts
+      name: section homework create rebuilds only subscriber calendars
 - id: ical.committed-write-rebuilds
   category: consistency
   rule: Calendar export rebuild requests are enqueued only after the source write commits; rolled-back
     writes never request a rebuild.
   acceptance:
-    given: Actual todo/homework creation and section/activity subscription services write to PostgreSQL
-      with a recording rebuild sender.
-    when: Each source write succeeds, then repeats under a deferred constraint trigger that rejects at
-      commit.
+    given: Each todo/homework creation and section/activity subscription case owns its PostgreSQL database
+      and request-local recording queue binding.
+    when: Independent success and rejection cases execute each source write; rejection uses a deferred
+      constraint trigger that fails at commit.
     then:
     - An independent database connection sees the committed source row when each successful rebuild is
       requested.
     - Commit rejection rolls back the row and emits no rebuild request for any of the four source domains.
     test:
       file: tests/integration/calendar-commit-contract.test.ts
-      name: ical.committed-write-rebuilds
+      name: Todo rebuild observes the committed source row
 - id: ical.copyable-links
   category: presentation
   rule: iCal links should be presented as copyable links rather than requiring users to manually construct

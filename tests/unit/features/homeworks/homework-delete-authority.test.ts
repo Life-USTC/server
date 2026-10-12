@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { homeworkExpectation } from "../../../shared/specifications/homework";
-import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 const { viewer, findHomework, updateHomework, writeAuditLog, invalidate } =
   vi.hoisted(() => ({
@@ -45,76 +43,121 @@ describe("homework deletion authority", () => {
     });
   });
 
-  async function verifyAuthority(id: string) {
-    const specification = homeworkExpectation(id, "authorization");
-    const contract = await semanticContract(id, "authorization");
-    contract.equal("/surface", "service");
-    if (specification.surface !== "service")
-      throw new Error("Deletion matrix requires service-layer evidence");
-    const services = { deleteHomework, deleteHomeworkForModeration };
-    const effects = {
-      homework: updateHomework,
-      audit: writeAuditLog,
-      calendar: invalidate,
-    };
-    const service = services[specification.operation];
-    contract.equal("/operation", service.name);
-    const denied = new Set<string>();
-    for (const [index, scenario] of specification.cases.entries()) {
-      vi.clearAllMocks();
+  const actors = [
+    {
+      name: "active user creator",
+      userId: "creator-1",
+      authenticated: true,
+      suspended: false,
+      admin: false,
+      ordinary: "allowed",
+      moderation: "forbidden",
+    },
+    {
+      name: "active admin creator",
+      userId: "creator-1",
+      authenticated: true,
+      suspended: false,
+      admin: true,
+      ordinary: "allowed",
+      moderation: "allowed",
+    },
+    {
+      name: "active other user",
+      userId: "other-1",
+      authenticated: true,
+      suspended: false,
+      admin: false,
+      ordinary: "forbidden",
+      moderation: "forbidden",
+    },
+    {
+      name: "active other admin",
+      userId: "other-1",
+      authenticated: true,
+      suspended: false,
+      admin: true,
+      ordinary: "forbidden",
+      moderation: "allowed",
+    },
+    {
+      name: "anonymous creator",
+      userId: "creator-1",
+      authenticated: false,
+      suspended: false,
+      admin: false,
+      ordinary: "forbidden",
+      moderation: "forbidden",
+    },
+    {
+      name: "suspended user creator",
+      userId: "creator-1",
+      authenticated: true,
+      suspended: true,
+      admin: false,
+      ordinary: "suspended",
+      moderation: "suspended",
+    },
+    {
+      name: "suspended admin creator",
+      userId: "creator-1",
+      authenticated: true,
+      suspended: true,
+      admin: true,
+      ordinary: "suspended",
+      moderation: "suspended",
+    },
+    {
+      name: "suspended other admin",
+      userId: "other-1",
+      authenticated: true,
+      suspended: true,
+      admin: true,
+      ordinary: "suspended",
+      moderation: "suspended",
+    },
+    {
+      name: "anonymous other admin",
+      userId: "other-1",
+      authenticated: false,
+      suspended: false,
+      admin: true,
+      ordinary: "forbidden",
+      moderation: "forbidden",
+    },
+  ] as const;
+
+  describe.each([
+    { mode: "ordinary", service: deleteHomework },
+    { mode: "moderation", service: deleteHomeworkForModeration },
+  ] as const)("$mode deletion", ({ mode, service }) => {
+    it.each(actors)("$name", async (actor) => {
       viewer.mockResolvedValue({
-        isAuthenticated: scenario.authenticated,
-        isSuspended: scenario.suspended,
-        isAdmin: scenario.role === "admin",
+        isAuthenticated: actor.authenticated,
+        isSuspended: actor.suspended,
+        isAdmin: actor.admin,
       });
-      const userId =
-        scenario.relationship === "creator" ? "creator-1" : "other-1";
       const result = await service({
-        userId,
+        userId: actor.userId,
         homeworkId: "homework-1",
       });
-      const actor = await viewer.mock.results.at(-1)?.value;
-      contract.equal(`/cases/${index}`, {
-        id: `${actor.isAdmin ? "admin" : "user"}-${userId === "creator-1" ? "creator" : "other"}-${!actor.isAuthenticated ? "anonymous" : actor.isSuspended ? "suspended" : "active"}`,
-        authenticated: actor.isAuthenticated,
-        suspended: actor.isSuspended,
-        role: actor.isAdmin ? "admin" : "user",
-        relationship: userId === "creator-1" ? "creator" : "other",
-        outcome: result.ok ? "allowed" : result.error,
-      });
-      if (scenario.outcome === "allowed") {
-        expect(result, scenario.id).toEqual({
-          ok: true,
-          alreadyDeleted: false,
-        });
-        expect(updateHomework, scenario.id).toHaveBeenCalledOnce();
-        expect(writeAuditLog, scenario.id).toHaveBeenCalledWith(
-          expect.objectContaining({ userId, action: "homework_delete" }),
+      if (actor[mode] === "allowed") {
+        expect(result).toEqual({ ok: true, alreadyDeleted: false });
+        expect(updateHomework).toHaveBeenCalledOnce();
+        expect(writeAuditLog).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: actor.userId,
+            action: "homework_delete",
+          }),
           expect.anything(),
         );
-        expect(invalidate, scenario.id).toHaveBeenCalledWith(42);
+        expect(invalidate).toHaveBeenCalledExactlyOnceWith(42);
       } else {
-        expect(result, scenario.id).toMatchObject({
-          ok: false,
-          error: scenario.outcome,
-        });
-        for (const [effect, mock] of Object.entries(effects)) {
-          expect(mock, `${scenario.id}: ${effect}`).not.toHaveBeenCalled();
-          denied.add(effect);
-        }
+        expect(result).toMatchObject({ ok: false, error: actor[mode] });
+        expect(updateHomework).not.toHaveBeenCalled();
+        expect(writeAuditLog).not.toHaveBeenCalled();
+        expect(invalidate).not.toHaveBeenCalled();
       }
-    }
-    contract.set("/denied_effects", [...denied]);
-    return contract;
-  }
-
-  it("homework.creator-only-delete", async (context) => {
-    const contract = await verifyAuthority("homework.creator-only-delete");
-    contract.recordVitest(context);
-  });
-
-  it("homework.moderation-delete", async (context) => {
-    const contract = await verifyAuthority("homework.moderation-delete");
-    contract.recordVitest(context);
+    });
   });
 });

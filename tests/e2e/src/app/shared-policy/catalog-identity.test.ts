@@ -1,102 +1,132 @@
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../utils/dev-seed";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect } from "@playwright/test";
+import type { TestPrismaClient } from "../../../../shared/prisma";
+import { test as subscriptionTest } from "../../../utils/catalog-subscription-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { test } from "../../../utils/personal-preferences-fixture";
+import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
 
-async function createFixture() {
+async function createFixture(db: TestPrismaClient) {
   const suffix = crypto.randomUUID().slice(0, 8);
   const base = 1_700_000_000 + Math.floor(Math.random() * 100_000_000);
-  return withE2ePrisma((db) =>
-    db.$transaction(async (tx) => {
-      const course = await tx.course.create({
-        data: {
-          id: base,
-          jwId: base + 1,
-          code: `IDENTITY-${suffix}`,
-          nameCn: "身份显示测试课程",
-          nameEn: "Identity display course",
-        },
-      });
-      const teacher = await tx.teacher.create({
-        data: {
-          id: base + 2,
-          jwId: base + 3,
-          code: `TEACHER-${suffix}`,
-          nameCn: "身份显示测试教师",
-          nameEn: "Identity display teacher",
-        },
-      });
-      const section = await tx.section.create({
-        data: {
-          id: base + 4,
-          jwId: base + 5,
-          code: `${course.code}.01`,
-          courseId: course.id,
-          teachers: { connect: { id: teacher.id } },
-        },
-      });
-      const user = await tx.user.create({
-        data: {
-          name: "Identity display user",
-          username: `identity${suffix}`,
-          email: `identity-${suffix}@example.test`,
-        },
-      });
-      return { course, teacher, section, user };
-    }),
-  );
-}
-
-async function cleanup(fixture: Awaited<ReturnType<typeof createFixture>>) {
-  await withE2ePrisma(async (db) => {
-    await db.section.delete({ where: { id: fixture.section.id } });
-    await db.teacher.delete({ where: { id: fixture.teacher.id } });
-    await db.course.delete({ where: { id: fixture.course.id } });
-    await db.auditLog.deleteMany({
-      where: {
-        OR: [{ userId: fixture.user.id }, { subjectUserId: fixture.user.id }],
+  return db.$transaction(async (tx) => {
+    const course = await tx.course.create({
+      data: {
+        id: base,
+        jwId: base + 1,
+        code: `IDENTITY-${suffix}`,
+        nameCn: "身份显示测试课程",
+        nameEn: "Identity display course",
       },
     });
-    await db.user.delete({ where: { id: fixture.user.id } });
+    const teacher = await tx.teacher.create({
+      data: {
+        id: base + 2,
+        jwId: base + 3,
+        code: `TEACHER-${suffix}`,
+        nameCn: "身份显示测试教师",
+        nameEn: "Identity display teacher",
+      },
+    });
+    const section = await tx.section.create({
+      data: {
+        id: base + 4,
+        jwId: base + 5,
+        code: `${course.code}.01`,
+        courseId: course.id,
+        teachers: { connect: { id: teacher.id } },
+      },
+    });
+    const user = await tx.user.create({
+      data: {
+        id: crypto.randomUUID(),
+        name: "Identity display user",
+        username: `identity${suffix}`,
+        email: `identity-${suffix}@example.test`,
+      },
+    });
+    return { course, teacher, section, user };
   });
 }
 
-test("mobile catalog cards retain list and link semantics", async ({
-  page,
-}) => {
-  const fixture = await createFixture();
-  try {
-    await page.setViewportSize({ width: 390, height: 844 });
-    expect(
-      (
-        await page.request.post("/api/account/preferences", {
-          data: { locale: "zh-cn" },
-        })
-      ).status(),
-    ).toBe(200);
-    if (!fixture.teacher.code)
-      throw new Error("Teacher fixture must have a public code");
-    for (const [route, search, name, destination] of [
-      [
-        "courses",
-        fixture.course.code,
-        fixture.course.nameCn,
-        fixture.course.jwId,
-      ],
-      [
-        "sections",
-        fixture.course.code,
-        fixture.course.nameCn,
-        fixture.section.jwId,
-      ],
-      [
-        "teachers",
-        fixture.teacher.code,
-        fixture.teacher.nameCn,
-        fixture.teacher.id,
-      ],
-    ] as const) {
+type IdentityFixture = Awaited<ReturnType<typeof createFixture>>;
+
+async function createMultipleSectionsFixture(db: TestPrismaClient) {
+  const fixture = await createFixture(db);
+  return db.$transaction(async (db) => {
+    const current = await db.semester.create({
+      data: { jwId: 9_900_001, code: "421", nameCn: "2026年春季学期" },
+    });
+    const previous = await db.semester.create({
+      data: { jwId: 9_900_000, code: "420", nameCn: "2025年秋季学期" },
+    });
+    const sections = [];
+    for (const [index, semester] of [current, current, previous].entries()) {
+      sections.push(
+        await db.section.create({
+          data: {
+            id: fixture.section.id + 2 * (index + 1),
+            jwId: fixture.section.jwId + 2 * (index + 1),
+            code: `${fixture.course.code}.0${index + 2}`,
+            courseId: fixture.course.id,
+            semesterId: semester.id,
+          },
+        }),
+      );
+    }
+    return { fixture, current, previous, sections };
+  });
+}
+
+for (const { domain, route, select } of [
+  {
+    domain: "Course",
+    route: "courses",
+    select: ({ course }: IdentityFixture) => ({
+      search: course.code,
+      name: course.nameCn,
+      destination: course.jwId,
+    }),
+  },
+  {
+    domain: "Section",
+    route: "sections",
+    select: ({ course, section }: IdentityFixture) => ({
+      search: course.code,
+      name: course.nameCn,
+      destination: section.jwId,
+    }),
+  },
+  {
+    domain: "Teacher",
+    route: "teachers",
+    select: ({ teacher }: IdentityFixture) => {
+      if (!teacher.code)
+        throw new Error("Teacher fixture must have a public code");
+      return {
+        search: teacher.code,
+        name: teacher.nameCn,
+        destination: teacher.id,
+      };
+    },
+  },
+] as const) {
+  test(`mobile ${route} cards retain list and link semantics`, {
+    tag: `@${domain}/Web`,
+  }, async ({ preferenceFlow, isolatedWorker, page }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      await page.setViewportSize({ width: 390, height: 844 });
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale: "zh-cn" },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      const { search, name, destination } = select(fixture);
       await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
       const item = page
         .getByRole("listitem")
@@ -112,22 +142,29 @@ test("mobile catalog cards retain list and link semantics", async ({
       );
       await link.focus();
       await expect(link).toBeFocused();
+      const expectSectionDetailReady =
+        route === "sections"
+          ? observeSectionDetailNavigation(page, preferenceFlow, destination)
+          : undefined;
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(
         new RegExp(`/catalog/${route}/${destination}$`),
       );
-    }
-  } finally {
-    await cleanup(fixture);
-  }
-});
+      if (expectSectionDetailReady) await expectSectionDetailReady();
+    });
+  });
+}
 
-test("ui.global-search-results-1", async ({ page }) => {
-  const fixture = await createFixture();
-  const homeworkTitle = `email homework ${fixture.course.code}`;
-  const todoTitle = `email todo ${fixture.course.code}`;
-  try {
-    await withE2ePrisma(async (db) => {
+test("ui.global-search-results-1", { tag: "@Search/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const homeworkTitle = `email homework ${fixture.course.code}`;
+    const todoTitle = `email todo ${fixture.course.code}`;
+    await isolatedWorker.database.owner.$transaction(async (db) => {
       await db.course.update({
         where: { id: fixture.course.id },
         data: { nameCn: "email课程", nameEn: "email course" },
@@ -154,7 +191,9 @@ test("ui.global-search-results-1", async ({ page }) => {
       if (signedIn)
         await page
           .context()
-          .addCookies([await createSignedSessionCookie(fixture.user.id)]);
+          .addCookies([
+            (await isolatedWorker.createSession(fixture.user.id)).cookie,
+          ]);
       await gotoAndWaitForReady(page, "/search?q=email");
       const expected = [
         "sections",
@@ -191,20 +230,18 @@ test("ui.global-search-results-1", async ({ page }) => {
         }
       }
     }
-  } finally {
-    await cleanup(fixture);
-  }
+  });
 });
 
-test("ui.global-search-results-2", async ({ page }) => {
-  const fixture = await createFixture();
-  let campusId: number | undefined;
-  let semesterId: number | undefined;
-  let extraTeacherId: number | undefined;
-  let extraSectionId: number | undefined;
-  try {
-    const { campus, teacherA, teacherB, noTeacher } = await withE2ePrisma(
-      async (db) => {
+test("ui.global-search-results-2", { tag: "@Search/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { campus, teacherA, teacherB, noTeacher } =
+      await isolatedWorker.database.owner.$transaction(async (db) => {
         const campus = await db.campus.create({
           data: {
             jwId: fixture.course.jwId + 10,
@@ -212,7 +249,7 @@ test("ui.global-search-results-2", async ({ page }) => {
             nameEn: "Identity campus",
           },
         });
-        campusId = campus.id;
+
         const semester = await db.semester.create({
           data: {
             jwId: fixture.course.jwId + 10,
@@ -220,7 +257,7 @@ test("ui.global-search-results-2", async ({ page }) => {
             nameCn: "2015年秋季学期",
           },
         });
-        semesterId = semester.id;
+
         const teacherA = await db.teacher.update({
           where: { id: fixture.teacher.id },
           data: {
@@ -237,7 +274,7 @@ test("ui.global-search-results-2", async ({ page }) => {
             nameEn: "Teacher B",
           },
         });
-        extraTeacherId = teacherB.id;
+
         await db.section.update({
           where: { id: fixture.section.id },
           data: {
@@ -254,16 +291,18 @@ test("ui.global-search-results-2", async ({ page }) => {
             courseId: fixture.course.id,
           },
         });
-        extraSectionId = noTeacher.id;
+
         return { campus, teacherA, teacherB, noTeacher };
-      },
-    );
+      });
     for (const locale of ["zh-cn", "en-us"]) {
       expect(
         (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
         ).status(),
       ).toBe(200);
       const courseName =
@@ -301,42 +340,37 @@ test("ui.global-search-results-2", async ({ page }) => {
             (await result.innerText()).replace(/\s+/g, " ").trim(),
           )
           .toBe(`${title} ${description}`);
+        const expectSectionDetailReady = observeSectionDetailNavigation(
+          page,
+          preferenceFlow,
+          section.jwId,
+        );
         await result.click();
         await expect(page).toHaveURL(
           new RegExp(`/catalog/sections/${section.jwId}$`),
         );
+        await expectSectionDetailReady();
       }
     }
-  } finally {
-    if (extraSectionId)
-      await withE2ePrisma((db) =>
-        db.section.delete({ where: { id: extraSectionId } }),
-      );
-    await cleanup(fixture);
-    if (extraTeacherId)
-      await withE2ePrisma((db) =>
-        db.teacher.delete({ where: { id: extraTeacherId } }),
-      );
-    if (campusId)
-      await withE2ePrisma((db) =>
-        db.campus.delete({ where: { id: campusId } }),
-      );
-    if (semesterId)
-      await withE2ePrisma((db) =>
-        db.semester.delete({ where: { id: semesterId } }),
-      );
-  }
+  });
 });
 
-test("ui.global-search-results-3", async ({ page }) => {
-  const fixture = await createFixture();
-  try {
+test("ui.global-search-results-3", { tag: "@Search/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
     for (const locale of ["zh-cn", "en-us"]) {
       expect(
         (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
         ).status(),
       ).toBe(200);
       await gotoAndWaitForReady(page, `/search?q=${fixture.course.code}`);
@@ -356,18 +390,18 @@ test("ui.global-search-results-3", async ({ page }) => {
         new RegExp(`/catalog/courses/${fixture.course.jwId}$`),
       );
     }
-  } finally {
-    await cleanup(fixture);
-  }
+  });
 });
 
-test("ui.global-search-results-4", async ({ page }, testInfo) => {
-  const fixture = await createFixture();
-  const marker = crypto.randomUUID().slice(0, 8);
-  const extras: number[] = [];
-  let departmentId: number | undefined;
-  try {
-    const department = await withE2ePrisma((db) =>
+test("ui.global-search-results-4", { tag: "@Search/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const marker = crypto.randomUUID().slice(0, 8);
+    const department = await isolatedWorker.database.owner.$transaction((db) =>
       db.department.create({
         data: {
           code: `DEPT-${marker}`,
@@ -376,18 +410,19 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
         },
       }),
     );
-    departmentId = department.id;
-    const withDepartment = await withE2ePrisma((db) =>
-      db.teacher.update({
-        where: { id: fixture.teacher.id },
-        data: {
-          departmentId: department.id,
-          nameCn: `教师 ${marker} 甲`,
-          nameEn: `Teacher ${marker} A`,
-        },
-      }),
+
+    const withDepartment = await isolatedWorker.database.owner.$transaction(
+      (db) =>
+        db.teacher.update({
+          where: { id: fixture.teacher.id },
+          data: {
+            departmentId: department.id,
+            nameCn: `教师 ${marker} 甲`,
+            nameEn: `Teacher ${marker} A`,
+          },
+        }),
     );
-    const codeOnly = await withE2ePrisma((db) =>
+    const codeOnly = await isolatedWorker.database.owner.$transaction((db) =>
       db.teacher.create({
         data: {
           id: fixture.teacher.id + 6,
@@ -398,8 +433,8 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
         },
       }),
     );
-    extras.push(codeOnly.id);
-    const noContext = await withE2ePrisma((db) =>
+
+    const noContext = await isolatedWorker.database.owner.$transaction((db) =>
       db.teacher.create({
         data: {
           id: fixture.teacher.id + 8,
@@ -410,13 +445,16 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
         },
       }),
     );
-    extras.push(noContext.id);
+
     for (const locale of ["zh-cn", "en-us"]) {
       expect(
         (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
         ).status(),
       ).toBe(200);
       await gotoAndWaitForReady(page, `/search?q=${marker}`);
@@ -433,11 +471,7 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
         const result = page
           .getByRole("option")
           .filter({ has: page.getByText(name, { exact: true }) });
-        if (locale === "en-us" && teacher.id === withDepartment.id)
-          await page.screenshot({
-            path: testInfo.outputPath("teacher-search-context.png"),
-            fullPage: true,
-          });
+
         await expect(result).toHaveCount(1);
         const visible = await result.innerText();
         expect(visible.trim()).toBe(context ? `${name}\n${context}` : name);
@@ -456,34 +490,30 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
         new RegExp(`/catalog/teachers/${withDepartment.id}$`),
       );
     }
-  } finally {
-    await withE2ePrisma((db) =>
-      db.teacher.deleteMany({ where: { id: { in: extras } } }),
-    );
-    await cleanup(fixture);
-    if (departmentId)
-      await withE2ePrisma((db) =>
-        db.department.delete({ where: { id: departmentId } }),
-      );
-  }
+  });
 });
 
-test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
-  const fixture = await createFixture();
-  const courseName =
-    "Complete course title with extensive catalog context and a distinguishing final phrase";
-  const teacherName =
-    "Complete teacher name with extensive catalog context and a distinguishing final phrase";
-  const sectionCode = `${fixture.section.code}-COMPLETE-PUBLIC-SECTION-CODE-END`;
-  const values = [courseName, sectionCode, teacherName];
-  const path = `/catalog/sections?search=${fixture.course.code}`;
-  const touchContext = await browser.newContext({
-    baseURL,
-    hasTouch: true,
-    viewport: { width: 1280, height: 900 },
-  });
-  try {
-    await withE2ePrisma(async (db) => {
+test("ui.data-table-cells-2", { tag: "@Section/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+  baseURL,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const courseName =
+      "Complete course title with extensive catalog context and a distinguishing final phrase";
+    const teacherName =
+      "Complete teacher name with extensive catalog context and a distinguishing final phrase";
+    const sectionCode = `${fixture.section.code}-COMPLETE-PUBLIC-SECTION-CODE-END`;
+    const values = [courseName, sectionCode, teacherName];
+    const path = `/catalog/sections?search=${fixture.course.code}`;
+    const touchContext = await preferenceFlow.newContext({
+      baseURL,
+      hasTouch: true,
+      viewport: { width: 1280, height: 900 },
+    });
+    await isolatedWorker.database.owner.$transaction(async (db) => {
       await db.course.update({
         where: { id: fixture.course.id },
         data: { nameCn: courseName, nameEn: courseName },
@@ -497,7 +527,7 @@ test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
         data: { code: sectionCode },
       });
     });
-    const touchPage = await touchContext.newPage();
+    const touchPage = await preferenceFlow.newPage(touchContext);
     for (const width of [1280, 390]) {
       await touchPage.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(touchPage, path, {
@@ -507,10 +537,7 @@ test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
       expect(
         await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
       ).toBe(true);
-      await touchPage.screenshot({
-        path: testInfo.outputPath(`truncation-touch-${width}.png`),
-        fullPage: true,
-      });
+
       for (const value of values) {
         const text = touchPage
           .locator("#main-content")
@@ -540,6 +567,11 @@ test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
         ),
       ).toBe(true);
     }
+    const expectSectionDetailReady = observeSectionDetailNavigation(
+      touchPage,
+      preferenceFlow,
+      fixture.section.jwId,
+    );
     await touchPage
       .getByRole("link")
       .filter({ has: touchPage.getByText(courseName, { exact: true }) })
@@ -547,6 +579,7 @@ test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
     await expect(touchPage).toHaveURL(
       new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
     );
+    await expectSectionDetailReady();
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await gotoAndWaitForReady(page, path, {
@@ -593,96 +626,120 @@ test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
     await expect(
       page.locator('[data-slot="tooltip-content"]:visible'),
     ).toHaveText(sectionCode);
-    await page.screenshot({
-      path: testInfo.outputPath("truncation-pointer.png"),
-      fullPage: true,
-    });
-  } finally {
-    try {
-      await touchContext.close();
-    } finally {
-      await cleanup(fixture);
-    }
-  }
+  });
 });
 
-test("ui.data-table-cells-3", async ({ page }) => {
-  const fixture = await createFixture();
-  try {
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 900 });
-      for (const [path, code] of [
-        [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
-        [
-          `/catalog/sections?search=${fixture.section.code}`,
-          fixture.section.code,
-        ],
-        [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
-        [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
-        [`/catalog/sections/${fixture.section.jwId}`, fixture.section.code],
-        [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
-      ]) {
-        await gotoAndWaitForReady(page, path);
-        const label = page
-          .locator("#main-content")
-          .getByText(code, { exact: true })
-          .filter({ visible: true });
-        await expect(label.first()).toBeVisible();
-        const presentations = await label.evaluateAll((elements) =>
-          elements.map((element) => ({
-            family: getComputedStyle(element).fontFamily,
-            inBadge: element.closest('[data-slot="badge"]') !== null,
-          })),
-        );
-        for (const presentation of presentations) {
-          expect(presentation.family).toMatch(/monospace|mono/i);
-          expect(presentation.inBadge).toBe(false);
+for (const { domain, select } of [
+  {
+    domain: "Course",
+    select: (fixture: IdentityFixture) => [
+      [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
+      [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
+      [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
+    ],
+  },
+  {
+    domain: "Section",
+    select: (fixture: IdentityFixture) => [
+      [
+        `/catalog/sections?search=${fixture.section.code}`,
+        fixture.section.code,
+      ],
+      [`/catalog/sections/${fixture.section.jwId}`, fixture.section.code],
+    ],
+  },
+  {
+    domain: "Teacher",
+    select: (fixture: IdentityFixture) => [
+      [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
+    ],
+  },
+] as const) {
+  test(`ui.data-table-cells-3 ${domain}`, { tag: `@${domain}/Web` }, async ({
+    preferenceFlow,
+    isolatedWorker,
+    page,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        for (const [path, code] of select(fixture)) {
+          await gotoAndWaitForReady(page, path);
+          const label = page
+            .locator("#main-content")
+            .getByText(code, { exact: true })
+            .filter({ visible: true });
+          await expect(label.first()).toBeVisible();
+          const presentations = await label.evaluateAll((elements) =>
+            elements.map((element) => ({
+              family: getComputedStyle(element).fontFamily,
+              inBadge: element.closest('[data-slot="badge"]') !== null,
+            })),
+          );
+          for (const presentation of presentations) {
+            expect(presentation.family).toMatch(/monospace|mono/i);
+            expect(presentation.inBadge).toBe(false);
+          }
         }
       }
-    }
-  } finally {
-    await cleanup(fixture);
-  }
-});
+    });
+  });
+}
 
-test("permission-ui.identity-4", async ({ page }) => {
-  const fixture = await createFixture();
-  const { course, teacher, section, user } = fixture;
-  try {
-    const forbidden = [
-      course.id,
-      course.jwId,
-      teacher.id,
-      teacher.jwId,
-      section.id,
-      section.jwId,
-      user.id,
-    ].map(String);
-    for (const locale of ["zh-cn", "en-us"]) {
-      expect(
-        (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
-        ).status(),
-      ).toBe(200);
-      for (const [path, name, code] of [
-        [
-          `/catalog/courses/${course.jwId}`,
-          locale === "zh-cn" ? course.nameCn : course.nameEn,
-          course.code,
-        ],
-        [
-          `/catalog/sections/${section.jwId}`,
-          locale === "zh-cn" ? course.nameCn : course.nameEn,
-          section.code,
-        ],
-        [
-          `/catalog/teachers/${teacher.id}`,
-          locale === "zh-cn" ? teacher.nameCn : teacher.nameEn,
-          section.code,
-        ],
-      ]) {
+for (const { domain, select } of [
+  {
+    domain: "Course",
+    select: ({ course }: IdentityFixture, locale: string) => [
+      `/catalog/courses/${course.jwId}`,
+      locale === "zh-cn" ? course.nameCn : course.nameEn,
+      course.code,
+    ],
+  },
+  {
+    domain: "Section",
+    select: ({ course, section }: IdentityFixture, locale: string) => [
+      `/catalog/sections/${section.jwId}`,
+      locale === "zh-cn" ? course.nameCn : course.nameEn,
+      section.code,
+    ],
+  },
+  {
+    domain: "Teacher",
+    select: ({ teacher, section }: IdentityFixture, locale: string) => [
+      `/catalog/teachers/${teacher.id}`,
+      locale === "zh-cn" ? teacher.nameCn : teacher.nameEn,
+      section.code,
+    ],
+  },
+] as const) {
+  test(`permission-ui.identity-4 ${domain} Web`, {
+    tag: `@${domain}/Web`,
+  }, async ({ preferenceFlow, isolatedWorker, page }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      const { course, teacher, section, user } = fixture;
+      const forbidden = [
+        course.id,
+        course.jwId,
+        teacher.id,
+        teacher.jwId,
+        section.id,
+        section.jwId,
+        user.id,
+      ].map(String);
+      for (const locale of ["zh-cn", "en-us"]) {
+        expect(
+          (
+            await preferenceFlow.http(() =>
+              page.request.post("/api/account/preferences", {
+                headers: preferenceFlow.headers,
+                data: { locale },
+              }),
+            )
+          ).status(),
+        ).toBe(200);
+        const [path, name, code] = select(fixture, locale);
         if (!path || !name || !code)
           throw new Error("Incomplete identity fixture");
         await gotoAndWaitForReady(page, path);
@@ -695,12 +752,22 @@ test("permission-ui.identity-4", async ({ page }) => {
         for (const id of forbidden)
           expect(await page.title()).not.toContain(id);
       }
-    }
-    await page.context().addCookies([await createSignedSessionCookie(user.id)]);
-    for (const path of [
-      "/account/settings",
-      `/community/users/${user.username}`,
-    ]) {
+    });
+  });
+}
+
+test("permission-ui.identity-4 Account Web", { tag: "@Account/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { user } = fixture;
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+    for (const path of ["/account/settings"]) {
       await gotoAndWaitForReady(page, path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       expect(await page.locator("#main-content").innerText()).not.toContain(
@@ -708,33 +775,85 @@ test("permission-ui.identity-4", async ({ page }) => {
       );
       expect(await page.title()).not.toContain(user.id);
     }
-    const courseResponse = await page.request.get(
-      `/api/catalog/courses/${course.jwId}`,
+  });
+});
+
+test("permission-ui.identity-4 User Web", { tag: "@User/Web" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { user } = fixture;
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+    for (const path of [`/community/users/${user.username}`]) {
+      await gotoAndWaitForReady(page, path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      expect(await page.locator("#main-content").innerText()).not.toContain(
+        user.id,
+      );
+      expect(await page.title()).not.toContain(user.id);
+    }
+  });
+});
+
+test("permission-ui.identity-4 Course REST", { tag: "@Course/REST" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { course, user } = fixture;
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+    const courseResponse = await preferenceFlow.http(() =>
+      page.request.get(`/api/catalog/courses/${course.jwId}`, {
+        headers: preferenceFlow.headers,
+      }),
     );
     expect(courseResponse.status()).toBe(200);
     expect(await courseResponse.json()).toMatchObject({
       jwId: course.jwId,
       code: course.code,
     });
-    const sectionResponse = await page.request.get(
-      `/api/catalog/sections/${section.jwId}`,
+  });
+});
+
+test("permission-ui.identity-4 Section REST", { tag: "@Section/REST" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const { section, user } = fixture;
+    await page
+      .context()
+      .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+    const sectionResponse = await preferenceFlow.http(() =>
+      page.request.get(`/api/catalog/sections/${section.jwId}`, {
+        headers: preferenceFlow.headers,
+      }),
     );
     expect(sectionResponse.status()).toBe(200);
     expect(await sectionResponse.json()).toMatchObject({
       jwId: section.jwId,
       code: section.code,
     });
-  } finally {
-    await cleanup(fixture);
-  }
+  });
 });
 
-test("cases.missing-data.section-missing-teacher-location-or-exam-1", async ({
-  page,
-}) => {
-  const fixture = await createFixture();
-  try {
-    await withE2ePrisma((db) =>
+test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
+  tag: "@Section/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    await isolatedWorker.database.owner.$transaction((db) =>
       db.section.update({
         where: { id: fixture.section.id },
         data: { teachers: { set: [] } },
@@ -743,9 +862,12 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", async ({
     for (const locale of ["zh-cn", "en-us"]) {
       expect(
         (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
         ).status(),
       ).toBe(200);
       await gotoAndWaitForReady(
@@ -775,8 +897,36 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", async ({
       expect(await page.locator("#main-content").innerText()).not.toMatch(
         /取消|cancelled|canceled/i,
       );
-      const response = await page.request.get(
-        `/api/catalog/sections/${fixture.section.jwId}`,
+    }
+  });
+});
+
+test("cases.missing-data.section-missing-teacher-location-or-exam-1 REST", {
+  tag: "@Section/REST",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    await isolatedWorker.database.owner.$transaction((db) =>
+      db.section.update({
+        where: { id: fixture.section.id },
+        data: { teachers: { set: [] } },
+      }),
+    );
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      const response = await preferenceFlow.http(() =>
+        page.request.get(`/api/catalog/sections/${fixture.section.jwId}`, {
+          headers: preferenceFlow.headers,
+        }),
       );
       expect(response.status()).toBe(200);
       expect(await response.json()).toMatchObject({
@@ -786,15 +936,18 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", async ({
         schedules: [],
       });
     }
-  } finally {
-    await cleanup(fixture);
-  }
+  });
 });
 
-test("cases.missing-data.ical-no-events-1", async ({ page, request }) => {
-  const fixture = await createFixture();
-  try {
-    const feed = await withE2ePrisma((db) =>
+test("cases.missing-data.ical-no-events-1", { tag: "@Calendar/ICS" }, async ({
+  preferenceFlow,
+  isolatedWorker,
+  page,
+  request,
+}) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const feed = await isolatedWorker.database.owner.$transaction((db) =>
       db.user.update({
         where: { id: fixture.user.id },
         data: {
@@ -808,7 +961,9 @@ test("cases.missing-data.ical-no-events-1", async ({ page, request }) => {
       `/api/catalog/sections/calendar.ics?sectionIds=${fixture.section.id}`,
       `${personal}?token=${feed.calendarFeedToken}`,
     ]) {
-      const response = await request.get(url);
+      const response = await preferenceFlow.http(() =>
+        request.get(url, { headers: preferenceFlow.headers }),
+      );
       expect(response.status(), url).toBe(200);
       expect(response.headers()["content-type"]).toContain("text/calendar");
       const text = await response.text();
@@ -827,126 +982,180 @@ test("cases.missing-data.ical-no-events-1", async ({ page, request }) => {
         0,
       );
     }
-    expect((await request.get(personal)).status()).toBe(401);
-    expect((await request.get(`${personal}?token=incorrect`)).status()).toBe(
-      410,
-    );
     expect(
       (
-        await request.get(
-          `/api/calendar-feeds/${crypto.randomUUID()}.ics?token=incorrect`,
+        await preferenceFlow.http(() =>
+          request.get(personal, { headers: preferenceFlow.headers }),
+        )
+      ).status(),
+    ).toBe(401);
+    expect(
+      (
+        await preferenceFlow.http(() =>
+          request.get(`${personal}?token=incorrect`, {
+            headers: preferenceFlow.headers,
+          }),
+        )
+      ).status(),
+    ).toBe(410);
+    expect(
+      (
+        await preferenceFlow.http(() =>
+          request.get(
+            `/api/calendar-feeds/${crypto.randomUUID()}.ics?token=incorrect`,
+            { headers: preferenceFlow.headers },
+          ),
         )
       ).status(),
     ).toBe(404);
     expect(
       (
-        await request.get(
-          `/api/catalog/sections/${fixture.section.jwId + 10}/calendar.ics`,
+        await preferenceFlow.http(() =>
+          request.get(
+            `/api/catalog/sections/${fixture.section.jwId + 10}/calendar.ics`,
+            { headers: preferenceFlow.headers },
+          ),
         )
       ).status(),
     ).toBe(404);
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(fixture.user.id)]);
-    const own = await page.request.get(personal);
+      .addCookies([
+        (await isolatedWorker.createSession(fixture.user.id)).cookie,
+      ]);
+    const own = await preferenceFlow.http(() =>
+      page.request.get(personal, { headers: preferenceFlow.headers }),
+    );
     expect(own.status()).toBe(200);
     expect(await own.text()).not.toContain("BEGIN:VEVENT");
     expect(
       (
-        await page.request.get(`/api/calendar-feeds/${crypto.randomUUID()}.ics`)
+        await preferenceFlow.http(() =>
+          page.request.get(`/api/calendar-feeds/${crypto.randomUUID()}.ics`, {
+            headers: preferenceFlow.headers,
+          }),
+        )
       ).status(),
     ).toBe(403);
-  } finally {
-    await cleanup(fixture);
-  }
+  });
 });
 
-test("cases.missing-data.homework-no-due-date-1", async ({ page }) => {
-  const fixture = await createFixture();
-  const homework = await withE2ePrisma(async (db) => {
-    await db.userSectionSubscription.create({
-      data: { userId: fixture.user.id, sectionId: fixture.section.id },
-    });
-    return db.homework.create({
-      data: {
-        sectionId: fixture.section.id,
-        createdById: fixture.user.id,
-        title: "Undated homework stays reachable",
-        publishedAt: new Date("2026-01-01T00:00:00Z"),
-        submissionDueAt: null,
-      },
+for (const [domain, method] of [
+  ["Homework", "Web"],
+  ["Homework", "REST"],
+  ["Overview", "REST"],
+] as const) {
+  test(`cases.missing-data.homework-no-due-date-1 ${domain}/${method}`, {
+    tag: `@${domain}/${method}`,
+  }, async ({ preferenceFlow, isolatedWorker, page }) => {
+    await preferenceFlow.run(async () => {
+      const fixture = await createFixture(isolatedWorker.database.owner);
+      const homework = await isolatedWorker.database.owner.$transaction(
+        async (db) => {
+          await db.userSectionSubscription.create({
+            data: { userId: fixture.user.id, sectionId: fixture.section.id },
+          });
+          return db.homework.create({
+            data: {
+              sectionId: fixture.section.id,
+              createdById: fixture.user.id,
+              title: "Undated homework stays reachable",
+              publishedAt: new Date("2026-01-01T00:00:00Z"),
+              submissionDueAt: null,
+            },
+          });
+        },
+      );
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(fixture.user.id)).cookie,
+        ]);
+      if (method === "Web") {
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
+        await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
+        const row = page.getByRole("row").filter({ hasText: homework.title });
+        await expect(row).toBeVisible();
+        await expect(row).toContainText(/日期待定|Date TBD/i);
+      }
+      if (domain === "Homework" && method === "REST") {
+        const list = await preferenceFlow.http(() =>
+          page.request.get("/api/workspace/homeworks", {
+            headers: preferenceFlow.headers,
+          }),
+        );
+        expect(list.status()).toBe(200);
+        const body = await list.json();
+        expect(body.data).toEqual([
+          expect.objectContaining({ id: homework.id, submissionDueAt: null }),
+        ]);
+      }
+      if (domain === "Overview") {
+        for (const atTime of [
+          "2026-04-29T08:00:00+08:00",
+          "2026-10-01T08:00:00+08:00",
+        ]) {
+          for (const homeworkWindowDays of [1, 7]) {
+            const overview = await preferenceFlow.http(() =>
+              page.request.get(
+                `/api/workspace/overview?${new URLSearchParams({ atTime, homeworkWindowDays: String(homeworkWindowDays) })}`,
+                { headers: preferenceFlow.headers },
+              ),
+            );
+            expect(overview.status()).toBe(200);
+            expect(await overview.json()).toMatchObject({
+              counts: { pendingHomeworks: 1, dueSoonHomeworks: 0 },
+              homeworks: { total: 0, items: [] },
+            });
+          }
+        }
+      }
+      if (domain === "Homework" && method === "REST") {
+        const sectionList = await preferenceFlow.http(() =>
+          page.request.get(
+            `/api/community/section-homeworks?sectionId=${fixture.section.id}`,
+            { headers: preferenceFlow.headers },
+          ),
+        );
+        expect(sectionList.status()).toBe(200);
+        expect(JSON.stringify(await sectionList.json())).toContain(homework.id);
+      }
+      expect(
+        (
+          await isolatedWorker.database.owner.$transaction((db) =>
+            db.homework.findUniqueOrThrow({ where: { id: homework.id } }),
+          )
+        ).submissionDueAt,
+      ).toBeNull();
     });
   });
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(fixture.user.id)]);
-    await gotoAndWaitForReady(page, "/workspace/homeworks");
-    await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
-    const row = page.getByRole("row").filter({ hasText: homework.title });
-    await expect(row).toBeVisible();
-    await expect(row).toContainText(/日期待定|Date TBD/i);
-    const list = await page.request.get("/api/workspace/homeworks");
-    expect(list.status()).toBe(200);
-    const body = await list.json();
-    expect(body.data).toEqual([
-      expect.objectContaining({ id: homework.id, submissionDueAt: null }),
-    ]);
-    for (const atTime of [
-      "2026-04-29T08:00:00+08:00",
-      "2026-10-01T08:00:00+08:00",
-    ]) {
-      for (const homeworkWindowDays of [1, 7]) {
-        const overview = await page.request.get(
-          `/api/workspace/overview?${new URLSearchParams({ atTime, homeworkWindowDays: String(homeworkWindowDays) })}`,
-        );
-        expect(overview.status()).toBe(200);
-        expect(await overview.json()).toMatchObject({
-          counts: { pendingHomeworks: 1, dueSoonHomeworks: 0 },
-          homeworks: { total: 0, items: [] },
-        });
-      }
-    }
-    const sectionList = await page.request.get(
-      `/api/community/section-homeworks?sectionId=${fixture.section.id}`,
-    );
-    expect(sectionList.status()).toBe(200);
-    expect(JSON.stringify(await sectionList.json())).toContain(homework.id);
-    expect(
-      (
-        await withE2ePrisma((db) =>
-          db.homework.findUniqueOrThrow({ where: { id: homework.id } }),
-        )
-      ).submissionDueAt,
-    ).toBeNull();
-  } finally {
-    await withE2ePrisma((db) =>
-      db.homework.delete({ where: { id: homework.id } }),
-    );
-    await cleanup(fixture);
-  }
-});
+}
 
-test("cases.disambiguation.duplicate-course-names-1", async ({ page }) => {
-  const fixture = await createFixture();
-  const second = await withE2ePrisma((db) =>
-    db.course.create({
-      data: {
-        id: fixture.course.id + 6,
-        jwId: fixture.course.jwId + 6,
-        code: `${fixture.course.code}-OTHER`,
-        nameCn: fixture.course.nameCn,
-        nameEn: fixture.course.nameEn,
-      },
-    }),
-  );
-  try {
+test("cases.disambiguation.duplicate-course-names-1", {
+  tag: "@Course/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const second = await isolatedWorker.database.owner.$transaction((db) =>
+      db.course.create({
+        data: {
+          id: fixture.course.id + 6,
+          jwId: fixture.course.jwId + 6,
+          code: `${fixture.course.code}-OTHER`,
+          nameCn: fixture.course.nameCn,
+          nameEn: fixture.course.nameEn,
+        },
+      }),
+    );
     for (const locale of ["zh-cn", "en-us"]) {
       expect(
         (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
         ).status(),
       ).toBe(200);
       const name =
@@ -972,6 +1181,43 @@ test("cases.disambiguation.duplicate-course-names-1", async ({ page }) => {
             row.locator(`a[href="/catalog/courses/${course.jwId}"]`),
           ).toBeVisible();
         }
+      }
+    }
+  });
+});
+
+test("cases.disambiguation.duplicate-course-names-1 Search", {
+  tag: "@Search/Web",
+}, async ({ preferenceFlow, isolatedWorker, page }) => {
+  await preferenceFlow.run(async () => {
+    const fixture = await createFixture(isolatedWorker.database.owner);
+    const second = await isolatedWorker.database.owner.$transaction((db) =>
+      db.course.create({
+        data: {
+          id: fixture.course.id + 6,
+          jwId: fixture.course.jwId + 6,
+          code: `${fixture.course.code}-OTHER`,
+          nameCn: fixture.course.nameCn,
+          nameEn: fixture.course.nameEn,
+        },
+      }),
+    );
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await preferenceFlow.http(() =>
+            page.request.post("/api/account/preferences", {
+              headers: preferenceFlow.headers,
+              data: { locale },
+            }),
+          )
+        ).status(),
+      ).toBe(200);
+      const name =
+        locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+      if (!name) throw new Error("Missing fixture course name");
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(
           page,
           `/search?q=${encodeURIComponent(fixture.course.nameCn)}`,
@@ -988,192 +1234,304 @@ test("cases.disambiguation.duplicate-course-names-1", async ({ page }) => {
         }
       }
     }
-  } finally {
-    await withE2ePrisma((db) => db.course.delete({ where: { id: second.id } }));
-    await cleanup(fixture);
-  }
+  });
 });
 
-test("cases.disambiguation.multiple-sections-same-course-1", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(60_000);
-  const fixture = await createFixture();
-  const semesters = await withE2ePrisma((db) =>
-    db.semester.findMany({
-      where: {
-        jwId: { in: [DEV_SEED.semesterJwId, DEV_SEED.previousSemesterJwId] },
+subscriptionTest(
+  "cases.disambiguation.multiple-sections-same-course-1 Search Web",
+  { tag: "@Search/Web" },
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+    subscriptionTest.setTimeout(60_000);
+    const db = isolatedWorker.database.owner;
+    const { fixture, current, previous, sections } = await run(() =>
+      createMultipleSectionsFixture(db),
+    );
+    await catalogSubscriptionRun(
+      fixture.user,
+      {
+        calendarMessages: [],
       },
-    }),
-  );
-  const current = semesters.find(
-    (semester) => semester.jwId === DEV_SEED.semesterJwId,
-  );
-  const previous = semesters.find(
-    (semester) => semester.jwId === DEV_SEED.previousSemesterJwId,
-  );
-  if (!current || !previous) throw new Error("Missing seeded semesters");
-  const sections = await withE2ePrisma(async (db) => {
-    const result = [];
-    for (const [index, semester] of [current, current, previous].entries()) {
-      result.push(
-        await db.section.create({
-          data: {
-            id: fixture.section.id + 2 * (index + 1),
-            jwId: fixture.section.jwId + 2 * (index + 1),
-            code: `${fixture.course.code}.0${index + 2}`,
-            courseId: fixture.course.id,
-            semesterId: semester.id,
-          },
-        }),
-      );
-    }
-    return result;
-  });
-  try {
-    for (const locale of ["zh-cn", "en-us"]) {
-      expect(
-        (
-          await page.request.post("/api/account/preferences", {
-            data: { locale },
-          })
-        ).status(),
-      ).toBe(200);
-      const name =
-        locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
-      if (!name) throw new Error("Missing localized course name");
-      await gotoAndWaitForReady(
-        page,
-        `/search?q=${encodeURIComponent(fixture.course.code)}`,
-      );
-      for (const section of [fixture.section, ...sections]) {
-        const result = page
-          .getByRole("option")
-          .filter({ hasText: section.code });
-        await expect(result).toHaveCount(1);
-        await expect(result).toContainText(name);
-        const semesterLabel =
-          section.semesterId === current.id
-            ? locale === "zh-cn"
-              ? "2026年春季学期"
-              : "Spring 2026"
-            : section.semesterId === previous.id
-              ? locale === "zh-cn"
-                ? "2025年秋季学期"
-                : "Fall 2025"
-              : locale === "zh-cn"
-                ? "未知"
-                : "Unknown";
-        if (section.id === fixture.section.id && locale === "zh-cn") {
-          await page.screenshot({
-            path: testInfo.outputPath("section-semester-after.png"),
-            fullPage: true,
-          });
-        }
-        await expect(result).toContainText(semesterLabel);
-      }
-      for (const width of [1280, 390]) {
-        await page.setViewportSize({ width, height: 900 });
-        await gotoAndWaitForReady(
-          page,
-          `/catalog/courses/${fixture.course.jwId}`,
-        );
-        await expect(page.getByRole("heading", { level: 1 })).toContainText(
-          name,
-        );
-        const courseFacts = await page.locator("#overview").innerText();
-        expect(courseFacts).not.toContain(current.nameCn);
-        expect(courseFacts).not.toContain(previous.nameCn);
-        for (const section of [fixture.section, ...sections]) {
-          const link = page
-            .locator(`a[href="/catalog/sections/${section.jwId}"]`)
-            .filter({ visible: true });
-          const row =
-            width < 768 ? link : page.getByRole("row").filter({ has: link });
-          await expect(row).toContainText(section.code);
-          await expect(row).toContainText(
-            section.semesterId === current.id
-              ? locale === "zh-cn"
-                ? current.nameCn
-                : "Spring 2026"
-              : section.semesterId === previous.id
+      async (effects) => {
+        for (const locale of ["zh-cn", "en-us"]) {
+          expect(
+            (
+              await page.request.post("/api/account/preferences", {
+                headers: effects.headers,
+                data: { locale },
+              })
+            ).status(),
+          ).toBe(200);
+          const name =
+            locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+          if (!name) throw new Error("Missing localized course name");
+          await gotoAndWaitForReady(
+            page,
+            `/search?q=${encodeURIComponent(fixture.course.code)}`,
+          );
+          for (const section of [fixture.section, ...sections]) {
+            const result = page
+              .getByRole("option")
+              .filter({ hasText: section.code });
+            await expect(result).toHaveCount(1);
+            await expect(result).toContainText(name);
+            const semesterLabel =
+              section.semesterId === current.id
                 ? locale === "zh-cn"
-                  ? previous.nameCn
-                  : "Fall 2025"
-                : locale === "zh-cn"
-                  ? "暂无"
-                  : "N/A",
+                  ? "2026年春季学期"
+                  : "Spring 2026"
+                : section.semesterId === previous.id
+                  ? locale === "zh-cn"
+                    ? "2025年秋季学期"
+                    : "Fall 2025"
+                  : locale === "zh-cn"
+                    ? "未知"
+                    : "Unknown";
+
+            await expect(result).toContainText(semesterLabel);
+          }
+        }
+      },
+    );
+  },
+);
+
+subscriptionTest(
+  "cases.disambiguation.multiple-sections-same-course-1 Course Web",
+  { tag: "@Course/Web" },
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+    subscriptionTest.setTimeout(60_000);
+    const db = isolatedWorker.database.owner;
+    const { fixture, current, previous, sections } = await run(() =>
+      createMultipleSectionsFixture(db),
+    );
+    await catalogSubscriptionRun(
+      fixture.user,
+      {
+        calendarMessages: [],
+      },
+      async (effects) => {
+        for (const locale of ["zh-cn", "en-us"]) {
+          expect(
+            (
+              await page.request.post("/api/account/preferences", {
+                headers: effects.headers,
+                data: { locale },
+              })
+            ).status(),
+          ).toBe(200);
+          const name =
+            locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+          if (!name) throw new Error("Missing localized course name");
+          for (const width of [1280, 390]) {
+            await page.setViewportSize({ width, height: 900 });
+            await gotoAndWaitForReady(
+              page,
+              `/catalog/courses/${fixture.course.jwId}`,
+            );
+            await expect(page.getByRole("heading", { level: 1 })).toContainText(
+              name,
+            );
+            const courseFacts = await page.locator("#overview").innerText();
+            expect(courseFacts).not.toContain(current.nameCn);
+            expect(courseFacts).not.toContain(previous.nameCn);
+            for (const section of [fixture.section, ...sections]) {
+              const link = page
+                .locator(`a[href="/catalog/sections/${section.jwId}"]`)
+                .filter({ visible: true });
+              const row =
+                width < 768
+                  ? link
+                  : page.getByRole("row").filter({ has: link });
+              await expect(row).toContainText(section.code);
+              await expect(row).toContainText(
+                section.semesterId === current.id
+                  ? locale === "zh-cn"
+                    ? current.nameCn
+                    : "Spring 2026"
+                  : section.semesterId === previous.id
+                    ? locale === "zh-cn"
+                      ? previous.nameCn
+                      : "Fall 2025"
+                    : locale === "zh-cn"
+                      ? "暂无"
+                      : "N/A",
+              );
+            }
+          }
+        }
+      },
+    );
+  },
+);
+
+subscriptionTest(
+  "cases.disambiguation.multiple-sections-same-course-1 Course REST",
+  { tag: "@Course/REST" },
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+    subscriptionTest.setTimeout(60_000);
+    const db = isolatedWorker.database.owner;
+    const { fixture } = await run(() => createMultipleSectionsFixture(db));
+    await catalogSubscriptionRun(
+      fixture.user,
+      {
+        calendarMessages: [],
+      },
+      async (effects) => {
+        for (const locale of ["zh-cn", "en-us"]) {
+          expect(
+            (
+              await page.request.post("/api/account/preferences", {
+                headers: effects.headers,
+                data: { locale },
+              })
+            ).status(),
+          ).toBe(200);
+          const name =
+            locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+          if (!name) throw new Error("Missing localized course name");
+          const courseResponse = await page.request.get(
+            `/api/catalog/courses/${fixture.course.jwId}`,
+            { headers: effects.headers },
+          );
+          expect(courseResponse.status()).toBe(200);
+          const coursePayload = await courseResponse.json();
+          expect(Object.hasOwn(coursePayload, "semester")).toBe(false);
+          expect(Object.hasOwn(coursePayload, "semesterId")).toBe(false);
+        }
+      },
+    );
+  },
+);
+
+subscriptionTest(
+  "cases.disambiguation.multiple-sections-same-course-1 Subscription Web",
+  { tag: "@Subscription/Web" },
+  async ({ page, isolatedWorker, run, catalogSubscriptionRun }) => {
+    subscriptionTest.setTimeout(60_000);
+    const db = isolatedWorker.database.owner;
+    const { fixture, current, sections } = await run(() =>
+      createMultipleSectionsFixture(db),
+    );
+    await catalogSubscriptionRun(
+      fixture.user,
+      {
+        calendarTokenCreated: true,
+        calendarMessages: Array.from({ length: 2 }, () => ({
+          type: "user" as const,
+          userId: fixture.user.id,
+        })),
+      },
+      async (effects) => {
+        let completedImports = 0;
+        for (const locale of ["zh-cn", "en-us"]) {
+          expect(
+            (
+              await page.request.post("/api/account/preferences", {
+                headers: effects.headers,
+                data: { locale },
+              })
+            ).status(),
+          ).toBe(200);
+          const name =
+            locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+          if (!name) throw new Error("Missing localized course name");
+          await page
+            .context()
+            .addCookies([
+              (await isolatedWorker.createSession(fixture.user.id)).cookie,
+            ]);
+          await gotoAndWaitForReady(page, "/workspace/subscriptions");
+          await page
+            .getByRole("button", {
+              name: /批量添加订阅|Bulk Add Subscriptions/i,
+            })
+            .first()
+            .click();
+          await page
+            .locator("#bulk-import-semester")
+            .selectOption(String(current.id));
+          await page.locator("#bulk-import-section-codes").fill(
+            sections
+              .slice(0, 2)
+              .map((section) => section.code)
+              .join("\n"),
+          );
+          await page
+            .getByRole("button", { name: /识别并匹配课程|Match Sections/ })
+            .click();
+          const dialog = page.getByRole("dialog", {
+            name: /确认订阅|Confirm .*section subscriptions/,
+          });
+          await expect(dialog).toBeVisible();
+          await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+          for (const section of sections.slice(0, 2)) {
+            const field = dialog.locator('[data-slot="field"]').filter({
+              has: page.locator(`#bulk-import-section-${section.id}`),
+            });
+            await expect(field).toContainText(name);
+            await expect(field).toContainText(section.code);
+            await expect(field).toContainText(
+              locale === "zh-cn" ? current.nameCn : "Spring 2026",
+            );
+          }
+          const [saved] = await Promise.all([
+            page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname ===
+                  "/api/workspace/subscriptions/batch" &&
+                response.request().method() === "POST",
+            ),
+            dialog
+              .getByRole("button", {
+                name: /订阅已选的 2 个教学班|Subscribe to 2 sections/,
+              })
+              .click(),
+          ]);
+          expect(saved.status()).toBe(200);
+          expect(await saved.json()).toMatchObject({
+            addedCount: 2,
+            removedCount: 0,
+            total: 2,
+            subscription: { userId: fixture.user.id },
+          });
+          await expect(dialog).toBeHidden();
+          for (const section of sections.slice(0, 2)) {
+            await expect(
+              page
+                .locator(`a[href="/catalog/sections/${section.jwId}"]`)
+                .filter({ visible: true })
+                .first(),
+            ).toContainText(name);
+          }
+          expect(
+            await db.userSectionSubscription.findMany({
+              select: { userId: true, sectionId: true, kind: true },
+              orderBy: { sectionId: "asc" },
+            }),
+          ).toEqual(
+            sections.slice(0, 2).map((section) => ({
+              userId: fixture.user.id,
+              sectionId: section.id,
+              kind: "regular",
+            })),
+          );
+          completedImports++;
+          // Drain this locale's actual calendar deliveries before resetting the
+          // owned rows for the next locale's independent import interaction.
+          await effects.checkpoint(`catalog-import-${locale}`, {
+            calendarTokenCreated: true,
+            calendarMessages: Array.from({ length: completedImports }, () => ({
+              type: "user" as const,
+              userId: fixture.user.id,
+            })),
+          });
+          await db.$transaction((db) =>
+            db.userSectionSubscription.deleteMany({
+              where: { userId: fixture.user.id },
+            }),
           );
         }
-      }
-      const courseResponse = await page.request.get(
-        `/api/catalog/courses/${fixture.course.jwId}`,
-      );
-      expect(courseResponse.status()).toBe(200);
-      const coursePayload = await courseResponse.json();
-      expect(Object.hasOwn(coursePayload, "semester")).toBe(false);
-      expect(Object.hasOwn(coursePayload, "semesterId")).toBe(false);
-      await page
-        .context()
-        .addCookies([await createSignedSessionCookie(fixture.user.id)]);
-      await gotoAndWaitForReady(page, "/workspace/subscriptions");
-      await page
-        .getByRole("button", { name: /批量添加订阅|Bulk Add Subscriptions/i })
-        .first()
-        .click();
-      await page
-        .locator("#bulk-import-semester")
-        .selectOption(String(current.id));
-      await page.locator("#bulk-import-section-codes").fill(
-        sections
-          .slice(0, 2)
-          .map((section) => section.code)
-          .join("\n"),
-      );
-      await page
-        .getByRole("button", { name: /识别并匹配课程|Match Sections/ })
-        .click();
-      const dialog = page.getByRole("dialog", {
-        name: /确认订阅|Confirm .*section subscriptions/,
-      });
-      await expect(dialog).toBeVisible();
-      await expect(dialog.getByRole("checkbox")).toHaveCount(2);
-      for (const section of sections.slice(0, 2)) {
-        const field = dialog
-          .locator('[data-slot="field"]')
-          .filter({ has: page.locator(`#bulk-import-section-${section.id}`) });
-        await expect(field).toContainText(name);
-        await expect(field).toContainText(section.code);
-        await expect(field).toContainText(
-          locale === "zh-cn" ? current.nameCn : "Spring 2026",
-        );
-      }
-      await dialog
-        .getByRole("button", {
-          name: /订阅已选的 2 个教学班|Subscribe to 2 sections/,
-        })
-        .click();
-      await expect(dialog).toBeHidden();
-      for (const section of sections.slice(0, 2)) {
-        await expect(
-          page
-            .locator(`a[href="/catalog/sections/${section.jwId}"]`)
-            .filter({ visible: true })
-            .first(),
-        ).toContainText(name);
-      }
-      await withE2ePrisma((db) =>
-        db.userSectionSubscription.deleteMany({
-          where: { userId: fixture.user.id },
-        }),
-      );
-    }
-  } finally {
-    await withE2ePrisma((db) =>
-      db.section.deleteMany({
-        where: { id: { in: sections.map((section) => section.id) } },
-      }),
+      },
     );
-    await cleanup(fixture);
-  }
-});
+  },
+);

@@ -1,3 +1,4 @@
+import type { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -6,8 +7,10 @@ const {
   connectMock,
   handleTransportRequestMock,
   inspectMcpResponseMock,
+  logAppEventMock,
   recordAndLogMcpResponseMock,
   scheduleOAuthGrantUsageMock,
+  sendMock,
   summarizeMcpJsonRpcRequestMock,
   transportConstructorMock,
 } = vi.hoisted(() => ({
@@ -16,8 +19,10 @@ const {
   connectMock: vi.fn(),
   handleTransportRequestMock: vi.fn(),
   inspectMcpResponseMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   recordAndLogMcpResponseMock: vi.fn(),
   scheduleOAuthGrantUsageMock: vi.fn(),
+  sendMock: vi.fn(),
   summarizeMcpJsonRpcRequestMock: vi.fn(),
   transportConstructorMock: vi.fn(),
 }));
@@ -31,6 +36,7 @@ vi.mock(
       }
 
       handleRequest = handleTransportRequestMock;
+      send = sendMock;
     },
   }),
 );
@@ -56,7 +62,7 @@ vi.mock("@/lib/security/user-mutation-rate-limit", () => ({
   USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS: 60,
 }));
 
-vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: vi.fn() }));
+vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: logAppEventMock }));
 vi.mock("@/lib/log/oauth-debug", () => ({
   logOAuthDebug: vi.fn(),
   oauthDebugCorrelationId: () => "request-1",
@@ -73,6 +79,32 @@ vi.mock("@/lib/api/routes/mcp-response-bookkeeping", () => ({
 vi.mock("@/lib/oauth/grant-usage", () => ({
   scheduleOAuthGrantUsage: scheduleOAuthGrantUsageMock,
 }));
+
+function mcpRequest(body: unknown) {
+  return new Request("https://life.example/api/mcp", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer token",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+function toolCall(id: string | number, name = "workspace_todo_list") {
+  return {
+    jsonrpc: "2.0",
+    id,
+    method: "tools/call",
+    params: { name, arguments: {} },
+  };
+}
+
+function connectedTransport(): WebStandardStreamableHTTPServerTransport {
+  const transport = connectMock.mock.calls[0]?.[0];
+  expect(transport).toBeDefined();
+  return transport;
+}
 
 function authenticatedUser() {
   return {
@@ -103,6 +135,8 @@ describe("MCP mutation rate limits", () => {
       truncated: false,
     });
     recordAndLogMcpResponseMock.mockReset();
+    logAppEventMock.mockReset();
+    sendMock.mockReset().mockResolvedValue(undefined);
     scheduleOAuthGrantUsageMock.mockReset().mockResolvedValue(undefined);
     summarizeMcpJsonRpcRequestMock.mockReset().mockReturnValue({
       argumentKeys: ["title"],
@@ -250,6 +284,11 @@ describe("MCP mutation rate limits", () => {
       }),
     );
 
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledTimes(2);
+    expect(
+      scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
+    ).toEqual(["error", "error"]);
+
     for (const reason of ["limited", "unavailable"] as const) {
       checkUserMutationRateLimitMock
         .mockReset()
@@ -356,16 +395,17 @@ describe("MCP mutation rate limits", () => {
       responseBytes: 32,
       truncated: false,
     });
-    handleTransportRequestMock.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: 1,
-          jsonrpc: "2.0",
-          result: { isError: true },
-        }),
-        { headers: { "content-type": "application/json" } },
-      ),
-    );
+    handleTransportRequestMock.mockImplementationOnce(async () => {
+      const message = {
+        id: 1,
+        jsonrpc: "2.0" as const,
+        result: { isError: true },
+      };
+      await connectedTransport().send(message);
+      return new Response(JSON.stringify(message), {
+        headers: { "content-type": "application/json" },
+      });
+    });
     const request = new Request("https://life.example/api/mcp", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -395,6 +435,266 @@ describe("MCP mutation rate limits", () => {
       }),
     );
   });
+
+  it("records a completed large success before send while inspection stays unknown", async () => {
+    inspectMcpResponseMock.mockResolvedValueOnce({
+      hasError: false,
+      responseBytes: 65_536,
+      truncated: true,
+    });
+    const message = {
+      id: 1,
+      jsonrpc: "2.0" as const,
+      result: { content: [{ type: "text", text: "x".repeat(70_000) }] },
+    };
+    const options = { relatedRequestId: 1 };
+    handleTransportRequestMock.mockImplementationOnce(async () => {
+      await connectedTransport().send(message, options);
+      return new Response("large response");
+    });
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    expect((await handleMcpRequest(mcpRequest(toolCall(1)))).status).toBe(200);
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledExactlyOnceWith({
+      userId: "user-1",
+      clientId: "client-1",
+      grantId: undefined,
+      feature: "workspace.todo",
+      action: "read",
+      channel: "mcp",
+      outcome: "success",
+    });
+    expect(
+      scheduleOAuthGrantUsageMock.mock.invocationCallOrder[0],
+    ).toBeLessThan(sendMock.mock.invocationCallOrder[0] ?? 0);
+    expect(sendMock).toHaveBeenCalledExactlyOnceWith(message, options);
+    expect(sendMock.mock.contexts[0]).toBe(connectedTransport());
+    expect(recordAndLogMcpResponseMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasError: false,
+        inspectionTruncated: true,
+        responseBytes: 65_536,
+      }),
+    );
+  });
+
+  it("does not infer success from HTTP 200 before a delayed final result", async () => {
+    inspectMcpResponseMock.mockResolvedValueOnce({
+      hasError: false,
+      responseBytes: 0,
+      truncated: true,
+    });
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    expect((await handleMcpRequest(mcpRequest(toolCall(1)))).status).toBe(200);
+    expect(scheduleOAuthGrantUsageMock).not.toHaveBeenCalled();
+    const transport = connectedTransport();
+    await transport.send(
+      { jsonrpc: "2.0", method: "notifications/progress", params: {} },
+      { relatedRequestId: 1 },
+    );
+    expect(scheduleOAuthGrantUsageMock).not.toHaveBeenCalled();
+    await transport.send({ jsonrpc: "2.0", id: 1, result: {} });
+    await transport.send({ jsonrpc: "2.0", id: 1, result: {} });
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledOnce();
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "success" }),
+    );
+  });
+
+  it("attributes out-of-order batch results by typed ID and excludes bridge and lifecycle calls", async () => {
+    checkUserMutationRateLimitMock.mockResolvedValue({ allowed: true });
+    handleTransportRequestMock.mockImplementationOnce(async () => {
+      const transport = connectedTransport();
+      await transport.send({
+        jsonrpc: "2.0",
+        id: "1",
+        result: { isError: true },
+      });
+      await transport.send({
+        jsonrpc: "2.0",
+        id: 3,
+        error: { code: -32603, message: "failed" },
+      });
+      await transport.send({ jsonrpc: "2.0", id: 1, result: {} });
+      await transport.send({ jsonrpc: "2.0", id: 4, result: {} });
+      await transport.send({ jsonrpc: "2.0", id: 5, result: {} });
+      await transport.send({ jsonrpc: "2.0", id: 6, result: {} });
+      return new Response("batch");
+    });
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    await handleMcpRequest(
+      mcpRequest([
+        toolCall(1),
+        toolCall("1"),
+        toolCall(3, "workspace_todo_create"),
+        toolCall(4, "graphql_operation_run"),
+        toolCall(5, "catalog_course_search"),
+        { jsonrpc: "2.0", id: 6, method: "tools/list" },
+        {
+          jsonrpc: "2.0",
+          method: "tools/call",
+          params: { name: "workspace_todo_list" },
+        },
+      ]),
+    );
+    expect(
+      scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => ({
+        feature: input.feature,
+        action: input.action,
+        outcome: input.outcome,
+      })),
+    ).toEqual([
+      { feature: "workspace.todo", action: "read", outcome: "error" },
+      { feature: "workspace.todo", action: "write", outcome: "error" },
+      { feature: "workspace.todo", action: "read", outcome: "success" },
+    ]);
+    expect(logAppEventMock).not.toHaveBeenCalledWith(
+      "warn",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("settles only outstanding calls when handling throws after a completed result", async () => {
+    const failure = new Error("transport failed");
+    handleTransportRequestMock.mockImplementationOnce(async () => {
+      await connectedTransport().send({ jsonrpc: "2.0", id: 1, result: {} });
+      throw failure;
+    });
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    await expect(
+      handleMcpRequest(mcpRequest([toolCall(1), toolCall(2)])),
+    ).rejects.toBe(failure);
+    await connectedTransport().send({ jsonrpc: "2.0", id: 2, result: {} });
+    expect(
+      scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
+    ).toEqual(["success", "error"]);
+  });
+
+  it("records direct HTTP rejection as errors without changing its response", async () => {
+    handleTransportRequestMock.mockResolvedValueOnce(
+      new Response("unsupported accept", { status: 406 }),
+    );
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    const response = await handleMcpRequest(
+      mcpRequest([toolCall(1), toolCall(2)]),
+    );
+    expect(response.status).toBe(406);
+    await expect(response.text()).resolves.toBe("unsupported accept");
+    expect(
+      scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
+    ).toEqual(["error", "error"]);
+  });
+
+  it("settles direct HTTP failures once even if later response bookkeeping throws", async () => {
+    handleTransportRequestMock.mockResolvedValueOnce(
+      new Response("invalid protocol", { status: 400 }),
+    );
+    const failure = new Error("inspection failed");
+    inspectMcpResponseMock.mockRejectedValueOnce(failure);
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    await expect(
+      handleMcpRequest(mcpRequest([toolCall(1), toolCall(2)])),
+    ).rejects.toBe(failure);
+    expect(
+      scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
+    ).toEqual(["error", "error"]);
+  });
+
+  it("preserves a send rejection without rewriting or recounting its completed operation", async () => {
+    const failure = new Error("delivery failed");
+    sendMock.mockRejectedValueOnce(failure);
+    handleTransportRequestMock.mockImplementationOnce(async () => {
+      await connectedTransport().send({ jsonrpc: "2.0", id: 1, result: {} });
+      return new Response("unreachable");
+    });
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    await expect(handleMcpRequest(mcpRequest(toolCall(1)))).rejects.toBe(
+      failure,
+    );
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledOnce();
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "success" }),
+    );
+  });
+
+  it.each(["workspace_todo_create", "workspace_todo_list"])(
+    "rejects duplicate batch IDs before any auth, rate limit, or dispatch: %s",
+    async (secondTool) => {
+      const { handleMcpRequest } = await import(
+        "@/lib/api/routes/mcp-request-handler"
+      );
+      const response = await handleMcpRequest(
+        mcpRequest([
+          toolCall(1, "workspace_todo_create"),
+          toolCall(1, secondTool),
+        ]),
+      );
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32600, message: "Invalid Request" },
+      });
+      expect(authenticateMcpRequestMock).not.toHaveBeenCalled();
+      expect(checkUserMutationRateLimitMock).not.toHaveBeenCalled();
+      expect(transportConstructorMock).not.toHaveBeenCalled();
+      expect(connectMock).not.toHaveBeenCalled();
+      expect(handleTransportRequestMock).not.toHaveBeenCalled();
+      expect(scheduleOAuthGrantUsageMock).not.toHaveBeenCalled();
+      expect(recordAndLogMcpResponseMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          phase: "body-rejected",
+          status: 400,
+        }),
+      );
+    },
+  );
+
+  it.each([false, true])(
+    "usage failure preserves the response when logging also fails: %s",
+    async (loggingFails) => {
+      if (loggingFails) {
+        logAppEventMock.mockImplementation((_level, event) => {
+          if (event === "mcp.oauth_usage.failed")
+            throw new Error("logger failed");
+        });
+      }
+      scheduleOAuthGrantUsageMock.mockRejectedValueOnce(
+        new Error("database failed"),
+      );
+      handleTransportRequestMock.mockImplementationOnce(async () => {
+        await connectedTransport().send({ jsonrpc: "2.0", id: 1, result: {} });
+        return new Response("completed");
+      });
+      const { handleMcpRequest } = await import(
+        "@/lib/api/routes/mcp-request-handler"
+      );
+      expect((await handleMcpRequest(mcpRequest(toolCall(1)))).status).toBe(
+        200,
+      );
+      expect(sendMock).toHaveBeenCalledOnce();
+      expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledOnce();
+      expect(logAppEventMock).toHaveBeenCalledWith(
+        "error",
+        "mcp.oauth_usage.failed",
+        { errorName: "Error" },
+      );
+    },
+  );
 
   it("allows anonymous public catalog calls without invoking OAuth", async () => {
     const request = new Request("https://life.example/api/mcp", {

@@ -1,5 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { PUBLIC_NAVIGATION_HEADER } from "@/lib/shell/public-navigation-contract";
+// Relative navigation needs the origin of this case's own Worker; the plain
+// Playwright test has no base URL on this branch.
+import { test } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 const publicData = {
@@ -10,9 +13,9 @@ const publicData = {
   ],
 };
 
-test("browser caches only attested successful public navigation responses", async ({
-  page,
-}) => {
+test("browser caches only attested successful public navigation responses", {
+  tag: "@Site/Web",
+}, async ({ page }) => {
   await gotoAndWaitForReady(page, "/privacy");
   const cases = [
     {

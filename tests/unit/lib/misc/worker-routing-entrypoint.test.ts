@@ -73,6 +73,7 @@ vi.mock("@/features/calendar/server/calendar-export-rebuild", () => ({
 vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
   getCloudflareAnalyticsEngineDataset: () => undefined,
   getCloudflareRuntimeEnvInput: () => ({}),
+  getCloudflareRuntimeTaskScheduler: () => backgroundTasks.waitUntil,
   runWithCloudflareRuntimeEnv: runWithCloudflareRuntimeEnvMock,
   setCloudflareRequestContext: setCloudflareRequestContextMock,
 }));
@@ -314,16 +315,17 @@ describe("Worker routing entrypoint", () => {
     );
   });
 
-  it("cancels an unread body after early rejection without creating a second stream branch", async () => {
+  it("leaves an unread body to the runtime after early rejection without teeing or draining it", async () => {
     const cancel = vi.fn();
     const body = new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode("unread body"));
+        controller.close();
       },
       cancel,
     });
     appFetchMock.mockResolvedValueOnce(
-      new Response("unauthorized", { status: 401 }),
+      new Response("payload too large", { status: 413 }),
     );
     const requestInit = { body, method: "PUT", duplex: "half" };
     const request = new Request(
@@ -335,8 +337,12 @@ describe("Worker routing entrypoint", () => {
       {},
       { waitUntil: backgroundTasks.waitUntil },
     );
-    expect(response.status).toBe(401);
-    expect(cancel).toHaveBeenCalledExactlyOnceWith("request body released");
+    expect(response.status).toBe(413);
+    const forwardedRequest = appFetchMock.mock.calls[0]?.[0] as Request;
+    expect(forwardedRequest.body).toBe(request.body);
+    expect(forwardedRequest.bodyUsed).toBe(false);
+    expect(cancel).not.toHaveBeenCalled();
+    expect(await forwardedRequest.text()).toBe("unread body");
   });
 
   it("interface-hierarchy.locale-caching-and-seo-5", async () => {

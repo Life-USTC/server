@@ -29,19 +29,14 @@ export function isDomainExpectationKind(kind: unknown): boolean {
 
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
-const pointer = (value: string) =>
-  value.replaceAll("~", "~0").replaceAll("/", "~1");
 
 /** Validate domain references without treating resolved behavior as execution evidence. */
 export function validateDomainExpectation(
   expectation: Record<string, unknown>,
   context: DomainExpectationContext,
-): { errors: string[]; validatedPaths: string[]; bindingPaths: string[] } {
+): { errors: string[] } {
   const errors: string[] = [];
-  const validatedPaths: string[] = [];
-  const bindingPaths: string[] = [];
-  if (!isDomainExpectationKind(expectation.kind))
-    return { errors, validatedPaths, bindingPaths };
+  if (!isDomainExpectationKind(expectation.kind)) return { errors };
   if (expectation.kind === "localized_regions") {
     const count = expectation.regions;
     if (
@@ -147,7 +142,6 @@ export function validateDomainExpectation(
       }
       if (!names.has(value.export))
         throw new Error(`missing exported operation ${value.export}`);
-      bindingPaths.push(`${path}/module`, `${path}/export`);
     } catch (error) {
       errors.push(`${path}: ${String(error)}`);
     }
@@ -192,7 +186,6 @@ export function validateDomainExpectation(
           errors.push(
             `operations/${surface}: operation is not bound to an applicable capability`,
           );
-        else bindingPaths.push(`/operations/${surface}`);
       }
   }
   if (expectation.kind === "attachment_download_authority") {
@@ -210,7 +203,6 @@ export function validateDomainExpectation(
       !object(path[String(route.method).toLowerCase()])
     )
       errors.push("route: missing OpenAPI operation");
-    else bindingPaths.push("/route/method", "/route/path");
   }
   if (expectation.kind === "localized_regions") {
     try {
@@ -220,7 +212,6 @@ export function validateDomainExpectation(
       );
       if (!page.startsWith(`${root}/src/routes/`))
         throw new Error("route escapes source root");
-      bindingPaths.push("/route");
     } catch {
       errors.push("route: missing page component");
     }
@@ -283,12 +274,10 @@ export function validateDomainExpectation(
       if (!schema || !object(schema.properties))
         errors.push("response: unresolved object projection");
       else {
-        bindingPaths.push("/response/schema", "/response/path");
         if (Array.isArray(expectation.fields))
-          for (const [i, field] of expectation.fields.entries()) {
+          for (const field of expectation.fields) {
             if (typeof field !== "string" || !property(schema, field))
               errors.push(`fields: unknown projected field ${String(field)}`);
-            else validatedPaths.push(`/fields/${i}`);
           }
         if (object(expectation.nested_fields))
           for (const [path, names] of Object.entries(
@@ -299,14 +288,10 @@ export function validateDomainExpectation(
             if (!nested || !object(nested.properties) || !Array.isArray(names))
               errors.push(`nested_fields: unknown object path ${path}`);
             else
-              for (const [index, name] of names.entries()) {
+              for (const name of names) {
                 if (typeof name !== "string" || !property(nested, name))
                   errors.push(
                     `nested_fields: unknown projected field ${path}/${String(name)}`,
-                  );
-                else
-                  validatedPaths.push(
-                    `/nested_fields/${pointer(path)}/${index}`,
                   );
               }
           }
@@ -316,7 +301,6 @@ export function validateDomainExpectation(
             for (const key of path.split("/")) target = property(target, key);
             if (!target)
               errors.push(`preserves: unknown projected value path ${path}`);
-            else validatedPaths.push(`/preserves/${pointer(path)}`);
           }
       }
     }
@@ -326,21 +310,13 @@ export function validateDomainExpectation(
       errors.push("ordered_page requires the Prisma model field catalog");
     const fields = context.models?.get(String(expectation.model));
     if (!fields) errors.push(`unknown model ${String(expectation.model)}`);
-    else {
-      bindingPaths.push("/model");
-      if (Array.isArray(expectation.order))
-        expectation.order.forEach((item, i) => {
-          if (!object(item) || !fields.has(String(item.field)))
-            errors.push(
-              `order: unknown model field ${object(item) ? String(item.field) : i}`,
-            );
-          else validatedPaths.push(`/order/${i}/field`);
-        });
-    }
+    else if (Array.isArray(expectation.order))
+      expectation.order.forEach((item, i) => {
+        if (!object(item) || !fields.has(String(item.field)))
+          errors.push(
+            `order: unknown model field ${object(item) ? String(item.field) : i}`,
+          );
+      });
   }
-  return {
-    errors,
-    validatedPaths,
-    bindingPaths: errors.length ? [] : bindingPaths,
-  };
+  return { errors };
 }

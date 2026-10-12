@@ -123,7 +123,9 @@ afterAll(async () => {
 });
 
 describe("compact public calendar projection", () => {
-  it("preserves more than two list pages, overlap, Shanghai end-of-day and stable ordering", async () => {
+  it("preserves more than two list pages, overlap, Shanghai end-of-day and stable ordering", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const result = await listYoungCalendarEvents(input);
     const expectedIds = [
       id("overnight"),
@@ -171,7 +173,9 @@ describe("compact public calendar projection", () => {
     expect(conflicts.has(id("overnight"))).toBe(false);
   });
 
-  it("keeps registration filters and unknown dates separate from activity dates", async () => {
+  it("keeps registration filters and unknown dates separate from activity dates", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const result = await listYoungCalendarEvents({
       ...input,
       timeBasis: "registration",
@@ -198,7 +202,9 @@ describe("compact public calendar projection", () => {
     ]);
   });
 
-  it("leaves full public list fields and pagination intact after warming calendar facts", async () => {
+  it("leaves full public list fields and pagination intact after warming calendar facts", {
+    tags: ["@Young/Service"],
+  }, async () => {
     await listYoungCalendarEvents(input);
     const list = await listYoungEvents({ ...input, page: 3, pageSize: 100 });
     expect(list.pagination).toEqual({
@@ -215,7 +221,9 @@ describe("compact public calendar projection", () => {
     expect(list.data[0]).toHaveProperty("contactTel", "fixture-only");
     expect(list.unknownDateCount).toBe(1);
   });
-  it("matches Prisma search wildcards, escapes, Unicode and bound quotes", async () => {
+  it("matches Prisma search wildcards, escapes, Unicode and bound quotes", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const cases: [string, string[], number][] = [
       ["100%", ["percent", "percent-wildcard"], 1],
       ["under_score", ["underscore", "underscore-wildcard"], 0],
@@ -273,7 +281,9 @@ describe("compact public calendar projection", () => {
     }
   });
 
-  it("refreshes calendar and source facts on a committed revision change", async () => {
+  it("refreshes calendar and source facts on a committed revision change", {
+    tags: ["@Young/Service"],
+  }, async () => {
     const original = await db.staticImportState.findUnique({
       where: { id: "global" },
     });

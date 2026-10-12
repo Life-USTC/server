@@ -83,7 +83,7 @@ requirements:
     - Cookie and Accept-Language do not change the same URL response or its public cache policy.
     - Different pages and supported filters return the correct isolated records and totals.
     test:
-      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      file: tests/integration/rest/catalog/public-lists.test.ts
       name: course.public-list-cache
 - id: course.mobile-detail-hierarchy
   category: presentation
@@ -189,7 +189,7 @@ requirements:
     - The new committed revision refreshes API and page data and makes the previously missing identity
       readable.
     test:
-      file: tests/integration/catalog-public-read-contracts.test.ts
+      file: tests/integration/course-public-detail-cache.test.ts
       name: course.public-detail-cache
 - id: course.history-cache-page-isolation
   category: consistency
@@ -241,6 +241,31 @@ requirements:
     test:
       file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
       name: course.history-page-default
+- id: course.section-entry-consistency
+  category: consistency
+  applies_to:
+  - course-detail
+  surfaces:
+  - web
+  rule: A Section linked by Course.id through Section.courseId and by Teacher.id through its teaching
+    relationship has the same public destination /catalog/sections/[Section.jwId] in both entity detail
+    tables. Anonymous navigation through either table preserves the arranged Course, Teacher, Section,
+    Semester and Campus rows, Section.teachers relation and SectionTeacher rows.
+  acceptance:
+    given: One isolated Course, Teacher and Section share a semester and campus, with the Teacher assigned
+      to that Section and no User, Session, UserSectionSubscription or AuditLog rows.
+    when: A desktop browser reads the course offering table, follows its Section link, then reads the
+      assigned teacher's offering table and follows that Section link in the same session and locale.
+    then:
+    - The course table displays the localized semester, section code, teacher, campus and enrolled/capacity counts.
+    - The teacher table displays the localized semester, course name, section code and credits.
+    - Both links reach /catalog/sections/[Section.jwId] using the independently arranged Section identity.
+    - Completed reads leave the arranged Course, Teacher, Section, Semester and Campus rows, Section.teachers
+      relation and SectionTeacher rows unchanged.
+    - User, Session, UserSectionSubscription and AuditLog remain empty after the reads complete.
+    test:
+      file: tests/e2e/src/app/teachers/[id]/test.ts
+      name: course.consume-section-identity
 capabilities:
   course-list:
     title: Course List & Filter
@@ -374,5 +399,6 @@ capabilities:
           - course.sections
     requirement_refs:
     - section.retired-read-semantics
+    - course.section-entry-consistency
 rationale:
 - A course is a stable course entity and does not represent a specific semester offering.

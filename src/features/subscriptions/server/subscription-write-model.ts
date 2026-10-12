@@ -249,9 +249,13 @@ async function removeUserSectionIds(
   userId: string,
   sectionIds: readonly number[],
 ) {
-  return withUserDbContext(userId, (tx) =>
+  const result = await withUserDbContext(userId, (tx) =>
     removeUserSectionIdsInTransaction(tx, userId, sectionIds),
   );
+  if (result) {
+    scheduleInvalidateUserCalendarExportCache(userId);
+  }
+  return result;
 }
 
 export async function appendUserSectionSubscriptions({
@@ -485,14 +489,7 @@ export async function setUserSectionSubscriptionByJwId(input: {
     };
   }
 
-  await withUserDbContext(input.userId, (tx) =>
-    tx.userSectionSubscription.deleteMany({
-      where: {
-        userId: input.userId,
-        sectionId,
-      },
-    }),
-  );
+  await removeUserSectionIds(input.userId, [sectionId]);
 
   return {
     sectionJwId: input.sectionJwId,

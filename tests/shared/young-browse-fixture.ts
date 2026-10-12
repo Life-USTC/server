@@ -1,6 +1,8 @@
 import type { TestPrismaClient } from "./prisma";
 
-export async function createYoungBrowseFixture(db: TestPrismaClient) {
+export async function createYoungBrowseFixture(
+  db: Pick<TestPrismaClient, "youngOrganizer" | "youngEvent">,
+) {
   const marker = `young-browse-${crypto.randomUUID()}`;
   const organizerIds = Array.from(
     { length: 24 },
@@ -91,14 +93,3 @@ export async function createYoungBrowseFixture(db: TestPrismaClient) {
 export type YoungBrowseFixture = Awaited<
   ReturnType<typeof createYoungBrowseFixture>
 >;
-export async function cleanupYoungBrowseFixture(
-  db: TestPrismaClient,
-  fixture: YoungBrowseFixture,
-) {
-  await db.youngEvent.deleteMany({
-    where: { youngId: { startsWith: fixture.marker } },
-  });
-  await db.youngOrganizer.deleteMany({
-    where: { id: { in: fixture.organizerIds } },
-  });
-}

@@ -1,27 +1,27 @@
 import dotenv from "dotenv";
 import { defineConfig } from "vitest/config";
-import { sharedAlias } from "./vitest.base";
+import { testTags } from "./tests/ci/test-tags.ts";
+import { sharedAlias } from "./vitest.base.ts";
 
 dotenv.config();
 
-const sharedTest = {
-  environment: "node" as const,
-  globals: true,
-  testTimeout: 30_000,
-  hookTimeout: 30_000,
-};
-
-/** Integration DB + seed setup lives in `tests/integration/AGENTS.md`. */
+/** Integration schema and role setup lives in `tests/integration/AGENTS.md`. */
 export default defineConfig({
   resolve: { alias: sharedAlias },
   test: {
-    globalSetup: ["./tests/integration/global-setup.ts"],
-    ...sharedTest,
-    include: ["tests/integration/**/*.test.ts"],
+    globalSetup: ["./tests/shared/runtime-database.ts"],
+    environment: "node",
+    globals: true,
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+    // CI supplies files from native discovery; avoid collecting unrelated suites.
+    include: process.env.INTEGRATION_FILES
+      ? JSON.parse(process.env.INTEGRATION_FILES)
+      : ["tests/integration/**/*.test.ts"],
     // REST contracts run under Playwright with a real Worker, not Vitest.
     exclude: ["tests/integration/rest/**"],
-    // Integration fixtures share seeded users and database rows. Running the
-    // files serially also keeps whole-table auth assertions deterministic.
+    tags: testTags,
+    // Keep per-job resource use bounded; test fixtures own mutable state.
     fileParallelism: false,
   },
 });

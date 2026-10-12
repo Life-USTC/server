@@ -1,8 +1,7 @@
-import { afterAll, afterEach, expect, it, vi } from "vitest";
-import * as exportCache from "@/features/calendar/server/calendar-export-cache";
+import { vi } from "vitest";
+import { invalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-cache";
 import { getUserCalendarRoute } from "@/lib/api/routes/calendars";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
-import { createFixturePrisma } from "../shared/prisma";
+import { nodeProtocolTest } from "../shared/node-protocol-fixture";
 
 vi.mock("@/features/calendar/server/ical-event-utils", async (original) => ({
   ...(await original<
@@ -13,53 +12,103 @@ vi.mock("@/features/calendar/server/ical-event-utils", async (original) => ({
     { manifest: { rooms: [] }, rules: [] },
   ],
 }));
-const db = createFixturePrisma();
-afterEach(() => {
-  exportCache.resetUserCalendarExportCacheForTest();
-  vi.restoreAllMocks();
+// Each async request counts its own real cache access. Cases never install or
+// restore one another's spy, and the underlying cache implementation still runs.
+const cacheReadObservation = await vi.hoisted(async () => {
+  const { AsyncLocalStorage } = await import("node:async_hooks");
+  return new AsyncLocalStorage<() => void>();
 });
-afterAll(async () => {
-  await Promise.all([db.$disconnect(), runtimePrisma.$disconnect()]);
-});
-
-async function withFeed(run: (userId: string, token: string) => Promise<void>) {
-  const userId = crypto.randomUUID();
-  const token = crypto.randomUUID();
-  await db.user.create({
-    data: {
-      id: userId,
-      name: "Calendar feed owner",
-      email: `${userId}@feed-contract.test`,
-      calendarFeedToken: token,
-      todos: {
-        create: {
-          title: `Private calendar item ${userId}`,
-          dueAt: new Date("2035-09-20T08:30:00+08:00"),
-        },
+vi.mock(
+  "@/features/calendar/server/calendar-export-cache",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@/features/calendar/server/calendar-export-cache")
+      >();
+    return {
+      ...actual,
+      getCachedUserCalendarExport(
+        ...args: Parameters<typeof actual.getCachedUserCalendarExport>
+      ) {
+        cacheReadObservation.getStore()?.();
+        return actual.getCachedUserCalendarExport(...args);
       },
-    },
-  });
-  try {
-    await run(userId, token);
-  } finally {
-    await db.user.delete({ where: { id: userId } });
-  }
-}
-function read(userId: string, token: string, etag?: string) {
-  const credential = `${userId}:${token}`;
-  return getUserCalendarRoute(
-    new Request(
-      `https://example.test/api/calendar-feeds/${encodeURIComponent(credential)}.ics`,
-      { headers: etag ? { "If-None-Match": etag } : {} },
-    ),
-    { userId: credential },
-  );
-}
+    };
+  },
+);
 
-it("calendar.feed-auth-before-cache", async () => {
-  await withFeed(async (userId, token) => {
-    const cacheRead = vi.spyOn(exportCache, "getCachedUserCalendarExport");
-    const first = await read(userId, token);
+const it = nodeProtocolTest.extend(
+  "feed",
+  async ({ isolatedDatabase: { owner: db }, protocolRuntime }) => {
+    const userId = crypto.randomUUID();
+    const token = crypto.randomUUID();
+    const cacheRead = vi.fn();
+    const read = (credentialToken: string, etag?: string) =>
+      protocolRuntime.request(() =>
+        cacheReadObservation.run(cacheRead, () => {
+          const credential = `${userId}:${credentialToken}`;
+          return getUserCalendarRoute(
+            new Request(
+              `https://example.test/api/calendar-feeds/${encodeURIComponent(credential)}.ics`,
+              { headers: etag ? { "If-None-Match": etag } : {} },
+            ),
+            { userId: credential },
+          );
+        }),
+      );
+    const run = (work: () => Promise<void>) =>
+      protocolRuntime.run(async () => {
+        const results = await Promise.allSettled([
+          Promise.resolve().then(async () => {
+            await db.$transaction((tx) =>
+              tx.user.create({
+                data: {
+                  id: userId,
+                  name: "Calendar feed owner",
+                  email: `${userId}@feed-contract.test`,
+                  calendarFeedToken: token,
+                  todos: {
+                    create: {
+                      title: `Private calendar item ${userId}`,
+                      dueAt: new Date("2035-09-20T08:30:00+08:00"),
+                    },
+                  },
+                },
+              }),
+            );
+            await work();
+          }),
+        ]);
+        // The admitted workflow owns cleanup even after a test timeout. Evict only
+        // this case's UUID; never clear the global cache or another user's rebuild.
+        results.push(
+          ...(await Promise.allSettled([
+            protocolRuntime.request(() =>
+              invalidateUserCalendarExportCache(userId),
+            ),
+          ])),
+        );
+        const failures = results.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        );
+        if (failures.length === 1) throw failures[0];
+        if (failures.length > 1)
+          throw new AggregateError(
+            failures,
+            "Calendar feed and cache cleanup failed",
+          );
+      });
+    return { userId, token, cacheRead, read, run, db };
+  },
+);
+
+it("calendar.feed-auth-before-cache", { tags: ["@Calendar/ICS"] }, async ({
+  feed,
+  expect,
+}) => {
+  await feed.run(async () => {
+    const { userId, token, db, cacheRead, read } = feed;
+    const first = await read(token);
     expect(first.status).toBe(200);
     const etag = first.headers.get("ETag");
     expect(etag).toBeTruthy();
@@ -67,7 +116,7 @@ it("calendar.feed-auth-before-cache", async () => {
       `Private calendar item ${userId}`,
     );
     for (const conditional of [etag, `W/${etag}`, `"other", ${etag}`]) {
-      const current = await read(userId, token, conditional ?? undefined);
+      const current = await read(token, conditional ?? undefined);
       expect(current.status).toBe(304);
       expect(await current.text()).toBe("");
     }
@@ -77,38 +126,44 @@ it("calendar.feed-auth-before-cache", async () => {
       data: { calendarFeedToken: "replacement-token" },
     });
     cacheRead.mockClear();
-    const revoked = await read(userId, token, etag ?? undefined);
+    const revoked = await read(token, etag ?? undefined);
     expect(revoked.status).toBe(410);
     expect(await revoked.text()).not.toContain(userId);
     expect(cacheRead).not.toHaveBeenCalled();
-    const replacement = await read(
-      userId,
-      "replacement-token",
-      etag ?? undefined,
-    );
+    const replacement = await read("replacement-token", etag ?? undefined);
     expect(replacement.status).toBe(304);
     expect(cacheRead).toHaveBeenCalledOnce();
   });
 });
 
-it("calendar.personal-feed-http-cache", async () => {
-  await withFeed(async (userId, token) => {
-    const first = await read(userId, token);
+it("calendar.personal-feed-http-cache", { tags: ["@Calendar/ICS"] }, async ({
+  feed,
+  expect,
+}) => {
+  await feed.run(async () => {
+    const { token, read } = feed;
+    const first = await read(token);
     expect(first.status).toBe(200);
     const etag = first.headers.get("ETag") ?? undefined;
-    const conditional = await read(userId, token, etag);
+    const conditional = await read(token, etag);
     expect(conditional.status).toBe(304);
-    const denied = await read(userId, "wrong-token", etag);
+    const denied = await read("wrong-token", etag);
     expect(denied.status).toBe(410);
-    for (const response of [first, conditional, denied])
+    for (const response of [first, conditional, denied]) {
       expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      await response.text();
+    }
   });
 });
 
-it("ical.feed-cold-miss", async () => {
-  await withFeed(async (userId, token) => {
-    exportCache.resetUserCalendarExportCacheForTest();
-    const response = await read(userId, token);
+it("ical.feed-cold-miss", { tags: ["@Calendar/ICS"] }, async ({
+  feed,
+  expect,
+}) => {
+  await feed.run(async () => {
+    // This private UUID has never been requested, so its first request is cold.
+    const { userId, token, read } = feed;
+    const response = await read(token);
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe(
       "text/calendar; charset=utf-8",

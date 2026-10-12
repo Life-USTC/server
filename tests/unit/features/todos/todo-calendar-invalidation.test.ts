@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../shared/deferred";
-import { bindDomainOperation } from "../../../shared/specifications/domain-contracts";
-import {
-  type SemanticContract,
-  semanticContract,
-} from "../../../shared/specifications/semantic-contract";
 
 const { invalidateMock, withUserDbContextMock } = vi.hoisted(() => ({
   invalidateMock: vi.fn(),
@@ -25,36 +20,12 @@ import {
   updateOwnedTodo,
 } from "@/features/todos/server/todo-service";
 
-function observeCalendar(
-  contract: SemanticContract,
-  phase: string,
-  count: number,
-) {
-  contract.equal(`/${phase}/0/operation`, {
-    module: "src/features/calendar/server/calendar-export-invalidation.ts",
-    export: "scheduleInvalidateUserCalendarExportCache",
-  });
-  contract.equal(`/${phase}/0/calls`, count);
-  if (phase === "after_completion" && count > 0)
-    contract.equal(
-      `/${phase}/0/recipient`,
-      invalidateMock.mock.calls.every((args) => args[0] === "user-1")
-        ? "owner"
-        : "other",
-    );
-}
-
 describe("todo calendar export invalidation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  function holdUpdateCommit(contract: SemanticContract) {
-    const update = bindDomainOperation(
-      contract,
-      "src/features/todos/server/todo-service.ts",
-      updateOwnedTodo,
-    );
+  function holdUpdateCommit() {
     const commit = createDeferred();
     const callbackFinished = createDeferred();
     withUserDbContextMock.mockImplementation(async (_userId, work) => {
@@ -68,7 +39,7 @@ describe("todo calendar export invalidation", () => {
       await commit.promise;
       return result;
     });
-    const pending = update({
+    const pending = updateOwnedTodo({
       id: "todo-1",
       userId: "user-1",
       data: { completed: true, dueAt: undefined, hasDueAt: false },
@@ -76,57 +47,24 @@ describe("todo calendar export invalidation", () => {
     return { callbackFinished, commit, pending };
   }
 
-  it("todo.update-calendar-after-commit", async (context) => {
-    const contract = await semanticContract(
-      "todo.update-calendar-after-commit",
-      "transaction_effects",
-    );
-    const { callbackFinished, commit, pending } = holdUpdateCommit(contract);
+  it("todo.update-calendar-after-commit", async () => {
+    const { callbackFinished, commit, pending } = holdUpdateCommit();
     await callbackFinished.promise;
     const callsBeforeCommit = invalidateMock.mock.calls.length;
     commit.resolve();
-    const result = await pending;
-    contract.equal("/completion", result.ok ? "commit" : "rejected");
-    contract.equal("/failure_propagated", !result.ok);
-    observeCalendar(contract, "before_commit", callsBeforeCommit);
-    observeCalendar(
-      contract,
-      "after_completion",
-      invalidateMock.mock.calls.length,
-    );
-    contract.recordVitest(context);
+    await expect(pending).resolves.toMatchObject({ ok: true });
     expect(callsBeforeCommit).toBe(0);
     expect(invalidateMock).toHaveBeenCalledExactlyOnceWith("user-1");
   });
 
-  it("todo.update-calendar-rollback", async (context) => {
-    const contract = await semanticContract(
-      "todo.update-calendar-rollback",
-      "transaction_effects",
-    );
-    const { callbackFinished, commit, pending } = holdUpdateCommit(contract);
-    const outcome = pending.then(
-      () => ({ completion: "commit", failed: false }),
-      () => ({ completion: "rollback", failed: true }),
-    );
+  it("todo.update-calendar-rollback", async () => {
+    const { callbackFinished, commit, pending } = holdUpdateCommit();
     const rejected = expect(pending).rejects.toThrow("commit failed");
     await callbackFinished.promise;
-    observeCalendar(
-      contract,
-      "before_commit",
-      invalidateMock.mock.calls.length,
-    );
+    const callsBeforeCommit = invalidateMock.mock.calls.length;
     commit.reject(new Error("commit failed"));
     await rejected;
-    const result = await outcome;
-    contract.equal("/completion", result.completion);
-    contract.equal("/failure_propagated", result.failed);
-    observeCalendar(
-      contract,
-      "after_completion",
-      invalidateMock.mock.calls.length,
-    );
-    contract.recordVitest(context);
+    expect(callsBeforeCommit).toBe(0);
     expect(invalidateMock).not.toHaveBeenCalled();
   });
 
@@ -161,10 +99,10 @@ describe("todo calendar export invalidation", () => {
               title: "Updated",
               content: null,
               priority: "medium",
-              dueAt: new Date(),
+              dueAt: new Date("2026-01-01T00:00:00.000Z"),
               completed: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              createdAt: new Date("2026-01-01T00:00:00.000Z"),
+              updatedAt: new Date("2026-01-01T00:00:00.000Z"),
             }),
           },
         }),

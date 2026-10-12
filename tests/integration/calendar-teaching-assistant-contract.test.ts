@@ -1,10 +1,9 @@
-import { afterAll, afterEach, expect, it, vi } from "vitest";
+import { expect, vi } from "vitest";
 import { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
 import { getUserCalendarRecord } from "@/features/calendar/server/calendar-export-data";
 import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
 import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
-import { prisma as runtimePrisma } from "@/lib/db/prisma";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
+import { nodeProtocolTest } from "../shared/node-protocol-fixture";
 
 vi.mock("@/features/calendar/server/ical-event-utils", async (original) => ({
   ...(await original<
@@ -15,79 +14,106 @@ vi.mock("@/features/calendar/server/ical-event-utils", async (original) => ({
     { manifest: { rooms: [] }, rules: [] },
   ],
 }));
-const db = createFixturePrisma();
-afterAll(async () => {
-  await Promise.all([disconnectTestPrisma(db), runtimePrisma.$disconnect()]);
-});
-afterEach(() => vi.useRealTimers());
-
-it("calendar.teaching-assistant-homework", async () => {
-  const now = new Date("2035-09-15T10:00:00+08:00");
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(now);
-  const marker = crypto.randomUUID();
-  const user = await db.user.create({
-    data: { email: `${marker}@ta-calendar.test`, name: "Calendar TA" },
-  });
-  const jwId = 2_144_000_000 + Math.floor(Math.random() * 100_000);
-  const course = await db.course.create({
-    data: { jwId, code: marker, nameCn: "Calendar TA course" },
-  });
-  const section = await db.section.create({
-    data: {
-      jwId,
-      code: marker,
-      courseId: course.id,
-      sectionSubscriptions: {
-        create: { userId: user.id, kind: "teaching_assistant" },
-      },
+const now = new Date("2035-09-15T10:00:00+08:00");
+const it = nodeProtocolTest.extend<{ clock: undefined }>({
+  // The integration runner retains Vitest's isolated worker default. This file
+  // owns one case and one global Date; it is not safe for same-realm concurrency.
+  clock: [
+    async ({ protocolRuntime }, use) => {
+      try {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(now);
+        await use(undefined);
+      } finally {
+        // A timeout can leave the admitted workflow running. Keep its clock
+        // until requests and background cleanup finish. The owning runtime
+        // fixture reports this same close promise's original failure afterward.
+        await Promise.allSettled([protocolRuntime.close()]);
+        vi.useRealTimers();
+      }
     },
-  });
-  const completionAt = new Date(now.getTime() - 60_000);
-  try {
-    for (const [title, dueAt, completed] of [
-      ["ta-past", new Date(now.getTime() - 1), false],
-      ["ta-boundary", now, false],
-      ["ta-future", new Date(now.getTime() + 60_000), false],
-      ["ta-undated", null, false],
-      ["ta-completed", new Date(now.getTime() + 60_000), true],
-    ] as const) {
-      await db.homework.create({
+    { auto: true },
+  ],
+});
+
+it("calendar.teaching-assistant-homework", {
+  tags: ["@Calendar/Service"],
+}, async ({ isolatedDatabase: { owner: db }, protocolRuntime }) => {
+  await protocolRuntime.run(async () => {
+    const { user } = await db.$transaction(async (tx) => {
+      const marker = crypto.randomUUID();
+      const user = await tx.user.create({
+        data: { email: `${marker}@ta-calendar.test`, name: "Calendar TA" },
+      });
+      const jwId = 1;
+      const course = await tx.course.create({
+        data: { jwId, code: marker, nameCn: "Calendar TA course" },
+      });
+      const section = await tx.section.create({
         data: {
-          title,
-          sectionId: section.id,
-          createdById: user.id,
-          submissionDueAt: dueAt,
-          ...(completed
-            ? {
-                homeworkCompletions: {
-                  create: { userId: user.id, completedAt: completionAt },
-                },
-              }
-            : {}),
+          jwId,
+          code: marker,
+          courseId: course.id,
+          sectionSubscriptions: {
+            create: { userId: user.id, kind: "teaching_assistant" },
+          },
         },
       });
-    }
-    const pending = await listSubscribedHomeworks(user.id, {
-      completed: false,
-      now,
+      const completionAt = new Date(now.getTime() - 60_000);
+      for (const [title, dueAt, completed] of [
+        ["ta-past", new Date(now.getTime() - 1), false],
+        ["ta-boundary", now, false],
+        ["ta-future", new Date(now.getTime() + 60_000), false],
+        ["ta-undated", null, false],
+        ["ta-completed", new Date(now.getTime() + 60_000), true],
+      ] as const) {
+        await tx.homework.create({
+          data: {
+            title,
+            sectionId: section.id,
+            createdById: user.id,
+            submissionDueAt: dueAt,
+            ...(completed
+              ? {
+                  homeworkCompletions: {
+                    create: { userId: user.id, completedAt: completionAt },
+                  },
+                }
+              : {}),
+          },
+        });
+      }
+      return { user };
     });
+    const completionAt = new Date(now.getTime() - 60_000);
+    const pending = await protocolRuntime.request(() =>
+      listSubscribedHomeworks(user.id, {
+        completed: false,
+        now,
+      }),
+    );
     expect(pending.map((item) => item.title).sort()).toEqual([
       "ta-future",
       "ta-undated",
     ]);
-    const calendar = await listUserCalendarEvents(user.id, {
-      dateFrom: new Date(now.getTime() - 86_400_000),
-      dateTo: new Date(now.getTime() + 86_400_000),
-    });
+    const calendar = await protocolRuntime.request(() =>
+      listUserCalendarEvents(user.id, {
+        dateFrom: new Date(now.getTime() - 86_400_000),
+        dateTo: new Date(now.getTime() + 86_400_000),
+      }),
+    );
     expect(
       calendar
         .filter((item) => item.type === "homework_due")
         .map((item) => item.payload.title),
     ).toEqual(["ta-future"]);
-    const record = await getUserCalendarRecord(user.id);
+    const record = await protocolRuntime.request(() =>
+      getUserCalendarRecord(user.id),
+    );
     if (!record) throw new Error("Missing calendar owner");
-    const exported = await buildUserCalendarExport(record, user.id);
+    const exported = await protocolRuntime.request(() =>
+      buildUserCalendarExport(record, user.id),
+    );
     expect(exported.text).toContain("ta-future");
     for (const title of [
       "ta-past",
@@ -101,11 +127,5 @@ it("calendar.teaching-assistant-homework", async () => {
       select: { completedAt: true },
     });
     expect(completions).toEqual([{ completedAt: completionAt }]);
-  } finally {
-    await db.homeworkCompletion.deleteMany({ where: { userId: user.id } });
-    await db.homework.deleteMany({ where: { sectionId: section.id } });
-    await db.section.delete({ where: { id: section.id } });
-    await db.course.delete({ where: { id: course.id } });
-    await db.user.delete({ where: { id: user.id } });
-  }
+  });
 });

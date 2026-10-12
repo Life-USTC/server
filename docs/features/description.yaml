@@ -11,35 +11,67 @@ policy_refs:
 - rendering-and-cache
 - audit
 requirements:
+- id: description.moderation-content-bound
+  category: validation
+  applies_to:
+  - description-governance
+  expectation:
+    kind: string_input
+    surface: rest
+    operation: PATCH /api/admin/descriptions/[id]
+    input: content
+    min_length: 0
+    max_length: 4000
+    trim: false
+    length_unit: utf16_code_units
+  rationale: Moderators can clear an inappropriate description. The bounded Markdown field preserves authored whitespace; its technical length uses JavaScript string units, including supplementary Unicode characters.
+  acceptance:
+    given: Each case owns a description and an administrator session, with explicit ASCII and supplementary-Unicode boundary inputs.
+    when: The administrator submits the content through the real REST endpoint.
+    then:
+    - Empty content, surrounding whitespace, and exactly 4000 code units are preserved in the response, stored description and edit history with one moderation audit.
+    - Content with 4001 code units is rejected without changing the description, its history or moderation audits.
+    test:
+      file: tests/integration/rest/admin/descriptions/[id]/test.ts
+      name: '管理员 PATCH 拒绝过长的课程简介内容: 4001 Unicode code units'
 - id: description.homework-calendar-invalidation
   category: consistency
   rule: A committed homework description write enqueues a calendar export rebuild for its section after
     the changed content is visible. Unchanged retries enqueue the same rebuild so a previously failed
     enqueue can recover.
   acceptance:
-    given: A subscribed section has a homework description that is created, changed, and submitted unchanged.
-    when: The production description use case writes and schedules calendar rebuilds.
+    given: Independent cases each own a database, subscribed section and homework with absent, existing,
+      or unchanged description content.
+    when: The production description use case creates, changes or resubmits the prepared content and schedules calendar rebuilds.
     then:
     - Each request schedules the correct section.
     - A separate database read observes committed content before the rebuild callback.
     test:
       file: tests/integration/calendar-write-state.test.ts
-      name: description.homework-calendar-invalidation
+      name: homework description unchanged retry rebuild observes committed content
 - id: description.public-cache-invalidation
   category: consistency
   rule: A committed course, section, or teacher description write invalidates its cached public HTML and
     structured data only after the content is committed. Administrator moderation follows the same invalidation
     contract. A same-content retry repeats failed invalidation without creating another edit history entry.
+  rationale: The service integration cases use real database writes and description rendering with a controlled
+    cache adapter. They establish commit ordering, purge retry, history and moderation behavior for all
+    three target types. They do not establish Workers Caching hits or native edge eviction; that still
+    requires a cache-enabled runtime acceptance with a warmed representation. The representative pointer
+    is one supporting case, not evidence that the complete native cache contract has passed.
   acceptance:
-    given: Public teacher HTML is cached and the first purge after a description edit will fail.
-    when: The production write commits, retries identical content after purge recovery, and an administrator moderates it.
+    given: Independent course, section and teacher cases own descriptions and a controlled cached rendered
+      fragment. Retry cases reject the first purge; moderation cases independently prepare original content with prior history and audit.
+    when: Production use cases edit and retry identical content, or independently clear content as an administrator.
     then:
     - A separate database connection sees committed content before each purge.
-    - The next rendered representation reflects the committed write and moderation.
-    - The identical-content retry purges again, reports updated=false and leaves exactly one edit history entry.
+    - A rejected purge leaves the controlled cached fragment unchanged while the database retains the edit.
+    - Recovery refreshes the controlled rendered fragment; identical-content retry reports updated=false
+      and preserves the exact single edit history and audit entries.
+    - Independent moderation clears its cached fragment, preserves prior history and audit rows, and appends one moderation history entry and audit.
     test:
       file: tests/integration/description-cache-invalidation.test.ts
-      name: description.public-cache-invalidation
+      name: 'description cache retry preserves committed history: teacher'
 - id: description.public-web-personal-overlay
   category: consistency
   rule: Public course, teacher, and section SSR retains description text and structured data with an anonymous
@@ -149,7 +181,7 @@ requirements:
     - Neither public invalidation nor calendar enqueue runs.
     test:
       file: tests/unit/features/descriptions/description-upsert-service.test.ts
-      name: description.failed-write-invalidation
+      name: "does not invalidate section representations when commit fails"
 - id: description.editor-permission-gate
   category: presentation
   rule: The description editor neither opens nor submits until current viewer permissions authorize editing.
@@ -307,16 +339,16 @@ requirements:
     surface and records the moderation audit action.
   acceptance:
     given: Two ordinary editors, a suspended user and an administrator have real sessions and resource-bound OAuth grants.
-    when: Write through actual loopback REST, GraphQL and native MCP and moderate through governance REST.
+    when: Write through actual Worker REST, GraphQL and native MCP and moderate through governance REST.
     then:
     - Unauthenticated writes return 401 and suspended writes return 403.
     - Different ordinary users collaboratively edit the same description ID and append precisely attributed history through all three business transports. All responses acknowledge the changed ID; native MCP additionally returns the committed description content and timestamp.
-    - Read-only scopes, missing actors and missing targets fail without changing descriptions, history, business audits or cache invalidation state.
+    - Read-only scopes, missing actors and missing targets fail without changing descriptions, history, business audits or request-local cache purge-hook calls.
     - Only an unsuspended administrator can moderate; ordinary and moderation writes record their respective
       audit actions.
     test:
-      file: tests/integration/comment-write-contracts.test.ts
-      name: description.editor-authorization
+      file: tests/integration/rest/protocol-contracts/description-authority.test.ts
+      name: description history retains six collaborative edits across entry points
 capabilities:
   object-description-section:
     title: Object Description Section

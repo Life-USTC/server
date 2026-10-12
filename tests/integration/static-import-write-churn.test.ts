@@ -1,31 +1,21 @@
-/// <reference path="../../src/static-loader/bun-sqlite.d.ts" />
-
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { describe } from "vitest";
+import type { Prisma } from "@/generated/prisma-node/client";
+import { bulkUpsert, syncJoinPairs } from "@/static-loader/database-writes";
+import { upsertAdminClasses } from "@/static-loader/import-infrastructure";
 import {
   syncYoungEvents,
   syncYoungSnapshot,
 } from "@/static-loader/import-young";
 import type { ScheduleBuild } from "@/static-loader/mappers";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
-
-vi.mock("bun:sqlite", () => ({ Database: class {} }));
-const { upsertAdminClasses } = await import("@/static-loader/import");
-const { writeAdminClassSections, writeSectionTeachers } = await import(
-  "@/static-loader/relation-writes"
-);
-const { writeSchedules } = await import("@/static-loader/schedule-writes");
-const { bulkUpsert, syncJoinPairs } = await import(
-  "@/static-loader/database-writes"
-);
-
-const prisma = createFixturePrisma();
-
-afterAll(async () => {
-  await disconnectTestPrisma(prisma);
-});
+import {
+  writeAdminClassSections,
+  writeSectionTeachers,
+} from "@/static-loader/relation-writes";
+import { writeSchedules } from "@/static-loader/schedule-writes";
+import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
 async function tupleId(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  tx: Prisma.TransactionClient,
   table: string,
   where: string,
 ): Promise<string> {
@@ -37,11 +27,11 @@ async function tupleId(
 }
 
 describe("static import write churn", () => {
-  it("syncs production-sized join sets within PostgreSQL stack limits", async () => {
-    const rollback = new Error("ROLLBACK_JOIN_SYNC_STACK_TEST");
-
-    try {
-      await prisma.$transaction(async (tx) => {
+  it("syncs production-sized join sets within PostgreSQL stack limits", {
+    tags: ["@StaticImport/Service"],
+  }, async ({ importer, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
+      await importer.$transaction(async (tx) => {
         await tx.$executeRawUnsafe(
           `CREATE TEMP TABLE "StaticJoinPairProbe" (
             "A" int NOT NULL,
@@ -79,66 +69,68 @@ describe("static import write churn", () => {
             ) AS exists`,
           ),
         ).resolves.toEqual([{ exists: false }]);
-
-        throw rollback;
       });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+    });
   });
 
-  it("upserts AdminClass metadata directly by jwId", async () => {
-    const rollback = new Error("ROLLBACK_ADMIN_CLASS_IDENTITY_TEST");
-    const marker = 1_600_000_000 + (Date.now() % 100_000_000) * 2;
+  it("upserts AdminClass metadata directly by jwId", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
+    isolatedDatabase: { owner: db },
+    importer,
+    protocolRuntime,
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      const marker = 1;
 
-    try {
-      await prisma.$transaction(async (tx) => {
+      const { first, second } = await db.$transaction(async (tx) => {
         const first = await tx.adminClass.create({
           data: { jwId: marker, nameCn: `${marker}-first` },
         });
         const second = await tx.adminClass.create({
           data: { jwId: marker + 1, nameCn: `${marker}-second` },
         });
+        return { first, second };
+      });
 
-        const idByJwId = await upsertAdminClasses(tx, [
+      const idByJwId = await importer.$transaction((tx) =>
+        upsertAdminClasses(tx, [
           { jwId: marker, nameCn: `${marker}-first-updated` },
           { jwId: marker + 1, nameCn: `${marker}-second-updated` },
-        ]);
+        ]),
+      );
 
-        await expect(
-          tx.adminClass.findMany({
-            where: { id: { in: [first.id, second.id] } },
-            orderBy: { jwId: "asc" },
-            select: { id: true, jwId: true, nameCn: true },
-          }),
-        ).resolves.toEqual([
-          { id: first.id, jwId: marker, nameCn: `${marker}-first-updated` },
-          {
-            id: second.id,
-            jwId: marker + 1,
-            nameCn: `${marker}-second-updated`,
-          },
-        ]);
-        expect(idByJwId).toEqual(
-          new Map([
-            [marker, first.id],
-            [marker + 1, second.id],
-          ]),
-        );
-
-        throw rollback;
-      });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+      await expect(
+        db.adminClass.findMany({
+          where: { id: { in: [first.id, second.id] } },
+          orderBy: { jwId: "asc" },
+          select: { id: true, jwId: true, nameCn: true },
+        }),
+      ).resolves.toEqual([
+        { id: first.id, jwId: marker, nameCn: `${marker}-first-updated` },
+        {
+          id: second.id,
+          jwId: marker + 1,
+          nameCn: `${marker}-second-updated`,
+        },
+      ]);
+      expect(idByJwId).toEqual(
+        new Map([
+          [marker, first.id],
+          [marker + 1, second.id],
+        ]),
+      );
+    });
   });
 
-  it("skips unchanged bulk upserts while still returning their ids", async () => {
-    const rollback = new Error("ROLLBACK_BULK_UPSERT_CHURN_TEST");
-    const marker = 1_700_000_000 + (Date.now() % 100_000_000);
+  it("skips unchanged bulk upserts while still returning their ids", {
+    tags: ["@StaticImport/Service"],
+  }, async ({ importer, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
+      const marker = 1;
 
-    try {
-      await prisma.$transaction(async (tx) => {
+      await importer.$transaction(async (tx) => {
         const record = {
           key: marker,
           values: [`${marker}-code`, `${marker}-name`],
@@ -180,66 +172,73 @@ describe("static import write churn", () => {
         expect(await tupleId(tx, "Course", `"jwId" = ${marker}`)).not.toBe(
           firstTuple,
         );
-
-        throw rollback;
       });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+    });
   });
 
-  it("preserves unchanged schedules and joins, then applies real changes", async () => {
-    const rollback = new Error("ROLLBACK_SCHEDULE_CHURN_TEST");
-    const marker = 1_800_000_000 + (Date.now() % 100_000_000);
+  it("preserves unchanged schedules and joins, then applies real changes", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
+    isolatedDatabase: { owner: db },
+    importer,
+    protocolRuntime,
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      const marker = 1;
 
-    try {
-      await prisma.$transaction(async (tx) => {
-        const course = await tx.course.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-          },
+      const { section, group, firstTeacher, secondTeacher } =
+        await db.$transaction(async (tx) => {
+          const course = await tx.course.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+            },
+          });
+          const section = await tx.section.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              courseId: course.id,
+            },
+          });
+          const group = await tx.scheduleGroup.create({
+            data: {
+              jwId: marker,
+              no: 1,
+              limitCount: 1,
+              stdCount: 1,
+              actualPeriods: 1,
+              isDefault: true,
+              sectionId: section.id,
+            },
+          });
+          const department = await tx.department.create({
+            data: { code: `${marker}`, nameCn: `${marker}` },
+          });
+          const firstTeacher = await tx.teacher.create({
+            data: {
+              jwId: marker,
+              personId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+              departmentId: department.id,
+            },
+          });
+          const secondTeacher = await tx.teacher.create({
+            data: {
+              jwId: marker + 1,
+              personId: marker + 1,
+              code: `${marker + 1}`,
+              nameCn: `${marker + 1}`,
+              departmentId: department.id,
+            },
+          });
+          return { section, group, firstTeacher, secondTeacher };
         });
-        const section = await tx.section.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            courseId: course.id,
-          },
-        });
-        const group = await tx.scheduleGroup.create({
-          data: {
-            jwId: marker,
-            no: 1,
-            limitCount: 1,
-            stdCount: 1,
-            actualPeriods: 1,
-            isDefault: true,
-            sectionId: section.id,
-          },
-        });
-        const department = await tx.department.create({
-          data: { code: `${marker}`, nameCn: `${marker}` },
-        });
-        const firstTeacher = await tx.teacher.create({
-          data: {
-            jwId: marker,
-            personId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-            departmentId: department.id,
-          },
-        });
-        const secondTeacher = await tx.teacher.create({
-          data: {
-            jwId: marker + 1,
-            personId: marker + 1,
-            code: `${marker + 1}`,
-            nameCn: `${marker + 1}`,
-            departmentId: department.id,
-          },
-        });
+
+      await importer.$transaction(async (tx) => {
         const sectionMap = new Map([[section.jwId, section.id]]);
         const groupMap = new Map([[group.jwId, group.id]]);
         const teacherMap = new Map([
@@ -497,149 +496,176 @@ describe("static import write churn", () => {
           customPlace: `${marker}-replacement`,
         });
         expect(replacement[0]?.id).not.toBe(firstRow.id);
-
-        throw rollback;
       });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+    });
   });
 
-  it("reconciles complete sections across the batch boundary without touching uncovered schedules", async () => {
-    const rollback = new Error("ROLLBACK_SCHEDULE_BATCH_SCOPE_TEST");
-    const marker = 1_600_000_000 + (Date.now() % 100_000_000);
-    try {
-      await prisma.$transaction(async (tx) => {
-        const course = await tx.course.create({
-          data: { jwId: marker, code: `${marker}`, nameCn: `${marker}` },
-        });
-        const sections = (
-          await tx.section.createManyAndReturn({
-            data: Array.from({ length: 502 }, (_, index) => ({
-              jwId: marker + index,
-              code: `${marker}-${index}`,
-              courseId: course.id,
-            })),
-          })
-        ).sort((a, b) => a.jwId - b.jwId);
-        const [staleSection, keptSection, uncoveredSection] = [
-          sections[0],
-          sections[500],
-          sections[501],
-        ];
-        const groups = await tx.scheduleGroup.createManyAndReturn({
-          data: [staleSection, keptSection, uncoveredSection].map(
-            (section) => ({
-              jwId: section.jwId,
-              sectionId: section.id,
-              no: 1,
-              limitCount: 1,
-              stdCount: 1,
-              actualPeriods: 1,
-              isDefault: true,
-            }),
-          ),
-        });
-        const sectionMap = new Map(
-          sections.map((section) => [section.jwId, section.id]),
-        );
-        const groupMap = new Map(groups.map((group) => [group.jwId, group.id]));
-        const build = (section: (typeof sections)[number]): ScheduleBuild => ({
-          periods: 2,
-          weekday: 1,
-          startTime: 750,
-          endTime: 925,
-          weekIndex: 1,
-          startUnit: 1,
-          endUnit: 2,
-          lessonJwId: section.jwId,
-          scheduleGroupJwId: section.jwId,
-          teacherParticipations: [],
-        });
-        await writeSchedules(
-          tx,
-          [build(staleSection), build(keptSection), build(uncoveredSection)],
-          sectionMap,
-          groupMap,
-          new Map(),
-          new Map(),
-          sections.map((section) => section.id),
-        );
-        const before = await tx.schedule.findMany({
-          where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
-          orderBy: { id: "asc" },
-        });
-        const tuples = await Promise.all(
-          before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
-        );
-        // The first 500 sections now have no schedules. The retained meeting is
-        // in the second batch; the last section is outside this source's scope.
-        await writeSchedules(
-          tx,
-          [build(keptSection)],
-          sectionMap,
-          groupMap,
-          new Map(),
-          new Map(),
-          sections.slice(0, 501).map((section) => section.id),
-        );
-        expect(
-          await tx.schedule.count({ where: { sectionId: staleSection.id } }),
-        ).toBe(0);
-        expect(
-          await tx.schedule.findMany({
+  it("reconciles complete sections across the batch boundary without touching uncovered schedules", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
+    isolatedDatabase: { owner: db },
+    importer,
+    protocolRuntime,
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      // This rollback is part of the contract: the independent observer below
+      // must see no course created by the failed importer transaction.
+      const rollback = new Error("ROLLBACK_SCHEDULE_BATCH_SCOPE_TEST");
+      const marker = 1;
+
+      try {
+        await importer.$transaction(async (tx) => {
+          const course = await tx.course.create({
+            data: { jwId: marker, code: `${marker}`, nameCn: `${marker}` },
+          });
+          const sections = (
+            await tx.section.createManyAndReturn({
+              data: Array.from({ length: 502 }, (_, index) => ({
+                jwId: marker + index,
+                code: `${marker}-${index}`,
+                courseId: course.id,
+              })),
+            })
+          ).sort((a, b) => a.jwId - b.jwId);
+          const [staleSection, keptSection, uncoveredSection] = [
+            sections[0],
+            sections[500],
+            sections[501],
+          ];
+          const groups = await tx.scheduleGroup.createManyAndReturn({
+            data: [staleSection, keptSection, uncoveredSection].map(
+              (section) => ({
+                jwId: section.jwId,
+                sectionId: section.id,
+                no: 1,
+                limitCount: 1,
+                stdCount: 1,
+                actualPeriods: 1,
+                isDefault: true,
+              }),
+            ),
+          });
+          const sectionMap = new Map(
+            sections.map((section) => [section.jwId, section.id]),
+          );
+          const groupMap = new Map(
+            groups.map((group) => [group.jwId, group.id]),
+          );
+          const build = (
+            section: (typeof sections)[number],
+          ): ScheduleBuild => ({
+            periods: 2,
+            weekday: 1,
+            startTime: 750,
+            endTime: 925,
+            weekIndex: 1,
+            startUnit: 1,
+            endUnit: 2,
+            lessonJwId: section.jwId,
+            scheduleGroupJwId: section.jwId,
+            teacherParticipations: [],
+          });
+          await writeSchedules(
+            tx,
+            [build(staleSection), build(keptSection), build(uncoveredSection)],
+            sectionMap,
+            groupMap,
+            new Map(),
+            new Map(),
+            sections.map((section) => section.id),
+          );
+          const before = await tx.schedule.findMany({
             where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
             orderBy: { id: "asc" },
-          }),
-        ).toEqual(before);
-        expect(
-          await Promise.all(
+          });
+          const tuples = await Promise.all(
             before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
-          ),
-        ).toEqual(tuples);
-        throw rollback;
-      });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
-    expect(await prisma.course.count({ where: { jwId: marker } })).toBe(0);
+          );
+          // The first 500 sections now have no schedules. The retained meeting is
+          // in the second batch; the last section is outside this source's scope.
+          await writeSchedules(
+            tx,
+            [build(keptSection)],
+            sectionMap,
+            groupMap,
+            new Map(),
+            new Map(),
+            sections.slice(0, 501).map((section) => section.id),
+          );
+          expect(
+            await tx.schedule.count({ where: { sectionId: staleSection.id } }),
+          ).toBe(0);
+          expect(
+            await tx.schedule.findMany({
+              where: {
+                sectionId: { in: [keptSection.id, uncoveredSection.id] },
+              },
+              orderBy: { id: "asc" },
+            }),
+          ).toEqual(before);
+          expect(
+            await Promise.all(
+              before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
+            ),
+          ).toEqual(tuples);
+          throw rollback;
+        });
+      } catch (error) {
+        if (error !== rollback) throw error;
+      }
+
+      expect(await db.course.count({ where: { jwId: marker } })).toBe(0);
+    });
   });
 
-  it("does not rebuild unchanged section relation rows", async () => {
-    const rollback = new Error("ROLLBACK_SECTION_JOIN_CHURN_TEST");
-    const marker = 1_900_000_000 + (Date.now() % 100_000_000);
+  it("does not rebuild unchanged section relation rows", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
+    isolatedDatabase: { owner: db },
+    importer,
+    protocolRuntime,
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      const marker = 1;
 
-    try {
-      await prisma.$transaction(async (tx) => {
-        const course = await tx.course.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-          },
-        });
-        const section = await tx.section.create({
-          data: {
-            jwId: marker,
-            code: `${marker}`,
-            courseId: course.id,
-          },
-        });
-        const department = await tx.department.create({
-          data: { code: `${marker}`, nameCn: `${marker}` },
-        });
-        const teacher = await tx.teacher.create({
-          data: {
-            jwId: marker,
-            personId: marker,
-            code: `${marker}`,
-            nameCn: `${marker}`,
-            departmentId: department.id,
-          },
-        });
-        const adminClass = await tx.adminClass.create({
-          data: { jwId: marker, nameCn: `${marker}` },
-        });
+      const { section, teacher, adminClass } = await db.$transaction(
+        async (tx) => {
+          const course = await tx.course.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+            },
+          });
+          const section = await tx.section.create({
+            data: {
+              jwId: marker,
+              code: `${marker}`,
+              courseId: course.id,
+            },
+          });
+          const department = await tx.department.create({
+            data: { code: `${marker}`, nameCn: `${marker}` },
+          });
+          const teacher = await tx.teacher.create({
+            data: {
+              jwId: marker,
+              personId: marker,
+              code: `${marker}`,
+              nameCn: `${marker}`,
+              departmentId: department.id,
+            },
+          });
+          const adminClass = await tx.adminClass.create({
+            data: { jwId: marker, nameCn: `${marker}` },
+          });
+          return { section, teacher, adminClass };
+        },
+      );
+
+      await importer.$transaction(async (tx) => {
         const sectionMap = new Map([[section.jwId, section.id]]);
         const teacherMap = new Map([[marker, teacher.id]]);
         const teacherPairs = [
@@ -700,31 +726,32 @@ describe("static import write churn", () => {
         expect(
           await tupleId(tx, "_SectionAdminClasses", `"B" = ${section.id}`),
         ).toBe(adminJoinTuple);
-
-        throw rollback;
       });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+    });
   });
 });
 
 describe("Young source reconciliation", () => {
-  it("does not let a newer curriculum snapshot replay stale Young data", async () => {
-    const rollback = new Error("rollback stale Young snapshot");
-    try {
-      await prisma.$transaction(async (tx) => {
-        const seen = new Date("2030-01-01T00:00:00Z");
-        await tx.staticImportState.upsert({
-          where: { id: "global" },
-          create: {
+  it("does not let a newer curriculum snapshot replay stale Young data", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
+    isolatedDatabase: { owner: db },
+    importer,
+    protocolRuntime,
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      const seen = new Date("2030-01-01T00:00:00Z");
+
+      const row = await db.$transaction(async (tx) => {
+        await tx.staticImportState.create({
+          data: {
             id: "global",
             snapshotGeneratedAt: seen,
             youngSyncedAt: seen,
             snapshotSha256: "a".repeat(64),
             transformRevision: 4,
           },
-          update: { youngSyncedAt: seen },
         });
         const row = await tx.youngEvent.create({
           data: {
@@ -735,31 +762,35 @@ describe("Young source reconciliation", () => {
             lastSeenAt: seen,
           },
         });
-        for (const date of [
-          undefined,
-          seen,
-          new Date("2029-12-01T00:00:00Z"),
-        ]) {
-          expect(await syncYoungSnapshot(tx, [], date)).toBeUndefined();
-        }
-        expect(
-          await tx.youngEvent.findUnique({ where: { id: row.id } }),
-        ).toMatchObject({ sourceMissing: false, lastSeenAt: seen });
-        expect(
-          await tx.staticImportState.findUnique({ where: { id: "global" } }),
-        ).toMatchObject({ youngSyncedAt: seen });
-        throw rollback;
+        return row;
       });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+
+      for (const date of [undefined, seen, new Date("2029-12-01T00:00:00Z")]) {
+        expect(
+          await importer.$transaction((tx) => syncYoungSnapshot(tx, [], date)),
+        ).toBeUndefined();
+      }
+      expect(
+        await db.youngEvent.findUnique({ where: { id: row.id } }),
+      ).toMatchObject({ sourceMissing: false, lastSeenAt: seen });
+      expect(
+        await db.staticImportState.findUnique({ where: { id: "global" } }),
+      ).toMatchObject({ youngSyncedAt: seen });
+    });
   });
-  it("preserves the last seen timestamp and rows when a complete snapshot omits an activity", async () => {
-    const rollback = new Error("rollback young fixture");
-    try {
-      await prisma.$transaction(async (tx) => {
+  it("preserves the last seen timestamp and rows when a complete snapshot omits an activity", {
+    tags: ["@StaticImport/Service"],
+  }, async ({
+    isolatedDatabase: { owner: db },
+    importer,
+    protocolRuntime,
+    expect,
+  }) => {
+    await protocolRuntime.run(async () => {
+      const seen = new Date("2030-01-01T00:00:00Z");
+
+      const row = await db.$transaction(async (tx) => {
         const marker = `young-reconciliation-${crypto.randomUUID()}`;
-        const seen = new Date("2030-01-01T00:00:00Z");
         const row = await tx.youngEvent.create({
           data: {
             youngId: marker,
@@ -769,32 +800,36 @@ describe("Young source reconciliation", () => {
             lastSeenAt: seen,
           },
         });
-        await syncYoungEvents(tx, [], {
+        return row;
+      });
+
+      await importer.$transaction((tx) =>
+        syncYoungEvents(tx, [], {
           observedAt: new Date("2030-02-01T00:00:00Z"),
           complete: false,
-        });
-        expect(
-          await tx.youngEvent.findUnique({ where: { id: row.id } }),
-        ).toMatchObject({ sourceMissing: false, lastSeenAt: seen });
-        await syncYoungEvents(tx, [], {
+        }),
+      );
+      expect(
+        await db.youngEvent.findUnique({ where: { id: row.id } }),
+      ).toMatchObject({ sourceMissing: false, lastSeenAt: seen });
+      await importer.$transaction((tx) =>
+        syncYoungEvents(tx, [], {
           observedAt: new Date("2030-02-01T00:00:00Z"),
           complete: true,
-        });
-        expect(
-          await tx.youngEvent.findUnique({ where: { id: row.id } }),
-        ).toMatchObject({ sourceMissing: true, lastSeenAt: seen });
-        throw rollback;
-      });
-    } catch (error) {
-      if (error !== rollback) throw error;
-    }
+        }),
+      );
+      expect(
+        await db.youngEvent.findUnique({ where: { id: row.id } }),
+      ).toMatchObject({ sourceMissing: true, lastSeenAt: seen });
+    });
   });
 });
 
-it("round-trips Young participation arrays and clears removed facts without rewriting unchanged rows", async () => {
-  const rollback = new Error("ROLLBACK_YOUNG_METADATA");
-  try {
-    await prisma.$transaction(async (tx) => {
+it("round-trips Young participation arrays and clears removed facts without rewriting unchanged rows", {
+  tags: ["@StaticImport/Service"],
+}, async ({ importer, protocolRuntime, expect }) => {
+  await protocolRuntime.run(async () => {
+    await importer.$transaction(async (tx) => {
       const youngId = `metadata-${crypto.randomUUID()}`;
       const observedAt = new Date("2026-09-24T00:00:00Z");
       const build = {
@@ -838,9 +873,6 @@ it("round-trips Young participation arrays and clears removed facts without rewr
         isOnline: null,
         externalSponsor: null,
       });
-      throw rollback;
     });
-  } catch (error) {
-    if (error !== rollback) throw error;
-  }
+  });
 });

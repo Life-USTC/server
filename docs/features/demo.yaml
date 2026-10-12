@@ -43,7 +43,7 @@ requirements:
     - The signed request remains the original session principal; the unsigned request has no principal.
     - The authoritative session owner is unchanged and no victim session is created.
     test:
-      file: tests/integration/demo-unavailable.test.ts
+      file: tests/integration/demo-identity-boundary.test.ts
       name: demo.no-live-writes
 capabilities:
   demo-bootstrap:

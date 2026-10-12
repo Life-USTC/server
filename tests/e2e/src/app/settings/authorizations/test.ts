@@ -1,55 +1,29 @@
-import { expect, test } from "@playwright/test";
-import {
-  expectRequiresSignIn,
-  signInAsDebugUser,
-} from "../../../../utils/auth";
-import {
-  createOAuthAuthorizationFixture,
-  deleteOAuthClientsByName,
-  getCurrentSessionUser,
-} from "../../../../utils/e2e-db";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { assertPageContract } from "../../_shared/page-contract";
+import { expect } from "@playwright/test";
+import { expectRequiresSignIn } from "../../../../utils/auth";
 
-test.describe.configure({ mode: "serial" });
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
+import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
+
+test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/authorizations OAuth 授权", () => {
-  test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/account/settings/authorizations");
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "settings-authorizations-unauthorized",
-    );
+  test("需要登录", { tag: "@Account/Web" }, async ({ accountRun, page }) => {
+    await accountRun({ writes: [], audits: [] }, async () => {
+      await expectRequiresSignIn(page, "/account/settings/authorizations");
+    });
   });
 
-  test("仅显示安全的客户端信息，并支持确认后立即撤销", async ({
+  test("仅显示安全的客户端信息", { tag: "@Account/Web" }, async ({
+    accountRun,
     page,
-  }, testInfo) => {
-    const name = `E2E Calendar ${Date.now()}`;
-    const scopes = ["calendar:read", "profile"];
-
-    await signInAsDebugUser(page, "/account/settings/authorizations");
-    const user = await getCurrentSessionUser(page);
-    await deleteOAuthClientsByName(name);
-    const authorization = await createOAuthAuthorizationFixture({
-      name,
-      scopes,
-      userId: user.id,
-    });
-
-    try {
-      await gotoAndWaitForReady(page, "/account/settings");
-      const authorizationsTab = page.getByRole("link", {
-        name: /已授权应用|Authorized apps/i,
-      });
-      await expect(authorizationsTab).toBeVisible();
-      await authorizationsTab.click();
-      await expect(page).toHaveURL(
-        /\/account\/settings\/authorizations(?:\?.*)?$/,
-      );
-
+    authorization,
+  }) => {
+    await accountRun({ writes: [], audits: [] }, async () => {
+      const { name } = authorization;
+      await gotoAndWaitForReady(page, "/account/settings/authorizations");
       const region = page.getByRole("region", {
         name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
       });
@@ -74,58 +48,110 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
       expect(pageText).not.toContain(authorization.clientId);
       expect(pageText).not.toContain(authorization.clientSecret);
       expect(pageText).not.toContain(authorization.redirectUri);
+    });
+  });
 
-      const revokeButton = authorizationItem
-        .getByRole("button", { name: /撤销|Revoke/i })
-        .first();
-      await revokeButton.click();
-      const dialog = page.getByRole("alertdialog");
-      await expect(dialog).toContainText(name);
-      await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
-      await expect(dialog).not.toBeVisible();
-      await expect(
-        authorizationItem.getByText(name, { exact: true }),
-      ).toBeVisible();
+  test("确认撤销后授权立即消失并持久保存", { tag: "@Account/Web" }, async ({
+    accountRun,
+    page,
+    account,
+    authorization,
+    isolatedWorker,
+  }) => {
+    await accountRun(
+      {
+        writes: [
+          [
+            "/account/settings/authorizations",
+            200,
+            "revokeAuthorization",
+            "/account/settings/authorizations?message=AuthorizationRevoked",
+          ],
+        ],
+        audits: ["oauth_authorization_revoke"],
+      },
+      async () => {
+        const { name } = authorization;
+        await gotoAndWaitForReady(page, "/account/settings");
+        const authorizationsTab = page.getByRole("link", {
+          name: /已授权应用|Authorized apps/i,
+        });
+        await expect(authorizationsTab).toBeVisible();
+        await authorizationsTab.click();
+        await expect(page).toHaveURL(
+          /\/account\/settings\/authorizations(?:\?.*)?$/,
+        );
+        const region = page.getByRole("region", {
+          name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
+        });
+        const authorizationItem = region
+          .getByRole("listitem")
+          .filter({ hasText: name });
+        const revokeButton = authorizationItem
+          .getByRole("button", { name: /撤销|Revoke/i })
+          .first();
+        await revokeButton.click();
+        const dialog = page.getByRole("alertdialog");
+        await expect(dialog).toContainText(name);
+        await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
+        await expect(dialog).not.toBeVisible();
+        expect(
+          await isolatedWorker.database.owner.oAuthConsent.findUnique({
+            where: { id: authorization.consentId },
+          }),
+        ).toMatchObject({ userId: account.id });
+        await expect(
+          authorizationItem.getByText(name, { exact: true }),
+        ).toBeVisible();
 
-      await revokeButton.click();
-      await dialog.getByRole("button", { name: /撤销|Revoke/i }).click();
+        await revokeButton.click();
+        await dialog.getByRole("button", { name: /撤销|Revoke/i }).click();
 
-      await expect(dialog).not.toBeVisible();
-      const revokeSuccessText = /已撤销应用授权|Application access revoked/i;
-      await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: revokeSuccessText }),
-      ).toBeVisible();
-      await expect(
-        page
-          .locator('[data-slot="alert"][role="alert"]')
-          .filter({ hasText: revokeSuccessText }),
-      ).toHaveCount(0);
-      await expect(region.getByText(name, { exact: true })).toHaveCount(0);
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-authorizations-revoked",
-      );
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: revokeSuccessText }),
-      ).toHaveCount(0);
-      await expect(region.getByText(name, { exact: true })).toHaveCount(0);
-    } finally {
-      await deleteOAuthClientsByName(name);
-    }
+        await expect(dialog).not.toBeVisible();
+        expect(
+          await isolatedWorker.database.owner.oAuthConsent.findUnique({
+            where: { id: authorization.consentId },
+          }),
+        ).toBeNull();
+        const revokeSuccessText = /已撤销应用授权|Application access revoked/i;
+        await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
+        await expect(
+          page
+            .locator("[data-sonner-toast]")
+            .filter({ hasText: revokeSuccessText }),
+        ).toBeVisible();
+        await expect(
+          page
+            .locator('[data-slot="alert"][role="alert"]')
+            .filter({ hasText: revokeSuccessText }),
+        ).toHaveCount(0);
+        await expect(region.getByText(name, { exact: true })).toHaveCount(0);
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await waitForUiSettled(page);
+        await expect(region).toBeVisible();
+        await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
+        await expect(
+          page
+            .locator("[data-sonner-toast]")
+            .filter({ hasText: revokeSuccessText }),
+        ).toHaveCount(0);
+        await expect(region.getByText(name, { exact: true })).toHaveCount(0);
+      },
+    );
   });
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, {
-    routePath: "/account/settings/authorizations",
-    testInfo,
+test("页面契约", { tag: "@Account/Web" }, async ({
+  accountRun,
+  page,
+  account: _account,
+}) => {
+  await accountRun({ writes: [], audits: [] }, async () => {
+    await expectSettingsPage(page, "/account/settings/authorizations");
+    await expect(
+      page.getByRole("region", {
+        name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
+      }),
+    ).toBeVisible();
   });
 });
