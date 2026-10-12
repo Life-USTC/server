@@ -28,6 +28,7 @@ function selectStatus(value: string) {
       class="grid w-full md:grid-cols-3"
       spacing={2}
       type="single"
+      required
       value={commentStatus}
       variant="outline"
       onValueChange={selectStatus}

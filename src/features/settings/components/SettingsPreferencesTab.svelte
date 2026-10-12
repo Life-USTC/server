@@ -63,6 +63,7 @@ onMount(() => {
         class="grid w-full grid-cols-3"
         spacing={2}
         type="single"
+        required
         value={themeMode}
         variant="outline"
         onValueChange={selectTheme}
@@ -93,6 +94,7 @@ onMount(() => {
         class="grid w-full grid-cols-2"
         spacing={2}
         type="single"
+        required
         value={locale}
         variant="outline"
         onValueChange={selectLocale}

@@ -26,6 +26,7 @@
 	let {
 		ref = $bindable(null),
 		value = $bindable(),
+		required = false,
 		class: className,
 		size = "default",
 		spacing = 0,
@@ -36,7 +37,20 @@
 		ToggleVariants & {
 			spacing?: number;
 			orientation?: "horizontal" | "vertical";
+			/**
+			 * Whether the group always has a selection. A single group otherwise
+			 * clears itself when the selected item is clicked again, leaving no
+			 * button selected above whatever that selection still filters.
+			 */
+			required?: boolean;
 		} = $props();
+
+	// `never` for the same reason as the cast below: the union is too complex to
+	// destructure and still type.
+	function accept(next: never) {
+		if (required && (next as unknown) === "") return;
+		value = next;
+	}
 
 	setToggleGroupCtx({
 		get variant() {
@@ -59,7 +73,7 @@ Discriminated Unions + Destructing (required for bindable) do not
 get along, so we shut typescript up by casting `value` to `never`.
 -->
 <ToggleGroupPrimitive.Root
-	bind:value={value as never}
+	bind:value={() => value as never, accept}
 	bind:ref
 	{orientation}
 	data-slot="toggle-group"

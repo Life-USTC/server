@@ -40,6 +40,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     <ToggleGroup.Root
       aria-label={workspaceCopy.nav.calendar.title}
       type="single"
+      required
       value={calendarView}
       variant="outline"
       onValueChange={(value) => {
@@ -95,7 +96,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 
 {#if calendarData}
   <div class="grid gap-2 md:hidden" data-testid="workspace-calendar-mobile-toolbar">
-    <ToggleGroup.Root aria-label={workspaceCopy.nav.calendar.title} type="single" value={calendarView === "day" ? "day" : "week"} variant="outline" onValueChange={(value) => { if (value === "day" || value === "week") setCalendarView(value); }}>
+    <ToggleGroup.Root aria-label={workspaceCopy.nav.calendar.title} type="single" required value={calendarView === "day" ? "day" : "week"} variant="outline" onValueChange={(value) => { if (value === "day" || value === "week") setCalendarView(value); }}>
       <ToggleGroup.Item value="day" class="h-11">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
       <ToggleGroup.Item value="week" class="h-11">{workspaceCopy.calendarViewWeek}</ToggleGroup.Item>
     </ToggleGroup.Root>

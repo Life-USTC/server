@@ -23,17 +23,9 @@ export let selectBusStart: (campusId: number) => void;
 export let setBusDayType: (dayType: "weekday" | "saturday" | "sunday") => void;
 export let toggleBusDepartedTrips: () => void;
 
-// Trips are always listed for one schedule type, so the group always has a
-// selection. Clicking the selected item asks a single-select toggle group to
-// clear itself, which reports an empty value that is not a schedule type;
-// bind the value so refusing it also restores the button's selected state,
-// instead of leaving the group blank above a list that kept its schedule.
-let dayTypeValue = busDayType;
-$: dayTypeValue = busDayType;
 function selectDayType(value: string) {
   if (value === "weekday" || value === "saturday" || value === "sunday")
     setBusDayType(value);
-  else dayTypeValue = busDayType;
 }
 </script>
 
@@ -88,7 +80,8 @@ function selectDayType(value: string) {
           class="grid w-full grid-cols-3"
           spacing={2}
           type="single"
-          bind:value={dayTypeValue}
+          required
+          value={busDayType}
           variant="outline"
           onValueChange={selectDayType}
         >
