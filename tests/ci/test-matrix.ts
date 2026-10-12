@@ -11,8 +11,9 @@ export type TestOwner = {
   tags: readonly string[];
   engine: Engine;
 };
-type Combination = {
-  tag: string;
+type Group = {
+  domain: string;
+  tags: string[];
   weight: number;
   integration: boolean;
   integrationFiles: string[];
@@ -22,35 +23,20 @@ type Combination = {
 
 // Relative cost of one case on each runner, from a complete CI run: an
 // in-process case is far cheaper than one that drives a Worker or a browser.
-// Only the ratios matter. They balance jobs; they do not predict wall time.
+// Only the ratios matter, and only for ordering: GitHub starts matrix jobs in
+// the order they are listed, so the longest feature claims a runner first.
 const ENGINE_WEIGHT: Record<Engine, number> = {
   integration: 1,
   http: 3,
   browser: 4,
 };
 
-// Every job pays for a checkout, a Bun install, a database and (for browser
-// work) a Chromium download. Running one job per combination spends more of
-// the run on that fixed cost than on tests, so combinations are packed into
-// roughly this many jobs instead.
-//
-// Runners do not all arrive at once: measured runs got 11 and 18 of them
-// immediately and the rest over the following ten minutes, with the account's
-// concurrency limit nowhere near reached. A run therefore ends at roughly the
-// last runner's arrival plus one job, which favours more and smaller jobs over
-// fewer large ones. Keep this above the number that start immediately.
-const TARGET_JOBS = 24;
-
-function slug(tag: string) {
-  return tag.slice(1).replace("/", "-").toLowerCase();
-}
-
-// Tags declare ownership in the tests. This deduplicates combinations and
-// packs them into balanced jobs; native runners retain responsibility for
-// discovery and execution.
+// Tags declare ownership in the tests. This collects each feature's methods
+// into one job, so a job is named after the feature it covers; native runners
+// retain responsibility for discovery and execution.
 export function testMatrix(tests: TestOwner[]) {
   const knownTags = new Set(testTags.map((tag) => tag.name));
-  const combinations = new Map<string, Combination>();
+  const groups = new Map<string, Group>();
   for (const test of tests) {
     if (
       test.tags.length !== 1 ||
@@ -61,83 +47,47 @@ export function testMatrix(tests: TestOwner[]) {
     const tag = test.tags[0];
     if (!knownTags.has(tag))
       throw new Error(`${test.name}: unknown test tag ${tag}`);
-    const combination = combinations.get(tag) ?? {
-      tag,
+    const domain = tag.slice(1, tag.indexOf("/"));
+    const group = groups.get(domain) ?? {
+      domain,
+      tags: [] as string[],
       weight: 0,
       integration: false,
       integrationFiles: [] as string[],
       http: false,
       browser: false,
     };
-    combination[test.engine] = true;
-    combination.weight += ENGINE_WEIGHT[test.engine];
+    if (!group.tags.includes(tag)) group.tags.push(tag);
+    group[test.engine] = true;
+    group.weight += ENGINE_WEIGHT[test.engine];
     if (test.engine === "integration") {
       if (!test.file) throw new Error(`${test.name}: missing integration file`);
-      if (!combination.integrationFiles.includes(test.file))
-        combination.integrationFiles.push(test.file);
+      if (!group.integrationFiles.includes(test.file))
+        group.integrationFiles.push(test.file);
     }
-    combinations.set(tag, combination);
+    groups.set(domain, group);
   }
-  if (!combinations.size) throw new Error("No test combinations collected");
-
-  // Heaviest first, so the large combinations claim a job before the rest fill
-  // the gaps around them.
-  const ordered = [...combinations.values()].sort(
-    (a, b) => b.weight - a.weight || a.tag.localeCompare(b.tag),
-  );
-  const total = ordered.reduce((sum, one) => sum + one.weight, 0);
-  // Weight counts cases, and a slow case can cost several times a fast one, so
-  // a job's real time only loosely tracks its weight. Keep the budget at an
-  // even share of the work: a combination heavier than that still gets a job to
-  // itself, and the smaller budget bounds how far the rest can drift.
-  const budget = Math.ceil(total / TARGET_JOBS);
-
-  const jobs: (Combination & { members: string[] })[] = [];
-  for (const one of ordered) {
-    const fit = jobs.find((job) => job.weight + one.weight <= budget);
-    if (!fit) {
-      // Copy the file list: merging appends to the job's own array, which would
-      // otherwise still be the combination's.
-      jobs.push({
-        ...one,
-        integrationFiles: [...one.integrationFiles],
-        members: [one.tag],
-      });
-      continue;
-    }
-    fit.weight += one.weight;
-    fit.members.push(one.tag);
-    fit.integration ||= one.integration;
-    fit.http ||= one.http;
-    fit.browser ||= one.browser;
-    for (const file of one.integrationFiles)
-      if (!fit.integrationFiles.includes(file)) fit.integrationFiles.push(file);
-  }
-  if (jobs.length > 256)
+  if (!groups.size) throw new Error("No test combinations collected");
+  if (groups.size > 256)
     throw new Error("Test combinations exceed the CI matrix limit");
 
   return {
-    include: jobs.map((job) => {
-      const [primary, ...rest] = job.members;
-      return {
-        // The heaviest combination names the job; a failure still points at a
-        // domain before anyone opens the log.
-        name: `${primary.slice(1).replace("/", " / ")}${
-          rest.length ? ` +${rest.length}` : ""
-        }`,
-        slug: slug(primary),
-        // Reported so an unbalanced run is visible without timing every job.
-        weight: job.weight,
-        // Vitest accepts a tag expression; Playwright accepts a regular
-        // expression over the same tags.
-        tags: job.members.join(" || "),
-        grep: `@(${job.members.map((tag) => tag.slice(1)).join("|")})( |$)`,
-        integration: job.integration,
-        integrationFiles: job.integrationFiles,
-        http: job.http,
-        browser: job.browser,
-      };
-    }),
+    include: [...groups.values()]
+      // Longest first: GitHub hands out runners in this order, and a run ends
+      // when the last job to start finishes.
+      .sort((a, b) => b.weight - a.weight || a.domain.localeCompare(b.domain))
+      .map((group) => ({
+        name: group.domain,
+        slug: group.domain.toLowerCase(),
+        // Vitest accepts a tag expression; every method of one feature shares
+        // a tag prefix, which is all Playwright needs to match.
+        tags: group.tags.toSorted().join(" || "),
+        grep: `@${group.domain}/`,
+        integration: group.integration,
+        integrationFiles: group.integrationFiles,
+        http: group.http,
+        browser: group.browser,
+      })),
   };
 }
 
@@ -225,7 +175,7 @@ if (import.meta.main) {
     `matrix=${JSON.stringify(matrix)}\n`,
   );
   const combinations = new Set(tests.flatMap((test) => test.tags)).size;
-  const summary = `${tests.length} tests in ${combinations} domain / method combinations packed into ${matrix.include.length} jobs`;
+  const summary = `${tests.length} tests in ${combinations} domain / method combinations across ${matrix.include.length} feature jobs`;
   console.log(summary);
   if (process.env.GITHUB_STEP_SUMMARY)
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
