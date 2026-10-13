@@ -4,6 +4,8 @@ import type { Prisma, TodoPriority } from "@/generated/prisma/client";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 
+import { loadTodoSummary } from "./todo-summary-read-model";
+
 export const todoSnapshotSelect = {
   id: true,
   title: true,
@@ -396,41 +398,6 @@ function buildDueTodoWhere(input: {
   return where;
 }
 
-async function loadTodoSummaryInTransaction(
-  tx: Prisma.TransactionClient,
-  input: {
-    filters?: TodoListFilters;
-    now: Date;
-    take?: number;
-    userId: string;
-  },
-) {
-  const userId = normalizeTodoUserId(input.userId);
-  const where = buildTodoListWhere(userId, input.filters);
-  const [counts, todos] = await Promise.all([
-    countTodoBundleInTransaction(tx, {
-      userId,
-      now: input.now,
-      homeworkWindowEnd: input.now,
-    }),
-    input.take === 0
-      ? Promise.resolve([])
-      : findTodoSnapshots(tx, {
-          where,
-          take: input.take,
-        }),
-  ]);
-
-  return {
-    counts: {
-      incomplete: counts.incomplete,
-      completed: counts.completed,
-      overdue: counts.overdue,
-    },
-    todos,
-  };
-}
-
 export async function loadOverviewTodoBundle(input: {
   homeworkWindowEnd: Date;
   includeSamples?: boolean;
@@ -479,14 +446,12 @@ export async function listTodoSummary(input: {
   userId: string;
 }) {
   const userId = normalizeTodoUserId(input.userId);
-  return withUserDbContext(userId, (tx) =>
-    loadTodoSummaryInTransaction(tx, {
-      userId,
-      now: input.now ?? new Date(),
-      filters: input.filters,
-      take: input.take ?? TODO_LIST_DEFAULT_LIMIT,
-    }),
-  );
+  return loadTodoSummary({
+    userId,
+    now: input.now ?? new Date(),
+    filters: input.filters,
+    take: input.take ?? TODO_LIST_DEFAULT_LIMIT,
+  });
 }
 
 export async function listTodoPage(input: {

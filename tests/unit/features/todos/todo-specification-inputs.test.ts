@@ -2,17 +2,18 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-const { findMany, queryRaw, requireAuth } = vi.hoisted(() => ({
-  findMany: vi.fn(),
-  queryRaw: vi.fn(),
+const { query, requireAuth } = vi.hoisted(() => ({
+  query: vi.fn(),
   requireAuth: vi.fn(),
 }));
 vi.mock("@/lib/auth/api-auth", () => ({ requireAuth }));
-vi.mock("@/lib/db/prisma", () => ({
-  withUserDbContext: async (
-    _userId: string,
-    action: (tx: unknown) => unknown,
-  ) => action({ $queryRaw: queryRaw, todo: { findMany } }),
+vi.mock("@/lib/db/prisma", () => ({ withUserDbContext: vi.fn() }));
+vi.mock("@/lib/db/runtime-database-snapshot", () => ({
+  withRuntimeDatabaseSnapshot: async (
+    _database: string,
+    _limits: unknown,
+    action: (connection: unknown) => unknown,
+  ) => action({ query }),
 }));
 
 import { getTodosRoute } from "@/lib/api/routes/todos";
@@ -22,10 +23,11 @@ import { registerProfileTools } from "@/lib/mcp/tools/workspace/profile-tools";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  findMany.mockResolvedValue([]);
-  queryRaw.mockResolvedValue([
-    { completed: 0n, incomplete: 0n, overdue: 0n, due_soon: 0n },
-  ]);
+  query.mockImplementation(async (sql: string) => ({
+    rows: sql.includes("AS incomplete")
+      ? [{ completed: 0, incomplete: 0, overdue: 0 }]
+      : [],
+  }));
   requireAuth.mockResolvedValue({ userId: "owner" });
 });
 
@@ -41,16 +43,15 @@ describe("REST todo list limit", () => {
     [200, 200],
   ] as const)("accepts limit %s and reads %s rows", async (limit, expected) => {
     expect((await getTodosRoute(request(limit))).status).toBe(200);
-    expect(findMany).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ take: expected }),
-    );
+    const lists = query.mock.calls.filter(([sql]) => sql.includes("ORDER BY"));
+    expect(lists).toHaveLength(1);
+    expect(lists[0][1]).toEqual(["owner", null, null, null, null, expected]);
   });
   it.each([0, 201, 1.5])(
     "rejects limit %s before any data read",
     async (limit) => {
       expect((await getTodosRoute(request(limit))).status).toBe(400);
-      expect(findMany).not.toHaveBeenCalled();
-      expect(queryRaw).not.toHaveBeenCalled();
+      expect(query).not.toHaveBeenCalled();
     },
   );
 });
@@ -82,13 +83,12 @@ describe("MCP todo list limit", () => {
         },
       } as Parameters<typeof listMyTodosAction>[1],
     );
-    expect(findMany).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ take: expected }),
-    );
+    const lists = query.mock.calls.filter(([sql]) => sql.includes("ORDER BY"));
+    expect(lists).toHaveLength(1);
+    expect(lists[0][1]).toEqual(["owner", false, null, null, null, expected]);
   });
   it.each([0, 201, 1.5])("rejects limit %s", (limit) => {
     expect(schema.safeParse({ limit }).success).toBe(false);
-    expect(findMany).not.toHaveBeenCalled();
-    expect(queryRaw).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
   });
 });
