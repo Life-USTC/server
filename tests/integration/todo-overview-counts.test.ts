@@ -107,6 +107,107 @@ describe("overview todo bundle counts", () => {
     });
   });
 
+  test("keeps summary filters, timestamp boundaries and concurrent owners isolated", {
+    tags: ["@Todo/Service"],
+  }, async ({
+    userId,
+    isolatedDatabase: { owner: db },
+    nodeRuntime,
+    expect,
+  }) => {
+    await nodeRuntime.run(async () => {
+      await db.user.create({
+        data: { id: "other-owner", email: "other-owner@example.test" },
+      });
+      const dueAt = new Date("2026-04-30T12:34:56.789Z");
+      const createdAt = new Date("2026-04-28T01:02:03.456Z");
+      await db.todo.createMany({
+        data: [
+          {
+            id: "tie-a",
+            userId,
+            title: "A",
+            priority: "high",
+            dueAt,
+            createdAt,
+            updatedAt: createdAt,
+          },
+          {
+            id: "tie-b",
+            userId,
+            title: "B",
+            priority: "high",
+            dueAt,
+            createdAt,
+            updatedAt: createdAt,
+          },
+          {
+            id: "other-todo",
+            userId: "other-owner",
+            title: "private",
+            priority: "high",
+            dueAt,
+          },
+        ],
+      });
+      const summaries = await Promise.all(
+        Array.from({ length: 8 }, (_, index) =>
+          listTodoSummary({
+            userId: index % 2 ? "other-owner" : userId,
+            now,
+            filters: {
+              priority: "high",
+              completed: false,
+              dueAfter: dueAt,
+              dueBefore: new Date(dueAt.getTime() + 1),
+            },
+          }),
+        ),
+      );
+      summaries.forEach((summary, index) => {
+        expect(summary.todos.map((todo) => todo.id)).toEqual(
+          index % 2 ? ["other-todo"] : ["tie-a", "tie-b"],
+        );
+        expect(summary.counts).toEqual(
+          index % 2
+            ? { incomplete: 1, completed: 0, overdue: 0 }
+            : { incomplete: 6, completed: 1, overdue: 1 },
+        );
+        expect(summary.todos[0].dueAt).toEqual(dueAt);
+        if (index % 2 === 0) {
+          expect(summary.todos[0].createdAt).toEqual(createdAt);
+          expect(summary.todos[0].updatedAt).toEqual(createdAt);
+          expect(summary.todos[0].content).toBeNull();
+        }
+      });
+      expect(
+        (
+          await listTodoSummary({
+            userId,
+            now,
+            filters: { priority: "high", dueBefore: dueAt },
+          })
+        ).todos,
+      ).toEqual([]);
+      await db.todo.update({
+        where: { id: "tie-a" },
+        data: { completed: true },
+      });
+      expect(
+        (
+          await listTodoSummary({
+            userId,
+            now,
+            filters: { priority: "high", completed: false },
+          })
+        ).todos.map((todo) => todo.id),
+      ).toEqual(["tie-b"]);
+      expect((await listTodoSummary({ userId, now, take: 0 })).todos).toEqual(
+        [],
+      );
+    });
+  });
+
   test("todo.bounded-summary-read", { tags: ["@Todo/Service"] }, async ({
     userId,
     nodeRuntime,
