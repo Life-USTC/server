@@ -35,16 +35,6 @@ export const sectionPageRelatedSectionSelect = {
   },
 } satisfies Prisma.SectionSelect;
 
-export const sectionPageDescriptionSelect = {
-  id: true,
-  content: true,
-  updatedAt: true,
-  lastEditedAt: true,
-  lastEditedBy: {
-    select: { id: true, name: true, image: true, username: true },
-  },
-} satisfies Prisma.DescriptionSelect;
-
 export const sectionPageSelect = {
   id: true,
   jwId: true,

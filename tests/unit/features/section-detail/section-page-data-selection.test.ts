@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { serializeDescriptionRecord } from "@/features/descriptions/server/description-payload";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
-const { sectionFindUnique } = vi.hoisted(() => ({
+const { sectionFindUnique, mutableQuery, getPrisma } = vi.hoisted(() => ({
   sectionFindUnique: vi.fn(),
+  mutableQuery: vi.fn(),
+  getPrisma: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
-  getPrisma: () => ({
-    section: { findUnique: sectionFindUnique },
-  }),
+  getPrisma,
+}));
+
+vi.mock("@/features/section-detail/server/section-page-mutable-data", () => ({
+  loadSectionPageMutableData: mutableQuery,
 }));
 
 vi.mock("@/lib/catalog-detail-cache-revision", () => ({
@@ -71,6 +76,16 @@ describe("section page data selection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetPublicRuntimeCacheForTest();
+    getPrisma.mockReturnValue({ section: { findUnique: sectionFindUnique } });
+    mutableQuery.mockImplementation(async () => {
+      const record = await sectionFindUnique({
+        select: { description: true, retiredAt: true },
+      });
+      return {
+        description: serializeDescriptionRecord(record.description),
+        retiredAt: record.retiredAt?.toISOString() ?? null,
+      };
+    });
     sectionFindUnique.mockImplementation((query) =>
       Promise.resolve(
         query.select.course
@@ -139,9 +154,7 @@ describe("section page data selection", () => {
     )?.[0]?.select;
     expect(coreSelect.description).toBe(false);
     expect(descriptionSelect).toEqual({
-      description: {
-        select: expect.objectContaining({ content: true, id: true }),
-      },
+      description: true,
       retiredAt: true,
     });
     expect(coreSelect.course.select.sections).toMatchObject({
@@ -282,6 +295,7 @@ describe("section page data selection", () => {
     descriptionContent = "Edited description";
     const second = await getSectionPage(30, "zh-cn");
 
+    expect(getPrisma).toHaveBeenCalledOnce();
     expect(first?.description.content).toBe("First description");
     expect(second?.description.content).toBe("Edited description");
     expect(

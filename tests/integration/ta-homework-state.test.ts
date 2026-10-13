@@ -22,7 +22,12 @@ const it = nodeProtocolTest.extend(
           },
         });
         const course = await tx.course.create({
-          data: { jwId: 1, code: "TA-HOMEWORK", nameCn: "TA homework course" },
+          data: {
+            jwId: 1,
+            code: "TA-HOMEWORK",
+            nameCn: "助教课程",
+            nameEn: "TA homework course",
+          },
         });
         const section = await tx.section.create({
           data: {
@@ -82,6 +87,78 @@ const it = nodeProtocolTest.extend(
 );
 
 describe("known homework state consumers", () => {
+  it("keeps concurrent localized pages, completions and comment counts viewer-scoped", {
+    tags: ["@Homework/Service"],
+  }, async ({ homework, protocolRuntime }) => {
+    await protocolRuntime.run(async () => {
+      const { db, users, ids, section } = homework;
+      await db.comment.createMany({
+        data: [
+          {
+            homeworkId: ids[0],
+            userId: users[0],
+            body: "public",
+            visibility: "public",
+          },
+          {
+            homeworkId: ids[0],
+            userId: users[1],
+            body: "signed in",
+            visibility: "logged_in_only",
+          },
+          {
+            homeworkId: ids[0],
+            userId: users[0],
+            body: "own hidden",
+            status: "softbanned",
+          },
+          {
+            homeworkId: ids[0],
+            userId: users[1],
+            body: "deleted",
+            status: "deleted",
+          },
+        ],
+      });
+      const read = (index: number) =>
+        protocolRuntime.request(() =>
+          listSubscribedHomeworkPage(users[index], {
+            locale: index === 0 ? "en-us" : "zh-cn",
+            includeEditors: true,
+            now,
+            pagination: { page: 1, pageSize: 20 },
+          }),
+        );
+      const pages = await Promise.all(
+        Array.from({ length: 8 }, (_, index) => read(index % 2)),
+      );
+      pages.forEach((page, index) => {
+        const owner = index % 2 === 0;
+        expect(page.pagination.total).toBe(4);
+        expect(page.data.find((row) => row.id === ids[0])).toMatchObject({
+          commentCount: owner ? 3 : 2,
+          completionRequired: !owner,
+          section: {
+            course: { namePrimary: owner ? "TA homework course" : "助教课程" },
+          },
+        });
+        expect(page.data.find((row) => row.id === ids[3])?.completion).toEqual(
+          owner ? { completedAt: now } : null,
+        );
+        expect(
+          page.data.every(
+            (row) => !("_count" in row) && !("homeworkCompletions" in row),
+          ),
+        ).toBe(true);
+      });
+      await db.userSectionSubscription.deleteMany({
+        where: { userId: users[0], sectionId: section.id },
+      });
+      expect((await read(0)).data).toEqual([]);
+      expect((await read(1)).pagination.total).toBe(4);
+    });
+  });
+
   it("filters TA deadlines before pagination and excludes undated work from calendar", {
     tags: ["@Homework/Service"],
   }, async ({ homework, protocolRuntime }) => {

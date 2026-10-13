@@ -1,15 +1,11 @@
-import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
-  attachHomeworkCompletionsForViewer,
+  homeworkItemResponse,
   withHomeworkCompletionRequiredForViewer,
 } from "@/features/homeworks/server/homework-read-model";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
+import { getPrisma, withLocalizedUserDbContext } from "@/lib/db/prisma";
 import { paginatedQuery } from "@/lib/query-pagination";
-import {
-  buildSubscribedHomeworkPageQuery,
-  orderHomeworksById,
-} from "./subscription-homework-query";
+import { buildSubscribedHomeworkPageQuery } from "./subscription-homework-query";
 import { buildSubscribedHomeworkInclude } from "./subscription-homework-selects";
 
 export async function listSubscribedHomeworkPage(
@@ -45,12 +41,22 @@ export async function listSubscribedHomeworkPage(
     semesterId,
     userId,
   });
-  const { page, completions } = await withUserDbContext(userId, async (tx) => {
-    const result = await paginatedQuery(
+  return withLocalizedUserDbContext(locale, userId, async () => {
+    const tx = getPrisma(locale);
+    const page = await paginatedQuery(
       (skip, take) =>
         tx.homework.findMany({
           ...query,
-          select: { id: true },
+          include: {
+            ...buildSubscribedHomeworkInclude(includeEditors),
+            homeworkCompletions: {
+              where: { userId },
+              select: { completedAt: true },
+            },
+            _count: {
+              select: { comments: { where: { status: { not: "deleted" } } } },
+            },
+          },
           skip,
           take,
         }),
@@ -58,36 +64,14 @@ export async function listSubscribedHomeworkPage(
       pagination.page,
       pagination.pageSize,
     );
-    const homeworkIds = result.data.map((homework) => homework.id);
-    if (homeworkIds.length === 0) {
-      return { page: result, completions: [] };
-    }
-    const completionRows = await tx.homeworkCompletion.findMany({
-      where: {
-        userId,
-        homeworkId: { in: homeworkIds },
-      },
-      select: { homeworkId: true, completedAt: true },
-    });
-    return { page: result, completions: completionRows };
-  });
-  const homeworkIds = page.data.map((homework) => homework.id);
-  if (homeworkIds.length === 0) return { ...page, data: [] };
+    if (page.data.length === 0) return { ...page, data: [] };
 
-  const homeworks = await getPrisma(locale).homework.findMany({
-    where: { id: { in: homeworkIds } },
-    include: buildSubscribedHomeworkInclude(includeEditors),
-  });
-  const orderedHomeworks = orderHomeworksById(
-    await withHomeworkCompletionRequiredForViewer(
-      attachHomeworkCompletionsForViewer(homeworks, completions),
+    // Nested subscription reads reuse this localized RLS transaction. Comment
+    // aggregates and completion rows above see the same viewer identity.
+    const homeworks = await withHomeworkCompletionRequiredForViewer(
+      page.data,
       userId,
-    ),
-    homeworkIds,
-  );
-
-  return {
-    ...page,
-    data: await withHomeworkItemState(orderedHomeworks, userId),
-  };
+    );
+    return { ...page, data: homeworks.map(homeworkItemResponse) };
+  });
 }

@@ -1,8 +1,6 @@
-import { serializeDescriptionRecord } from "@/features/descriptions/server/description-payload";
 import {
   buildSectionPageLoadData,
   SECTION_RELATED_PREVIEW_LIMIT,
-  sectionPageDescriptionSelect,
   sectionPageRelatedSectionSelect,
   sectionPageSelect,
   sectionPageTeachersWithDepartmentSelect,
@@ -12,8 +10,9 @@ import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cach
 import { getPrisma } from "@/lib/db/prisma";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
+import { loadSectionPageMutableData } from "./section-page-mutable-data";
+
 async function getSectionPageCore(jwId: number, locale: AppLocale) {
-  const prisma = getPrisma(locale);
   const relatedWhere = {
     jwId: { not: jwId },
     retiredAt: null,
@@ -28,7 +27,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
         "catalog.detail.section.query",
         { "catalog.detail.kind": "section" },
         async () =>
-          await prisma.section.findUnique({
+          await getPrisma(locale).section.findUnique({
             where: { jwId },
             select: {
               ...sectionPageSelect,
@@ -93,32 +92,17 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
   );
 }
 
-async function getSectionPageMutableData(jwId: number, locale: AppLocale) {
-  const record = await runCloudflareTraceSpan(
-    "catalog.detail.section.mutable.query",
-    { "catalog.detail.kind": "section" },
-    () =>
-      getPrisma(locale).section.findUnique({
-        where: { jwId },
-        select: {
-          description: { select: sectionPageDescriptionSelect },
-          retiredAt: true,
-        },
-      }),
-  );
-  return {
-    description: serializeDescriptionRecord(record?.description),
-    retiredAt: record?.retiredAt?.toISOString() ?? null,
-  };
-}
-
 export async function getSectionPage(
   jwId: number,
   locale: AppLocale = "zh-cn",
 ) {
   const [core, mutable] = await Promise.all([
     getSectionPageCore(jwId, locale),
-    getSectionPageMutableData(jwId, locale),
+    runCloudflareTraceSpan(
+      "catalog.detail.section.mutable.query",
+      { "catalog.detail.kind": "section" },
+      () => loadSectionPageMutableData(jwId),
+    ),
   ]);
   return core
     ? {

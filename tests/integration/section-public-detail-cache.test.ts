@@ -73,6 +73,53 @@ it("section.public-detail-cache", { tags: ["@Section/Service"] }, async ({
     expect((await request(() => getSectionPage(a.jwId)))?.section.id).toBe(
       a.id,
     );
+    const editor = await db.user.create({
+      data: {
+        name: "Description editor",
+        username: "description-editor",
+        email: "editor@example.test",
+      },
+    });
+    const editedAt = new Date("2026-10-13T01:23:45.678Z");
+    const description = await db.description.create({
+      data: {
+        sectionId: a.id,
+        content: "**Fresh** description",
+        lastEditedAt: editedAt,
+        updatedAt: editedAt,
+        lastEditedById: editor.id,
+      },
+    });
+    await db.section.update({
+      where: { id: a.id },
+      data: { retiredAt: editedAt },
+    });
+    const edited = await request(() => getSectionPage(a.jwId));
+    expect(edited?.description).toEqual({
+      id: description.id,
+      content: "**Fresh** description",
+      renderedHtml: "<p><strong>Fresh</strong> description</p>",
+      lastEditedAt: "2026-10-13T09:23:45.678+08:00",
+      updatedAt: "2026-10-13T09:23:45.678+08:00",
+      lastEditedBy: {
+        id: editor.id,
+        name: editor.name,
+        username: editor.username,
+        image: null,
+      },
+    });
+    expect(edited?.section.retiredAt).toBe(editedAt.toISOString());
+    await db.description.update({
+      where: { id: description.id },
+      data: { content: "Edited again", lastEditedById: null },
+    });
+    const editedAgain = await request(() => getSectionPage(a.jwId));
+    expect(editedAgain?.description.content).toBe("Edited again");
+    expect(editedAgain?.description.lastEditedBy).toBeNull();
+    await db.description.delete({ where: { id: description.id } });
+    expect(
+      (await request(() => getSectionPage(a.jwId)))?.description.id,
+    ).toBeNull();
     await db.section.update({
       where: { id: a.id },
       data: { code: "UPDATED-SECTION" },

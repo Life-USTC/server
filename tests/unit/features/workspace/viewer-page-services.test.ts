@@ -67,6 +67,11 @@ vi.mock("@/lib/db/prisma", () => ({
     },
   },
   withUserDbContext: withUserDbContextMock,
+  withLocalizedUserDbContext: async (
+    _locale: string,
+    _userId: string,
+    action: () => Promise<unknown>,
+  ) => action(),
 }));
 
 describe("viewer page services", () => {
