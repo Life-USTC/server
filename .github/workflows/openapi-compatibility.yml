@@ -26,7 +26,7 @@ jobs:
           "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
 
       - name: Check OpenAPI compatibility
-        uses: oasdiff/oasdiff-action/breaking@5e81b5c380accc6b523f9d32a637ca630e33620b # v0.1.17
+        uses: oasdiff/oasdiff-action/breaking@b9325c9e0a27ab65b0da3b766522cedec6be81dc # v0.1.18
         with:
           base: origin/${{ github.base_ref }}:public/openapi.generated.json
           revision: HEAD:public/openapi.generated.json
