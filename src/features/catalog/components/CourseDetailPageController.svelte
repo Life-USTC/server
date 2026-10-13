@@ -93,8 +93,8 @@ $: displayName =
 
 <CollectionPage
   layout="detail"
+  density="detail"
   title={catalogPrimaryName(data.course) || displayName}
-  titleClass="text-2xl leading-tight sm:text-3xl"
 >
   {#snippet titleExtra()}
     {#if data.locale === "en-us" && catalogSecondaryName(data.course) && catalogSecondaryName(data.course) !== catalogPrimaryName(data.course)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.course)})</span>{/if}
