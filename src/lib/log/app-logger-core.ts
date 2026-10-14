@@ -43,6 +43,12 @@ const SAFE_DATABASE_CODE_KEYS = [
 type SafeDatabaseErrorDetails = {
   code?: string;
   prismaCode?: string;
+  transaction?: {
+    reason: "execution_timeout";
+    operation: "query" | "commit" | "rollback";
+    timeoutMs: number;
+    elapsedMs: number;
+  };
 };
 
 function readProperty(value: object, key: string): unknown {
@@ -58,6 +64,30 @@ function readSafeDatabaseCode(value: unknown) {
   if (SQLSTATE_CODE_PATTERN.test(value)) return value;
   if (PRISMA_ERROR_CODE_PATTERN.test(value)) return value;
   return undefined;
+}
+
+function readTransactionTimeout(
+  error: object,
+): SafeDatabaseErrorDetails["transaction"] {
+  if (readProperty(error, "code") !== "P2028") return undefined;
+  const meta = readProperty(error, "meta");
+  if (!meta || typeof meta !== "object") return undefined;
+  const operation = readProperty(meta, "operation");
+  const timeoutMs = readProperty(meta, "timeout");
+  const elapsedMs = readProperty(meta, "timeTaken");
+  if (
+    (operation !== "query" &&
+      operation !== "commit" &&
+      operation !== "rollback") ||
+    typeof timeoutMs !== "number" ||
+    !Number.isSafeInteger(timeoutMs) ||
+    timeoutMs < 0 ||
+    typeof elapsedMs !== "number" ||
+    !Number.isSafeInteger(elapsedMs) ||
+    elapsedMs < timeoutMs
+  )
+    return undefined;
+  return { reason: "execution_timeout", operation, timeoutMs, elapsedMs };
 }
 
 function collectSafeDatabaseErrorDetails(
@@ -77,6 +107,7 @@ function collectSafeDatabaseErrorDetails(
 
   ancestors.add(error);
   try {
+    details.transaction ??= readTransactionTimeout(error);
     for (const key of SAFE_DATABASE_CODE_KEYS) {
       const code = readSafeDatabaseCode(readProperty(error, key));
       if (!code) continue;
@@ -202,6 +233,7 @@ export function serializeError(error: unknown) {
       name,
       ...(details.code ? { code: details.code } : {}),
       ...(details.prismaCode ? { prismaCode: details.prismaCode } : {}),
+      ...(details.transaction ? { transaction: details.transaction } : {}),
     };
   }
 
