@@ -247,16 +247,17 @@ requirements:
       name: oauth.client-validation-from-provider
 - id: oauth.external-account-issuer-identity
   category: authorization
-  rule: Linked sign-in account identity is keyed by issuer and provider subject; matching subject values
-    from different issuers do not identify the same external account. Provider aliases cannot create duplicate
-    identities within an issuer.
+  rule: Linked sign-in account identity is keyed by provider and provider subject, the pair the authentication
+    adapter recognises an account by; matching subject values under different providers do not identify the
+    same external account. A provider/subject pair is unique, so no second account can shadow it. The recorded
+    issuer is retained and still decides whether an account counts as a usable sign-in method.
   acceptance:
-    given: Two separate users linked to the same provider subject at two different issuers.
+    given: Two separate users linked to the same provider subject under two different providers.
     when: Resolve account identity and ownership through the installed authentication adapter and attempt
-      a duplicate issuer/subject with another provider alias.
+      a duplicate provider/subject pair carrying a different issuer.
     then:
-    - Each issuer resolves only its own account and owner; an unregistered issuer resolves no account.
-    - The database rejects a duplicate issuer/subject even when its provider alias differs.
+    - Each provider resolves only its own account and owner; an unregistered provider resolves no account.
+    - The database rejects a duplicate provider/subject pair even when its issuer differs.
     test:
       file: tests/integration/oauth-external-account-identity.test.ts
       name: oauth.external-account-issuer-identity

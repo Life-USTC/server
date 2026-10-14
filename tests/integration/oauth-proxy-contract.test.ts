@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { genericOAuth } from "better-auth/plugins";
 import { expect } from "vitest";
+import { createOAuthAccountIssuer } from "@/lib/auth/account-issuer";
 import { buildBetterAuthOptions } from "@/lib/auth/better-auth-options";
 import { isolatedDatabaseTest } from "../shared/isolated-database";
 import { createNodeRuntime } from "../shared/node-runtime";
@@ -71,7 +72,6 @@ const test = isolatedDatabaseTest.extend<{ proxy: ProxyFixture }>({
                   providerId: "contract",
                   clientId: "external-provider-client",
                   clientSecret: "external-provider-secret",
-                  accountIssuer: "https://external-provider.example",
                   authorizationUrl:
                     "https://external-provider.example/authorize",
                   tokenUrl: "https://external-provider.example/token",
@@ -188,7 +188,12 @@ test(
       expect(callback.status, await callback.clone().text()).toBe(302);
       const returnUrl = new URL(callback.headers.get("location") ?? "");
       expect(returnUrl.origin).toBe(preview);
-      expect(returnUrl.pathname).toBe("/api/auth/oauth-proxy-callback");
+      // Better Auth 1.7.7 moved proxy completion to /callback/:id/oauth-proxy
+      // and marked the flat /oauth-proxy-callback endpoint deprecated, keeping
+      // it only so redirects already in flight still land.
+      expect(returnUrl.pathname).toBe(
+        "/api/auth/callback/contract/oauth-proxy",
+      );
       expect(returnUrl.searchParams.get("callbackURL")).toBe(
         `${preview}/workspace`,
       );
@@ -217,12 +222,16 @@ test(
       expect(result.headers.get("set-cookie")).toContain("session_token=");
       const account = await db.account.findUniqueOrThrow({
         where: {
-          issuer_providerAccountId: {
-            issuer: "https://external-provider.example",
+          provider_providerAccountId: {
+            provider: "contract",
             providerAccountId: marker,
           },
         },
       });
+      // Better Auth 1.7.7 dropped `accountIssuer` from provider config, so this
+      // provider has no issuer of its own and the create hook files it under
+      // the synthetic OAuth namespace instead.
+      expect(account.issuer).toBe(createOAuthAccountIssuer("contract"));
       expect(
         await db.user.findUniqueOrThrow({ where: { id: account.userId } }),
       ).toMatchObject({ email });

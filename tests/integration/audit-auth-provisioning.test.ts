@@ -80,7 +80,6 @@ it("audit.action-account-create", { tags: ["@Admin/Service"] }, async ({
                 { name: "Private upstream name", email, emailVerified: true },
                 {
                   providerId: "github",
-                  issuer: "https://github.com",
                   accountId: `upstream-${marker}`,
                   accessToken,
                   refreshToken: "private-refresh-token",
@@ -168,7 +167,6 @@ it("audit.action-account-link", { tags: ["@Admin/Service"] }, async ({
               context.internalAdapter.linkAccount({
                 userId: user.id,
                 providerId: "github",
-                issuer: "https://github.com",
                 accountId: `linked-${marker}`,
                 accessToken,
                 refreshToken: "private-linked-refresh",

@@ -1,6 +1,6 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { type APIRequestContext, expect } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
+import { createLocalAccountIssuer } from "@/lib/auth/account-issuer";
 import {
   DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,

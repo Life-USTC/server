@@ -1,9 +1,9 @@
+import { expect, type Page } from "@playwright/test";
+import { hashPassword } from "better-auth/crypto";
 import {
   createLocalAccountIssuer,
   createOAuthAccountIssuer,
-} from "@better-auth/core/db";
-import { expect, type Page } from "@playwright/test";
-import { hashPassword } from "better-auth/crypto";
+} from "@/lib/auth/account-issuer";
 import type { User } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { test as accountTest } from "./account-fixture";

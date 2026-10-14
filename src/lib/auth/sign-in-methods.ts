@@ -1,9 +1,9 @@
+import { Prisma } from "@/generated/prisma/client";
 import {
   createLocalAccountIssuer,
   createOAuthAccountIssuer,
-} from "@better-auth/core/db";
-import { google } from "@better-auth/core/social-providers";
-import { Prisma } from "@/generated/prisma/client";
+  GOOGLE_ACCOUNT_ISSUER,
+} from "./account-issuer";
 import { allowDebugAuth } from "./auth-config";
 import { getBetterAuthOptionEnv } from "./better-auth-option-env";
 import { buildBetterAuthSocialProviders } from "./better-auth-social-providers";
@@ -13,7 +13,7 @@ export function enabledSignInProviders(): Record<string, string> {
   const social = buildBetterAuthSocialProviders(authEnv);
   return {
     ...(social.github ? { github: createOAuthAccountIssuer("github") } : {}),
-    ...(social.google ? { google: google(social.google).accountIssuer } : {}),
+    ...(social.google ? { google: GOOGLE_ACCOUNT_ISSUER } : {}),
     ...(authEnv.AUTH_OIDC_CLIENT_ID && authEnv.AUTH_OIDC_CLIENT_SECRET
       ? { oidc: oidcIssuer }
       : {}),
@@ -21,6 +21,20 @@ export function enabledSignInProviders(): Record<string, string> {
       ? { credential: createLocalAccountIssuer("credential") }
       : {}),
   };
+}
+
+/**
+ * The issuer an account for `providerId` must be stored with. Falls back the
+ * way Better Auth 1.7.2 did when a provider carried no issuer of its own, so a
+ * provider that is configured but absent from the enabled map still lands in
+ * the right namespace rather than an empty one.
+ */
+export function accountIssuerForProvider(providerId: string) {
+  const configured = enabledSignInProviders()[providerId];
+  if (configured) return configured;
+  return providerId === "credential"
+    ? createLocalAccountIssuer(providerId)
+    : createOAuthAccountIssuer(providerId);
 }
 
 export function hasUsableAccount(

@@ -15,6 +15,7 @@ import {
   getAuditRequestMetadata,
 } from "@/lib/audit/write-audit-log";
 import { RECENT_AUTH_MAX_AGE_SECONDS } from "./recent-auth-policy";
+import { accountIssuerForProvider } from "./sign-in-methods";
 
 export { RECENT_AUTH_MAX_AGE_SECONDS } from "./recent-auth-policy";
 
@@ -188,6 +189,15 @@ export const betterAuthSecurityDatabaseHooks = {
   },
   account: {
     create: {
+      // Better Auth stopped carrying `issuer` in 1.7.7, but the column is
+      // still what `remove_sign_in_method` checks a provider against, so the
+      // value has to be stamped on here instead.
+      before: async (account) => ({
+        data: {
+          ...account,
+          issuer: accountIssuerForProvider(account.providerId),
+        },
+      }),
       after: async (account, context) => {
         // Initial provisioning already emits account_create from user.create.
         // account_link is reserved for adding a method to an authenticated user.

@@ -70,7 +70,6 @@ export function buildBetterAuthPlugins(input: {
                 clientSecret: input.authEnv.AUTH_OIDC_CLIENT_SECRET,
                 scopes: [OAUTH_OPENID_SCOPE],
                 pkce: true,
-                accountIssuer: input.oidcIssuer,
                 accountSubject: ({ profile }) => getOidcAccountSubject(profile),
                 mapProfileToUser: (profile) => {
                   stageUstcOidcIdentityFromProfile(profile);
