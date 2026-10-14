@@ -14,6 +14,18 @@ policy_refs:
 - homework-naming
 - cases.missing-data
 requirements:
+- id: homework.bounded-viewer-transaction
+  category: behavior
+  rule: Subscribed homework pagination commits viewer-dependent state before loading public catalog and editor relations; the viewer transaction uses at most five SQL statements excluding BEGIN and COMMIT.
+  acceptance:
+    given: A subscriber has homework with completion state, localized course context and distinct creation and update editors.
+    when: The real subscribed homework page service loads an English page through the restricted application database role.
+    then:
+    - The bounded transaction retains the authenticated completion state and subscription kind.
+    - Public display relations load after COMMIT, with the expected localized course and editor identities in the response.
+    test:
+      file: tests/integration/ta-homework-state.test.ts
+      name: loads public homework relations after committing the bounded viewer transaction
 - id: homework.single-delete-replay
   category: consistency
   applies_to:
