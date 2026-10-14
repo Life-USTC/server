@@ -1,4 +1,5 @@
-import { describe, expect } from "vitest";
+import pg from "pg";
+import { describe, expect, vi } from "vitest";
 import { getIncompleteHomeworkCalendarItems } from "@/features/calendar/server/calendar-export-data";
 import { listSubscribedHomeworkPage } from "@/features/subscriptions/server/subscription-homework-page";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
@@ -87,6 +88,66 @@ const it = nodeProtocolTest.extend(
 );
 
 describe("known homework state consumers", () => {
+  it("loads public homework relations after committing the bounded viewer transaction", {
+    tags: ["@Homework/Service"],
+  }, async ({ homework, protocolRuntime }) => {
+    await protocolRuntime.run(async () => {
+      const { db, users, ids } = homework;
+      await db.homework.updateMany({
+        where: { id: { in: ids } },
+        data: { createdById: users[0], updatedById: users[1] },
+      });
+      const queries = vi.spyOn(pg.Client.prototype, "query");
+      try {
+        const page = await protocolRuntime.request(() =>
+          listSubscribedHomeworkPage(users[0], {
+            locale: "en-us",
+            includeEditors: true,
+            now,
+            pagination: { page: 1, pageSize: 20 },
+          }),
+        );
+        const statements = queries.mock.calls.map(([query]) =>
+          typeof query === "string" ? query : (query as pg.QueryConfig).text,
+        );
+        const begin = statements.indexOf("BEGIN");
+        const commit = statements.indexOf("COMMIT");
+        expect(begin).toBeGreaterThanOrEqual(0);
+        expect(commit).toBeGreaterThan(begin);
+        const scoped = statements.slice(begin + 1, commit);
+        // RLS setup, homework page + comment aggregate, completions, total,
+        // and subscription kinds. Public catalog/editor joins belong after COMMIT.
+        expect(scoped.length).toBeLessThanOrEqual(5);
+        expect(
+          statements
+            .slice(commit + 1)
+            .some((sql) => sql.includes('"public"."Course"')),
+        ).toBe(true);
+        expect(page.pagination.total).toBe(4);
+        expect(page.data).toHaveLength(4);
+        expect(
+          page.data.every(
+            (row) => row.section?.course?.namePrimary === "TA homework course",
+          ),
+        ).toBe(true);
+        expect(
+          page.data.every(
+            (row) =>
+              row.createdBy?.id === users[0] && row.updatedBy?.id === users[1],
+          ),
+        ).toBe(true);
+        expect(
+          page.data.find((row) => row.id === ids[3])?.completion?.completedAt,
+        ).toEqual(now);
+        expect(page.data.every((row) => row.completionRequired === false)).toBe(
+          true,
+        );
+      } finally {
+        queries.mockRestore();
+      }
+    });
+  });
+
   it("keeps concurrent localized pages, completions and comment counts viewer-scoped", {
     tags: ["@Homework/Service"],
   }, async ({ homework, protocolRuntime }) => {
