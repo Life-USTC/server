@@ -108,23 +108,21 @@ describe("Better Auth security audit hooks", () => {
     // Better Auth no longer carries `issuer`, so nothing else populates the
     // column that remove_sign_in_method checks a provider against.
     const result =
-      await betterAuthSecurityDatabaseHooks.account?.create?.before?.(
-        {
-          accessToken: null,
-          accessTokenExpiresAt: null,
-          accountId: "upstream-subject",
-          createdAt: new Date(),
-          id: "oauth-account-1",
-          idToken: null,
-          password: null,
-          providerId: "github",
-          refreshToken: null,
-          refreshTokenExpiresAt: null,
-          scope: null,
-          updatedAt: new Date(),
-          userId: "user-1",
-        },
-      );
+      await betterAuthSecurityDatabaseHooks.account?.create?.before?.({
+        accessToken: null,
+        accessTokenExpiresAt: null,
+        accountId: "upstream-subject",
+        createdAt: new Date(),
+        id: "oauth-account-1",
+        idToken: null,
+        password: null,
+        providerId: "github",
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+        scope: null,
+        updatedAt: new Date(),
+        userId: "user-1",
+      });
 
     expect(result).toMatchObject({
       data: { issuer: "issuer-for:github", providerId: "github" },
