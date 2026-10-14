@@ -130,6 +130,58 @@ describe("应用日志记录器", () => {
     });
   });
 
+  it("keeps only validated transaction timeout metadata in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = Object.assign(new Error("private SQL and user input"), {
+      name: "PrismaClientKnownRequestError",
+      code: "P2028",
+      meta: {
+        operation: "query",
+        timeout: 5000,
+        timeTaken: 5368,
+        secret: "private",
+      },
+    });
+    logRouteFailure("Read failed", 500, error);
+    const payload = JSON.parse(String(errorSpy.mock.calls[0]?.[0]));
+    expect(payload.error).toEqual({
+      name: "PrismaClientKnownRequestError",
+      prismaCode: "P2028",
+      transaction: {
+        reason: "execution_timeout",
+        operation: "query",
+        timeoutMs: 5000,
+        elapsedMs: 5368,
+      },
+    });
+    expect(JSON.stringify(payload)).not.toContain("private");
+  });
+
+  it.each([
+    { operation: "private query", timeout: 5000, timeTaken: 5368 },
+    { operation: "query", timeout: "5000", timeTaken: 5368 },
+    { operation: "query", timeout: -1, timeTaken: 5368 },
+    { operation: "query", timeout: 5000, timeTaken: Number.POSITIVE_INFINITY },
+    { operation: "query", timeout: 5000, timeTaken: 4999 },
+    { error: "private transaction message" },
+  ])(
+    "does not infer timeout from unsafe or incomplete metadata: %j",
+    (meta) => {
+      vi.stubEnv("NODE_ENV", "production");
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      logRouteFailure(
+        "Read failed",
+        500,
+        Object.assign(new Error("private"), { code: "P2028", meta }),
+      );
+      expect(JSON.parse(String(errorSpy.mock.calls[0]?.[0])).error).toEqual({
+        name: "Error",
+        prismaCode: "P2028",
+      });
+    },
+  );
+
   it("生产环境保留嵌套 cause / meta 上的数据库错误码", () => {
     vi.stubEnv("NODE_ENV", "production");
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
