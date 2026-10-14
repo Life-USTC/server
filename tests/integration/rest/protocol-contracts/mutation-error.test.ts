@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { mcpFetchOptions } from "../../../shared/mcp-http-request";
 import { type ProtocolFixture, test } from "./_fixture";
 import { type Tokens, transports } from "./_transport";
 
@@ -108,23 +109,26 @@ async function rejectDelete(
       ),
     };
   }
-  const mcp = await requestDelete(`${origin}/api/mcp`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${tokens.mcp}`,
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: {
-        name: binding.tool,
-        arguments: { [binding.argument]: id, mode: "full" },
+  const mcp = await requestDelete(
+    `${origin}/api/mcp`,
+    mcpFetchOptions({
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokens.mcp}`,
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
       },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: binding.tool,
+          arguments: { [binding.argument]: id, mode: "full" },
+        },
+      }),
     }),
-  });
+  );
   expect(mcp.status).toBe(200);
   const text = await mcp.text();
   const payload = mcp.headers.get("content-type")?.includes("text/event-stream")
@@ -378,7 +382,7 @@ async function successfulDelete(
     else expect(body.success).toBe(true);
     return body;
   }
-  const request = new Request(`${origin}/api/${surface}`, {
+  const options: RequestInit = {
     method: "POST",
     headers: {
       authorization: `Bearer ${tokens[surface]}`,
@@ -403,7 +407,11 @@ async function successfulDelete(
             },
           },
     ),
-  });
+  };
+  const request = new Request(
+    `${origin}/api/${surface}`,
+    surface === "mcp" ? mcpFetchOptions(options) : options,
+  );
   if (domain === "todo")
     expect(request.url + (await request.clone().text())).not.toMatch(
       /confirm/i,
