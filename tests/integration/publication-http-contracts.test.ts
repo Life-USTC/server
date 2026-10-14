@@ -313,14 +313,9 @@ it("publications.read-transport-boundary", {
       expect(
         discovery.tools.filter((tool) => /publication/i.test(tool.name)),
       ).toEqual([]);
-      const missing = await client.callToolResult("publication_list", {});
-      expect(missing.isError).toBe(true);
-      expect(missing.content).toEqual([
-        expect.objectContaining({
-          type: "text",
-          text: expect.stringContaining("not found"),
-        }),
-      ]);
+      await expect(
+        client.callToolResult("publication_list", {}),
+      ).rejects.toMatchObject({ code: -32602 });
     }
   });
 });

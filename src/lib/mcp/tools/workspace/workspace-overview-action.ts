@@ -12,7 +12,7 @@ import {
   buildMyOverviewFullPayload,
 } from "./workspace-overview-response";
 
-type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
+type ToolExtra = { http?: { authInfo?: Parameters<typeof getUserId>[0] } };
 
 export async function getMyOverviewAction(
   {
@@ -31,7 +31,7 @@ export async function getMyOverviewAction(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const atTimeDate = parseOptionalMcpDate("atTime", atTime, {
     dateOnlyAsShanghaiStart: true,
   });

@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import {
@@ -81,7 +81,7 @@ export function registerDescriptionTools(server: McpServer) {
         });
       }
 
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const viewer = await getViewerContext({ userId });
       const payload = await getResolvedDescriptionPayload(
         resolved.target,
@@ -116,13 +116,13 @@ export function registerDescriptionTools(server: McpServer) {
         });
       }
 
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const targetType = resolved.targetType;
       const content = args.content.trim();
       const result = await upsertDescriptionContent({
         auditMetadata: {
-          ...(extra.authInfo
-            ? attributionFromMcpAuthInfo(extra.authInfo)
+          ...(extra.http?.authInfo
+            ? attributionFromMcpAuthInfo(extra.http?.authInfo)
             : null),
           source: "mcp",
         },

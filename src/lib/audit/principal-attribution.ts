@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import type { AuditChannel } from "@/generated/prisma/client";
 import type { ApiPrincipal } from "@/lib/auth/api-auth";
 import type { GraphqlPrincipal } from "@/lib/graphql/auth";

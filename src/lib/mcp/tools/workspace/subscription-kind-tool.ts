@@ -8,7 +8,7 @@ export async function updateSubscriptionKindTool(
   extra: ToolExtra,
 ) {
   const result = await updateSubscriptionKind({
-    userId: getUserId(extra.authInfo),
+    userId: getUserId(extra.http?.authInfo),
     sectionJwId: args.jwId,
     kind: args.kind,
   });

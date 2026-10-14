@@ -47,10 +47,10 @@ export async function subscribeMySectionsByCodesTool(
     locale: AppLocale;
     mode?: McpModeInput;
   },
-  extra: { authInfo?: Parameters<typeof getUserId>[0] },
+  extra: { http?: { authInfo?: Parameters<typeof getUserId>[0] } },
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
 
   const result = await importUserSectionSubscriptionsByCodes({
     codes,

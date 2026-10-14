@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import { prepareHomeworkUpdate } from "@/features/homeworks/server/prepare-homework-update";
@@ -14,7 +14,7 @@ import {
   type UpdateHomeworkOnSectionArgs,
 } from "./homework-update-input";
 
-type ToolExtra = { authInfo?: AuthInfo };
+type ToolExtra = { http?: { authInfo?: AuthInfo } };
 
 export async function updateHomeworkOnSectionTool(
   {
@@ -32,9 +32,9 @@ export async function updateHomeworkOnSectionTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
-  const audit = extra.authInfo
-    ? (attributionFromMcpAuthInfo(extra.authInfo) ?? undefined)
+  const userId = getUserId(extra.http?.authInfo);
+  const audit = extra.http?.authInfo
+    ? (attributionFromMcpAuthInfo(extra.http?.authInfo) ?? undefined)
     : undefined;
 
   const parsedDates = parseHomeworkUpdateDates({

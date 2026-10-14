@@ -1,4 +1,4 @@
-import type { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import type { Transport } from "@modelcontextprotocol/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -27,19 +27,20 @@ const {
   transportConstructorMock: vi.fn(),
 }));
 
-vi.mock(
-  "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js",
-  () => ({
-    WebStandardStreamableHTTPServerTransport: class {
-      constructor() {
-        transportConstructorMock();
-      }
-
-      handleRequest = handleTransportRequestMock;
-      send = sendMock;
+vi.mock("@modelcontextprotocol/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@modelcontextprotocol/server")>()),
+  createMcpHandler: (
+    factory: () => { connect(transport: unknown): Promise<void> },
+  ) => ({
+    async fetch(...args: unknown[]) {
+      transportConstructorMock();
+      const transport = { send: sendMock };
+      const server = factory();
+      await server.connect(transport);
+      return handleTransportRequestMock(...args);
     },
   }),
-);
+}));
 
 vi.mock("@/lib/mcp/auth", () => ({
   authenticateMcpRequest: authenticateMcpRequestMock,
@@ -100,7 +101,7 @@ function toolCall(id: string | number, name = "workspace_todo_list") {
   };
 }
 
-function connectedTransport(): WebStandardStreamableHTTPServerTransport {
+function connectedTransport(): Transport {
   const transport = connectMock.mock.calls[0]?.[0];
   expect(transport).toBeDefined();
   return transport;
@@ -140,14 +141,13 @@ describe("MCP mutation rate limits", () => {
     scheduleOAuthGrantUsageMock.mockReset().mockResolvedValue(undefined);
     summarizeMcpJsonRpcRequestMock.mockReset().mockReturnValue({
       argumentKeys: ["title"],
-      bodyKind: "jsonrpc-batch",
-      methods: ["tools/call", "tools/call"],
-      rpcCount: 2,
+      bodyKind: "jsonrpc-single",
+      methods: ["tools/call"],
+      rpcCount: 1,
       toolCalls: [
         { argumentKeys: ["title"], toolName: "workspace_todo_create" },
-        { argumentKeys: ["title"], toolName: "workspace_todo_create" },
       ],
-      toolNames: ["workspace_todo_create", "workspace_todo_create"],
+      toolNames: ["workspace_todo_create"],
     });
     transportConstructorMock.mockReset();
     authenticateMcpRequestMock.mockResolvedValue(authenticatedUser());
@@ -157,20 +157,12 @@ describe("MCP mutation rate limits", () => {
     const { handleMcpRequest } = await import(
       "@/lib/api/routes/mcp-request-handler"
     );
-    const body = JSON.stringify([
-      {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name: "workspace_todo_create", arguments: { title: "A" } },
-      },
-      {
-        jsonrpc: "2.0",
-        id: 2,
-        method: "tools/call",
-        params: { name: "workspace_todo_create", arguments: { title: "B" } },
-      },
-    ]);
+    const body = JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "workspace_todo_create", arguments: { title: "A" } },
+    });
     const request = new Request("https://life.example/api/mcp", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -197,14 +189,14 @@ describe("MCP mutation rate limits", () => {
       expect(authenticateMcpRequestMock).toHaveBeenCalledWith(request, [
         "workspace_todo_create",
       ]);
-      expect(checkUserMutationRateLimitMock).toHaveBeenCalledTimes(2);
+      expect(checkUserMutationRateLimitMock).toHaveBeenCalledTimes(1);
       expect(
         authenticateMcpRequestMock.mock.invocationCallOrder[0],
       ).toBeLessThan(
         checkUserMutationRateLimitMock.mock.invocationCallOrder[0] ?? 0,
       );
       expect(
-        checkUserMutationRateLimitMock.mock.invocationCallOrder[1],
+        checkUserMutationRateLimitMock.mock.invocationCallOrder[0],
       ).toBeLessThan(
         handleTransportRequestMock.mock.invocationCallOrder[0] ?? 0,
       );
@@ -218,27 +210,11 @@ describe("MCP mutation rate limits", () => {
   });
 
   it("mcp.mutation-rate-limits", async () => {
-    checkUserMutationRateLimitMock
-      .mockResolvedValueOnce({ allowed: true })
-      .mockResolvedValueOnce({ allowed: false, reason: "limited" });
-    const request = new Request("https://life.example/api/mcp", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify([
-        {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "tools/call",
-          params: { name: "workspace_todo_create", arguments: { title: "A" } },
-        },
-        {
-          jsonrpc: "2.0",
-          id: 2,
-          method: "tools/call",
-          params: { name: "workspace_todo_create", arguments: { title: "B" } },
-        },
-      ]),
+    checkUserMutationRateLimitMock.mockResolvedValue({
+      allowed: false,
+      reason: "limited",
     });
+    const request = mcpRequest(toolCall(1, "workspace_todo_create"));
 
     const { handleMcpRequest } = await import(
       "@/lib/api/routes/mcp-request-handler"
@@ -253,14 +229,8 @@ describe("MCP mutation rate limits", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Rate limit exceeded",
     });
-    expect(checkUserMutationRateLimitMock).toHaveBeenCalledTimes(2);
+    expect(checkUserMutationRateLimitMock).toHaveBeenCalledTimes(1);
     expect(checkUserMutationRateLimitMock).toHaveBeenNthCalledWith(1, {
-      action: "workspace.todo:write",
-      host: "life.example",
-      tier: "write",
-      userId: "user-1",
-    });
-    expect(checkUserMutationRateLimitMock).toHaveBeenNthCalledWith(2, {
       action: "workspace.todo:write",
       host: "life.example",
       tier: "write",
@@ -276,18 +246,18 @@ describe("MCP mutation rate limits", () => {
       expect.objectContaining({
         phase: "rate-limit-rejected",
         rpcSummary: expect.objectContaining({
-          bodyKind: "jsonrpc-batch",
-          rpcCount: 2,
-          toolNames: ["workspace_todo_create", "workspace_todo_create"],
+          bodyKind: "jsonrpc-single",
+          rpcCount: 1,
+          toolNames: ["workspace_todo_create"],
         }),
         status: 429,
       }),
     );
 
-    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledTimes(2);
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledTimes(1);
     expect(
       scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
-    ).toEqual(["error", "error"]);
+    ).toEqual(["error"]);
 
     for (const reason of ["limited", "unavailable"] as const) {
       checkUserMutationRateLimitMock
@@ -504,63 +474,27 @@ describe("MCP mutation rate limits", () => {
     );
   });
 
-  it("attributes out-of-order batch results by typed ID and excludes bridge and lifecycle calls", async () => {
-    checkUserMutationRateLimitMock.mockResolvedValue({ allowed: true });
+  it("matches typed response IDs and ignores unrelated responses", async () => {
     handleTransportRequestMock.mockImplementationOnce(async () => {
-      const transport = connectedTransport();
-      await transport.send({
+      await connectedTransport().send({
         jsonrpc: "2.0",
         id: "1",
         result: { isError: true },
       });
-      await transport.send({
-        jsonrpc: "2.0",
-        id: 3,
-        error: { code: -32603, message: "failed" },
-      });
-      await transport.send({ jsonrpc: "2.0", id: 1, result: {} });
-      await transport.send({ jsonrpc: "2.0", id: 4, result: {} });
-      await transport.send({ jsonrpc: "2.0", id: 5, result: {} });
-      await transport.send({ jsonrpc: "2.0", id: 6, result: {} });
-      return new Response("batch");
+      expect(scheduleOAuthGrantUsageMock).not.toHaveBeenCalled();
+      await connectedTransport().send({ jsonrpc: "2.0", id: 1, result: {} });
+      return new Response("ok");
     });
     const { handleMcpRequest } = await import(
       "@/lib/api/routes/mcp-request-handler"
     );
-    await handleMcpRequest(
-      mcpRequest([
-        toolCall(1),
-        toolCall("1"),
-        toolCall(3, "workspace_todo_create"),
-        toolCall(4, "graphql_operation_run"),
-        toolCall(5, "catalog_course_search"),
-        { jsonrpc: "2.0", id: 6, method: "tools/list" },
-        {
-          jsonrpc: "2.0",
-          method: "tools/call",
-          params: { name: "workspace_todo_list" },
-        },
-      ]),
-    );
-    expect(
-      scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => ({
-        feature: input.feature,
-        action: input.action,
-        outcome: input.outcome,
-      })),
-    ).toEqual([
-      { feature: "workspace.todo", action: "read", outcome: "error" },
-      { feature: "workspace.todo", action: "write", outcome: "error" },
-      { feature: "workspace.todo", action: "read", outcome: "success" },
-    ]);
-    expect(logAppEventMock).not.toHaveBeenCalledWith(
-      "warn",
-      expect.anything(),
-      expect.anything(),
+    await handleMcpRequest(mcpRequest(toolCall(1)));
+    expect(scheduleOAuthGrantUsageMock).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ outcome: "success" }),
     );
   });
 
-  it("settles only outstanding calls when handling throws after a completed result", async () => {
+  it("does not recount a completed operation when handling later throws", async () => {
     const failure = new Error("transport failed");
     handleTransportRequestMock.mockImplementationOnce(async () => {
       await connectedTransport().send({ jsonrpc: "2.0", id: 1, result: {} });
@@ -569,13 +503,13 @@ describe("MCP mutation rate limits", () => {
     const { handleMcpRequest } = await import(
       "@/lib/api/routes/mcp-request-handler"
     );
-    await expect(
-      handleMcpRequest(mcpRequest([toolCall(1), toolCall(2)])),
-    ).rejects.toBe(failure);
+    await expect(handleMcpRequest(mcpRequest(toolCall(1)))).rejects.toBe(
+      failure,
+    );
     await connectedTransport().send({ jsonrpc: "2.0", id: 2, result: {} });
     expect(
       scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
-    ).toEqual(["success", "error"]);
+    ).toEqual(["success"]);
   });
 
   it("records direct HTTP rejection as errors without changing its response", async () => {
@@ -585,14 +519,12 @@ describe("MCP mutation rate limits", () => {
     const { handleMcpRequest } = await import(
       "@/lib/api/routes/mcp-request-handler"
     );
-    const response = await handleMcpRequest(
-      mcpRequest([toolCall(1), toolCall(2)]),
-    );
+    const response = await handleMcpRequest(mcpRequest(toolCall(1)));
     expect(response.status).toBe(406);
     await expect(response.text()).resolves.toBe("unsupported accept");
     expect(
       scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
-    ).toEqual(["error", "error"]);
+    ).toEqual(["error"]);
   });
 
   it("settles direct HTTP failures once even if later response bookkeeping throws", async () => {
@@ -604,12 +536,12 @@ describe("MCP mutation rate limits", () => {
     const { handleMcpRequest } = await import(
       "@/lib/api/routes/mcp-request-handler"
     );
-    await expect(
-      handleMcpRequest(mcpRequest([toolCall(1), toolCall(2)])),
-    ).rejects.toBe(failure);
+    await expect(handleMcpRequest(mcpRequest(toolCall(1)))).rejects.toBe(
+      failure,
+    );
     expect(
       scheduleOAuthGrantUsageMock.mock.calls.map(([input]) => input.outcome),
-    ).toEqual(["error", "error"]);
+    ).toEqual(["error"]);
   });
 
   it("preserves a send rejection without rewriting or recounting its completed operation", async () => {

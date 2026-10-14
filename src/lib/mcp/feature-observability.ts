@@ -99,6 +99,10 @@ export function observeMcpFeature<T>(
     !(isRecord(args) && typeof args.search === "string" && args.search.trim())
       ? "list"
       : mapped.operation;
+  const authInfo =
+    isRecord(extra) && isRecord(extra.http) && isRecord(extra.http.authInfo)
+      ? extra.http.authInfo
+      : undefined;
   return observeFeatureOperation(
     {
       ...mapped,
@@ -106,14 +110,12 @@ export function observeMcpFeature<T>(
       protocol: "mcp",
       surface: "mcp",
       userId:
-        isRecord(extra) &&
-        isRecord(extra.authInfo) &&
-        isRecord(extra.authInfo.extra) &&
-        typeof extra.authInfo.extra.userId === "string"
-          ? extra.authInfo.extra.userId
+        authInfo &&
+        isRecord(authInfo.extra) &&
+        typeof authInfo.extra.userId === "string"
+          ? authInfo.extra.userId
           : null,
-      authMode:
-        isRecord(extra) && isRecord(extra.authInfo) ? "oauth" : "anonymous",
+      authMode: authInfo ? "oauth" : "anonymous",
     },
     run,
     classifyMcpFeatureResult,

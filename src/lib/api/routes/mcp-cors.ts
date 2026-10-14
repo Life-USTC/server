@@ -1,11 +1,10 @@
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 
 const MCP_CORS_HEADERS = {
-  "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
-  "Access-Control-Expose-Headers":
-    "MCP-Session-Id, Retry-After, WWW-Authenticate",
+    "Authorization, Content-Type, MCP-Method, MCP-Name, MCP-Protocol-Version",
+  "Access-Control-Expose-Headers": "Retry-After, WWW-Authenticate",
 } as const;
 
 function appendVaryHeader(headers: Headers, value: string) {

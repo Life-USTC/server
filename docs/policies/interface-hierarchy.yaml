@@ -1009,7 +1009,7 @@ topics:
   - mcp.public-catalog-access
   - mcp.invalid-credentials-no-downgrade
   - mcp.resource-bound-access-token
-  - mcp.complete-batch-scope-enforcement
+  - mcp.tool-scope-enforcement
   - mcp.graphql-authorization
   - openapi.session-and-bearer
   - todo.personal-ownership
@@ -1226,7 +1226,7 @@ rationale:
 - Anonymous GraphQL root access has one canonical obligation, graphql.anonymous-roots; its real HTTP acceptance covers null account/workspace roots and readable catalog/community roots.
 - Governance exclusion is owned by graphql.registered-operation-coverage for the executable GraphQL schema and mcp.personal-workspace-focus for the complete MCP tool inventory.
 - Cross-surface conformance is split into the atomic semantic-parity requirements below this policy; the former umbrella statement did not define an independent testable obligation.
-- Anonymous GraphQL catalog/community access is owned by graphql.anonymous-roots. MCP public access and authorization are owned by mcp.public-catalog-access, mcp.resource-bound-access-token and mcp.complete-batch-scope-enforcement; these transports intentionally have separate authentication contracts.
+- Anonymous GraphQL catalog/community access is owned by graphql.anonymous-roots. MCP public access and authorization are owned by mcp.public-catalog-access, mcp.resource-bound-access-token and mcp.tool-scope-enforcement; these transports intentionally have separate authentication contracts.
 - Administration uses declared Web and session-only REST bindings (admin.admin-rest-session-only and openapi.session-and-bearer). GraphQL and MCP governance exclusion belong to graphql.registered-operation-coverage and mcp.personal-workspace-focus. CLI does not expose session-only governance commands; cli.admin-session-boundary is verified in the CLI repository.
 
 - Locale-varying public data cache identity is owned by rendering-and-cache.cache-layers-and-invalidation-10. Delivered HTML privacy is owned by rendering-and-cache.cache-layers-and-invalidation-1; private HTTP CDN enforcement and public API opt-in are owned by rendering-and-cache.personal-overlays-10 and rendering-and-cache.personal-overlays-9. These are separate from the internal HTML locale-key contract.

@@ -9,7 +9,7 @@ import {
 } from "@/lib/mcp/tools/_shared/helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
-type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
+type ToolExtra = { http?: { authInfo?: Parameters<typeof getUserId>[0] } };
 
 export async function getMySevenDaysTimelineAction(
   {
@@ -20,7 +20,7 @@ export async function getMySevenDaysTimelineAction(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const atTimeDate = parseOptionalMcpDate("atTime", atTime);
   if (!atTimeDate.ok) {
     return atTimeDate.result;

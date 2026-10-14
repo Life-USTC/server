@@ -15,6 +15,7 @@ import {
   type IsolatedDatabase,
   isolatedDatabaseTest,
 } from "./isolated-database";
+import { mcpFetchOptions } from "./mcp-http-request";
 import { ownHttpServer } from "./node-http-contract-fixture";
 import { createNodeRuntime } from "./node-runtime";
 
@@ -366,16 +367,26 @@ function ownMcpHttpFixture(database: IsolatedDatabase) {
     },
     signJwt: (claims: Record<string, unknown>) =>
       request(() => auth.api.signJWT({ body: { payload: claims } })),
-    post: (body: unknown, authorization?: string) =>
-      server.fetch(`${origin}/api/mcp`, {
+    post: (
+      body: unknown,
+      authorization?: string,
+      headers: Record<string, string> = {},
+    ) => {
+      const options = {
         method: "POST",
         headers: {
           "content-type": "application/json",
           accept: "application/json, text/event-stream",
           ...(authorization ? { authorization } : {}),
+          ...headers,
         },
         body: typeof body === "string" ? body : JSON.stringify(body),
-      }),
+      };
+      return server.fetch(
+        `${origin}/api/mcp`,
+        typeof body === "string" ? options : mcpFetchOptions(options),
+      );
+    },
   };
 }
 

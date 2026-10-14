@@ -297,9 +297,7 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
               .map((read) => `${read.method} ${read.rpc ?? "stream"}`)
               .sort(),
           ).toEqual([
-            "GET stream",
-            "POST initialize",
-            "POST notifications/initialized",
+            "POST server/discover",
             ...(method === "MCP" ? ["POST tools/call", "POST tools/call"] : []),
           ]);
           expect(

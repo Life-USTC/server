@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import {
   linkMatchesTokens,
   searchQueryToTokens,
@@ -19,7 +19,7 @@ import {
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
 
-type ToolExtra = { authInfo?: AuthInfo };
+type ToolExtra = { http?: { authInfo?: AuthInfo } };
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 function normalizeCatalogLinkQuery(query: string | undefined) {
   const normalized = query?.trim().replace(/\s+/g, " ");
@@ -70,7 +70,7 @@ export async function listWorkspaceLinkPinsTool(
   extra: ToolExtra,
 ) {
   const pinnedSlugs = await getWorkspaceLinkPinnedSlugs(
-    getUserId(extra.authInfo),
+    getUserId(extra.http?.authInfo),
   );
   return jsonToolResult(
     { success: true, pinnedSlugs, maxPinnedLinks: MAX_PINNED_LINKS },
@@ -91,7 +91,7 @@ export async function setWorkspaceLinkPinStateTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const link = resolveCatalogLinkBySlug(slug);
 
   if (!link) {

@@ -1,4 +1,4 @@
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { Client } from "@modelcontextprotocol/client";
 import {
   type APIRequestContext,
   type APIResponse,
@@ -8,6 +8,7 @@ import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
+import { mcpPostOptions } from "../../../../shared/mcp-http-request";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { parseTextContent } from "../../../utils/mcp-helpers";
 import { test } from "../../../utils/mcp-worker";
@@ -677,22 +678,25 @@ for (const method of ["REST", "GraphQL", "MCP"] as const)
         });
       }
       if (method === "MCP") {
-        const wrongMcpAudience = await sessionRequest.post("/api/mcp", {
-          headers: {
-            ...bearer(restToken),
-            accept: "application/json, text/event-stream",
-          },
-          data: {
-            jsonrpc: "2.0",
-            id: 1,
-            method: "initialize",
-            params: {
-              protocolVersion: "2025-03-26",
-              capabilities: {},
-              clientInfo: { name: "upload-security", version: "1.0.0" },
+        const wrongMcpAudience = await sessionRequest.post(
+          "/api/mcp",
+          mcpPostOptions({
+            headers: {
+              ...bearer(restToken),
+              accept: "application/json, text/event-stream",
             },
-          },
-        });
+            data: {
+              jsonrpc: "2.0",
+              id: 1,
+              method: "server/discover",
+              params: {
+                protocolVersion: "2026-07-28",
+                capabilities: {},
+                clientInfo: { name: "upload-security", version: "1.0.0" },
+              },
+            },
+          }),
+        );
         expect(wrongMcpAudience.status()).toBe(401);
       }
       if (method === "REST")
@@ -782,8 +786,8 @@ for (const method of ["REST", "GraphQL", "MCP"] as const)
           await expect(
             readMcp.callTool({ name, arguments: renameInput }),
           ).rejects.toMatchObject({
-            code: 403,
-            message: expect.stringContaining("insufficient_scope"),
+            name: "InsufficientScopeError",
+            requiredScope: "workspace.upload:read workspace.upload:write",
           });
         }
       expect(await snapshot()).toEqual(before);
@@ -947,16 +951,16 @@ for (const method of ["REST", "GraphQL", "MCP"] as const)
                 .map(({ result }) => result),
             ).toEqual(statuses);
           expect(
-            sdkRequests.filter(({ rpc }) => rpc === "initialize"),
+            sdkRequests.filter(({ rpc }) => rpc === "server/discover"),
           ).toHaveLength(3);
           expect(
             sdkRequests.filter(
               ({ rpc }) => rpc === "notifications/initialized",
             ),
-          ).toHaveLength(3);
+          ).toHaveLength(0);
           expect(
             sdkRequests.filter(({ method }) => method === "GET"),
-          ).toHaveLength(3);
+          ).toHaveLength(0);
           expect(
             sdkRequests
               .filter(({ rpc }) => rpc === "tools/call")

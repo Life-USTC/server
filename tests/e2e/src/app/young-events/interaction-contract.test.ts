@@ -1,5 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import { expect, type Page } from "@playwright/test";
 import { test as publicTest } from "../../../utils/public-worker";
 import { test } from "./interaction-fixture";
@@ -320,7 +322,10 @@ for (const entry of ["Web", "REST", "GraphQL", "MCP"] as const) {
     youngRun,
   }) => {
     await youngRun(async (observation) => {
-      const client = new Client({ name: "young-read-only", version: "1" });
+      const client = new Client(
+        { name: "young-read-only", version: "1" },
+        { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+      );
       const errors: unknown[] = [];
       client.onerror = (error) => errors.push(error);
       try {

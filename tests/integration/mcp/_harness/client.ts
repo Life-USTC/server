@@ -20,14 +20,14 @@
  *   }
  */
 
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { Client } from "@modelcontextprotocol/client";
 import type {
+  AuthInfo,
+  JSONRPCMessage,
   Transport,
   TransportSendOptions,
-} from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
+import { InMemoryTransport } from "@modelcontextprotocol/server";
 import {
   createMcpServerInstance,
   registerMcpServerCapabilities,
@@ -43,7 +43,7 @@ type RequestRuntime = {
 
 /**
  * Build a minimal AuthInfo that makes tool handlers believe
- * `getUserId(extra.authInfo)` returns `userId`.
+ * `getUserId(extra.http?.authInfo)` returns `userId`.
  */
 export function makeTestAuthInfo(
   userId: string,
@@ -205,22 +205,27 @@ function ownMcpTransport(
   // Observe the real server callback, including runtime waitUntil work, before
   // registration. Client rejection alone does not mean DB work has stopped.
   const register = mcpServer.server.setRequestHandler.bind(mcpServer.server);
-  mcpServer.server.setRequestHandler = (schema, handler) => {
-    register(schema, (request, extra) => {
-      if (closed) throw new Error("MCP fixture is closed");
-      const work = () => handler(request, extra);
-      const operation = Promise.resolve().then(() =>
-        runtime ? runtime.run(work) : work(),
-      );
-      const settled = operation.then(
-        () => undefined,
-        () => undefined,
-      );
-      operations.add(settled);
-      void settled.then(() => operations.delete(settled));
-      return operation;
-    });
-  };
+  mcpServer.server.setRequestHandler = new Proxy(register, {
+    apply(target, receiver, args: unknown[]) {
+      const handlerIndex = args.length - 1;
+      const handler = args[handlerIndex] as (...args: unknown[]) => unknown;
+      args[handlerIndex] = (...handlerArgs: unknown[]) => {
+        if (closed) throw new Error("MCP fixture is closed");
+        const work = () => handler(...handlerArgs);
+        const operation = Promise.resolve().then(() =>
+          runtime ? runtime.run(work) : work(),
+        );
+        const settled = operation.then(
+          () => undefined,
+          () => undefined,
+        );
+        operations.add(settled);
+        void settled.then(() => operations.delete(settled));
+        return operation;
+      };
+      return Reflect.apply(target, receiver, args);
+    },
+  });
   registerMcpServerCapabilities(mcpServer);
   const client = new Client({ name, version: "1.0.0" });
   const harness = createMcpHarnessClient(client, () => mcpServer.close());

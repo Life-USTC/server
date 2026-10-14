@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { getCloudflareRequestContext } from "@/lib/adapters/cloudflare-runtime";
 import {
@@ -118,7 +118,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
       extra,
     ) => {
       const operationLabel = operationId ?? "document";
-      if (!extra.authInfo) {
+      if (!extra.http?.authInfo) {
         return errorToolResult(
           {
             success: false,
@@ -135,16 +135,17 @@ export function registerGraphqlOperationTool(server: McpServer) {
 
       const principal: GraphqlPrincipal = {
         kind: "oauth",
-        userId: getUserId(extra.authInfo),
-        scopes: expandScopeClaim(extra.authInfo.scopes),
-        resource: extra.authInfo.resource?.href ?? getOAuthMcpResourceUrl(),
+        userId: getUserId(extra.http?.authInfo),
+        scopes: expandScopeClaim(extra.http?.authInfo.scopes),
+        resource:
+          extra.http?.authInfo.resource?.href ?? getOAuthMcpResourceUrl(),
         channel: "mcp",
-        clientId: extra.authInfo.clientId,
-        ...(typeof extra.authInfo.extra?.grantId === "string"
-          ? { grantId: extra.authInfo.extra.grantId }
+        clientId: extra.http?.authInfo.clientId,
+        ...(typeof extra.http?.authInfo.extra?.grantId === "string"
+          ? { grantId: extra.http?.authInfo.extra.grantId }
           : {}),
-        ...(typeof extra.authInfo.extra?.sessionId === "string"
-          ? { sessionId: extra.authInfo.extra.sessionId }
+        ...(typeof extra.http?.authInfo.extra?.sessionId === "string"
+          ? { sessionId: extra.http?.authInfo.extra.sessionId }
           : {}),
       };
 
@@ -156,9 +157,11 @@ export function registerGraphqlOperationTool(server: McpServer) {
           );
         }
         const requestInfo = {
-          headers: extra.requestInfo?.headers,
+          headers: extra.http?.req
+            ? Object.fromEntries(extra.http.req.headers)
+            : undefined,
           requestId: getCloudflareRequestContext()?.requestId,
-          url: extra.requestInfo?.url,
+          url: extra.http?.req?.url,
         };
         const result = operationId
           ? await runRegisteredGraphqlOperation({
@@ -167,7 +170,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
               confirmed,
               locale,
               principal,
-              signal: extra.signal,
+              signal: extra.mcpReq.signal,
               requestInfo,
             })
           : await runGraphqlDocument({
@@ -177,7 +180,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
               confirmed,
               locale,
               principal,
-              signal: extra.signal,
+              signal: extra.mcpReq.signal,
               requestInfo,
             });
         const toolResult = jsonToolResult(result, { mode: "full" });

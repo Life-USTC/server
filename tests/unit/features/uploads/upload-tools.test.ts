@@ -17,7 +17,7 @@ vi.mock("@/features/uploads/server/upload-service", () => ({
 type RegisteredTool = {
   handler: (
     args: Record<string, unknown>,
-    extra: { authInfo: { extra: { userId: string } } },
+    extra: { http: { authInfo: { extra: { userId: string } } } },
   ) => Promise<{ content: Array<{ text: string; type: "text" }> }>;
 };
 
@@ -60,7 +60,7 @@ describe("上传 MCP 工具", () => {
 
     const result = await tool.handler(
       { id: "upload-1" },
-      { authInfo: { extra: { userId: "user-1" } } },
+      { http: { authInfo: { extra: { userId: "user-1" } } } },
     );
 
     expect(parseToolResult(result)).toEqual({

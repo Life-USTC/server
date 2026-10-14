@@ -1,6 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/client";
+import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import * as z from "zod";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
@@ -43,7 +42,7 @@ it("records actual SDK tool callbacks separately, including public reads and out
     "catalog_course_search",
     { inputSchema: { search: z.string().optional() }, outputSchema },
     async () => ({
-      content: [{ type: "text", text: '{"success":true}' }],
+      content: [{ type: "text" as const, text: '{"success":true}' }],
       structuredContent: { success: true },
     }),
   );
@@ -57,7 +56,10 @@ it("records actual SDK tool callbacks separately, including public reads and out
   server.registerTool(
     "catalog_teacher_get",
     { inputSchema: { jwId: z.number() }, outputSchema },
-    async () => ({ content: [], structuredContent: { success: "invalid" } }),
+    async () => ({
+      content: [] as never[],
+      structuredContent: { success: "invalid" },
+    }),
   );
   const client = new Client({ name: "test", version: "1" });
   const [clientTransport, serverTransport] =
@@ -133,7 +135,7 @@ it("does not double count the GraphQL envelope or listTools and uses authenticat
       await observeMcpFeature(
         "catalog_course_search",
         {},
-        { authInfo: { token: "private" } },
+        { http: { authInfo: { token: "private" } } },
         () => ({ structuredContent: { success: true } }),
       );
     });

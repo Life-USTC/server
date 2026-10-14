@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { commentMcpTargetMutationInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
@@ -42,7 +42,7 @@ export const commentReactionInputSchema = commentReactionRequestSchema.extend({
   mode: mcpModeInputSchema,
 });
 
-type ToolExtra = { authInfo?: AuthInfo };
+type ToolExtra = { http?: { authInfo?: AuthInfo } };
 type CommentCreateInput = z.infer<typeof commentCreateInputSchema>;
 
 function mcpCommentAuditMetadata(authInfo?: AuthInfo) {
@@ -57,10 +57,10 @@ export async function createCommentTool(
   extra: ToolExtra,
 ) {
   const mode = resolveMcpMode(args.mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const result = await createComment({
     attachmentIds: args.attachmentIds,
-    auditMetadata: mcpCommentAuditMetadata(extra.authInfo),
+    auditMetadata: mcpCommentAuditMetadata(extra.http?.authInfo),
     content: args.body,
     courseJwId: args.courseJwId,
     homeworkId: args.homeworkId,
@@ -89,11 +89,11 @@ export async function updateOwnCommentTool(
   extra: ToolExtra,
 ) {
   const mode = resolveMcpMode(args.mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const hasAttachmentUpdate = Array.isArray(args.attachmentIds);
   const result = await updateOwnComment({
     attachmentIds: hasAttachmentUpdate ? (args.attachmentIds ?? []) : [],
-    auditMetadata: mcpCommentAuditMetadata(extra.authInfo),
+    auditMetadata: mcpCommentAuditMetadata(extra.http?.authInfo),
     body: args.body,
     hasAttachmentUpdate,
     id: args.commentId,
@@ -114,9 +114,9 @@ export async function deleteOwnCommentTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const result = await deleteOwnComment({
-    auditMetadata: mcpCommentAuditMetadata(extra.authInfo),
+    auditMetadata: mcpCommentAuditMetadata(extra.http?.authInfo),
     commentId,
     userId,
   });
@@ -135,9 +135,9 @@ export async function addCommentReactionTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const result = await createCommentReaction({
-    auditMetadata: mcpCommentAuditMetadata(extra.authInfo),
+    auditMetadata: mcpCommentAuditMetadata(extra.http?.authInfo),
     commentId,
     type,
     userId,
@@ -160,9 +160,9 @@ export async function removeCommentReactionTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const result = await deleteCommentReaction({
-    auditMetadata: mcpCommentAuditMetadata(extra.authInfo),
+    auditMetadata: mcpCommentAuditMetadata(extra.http?.authInfo),
     commentId,
     type,
     userId,

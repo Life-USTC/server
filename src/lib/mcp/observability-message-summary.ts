@@ -51,9 +51,14 @@ export function summarizeJsonRpcMessage(
     };
   }
 
-  if (method === "initialize" && params) {
-    summary.protocolVersion = asSafeString(params.protocolVersion);
-    const clientInfo = asMcpObservabilityRecord(params.clientInfo);
+  const meta = asMcpObservabilityRecord(params?._meta);
+  if (meta) {
+    summary.protocolVersion = asSafeString(
+      meta["io.modelcontextprotocol/protocolVersion"],
+    );
+    const clientInfo = asMcpObservabilityRecord(
+      meta["io.modelcontextprotocol/clientInfo"],
+    );
     if (clientInfo) {
       summary.clientInfo = {
         name: asSafeString(clientInfo.name),

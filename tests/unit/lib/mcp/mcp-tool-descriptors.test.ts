@@ -1,6 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/client";
+import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import * as z from "zod";
 import { createMcpServer } from "@/lib/mcp/server";
@@ -8,7 +7,6 @@ import {
   assertRegisteredMcpToolMetadata,
   getRegisteredMcpToolCount,
   installMcpToolDescriptorDefaults,
-  installMcpToolListCompatibility,
 } from "@/lib/mcp/tool-descriptors";
 import {
   getMarkdownMcpToolOutputSchemaForMode,
@@ -246,9 +244,7 @@ describe("MCP tool descriptors", () => {
       installMcpToolDescriptorDefaults(mcpServer);
       register("first_tool");
       register("second_tool");
-      installMcpToolListCompatibility(mcpServer);
       // Idempotent: a second install must not break listing.
-      installMcpToolListCompatibility(mcpServer);
       register("third_tool");
 
       await mcpServer.connect(serverTransport);
@@ -1393,15 +1389,9 @@ describe("MCP tool descriptors", () => {
           /^MCP tool result/,
         );
       }
-      const missing = await client.callTool({
-        name: "unregistered_tool",
-        arguments: {},
-      });
-      expect(missing.isError).toBe(true);
-      expect(missing.structuredContent).toBeUndefined();
-      expect((missing.content as Array<{ text: string }>)[0].text).toContain(
-        "not found",
-      );
+      await expect(
+        client.callTool({ name: "unregistered_tool", arguments: {} }),
+      ).rejects.toThrow("not found");
     } finally {
       await client.close();
       await server.close();

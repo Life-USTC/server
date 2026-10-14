@@ -1,5 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import { expect } from "@playwright/test";
 
 export type HttpMcpRequest = {
@@ -48,27 +50,16 @@ export function ownHttpMcp({
               })
             : undefined;
         expect(
-          incoming.method === "GET" ||
-            (incoming.method === "POST" &&
-              [
-                "initialize",
-                "notifications/initialized",
-                "tools/call",
-                "tools/list",
-              ].includes(payload?.method ?? "")),
+          incoming.method === "POST" &&
+            ["server/discover", "tools/call", "tools/list"].includes(
+              payload?.method ?? "",
+            ),
         ).toBe(true);
         const forbidden =
           payload?.method === "tools/call" &&
           forbiddenTools[0] === payload.params?.name;
         if (forbidden) forbiddenTools.shift();
-        const expectedStatus =
-          incoming.method === "GET"
-            ? 405
-            : payload?.method === "notifications/initialized"
-              ? 202
-              : forbidden
-                ? 403
-                : 200;
+        const expectedStatus = forbidden ? 403 : 200;
         const requestId = crypto.randomUUID();
         requests.push({
           requestId,
@@ -114,7 +105,9 @@ export function ownHttpMcp({
       if (closing) throw new Error("HTTP MCP workflow is closing");
       const forbiddenTools = [...expectedForbiddenTools];
       forbiddenPlans.push(forbiddenTools);
-      const client = new Client(identity);
+      const client = new Client(identity, {
+        versionNegotiation: { mode: { pin: "2026-07-28" } },
+      });
       const transport = new StreamableHTTPClientTransport(
         new URL("/api/mcp", origin),
         {

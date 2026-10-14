@@ -1,4 +1,4 @@
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { expect, test, vi } from "vitest";
 import { createNodeRuntime } from "../../shared/node-runtime";
 import { ownAnonymousMcpHarness, ownMcpHarness } from "./_harness/client";
@@ -93,7 +93,9 @@ test("MCP transports stay closed when initialization resumes after disposal", {
               transport.send({ jsonrpc: "2.0", method: "ping" }),
             ).rejects.toThrow("Not connected");
           }
-          await expect(owned.client.listTools()).rejects.toThrow();
+          await expect(
+            owned.client.call("workspace_todo_list"),
+          ).rejects.toThrow();
         } finally {
           try {
             await cleanup();

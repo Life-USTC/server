@@ -1,7 +1,7 @@
 import { type APIResponse, expect } from "@playwright/test";
-import { MCP_JSON_RPC_BATCH_LIMIT } from "@/lib/mcp/request-body";
 import { DEFAULT_OAUTH_CLIENT_SCOPES } from "@/lib/oauth/constants";
 import { MCP_BOOTSTRAP_SCOPE } from "@/lib/oauth/scope-registry";
+import { mcpPostOptions } from "../../../../../shared/mcp-http-request";
 import {
   DEFAULT_CLIENT_SCOPE,
   expectMcpCorsHeaders,
@@ -31,30 +31,26 @@ async function readMcpJsonRpcResponse(response: APIResponse) {
 }
 
 test.describe("/api/mcp - 传输与授权", () => {
-  test("/api/mcp 未认证时可以初始化", { tag: "@MCP/MCP" }, async ({
+  test("/api/mcp 未认证时可以发现服务器能力", { tag: "@MCP/MCP" }, async ({
     isolatedWorker,
     calendarProtocolRun,
   }) => {
     await calendarProtocolRun(async ({ request }) => {
-      const response = await request.post("/api/mcp", {
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "initialize",
-          params: {
-            protocolVersion: "2025-03-26",
-            capabilities: {},
-            clientInfo: {
-              name: "unauthenticated-e2e-client",
-              version: "1.0.0",
-            },
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "server/discover",
+            params: {},
           },
-        },
-        headers: {
-          Accept: "application/json, text/event-stream",
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+          headers: {
+            Accept: "application/json, text/event-stream",
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
 
       expect(response.status()).toBe(200);
       await response.body();
@@ -62,8 +58,13 @@ test.describe("/api/mcp - 传输与授权", () => {
       await expect(readMcpJsonRpcResponse(response)).resolves.toMatchObject({
         jsonrpc: "2.0",
         result: {
-          protocolVersion: expect.any(String),
-          serverInfo: expect.objectContaining({ name: expect.any(String) }),
+          supportedVersions: ["2026-07-28"],
+          resultType: "complete",
+          _meta: {
+            "io.modelcontextprotocol/serverInfo": expect.objectContaining({
+              name: expect.any(String),
+            }),
+          },
         },
         id: 1,
       });
@@ -87,21 +88,24 @@ test.describe("/api/mcp - 传输与授权", () => {
           endDate: new Date(now + 30 * 86_400_000),
         },
       });
-      const response = await request.post("/api/mcp", {
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "tools/call",
-          params: {
-            name: "catalog_semester_current",
-            arguments: { mode: "default" },
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: {
+              name: "catalog_semester_current",
+              arguments: { mode: "default" },
+            },
           },
-        },
-        headers: {
-          Accept: "application/json, text/event-stream",
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+          headers: {
+            Accept: "application/json, text/event-stream",
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
 
       expect(response.status()).toBe(200);
       await response.body();
@@ -138,15 +142,18 @@ test.describe("/api/mcp - 传输与授权", () => {
     tag: "@MCP/MCP",
   }, async ({ isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
-      const response = await request.post("/api/mcp", {
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "tools/call",
-          params: { name: "workspace_todo_list", arguments: {} },
-        },
-        headers: { "MCP-Protocol-Version": "2025-03-26" },
-      });
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "workspace_todo_list", arguments: {} },
+          },
+          headers: { "MCP-Protocol-Version": "2026-07-28" },
+        }),
+      );
 
       expect(response.status()).toBe(401);
       await response.body();
@@ -171,13 +178,16 @@ test.describe("/api/mcp - 传输与授权", () => {
       const oversizedBody = JSON.stringify("x".repeat(65 * 1024));
       const headers = {
         "Content-Type": "application/json",
-        "MCP-Protocol-Version": "2025-03-26",
+        "MCP-Protocol-Version": "2026-07-28",
       };
 
-      const unauthenticatedResponse = await request.post("/api/mcp", {
-        data: oversizedBody,
-        headers,
-      });
+      const unauthenticatedResponse = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: oversizedBody,
+          headers,
+        }),
+      );
       expect(unauthenticatedResponse.status()).toBe(413);
       await unauthenticatedResponse.body();
 
@@ -189,13 +199,16 @@ test.describe("/api/mcp - 传输与授权", () => {
         resource,
       });
 
-      const authenticatedResponse = await request.post("/api/mcp", {
-        data: oversizedBody,
-        headers: {
-          ...headers,
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const authenticatedResponse = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: oversizedBody,
+          headers: {
+            ...headers,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
+      );
       expect(authenticatedResponse.status()).toBe(413);
       await authenticatedResponse.body();
       await expect(authenticatedResponse.json()).resolves.toMatchObject({
@@ -219,13 +232,12 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 在认证后拒绝超过 50 条消息的 JSON-RPC batch", {
+  test("/api/mcp 在工具执行前拒绝 JSON-RPC batch", {
     tag: "@MCP/MCP",
   }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async ({ request }) => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
-      expect(MCP_JSON_RPC_BATCH_LIMIT).toBe(50);
       const resource = `${oauth.worker.origin}/api/mcp`;
       const { clientId, accessToken } = await issueAccessToken(page, request, {
         owner: oauth,
@@ -234,24 +246,27 @@ test.describe("/api/mcp - 传输与授权", () => {
         resource,
       });
 
-      const response = await request.post("/api/mcp", {
-        data: Array.from({ length: MCP_JSON_RPC_BATCH_LIMIT + 1 }, (_, id) => ({
-          id,
-          jsonrpc: "2.0",
-          method: "tools/list",
-        })),
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: Array.from({ length: 2 }, (_, id) => ({
+            id,
+            jsonrpc: "2.0",
+            method: "tools/list",
+          })),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
 
-      expect(response.status()).toBe(413);
+      expect(response.status()).toBe(400);
       await response.body();
       await expect(response.json()).resolves.toMatchObject({
         error: {
-          code: -32000,
-          message: `JSON-RPC batch must not exceed ${MCP_JSON_RPC_BATCH_LIMIT} messages`,
+          code: -32600,
+          message: "Invalid Request",
         },
         id: null,
         jsonrpc: "2.0",
@@ -262,7 +277,7 @@ test.describe("/api/mcp - 传输与授权", () => {
         consentScopes: [MCP_CLIENT_SCOPES],
         resources: [resource],
         tokenRequests: 1,
-        requests: [["POST", "/api/mcp", 413]],
+        requests: [["POST", "/api/mcp", 400]],
         refreshTokens: [],
         accessTokens: [],
       });
@@ -281,7 +296,7 @@ test.describe("/api/mcp - 传输与授权", () => {
 
       expect(response.status()).toBe(405);
       await response.body();
-      expect(response.headers().allow).toBe("POST, DELETE, OPTIONS");
+      expect(response.headers().allow).toBe("POST, OPTIONS");
       await expect(response.json()).resolves.toEqual({
         error: "method_not_allowed",
       });
@@ -298,18 +313,11 @@ test.describe("/api/mcp - 传输与授权", () => {
       const account = await prepareProtocolAccount(page, isolatedWorker);
       const { oauth } = account;
       const origin = oauth.worker.origin.replace("localhost", "127.0.0.1");
-      const initializePayload = {
+      const discoveryPayload = {
         jsonrpc: "2.0",
         id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-03-26",
-          capabilities: {},
-          clientInfo: {
-            name: "browser-cors-e2e-client",
-            version: "1.0.0",
-          },
-        },
+        method: "server/discover",
+        params: {},
       };
 
       const preflight = await request.fetch("/api/mcp", {
@@ -318,21 +326,24 @@ test.describe("/api/mcp - 传输与授权", () => {
           Origin: origin,
           "Access-Control-Request-Method": "POST",
           "Access-Control-Request-Headers":
-            "authorization,content-type,mcp-protocol-version,mcp-session-id,last-event-id",
+            "authorization,content-type,mcp-protocol-version,mcp-method,mcp-name",
         },
       });
       expect(preflight.status()).toBe(204);
       await preflight.body();
       expectMcpCorsHeaders(preflight.headers(), origin);
 
-      const unauthenticatedResponse = await request.post("/api/mcp", {
-        data: initializePayload,
-        headers: {
-          Accept: "application/json, text/event-stream",
-          Origin: origin,
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+      const unauthenticatedResponse = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: discoveryPayload,
+          headers: {
+            Accept: "application/json, text/event-stream",
+            Origin: origin,
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
       expect(unauthenticatedResponse.status()).toBe(200);
       await unauthenticatedResponse.body();
       expectMcpCorsHeaders(unauthenticatedResponse.headers(), origin);
@@ -348,15 +359,18 @@ test.describe("/api/mcp - 传输与授权", () => {
         resource,
       });
 
-      const authenticatedResponse = await request.post("/api/mcp", {
-        data: initializePayload,
-        headers: {
-          Accept: "application/json, text/event-stream",
-          Origin: origin,
-          Authorization: `Bearer ${accessToken}`,
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+      const authenticatedResponse = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: discoveryPayload,
+          headers: {
+            Accept: "application/json, text/event-stream",
+            Origin: origin,
+            Authorization: `Bearer ${accessToken}`,
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
       expect(authenticatedResponse.status()).toBe(200);
       await authenticatedResponse.body();
       expectMcpCorsHeaders(authenticatedResponse.headers(), origin);
@@ -387,18 +401,11 @@ test.describe("/api/mcp - 传输与授权", () => {
       const { oauth } = account;
       const origin = "https://evil.example";
       const resource = `${oauth.worker.origin}/api/mcp`;
-      const initializePayload = {
+      const discoveryPayload = {
         jsonrpc: "2.0",
         id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-03-26",
-          capabilities: {},
-          clientInfo: {
-            name: "foreign-origin-e2e-client",
-            version: "1.0.0",
-          },
-        },
+        method: "server/discover",
+        params: {},
       };
 
       const { clientId, accessToken } = await issueAccessToken(page, request, {
@@ -426,15 +433,18 @@ test.describe("/api/mcp - 传输与授权", () => {
         error: "invalid_origin",
       });
 
-      const response = await request.post("/api/mcp", {
-        data: initializePayload,
-        headers: {
-          Accept: "application/json, text/event-stream",
-          Origin: origin,
-          Authorization: `Bearer ${accessToken}`,
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: discoveryPayload,
+          headers: {
+            Accept: "application/json, text/event-stream",
+            Origin: origin,
+            Authorization: `Bearer ${accessToken}`,
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
       expect(response.status()).toBe(403);
       await response.body();
       expect(response.headers()["access-control-allow-origin"]).toBeUndefined();
@@ -472,18 +482,21 @@ test.describe("/api/mcp - 传输与授权", () => {
         resource,
       });
 
-      const response = await request.post("/api/mcp", {
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "tools/call",
-          params: { name: "workspace_todo_list", arguments: {} },
-        },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "workspace_todo_list", arguments: {} },
+          },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
 
       expect(response.status()).toBe(403);
       await response.body();

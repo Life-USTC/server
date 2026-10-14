@@ -2,16 +2,21 @@ import { describe, expect, it } from "vitest";
 import { summarizeMcpJsonRpcRequest } from "@/lib/mcp/observability";
 
 describe("MCP 可观测性", () => {
-  it("汇总 initialize 请求且不包含敏感值", async () => {
+  it("汇总 server/discover 请求且不包含敏感值", async () => {
     const request = new Request("https://example.test/api/mcp", {
       method: "POST",
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
-        method: "initialize",
+        method: "server/discover",
         params: {
-          protocolVersion: "2025-06-18",
-          clientInfo: { name: "ChatGPT", version: "1.0" },
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientInfo": {
+              name: "ChatGPT",
+              version: "1.0",
+            },
+          },
         },
       }),
     });
@@ -19,12 +24,12 @@ describe("MCP 可观测性", () => {
     await expect(summarizeMcpJsonRpcRequest(request)).resolves.toEqual({
       bodyKind: "jsonrpc-single",
       rpcCount: 1,
-      methods: ["initialize"],
+      methods: ["server/discover"],
       toolNames: [],
       toolCalls: [],
       argumentKeys: [],
       clientInfo: { name: "ChatGPT", version: "1.0" },
-      protocolVersion: "2025-06-18",
+      protocolVersion: "2026-07-28",
     });
   });
 

@@ -254,21 +254,20 @@ requirements:
     test:
       file: tests/integration/mcp-http-contracts.test.ts
       name: mcp.resource-bound-access-token
-- id: mcp.complete-batch-scope-enforcement
+- id: mcp.tool-scope-enforcement
   category: authorization
-  rule: Each fixed-scope tool in a JSON-RPC batch requires all its declared scopes before any tool executes.
+  rule: Each fixed-scope tool requires all its declared scopes before it executes.
     A feature write grant satisfies read access for the same feature. GraphQL selected-field scopes remain
     canonical in graphql.scoped-query-auth and graphql.scoped-mutations.
   acceptance:
-    given: A case-owned database, Node HTTP MCP server, signed read-only grant and batch containing
-      read plus write tools.
-    when: The real HTTP transport checks the batch, then checks a write-only token on a read tool.
+    given: A case-owned database, Node HTTP MCP server, signed read-only grant and a todo-write request.
+    when: The real HTTP transport checks the write request, then checks a write-only token on a read tool.
     then:
-    - The under-scoped batch returns403 with the required write scope and creates no todo.
+    - The under-scoped write returns403 with the required write scope and creates no todo.
     - The write token can read its owner’s todos.
     test:
       file: tests/integration/mcp-http-contracts.test.ts
-      name: mcp.complete-batch-scope-enforcement
+      name: mcp.tool-scope-enforcement
 - id: mcp.bootstrap-auth-challenge
   category: authorization
   rule: Missing or invalid credentials on a private MCP call return the upstream JSON-RPC -32000 error
@@ -347,41 +346,32 @@ requirements:
     test:
       file: tests/integration/mcp-http-contracts.test.ts
       name: mcp.request-body-limit
-- id: mcp.request-batch-limit
-  category: validation
-  rule: An empty MCP JSON-RPC batch returns400/-32600. Nonempty batches have an inclusive50-message
-    limit; larger batches return413 before handling. Requests within that limit still require protocol validation.
+- id: mcp.current-protocol
+  category: behavior
+  rule: The HTTP endpoint serves MCP2026-07-28 through the official SDK. Server discovery advertises
+    that version and server metadata; legacy and unsupported protocol versions reject before tool execution.
   acceptance:
-    given: A private database and Node HTTP MCP server receiving JSON-RPC batches at 0, 50 and 51
-      messages.
-    when: The actual HTTP parser and SDK transport handle them.
+    given: A private database and the real Node HTTP routes with public discovery and a signed todo-write grant.
+    when: Discover with MCP2026-07-28, then submit writes using legacy and unknown versions.
     then:
-    - The empty batch is Invalid Request;51 messages exceed the limit.
-    - All50 valid requests produce distinct successful responses.
+    - Discovery returns200 with supportedVersions2026-07-28, complete result type and server metadata.
+    - Both unsupported requests return400 and create no todo.
     test:
       file: tests/integration/mcp-http-contracts.test.ts
-      name: mcp.request-batch-limit
-- id: mcp.request-batch-unique-identifiers
+      name: mcp.current-protocol
+- id: mcp.request-batch-rejection
   category: validation
-  rule: Requests in one MCP JSON-RPC batch have distinct IDs. Reusing an ID rejects the entire batch
-    with HTTP400 and JSON-RPC -32600, id null, before authentication, mutation budgets, or tool execution.
-    ID equality preserves JSON types, so numeric1 and string1 are distinct. Notifications and responses
-    do not introduce request IDs.
-  rationale: MCP requires request identifiers not to be reused within a session. A duplicate within one
-    batch cannot be attributed reliably to an operation; rejecting it before dispatch prevents partial
-    effects and incorrect per-operation usage. This check does not keep a cross-request session registry.
+  rule: JSON-RPC arrays return400/-32600 before authentication, mutation budgets, usage accounting or
+    tool execution. Clients send one MCP request per HTTP POST.
   acceptance:
-    given: The real request handler, body parser and installed SDK, with authentication and usage storage
-      boundaries controlled independently.
-    when: Submit a batch assigning the same request ID to different tools, and valid batches using distinct
-      numeric and string IDs.
+    given: A private database, Node HTTP routes and a signed todo-write grant.
+    when: Submit JSON-RPC arrays of0,1,2,50 and51 write requests within the body byte limit.
     then:
-    - A duplicate request ID returns the Invalid Request response before authorization or either tool runs.
-    - The rejected batch creates no OAuth usage or partial tool effects.
-    - Numeric and string IDs retain separate responses and per-operation usage when the batch is otherwise valid.
+    - Every array returns Invalid Request.
+    - No todo is created, including for a single-item array.
     test:
-      file: tests/unit/lib/mcp/mcp-usage-outcome.test.ts
-      name: rejects duplicate request IDs before authorization or tool execution
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.request-batch-rejection
 - id: mcp.parsed-body-reuse
   category: consistency
   rule: Accepted MCP JSON request bodies are parsed once and the same parsed body is shared by scope enforcement,
@@ -390,18 +380,17 @@ requirements:
   acceptance:
     given: The real request handler, body reader and fixed-tool mapping with mocked authentication, limiter
       and SDK boundaries.
-    when: A duplicate-write JSON-RPC batch is accepted.
+    when: A single native write request is accepted.
     then:
     - The request JSON is parsed exactly once without clone/json rereads.
-    - Observability and SDK receive the same parsed object; authentication sees the complete deduplicated
-      tool list.
-    - Both write entries consume their preflight checks before SDK dispatch.
+    - Observability and SDK receive the same parsed object; authentication sees the requested tool.
+    - The write consumes its preflight check before SDK dispatch.
     test:
       file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
       name: mcp.parsed-body-reuse
   rationale: This establishes transport orchestration and object identity, not cryptographic authentication.
-    Actual authentication and complete-batch scope rejection are canonical in mcp.resource-bound-access-token
-    and mcp.complete-batch-scope-enforcement.
+    Actual authentication and fixed-tool scope rejection are canonical in mcp.resource-bound-access-token
+    and mcp.tool-scope-enforcement.
 - id: mcp.transport-observability
   category: privacy
   rule: MCP transport logging must never include bearer tokens, cookies, exception messages, or tool argument
@@ -419,17 +408,17 @@ requirements:
       name: mcp.transport-observability
 - id: mcp.mutation-rate-limits
   category: validation
-  rule: Native MCP mutations preflight every batch entry against the shared per-host/user/feature-action
+  rule: Native MCP mutations preflight the requested tool against the shared per-host/user/feature-action
     guard before SDK dispatch. Subscription import uses the batch tier. Exhaustion or unavailable bindings
-    reject the entire dispatch with429/503 and Retry-After60. GraphQL operations delegate budget consumption
+    reject dispatch with429/503 and Retry-After60. GraphQL operations delegate budget consumption
     to selected resolver guards.
   acceptance:
     given: The real MCP handler and fixed-tool action/tier mapping with controlled authentication, Cloudflare
       limiter outcomes and SDK dispatch.
-    when: Duplicate native writes or a subscription import exhaust or cannot access their mutation budget;
+    when: A native write or subscription import exhaust or cannot access their mutation budget;
       a registered GraphQL operation is dispatched.
     then:
-    - Every native batch entry is preflighted before SDK execution.
+    - Each native write is preflighted before SDK execution.
     - Ordinary writes use workspace.todo:write and import uses workspace.subscription:batch-write with
       the batch tier.
     - Exhausted/unavailable limits produce429/503 and Retry-After60.
@@ -496,7 +485,7 @@ requirements:
 - id: mcp.openai-compatible-descriptors
   category: consistency
   rule: Every tool advertises a nonempty title, a closed object outputSchema with required boolean success,
-    boolean read-only/destructive/open-world annotations, and matching top-level and _meta.securitySchemes.
+    boolean read-only/destructive/open-world annotations, and _meta.securitySchemes.
     Public catalog tools advertise noauth; ordinary personal tools advertise their fixed feature scopes.
     graphql_operation_run advertises conservative write/destructive/open-world hints and delegates exact
     scopes to selected operations.
@@ -508,7 +497,7 @@ requirements:
     then:
     - Every output schema is closed and declares boolean success; every safety hint is boolean and every
       title is nonempty.
-    - Both securitySchemes copies match public noauth or explicit registered OAuth scopes.
+    - The _meta.securitySchemes value matches public noauth or explicit registered OAuth scopes.
     - The GraphQL runner has conservative mutation safety hints.
     test:
       file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
@@ -624,14 +613,13 @@ requirements:
       name: mcp.tool-result-envelope
 - id: mcp.http-methods
   category: behavior
-  rule: MCP uses POST for JSON-RPC and OPTIONS for trusted-origin CORS preflight. GET returns405. DELETE
-    is idempotent on the stateless transport and succeeds with absent or valid credentials; invalid supplied
-    credentials reject401.
+  rule: MCP uses POST for JSON-RPC and OPTIONS for trusted-origin CORS preflight. GET and DELETE return405. Invalid supplied
+    credentials on DELETE reject401 before SDK dispatch.
   acceptance:
     given: A private database and Node HTTP production routes using the stateless SDK transport.
     when: A client sends GET, trusted OPTIONS and DELETE with absent, valid and invalid credentials.
     then:
-    - GET returns405; OPTIONS returns204 with the trusted origin; valid/anonymous DELETE returns200.
+    - GET returns405; OPTIONS returns204 with the trusted origin; valid/anonymous DELETE returns405.
     - Invalid credentials on DELETE return401.
     test:
       file: tests/integration/mcp-http-contracts.test.ts
@@ -681,7 +669,7 @@ capabilities:
       kind: protocol
       items:
       - JSON-RPC over POST; trusted-origin OPTIONS preflight
-      - GET returns method-not-allowed; stateless DELETE is idempotent
+      - GET and DELETE return method-not-allowed
       - Returns JSON-RPC or transport responses
   tool-groups:
     title: Tool Groups

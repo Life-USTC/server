@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { mcpPostOptions } from "../../../../../shared/mcp-http-request";
 import { test } from "../../../../utils/private-calendar-fixture";
 import {
   expectSubscriptionRelations,
@@ -95,21 +96,24 @@ for (const entry of ["REST", "GraphQL", "MCP"] as const) {
         }
         if (entry === "MCP")
           for (const action of ["add", "remove", "kind_update"]) {
-            const response = await request.post("/api/mcp", {
-              headers: { Accept: "application/json, text/event-stream" },
-              data: {
-                jsonrpc: "2.0",
-                id: 1,
-                method: "tools/call",
-                params: {
-                  name: `workspace_subscription_${action}`,
-                  arguments: {
-                    jwId: fixture.own.section.jwId,
-                    ...(action === "kind_update" ? { kind: "auditor" } : {}),
+            const response = await request.post(
+              "/api/mcp",
+              mcpPostOptions({
+                headers: { Accept: "application/json, text/event-stream" },
+                data: {
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "tools/call",
+                  params: {
+                    name: `workspace_subscription_${action}`,
+                    arguments: {
+                      jwId: fixture.own.section.jwId,
+                      ...(action === "kind_update" ? { kind: "auditor" } : {}),
+                    },
                   },
                 },
-              },
-            });
+              }),
+            );
             await response.body();
             expect(response.status()).toBe(401);
             expect(response.headers()["www-authenticate"]).toContain("Bearer");
@@ -273,28 +277,31 @@ for (const transport of [
           });
           expect(read.isError).not.toBe(true);
           for (const action of ["add", "remove", "kind_update"]) {
-            const response = await request.post("/api/mcp", {
-              headers: {
-                ...connection.headers,
-                Accept: "application/json, text/event-stream",
-                "MCP-Protocol-Version": "2025-03-26",
-              },
-              data: {
-                jsonrpc: "2.0",
-                id: 1,
-                method: "tools/call",
-                params: {
-                  name: `workspace_subscription_${action}`,
-                  arguments: {
-                    jwId:
-                      action === "add"
-                        ? fixture.foreign.section.jwId
-                        : fixture.own.section.jwId,
-                    ...(action === "kind_update" ? { kind: "auditor" } : {}),
+            const response = await request.post(
+              "/api/mcp",
+              mcpPostOptions({
+                headers: {
+                  ...connection.headers,
+                  Accept: "application/json, text/event-stream",
+                  "MCP-Protocol-Version": "2026-07-28",
+                },
+                data: {
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "tools/call",
+                  params: {
+                    name: `workspace_subscription_${action}`,
+                    arguments: {
+                      jwId:
+                        action === "add"
+                          ? fixture.foreign.section.jwId
+                          : fixture.own.section.jwId,
+                      ...(action === "kind_update" ? { kind: "auditor" } : {}),
+                    },
                   },
                 },
-              },
-            });
+              }),
+            );
             expect(response.status()).toBe(403);
             expect(response.headers()["www-authenticate"]).toContain(
               'error="insufficient_scope"',

@@ -26,6 +26,7 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
+import { mcpPostOptions } from "../../../../../shared/mcp-http-request";
 import type { IsolatedWorker } from "../../../../utils/isolated-worker";
 import { test as isolatedTest } from "../../../../utils/mcp-worker";
 import { expectOAuthUsage } from "../../../../utils/oauth-usage";
@@ -624,26 +625,29 @@ isolatedTest(
         expect(todosResponse.status()).toBe(200);
         await todosResponse.body();
         const readEndedAt = Date.now();
-        const mcpResponse = await request.post("/api/mcp", {
-          data: {
-            jsonrpc: "2.0",
-            id: 1,
-            method: "initialize",
-            params: {
-              protocolVersion: "2025-03-26",
-              capabilities: {},
-              clientInfo: {
-                name: "device-flow-e2e-client",
-                version: "1.0.0",
+        const mcpResponse = await request.post(
+          "/api/mcp",
+          mcpPostOptions({
+            data: {
+              jsonrpc: "2.0",
+              id: 1,
+              method: "server/discover",
+              params: {
+                protocolVersion: "2026-07-28",
+                capabilities: {},
+                clientInfo: {
+                  name: "device-flow-e2e-client",
+                  version: "1.0.0",
+                },
               },
             },
-          },
-          headers: {
-            Accept: "application/json, text/event-stream",
-            Authorization: `Bearer ${accessToken}`,
-            "MCP-Protocol-Version": "2025-03-26",
-          },
-        });
+            headers: {
+              Accept: "application/json, text/event-stream",
+              Authorization: `Bearer ${accessToken}`,
+              "MCP-Protocol-Version": "2026-07-28",
+            },
+          }),
+        );
         expect(mcpResponse.status()).toBe(200);
         await mcpResponse.body();
         return {
