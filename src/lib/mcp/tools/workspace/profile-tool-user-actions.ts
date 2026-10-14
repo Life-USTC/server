@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { projectAuthenticatedUserProfile } from "@/features/profile/lib/account-profile-projection";
 import { findAuthenticatedUserProfileById } from "@/features/profile/server/profile-read-model";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/lib/mcp/tools/_shared/helpers";
 import { OAUTH_EMAIL_SCOPE } from "@/lib/oauth/constants";
 
-type ToolExtra = { authInfo?: AuthInfo };
+type ToolExtra = { http?: { authInfo?: AuthInfo } };
 
 export async function getOAuthClientActivityAction(
   {
@@ -24,7 +24,7 @@ export async function getOAuthClientActivityAction(
   }: { cursor?: string; limit: number; mode?: McpModeInput },
   extra: ToolExtra,
 ) {
-  const authInfo = extra.authInfo;
+  const authInfo = extra.http?.authInfo;
   const userId = getUserId(authInfo);
   if (!authInfo?.clientId || authInfo.clientId === "unknown") {
     throw new Error("Authenticated OAuth client context is missing");
@@ -44,7 +44,7 @@ export async function getMyProfileAction(
   { mode }: { mode?: McpModeInput },
   extra: ToolExtra,
 ) {
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const user = await findAuthenticatedUserProfileById(userId);
 
   if (!user) {
@@ -57,7 +57,7 @@ export async function getMyProfileAction(
 
   return jsonToolResult(
     projectAuthenticatedUserProfile(user, {
-      email: extra.authInfo?.scopes.includes(OAUTH_EMAIL_SCOPE) ?? false,
+      email: extra.http?.authInfo?.scopes.includes(OAUTH_EMAIL_SCOPE) ?? false,
       adminStatus: false,
     }),
     { mode: resolveMcpMode(mode) },

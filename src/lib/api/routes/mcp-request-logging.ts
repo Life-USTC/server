@@ -101,7 +101,9 @@ export function logMcpTransportResponse({
     return;
   }
   logAppEvent(
-    phase === "error" || (responseHasError && phase === "handled")
+    phase === "error" ||
+      status >= 500 ||
+      (status < 400 && responseHasError && phase === "handled")
       ? "error"
       : "info",
     "mcp.transport.response",

@@ -15,6 +15,7 @@ import {
 } from "@/lib/oauth/resource-urls";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import type { IsolatedDatabase } from "./isolated-database";
+import { mcpFetchOptions } from "./mcp-http-request";
 import type { ProviderRuntime } from "./oauth-provider-runtime";
 
 // Better Auth retains its issuer for the file/process lifetime. Each entry point
@@ -186,20 +187,23 @@ export async function assertActiveOAuthGrant(
       if (method === "MCP") {
         const mcp = await oauthRuntime.request(() =>
           mcpPostRoute(
-            new Request(getOAuthMcpResourceUrl(), {
-              method: "POST",
-              headers: {
-                authorization: `Bearer ${set.jwt[2]}`,
-                "content-type": "application/json",
-                accept: "application/json, text/event-stream",
-              },
-              body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: 1,
-                method: "tools/call",
-                params: { name: "workspace_todo_list", arguments: {} },
+            new Request(
+              getOAuthMcpResourceUrl(),
+              mcpFetchOptions({
+                method: "POST",
+                headers: {
+                  authorization: `Bearer ${set.jwt[2]}`,
+                  "content-type": "application/json",
+                  accept: "application/json, text/event-stream",
+                },
+                body: JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "tools/call",
+                  params: { name: "workspace_todo_list", arguments: {} },
+                }),
               }),
-            }),
+            ),
           ),
         );
         const mcpBody = await mcp.text();

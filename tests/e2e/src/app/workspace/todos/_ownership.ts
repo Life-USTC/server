@@ -1,5 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import {
   type APIRequestContext,
   type APIResponse,
@@ -494,10 +496,13 @@ export const test = workerTest.extend<{
                   },
                 },
               );
-              const client = new Client({
-                name: "todo-owner-contract",
-                version: "1",
-              });
+              const client = new Client(
+                {
+                  name: "todo-owner-contract",
+                  version: "1",
+                },
+                { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+              );
               own(async () => {
                 const results = await Promise.allSettled([client.close()]);
                 results.push(

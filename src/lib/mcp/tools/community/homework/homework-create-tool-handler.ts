@@ -38,12 +38,12 @@ export async function createHomeworkOnSectionTool(
     submissionStartAt?: string | null;
     title: string;
   },
-  extra: { authInfo?: Parameters<typeof getUserId>[0] },
+  extra: { http?: { authInfo?: Parameters<typeof getUserId>[0] } },
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
-  const audit = extra.authInfo
-    ? (attributionFromMcpAuthInfo(extra.authInfo) ?? undefined)
+  const userId = getUserId(extra.http?.authInfo);
+  const audit = extra.http?.authInfo
+    ? (attributionFromMcpAuthInfo(extra.http?.authInfo) ?? undefined)
     : undefined;
 
   const parsedTimestamps = parseCreateHomeworkTimestamps(

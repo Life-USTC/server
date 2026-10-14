@@ -1,11 +1,11 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import {
+  createMcpHandler,
   isJSONRPCErrorResponse,
   isJSONRPCRequest,
   isJSONRPCResultResponse,
   type RequestId,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { rateLimitResponse } from "@/lib/api/helpers";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -76,7 +76,7 @@ export async function handleMcpRequest(request: Request) {
   const logContext = { correlationId, request, requestUrl };
   let rpcSummary: McpRequestSummary | null = null;
   let toolCount: number | undefined;
-  // Populated only after body validation guarantees unique batch request IDs.
+  // Correlate the validated request with its final SDK response.
   const oauthUsage = new Map<RequestId, McpOAuthUsage>();
   const failPendingOAuthUsage = () => {
     const pending = [...oauthUsage.values()];
@@ -149,9 +149,7 @@ export async function handleMcpRequest(request: Request) {
     }
 
     if (authInfo && typeof authInfo.extra?.userId === "string") {
-      const messages = Array.isArray(bodyResult.body)
-        ? bodyResult.body
-        : [bodyResult.body];
+      const messages = [bodyResult.body];
       for (const message of messages) {
         if (!isJSONRPCRequest(message)) continue;
         if (
@@ -214,35 +212,62 @@ export async function handleMcpRequest(request: Request) {
       }
     }
 
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    const send = transport.send.bind(transport);
-    transport.send = (message, options) => {
-      if (
-        (isJSONRPCResultResponse(message) || isJSONRPCErrorResponse(message)) &&
-        message.id !== undefined
-      ) {
-        const usage = oauthUsage.get(message.id);
-        if (usage) {
-          oauthUsage.delete(message.id);
-          const outcome =
-            isJSONRPCErrorResponse(message) ||
-            (isJSONRPCResultResponse(message) &&
-              message.result.isError === true)
-              ? "error"
-              : "success";
-          // The SDK has completed input/callback/output validation. Register
-          // waitUntil before send can close the response and release its scope.
-          // Delivery failure must not recount this completed operation.
-          void finishMcpOAuthUsage([usage], outcome);
-        }
-      }
-      return send(message, options);
-    };
     const { createMcpServer } = await import("@/lib/mcp/server");
-    const server = createMcpServer();
-    toolCount = getRegisteredMcpToolCount(server);
+    let protocolErrorName: string | undefined;
+    const handler = createMcpHandler(
+      () => {
+        const server = createMcpServer();
+        toolCount = getRegisteredMcpToolCount(server);
+        const connect = server.connect.bind(server);
+        server.connect = async (transport) => {
+          const send = transport.send.bind(transport);
+          transport.send = (message, options) => {
+            if (
+              (isJSONRPCResultResponse(message) ||
+                isJSONRPCErrorResponse(message)) &&
+              message.id !== undefined
+            ) {
+              const usage = oauthUsage.get(message.id);
+              if (usage) {
+                oauthUsage.delete(message.id);
+                const outcome =
+                  isJSONRPCErrorResponse(message) ||
+                  (isJSONRPCResultResponse(message) &&
+                    message.result.isError === true)
+                    ? "error"
+                    : "success";
+                // The SDK has completed input/callback/output validation. Register
+                // waitUntil before send can close the response and release its scope.
+                // Delivery failure must not recount this completed operation.
+                void finishMcpOAuthUsage([usage], outcome);
+              }
+            }
+            return send(message, options);
+          };
+          return connect(transport);
+        };
+        return server;
+      },
+      {
+        legacy: "reject",
+        onerror: (error) => {
+          protocolErrorName = getSafeErrorName(error);
+        },
+      },
+    );
+
+    const res = await runCloudflareTraceSpan(
+      "mcp.handle_rpc",
+      {
+        "mcp.rpc_count": rpcSummary?.rpcCount,
+        "mcp.tool_count": toolCount,
+      },
+      () =>
+        handler.fetch(request, {
+          authInfo,
+          parsedBody: bodyResult.body,
+        }),
+    );
     if (shouldLogSampledSuccess(correlationId, 10)) {
       logAppEvent("info", "mcp.transport.rpc", {
         correlationId,
@@ -261,25 +286,13 @@ export async function handleMcpRequest(request: Request) {
       });
     }
 
-    await server.connect(transport);
-    const res = await runCloudflareTraceSpan(
-      "mcp.handle_rpc",
-      {
-        "mcp.rpc_count": rpcSummary?.rpcCount,
-        "mcp.tool_count": toolCount,
-      },
-      () =>
-        transport.handleRequest(request, {
-          authInfo,
-          parsedBody: bodyResult.body,
-        }),
-    );
     if (res.status >= 400) await failPendingOAuthUsage();
     const responseInspection = await inspectMcpResponse(res);
     recordAndLogMcpResponse({
       context: logContext,
       hasError: responseInspection.hasError,
       inspectionTruncated: responseInspection.truncated,
+      errorName: protocolErrorName,
       request,
       phase: "handled",
       rpcSummary,

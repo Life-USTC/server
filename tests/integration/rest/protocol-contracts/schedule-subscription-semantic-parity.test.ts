@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import { mcpFetchOptions } from "../../../shared/mcp-http-request";
 import { createParityTokenSigner } from "./_parity-auth";
 import { nativeEnvelope } from "./_transport";
 
@@ -18,20 +19,26 @@ function createReaders(origin: string, transport: "REST" | "GraphQL" | "MCP") {
     return body;
   }
   async function mcp(name: string, args: Filter = {}, token?: string) {
-    const response = await fetch(`${origin}/api/mcp`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name, arguments: { ...args, locale: "zh-cn", mode: "full" } },
+    const response = await fetch(
+      `${origin}/api/mcp`,
+      mcpFetchOptions({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name,
+            arguments: { ...args, locale: "zh-cn", mode: "full" },
+          },
+        }),
       }),
-    });
+    );
     const body = await nativeEnvelope(response);
     expect(response.status, JSON.stringify(body)).toBe(200);
     expect(body.error).toBeUndefined();

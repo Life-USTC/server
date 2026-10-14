@@ -43,15 +43,17 @@ vi.mock("@/lib/mcp/server", () => ({
     connect,
   }),
 }));
-vi.mock(
-  "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js",
-  () => ({
-    WebStandardStreamableHTTPServerTransport: class {
-      handleRequest = handleRequest;
-      send = vi.fn(async () => undefined);
+vi.mock("@modelcontextprotocol/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@modelcontextprotocol/server")>()),
+  createMcpHandler: (
+    factory: () => { connect(transport: unknown): Promise<void> },
+  ) => ({
+    async fetch(...args: unknown[]) {
+      await factory().connect({ send: vi.fn(async () => undefined) });
+      return handleRequest(...args);
     },
   }),
-);
+}));
 
 import { handleMcpRequest } from "@/lib/api/routes/mcp-request-handler";
 

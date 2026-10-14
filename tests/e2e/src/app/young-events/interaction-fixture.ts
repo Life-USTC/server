@@ -152,21 +152,9 @@ export const test = calendarTest.extend<{
                               }
                             ).method
                           : undefined;
-                      const status =
-                        incoming.method === "GET"
-                          ? 405
-                          : rpc === "notifications/initialized"
-                            ? 202
-                            : 200;
-                      expect(
-                        incoming.method === "GET" ||
-                          (incoming.method === "POST" &&
-                            [
-                              "initialize",
-                              "notifications/initialized",
-                              "tools/list",
-                            ].includes(rpc ?? "")),
-                      ).toBe(true);
+                      const status = 200;
+                      expect(incoming.method).toBe("POST");
+                      expect(["server/discover", "tools/list"]).toContain(rpc);
                       const tagged = new Headers(incoming.headers);
                       for (const [name, value] of Object.entries(
                         externalHeaders(incoming.method, url.pathname, status),
@@ -212,7 +200,7 @@ export const test = calendarTest.extend<{
                                   (read) => read.path === "/api/mcp",
                                 ).length,
                             )
-                            .toBe(4);
+                            .toBe(2);
                           await drain();
                           expect(
                             externalReads
@@ -223,9 +211,7 @@ export const test = calendarTest.extend<{
                               )
                               .sort(),
                           ).toEqual([
-                            "GET stream",
-                            "POST initialize",
-                            "POST notifications/initialized",
+                            "POST server/discover",
                             "POST tools/list",
                           ]);
                         },

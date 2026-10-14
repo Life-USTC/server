@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import {
   listYoungNotifications,
@@ -52,7 +52,7 @@ export function registerYoungWorkspaceTools(server: McpServer) {
     async (args, extra) =>
       jsonToolResult(
         await getYoungOrganizerSubscription(
-          getUserId(extra.authInfo),
+          getUserId(extra.http?.authInfo),
           args.organizerId,
         ),
         { mode: resolveMcpMode(args.mode) },
@@ -67,7 +67,10 @@ export function registerYoungWorkspaceTools(server: McpServer) {
     },
     async (args, extra) =>
       jsonToolResult(
-        await listYoungEventSubscriptions(getUserId(extra.authInfo), args),
+        await listYoungEventSubscriptions(
+          getUserId(extra.http?.authInfo),
+          args,
+        ),
         { mode: resolveMcpMode(args.mode) },
       ),
   );
@@ -80,7 +83,7 @@ export function registerYoungWorkspaceTools(server: McpServer) {
     async (args, extra) =>
       jsonToolResult(
         await getYoungEventSubscription(
-          getUserId(extra.authInfo),
+          getUserId(extra.http?.authInfo),
           args.youngId,
         ),
         { mode: resolveMcpMode(args.mode) },
@@ -104,7 +107,7 @@ export function registerYoungWorkspaceTools(server: McpServer) {
       youngSubscriptionToolResult(
         () =>
           setYoungEventSubscription(
-            getUserId(extra.authInfo),
+            getUserId(extra.http?.authInfo),
             youngId,
             subscribed,
             settings,
@@ -117,7 +120,10 @@ export function registerYoungWorkspaceTools(server: McpServer) {
     { description: "List followed Young organizers.", inputSchema: page },
     async (args, extra) =>
       jsonToolResult(
-        await listYoungOrganizerSubscriptions(getUserId(extra.authInfo), args),
+        await listYoungOrganizerSubscriptions(
+          getUserId(extra.http?.authInfo),
+          args,
+        ),
         { mode: resolveMcpMode(args.mode) },
       ),
   );
@@ -136,7 +142,7 @@ export function registerYoungWorkspaceTools(server: McpServer) {
       youngSubscriptionToolResult(
         () =>
           setYoungOrganizerSubscription(
-            getUserId(extra.authInfo),
+            getUserId(extra.http?.authInfo),
             args.organizerId,
             args.subscribed,
           ),
@@ -152,7 +158,7 @@ export function registerYoungWorkspaceTools(server: McpServer) {
     },
     async (args, extra) =>
       jsonToolResult(
-        await listYoungNotifications(getUserId(extra.authInfo), args),
+        await listYoungNotifications(getUserId(extra.http?.authInfo), args),
         { mode: resolveMcpMode(args.mode) },
       ),
   );
@@ -164,7 +170,7 @@ export function registerYoungWorkspaceTools(server: McpServer) {
     },
     async (args, extra) =>
       jsonToolResult(
-        await readYoungNotification(getUserId(extra.authInfo), args.id),
+        await readYoungNotification(getUserId(extra.http?.authInfo), args.id),
         { mode: resolveMcpMode(args.mode) },
       ),
   );

@@ -7,6 +7,7 @@ import {
 } from "@/lib/oauth/constants";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { sha256Base64Url } from "../../shared/crypto";
+import { mcpPostOptions } from "../../shared/mcp-http-request";
 import type { IsolatedWorker } from "./isolated-worker";
 
 async function generateCodeChallenge(codeVerifier: string) {
@@ -230,14 +231,14 @@ export function expectMcpCorsHeaders(
 
   expect(headers["access-control-allow-origin"]).toBe(expectedOrigin);
   expect(allowMethods).toContain("post");
-  expect(allowMethods).toContain("delete");
+  expect(allowMethods).not.toContain("delete");
   expect(allowMethods).toContain("options");
   expect(allowHeaders).toContain("authorization");
   expect(allowHeaders).toContain("content-type");
   expect(allowHeaders).toContain("mcp-protocol-version");
-  expect(allowHeaders).toContain("mcp-session-id");
-  expect(allowHeaders).toContain("last-event-id");
-  expect(exposeHeaders).toContain("mcp-session-id");
+  expect(allowHeaders).toContain("mcp-method");
+  expect(allowHeaders).toContain("mcp-name");
+  expect(exposeHeaders).toContain("retry-after");
   expect(exposeHeaders).toContain("www-authenticate");
 }
 
@@ -246,26 +247,29 @@ export async function expectAccessTokenCannotInitializeMcp(
   accessToken: string,
   clientName: string,
 ) {
-  const response = await request.post("/api/mcp", {
-    data: {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "initialize",
-      params: {
-        protocolVersion: "2025-03-26",
-        capabilities: {},
-        clientInfo: {
-          name: clientName,
-          version: "1.0.0",
+  const response = await request.post(
+    "/api/mcp",
+    mcpPostOptions({
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "server/discover",
+        params: {
+          protocolVersion: "2026-07-28",
+          capabilities: {},
+          clientInfo: {
+            name: clientName,
+            version: "1.0.0",
+          },
         },
       },
-    },
-    headers: {
-      Accept: "application/json, text/event-stream",
-      Authorization: `Bearer ${accessToken}`,
-      "MCP-Protocol-Version": "2025-03-26",
-    },
-  });
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${accessToken}`,
+        "MCP-Protocol-Version": "2026-07-28",
+      },
+    }),
+  );
 
   await response.body();
   expect([401, 403]).toContain(response.status());

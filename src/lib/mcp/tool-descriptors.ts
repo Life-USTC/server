@@ -1,8 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  ListToolsRequestSchema,
-  type ToolAnnotations,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { observeMcpFeature } from "./feature-observability";
 import {
@@ -36,24 +32,6 @@ type ToolDescriptorDefaults = {
   };
 };
 
-type ProtocolRequestHandler = (
-  request: unknown,
-  extra: unknown,
-) => unknown | Promise<unknown>;
-
-type ProtocolServerWithHandlers = {
-  _requestHandlers?: Map<string, ProtocolRequestHandler>;
-  setRequestHandler: (
-    requestSchema: typeof ListToolsRequestSchema,
-    handler: ProtocolRequestHandler,
-  ) => void;
-};
-
-type ToolDescriptorWithAuthMetadata = Record<string, unknown> & {
-  _meta?: Record<string, unknown>;
-  securitySchemes?: unknown;
-};
-
 const OPEN_WORLD_WRITE_TOOLS = new Set([
   "community_comment_reaction_add",
   "community_comment_create",
@@ -74,7 +52,6 @@ const DESTRUCTIVE_WRITE_SUFFIXES = [
   "_update",
 ];
 
-const listCompatibilityInstalled = new WeakSet<McpServer>();
 const registeredToolNames = new WeakMap<McpServer, Set<string>>();
 
 function humanizeToolName(name: string) {
@@ -94,41 +71,6 @@ function isDestructiveWriteTool(name: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function addTopLevelSecuritySchemes(tool: ToolDescriptorWithAuthMetadata) {
-  const schemes = isRecord(tool._meta) ? tool._meta.securitySchemes : undefined;
-  if (tool.securitySchemes !== undefined || !Array.isArray(schemes)) {
-    return tool;
-  }
-
-  return {
-    ...tool,
-    securitySchemes: schemes,
-  };
-}
-
-export function installMcpToolListCompatibility(server: McpServer) {
-  if (listCompatibilityInstalled.has(server)) return;
-
-  const protocol = server.server as unknown as ProtocolServerWithHandlers;
-  const listToolsHandler = protocol._requestHandlers?.get("tools/list");
-  if (!listToolsHandler) return;
-
-  protocol.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
-    const result = await listToolsHandler(request, extra);
-    if (!isRecord(result) || !Array.isArray(result.tools)) {
-      return result;
-    }
-
-    return {
-      ...result,
-      tools: result.tools.map((tool) =>
-        isRecord(tool) ? addTopLevelSecuritySchemes(tool) : tool,
-      ),
-    };
-  });
-  listCompatibilityInstalled.add(server);
 }
 
 export function getMcpToolDescriptorDefaults(
@@ -165,7 +107,9 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
   const names = new Set<string>();
   registeredToolNames.set(server, names);
 
-  server.registerTool = ((name, config, callback) => {
+  server.registerTool = ((
+    ...[name, config, callback]: Parameters<McpServer["registerTool"]>
+  ) => {
     const defaults = getMcpToolDescriptorDefaults(name);
     const hasExplicitOutputSchema = config.outputSchema !== undefined;
     const outputSchema = (config.outputSchema ??

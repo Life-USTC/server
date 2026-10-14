@@ -1,4 +1,3 @@
-import { CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { createDeferred } from "../../shared/deferred";
 import { isolatedMcpTest } from "./_harness/isolated-context";
@@ -70,11 +69,15 @@ for (const authenticated of [true, false]) {
         // A real SDK handler intentionally completes after its client disconnects.
         // Its database write proves that transport cancellation is not completion.
         session.server.server.setRequestHandler(
-          CallToolRequestSchema,
+          "tools/call",
           async (_request, extra) => {
-            extra.signal.addEventListener("abort", () => aborted.resolve(), {
-              once: true,
-            });
+            extra.mcpReq.signal.addEventListener(
+              "abort",
+              () => aborted.resolve(),
+              {
+                once: true,
+              },
+            );
             entered.resolve();
             await release.promise;
             try {
@@ -128,7 +131,7 @@ for (const authenticated of [true, false]) {
             }),
           ).resolves.toEqual([{ userId, title: "write after disconnect" }]);
           await expect(session.initialize()).rejects.toThrow("closed");
-          await expect(session.client.listTools()).rejects.toThrow();
+          await expect(session.client.call("delayed-write")).rejects.toThrow();
         } finally {
           signal.removeEventListener("abort", cancel);
           release.resolve();

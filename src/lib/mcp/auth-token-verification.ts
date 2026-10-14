@@ -1,5 +1,5 @@
 import { createMcpProtectedRequestHandler } from "@better-auth/mcp";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import {
   type AccessTokenAuthorization,
   parseAccessTokenAuthorization,

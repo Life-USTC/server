@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { deleteHomework } from "@/features/homeworks/server/homework-mutations";
 import { attributionFromMcpAuthInfo } from "@/lib/audit/principal-attribution";
@@ -22,10 +22,10 @@ export function registerDeleteHomeworkOnSectionTool(server: McpServer) {
     },
     async ({ homeworkId, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const result = await deleteHomework({
-        audit: extra.authInfo
-          ? (attributionFromMcpAuthInfo(extra.authInfo) ?? undefined)
+        audit: extra.http?.authInfo
+          ? (attributionFromMcpAuthInfo(extra.http?.authInfo) ?? undefined)
           : undefined,
         homeworkId,
         userId,

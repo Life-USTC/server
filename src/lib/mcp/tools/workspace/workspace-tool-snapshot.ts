@@ -5,7 +5,7 @@ import {
   parseOptionalMcpDate,
 } from "@/lib/mcp/tools/_shared/helpers";
 
-type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
+type ToolExtra = { http?: { authInfo?: Parameters<typeof getUserId>[0] } };
 
 export function parseOptionalWorkspaceAtTime(atTime: string | undefined) {
   return parseOptionalMcpDate("atTime", atTime, {
@@ -27,7 +27,7 @@ export async function loadWorkspaceSnapshotForTool({
   return {
     ok: true as const,
     snapshot: await getAssistantWorkspaceSnapshot({
-      userId: getUserId(extra.authInfo),
+      userId: getUserId(extra.http?.authInfo),
       locale,
       atTime: parsedAtTime.value,
     }),

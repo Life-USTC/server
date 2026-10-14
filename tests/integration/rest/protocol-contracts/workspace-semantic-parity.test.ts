@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
+import { mcpFetchOptions } from "../../../shared/mcp-http-request";
 import { createParityTokenSigner } from "./_parity-auth";
 import { nativeEnvelope } from "./_transport";
 
@@ -68,23 +69,26 @@ function createWorkspaceReaders(
     return body.data.workspace[paths[kind]];
   }
   async function mcp(kind: Kind, token: string, args: Filter) {
-    const response = await fetch(`${origin}/api/mcp`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: {
-          name: `workspace_${kind}_list`,
-          arguments: { ...args, mode: "full" },
+    const response = await fetch(
+      `${origin}/api/mcp`,
+      mcpFetchOptions({
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
         },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name: `workspace_${kind}_list`,
+            arguments: { ...args, mode: "full" },
+          },
+        }),
       }),
-    });
+    );
     const body = await nativeEnvelope(response);
     expect(response.status, JSON.stringify(body)).toBe(200);
     expect(body.error).toBeUndefined();

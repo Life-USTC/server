@@ -263,9 +263,7 @@ export function oauthProtocolChecks(
             ])
             .sort(),
         ).toEqual([
-          ["GET", null, null, 405],
-          ["POST", "initialize", null, 200],
-          ["POST", "notifications/initialized", null, 202],
+          ["POST", "server/discover", null, 200],
           ["POST", "tools/call", "workspace_todo_list", 200],
         ]);
       } else expect(sdkRequests).toEqual([]);

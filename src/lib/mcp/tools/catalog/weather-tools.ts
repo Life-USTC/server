@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import type { WeatherLocationKey } from "@/features/weather/server/weather-types";

@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { findSectionPublicContextByJwId } from "@/features/catalog/server/course-section-queries";
 import {
@@ -42,8 +42,8 @@ export function registerSectionHomeworkTools(server: McpServer) {
       }
 
       const viewerUserId =
-        typeof extra.authInfo?.extra?.userId === "string"
-          ? extra.authInfo.extra.userId
+        typeof extra.http?.authInfo?.extra?.userId === "string"
+          ? extra.http?.authInfo.extra.userId
           : null;
       const homeworkItems = await listSectionHomeworkItems({
         includeDeleted,

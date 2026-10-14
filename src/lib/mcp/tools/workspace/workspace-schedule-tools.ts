@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import {
   listSubscribedExams,
@@ -48,7 +48,7 @@ export function registerWorkspaceScheduleTools(server: McpServer) {
       extra,
     ) => {
       const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const dateRange = parseMcpDateRange({ dateFrom, dateTo });
       if (!dateRange.ok) {
         return dateRange.result;
@@ -94,7 +94,7 @@ export function registerWorkspaceScheduleTools(server: McpServer) {
       extra,
     ) => {
       const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const dateRange = parseMcpDateRange({ dateFrom, dateTo });
       if (!dateRange.ok) {
         return dateRange.result;

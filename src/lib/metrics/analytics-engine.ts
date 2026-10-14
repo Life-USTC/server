@@ -356,7 +356,7 @@ const EDGE_CACHE_OUTCOMES = new Set([
   "updating",
 ]);
 const MCP_METHOD_FAMILIES = new Set([
-  "initialize",
+  "server",
   "notifications",
   "prompts",
   "resources",

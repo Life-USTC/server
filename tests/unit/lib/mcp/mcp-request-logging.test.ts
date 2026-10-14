@@ -136,6 +136,36 @@ describe("MCP request logging", () => {
     );
   });
 
+  it.each([
+    [400, "info"],
+    [405, "info"],
+    [500, "error"],
+  ] as const)("classifies handled HTTP %s as %s", async (status, level) => {
+    const { logMcpTransportResponse } = await import(
+      "@/lib/api/routes/mcp-request-logging"
+    );
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+    });
+    logMcpTransportResponse({
+      context: {
+        correlationId: "sampled-out-request",
+        request,
+        requestUrl: new URL(request.url),
+      },
+      hasError: true,
+      ioObservedDurationMs: 1,
+      phase: "handled",
+      rpcSummary: null,
+      status,
+    });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      level,
+      "mcp.transport.response",
+      expect.objectContaining({ status, hasError: true }),
+    );
+  });
+
   it("retains truncated inspections without classifying them as successful", async () => {
     const { logMcpTransportResponse } = await import(
       "@/lib/api/routes/mcp-request-logging"

@@ -1,4 +1,4 @@
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { Client } from "@modelcontextprotocol/client";
 import { expect, type Page } from "@playwright/test";
 import type { BusTimetableData } from "@/features/bus/lib/bus-types";
 import type {
@@ -295,9 +295,7 @@ async function withFixture(
           .map(({ method, rpc }) => `${method} ${rpc ?? "stream"}`)
           .sort(),
       ).toEqual([
-        "GET stream",
-        "POST initialize",
-        "POST notifications/initialized",
+        "POST server/discover",
         ...plan.tools.map(() => "POST tools/call"),
       ]);
       expect(

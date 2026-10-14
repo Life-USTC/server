@@ -1,5 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import {
   putHomeworkCompletionRoute,
@@ -141,10 +143,13 @@ export const homeworkTransportTest = mcpProtocolTest
           getOAuthMcpResourceUrl(),
         );
         const client = mcpSessions.ownClient(
-          new Client({
-            name: "homework-scope-contract",
-            version: "1.0.0",
-          }),
+          new Client(
+            {
+              name: "homework-scope-contract",
+              version: "1.0.0",
+            },
+            { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+          ),
         );
         const transport = new StreamableHTTPClientTransport(
           new URL(getOAuthMcpResourceUrl()),

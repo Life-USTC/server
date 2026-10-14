@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
@@ -75,11 +75,13 @@ describe("MCP todo list limit", () => {
     await listMyTodosAction(
       schema.parse(limit === undefined ? {} : { limit }),
       {
-        authInfo: {
-          token: "test",
-          clientId: "unit",
-          scopes: ["workspace.todo:read"],
-          extra: { userId: "owner" },
+        http: {
+          authInfo: {
+            token: "test",
+            clientId: "unit",
+            scopes: ["workspace.todo:read"],
+            extra: { userId: "owner" },
+          },
         },
       } as Parameters<typeof listMyTodosAction>[1],
     );

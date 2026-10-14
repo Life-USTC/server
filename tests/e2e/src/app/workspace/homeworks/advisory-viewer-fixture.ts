@@ -399,13 +399,7 @@ export function observeAdvisory(
               .sort(),
           ).toEqual(
             method === "MCP"
-              ? [
-                  "GET stream",
-                  "POST initialize",
-                  "POST notifications/initialized",
-                  "POST tools/call",
-                  "POST tools/call",
-                ]
+              ? ["POST server/discover", "POST tools/call", "POST tools/call"]
               : [],
           );
           expect(

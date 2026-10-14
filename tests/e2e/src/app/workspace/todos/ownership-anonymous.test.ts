@@ -1,3 +1,4 @@
+import { mcpPostOptions } from "../../../../../shared/mcp-http-request";
 import {
   createQuery,
   deleteQuery,
@@ -104,15 +105,18 @@ test("todo ownership anonymous MCP denies reads and writes", {
         ],
         ["workspace_todo_delete", { id: f.other.todo.id }],
       ] as const) {
-        const response = await request.post("/api/mcp", {
-          headers: { accept: "application/json, text/event-stream" },
-          data: {
-            jsonrpc: "2.0",
-            id: 1,
-            method: "tools/call",
-            params: { name, arguments: args },
-          },
-        });
+        const response = await request.post(
+          "/api/mcp",
+          mcpPostOptions({
+            headers: { accept: "application/json, text/event-stream" },
+            data: {
+              jsonrpc: "2.0",
+              id: 1,
+              method: "tools/call",
+              params: { name, arguments: args },
+            },
+          }),
+        );
         expect(response.status()).toBe(401);
         expect(await response.text()).not.toContain(f.other.todo.content);
         await f.unchanged();

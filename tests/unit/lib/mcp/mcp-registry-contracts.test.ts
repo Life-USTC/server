@@ -1,6 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/client";
+import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { beforeAll, expect, it } from "vitest";
 import { z } from "zod";
 import { createMcpServer } from "@/lib/mcp/server";
@@ -85,7 +84,7 @@ it("mcp.openai-compatible-descriptors", () => {
       openWorldHint: expect.any(Boolean),
     });
     const metadata = tool._meta?.securitySchemes;
-    expect(tool.securitySchemes, tool.name).toEqual(metadata);
+    expect(tool.securitySchemes, tool.name).toBeUndefined();
     if (isPublicMcpTool(tool.name))
       expect(metadata, tool.name).toEqual([{ type: "noauth" }]);
     else

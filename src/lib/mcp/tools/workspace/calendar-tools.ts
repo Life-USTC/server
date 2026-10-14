@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { registerCalendarEventTools } from "@/lib/mcp/tools/workspace/calendar-event-tools";
 import { registerCalendarSectionTools } from "@/lib/mcp/tools/workspace/calendar-section-tools";
 import { registerCalendarSubscriptionTools } from "@/lib/mcp/tools/workspace/calendar-subscription-tools";

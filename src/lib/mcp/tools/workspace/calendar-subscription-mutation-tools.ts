@@ -20,7 +20,7 @@ export async function subscribeSectionByJwIdTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const alreadySubscribed = await hasUserSubscribedSectionByJwId(userId, jwId);
   const subscription = await subscribeUserToSectionByJwId(userId, jwId, locale);
 
@@ -46,7 +46,7 @@ export async function unsubscribeSectionByJwIdTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const wasSubscribed = await hasUserSubscribedSectionByJwId(userId, jwId);
   const subscription = await unsubscribeUserFromSectionByJwId(
     userId,

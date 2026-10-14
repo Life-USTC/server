@@ -1,4 +1,4 @@
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { Client } from "@modelcontextprotocol/client";
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import type {
   CalendarProtocol,

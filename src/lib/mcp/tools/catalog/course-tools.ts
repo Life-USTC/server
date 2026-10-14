@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { registerCourseSearchTools } from "@/lib/mcp/tools/catalog/course-search-tools";
 import { registerCourseSectionMatchTools } from "@/lib/mcp/tools/catalog/course-section-match-tools";
 import { registerCourseSemesterTools } from "@/lib/mcp/tools/catalog/course-semester-tools";

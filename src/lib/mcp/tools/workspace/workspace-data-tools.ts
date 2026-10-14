@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { registerWorkspaceHomeworkTools } from "@/lib/mcp/tools/workspace/workspace-homework-tools";
 import { registerWorkspaceOverviewTools } from "@/lib/mcp/tools/workspace/workspace-overview-tools";
 import { registerWorkspaceScheduleTools } from "@/lib/mcp/tools/workspace/workspace-schedule-tools";
