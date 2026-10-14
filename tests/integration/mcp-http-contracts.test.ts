@@ -3,6 +3,7 @@ import { mcpPostRoute } from "@/lib/api/routes/mcp";
 import { DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 import { createCatalogContractFixture } from "../shared/catalog-contract-fixture";
 import { call, mcpHttpTest as it, payload } from "../shared/mcp-http-fixture";
+import { mcpFetchOptions, mcpPostOptions } from "../shared/mcp-http-request";
 
 it("mcp.public-catalog-access", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
@@ -234,12 +235,15 @@ it("mcp.http-methods", { tags: ["@MCP/MCP"] }, async ({ http }) =>
     const { origin, token, fetch } = http;
     const get = await fetch(`${origin}/api/mcp`);
     expect(get.status).toBe(405);
-    expect(get.headers.get("allow")).toBe("POST, DELETE, OPTIONS");
+    expect(get.headers.get("allow")).toBe("POST, OPTIONS");
     await get.text();
-    const options = await fetch(`${origin}/api/mcp`, {
-      method: "OPTIONS",
-      headers: { origin },
-    });
+    const options = await fetch(
+      `${origin}/api/mcp`,
+      mcpFetchOptions({
+        method: "OPTIONS",
+        headers: { origin },
+      }),
+    );
     expect(options.status).toBe(204);
     expect(options.headers.get("access-control-allow-origin")).toBe(origin);
     for (const authorization of [
@@ -247,66 +251,65 @@ it("mcp.http-methods", { tags: ["@MCP/MCP"] }, async ({ http }) =>
       `Bearer ${token}`,
       "Bearer invalid",
     ]) {
-      const response = await fetch(`${origin}/api/mcp`, {
-        method: "DELETE",
-        headers: authorization ? { authorization } : {},
-      });
+      const response = await fetch(
+        `${origin}/api/mcp`,
+        mcpFetchOptions({
+          method: "DELETE",
+          headers: authorization ? { authorization } : {},
+        }),
+      );
       expect(response.status).toBe(
-        authorization === "Bearer invalid" ? 401 : 200,
+        authorization === "Bearer invalid" ? 401 : 405,
       );
       await response.text();
     }
   }),
 );
 
-it(
-  "mcp.complete-batch-scope-enforcement",
-  { tags: ["@MCP/MCP"] },
-  async ({ http }) =>
-    http.run(async () => {
-      const { db, userId, sign, post } = http;
-      const readToken = await sign({ scopes: ["workspace.todo:read"] });
-      const batch = [
-        call("workspace_todo_list"),
-        {
-          ...call("workspace_todo_create", { title: "must not write" }),
-          id: 2,
-        },
-      ];
-      const response = await post(batch, `Bearer ${readToken}`);
-      expect(response.status).toBe(403);
-      expect(response.headers.get("www-authenticate")).toContain(
-        "workspace.todo:write",
-      );
-      expect(await db.todo.count({ where: { userId } })).toBe(0);
-      const writeToken = await sign({ scopes: ["workspace.todo:write"] });
-      const allowed = await post(
-        call("workspace_todo_list"),
-        `Bearer ${writeToken}`,
-      );
-      expect(allowed.status).toBe(200);
-      expect((await payload(allowed)).result.structuredContent.success).toBe(
-        true,
-      );
-    }),
+it("mcp.tool-scope-enforcement", { tags: ["@MCP/MCP"] }, async ({ http }) =>
+  http.run(async () => {
+    const { db, userId, sign, post } = http;
+    const readToken = await sign({ scopes: ["workspace.todo:read"] });
+    const response = await post(
+      call("workspace_todo_create", { title: "must not write" }),
+      `Bearer ${readToken}`,
+    );
+    expect(response.status).toBe(403);
+    expect(response.headers.get("www-authenticate")).toContain(
+      "workspace.todo:write",
+    );
+    expect(await db.todo.count({ where: { userId } })).toBe(0);
+    const writeToken = await sign({ scopes: ["workspace.todo:write"] });
+    const allowed = await post(
+      call("workspace_todo_list"),
+      `Bearer ${writeToken}`,
+    );
+    expect(allowed.status).toBe(200);
+    expect((await payload(allowed)).result.structuredContent.success).toBe(
+      true,
+    );
+  }),
 );
 
 it("mcp.request-body-limit", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { origin, token, post, request } = http;
-    const prefix = JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/list",
+    const prepared = mcpPostOptions({
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/list",
+      },
     });
+    const prefix = JSON.stringify(prepared.data);
     const exact =
       prefix + " ".repeat(65536 - new TextEncoder().encode(prefix).length);
     expect(new TextEncoder().encode(exact).length).toBe(65536);
-    const accepted = await post(exact);
+    const accepted = await post(exact, undefined, prepared.headers);
     expect(accepted.status).toBe(200);
     await payload(accepted);
     for (const auth of [undefined, "Bearer invalid", `Bearer ${token}`]) {
-      const response = await post(`${exact} `, auth);
+      const response = await post(`${exact} `, auth, prepared.headers);
       expect(response.status).toBe(413);
       expect((await payload(response)).error.code).toBe(-32000);
     }
@@ -334,49 +337,22 @@ it("mcp.request-body-limit", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   }),
 );
 
-it("mcp.request-batch-limit", { tags: ["@MCP/MCP"] }, async ({ http }) =>
+it("mcp.request-batch-rejection", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
-    const { post } = http;
-    for (const [count, status, code] of [
-      [0, 400, -32600],
-      [51, 413, -32000],
-    ]) {
-      const response = await post(
+    for (const count of [0, 1, 2, 50, 51]) {
+      const response = await http.post(
         Array.from({ length: count }, (_, id) => ({
-          jsonrpc: "2.0",
+          ...call("workspace_todo_create", { title: "must not write" }),
           id,
-          method: "tools/list",
         })),
+        `Bearer ${http.token}`,
       );
-      expect(response.status).toBe(status);
-      expect((await payload(response)).error.code).toBe(code);
+      expect(response.status).toBe(400);
+      expect((await payload(response)).error.code).toBe(-32600);
+      expect(await http.db.todo.count({ where: { userId: http.userId } })).toBe(
+        0,
+      );
     }
-    const response = await post(
-      Array.from({ length: 50 }, (_, id) => ({
-        jsonrpc: "2.0",
-        id,
-        method: "tools/list",
-      })),
-    );
-    expect(response.status).toBe(200);
-    const text = await response.text();
-    const messages = response.headers
-      .get("content-type")
-      ?.includes("text/event-stream")
-      ? text
-          .split("\n")
-          .filter((line) => line.startsWith("data: "))
-          .map((line) => JSON.parse(line.slice(6)))
-      : JSON.parse(text);
-    expect(messages).toHaveLength(50);
-    expect(
-      messages
-        .map((message: { id: number }) => message.id)
-        .sort((a: number, b: number) => a - b),
-    ).toEqual(Array.from({ length: 50 }, (_, id) => id));
-    expect(
-      messages.every((message: { error?: unknown }) => !message.error),
-    ).toBe(true);
   }),
 );
 
@@ -660,15 +636,18 @@ it(
 it("oauth.transport-cors", { tags: ["@MCP/MCP"] }, async ({ http }) =>
   http.run(async () => {
     const { origin, token, fetch } = http;
-    const preflight = await fetch(`${origin}/api/mcp`, {
-      method: "OPTIONS",
-      headers: {
-        Origin: origin,
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers":
-          "Authorization, Content-Type, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
-      },
-    });
+    const preflight = await fetch(
+      `${origin}/api/mcp`,
+      mcpFetchOptions({
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers":
+            "Authorization, Content-Type, MCP-Protocol-Version, MCP-Method, MCP-Name",
+        },
+      }),
+    );
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("access-control-allow-origin")).toBe(origin);
     const allowed = preflight.headers
@@ -680,26 +659,29 @@ it("oauth.transport-cors", { tags: ["@MCP/MCP"] }, async ({ http }) =>
         "authorization",
         "content-type",
         "mcp-protocol-version",
-        "mcp-session-id",
-        "last-event-id",
+        "mcp-method",
+        "mcp-name",
       ]),
     );
     for (const authorization of [undefined, `Bearer ${token}`]) {
-      const response = await fetch(`${origin}/api/mcp`, {
-        method: "POST",
-        headers: {
-          Origin: origin,
-          "content-type": "application/json",
-          Accept: "application/json, text/event-stream",
-          ...(authorization ? { Authorization: authorization } : {}),
-        },
-        body: JSON.stringify(call("workspace_todo_list")),
-      });
+      const response = await fetch(
+        `${origin}/api/mcp`,
+        mcpFetchOptions({
+          method: "POST",
+          headers: {
+            Origin: origin,
+            "content-type": "application/json",
+            Accept: "application/json, text/event-stream",
+            ...(authorization ? { Authorization: authorization } : {}),
+          },
+          body: JSON.stringify(call("workspace_todo_list")),
+        }),
+      );
       expect(response.status).toBe(authorization ? 200 : 401);
       expect(response.headers.get("access-control-allow-origin")).toBe(origin);
       expect(response.headers.get("vary")).toContain("Origin");
       expect(response.headers.get("access-control-expose-headers")).toContain(
-        "MCP-Session-Id",
+        "Retry-After",
       );
       expect(response.headers.get("access-control-expose-headers")).toContain(
         "WWW-Authenticate",
@@ -736,22 +718,25 @@ it(
           requestOrigin.startsWith("http://localhost:") ||
           requestOrigin.startsWith("http://127.0.0.1:");
         for (const method of ["POST", "OPTIONS", "GET", "DELETE"]) {
-          const response = await fetch(`${origin}/api/mcp`, {
-            method,
-            headers: {
-              ...(requestOrigin ? { Origin: requestOrigin } : {}),
-              "content-type": "application/json",
-              Accept: "application/json, text/event-stream",
-            },
-            ...(method === "POST"
-              ? { body: JSON.stringify(call("catalog_semester_list")) }
-              : {}),
-          });
+          const response = await fetch(
+            `${origin}/api/mcp`,
+            mcpFetchOptions({
+              method,
+              headers: {
+                ...(requestOrigin ? { Origin: requestOrigin } : {}),
+                "content-type": "application/json",
+                Accept: "application/json, text/event-stream",
+              },
+              ...(method === "POST"
+                ? { body: JSON.stringify(call("catalog_semester_list")) }
+                : {}),
+            }),
+          );
           expect(response.status, `${method}:${requestOrigin}`).toBe(
             trusted
               ? method === "OPTIONS"
                 ? 204
-                : method === "GET"
+                : method === "GET" || method === "DELETE"
                   ? 405
                   : 200
               : 403,
@@ -765,10 +750,13 @@ it(
         }
       }
       http.setOrigins({ public: "https://preview.example", canonical });
-      const preview = await fetch(`${origin}/api/mcp`, {
-        method: "OPTIONS",
-        headers: { Origin: "https://preview.example" },
-      });
+      const preview = await fetch(
+        `${origin}/api/mcp`,
+        mcpFetchOptions({
+          method: "OPTIONS",
+          headers: { Origin: "https://preview.example" },
+        }),
+      );
       expect(preview.status).toBe(204);
     }),
 );
@@ -926,5 +914,48 @@ it("upload.mcp-transfer-boundary", { tags: ["@MCP/MCP"] }, async ({ http }) =>
     });
     expect(objects.size).toBe(0);
     expect(await db.upload.count({ where: { key } })).toBe(0);
+  }),
+);
+
+it("mcp.current-protocol", { tags: ["@MCP/MCP"] }, async ({ http }) =>
+  http.run(async () => {
+    const discovered = await http.post({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "server/discover",
+    });
+    expect(discovered.status).toBe(200);
+    expect(await payload(discovered)).toMatchObject({
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        supportedVersions: ["2026-07-28"],
+        resultType: "complete",
+        _meta: {
+          "io.modelcontextprotocol/serverInfo": { name: expect.any(String) },
+        },
+      },
+    });
+    for (const version of ["2025-03-26", "2099-01-01"]) {
+      const response = await http.post(
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "workspace_todo_create",
+            arguments: { title: "must not write" },
+            _meta: { "io.modelcontextprotocol/protocolVersion": version },
+          },
+        },
+        `Bearer ${http.token}`,
+        { "MCP-Protocol-Version": version },
+      );
+      expect(response.status).toBe(400);
+      expect((await payload(response)).error).toBeDefined();
+      expect(await http.db.todo.count({ where: { userId: http.userId } })).toBe(
+        0,
+      );
+    }
   }),
 );

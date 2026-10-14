@@ -8,6 +8,7 @@ import { mcpPostRoute } from "@/lib/api/routes/mcp";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
+import { mcpFetchOptions } from "./mcp-http-request";
 import { nodeHttpTest } from "./node-http-contract-fixture";
 
 // Real provider caches are process-owned; each consumer has one case per file.
@@ -135,20 +136,23 @@ export const accountProfileTest = nodeHttpTest
         args: Record<string, unknown>,
         allowed: string[],
       ) {
-        const response = await fetch(`${origin}/api/mcp`, {
-          method: "POST",
-          headers: {
-            ...(await authorization("mcp", allowed)),
-            "content-type": "application/json",
-            accept: "application/json, text/event-stream",
-          },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: 1,
-            method: "tools/call",
-            params: { name, arguments: args },
+        const response = await fetch(
+          `${origin}/api/mcp`,
+          mcpFetchOptions({
+            method: "POST",
+            headers: {
+              ...(await authorization("mcp", allowed)),
+              "content-type": "application/json",
+              accept: "application/json, text/event-stream",
+            },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "tools/call",
+              params: { name, arguments: args },
+            }),
           }),
-        });
+        );
         expect(response.status).toBe(200);
         const text = await response.text();
         const message = response.headers

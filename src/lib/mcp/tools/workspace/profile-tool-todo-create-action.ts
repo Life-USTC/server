@@ -27,7 +27,7 @@ export async function createMyTodoAction(
   },
   extra: ToolExtra,
 ) {
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const parsedDueAt = parseOptionalFieldDate("dueAt", dueAt);
   if (!parsedDueAt.ok) {
     return parsedDueAt.result;

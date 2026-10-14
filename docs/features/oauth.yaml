@@ -451,14 +451,14 @@ requirements:
   category: behavior
   rule: 'The MCP transport endpoint /api/mcp should also support browser-based clients and debugging tools
     using Bearer tokens: answer OPTIONS preflights, allow the MCP-specific request headers, and expose
-    MCP-Session-Id and WWW-Authenticate on cross-origin transport responses.'
+    Retry-After and WWW-Authenticate on cross-origin transport responses.'
   acceptance:
     given: A private database and Node HTTP MCP handler with a valid resource-bound token and a
       trusted browser Origin.
     when: Send a preflight and both unauthenticated and authenticated workspace tool requests.
     then:
-    - The preflight allows the required Authorization/content/MCP/session/event headers.
-    - 'Both successful and authentication-error responses expose MCP-Session-Id and WWW-Authenticate with
+    - The preflight allows the required Authorization, Content-Type, MCP-Method, MCP-Name and MCP-Protocol-Version headers.
+    - 'Both successful and authentication-error responses expose Retry-After and WWW-Authenticate with
       the trusted origin and Vary: Origin.'
     test:
       file: tests/integration/mcp-http-contracts.test.ts

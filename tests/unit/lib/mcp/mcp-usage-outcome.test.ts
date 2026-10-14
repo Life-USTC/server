@@ -1,5 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer, ProtocolError } from "@modelcontextprotocol/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as z from "zod";
 import { handleMcpRequest } from "@/lib/api/routes/mcp-request-handler";
@@ -64,6 +63,15 @@ type Usage = {
   channel: "mcp";
   outcome: "success" | "error";
 };
+const responseMetadata = {
+  resultType: "complete",
+  _meta: {
+    "io.modelcontextprotocol/serverInfo": {
+      name: "usage-regression",
+      version: "1",
+    },
+  },
+};
 const readSuccess: Usage = {
   userId: "reader",
   clientId: "client",
@@ -119,6 +127,7 @@ async function withSdk(
   });
   const errors: unknown[] = [];
   try {
+    await import("@/lib/mcp/auth");
     await work(async (body, onMessage) => {
       const operation = handleMcpRequest(
         new Request("https://life.example/api/mcp", {
@@ -127,9 +136,33 @@ async function withSdk(
             authorization: "Bearer fixture-token",
             "content-type": "application/json",
             accept: "application/json, text/event-stream",
-            "mcp-protocol-version": "2025-03-26",
+            "mcp-protocol-version": "2026-07-28",
+            "mcp-method": (body as { method?: string }).method ?? "tools/call",
+            ...((body as { params?: { name?: string } }).params?.name
+              ? {
+                  "mcp-name": (body as { params: { name: string } }).params
+                    .name,
+                }
+              : {}),
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify(
+            Array.isArray(body)
+              ? body
+              : {
+                  ...(body as object),
+                  params: {
+                    ...(body as { params?: object }).params,
+                    _meta: {
+                      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                      "io.modelcontextprotocol/clientInfo": {
+                        name: "usage-regression",
+                        version: "1",
+                      },
+                      "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                  },
+                },
+          ),
         }),
       );
       pending.push(operation);
@@ -248,6 +281,7 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
             jsonrpc: "2.0",
             id: 1,
             result: {
+              ...responseMetadata,
               content: [{ type: "text", text: payload }],
               structuredContent: { payload },
             },
@@ -275,7 +309,9 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
       async (post) => {
         const { consumed } = await post(call(1, "workspace_todo_list"));
         const body = await consumed;
-        expect(body.messages).toEqual([{ jsonrpc: "2.0", id: 1, result }]);
+        expect(body.messages).toEqual([
+          { jsonrpc: "2.0", id: 1, result: { ...result, ...responseMetadata } },
+        ]);
         expect(body.usageAtEof).toEqual([readSuccess]);
         expect(usage()).toEqual([readSuccess]);
       },
@@ -303,6 +339,7 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
             jsonrpc: "2.0",
             id: 1,
             result: {
+              ...responseMetadata,
               isError: true,
               content: [
                 {
@@ -335,6 +372,7 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
             jsonrpc: "2.0",
             id: 1,
             result: {
+              ...responseMetadata,
               isError: true,
               content: [{ type: "text", text: "write failed" }],
             },
@@ -371,6 +409,7 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
             jsonrpc: "2.0",
             id: 1,
             result: {
+              ...responseMetadata,
               isError: true,
               content: [
                 {
@@ -408,6 +447,7 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
             jsonrpc: "2.0",
             id: 1,
             result: {
+              ...responseMetadata,
               isError: true,
               content: [
                 {
@@ -425,11 +465,12 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
 
   it("counts a real SDK JSON-RPC error envelope", async () => {
     const callback = vi.fn(async () => {
-      throw new McpError(ErrorCode.UrlElicitationRequired, "approval required");
+      throw new ProtocolError(-32603, "fixture protocol failure");
     });
     await withSdk(
       (server) => {
         server.registerTool("workspace_todo_list", {}, callback);
+        server.server.setRequestHandler("tools/call", callback);
       },
       async (post) => {
         const { consumed } = await post(
@@ -442,8 +483,8 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
             jsonrpc: "2.0",
             id: "approval",
             error: {
-              code: -32042,
-              message: expect.stringContaining("approval required"),
+              code: -32603,
+              message: expect.stringContaining("fixture protocol failure"),
             },
           },
         ]);
@@ -452,141 +493,68 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
     );
   });
 
-  it("waits for delayed completion and separates mixed batch outcomes and typed IDs", async () => {
-    const slowEntered = createDeferred();
-    const errorEntered = createDeferred();
-    const calendarEntered = createDeferred();
-    const releaseSlow = createDeferred();
-    const releaseError = createDeferred();
-    const releaseCalendar = createDeferred();
-    const errorDelivered = createDeferred();
-    const calendarDelivered = createDeferred();
-    const inspected = createDeferred();
-    const realInspect = inspection.inspectMcpResponse;
-    const inspect = vi
-      .spyOn(inspection, "inspectMcpResponse")
-      .mockImplementation((response) => {
-        const result = realInspect(response);
-        // The real inspector has reached its first read and installed its timer.
-        inspected.resolve();
-        return result;
-      });
-    vi.useFakeTimers();
-    try {
-      await withSdk(
-        (server) => {
-          server.registerTool(
-            "workspace_todo_list",
-            { inputSchema: { slow: z.boolean() } },
-            async ({ slow }) => {
-              if (slow) {
-                slowEntered.resolve();
-                await releaseSlow.promise;
-                return textResult("late success");
-              }
-              errorEntered.resolve();
-              await releaseError.promise;
-              throw new Error("early failure");
-            },
-          );
-          server.registerTool("workspace_calendar_event_list", {}, async () => {
-            calendarEntered.resolve();
-            await releaseCalendar.promise;
-            return textResult("calendar success");
-          });
-        },
-        async (post) => {
-          const pending = post(
-            [
-              call(1, "workspace_todo_list", { slow: true }),
-              call("1", "workspace_todo_list", { slow: false }),
-              call(2, "workspace_calendar_event_list"),
-            ],
-            (message) => {
-              if (message.id === "1") errorDelivered.resolve();
-              if (message.id === 2) calendarDelivered.resolve();
-            },
-          );
-          try {
-            await Promise.race([
-              Promise.all([
-                slowEntered.promise,
-                errorEntered.promise,
-                calendarEntered.promise,
-                inspected.promise,
-              ]),
-              // A rejected or early HTTP response cannot reach callback gates.
-              // Propagate it into finally instead of waiting for the test timeout.
-              pending.then(({ response }) => {
-                throw new Error(
-                  `MCP returned ${response.status} before callback gates`,
-                );
-              }),
-            ]);
-            await vi.advanceTimersByTimeAsync(
-              inspection.MCP_RESPONSE_INSPECTION_LIMITS.inspectionDeadlineMs,
-            );
-            const { response, consumed } = await pending;
-            expect(response.status).toBe(200);
-            expect(usage()).toEqual([]);
-            releaseError.resolve();
-            await Promise.race([
-              errorDelivered.promise,
-              consumed.then(() => {
-                throw new Error("MCP EOF before error response");
-              }),
-            ]);
-            expect(usage()).toEqual([{ ...readSuccess, outcome: "error" }]);
-            releaseCalendar.resolve();
-            await Promise.race([
-              calendarDelivered.promise,
-              consumed.then(() => {
-                throw new Error("MCP EOF before calendar response");
-              }),
-            ]);
-            expect(usage()).toEqual([
-              { ...readSuccess, outcome: "error" },
-              { ...readSuccess, feature: "workspace.calendar" },
-            ]);
-            releaseSlow.resolve();
-            const body = await consumed;
-            expect(body.messages).toEqual([
-              {
-                jsonrpc: "2.0",
-                id: "1",
-                result: {
-                  isError: true,
-                  content: [{ type: "text", text: "early failure" }],
-                },
+  it("records a delayed request only after the SDK delivers its result", async () => {
+    const entered = createDeferred();
+    const release = createDeferred();
+    await withSdk(
+      (server) => {
+        server.registerTool("workspace_todo_list", {}, async () => {
+          entered.resolve();
+          await release.promise;
+          return textResult("late success");
+        });
+      },
+      async (post) => {
+        const pending = post(call("delayed", "workspace_todo_list"));
+        try {
+          await Promise.race([
+            entered.promise,
+            pending.then(({ response }) => {
+              throw new Error(`Unexpected early HTTP ${response.status}`);
+            }),
+          ]);
+          expect(usage()).toEqual([]);
+          release.resolve();
+          const body = await (await pending).consumed;
+          expect(body.messages).toEqual([
+            {
+              jsonrpc: "2.0",
+              id: "delayed",
+              result: {
+                ...responseMetadata,
+                content: [{ type: "text", text: "late success" }],
               },
-              { jsonrpc: "2.0", id: 2, result: textResult("calendar success") },
-              { jsonrpc: "2.0", id: 1, result: textResult("late success") },
-            ]);
-            expect(body.usageAtEof).toEqual([
-              { ...readSuccess, outcome: "error" },
-              { ...readSuccess, feature: "workspace.calendar" },
-              readSuccess,
-            ]);
-            expect(usage()).toEqual(body.usageAtEof);
-          } finally {
-            releaseSlow.resolve();
-            releaseError.resolve();
-            releaseCalendar.resolve();
-            // Join late response registration without replacing an earlier test
-            // assertion. withSdk owns and aggregates the actual request/body errors.
-            await Promise.allSettled([
-              pending.then(({ consumed }) => consumed),
-            ]);
-          }
-        },
-      );
-    } finally {
-      releaseSlow.resolve();
-      releaseError.resolve();
-      releaseCalendar.resolve();
-      inspect.mockRestore();
-      vi.useRealTimers();
-    }
+            },
+          ]);
+          expect(body.usageAtEof).toEqual([readSuccess]);
+          expect(usage()).toEqual([readSuccess]);
+        } finally {
+          release.resolve();
+          await pending;
+        }
+      },
+    );
+  });
+
+  it("rejects batch requests before any tool callback", async () => {
+    const callback = vi.fn(async () => textResult("unreachable"));
+    await withSdk(
+      (server) => {
+        server.registerTool("workspace_todo_create", {}, callback);
+      },
+      async (post) => {
+        const { response, consumed } = await post([
+          call(1, "workspace_todo_create"),
+          call(2, "workspace_todo_create"),
+        ]);
+        expect(response.status).toBe(400);
+        expect((await consumed).messages[0].error).toBeDefined();
+        expect(callback).not.toHaveBeenCalled();
+        expect(usage()).toEqual([]);
+        expect(authenticateMock).not.toHaveBeenCalled();
+        expect(rateLimitMock).not.toHaveBeenCalled();
+      },
+    );
   });
 
   it("rejects duplicate request IDs before authorization or tool execution", async () => {
@@ -652,7 +620,7 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
     );
   });
 
-  it("does not account for initialization or tools listing", async () => {
+  it("does not account for discovery or tools listing", async () => {
     await withSdk(
       (server) => {
         server.registerTool("workspace_todo_list", {}, async () =>
@@ -663,19 +631,15 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
         const initialized = await post({
           jsonrpc: "2.0",
           id: "init",
-          method: "initialize",
-          params: {
-            protocolVersion: "2025-03-26",
-            capabilities: {},
-            clientInfo: { name: "unit", version: "1" },
-          },
+          method: "server/discover",
+          params: {},
         });
         expect(initialized.response.status).toBe(200);
         const handshake = await initialized.consumed;
         expect(handshake.messages).toHaveLength(1);
         expect(handshake.messages[0]).toMatchObject({
           id: "init",
-          result: { protocolVersion: "2025-03-26" },
+          result: { supportedVersions: ["2026-07-28"] },
         });
         expect(handshake.usageAtEof).toEqual([]);
         const listed = await post({
@@ -706,12 +670,17 @@ describe("MCP OAuth usage from genuine SDK outcomes", () => {
         );
       },
       async (post) => {
-        const { consumed } = await post([
+        const bodies = [];
+        for (const request of [
           call(1, "graphql_operation_run"),
           call(2, "catalog_course_search"),
           call(3, "workspace_todo_list"),
-        ]);
-        const body = await consumed;
+        ])
+          bodies.push(await (await post(request)).consumed);
+        const body = {
+          messages: bodies.flatMap((value) => value.messages),
+          usageAtEof: bodies.at(-1)?.usageAtEof,
+        };
         expect(bridge).toHaveBeenCalledOnce();
         expect(body.messages).toHaveLength(3);
         expect(

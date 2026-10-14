@@ -7,6 +7,7 @@ import {
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
   restReadScope,
 } from "@/lib/oauth/constants";
+import { mcpPostOptions } from "../../../../../shared/mcp-http-request";
 import {
   expectAccessTokenCannotInitializeMcp,
   issueAccessToken,
@@ -38,26 +39,29 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
 
       expect(accessToken.split(".").length).toBe(3);
 
-      const response = await request.post("/api/mcp", {
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "initialize",
-          params: {
-            protocolVersion: "2025-03-26",
-            capabilities: {},
-            clientInfo: {
-              name: "code-bound-resource-e2e-client",
-              version: "1.0.0",
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "server/discover",
+            params: {
+              protocolVersion: "2026-07-28",
+              capabilities: {},
+              clientInfo: {
+                name: "code-bound-resource-e2e-client",
+                version: "1.0.0",
+              },
             },
           },
-        },
-        headers: {
-          Accept: "application/json, text/event-stream",
-          Authorization: `Bearer ${accessToken}`,
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+          headers: {
+            Accept: "application/json, text/event-stream",
+            Authorization: `Bearer ${accessToken}`,
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
 
       expect(response.status()).toBe(200);
       await response.body();
@@ -138,9 +142,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
         resources: [resource],
         tokenRequests: 2,
         requests: [
-          ["GET", "/api/mcp", 405],
           ["POST", "/api/mcp", 200],
-          ["POST", "/api/mcp", 202],
           ["POST", "/api/mcp", 200],
         ],
         refreshTokens: [
@@ -245,26 +247,29 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       expect(refreshBody.refresh_token).not.toBe(refreshToken);
       expect(refreshBody.access_token?.split(".").length).toBe(3);
 
-      const response = await request.post("/api/mcp", {
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "initialize",
-          params: {
-            protocolVersion: "2025-03-26",
-            capabilities: {},
-            clientInfo: {
-              name: "refreshed-token-e2e-client",
-              version: "1.0.0",
+      const response = await request.post(
+        "/api/mcp",
+        mcpPostOptions({
+          data: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "server/discover",
+            params: {
+              protocolVersion: "2026-07-28",
+              capabilities: {},
+              clientInfo: {
+                name: "refreshed-token-e2e-client",
+                version: "1.0.0",
+              },
             },
           },
-        },
-        headers: {
-          Accept: "application/json, text/event-stream",
-          Authorization: `Bearer ${refreshBody.access_token}`,
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-      });
+          headers: {
+            Accept: "application/json, text/event-stream",
+            Authorization: `Bearer ${refreshBody.access_token}`,
+            "MCP-Protocol-Version": "2026-07-28",
+          },
+        }),
+      );
 
       expect(response.status()).toBe(200);
       await response.body();

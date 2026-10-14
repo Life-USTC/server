@@ -1,4 +1,4 @@
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { Client } from "@modelcontextprotocol/client";
 import { expect } from "@playwright/test";
 import type {
   OAuthClient,
@@ -145,9 +145,7 @@ export const test = protocolTest.extend<{
                 .map(({ method, rpc }) => `${method} ${rpc ?? "stream"}`)
                 .sort(),
             ).toEqual([
-              "GET stream",
-              "POST initialize",
-              "POST notifications/initialized",
+              "POST server/discover",
               "POST tools/call",
               "POST tools/call",
               "POST tools/call",

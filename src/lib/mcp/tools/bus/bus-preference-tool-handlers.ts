@@ -36,7 +36,7 @@ export async function getMyBusPreferencesTool(
   { mode }: { mode?: McpModeInput },
   extra: ToolExtra,
 ) {
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const preference = await getBusPreference(userId);
 
   return jsonToolResult(
@@ -57,7 +57,7 @@ export async function saveMyBusPreferencesTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const result = await saveBusPreference(userId, {
     preferredOriginCampusId: preferredOriginCampusId ?? null,
     preferredDestinationCampusId: preferredDestinationCampusId ?? null,

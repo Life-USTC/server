@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
@@ -29,7 +29,7 @@ export function registerWorkspaceHomeworkTools(server: McpServer) {
     },
     async ({ completed, limit, semesterId, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const homeworks = await listSubscribedHomeworks(userId, {
         locale,
         completed,

@@ -18,7 +18,7 @@ import {
   parseOptionalWorkspaceAtTime,
 } from "./workspace-tool-snapshot";
 
-type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
+type ToolExtra = { http?: { authInfo?: Parameters<typeof getUserId>[0] } };
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 
 export async function getWorkspaceTool(
@@ -99,7 +99,7 @@ export async function getUpcomingDeadlinesTool(
   },
   extra: ToolExtra,
 ) {
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const parsedAtTime = parseOptionalWorkspaceAtTime(atTime);
   if (!parsedAtTime.ok) return parsedAtTime.result;
   const now = parsedAtTime.value ?? new Date();

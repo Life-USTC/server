@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { requireHomeworkItemByIdMock, updateHomeworkMock } = vi.hoisted(() => ({
@@ -39,7 +39,9 @@ describe("updateHomeworkOnSectionTool", () => {
         mode: "default",
       },
       {
-        authInfo: { extra: { userId: "user-1" } } as unknown as AuthInfo,
+        http: {
+          authInfo: { extra: { userId: "user-1" } } as unknown as AuthInfo,
+        },
       },
     );
 

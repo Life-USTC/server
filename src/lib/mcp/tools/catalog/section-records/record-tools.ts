@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { CATALOG_MAX_PAGE } from "@/features/catalog/lib/catalog-list-query";
 import {

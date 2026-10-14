@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { commentMcpTargetReadInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
@@ -94,7 +94,7 @@ export function registerCommentTools(server: McpServer) {
         );
       }
 
-      const viewerUserId = getUserId(extra.authInfo);
+      const viewerUserId = getUserId(extra.http?.authInfo);
       const { comments, hiddenCount, total, viewer } = await loadCommentThread({
         pagination: {
           pageSize: args.limit,
@@ -144,7 +144,7 @@ export function registerCommentTools(server: McpServer) {
         commentId,
         cursor,
         pageSize,
-        viewerUserId: getUserId(extra.authInfo),
+        viewerUserId: getUserId(extra.http?.authInfo),
       });
       if (!result.ok) {
         return jsonToolResult(
@@ -184,7 +184,7 @@ export function registerCommentTools(server: McpServer) {
     },
     async ({ commentId, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const viewerUserId = getUserId(extra.authInfo);
+      const viewerUserId = getUserId(extra.http?.authInfo);
       const result = await loadFocusedCommentThread({
         commentId,
         viewerUserId,

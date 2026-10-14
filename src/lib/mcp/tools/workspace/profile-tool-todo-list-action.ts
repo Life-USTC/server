@@ -17,7 +17,7 @@ export async function listMyTodosAction(
   }: { includeCompleted: boolean; limit: number; mode?: McpMode },
   extra: ToolExtra,
 ) {
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   return jsonToolResult(
     await listTodoSummary({
       filters: includeCompleted ? undefined : { completed: false },

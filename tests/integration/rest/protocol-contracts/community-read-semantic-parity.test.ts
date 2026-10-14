@@ -4,6 +4,7 @@ import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
+import { mcpFetchOptions } from "../../../shared/mcp-http-request";
 import { createParityTokenSigner } from "./_parity-auth";
 import { nativeEnvelope } from "./_transport";
 
@@ -66,20 +67,26 @@ async function createCommunityReaders(worker: IsolatedWorker) {
     return body;
   }
   async function mcp(name: string, args: Filter, reader?: Reader) {
-    const result = await fetch(`${origin}/api/mcp`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        ...(reader ? { authorization: `Bearer ${reader.token}` } : {}),
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name, arguments: { ...args, locale: "zh-cn", mode: "full" } },
+    const result = await fetch(
+      `${origin}/api/mcp`,
+      mcpFetchOptions({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          ...(reader ? { authorization: `Bearer ${reader.token}` } : {}),
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name,
+            arguments: { ...args, locale: "zh-cn", mode: "full" },
+          },
+        }),
       }),
-    });
+    );
     const body = await nativeEnvelope(result);
     expect(result.status, JSON.stringify(body)).toBe(200);
     expect(body.error).toBeUndefined();

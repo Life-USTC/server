@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { sanitizeFilename } from "@/features/uploads/lib/upload-utils";
 import {
@@ -100,7 +100,7 @@ export function registerUploadTools(server: McpServer) {
     },
     async ({ limit, mode, page }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const result = await listUploads(userId, {
         pageSize: limit,
         skip: (page - 1) * limit,
@@ -132,7 +132,7 @@ export function registerUploadTools(server: McpServer) {
     },
     async ({ id, filename, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const sanitizedFilename = sanitizeFilename(filename);
       const result = await renameOwnedUpload({
         filename: sanitizedFilename,
@@ -163,11 +163,11 @@ export function registerUploadTools(server: McpServer) {
     },
     async ({ id, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
+      const userId = getUserId(extra.http?.authInfo);
       const result = await deleteOwnedUpload({
         audit: {
-          ...(extra.authInfo
-            ? attributionFromMcpAuthInfo(extra.authInfo)
+          ...(extra.http?.authInfo
+            ? attributionFromMcpAuthInfo(extra.http?.authInfo)
             : null),
           source: "mcp",
         },

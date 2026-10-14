@@ -19,7 +19,7 @@ export async function getMyCalendarSubscriptionTool(
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const subscription = await getUserCalendarSubscription(userId, locale);
   if (!subscription) {
     return jsonToolResult({
@@ -46,7 +46,7 @@ export async function listMySubscribedSectionsTool(
   extra: ToolExtra,
 ) {
   const subscription = await getUserCalendarSubscription(
-    getUserId(extra.authInfo),
+    getUserId(extra.http?.authInfo),
     locale,
   );
 
