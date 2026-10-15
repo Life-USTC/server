@@ -1522,7 +1522,13 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Better Auth 1.7.7 recognises an account by (providerId, accountId) alone,
+  // so this pair has to be unique for its lookups to be unambiguous. The
+  // issuer pair stays: `remove_sign_in_method` still compares issuer against
+  // the provider's configured value, which is what retires accounts left
+  // behind by a replaced IdP.
   @@unique([issuer, providerAccountId])
+  @@unique([provider, providerAccountId])
   @@index([userId])
   @@index([provider])
 }

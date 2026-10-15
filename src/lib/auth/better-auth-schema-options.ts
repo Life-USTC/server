@@ -40,6 +40,13 @@ export const betterAuthAccountOptions = {
     // Better Auth's account-row count cannot recognize a remaining passkey.
     allowUnlinkingAll: true,
   },
+  // Better Auth 1.7.7 dropped `issuer` from its own account model, and the
+  // adapter strips fields it does not know about, so declaring it here is what
+  // lets the create hook's value reach the column. `input: false` keeps it
+  // server-owned: only the hook derives it, never a request body.
+  additionalFields: {
+    issuer: { type: "string", required: true, input: false },
+  },
   fields: {
     providerId: "provider",
     accountId: "providerAccountId",

@@ -10,6 +10,10 @@ vi.mock("@/lib/audit/write-audit-log", () => ({
   getAuditRequestMetadata: vi.fn(() => ({ requestId: "request-1" })),
 }));
 
+vi.mock("@/lib/auth/sign-in-methods", () => ({
+  accountIssuerForProvider: (providerId: string) => `issuer-for:${providerId}`,
+}));
+
 import {
   betterAuthSecurityDatabaseHooks,
   betterAuthSecurityHooks,
@@ -100,6 +104,31 @@ describe("Better Auth security audit hooks", () => {
     expect(fireAuditLogMock).not.toHaveBeenCalled();
   });
 
+  it("stamps the provider's issuer onto a new account", async () => {
+    // Better Auth no longer carries `issuer`, so nothing else populates the
+    // column that remove_sign_in_method checks a provider against.
+    const result =
+      await betterAuthSecurityDatabaseHooks.account?.create?.before?.({
+        accessToken: null,
+        accessTokenExpiresAt: null,
+        accountId: "upstream-subject",
+        createdAt: new Date(),
+        id: "oauth-account-1",
+        idToken: null,
+        password: null,
+        providerId: "github",
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+        scope: null,
+        updatedAt: new Date(),
+        userId: "user-1",
+      });
+
+    expect(result).toMatchObject({
+      data: { issuer: "issuer-for:github", providerId: "github" },
+    });
+  });
+
   it("classifies set-password account creation as a credential update", async () => {
     await betterAuthSecurityDatabaseHooks.account?.create?.after?.(
       {
@@ -109,7 +138,6 @@ describe("Better Auth security audit hooks", () => {
         createdAt: new Date(),
         id: "credential-account-1",
         idToken: null,
-        issuer: "local",
         password: "must-not-be-audited",
         providerId: "credential",
         refreshToken: null,
@@ -242,7 +270,6 @@ describe("Better Auth security audit hooks", () => {
         accountId: "provider-account",
         createdAt: new Date(),
         id: "account-1",
-        issuer: "local",
         password: "password-secret",
         providerId: "credential",
         updatedAt: new Date(),

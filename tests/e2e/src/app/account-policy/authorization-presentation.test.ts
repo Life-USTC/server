@@ -1,5 +1,5 @@
-import { createOAuthAccountIssuer } from "@better-auth/core/db";
 import { expect } from "@playwright/test";
+import { createOAuthAccountIssuer } from "@/lib/auth/account-issuer";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";

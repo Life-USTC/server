@@ -11,10 +11,7 @@ test(
       const userId = "identity-owner";
       const otherId = "other-identity-owner";
       const subject = `same-subject-${marker}`;
-      const issuers = [
-        `https://issuer-a.example/${marker}`,
-        `https://issuer-b.example/${marker}`,
-      ];
+      const providers = ["github", "google"];
       await db.$transaction(async (tx) => {
         await tx.user.createMany({
           data: [userId, otherId].map((id) => ({
@@ -26,8 +23,8 @@ test(
           await tx.account.create({
             data: {
               userId: id,
-              provider: "oidc",
-              issuer: issuers[index],
+              provider: providers[index],
+              issuer: `https://issuer-${index}.example/${marker}`,
               providerAccountId: subject,
             },
           });
@@ -35,11 +32,11 @@ test(
       });
       const context = await getBetterAuthInstance().$context;
       for (const [index, id] of [userId, otherId].entries()) {
-        const key = { issuer: issuers[index], accountId: subject };
+        const key = { providerId: providers[index], accountId: subject };
         expect(
           await context.internalAdapter.findAccountByKey(key),
         ).toMatchObject({
-          issuer: issuers[index],
+          providerId: providers[index],
           accountId: subject,
           userId: id,
         });
@@ -49,16 +46,19 @@ test(
       }
       expect(
         await context.internalAdapter.findAccountByKey({
-          issuer: "https://unregistered.example",
+          providerId: "unregistered",
           accountId: subject,
         }),
       ).toBeNull();
+      // A second row for a provider/subject pair would make the adapter's
+      // lookup ambiguous, so the database refuses it even though this one
+      // carries a different issuer.
       await expect(
         db.account.create({
           data: {
             userId: otherId,
-            provider: "different-alias",
-            issuer: issuers[0],
+            provider: providers[0],
+            issuer: `https://issuer-replacement.example/${marker}`,
             providerAccountId: subject,
           },
         }),

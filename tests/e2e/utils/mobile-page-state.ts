@@ -1,4 +1,4 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
+import { createLocalAccountIssuer } from "@/lib/auth/account-issuer";
 import type { Prisma } from "../../../src/generated/prisma-node/client";
 import scenario from "../fixtures/scenario.json" with { type: "json" };
 import {
