@@ -102,7 +102,7 @@
     "@semantic-release/release-notes-generator": "^14.1.1",
     "@sveltejs/adapter-cloudflare": "^7.2.9",
     "@sveltejs/kit": "^2.70.3",
-    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.5.1",
     "@types/pg": "8.20.0",
