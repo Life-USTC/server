@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { hasMcpScope, MCP_BOOTSTRAP_SCOPE } from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import {

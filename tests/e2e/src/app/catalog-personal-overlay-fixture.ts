@@ -1,6 +1,6 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { expect, type Page } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
+import { createLocalAccountIssuer } from "@/lib/auth/account-issuer";
 import type { Session } from "../../../../src/generated/prisma-node/client";
 import { auditLogProjection } from "../../utils/audit-log-projection";
 import { readCalendarState } from "../../utils/calendar-read-observation";

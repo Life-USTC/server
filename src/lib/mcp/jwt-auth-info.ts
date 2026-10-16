@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { expandScopeClaim } from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";

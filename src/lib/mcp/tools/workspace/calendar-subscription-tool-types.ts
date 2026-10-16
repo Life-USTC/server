@@ -1,8 +1,8 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import type { getUserCalendarSubscription } from "@/features/subscriptions/server/subscription-read-model";
 import type { resolveMcpMode } from "@/lib/mcp/tools/_shared/helpers";
 
-export type ToolExtra = { authInfo?: AuthInfo };
+export type ToolExtra = { http?: { authInfo?: AuthInfo } };
 export type CalendarSubscriptionLocale = Parameters<
   typeof getUserCalendarSubscription
 >[1];

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { expect } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
 import type { AuditAction } from "@/generated/prisma/client";
+import { createLocalAccountIssuer } from "@/lib/auth/account-issuer";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { type AccountAudit, test } from "./account-audit-fixture";
 

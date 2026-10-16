@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { roomCodeSchema } from "@/features/rooms/server/room-map-schema";
 import { getRoomMap } from "@/features/rooms/server/room-map-service";
 import {

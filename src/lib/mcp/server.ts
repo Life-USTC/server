@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import {
   GRAPHQL_OPERATION_PROMPT_NAME,
   registerGraphqlPrompts,
@@ -21,7 +21,6 @@ import { registerWorkspaceTools } from "@/lib/mcp/tools/workspace/workspace-tool
 import {
   assertRegisteredMcpToolMetadata,
   installMcpToolDescriptorDefaults,
-  installMcpToolListCompatibility,
 } from "./tool-descriptors";
 import { registerYoungWorkspaceTools } from "./tools/workspace/young-workspace-tools";
 
@@ -77,5 +76,4 @@ export function registerMcpServerCapabilities(server: McpServer) {
   registerGraphqlResources(server);
   registerGraphqlPrompts(server);
   assertRegisteredMcpToolMetadata(server);
-  installMcpToolListCompatibility(server);
 }

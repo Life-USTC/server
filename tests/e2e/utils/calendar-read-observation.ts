@@ -1,4 +1,4 @@
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { Client } from "@modelcontextprotocol/client";
 import { expect, type Page } from "@playwright/test";
 import { auditLogProjection } from "./audit-log-projection";
 import type {

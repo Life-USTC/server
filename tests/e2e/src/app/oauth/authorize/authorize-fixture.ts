@@ -1,6 +1,6 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { expect } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
+import { createLocalAccountIssuer } from "@/lib/auth/account-issuer";
 import { withBrowserWorkflow } from "../../../../utils/browser-workflow";
 import { test as workerTest } from "../../../../utils/owned-worker";
 import { withSettledPageWrites } from "../../../../utils/settled-page-writes";

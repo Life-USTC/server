@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
 import { parsePersonalCalendarRange } from "@/features/calendar/server/personal-calendar-range";
 import {
@@ -44,10 +44,13 @@ export function registerCalendarEventTools(server: McpServer) {
             "Supply both dates or neither; range must be valid, ordered and at most 366 days.",
         });
       }
-      const events = await listUserCalendarEvents(getUserId(extra.authInfo), {
-        locale,
-        ...range,
-      });
+      const events = await listUserCalendarEvents(
+        getUserId(extra.http?.authInfo),
+        {
+          locale,
+          ...range,
+        },
+      );
       const resolvedMode = resolveMcpMode(mode);
 
       return jsonToolResult(

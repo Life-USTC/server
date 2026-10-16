@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { mcpFetchOptions } from "../../../shared/mcp-http-request";
 import { type ProtocolFixture, test } from "./_fixture";
 
 test.use({ features: ["community.user"] });
@@ -68,25 +69,28 @@ async function native(
   args: Record<string, unknown>,
   profile = false,
 ) {
-  const response = await fetch(`${h.origin}/api/mcp`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-      ...(profile
-        ? { authorization: `Bearer ${h.actors[0].readTokens.mcp}` }
-        : {}),
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: {
-        name,
-        arguments: { ...args, mode: "full", locale: "zh-cn" },
+  const response = await fetch(
+    `${h.origin}/api/mcp`,
+    mcpFetchOptions({
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        ...(profile
+          ? { authorization: `Bearer ${h.actors[0].readTokens.mcp}` }
+          : {}),
       },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name,
+          arguments: { ...args, mode: "full", locale: "zh-cn" },
+        },
+      }),
     }),
-  });
+  );
   expect(response.status).toBe(200);
   const text = await response.text();
   const data = response.headers

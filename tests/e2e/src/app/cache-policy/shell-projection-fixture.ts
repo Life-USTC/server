@@ -1,6 +1,6 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { expect } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
+import { createLocalAccountIssuer } from "@/lib/auth/account-issuer";
 import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,

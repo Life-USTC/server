@@ -13,7 +13,7 @@ export async function deleteMyTodoAction(
   { id, mode }: { id: string; mode?: McpMode },
   extra: ToolExtra,
 ) {
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const result = await deleteOwnedTodo(id, userId);
 
   if (!result.ok) {

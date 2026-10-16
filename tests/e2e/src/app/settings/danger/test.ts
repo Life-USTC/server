@@ -1,4 +1,3 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
 /**
  * E2E tests for the Settings Danger section (`/account/settings/danger`)
  *
@@ -25,6 +24,7 @@ import { createLocalAccountIssuer } from "@better-auth/core/db";
  * - Deleted credentials stop working; a newly arranged private identity can sign in
  */
 import { expect, type Route } from "@playwright/test";
+import { createLocalAccountIssuer } from "@/lib/auth/account-issuer";
 import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
 
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";

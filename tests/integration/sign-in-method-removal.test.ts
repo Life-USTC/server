@@ -1,9 +1,9 @@
+import { hashPassword, makeSignature } from "better-auth/crypto";
+import { unlinkSettingsAccount } from "@/features/settings/server/settings-account-unlink";
 import {
   createLocalAccountIssuer,
   createOAuthAccountIssuer,
-} from "@better-auth/core/db";
-import { hashPassword, makeSignature } from "better-auth/crypto";
-import { unlinkSettingsAccount } from "@/features/settings/server/settings-account-unlink";
+} from "@/lib/auth/account-issuer";
 import { removeSignInMethod } from "@/lib/auth/sign-in-methods";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { nodeProtocolTest } from "../shared/node-protocol-fixture";

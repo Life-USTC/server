@@ -49,6 +49,22 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
     resources,
     cachedResources: new Set(resources.map(({ identifier }) => identifier)),
     enforcePerClientResources: false,
+    // Better Auth 1.7.7 widened loopback ephemeral-port tolerance to cover
+    // `localhost`, where 1.7.2 allowed it only for the IP literals. Keep the
+    // narrower rule: `localhost` resolves through the client host's DNS and
+    // hosts file, so matching it port-agnostically is a weaker promise than
+    // the one `oauth.loopback-redirect-tolerance` documents. An exact
+    // registered match is always fine; only the port-stripped fallback is
+    // withheld from `localhost`.
+    validateRedirectUri: (redirectUri, registeredUris, defaultResult) => {
+      if (!defaultResult) return false;
+      if (registeredUris.includes(redirectUri)) return true;
+      try {
+        return new URL(redirectUri).hostname !== "localhost";
+      } catch {
+        return false;
+      }
+    },
     schema: {
       oauthClient: {
         modelName: "OAuthClient",

@@ -1,14 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findMany, count, getKinds, localizedContext } = vi.hoisted(() => ({
-  findMany: vi.fn(),
-  count: vi.fn(),
-  getKinds: vi.fn(),
-  localizedContext: vi.fn(async (_locale, _userId, action) => action()),
-}));
+const { findMany, count, getKinds, userContext, displayFindMany, context } =
+  vi.hoisted(() => ({
+    context: { active: false },
+    findMany: vi.fn(),
+    displayFindMany: vi.fn(),
+    count: vi.fn(),
+    getKinds: vi.fn(),
+    userContext: vi.fn(),
+  }));
 vi.mock("@/lib/db/prisma", () => ({
-  getPrisma: () => ({ homework: { findMany, count } }),
-  withLocalizedUserDbContext: localizedContext,
+  getPrisma: () => ({
+    homework: { findMany: context.active ? findMany : displayFindMany, count },
+  }),
+  withUserDbContext: userContext,
 }));
 vi.mock("@/features/subscriptions/server/subscription-kind", () => ({
   getUserSubscriptionKinds: getKinds,
@@ -17,6 +22,19 @@ vi.mock("@/features/subscriptions/server/subscription-kind", () => ({
 describe("subscribed homework page read", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    context.active = false;
+    userContext.mockImplementation(async (_userId, action) => {
+      context.active = true;
+      try {
+        return await action({ homework: { findMany, count } });
+      } finally {
+        context.active = false;
+      }
+    });
+    displayFindMany.mockImplementation(async () => {
+      expect(context.active).toBe(false);
+      return [{ id: "homework-page", section: { course: { name: "Course" } } }];
+    });
     findMany.mockResolvedValue([
       {
         id: "homework-page",
@@ -41,8 +59,7 @@ describe("subscribed homework page read", () => {
       locale: "en-us",
       pagination: { page: 2, pageSize: 10 },
     });
-    expect(localizedContext).toHaveBeenCalledExactlyOnceWith(
-      "en-us",
+    expect(userContext).toHaveBeenCalledExactlyOnceWith(
       "user-1",
       expect.any(Function),
     );
@@ -51,9 +68,6 @@ describe("subscribed homework page read", () => {
         skip: 10,
         take: 10,
         include: expect.objectContaining({
-          createdBy: expect.any(Object),
-          updatedBy: expect.any(Object),
-          deletedBy: expect.any(Object),
           homeworkCompletions: {
             where: { userId: "user-1" },
             select: { completedAt: true },
@@ -65,12 +79,22 @@ describe("subscribed homework page read", () => {
       }),
     );
     expect(count).toHaveBeenCalledOnce();
+    expect(findMany.mock.calls[0][0].include).not.toHaveProperty("section");
+    expect(displayFindMany).toHaveBeenCalledExactlyOnceWith({
+      where: { id: { in: ["homework-page"] } },
+      select: expect.objectContaining({
+        id: true,
+        section: expect.any(Object),
+        createdBy: expect.any(Object),
+      }),
+    });
     expect(result).toEqual({
       data: [
         {
           id: "homework-page",
           sectionId: 7,
           title: "Page-local homework",
+          section: { course: { name: "Course" } },
           completionRequired: false,
           commentCount: 2,
           completion: { completedAt: new Date("2026-08-01T00:00:00.000Z") },
@@ -91,5 +115,6 @@ describe("subscribed homework page read", () => {
     expect(result.data).toEqual([]);
     expect(result.pagination.total).toBe(200);
     expect(getKinds).not.toHaveBeenCalled();
+    expect(displayFindMany).not.toHaveBeenCalled();
   });
 });

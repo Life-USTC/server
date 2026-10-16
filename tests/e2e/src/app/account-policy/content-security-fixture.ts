@@ -170,7 +170,7 @@ async function prepareCommentSecurity(
           ...Array<string>(method === "Web" ? 2 : 0).fill(
             "/api/account/preferences",
           ),
-          ...Array<string>(method === "MCP" ? 4 : 2).fill("/api/mcp"),
+          ...Array<string>(method === "MCP" ? 3 : 1).fill("/api/mcp"),
         ].sort(),
       );
       expect(
@@ -178,9 +178,7 @@ async function prepareCommentSecurity(
           .map(({ method, rpc }) => `${method} ${rpc ?? "stream"}`)
           .sort(),
       ).toEqual([
-        "GET stream",
-        "POST initialize",
-        "POST notifications/initialized",
+        "POST server/discover",
         ...(method === "MCP" ? ["POST tools/call", "POST tools/call"] : []),
       ]);
       expect(

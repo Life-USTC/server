@@ -1,3 +1,5 @@
+import { mcpFetchOptions } from "../../../shared/mcp-http-request";
+
 export const transports = ["rest", "graphql", "mcp"] as const;
 export type Transport = (typeof transports)[number];
 export type Tokens = Record<Transport, string>;
@@ -21,49 +23,50 @@ export function sendOperation(
   headers: Record<string, string> = {},
   signal?: AbortSignal,
 ) {
-  return fetch(
-    `${origin}${transport === "rest" ? operation.rest.path : `/api/${transport}`}`,
-    {
-      method: transport === "rest" ? operation.rest.method : "POST",
-      signal,
-      headers: {
-        "content-type":
-          transport === "rest" && operation.rest.form
-            ? "application/x-www-form-urlencoded"
-            : "application/json",
-        accept: "application/json, text/event-stream",
-        origin: origin,
-        ...headers,
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      body:
-        transport === "rest"
-          ? operation.rest.form
-            ? new URLSearchParams(operation.rest.form).toString()
-            : operation.rest.body
-              ? JSON.stringify(operation.rest.body)
-              : undefined
-          : JSON.stringify(
-              transport === "graphql"
-                ? {
-                    query: operation.graphql.query,
-                    variables: operation.graphql.variables,
-                  }
-                : {
-                    jsonrpc: "2.0",
-                    id: 1,
-                    method: "tools/call",
-                    params: {
-                      name: operation.mcp.name,
-                      arguments: {
-                        ...operation.mcp.arguments,
-                        mode: "full",
-                        locale: "zh-cn",
-                      },
+  const options: RequestInit = {
+    method: transport === "rest" ? operation.rest.method : "POST",
+    signal,
+    headers: {
+      "content-type":
+        transport === "rest" && operation.rest.form
+          ? "application/x-www-form-urlencoded"
+          : "application/json",
+      accept: "application/json, text/event-stream",
+      origin: origin,
+      ...headers,
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body:
+      transport === "rest"
+        ? operation.rest.form
+          ? new URLSearchParams(operation.rest.form).toString()
+          : operation.rest.body
+            ? JSON.stringify(operation.rest.body)
+            : undefined
+        : JSON.stringify(
+            transport === "graphql"
+              ? {
+                  query: operation.graphql.query,
+                  variables: operation.graphql.variables,
+                }
+              : {
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "tools/call",
+                  params: {
+                    name: operation.mcp.name,
+                    arguments: {
+                      ...operation.mcp.arguments,
+                      mode: "full",
+                      locale: "zh-cn",
                     },
                   },
-            ),
-    },
+                },
+          ),
+  };
+  return fetch(
+    `${origin}${transport === "rest" ? operation.rest.path : `/api/${transport}`}`,
+    transport === "mcp" ? mcpFetchOptions(options) : options,
   );
 }
 export async function nativeEnvelope(response: Response) {

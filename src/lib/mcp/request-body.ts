@@ -1,10 +1,4 @@
-import {
-  isJSONRPCRequest,
-  type RequestId,
-} from "@modelcontextprotocol/sdk/types.js";
-
 export const MCP_REQUEST_BODY_LIMIT_BYTES = 64 * 1024;
-export const MCP_JSON_RPC_BATCH_LIMIT = 50;
 
 function jsonRpcErrorResponse(status: number, code: number, message: string) {
   return new Response(
@@ -80,33 +74,10 @@ export async function readMcpJsonBodyWithinLimit(
 
   try {
     const body: unknown = JSON.parse(new TextDecoder().decode(bytes));
-    if (Array.isArray(body) && body.length === 0) {
+    if (Array.isArray(body)) {
       return {
         response: jsonRpcErrorResponse(400, -32600, "Invalid Request"),
       };
-    }
-    if (Array.isArray(body) && body.length > MCP_JSON_RPC_BATCH_LIMIT) {
-      return {
-        response: jsonRpcErrorResponse(
-          413,
-          -32000,
-          `JSON-RPC batch must not exceed ${MCP_JSON_RPC_BATCH_LIMIT} messages`,
-        ),
-      };
-    }
-    if (Array.isArray(body)) {
-      // A batch must correlate every request to its own final response. Keep
-      // numeric and string IDs distinct; notifications/responses have no claim.
-      const requestIds = new Set<RequestId>();
-      for (const message of body) {
-        if (!isJSONRPCRequest(message)) continue;
-        if (requestIds.has(message.id)) {
-          return {
-            response: jsonRpcErrorResponse(400, -32600, "Invalid Request"),
-          };
-        }
-        requestIds.add(message.id);
-      }
     }
     return { body };
   } catch {

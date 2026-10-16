@@ -1,4 +1,4 @@
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { setHomeworkCompletion } from "@/features/homeworks/server/homework-completion";
 import {
   getUserId,
@@ -16,10 +16,10 @@ export async function setMyHomeworkCompletionTool(
     homeworkId: string;
     mode?: Parameters<typeof resolveMcpMode>[0];
   },
-  extra: { authInfo?: AuthInfo },
+  extra: { http?: { authInfo?: AuthInfo } },
 ) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
+  const userId = getUserId(extra.http?.authInfo);
   const result = await setHomeworkCompletion({
     completed,
     homeworkId,
