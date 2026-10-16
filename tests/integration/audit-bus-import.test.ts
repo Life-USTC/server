@@ -67,6 +67,10 @@ it("audit.action-admin-bus-import", { tags: ["@Admin/Web"] }, async ({
       targetType: "bus_schedule_version",
       metadata: { campuses: 2, routes: 1, trips: 1 },
     });
+    // createdAt serializes as HH:MM:SS and can contain the trip times below.
+    const serialized = JSON.stringify(rows, (key, value) =>
+      key === "createdAt" ? undefined : value,
+    );
     for (const secret of [
       campuses[0].name,
       campuses[1].name,
@@ -75,7 +79,7 @@ it("audit.action-admin-bus-import", { tags: ["@Admin/Web"] }, async ({
       "08:00",
       "08:30",
     ])
-      if (secret) expect(JSON.stringify(rows)).not.toContain(secret);
+      if (secret) expect(serialized).not.toContain(secret);
   } finally {
     fetch.mockRestore();
   }
