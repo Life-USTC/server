@@ -328,6 +328,12 @@ export async function assertPageContract(
         }),
       ).toBeVisible();
       await expect(page.getByRole("textbox")).toBeVisible();
+      await expect(
+        page.getByRole("heading", {
+          level: 3,
+          name: /尚未查询教室|No room selected yet/i,
+        }),
+      ).toBeVisible();
       return;
     }
 

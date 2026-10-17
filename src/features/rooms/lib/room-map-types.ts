@@ -15,6 +15,7 @@ export type RoomMapCopy = {
   dialogDescription: string;
   dialogTitle: string;
   empty: string;
+  emptyTitle: string;
   fetchError: string;
   floor: string;
   highlighted: string;
