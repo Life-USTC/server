@@ -1,9 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
   homeTabCompatibilityRedirectHref,
+  isWorkspaceTab,
+  WORKSPACE_SUBSCRIPTIONS_PATH,
   workspaceRedirectHrefFromHome,
   workspaceTabCompatibilityRedirectHref,
+  workspaceTabHref,
 } from "@/features/workspace/lib/workspace-nav";
+
+describe("workspace dynamic tab allowlist", () => {
+  it("treats subscriptions as a static route, not a [tab] param", () => {
+    expect(isWorkspaceTab("subscriptions")).toBe(false);
+    expect(workspaceTabHref("subscriptions")).toBe(
+      WORKSPACE_SUBSCRIPTIONS_PATH,
+    );
+  });
+});
 
 describe("workspaceRedirectHrefFromHome", () => {
   it("preserves supported workspace state and drops unrelated query values", () => {
@@ -13,6 +25,14 @@ describe("workspaceRedirectHrefFromHome", () => {
 
     expect(workspaceRedirectHrefFromHome(url)).toBe(
       "/workspace/calendar?calendarView=week&calendarSemester=42",
+    );
+  });
+
+  it("maps legacy subscriptions tab queries to the static subscriptions route", () => {
+    const url = new URL("https://example.test/?tab=subscriptions");
+
+    expect(workspaceRedirectHrefFromHome(url)).toBe(
+      WORKSPACE_SUBSCRIPTIONS_PATH,
     );
   });
 
@@ -54,6 +74,16 @@ describe("homeTabCompatibilityRedirectHref", () => {
     );
   });
 
+  it("maps legacy subscriptions tab queries to the static subscriptions route", () => {
+    const url = new URL(
+      "https://example.test/?tab=subscriptions&semester=2026-spring",
+    );
+
+    expect(homeTabCompatibilityRedirectHref(url, false)).toBe(
+      `${WORKSPACE_SUBSCRIPTIONS_PATH}?semester=2026-spring`,
+    );
+  });
+
   it("ignores unknown tab values", () => {
     const url = new URL("https://example.test/?tab=unknown");
 
@@ -74,6 +104,16 @@ describe("workspaceTabCompatibilityRedirectHref", () => {
       );
     },
   );
+
+  it("maps legacy subscriptions tab queries to the static subscriptions route", () => {
+    const url = new URL(
+      "https://example.test/workspace?tab=subscriptions&utm_source=bookmark",
+    );
+
+    expect(workspaceTabCompatibilityRedirectHref(url)).toBe(
+      `${WORKSPACE_SUBSCRIPTIONS_PATH}?utm_source=bookmark`,
+    );
+  });
 
   it("maps the workspace root and unknown tabs to overview", () => {
     expect(
