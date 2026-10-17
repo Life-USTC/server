@@ -65,6 +65,28 @@ requirements:
     test:
       file: tests/unit/lib/components/layout-primitive-ownership.test.ts
       name: ui.layout-principles-4
+- id: ui.page-frame-ownership
+  category: presentation
+  topic: layout-principles
+  rule: Every rendered page resolves its content width through the shared page frame rather than choosing its
+    own maximum width. Catalog course, teacher and section details share one frame width. A page that sizes
+    itself instead is named in the frame exemption list with a reason; the exemption list is reviewed, and its
+    route inventory is derived from the repository's pages rather than enumerated by hand.
+  rationale: The frame already offers named reading/content/wide/full widths, so a page-specific maximum width
+    silently changes the content column between sibling pages. Deliberate exceptions exist — centered auth
+    cards, legal prose, full-bleed marketing heroes and the transit map — but each is a decision rather than a
+    default. Deriving the route list keeps a newly added page from escaping this requirement by omission, which
+    is how earlier hand-listed inventories drifted.
+  acceptance:
+    given: The pinned page inventory of every rendered route and the shared frame primitives.
+    when: Parse each route's actually rendered component graph and resolve whether it reaches the shared frame.
+    then:
+    - Every rendered page outside the reviewed exemption list resolves the shared page frame.
+    - Each exemption names a real rendered page and carries a reason.
+    - Course, teacher and section detail all resolve the same content frame width.
+    test:
+      file: tests/unit/lib/components/page-width-ownership.test.ts
+      name: ui.page-frame-ownership
 - id: ui.feature-interaction-ownership
   category: presentation
   topic: layout-principles

@@ -92,19 +92,21 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
 </script>
 
 <div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
-  <div class="bg-card px-4 sm:px-5 lg:px-6" data-testid="detail-pinned-summary">
-    <SectionDetailHeader
-      courseName={courseName}
-      courseSecondaryName={courseSecondaryName}
-      formError={formError}
-      onOpenCalendar={openCalendarDialog}
-      onOpenSubscribe={openSubscribeDialog}
-      section={displaySection}
-      sectionCopy={sectionCopy}
-      subscriptionAction={subscriptionAction}
-      subscriptionPendingAction={subscriptionPendingAction}
-      viewer={viewer}
-    />
+  <div class="bg-card" data-testid="detail-pinned-summary">
+    <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
+      <SectionDetailHeader
+        courseName={courseName}
+        courseSecondaryName={courseSecondaryName}
+        formError={formError}
+        onOpenCalendar={openCalendarDialog}
+        onOpenSubscribe={openSubscribeDialog}
+        section={displaySection}
+        sectionCopy={sectionCopy}
+        subscriptionAction={subscriptionAction}
+        subscriptionPendingAction={subscriptionPendingAction}
+        viewer={viewer}
+      />
+    </div>
   </div>
 
   <div
@@ -119,7 +121,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   >
     {#if streamLoading}
       <div
-        class="text-muted-foreground flex items-center justify-center gap-2 px-2 py-6 text-sm"
+        class="page-frame page-frame-content text-muted-foreground flex items-center justify-center gap-2 px-2 py-6 text-sm"
         role="status"
       >
         <Spinner class="size-4 shrink-0" />
@@ -128,7 +130,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     {/if}
 
     {#if streamError}
-      <Alert.Root class="mb-6" role="alert" variant="destructive">
+      <Alert.Root class="page-frame page-frame-content mb-6" role="alert" variant="destructive">
         <Alert.Title>{streamError}</Alert.Title>
         <Alert.Description class="flex flex-wrap items-center gap-3">
           <span>{sectionCopy.pleaseRetry}</span>
@@ -144,7 +146,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       </Alert.Root>
     {/if}
 
-    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-10">
+    <div class="page-frame page-frame-content grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-10">
       <div class="min-w-0 lg:col-start-2 lg:row-start-1" data-detail-identity>
         <SectionDetailIdentity
           {notAvailable}

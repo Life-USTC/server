@@ -45,7 +45,7 @@ export let viewer: SectionHeaderViewer;
   title={courseName}
   description={courseSecondaryName}
   actionsClass="hidden md:flex"
-  titleClass="text-2xl leading-tight sm:text-3xl"
+  density="detail"
 >
   {#snippet eyebrowContent()}
     <div class="flex flex-wrap items-center gap-2">

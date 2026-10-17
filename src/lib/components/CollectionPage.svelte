@@ -6,7 +6,7 @@ import PageLayout from "./PageLayout.svelte";
 import Panel from "./Panel.svelte";
 
 type PageFrameWidth = "reading" | "content" | "wide" | "full";
-type PageDensity = "comfortable" | "compact";
+type PageDensity = "comfortable" | "detail" | "compact";
 type PageTemplateLayout = "stack" | "detail";
 
 /**

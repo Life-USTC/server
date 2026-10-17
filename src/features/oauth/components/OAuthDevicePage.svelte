@@ -47,7 +47,7 @@ $: deviceResult = data.result === "approved" ? "approved" : "denied";
 
 <svelte:head><title>{data.copy.deviceTitle} - Life@USTC</title></svelte:head>
 
-<section class="mx-auto grid w-full max-w-4xl gap-6 py-8">
+<section class="mx-auto grid min-h-[calc(100dvh-14rem)] w-full max-w-2xl content-center gap-6 py-10">
   <PageHeader title={data.copy.deviceTitle} description={data.copy.deviceCodeHint} eyebrow="OAuth" />
 
   <Card.Root class="grid gap-0 p-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">

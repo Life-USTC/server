@@ -43,7 +43,7 @@ $: backLabel =
 
 <svelte:head><title>{isNotFound ? errorCopy.notFoundTitle : errorCopy.error} - Life@USTC</title></svelte:head>
 
-<section class="grid min-h-[calc(100vh-8rem)] place-items-center px-4">
+<section class="grid min-h-[calc(100dvh-8rem)] place-items-center">
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
       <h1 class="font-semibold text-5xl">{$page.status}</h1>
