@@ -48,7 +48,7 @@ function revokeAction(consentId: string): SubmitFunction {
     return async ({ result, update }) => {
       try {
         if (result.type === "redirect") pendingAuthorization = null;
-        await update({ reset: false });
+        await update({ navigate: false, reset: false });
       } finally {
         revokingConsentId = null;
       }

@@ -53,7 +53,8 @@ test("/account/welcome 本地图片处理不可用时保留表单并显示错误
 }, async ({ accountRun, page, incompleteProfile, isolatedWorker }) => {
   test.setTimeout(300_000);
   await accountRun(
-    { writes: [["/account/welcome", 200, "complete"]], audits: [] },
+    // SvelteKit 3 serializes the action's fail(400) with its real HTTP status.
+    { writes: [["/account/welcome", 400, "complete"]], audits: [] },
     async () => {
       const profile = incompleteProfile;
       await gotoAndWaitForReady(page, "/account/welcome");

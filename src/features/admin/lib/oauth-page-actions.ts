@@ -59,7 +59,7 @@ export function createOAuthPageActions<
     input.setIsCreatingClient(true);
     return async ({ result, update }) => {
       try {
-        await update();
+        await update({ navigate: false });
         if (result.type === "success") input.onSuccess?.("create");
       } finally {
         input.setIsCreatingClient(false);
@@ -71,7 +71,7 @@ export function createOAuthPageActions<
     input.setDeletingClientId(input.getPendingDeleteClient()?.clientId ?? null);
     return async ({ result, update }) => {
       try {
-        await update();
+        await update({ navigate: false });
         if (result.type === "success") input.onSuccess?.("delete");
         input.setPendingDeleteClient(null);
       } finally {

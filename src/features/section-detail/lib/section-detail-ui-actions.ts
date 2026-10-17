@@ -83,7 +83,7 @@ export function createSectionDetailUiActions(input: {
       input.setSubscriptionPendingAction(action);
       return async ({ result, update }) => {
         try {
-          await update({ reset: false });
+          await update({ navigate: false, reset: false });
           if (result.type === "success" && action === "subscribe") {
             input.setShowSubscribeDialog(false);
           }

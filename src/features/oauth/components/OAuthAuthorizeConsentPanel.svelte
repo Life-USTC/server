@@ -22,7 +22,7 @@ function consentAction(decision: "allow" | "deny"): SubmitFunction {
     pendingDecision = decision;
     return async ({ update }) => {
       try {
-        await update({ reset: false });
+        await update({ navigate: false, reset: false });
       } finally {
         pendingDecision = null;
       }

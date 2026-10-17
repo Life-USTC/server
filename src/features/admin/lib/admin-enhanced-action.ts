@@ -11,7 +11,7 @@ export function createPendingEnhancedAction(input: {
       input.setPendingAction(actionKey);
       return async ({ result, update }) => {
         try {
-          await update();
+          await update({ navigate: false });
           if (result.type === "success") onSuccess?.();
         } finally {
           input.setPendingAction(null);

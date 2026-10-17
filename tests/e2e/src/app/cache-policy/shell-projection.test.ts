@@ -59,8 +59,10 @@ test("rendering-and-cache.cacheable-public-pages-14", {
             maxRedirects: 0,
           });
           expect(dataRedirect.status()).toBe(200);
+          // SvelteKit 3 includes the redirect status in the data payload.
           expect(await dataRedirect.json()).toEqual({
             type: "redirect",
+            status: 303,
             location:
               index === 0
                 ? "/workspace/overview"

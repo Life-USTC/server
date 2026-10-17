@@ -37,3 +37,11 @@ control a visible focus state.
 
 Covered by the tablet keyboard tests in `tests/e2e/src/app/test.ts`, which
 should fail if a registry refresh reverts this.
+
+## input
+
+`input.patch` — the file-type branch must not `bind:value`: a file input only
+accepts an empty programmatic value, and the binding plus attribute spread
+replays the stale bound filename into the element on re-render, throwing
+`InvalidStateError` and unmounting the surrounding tree (first seen crashing
+the comment composer's pending-upload UI after the SvelteKit 3 migration).

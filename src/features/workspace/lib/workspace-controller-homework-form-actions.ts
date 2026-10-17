@@ -44,7 +44,7 @@ export function createWorkspaceHomeworkAction({
           setError(actionResultError(result, homeworksCopy.createFailed));
           return;
         }
-        await update();
+        await update({ navigate: false });
         onSuccess?.();
       } finally {
         setCreating(false);

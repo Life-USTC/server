@@ -98,7 +98,7 @@ function signInAction(providerId: string): SubmitFunction {
         await redirectWithExternalFallback(result.location);
         return;
       }
-      await update({ reset: false });
+      await update({ navigate: false, reset: false });
       pendingProviderId = null;
     };
   };

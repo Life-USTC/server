@@ -33,14 +33,14 @@ export function createTodoSubmitAction({
       update,
     }: {
       result: ActionResult;
-      update: () => Promise<void>;
+      update: (options?: { navigate?: boolean }) => Promise<void>;
     }) => {
       try {
         if (result.type === "failure") {
           setError(actionResultError(result, fallbackMessage));
           return;
         }
-        await update();
+        await update({ navigate: false });
         setError("");
         onClose();
         onSuccess?.();
@@ -81,14 +81,14 @@ export function updateTodoSubmitAction({
       update,
     }: {
       result: ActionResult;
-      update: () => Promise<void>;
+      update: (options?: { navigate?: boolean }) => Promise<void>;
     }) => {
       try {
         if (result.type === "failure") {
           setError(actionResultError(result, fallbackMessage));
           return;
         }
-        await update();
+        await update({ navigate: false });
         setError("");
         onClose();
         onSuccess?.();

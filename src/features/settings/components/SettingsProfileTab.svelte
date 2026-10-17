@@ -21,7 +21,7 @@ const updateProfile: SubmitFunction = () => {
   saving = true;
   return async ({ update }) => {
     try {
-      await update();
+      await update({ navigate: false });
     } finally {
       saving = false;
     }

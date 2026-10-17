@@ -32,7 +32,8 @@ test("todo ownership anonymous Web denies reads and writes", {
             priority: "medium",
           },
         });
-        expect(result.status()).toBe(200);
+        // SvelteKit 3 serializes action failures with their real HTTP status.
+        expect(result.status()).toBe(401);
         expect(await result.json()).toMatchObject({
           type: "failure",
           status: 401,

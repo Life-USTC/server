@@ -33,7 +33,7 @@ function deviceDecisionAction(decision: "approve" | "deny"): SubmitFunction {
     pendingDecision = decision;
     return async ({ update }) => {
       try {
-        await update({ reset: false });
+        await update({ navigate: false, reset: false });
       } finally {
         pendingDecision = null;
       }

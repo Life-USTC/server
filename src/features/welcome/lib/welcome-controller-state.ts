@@ -10,7 +10,7 @@ export function createCompleteProfileAction({
     setCompleting(true);
     return async ({ update }) => {
       try {
-        await update({ reset: false });
+        await update({ navigate: false, reset: false });
       } finally {
         setCompleting(false);
       }
