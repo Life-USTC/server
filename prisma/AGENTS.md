@@ -5,6 +5,12 @@
   only for disposable local development and CI databases; never run it against
   production. Invoke it only with `ALLOW_DATABASE_SEED=true` after verifying
   that `DATABASE_URL` points to the intended disposable database.
+- Seed credentials: `seed.sql` commits no password hashes. `seed.sh` runs
+  `seed-credentials.ts`, which hashes `DEV_ADMIN_PASSWORD` / `DEV_DEBUG_PASSWORD`
+  (the debug sign-in variables) with a fresh salt and passes them to `seed.sql`
+  as psql variables. Both passwords are required; `.env.example` supplies
+  explicit local development values. Seed through
+  `bunx prisma db seed` or `seed.sh`, not raw `psql -f prisma/seed.sql`.
 - Generated (do not edit): `src/generated/prisma/`, `src/generated/prisma-node/`
 - Static loader entry (repo root): `docker-entrypoint.load.sh`
 - App imports: `import { prisma, getPrisma } from "@/lib/db/prisma"`
