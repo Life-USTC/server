@@ -108,7 +108,25 @@ jobs:
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
+      - name: Resolve pinned Playwright version
+        if: ${{ matrix.browser }}
+        id: playwright-version
+        run: |
+          version=$(jq -r '.overrides["playwright-core"]' package.json)
+          if [ -z "$version" ] || [ "$version" = "null" ]; then
+            echo '::error::The Playwright browser cache key needs the playwright-core override in package.json; restore the override or update this step to resolve the version another way.'
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browser downloads
+        if: ${{ matrix.browser }}
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
       - name: Install Chromium
+        # Browser download no-ops on a cache hit; system dependencies are not
+        # cached and still install.
         if: ${{ matrix.browser }}
         run: bunx playwright install --with-deps --only-shell chromium
       - name: Download application and Worker build
@@ -199,6 +217,7 @@ jobs:
   static-loader-image:
     name: Static loader
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services: *test-database
     steps:
       - *checkout
