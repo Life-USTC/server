@@ -4,6 +4,7 @@ import {
   type CalendarFixture,
   test,
 } from "../../../utils/calendar-presentation-fixture";
+import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 async function fixture(
   page: Page,
@@ -131,7 +132,11 @@ for (const [domain, kind] of [
           {
             const title =
               kind === "homework" ? data.homework.title : data.todo.title;
-            await page.goto(
+            // A plain goto resolves before hydration; on a slower runner the
+            // row click then hits the pre-hydration markup and never opens
+            // the overlay. Wait for the app to be interactive first.
+            await gotoAndWaitForReady(
+              page,
               kind === "homework" ? "/workspace/homeworks" : "/workspace/todos",
             );
             const surface =
