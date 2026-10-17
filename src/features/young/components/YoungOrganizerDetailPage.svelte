@@ -71,18 +71,18 @@ function pageHref(page: number) {
         <div class="grid gap-3">
         <ResultsSummary {summary} page={events.pagination.page} totalPages={events.pagination.totalPages} />
         {#if events.data.length > 0}
-          <Item.Group class="gap-0" role="list">
-            {#each events.data as event, index (event.youngId)}
+          <Item.Group class="gap-2" role="list">
+            {#each events.data as event (event.youngId)}
               <div role="listitem">
-                <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
+                <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "default"}>
                   {#snippet child({ props })}
                     <a href={youngDetailHref(event.youngId)} {...props}>
                       <Item.Content>
                         <Item.Title>{event.name}</Item.Title>
                         <Item.Description>
-                          {formatRange(event)}{#if event.location} · {event.location}{/if}{#if event.isOnline === true} · {youngCopy.online}{/if}
+                          {formatRange(event)}{#if event.location} · {event.location}{/if}{#if event.hours != null} · {youngCopy.hours} {event.hours}{/if}{#if event.isOnline === true} · {youngCopy.online}{/if}
                         </Item.Description>
-                        <Item.Footer class="flex-wrap justify-start">
+                        <Item.Footer class="flex-wrap justify-start text-muted-foreground">
                           {#if event.category}<span>{event.category}</span>{/if}
                           {#if event.status}<span>{event.status}</span>{/if}
                           {#if event.requiresSignup === false}<span>{youngCopy.signupNotRequired}</span>{/if}
@@ -92,9 +92,6 @@ function pageHref(page: number) {
                     </a>
                   {/snippet}
                 </Item.Root>
-                {#if index < events.data.length - 1}
-                  <Item.Separator />
-                {/if}
               </div>
             {/each}
           </Item.Group>

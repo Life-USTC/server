@@ -81,3 +81,36 @@ export function youngCapacity(
   if (capacity != null) return `${applied ?? unknown} / ${capacity}`;
   return applied == null ? unknown : String(applied);
 }
+
+type YoungListFactEvent = {
+  location?: string | null;
+  module?: string | null;
+  activityLevel?: string | null;
+  hours?: number | null;
+  applyEndAt?: string | null;
+};
+
+type YoungListFactCopy = {
+  hours: string;
+  signupDeadline: string;
+};
+
+/** One muted scan line for list rows: place, module, level, hours, signup deadline. */
+export function youngListFactParts(
+  event: YoungListFactEvent,
+  copy: YoungListFactCopy,
+): string[] {
+  const parts: string[] = [];
+  if (event.location?.trim()) parts.push(event.location.trim());
+  if (event.module?.trim()) parts.push(event.module.trim());
+  if (event.activityLevel?.trim()) parts.push(event.activityLevel.trim());
+  if (event.hours != null) parts.push(`${copy.hours} ${event.hours}`);
+  const deadline = youngDateTime(event.applyEndAt);
+  if (deadline) {
+    const [date, time] = deadline.split(" ");
+    parts.push(
+      `${copy.signupDeadline} ${time ? `${date} ${time.slice(0, 5)}` : deadline}`,
+    );
+  }
+  return parts;
+}

@@ -6,6 +6,7 @@ import {
   youngDateRange,
   youngDateTime,
   youngListDayLabel,
+  youngListFactParts,
   youngMonthDay,
 } from "@/features/young/lib/young-event-display";
 
@@ -44,6 +45,27 @@ describe("young event display", () => {
     expect(groups[0]?.events.map((event) => event.name)).toEqual([
       "afternoon",
       "evening",
+    ]);
+  });
+
+  it("builds one list scan line from place, module, level, hours and signup deadline", () => {
+    expect(
+      youngListFactParts(
+        {
+          location: "东区图书馆",
+          module: "智",
+          activityLevel: "校级",
+          hours: 2,
+          applyEndAt: "2026-05-09T15:59:59+08:00",
+        },
+        { hours: "学时", signupDeadline: "报名截止" },
+      ),
+    ).toEqual([
+      "东区图书馆",
+      "智",
+      "校级",
+      "学时 2",
+      "报名截止 2026-05-09 15:59",
     ]);
   });
 

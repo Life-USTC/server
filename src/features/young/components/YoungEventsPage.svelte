@@ -21,6 +21,7 @@ import {
   youngCapacity,
   youngDateTime,
   youngListDayLabel,
+  youngListFactParts,
 } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
 import YoungEventFilters from "./YoungEventFilters.svelte";
@@ -71,6 +72,13 @@ function listDateTime(value: string | null | undefined) {
   if (!formatted) return null;
   const [date, time] = formatted.split(" ");
   return time ? `${date} ${time.slice(0, 5)}` : formatted;
+}
+
+function listFactLine(event: YoungEventSummary) {
+  return youngListFactParts(event, {
+    hours: youngCopy.hours,
+    signupDeadline: youngCopy.signupDeadline,
+  }).join(" · ");
 }
 </script>
 
@@ -137,14 +145,14 @@ function listDateTime(value: string | null | undefined) {
                           <a href={youngDetailHref(event.youngId)} {...props}>
                             <Item.Content>
                               <Item.Title>{event.name}</Item.Title>
-                                <p class="text-sm leading-normal text-muted-foreground">
+                              <p class="text-sm leading-normal text-muted-foreground">
                                 <span>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</span>
-                                  {#if event.location}<span> · {event.location}</span>{/if}
-                                  {#if event.category}<span> · {event.category}</span>{/if}
-                                  {#if event.module}<span> · {event.module}</span>{/if}
-                                  {#if event.activityLevel}<span> · {event.activityLevel}</span>{/if}
-                                  {#if event.organizer}<span> · {event.organizer}</span>{/if}
                               </p>
+                              {#if listFactLine(event)}
+                                <p class="text-sm leading-normal text-muted-foreground">
+                                  {listFactLine(event)}
+                                </p>
+                              {/if}
                             </Item.Content>
                             <Item.Actions>
                                 <Badge variant={event.isActive ? "default" : "outline"}>
@@ -168,6 +176,7 @@ function listDateTime(value: string | null | undefined) {
                 <Table.Head>{youngCopy.eventName}</Table.Head>
                 <Table.Head>{youngCopy.eventTime}</Table.Head>
                 <Table.Head>{youngCopy.location}</Table.Head>
+                <Table.Head class="text-right tabular-nums" style="text-align: right">{youngCopy.hours}</Table.Head>
                 <Table.Head class="text-right" style="text-align: right">{youngCopy.capacity}</Table.Head>
                 <Table.Head>{youngCopy.status}</Table.Head>
               </Table.Row>
@@ -180,12 +189,18 @@ function listDateTime(value: string | null | undefined) {
                         <span>{event.name}</span>
                       </a>
                       {#if event.category}<span class="mt-0.5 block text-xs text-muted-foreground">{event.category}</span>{/if}
-                      {#if event.module}<span class="block text-xs text-muted-foreground">{event.module}</span>{/if}
-                      {#if event.activityLevel}<span class="block text-xs text-muted-foreground">{event.activityLevel}</span>{/if}
                       {#if event.organizer}<span class="block text-xs text-muted-foreground">{event.organizer}</span>{/if}
                   </Table.Cell>
-                  <Table.Cell>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</Table.Cell>
+                  <Table.Cell>
+                    <span>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</span>
+                    {#if listDateTime(event.applyEndAt)}
+                      <span class="mt-0.5 block text-xs text-muted-foreground">
+                        {youngCopy.signupDeadline} {listDateTime(event.applyEndAt)}
+                      </span>
+                    {/if}
+                  </Table.Cell>
                   <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
+                  <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.hours ?? ""}</Table.Cell>
                     <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
                   <Table.Cell>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Table.Cell>
                 </Table.Row>

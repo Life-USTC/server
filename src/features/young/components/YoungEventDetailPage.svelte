@@ -77,7 +77,7 @@ const badges = $derived(
       </a>
     {/if}
     <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,white_0%,white_28%,transparent_72%)] dark:bg-[linear-gradient(to_top,black_0%,black_28%,transparent_72%)]"></div>
-    <div class="page-frame page-frame-content relative z-10 flex h-64 flex-col justify-end gap-3 px-4 pb-6 sm:h-80 sm:px-5 lg:h-96 lg:px-6">
+    <div class="page-frame page-frame-content relative z-10 flex h-52 flex-col justify-end gap-3 px-4 pb-5 sm:h-72 sm:px-5 sm:pb-6 lg:h-80 lg:px-6">
       <div class="flex items-center justify-between gap-4">
         <h1 class="min-w-0 flex-1 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">{event.name}</h1>
         <YoungSubscriptionControl compact id={event.youngId} copy={youngCopy.workspace} />

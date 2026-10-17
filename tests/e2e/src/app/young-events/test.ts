@@ -71,11 +71,14 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/young-events");
-      await expect(
-        page
-          .getByRole("link", { name: new RegExp(DEV_SEED.youngEvent.name) })
-          .first(),
-      ).toBeVisible();
+      const seedRow = page
+        .locator(
+          `a[href="/catalog/young-events/${DEV_SEED.youngEvent.youngId}"]`,
+        )
+        .first();
+      await expect(seedRow).toBeVisible();
+      await expect(seedRow).toContainText(/学时\s*2|2\s*hours/i);
+      await expect(seedRow).toContainText(/报名截止|Signup deadline/i);
 
       const searchbox = page.getByRole("searchbox");
       await searchbox.fill(DEV_SEED.youngEvent.name);
