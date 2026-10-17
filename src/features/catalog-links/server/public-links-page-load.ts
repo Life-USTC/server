@@ -1,8 +1,8 @@
 import { getPublicCatalogLinksData } from "@/features/catalog-links/server/catalog-link-data";
-import { getWorkspacePageCopy } from "@/features/workspace/server/workspace-page-copy";
-import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 
-export async function loadPublicLinksPage({ locals }: WorkspacePageLoadEvent) {
+export async function loadPublicLinksPage({ locals }: AppPageLoadEvent) {
   const links = getPublicCatalogLinksData(locals.locale);
 
   return {
