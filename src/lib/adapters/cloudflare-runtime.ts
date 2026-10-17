@@ -178,8 +178,10 @@ const globalForCloudflareRuntime = globalThis as typeof globalThis & {
 // and the `cloudflare:workers` module does not expose `ctx.exports`, which
 // the catalog cache invalidator needs.
 const cloudflareRuntimeStorage =
-  (globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeStorage ??=
-    new AsyncLocalStorage<CloudflareRuntimeContext>());
+  globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeStorage ??
+  new AsyncLocalStorage<CloudflareRuntimeContext>();
+globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeStorage =
+  cloudflareRuntimeStorage;
 
 function normalizeCloudflareRuntimeEnv(env: unknown) {
   return env && typeof env === "object"
