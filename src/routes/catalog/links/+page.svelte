@@ -13,6 +13,7 @@ import {
   currentCatalogLinkReturnTo,
   submitWorkspaceLinkPinRequest,
 } from "@/features/workspace/lib/workspace-link-pin-client";
+import { CATALOG_LINKS_VIEWER_PATH } from "@/lib/navigation/internal-routes";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { invalidateAll } from "$app/navigation";
 import type { PageData } from "./$types";
@@ -51,7 +52,7 @@ async function loadLinkPreferences() {
   viewerLoading = true;
   viewerFailed = false;
   try {
-    const response = await fetch("/_internal/catalog/links/viewer", {
+    const response = await fetch(CATALOG_LINKS_VIEWER_PATH, {
       cache: "no-store",
       credentials: "same-origin",
       signal: controller.signal,

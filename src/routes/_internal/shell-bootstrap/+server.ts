@@ -2,40 +2,22 @@ import {
   getWorkspaceNavigationSummary,
   listShellSubscribedSections,
 } from "@/features/workspace/server/workspace-navigation-summary";
-import { jsonResponse } from "@/lib/api/responses";
+import {
+  privateSessionJson,
+  rejectBearerOnSessionRoute,
+} from "@/lib/api/internal-session-response";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { layoutUserSummary } from "@/lib/shell/layout-server-data";
 import type { ShellBootstrapPayload } from "@/lib/shell/shell-bootstrap";
 import type { RequestHandler } from "./$types";
 
-const PRIVATE_SESSION_HEADERS = {
-  "Cache-Control": "private, no-store",
-  "Cloudflare-CDN-Cache-Control": "no-store",
-  Vary: "Cookie",
-} as const;
-
-function privateJson(body: unknown, init?: ResponseInit) {
-  const headers = new Headers(init?.headers);
-  for (const [name, value] of Object.entries(PRIVATE_SESSION_HEADERS)) {
-    headers.set(name, value);
-  }
-  return jsonResponse(body, {
-    ...init,
-    headers,
-  });
-}
-
 export const GET: RequestHandler = async ({ locals, request }) => {
-  if (request.headers.has("authorization")) {
-    return privateJson(
-      { error: "Session authentication required" },
-      { status: 401 },
-    );
-  }
+  const rejected = rejectBearerOnSessionRoute(request);
+  if (rejected) return rejected;
 
   const viewer = layoutUserSummary(locals.authUser);
   if (!viewer) {
-    return privateJson({
+    return privateSessionJson({
       viewer: null,
       navigation: null,
       subscribedSections: [],
@@ -60,7 +42,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
         },
       );
     }
-    return privateJson({
+    return privateSessionJson({
       viewer,
       navigation,
       subscribedSections,
@@ -69,7 +51,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
     logRouteFailure("Failed to load shell bootstrap", 500, error, {
       source: "web-shell-bootstrap",
     });
-    return privateJson({
+    return privateSessionJson({
       viewer,
       navigation: null,
       subscribedSections: [],
@@ -78,7 +60,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 };
 
 export const fallback: RequestHandler = () =>
-  privateJson(
+  privateSessionJson(
     { error: "Method not allowed" },
     { status: 405, headers: { Allow: "GET" } },
   );
