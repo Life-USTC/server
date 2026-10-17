@@ -1,16 +1,16 @@
 <script lang="ts">
 import type { Passkey } from "@better-auth/passkey";
-import type { AppLocale } from "@/i18n/config";
-import { invalidateAll } from "$app/navigation";
 import {
   passkeyAuthClient,
   passkeyClientErrorKind,
-} from "$lib/auth/passkey-client";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+} from "#lib/auth/passkey-client.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import type { AppLocale } from "@/i18n/config";
+import { invalidateAll } from "$app/navigation";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Status = {

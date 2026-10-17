@@ -1,8 +1,8 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ProfileContributionCard from "./ProfileContributionCard.svelte";
 import ProfileSummaryCard from "./ProfileSummaryCard.svelte";
 

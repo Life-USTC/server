@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
 import type { HomeworkDetailCommentsPanel } from "@/features/homeworks/components/homework-detail-types";
@@ -13,6 +12,7 @@ import type {
   WorkspaceHomeworksCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
+import type { SubmitFunction } from "$app/forms";
 import HomeworkCreateDialog from "./HomeworkCreateDialog.svelte";
 import type {
   WorkspaceHomeworkCommentsCopy,
@@ -66,31 +66,31 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
 </script>
 
 <HomeworkCreateDialog
-  {locale}
-  {applyHomeworkDueAtSemesterEnd}
-  {applyHomeworkStartNow}
-  {commentsCopy}
-  {createHomeworkAction}
+  locale={locale}
+  applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
+  applyHomeworkStartNow={applyHomeworkStartNow}
+  commentsCopy={commentsCopy}
+  createHomeworkAction={createHomeworkAction}
   bind:createHomeworkAdvancedOpen
   bind:createHomeworkPublishedAt
   bind:createHomeworkSectionId
   bind:createHomeworkSubmissionDueAt
   bind:createHomeworkSubmissionStartAt
-  {homeworkSectionLabel}
-  {homeworksCopy}
-  {isCreatingHomework}
+  homeworkSectionLabel={homeworkSectionLabel}
+  homeworksCopy={homeworksCopy}
+  isCreatingHomework={isCreatingHomework}
   onClose={() => {
     showCreateHomework = false;
     createHomeworkError = "";
   }}
   open={showCreateHomework}
-  {sections}
-  {toShanghaiDateTimeLocalValue}
-  {createHomeworkError}
+  sections={sections}
+  toShanghaiDateTimeLocalValue={toShanghaiDateTimeLocalValue}
+  createHomeworkError={createHomeworkError}
 />
 
 <HomeworkDetailDialog
-  {CommentsPanel}
+  CommentsPanel={CommentsPanel}
   completionSaving={selectedHomework ? homeworkSavingById[selectedHomework.id] : false}
   contextHref={selectedHomeworkDetail?.contextHref}
   contextLabel={selectedHomeworkDetail?.contextLabel}

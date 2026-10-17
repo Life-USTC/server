@@ -1,0 +1,15 @@
+# A file input cannot take a programmatic value: with `bind:value` plus the
+# attribute spread, any re-render after the change handler clears
+# `input.value` writes the stale bound filename back into the element and
+# throws InvalidStateError (seen as a crashed comment composer during pending
+# uploads after the SvelteKit 3 migration). `bind:files` stays.
+--- upstream/input.svelte	2026-10-18 00:59:34.621984435 +0800
++++ src/lib/components/ui/input/input.svelte	2026-10-18 00:59:34.630332858 +0800
+@@ -30,7 +30,6 @@
+ 		)}
+ 		type="file"
+ 		bind:files
+-		bind:value
+ 		{...restProps}
+ 	/>
+ {:else}

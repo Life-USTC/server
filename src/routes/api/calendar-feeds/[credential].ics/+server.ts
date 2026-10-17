@@ -1,7 +1,7 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getCloudflareTaskScheduler } from "@/lib/adapters/cloudflare-runtime";
 import { getUserCalendarRoute } from "@/lib/api/routes/calendars";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Deliver a token-bearing personal calendar feed.

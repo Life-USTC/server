@@ -1,9 +1,9 @@
 <script lang="ts">
+import * as Table from "#lib/components/ui/table/index.js";
 import type {
   HomeworkDateValue,
   HomeworkDetailModel,
 } from "@/features/homeworks/lib/homework-presentation";
-import * as Table from "$lib/components/ui/table/index.js";
 import type {
   HomeworkDetailCopy,
   HomeworkDetailDateFormatter,

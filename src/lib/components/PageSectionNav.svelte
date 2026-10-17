@@ -7,8 +7,8 @@ export type PageSectionNavItem = {
 };
 </script>
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge";
-import { Button } from "$lib/components/ui/button";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 let { ariaLabel, items }: { ariaLabel: string; items: PageSectionNavItem[] } = $props();
 </script>
 <nav aria-label={ariaLabel} class="flex min-w-0 flex-wrap gap-2" data-slot="page-section-nav">

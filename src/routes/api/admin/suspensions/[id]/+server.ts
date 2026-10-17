@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { patchAdminSuspensionRoute } from "@/lib/api/routes/admin-suspensions";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Lift one suspension.

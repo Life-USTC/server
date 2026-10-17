@@ -1,5 +1,11 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import Panel from "#lib/components/Panel.svelte";
+import RenderedMarkdown from "#lib/components/RenderedMarkdown.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
 import type {
@@ -7,12 +13,6 @@ import type {
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import Panel from "$lib/components/Panel.svelte";
-import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 

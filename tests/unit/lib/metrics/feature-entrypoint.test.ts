@@ -3,7 +3,15 @@ import { handle } from "@/hooks.server";
 import { INTERNAL_REQUEST_ID_HEADER } from "@/lib/log/worker-entrypoint-observability";
 import worker from "@/worker";
 
-vi.mock("cloudflare:workers", () => ({ WorkerEntrypoint: class {} }));
+vi.mock("cloudflare:workers", () => ({
+  WorkerEntrypoint: class {},
+  // src/hooks.server.ts reads these from the runtime module in SvelteKit 3;
+  // leave them undefined so the hooks fall back to the injected platform.
+  env: undefined,
+  exports: undefined,
+  tracing: undefined,
+  waitUntil: undefined,
+}));
 const { appFetch, writeObservabilityBatch, waitUntil } = vi.hoisted(() => ({
   appFetch: vi.fn(),
   waitUntil: vi.fn(),

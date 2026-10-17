@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import { Button } from "$lib/components/ui/button/index.js";
 import CommentComposer from "./CommentComposer.svelte";
 import CommentsPanelLoadingComposer from "./CommentsPanelLoadingComposer.svelte";
 import type {

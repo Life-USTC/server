@@ -2,14 +2,14 @@
 import MenuIcon from "@lucide/svelte/icons/menu";
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
 import { onMount } from "svelte";
+import { OPENAPI_SPEC_API_PATH } from "#lib/openapi/spec.js";
 import { afterNavigate } from "$app/navigation";
-import { OPENAPI_SPEC_API_PATH } from "$lib/openapi/spec";
 import "@scalar/api-reference/style.css";
 import "./api-docs-scalar.css";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Sheet from "$lib/components/ui/sheet/index.js";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Sheet from "#lib/components/ui/sheet/index.js";
 import {
   type ApiDocsSelection,
   getApiDocsSelection,
@@ -77,7 +77,9 @@ const referenceConfig = (content: OpenApiDocument) =>
     mcp: { disabled: true },
   }) satisfies ReferenceConfig;
 
-afterNavigate(({ to }) => {
+afterNavigate(({ to, shallow, type }) => {
+  if (shallow && type === "goto") return;
+
   currentPath = to?.url.pathname ?? window.location.pathname;
   if (mounted && apiDocument) void renderReference();
 });
@@ -179,7 +181,7 @@ function scheduleReferenceRouteRestore() {
                 aria-current={selectedDocs.activeHref === tag.href ? "page" : undefined}
                 class:active={selectedDocs.activeHref === tag.href}
                 class="api-docs-nav-tag"
-                data-sveltekit-noscroll
+                data-sveltekit-reset="false"
                 href={tag.href}
                 onclick={(event) => handleNavigationClick(event, closeMobileNavigation)}
               >
@@ -192,7 +194,7 @@ function scheduleReferenceRouteRestore() {
                       aria-current={selectedDocs.activeHref === operation.href ? "page" : undefined}
                       class:active={selectedDocs.activeHref === operation.href}
                       class="api-docs-nav-operation"
-                      data-sveltekit-noscroll
+                      data-sveltekit-reset="false"
                       href={operation.href}
                       onclick={(event) => handleNavigationClick(event, closeMobileNavigation)}
                       title={`${operation.method.toUpperCase()} ${operation.path}`}

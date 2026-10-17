@@ -1,6 +1,6 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
 import WeatherPage from "@/features/weather/components/WeatherPage.svelte";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
 import type { PageData } from "./$types";
 
 export let data: PageData;

@@ -1,8 +1,8 @@
 <script lang="ts">
+import * as Avatar from "#lib/components/ui/avatar/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
-import * as Avatar from "$lib/components/ui/avatar/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import CommentThreadHeaderActions from "./CommentThreadHeaderActions.svelte";
 import type { CommentsCopy } from "./comment-component-types";
 

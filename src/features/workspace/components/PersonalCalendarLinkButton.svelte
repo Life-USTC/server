@@ -1,9 +1,9 @@
 <script lang="ts">
 import Link2 from "@lucide/svelte/icons/link-2";
+import { Button } from "#lib/components/ui/button/index.js";
 import CalendarSubscriptionDialog from "@/features/calendar/components/CalendarSubscriptionDialog.svelte";
 import type { WorkspaceSectionCopy } from "@/features/workspace/lib/workspace-controller-helpers";
 import { writeClipboardText } from "@/lib/browser/clipboard";
-import { Button } from "$lib/components/ui/button/index.js";
 
 export let buttonLabel: string;
 export let className = "";

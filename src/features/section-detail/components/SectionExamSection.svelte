@@ -1,4 +1,6 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import {
@@ -6,8 +8,6 @@ import {
   calendarEventLocation,
   calendarEventTime,
 } from "@/features/section-detail/lib/section-calendar-display";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import * as Table from "$lib/components/ui/table/index.js";
 import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
 type SectionExamCopy = {

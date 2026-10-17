@@ -2,11 +2,11 @@
 import SearchIcon from "@lucide/svelte/icons/search";
 import { onMount } from "svelte";
 import type { HTMLInputAttributes } from "svelte/elements";
-import { mountPageSearchShortcut } from "$lib/browser/page-search-shortcut";
-import PageSearchShortcutHint from "$lib/components/shell/PageSearchShortcutHint.svelte";
-import InputGroupRoot from "$lib/components/ui/input-group/input-group.svelte";
-import InputGroupAddon from "$lib/components/ui/input-group/input-group-addon.svelte";
-import InputGroupInput from "$lib/components/ui/input-group/input-group-input.svelte";
+import { mountPageSearchShortcut } from "#lib/browser/page-search-shortcut.js";
+import PageSearchShortcutHint from "#lib/components/shell/PageSearchShortcutHint.svelte";
+import InputGroupRoot from "#lib/components/ui/input-group/input-group.svelte";
+import InputGroupAddon from "#lib/components/ui/input-group/input-group-addon.svelte";
+import InputGroupInput from "#lib/components/ui/input-group/input-group-input.svelte";
 
 let {
   id,

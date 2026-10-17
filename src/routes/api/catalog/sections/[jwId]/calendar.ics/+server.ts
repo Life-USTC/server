@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getSectionCalendarRoute } from "@/lib/api/routes/calendars";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Generate section calendar.

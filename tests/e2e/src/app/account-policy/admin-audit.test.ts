@@ -531,7 +531,9 @@ test("audit.action-admin-bus-version-delete", { tag: "@Bus/Web" }, async ({
         [
           ["POST", "/admin/bus", 500],
           ["POST", "/admin/bus", 200],
-          ["POST", "/admin/bus", 200],
+          // SvelteKit 3 serializes the repeated delete's fail(404) with its
+          // real HTTP status instead of a 200 envelope.
+          ["POST", "/admin/bus", 404],
         ],
       ),
     ),

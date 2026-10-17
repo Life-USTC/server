@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import { Button } from "$lib/components/ui/button/index.js";
 import CommentUploadButton from "./CommentUploadButton.svelte";
 import type { CommentsCopy, UploadsCopy } from "./comment-component-types";
 

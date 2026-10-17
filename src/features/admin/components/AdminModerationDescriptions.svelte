@@ -1,5 +1,5 @@
 <script lang="ts">
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import AdminModerationDescriptionCards from "./AdminModerationDescriptionCards.svelte";
 import AdminModerationDescriptionSummary from "./AdminModerationDescriptionSummary.svelte";
 import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.svelte";

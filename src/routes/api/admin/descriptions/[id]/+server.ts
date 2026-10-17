@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { patchAdminDescriptionRoute } from "@/lib/api/routes/admin-description-update-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Update one description from moderation.

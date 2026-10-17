@@ -1,8 +1,8 @@
 <script lang="ts">
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
 import type { WelcomeCopy } from "./welcome-component-types";
 
 export let callbackUrl: string;

@@ -1,6 +1,6 @@
 <script lang="ts">
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import * as Item from "$lib/components/ui/item/index.js";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import * as Item from "#lib/components/ui/item/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import AdminListShell from "./AdminListShell.svelte";

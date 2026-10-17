@@ -1,13 +1,13 @@
 <script lang="ts">
 import ArrowLeftRightIcon from "@lucide/svelte/icons/arrow-left-right";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Switch } from "#lib/components/ui/switch/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import type {
   WorkspaceBusCopy,
   WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Switch } from "$lib/components/ui/switch/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import BusCampusPickerGroup from "./BusCampusPickerGroup.svelte";
 
 export let bus: WorkspaceBusData;

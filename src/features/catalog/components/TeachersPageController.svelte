@@ -1,13 +1,13 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import ListPagination from "#lib/components/ListPagination.svelte";
 import {
   type CatalogNamed,
   catalogHref,
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
-import { page } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import ListPagination from "$lib/components/ListPagination.svelte";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   TeacherListCommonLabels,
@@ -17,6 +17,8 @@ import type {
 } from "./catalog-teacher-list-types";
 import TeachersFilters from "./TeachersFilters.svelte";
 import TeachersResults from "./TeachersResults.svelte";
+
+const page = legacyPageStore();
 
 type DepartmentOption = CatalogNamed & {
   id: number | string;
@@ -38,11 +40,7 @@ type PageData = {
     };
   };
   locale: string;
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination: { page: number; total: number; totalPages: number };
 };
 
 export let data: PageData;
@@ -85,7 +83,7 @@ $: teacherHiddenFilters = [
 ].filter((filter) => Boolean(filter.value));
 
 function pageHref(targetPage: number) {
-  return catalogListPageHref($page.url, targetPage);
+  return catalogListPageHref(new URL($page.url.href), targetPage);
 }
 
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
@@ -98,6 +96,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
 }
 </script>
 
+
 {#snippet paginationFooter()}
   <ListPagination
     ariaLabel={commonLabels.pagination}
@@ -105,47 +104,47 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
     nextLabel={commonLabels.next}
     nextPageLabel={commonLabels.nextPage}
     page={data.pagination.page}
-    {pageHref}
+    pageHref={pageHref}
     previousLabel={commonLabels.previous}
     previousPageLabel={commonLabels.previousPage}
-    {totalPages}
+    totalPages={totalPages}
   />
 {/snippet}
 
 <CollectionPage description={teacherLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={teacherLabels.title}>
   {#snippet toolbar()}
-        <CatalogFilters
-          activeFilters={teacherActiveFilters}
-          clearHref="/catalog/teachers"
-          clearLabel={commonLabels.clear}
-          filterDescription={teacherLabels.filterDescription}
-          filterTitle={teacherLabels.filterTitle}
-          hiddenFilters={teacherHiddenFilters}
-          searchId="mobile-teacher-search"
-          searchLabel={teacherLabels.searchLabel}
-          searchPlaceholder={teacherLabels.searchNameOrCode}
-          bind:searchValue={teacherSearch}
-        >
-          <TeachersFilters
-            {commonLabels}
-            {departmentOptions}
-            filters={data.filters}
-            idPrefix="mobile-teacher"
-            {teacherLabels}
-            {teacherSearch}
-          />
-        </CatalogFilters>
+    <CatalogFilters
+      activeFilters={teacherActiveFilters}
+      clearHref="/catalog/teachers"
+      clearLabel={commonLabels.clear}
+      filterDescription={teacherLabels.filterDescription}
+      filterTitle={teacherLabels.filterTitle}
+      hiddenFilters={teacherHiddenFilters}
+      searchId="mobile-teacher-search"
+      searchLabel={teacherLabels.searchLabel}
+      searchPlaceholder={teacherLabels.searchNameOrCode}
+      bind:searchValue={teacherSearch}
+    >
+      <TeachersFilters
+        commonLabels={commonLabels}
+        departmentOptions={departmentOptions}
+        filters={data.filters}
+        idPrefix="mobile-teacher"
+        teacherLabels={teacherLabels}
+        teacherSearch={teacherSearch}
+      />
+    </CatalogFilters>
   {/snippet}
 
-      <TeachersResults
-        {commonLabels}
-        filters={data.filters}
-        page={data.pagination.page}
-        {primaryName}
-        {selectedDepartment}
-        {teacherLabels}
-        teachers={data.data}
-        total={data.pagination.total}
-        {totalPages}
-      />
+  <TeachersResults
+    commonLabels={commonLabels}
+    filters={data.filters}
+    page={data.pagination.page}
+    primaryName={primaryName}
+    selectedDepartment={selectedDepartment}
+    teacherLabels={teacherLabels}
+    teachers={data.data}
+    total={data.pagination.total}
+    totalPages={totalPages}
+  />
 </CollectionPage>

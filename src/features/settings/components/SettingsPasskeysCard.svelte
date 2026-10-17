@@ -2,21 +2,21 @@
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
-import type { AppLocale } from "@/i18n/config";
-import { invalidateAll } from "$app/navigation";
 import {
   isPasskeySupported,
   passkeyAuthClient,
   passkeyClientErrorKind,
-} from "$lib/auth/passkey-client";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+} from "#lib/auth/passkey-client.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import type { AppLocale } from "@/i18n/config";
+import { invalidateAll } from "$app/navigation";
 import SettingsPasskeyRow from "./SettingsPasskeyRow.svelte";
 import type { SettingsCopy } from "./settings-component-types";
 

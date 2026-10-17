@@ -1,5 +1,18 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
+import ActiveFilters from "#lib/components/ActiveFilters.svelte";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import FilterToolbar from "#lib/components/FilterToolbar.svelte";
+import ListPagination from "#lib/components/ListPagination.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
+import { toolbarControlClass } from "#lib/components/toolbar-control.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
+import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
 import {
   publicationDetailHref,
   publicationListHref,
@@ -7,19 +20,6 @@ import {
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import { publicationSummary } from "@/features/publications/lib/publication-summary";
 import { goto } from "$app/navigation";
-import ActiveFilters from "$lib/components/ActiveFilters.svelte";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import FilterToolbar from "$lib/components/FilterToolbar.svelte";
-import ListPagination from "$lib/components/ListPagination.svelte";
-import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
-import SearchField from "$lib/components/SearchField.svelte";
-import { toolbarControlClass } from "$lib/components/toolbar-control";
-import { Badge } from "$lib/components/ui/badge";
-import { Button } from "$lib/components/ui/button";
-import * as Field from "$lib/components/ui/field";
-import * as ToggleGroup from "$lib/components/ui/toggle-group";
-import { formatShanghaiDate } from "$lib/time/shanghai-format";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
 import type {
   PublicationListPageData,
@@ -108,7 +108,7 @@ function changeType(value: string) {
       ...data.filters,
       type: value === "all" ? undefined : (value as "news" | "notice"),
     }),
-    { keepFocus: true },
+    { reset: false },
   );
 }
 </script>

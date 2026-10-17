@@ -1,9 +1,9 @@
-import type { SubmitFunction } from "@sveltejs/kit";
 import type { UserUstcIdentitySummary } from "@/features/settings/lib/ustc-identity";
 import type {
   AccountActivityPage,
   OwnAccountSecurityActivity,
 } from "@/features/settings/server/account-activity";
+import type { SubmitFunction } from "$app/forms";
 
 export type SettingsProfileCopy = {
   cancel: string;

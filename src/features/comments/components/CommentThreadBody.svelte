@@ -1,6 +1,6 @@
 <script lang="ts">
+import RenderedMarkdown from "#lib/components/RenderedMarkdown.svelte";
 import type { CommentNode } from "@/features/comments/server/comment-types";
-import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import CommentAttachmentCards from "./CommentAttachmentCards.svelte";
 import CommentLinkCards from "./CommentLinkCards.svelte";
 import CommentThreadEditForm from "./CommentThreadEditForm.svelte";

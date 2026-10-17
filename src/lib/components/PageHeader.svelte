@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { cn } from "$lib/utils.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { cn } from "#lib/utils.js";
 
 type Props = {
   actions?: Snippet;

@@ -1,11 +1,9 @@
-import type { SubmitFunction } from "@sveltejs/kit";
 import { writeClipboardText } from "@/lib/browser/clipboard";
+import type { SubmitFunction } from "$app/forms";
 import { toggleOAuthScope } from "./oauth-controller";
 
 export function createOAuthPageActions<
-  ClientShape extends {
-    clientId?: string | null;
-  },
+  ClientShape extends { clientId?: string | null },
 >(input: {
   getAuthMethods: () => string[];
   getCopy: () => Record<string, string>;
@@ -61,7 +59,7 @@ export function createOAuthPageActions<
     input.setIsCreatingClient(true);
     return async ({ result, update }) => {
       try {
-        await update();
+        await update({ navigate: false });
         if (result.type === "success") input.onSuccess?.("create");
       } finally {
         input.setIsCreatingClient(false);
@@ -73,7 +71,7 @@ export function createOAuthPageActions<
     input.setDeletingClientId(input.getPendingDeleteClient()?.clientId ?? null);
     return async ({ result, update }) => {
       try {
-        await update();
+        await update({ navigate: false });
         if (result.type === "success") input.onSuccess?.("delete");
         input.setPendingDeleteClient(null);
       } finally {

@@ -8,19 +8,23 @@ import type {
   SectionTeacherName,
   SectionTeachersLabel,
 } from "./section-basic-info-types";
+
 import type {
   SectionCalendarCopy,
   SectionCalendarEvent,
 } from "./section-calendar-tab-types";
+
 import type {
   SectionCreateHomeworkCommentsCopy,
   SectionCreateHomeworkCopy,
   SectionCreateHomeworkSectionCopy,
 } from "./section-create-homework-types";
+
 import type {
   BooleanSetter,
   FormatMessage,
 } from "./section-detail-component-types";
+
 import type {
   SectionHomeworkAuditLog,
   SectionHomeworkAuditLookup,
@@ -86,8 +90,7 @@ export type SectionDetailCopyText = (
 
 export type SectionDetailSubscriptionAction = (
   action: "subscribe" | "unsubscribe",
-) => import("@sveltejs/kit").SubmitFunction;
-
+) => import("$app/forms").SubmitFunction;
 export type SectionDetailSubscriptionPendingAction =
   | "subscribe"
   | "unsubscribe"

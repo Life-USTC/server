@@ -1,9 +1,8 @@
 <script lang="ts">
 import TrashIcon from "@lucide/svelte/icons/trash-2";
-import type { SubmitFunction } from "@sveltejs/kit";
-import { enhance } from "$app/forms";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import type {
   AdminOAuthClient,
   AdminOAuthCopy,

@@ -1,12 +1,12 @@
 <script lang="ts">
 import { diffWords } from "diff";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import type {
   DescriptionHistoryItem,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
 type DiffMode = "previous" | "next";
 type DiffSegment = {

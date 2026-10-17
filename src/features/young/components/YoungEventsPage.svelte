@@ -1,4 +1,12 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import ListPagination from "#lib/components/ListPagination.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventSummary,
@@ -7,15 +15,7 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { YoungEventsPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { page as appPage } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import ListPagination from "$lib/components/ListPagination.svelte";
-import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
+import { page as appPage } from "$app/state";
 import {
   groupYoungEventsByStartDate,
   youngCapacity,
@@ -48,15 +48,15 @@ const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
 function pageHref(targetPage: number) {
-  const params = new URLSearchParams($appPage.url.searchParams);
+  const params = new URLSearchParams(appPage.url.search);
   params.set("page", String(targetPage));
-  return `${$appPage.url.pathname}?${params}`;
+  return `${appPage.url.pathname}?${params}`;
 }
 
 const descriptionParts = $derived(
   youngCopy.description.split(youngCopy.platformName),
 );
-const locale = $derived($appPage.data.locale === "en-us" ? "en-us" : "zh-cn");
+const locale = $derived(appPage.data.locale === "en-us" ? "en-us" : "zh-cn");
 const groups = $derived(groupYoungEventsByStartDate(data));
 const summary = $derived(
   catalogShowingSummary(
@@ -83,13 +83,13 @@ function listDateTime(value: string | null | undefined) {
         nextLabel={commonLabels.next}
         nextPageLabel={commonLabels.nextPage}
         page={pagination.page}
-        {pageHref}
+        pageHref={pageHref}
         previousLabel={commonLabels.previous}
         previousPageLabel={commonLabels.previousPage}
         totalPages={pagination.totalPages}
       />
     {/if}
-    <YoungSourceNote labels={youngCopy} {source} />
+    <YoungSourceNote labels={youngCopy} source={source} />
   </div>
 {/snippet}
 
@@ -106,66 +106,76 @@ function listDateTime(value: string | null | undefined) {
     {@render description()}
   {/snippet}
   {#snippet toolbar()}
-      <YoungEventFilters {copy} {filters} {organizers} {categories} />
+    <YoungEventFilters
+      copy={copy}
+      filters={filters}
+      organizers={organizers}
+      categories={categories}
+    />
   {/snippet}
-    <section class="grid min-w-0 gap-3">
-      <ResultsSummary {summary} page={pagination.page} totalPages={pagination.totalPages} />
-      {#if data.length > 0}
-        <ResponsiveCollection>
-          {#snippet mobile()}
-            <div class="grid gap-6">
-              {#each groups as group (group.key || "unknown")}
-                <section class="grid gap-1">
+  <section class="grid min-w-0 gap-3">
+    <ResultsSummary
+      summary={summary}
+      page={pagination.page}
+      totalPages={pagination.totalPages}
+    />
+
+    {#if data.length > 0}
+      <ResponsiveCollection>
+        {#snippet mobile()}
+          <div class="grid gap-6">
+            {#each groups as group (group.key || "unknown")}
+              <section class="grid gap-1">
                   <h2 class="text-sm font-medium text-muted-foreground">
                     {youngListDayLabel(group.key, locale, youngCopy.unknownTime)}
                   </h2>
-                  <Item.Group class="gap-0" role="list">
-                    {#each group.events as event (event.youngId)}
-                      <div role="listitem">
-                        <Item.Root size="sm">
-                          {#snippet child({ props })}
-                            <a href={youngDetailHref(event.youngId)} {...props}>
-                              <Item.Content>
-                                <Item.Title>{event.name}</Item.Title>
+                <Item.Group class="gap-0" role="list">
+                  {#each group.events as event (event.youngId)}
+                    <div role="listitem">
+                      <Item.Root size="sm">
+                        {#snippet child({ props })}
+                          <a href={youngDetailHref(event.youngId)} {...props}>
+                            <Item.Content>
+                              <Item.Title>{event.name}</Item.Title>
                                 <p class="text-sm leading-normal text-muted-foreground">
-                                  <span>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</span>
+                                <span>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</span>
                                   {#if event.location}<span> · {event.location}</span>{/if}
                                   {#if event.category}<span> · {event.category}</span>{/if}
                                   {#if event.module}<span> · {event.module}</span>{/if}
                                   {#if event.activityLevel}<span> · {event.activityLevel}</span>{/if}
                                   {#if event.organizer}<span> · {event.organizer}</span>{/if}
-                                </p>
-                              </Item.Content>
-                              <Item.Actions>
+                              </p>
+                            </Item.Content>
+                            <Item.Actions>
                                 <Badge variant={event.isActive ? "default" : "outline"}>
                                   {event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}
                                 </Badge>
-                              </Item.Actions>
-                            </a>
-                          {/snippet}
-                        </Item.Root>
-                      </div>
-                    {/each}
-                  </Item.Group>
-                </section>
-              {/each}
-            </div>
-          {/snippet}
-          {#snippet desktop()}
-            <Table.Root>
-              <Table.Header>
+                            </Item.Actions>
+                          </a>
+                        {/snippet}
+                      </Item.Root>
+                    </div>
+                  {/each}
+                </Item.Group>
+              </section>
+            {/each}
+          </div>
+        {/snippet}
+        {#snippet desktop()}
+          <Table.Root>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>{youngCopy.eventName}</Table.Head>
+                <Table.Head>{youngCopy.eventTime}</Table.Head>
+                <Table.Head>{youngCopy.location}</Table.Head>
+                <Table.Head class="text-right" style="text-align: right">{youngCopy.capacity}</Table.Head>
+                <Table.Head>{youngCopy.status}</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each data as event (event.youngId)}
                 <Table.Row>
-                  <Table.Head>{youngCopy.eventName}</Table.Head>
-                  <Table.Head>{youngCopy.eventTime}</Table.Head>
-                  <Table.Head>{youngCopy.location}</Table.Head>
-                  <Table.Head class="text-right" style="text-align: right">{youngCopy.capacity}</Table.Head>
-                  <Table.Head>{youngCopy.status}</Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {#each data as event (event.youngId)}
-                  <Table.Row>
-                    <Table.Cell>
+                  <Table.Cell>
                       <a class="font-medium underline-offset-4 hover:underline" href={youngDetailHref(event.youngId)}>
                         <span>{event.name}</span>
                       </a>
@@ -173,24 +183,24 @@ function listDateTime(value: string | null | undefined) {
                       {#if event.module}<span class="block text-xs text-muted-foreground">{event.module}</span>{/if}
                       {#if event.activityLevel}<span class="block text-xs text-muted-foreground">{event.activityLevel}</span>{/if}
                       {#if event.organizer}<span class="block text-xs text-muted-foreground">{event.organizer}</span>{/if}
-                    </Table.Cell>
-                    <Table.Cell>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</Table.Cell>
-                    <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
+                  </Table.Cell>
+                  <Table.Cell>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</Table.Cell>
+                  <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
                     <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
-                    <Table.Cell>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Table.Cell>
-                  </Table.Row>
-                {/each}
-              </Table.Body>
-            </Table.Root>
-          {/snippet}
-        </ResponsiveCollection>
-      {:else}
-        <div class="py-10">
-          <ResultsEmpty
-            description={youngCopy.description}
-            title={youngCopy.noEventsFound}
-          />
-        </div>
-      {/if}
-    </section>
+                  <Table.Cell>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        {/snippet}
+      </ResponsiveCollection>
+    {:else}
+      <div class="py-10">
+        <ResultsEmpty
+          description={youngCopy.description}
+          title={youngCopy.noEventsFound}
+        />
+      </div>
+    {/if}
+  </section>
 </CollectionPage>

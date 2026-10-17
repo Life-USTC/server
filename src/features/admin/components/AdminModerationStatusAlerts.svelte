@@ -1,6 +1,6 @@
 <script lang="ts">
+import * as Alert from "#lib/components/ui/alert/index.js";
 import { formAlertVariant } from "@/features/admin/lib/moderation-display";
-import * as Alert from "$lib/components/ui/alert/index.js";
 
 export let form: { kind?: string; message?: string } | null | undefined;
 export let refreshError = "";

@@ -1,7 +1,7 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import { Button } from "$lib/components/ui/button/index.js";
 import CommentThreadItem from "./CommentThreadItem.svelte";
 import type {
   CommentThreadProps,

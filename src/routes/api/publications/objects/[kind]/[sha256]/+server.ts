@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getPublicPublicationObjectRoute } from "@/lib/api/routes/publication-public-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Read a verified object linked to a public publication revision.

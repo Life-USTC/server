@@ -1,15 +1,15 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import type { AppLocale } from "@/i18n/config";
 import {
   loadStoredThemeMode,
   SHELL_THEME_CHANGE_EVENT,
   setStoredThemeMode,
-} from "$lib/components/shell/app-shell-actions";
-import type { ThemeMode } from "$lib/components/shell/layout-shell";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
-import { setClientLocale } from "$lib/locale/client-locale";
+} from "#lib/components/shell/app-shell-actions.js";
+import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
+import { setClientLocale } from "#lib/locale/client-locale.js";
+import type { AppLocale } from "@/i18n/config";
 import type { SettingsCopy } from "./settings-component-types";
 
 export let copy: SettingsCopy;

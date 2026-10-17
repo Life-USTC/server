@@ -1,10 +1,10 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 
 type HomeworkAuditLog = {
   action: string;

@@ -1,7 +1,7 @@
 <script lang="ts">
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import type { LayoutCopy } from "$lib/shell/layout-server-data";
-import { cn } from "$lib/utils.js";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
+import { cn } from "#lib/utils.js";
 import type { ShellLink } from "./types";
 
 let {

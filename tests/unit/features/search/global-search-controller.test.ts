@@ -278,8 +278,7 @@ describe("createGlobalSearchController", () => {
 
     expect(goto).toHaveBeenCalledOnce();
     expect(goto).toHaveBeenCalledWith("/search?q=physics", {
-      keepFocus: true,
-      noScroll: true,
+      reset: false,
       replaceState: true,
     });
 

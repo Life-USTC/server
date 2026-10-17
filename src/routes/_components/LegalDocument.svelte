@@ -1,5 +1,5 @@
 <script lang="ts">
-import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
+import RenderedMarkdown from "#lib/components/RenderedMarkdown.svelte";
 
 export let content: {
   title: string;

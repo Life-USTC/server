@@ -1,16 +1,19 @@
 <script lang="ts">
-import { page } from "$app/stores";
-import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import AppShell from "$lib/components/shell/AppShell.svelte";
-import { Toaster } from "$lib/components/ui/sonner";
+import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import AppShell from "#lib/components/shell/AppShell.svelte";
+import { Toaster } from "#lib/components/ui/sonner/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import "./svelte.css";
 import type { LayoutData } from "./$types";
+
+const page = legacyPageStore();
 
 export let data: LayoutData;
 
 $: socialMetadata = $page.data.socialMetadata;
 $: documentTitle = socialMetadata?.title ?? "Life@USTC";
 </script>
+
 
 <svelte:head>
   <title>{documentTitle}</title>
@@ -25,9 +28,22 @@ $: documentTitle = socialMetadata?.title ?? "Life@USTC";
   <meta property="og:title" content={socialMetadata.title} />
   <meta property="og:description" content={socialMetadata.description} />
   <meta property="og:type" content={socialMetadata.type} />
-  <meta property="og:url" content={socialMetadata.canonicalUrl} />
-  <meta property="og:site_name" content={socialMetadata.siteName} />
-  <meta property="og:locale" content={socialMetadata.locale} />
+
+  <meta
+    property="og:url"
+    content={socialMetadata.canonicalUrl}
+  />
+
+  <meta
+    property="og:site_name"
+    content={socialMetadata.siteName}
+  />
+
+  <meta
+    property="og:locale"
+    content={socialMetadata.locale}
+  />
+
   <meta
     property="og:locale:alternate"
     content={socialMetadata.alternateLocale}
@@ -44,9 +60,7 @@ $: documentTitle = socialMetadata?.title ?? "Life@USTC";
   <meta name="twitter:image:alt" content={socialMetadata.image.alt} />
 </svelte:head>
 
-<AppShell {data}>
-  <slot />
-</AppShell>
+<AppShell data={data}><slot></slot></AppShell>
 
 <Toaster
   mobileOffset={{

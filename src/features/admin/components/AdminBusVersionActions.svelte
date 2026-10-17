@@ -1,12 +1,12 @@
 <script lang="ts">
 import CheckCircle from "@lucide/svelte/icons/check-circle";
 import Trash2 from "@lucide/svelte/icons/trash-2";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import TableRowActions from "#lib/components/TableRowActions.svelte";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import TableRowActions from "$lib/components/TableRowActions.svelte";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,

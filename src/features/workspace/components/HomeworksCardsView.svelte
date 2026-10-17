@@ -2,13 +2,13 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
 import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type HomeworkDateFormatter = (

@@ -1,8 +1,8 @@
 <script lang="ts">
+import MarkdownEditor from "#lib/components/MarkdownEditor.svelte";
+import * as Field from "#lib/components/ui/field/index.js";
 import { HOMEWORK_DESCRIPTION_MAX_LENGTH } from "@/features/homeworks/lib/homework-limits";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-import * as Field from "$lib/components/ui/field/index.js";
 import type {
   HomeworkFormCommentsCopy,
   HomeworkFormCopy,

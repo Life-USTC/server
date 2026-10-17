@@ -1,6 +1,6 @@
 <script lang="ts">
+import * as Accordion from "#lib/components/ui/accordion/index.js";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
-import * as Accordion from "$lib/components/ui/accordion/index.js";
 
 export let copy: HomeworkStyleGuideCopy;
 export let testIdPrefix: string;

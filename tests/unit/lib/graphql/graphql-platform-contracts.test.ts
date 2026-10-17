@@ -1,7 +1,7 @@
 import { createYoga } from "graphql-yoga";
 import { beforeEach, expect, it, vi } from "vitest";
 
-vi.mock("$app/environment", () => ({ dev: false }));
+vi.mock("$app/env", () => ({ dev: false }));
 
 const services = vi.hoisted(() => ({
   schedules: vi.fn(),

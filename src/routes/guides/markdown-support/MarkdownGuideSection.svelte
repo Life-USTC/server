@@ -1,6 +1,6 @@
 <script lang="ts">
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import MarkdownPreview from "#lib/components/MarkdownPreview.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
 
 export let index: number;
 export let previewTitle: string;

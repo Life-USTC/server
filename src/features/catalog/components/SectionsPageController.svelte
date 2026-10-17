@@ -1,13 +1,13 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import ListPagination from "#lib/components/ListPagination.svelte";
 import {
   catalogHref,
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import { page } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import ListPagination from "$lib/components/ListPagination.svelte";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   SectionListCommonLabels,
@@ -20,6 +20,8 @@ import type {
 } from "./catalog-section-list-types";
 import SectionsFilters from "./SectionsFilters.svelte";
 import SectionsResults from "./SectionsResults.svelte";
+
+const page = legacyPageStore();
 
 type SemesterOption = SectionListSemester & SectionListOptionSource;
 type PageData = {
@@ -40,15 +42,9 @@ type PageData = {
       loading: string;
       sections: string;
     };
-    sections: SectionListLabels & {
-      title: string;
-    };
+    sections: SectionListLabels & { title: string };
   };
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination: { page: number; total: number; totalPages: number };
 };
 
 export let data: PageData;
@@ -136,6 +132,7 @@ $: sectionActiveFilters = [
 ].filter(
   (filter): filter is { href: string; label: string } => filter !== null,
 );
+
 $: sectionHiddenFilters = Object.entries(
   sectionFilterParams({ ...data.filters, search: null }),
 )
@@ -146,7 +143,7 @@ $: sectionHiddenFilters = Object.entries(
   .map(([name, value]) => ({ name, value }));
 
 function pageHref(targetPage: number) {
-  return catalogListPageHref($page.url, targetPage);
+  return catalogListPageHref(new URL($page.url.href), targetPage);
 }
 
 function sectionFilterHref(overrides: Partial<SectionListFilters>) {
@@ -250,6 +247,7 @@ function sectionEmptyDescription() {
 }
 </script>
 
+
 {#snippet paginationFooter()}
   <ListPagination
     ariaLabel={commonLabels.pagination}
@@ -257,54 +255,54 @@ function sectionEmptyDescription() {
     nextLabel={commonLabels.next}
     nextPageLabel={commonLabels.nextPage}
     page={data.pagination.page}
-    {pageHref}
+    pageHref={pageHref}
     previousLabel={commonLabels.previous}
     previousPageLabel={commonLabels.previousPage}
-    {totalPages}
+    totalPages={totalPages}
   />
 {/snippet}
 
 <CollectionPage description={sectionLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={sectionLabels.title}>
   {#snippet toolbar()}
-        <CatalogFilters
-          activeFilters={sectionActiveFilters}
-          clearHref="/catalog/sections"
-          clearLabel={commonLabels.clear}
-          filterDescription={sectionLabels.filterDescription}
-          filterTitle={sectionLabels.summary.filters}
-          hiddenFilters={sectionHiddenFilters}
-          bind:open={isSectionFilterOpen}
-          searchId="mobile-section-search"
-          searchLabel={commonLabels.search}
-          searchPlaceholder={sectionLabels.searchPlaceholder}
-          bind:searchValue={sectionSearch}
-        >
-          <SectionsFilters
-            {campusOptions}
-            {categoryOptions}
-            {classTypeOptions}
-            clearHref="/catalog/sections"
-            {commonLabels}
-            {departmentOptions}
-            {educationLevelOptions}
-            filters={{ ...data.filters, search: sectionSearch }}
-            idPrefix="mobile-section"
-            onSubmit={() => {
-              isSectionFilterOpen = false;
-            }}
-            {sectionLabels}
-            {semesterOptions}
-          />
-        </CatalogFilters>
+    <CatalogFilters
+      activeFilters={sectionActiveFilters}
+      clearHref="/catalog/sections"
+      clearLabel={commonLabels.clear}
+      filterDescription={sectionLabels.filterDescription}
+      filterTitle={sectionLabels.summary.filters}
+      hiddenFilters={sectionHiddenFilters}
+      bind:open={isSectionFilterOpen}
+      searchId="mobile-section-search"
+      searchLabel={commonLabels.search}
+      searchPlaceholder={sectionLabels.searchPlaceholder}
+      bind:searchValue={sectionSearch}
+    >
+      <SectionsFilters
+        campusOptions={campusOptions}
+        categoryOptions={categoryOptions}
+        classTypeOptions={classTypeOptions}
+        clearHref="/catalog/sections"
+        commonLabels={commonLabels}
+        departmentOptions={departmentOptions}
+        educationLevelOptions={educationLevelOptions}
+        filters={{ ...data.filters, search: sectionSearch }}
+        idPrefix="mobile-section"
+        onSubmit={() => {
+          isSectionFilterOpen = false;
+        }}
+        sectionLabels={sectionLabels}
+        semesterOptions={semesterOptions}
+      />
+    </CatalogFilters>
   {/snippet}
 
-      <SectionsResults
-        data={sectionResultsData}
-        page={data.pagination.page}
-        {primaryName}
-        {sectionEmptyDescription}
-        {sectionLabels}
-        {selectedSemester}
-        {totalPages}
-      />
+  <SectionsResults
+    data={sectionResultsData}
+    page={data.pagination.page}
+    primaryName={primaryName}
+    sectionEmptyDescription={sectionEmptyDescription}
+    sectionLabels={sectionLabels}
+    selectedSemester={selectedSemester}
+    totalPages={totalPages}
+  />
 </CollectionPage>

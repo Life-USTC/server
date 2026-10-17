@@ -55,9 +55,9 @@ it("ui.list-table-2", { timeout: 15_000 }, async () => {
         )
           continue;
         if (
-          !statement.moduleSpecifier.text.endsWith(
-            "/browser/page-search-shortcut",
-          )
+          !statement.moduleSpecifier.text
+            .replace(/\.js$/, "")
+            .endsWith("/browser/page-search-shortcut")
         )
           continue;
         const bindings = statement.importClause?.namedBindings;

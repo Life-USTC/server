@@ -1,4 +1,11 @@
 <script lang="ts">
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import TruncatedCode from "#lib/components/TruncatedCode.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
@@ -7,20 +14,15 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import { page as appPage } from "$app/stores";
-import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
-import TruncatedCode from "$lib/components/TruncatedCode.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   CourseListLabels,
   CourseListResultData,
 } from "./catalog-course-list-types";
+
+const appPage = legacyPageStore();
 
 export let courseEmptyDescription: () => string;
 export let courseLabels: CourseListLabels;
@@ -42,88 +44,83 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
 );
 </script>
 
+
 <section class="grid min-w-0 gap-3">
-  <ResultsSummary summary={[courseSummaryBase, courseSearchSummary].filter(Boolean).join(" ")}
-
-    {page}
-
-    {totalPages}
+  <ResultsSummary
+    summary={[courseSummaryBase, courseSearchSummary].filter(Boolean).join(" ")}
+    page={page}
+    totalPages={totalPages}
   />
   {#if data.data.length > 0}
     <ResponsiveCollection>
       {#snippet mobile()}
-      <Item.Group class="gap-0" role="list">
-        {#each data.data as course, index}
-          {@const courseHref = `/catalog/courses/${course.jwId}`}
-          <div role="listitem">
-            <Item.Root size="sm">
-              {#snippet child({ props })}
-                <a href={courseHref} {...props}>
-                  <Item.Content>
-                    <Item.Title><CatalogEntityName item={course} {locale} /></Item.Title>
-                  </Item.Content>
-                  <Item.Actions>
-                    <TruncatedCode text={course.code} />
-                  </Item.Actions>
-                  <Item.Footer class="flex-wrap justify-start">
-                    <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
-                    <span>{course.category ? primaryName(course.category) : "-"}</span>
-                    <span>{course.classType ? primaryName(course.classType) : "-"}</span>
-                  </Item.Footer>
-                </a>
-              {/snippet}
-            </Item.Root>
-            {#if index < data.data.length - 1}
-              <Item.Separator />
-            {/if}
-          </div>
-        {/each}
-      </Item.Group>
+        <Item.Group class="gap-0" role="list">
+          {#each data.data as course, index}
+            {@const courseHref = `/catalog/courses/${course.jwId}`}
+            <div role="listitem">
+              <Item.Root size="sm">
+                {#snippet child({ props })}
+                  <a href={courseHref} {...props}>
+                    <Item.Content><Item.Title><CatalogEntityName item={course} locale={locale} /></Item.Title></Item.Content>
+                    <Item.Actions><TruncatedCode text={course.code} /></Item.Actions>
+
+                    <Item.Footer class="flex-wrap justify-start">
+                      <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
+                      <span>{course.category ? primaryName(course.category) : "-"}</span>
+                      <span>{course.classType ? primaryName(course.classType) : "-"}</span>
+                    </Item.Footer>
+                  </a>
+                {/snippet}
+              </Item.Root>
+              {#if index < data.data.length - 1}
+                <Item.Separator />
+              {/if}
+            </div>
+          {/each}
+        </Item.Group>
       {/snippet}
       {#snippet desktop()}
-      <Table.Root>
-        <Table.Header>
-          <Table.Row>
-            <Table.Head>{courseLabels.courseName}</Table.Head>
-            <Table.Head>{courseLabels.courseCode}</Table.Head>
-            <Table.Head>{courseLabels.educationLevel}</Table.Head>
-            <Table.Head>{courseLabels.category}</Table.Head>
-            <Table.Head>{courseLabels.classType}</Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {#each data.data as course}
-            {@const courseHref = `/catalog/courses/${course.jwId}`}
-            <Table.Row class="has-[a:hover]:bg-muted/50">
-              <Table.Cell class="p-0">
-                <CatalogTableLink class="font-medium" href={courseHref}>
+        <Table.Root>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>{courseLabels.courseName}</Table.Head>
+              <Table.Head>{courseLabels.courseCode}</Table.Head>
+              <Table.Head>{courseLabels.educationLevel}</Table.Head>
+              <Table.Head>{courseLabels.category}</Table.Head>
+              <Table.Head>{courseLabels.classType}</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {#each data.data as course}
+              {@const courseHref = `/catalog/courses/${course.jwId}`}
+              <Table.Row class="has-[a:hover]:bg-muted/50">
+                <Table.Cell class="p-0">
+                  <CatalogTableLink class="font-medium" href={courseHref}>
                   <TruncatedText class="font-medium"
-                    text={catalogLocalizedDisplayName(course, locale)}
-                  >
-                    {#snippet children()}<CatalogEntityName item={course} {locale} />{/snippet}
-                  </TruncatedText>
-                </CatalogTableLink>
-              </Table.Cell>
-              <Table.Cell>
-                <TruncatedCode text={course.code} />
-              </Table.Cell>
-              <Table.Cell>
-                {course.educationLevel
-                  ? primaryName(course.educationLevel)
-                  : "-"}
-              </Table.Cell>
-              <Table.Cell>
-                {course.category
-                  ? catalogLocalizedDisplayName(course.category, locale)
-                  : "-"}
-              </Table.Cell>
+                      text={catalogLocalizedDisplayName(course, locale)}
+                    >
+                      {#snippet children()}
+                        <CatalogEntityName item={course} locale={locale} />
+                      {/snippet}
+                    </TruncatedText>
+                  </CatalogTableLink>
+                </Table.Cell>
+
+                <Table.Cell><TruncatedCode text={course.code} /></Table.Cell>
+                <Table.Cell>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</Table.Cell>
+
+                <Table.Cell>
+                  {course.category
+                    ? catalogLocalizedDisplayName(course.category, locale)
+                    : "-"}
+                </Table.Cell>
               <Table.Cell>
                 {course.classType ? primaryName(course.classType) : "-"}
               </Table.Cell>
-            </Table.Row>
-          {/each}
-        </Table.Body>
-      </Table.Root>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
       {/snippet}
     </ResponsiveCollection>
   {:else}

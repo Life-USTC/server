@@ -1,13 +1,13 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
   WorkspaceCopy,
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 

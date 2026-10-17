@@ -1,12 +1,14 @@
 <script lang="ts">
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import { page } from "$app/stores";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
   SectionRelatedSummary,
   SectionTeachersLabel,
 } from "./section-basic-info-types";
+
+const page = legacyPageStore();
 
 export let notAvailable: string;
 export let section: SectionBasicInfo;
@@ -21,6 +23,7 @@ function semesterLabel(related: SectionRelatedSummary) {
     : notAvailable;
 }
 </script>
+
 
 {#if section.otherCourseSections.length > 0}
   <section class="grid gap-3">

@@ -1,13 +1,13 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type { BusUserPreferenceSummary } from "@/features/bus/lib/bus-types";
 import BusTab from "@/features/workspace/components/BusTab.svelte";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { invalidateAll } from "$app/navigation";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import * as Alert from "$lib/components/ui/alert";
-import { Button } from "$lib/components/ui/button";
-import { Skeleton } from "$lib/components/ui/skeleton";
 import type { PageData } from "./$types";
 
 export let data: PageData;

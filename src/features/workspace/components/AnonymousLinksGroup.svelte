@@ -1,11 +1,11 @@
 <script lang="ts">
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import {
   LINK_TABLE_CLASS,
   LINK_TABLE_NAME_COL,
 } from "@/features/workspace/lib/link-table-layout";
 import type { AnonymousLinkGroup } from "@/features/workspace/lib/workspace-controller-helpers";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Table from "$lib/components/ui/table/index.js";
 import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
 import CatalogLinkVisitAction from "./CatalogLinkVisitAction.svelte";
 

@@ -14,7 +14,6 @@
     "@hono/node-server": "1.19.15",
     "better-auth": "1.7.7",
     "body-parser": "2.3.0",
-    "cookie": "0.7.2",
     "fast-uri": "3.1.5",
     "graphql": "16.14.2",
     "hono": "4.12.34",
@@ -65,6 +64,7 @@
     "dayjs": "^1.11.23",
     "diff": "^9.0.0",
     "dotenv": "^17.4.2",
+    "esm-env": "^1.2.2",
     "graphql": "16.14.2",
     "graphql-yoga": "5.24.4",
     "ical-generator": "^11.1.2",
@@ -100,8 +100,8 @@
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/github": "^12.0.9",
     "@semantic-release/release-notes-generator": "^14.1.1",
-    "@sveltejs/adapter-cloudflare": "^7.2.9",
-    "@sveltejs/kit": "^2.70.3",
+    "@sveltejs/adapter-cloudflare": "^8.0.0",
+    "@sveltejs/kit": "^3.1.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.5.1",
@@ -128,5 +128,9 @@
   },
   "patchedDependencies": {
     "@better-auth/cimd@1.7.7": "patches/@better-auth%2Fcimd@1.7.7.patch"
+  },
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
   }
 }

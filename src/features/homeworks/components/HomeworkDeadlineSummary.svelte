@@ -1,10 +1,10 @@
 <script lang="ts">
+import { cn } from "#lib/utils.js";
 import type {
   HomeworkDateValue,
   HomeworkDeadlineState,
   HomeworkDetailModel,
 } from "@/features/homeworks/lib/homework-presentation";
-import { cn } from "$lib/utils.js";
 import type {
   HomeworkDetailCopy,
   HomeworkDetailDateFormatter,

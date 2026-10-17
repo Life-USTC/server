@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
 import type { AdminBusCopy, AdminBusVersion } from "./admin-bus-types";
 
 export let copy: AdminBusCopy;

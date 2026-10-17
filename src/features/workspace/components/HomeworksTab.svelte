@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createHomeworkTabDisplayActions } from "@/features/workspace/lib/homeworks-tab-display";
@@ -15,7 +15,7 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import { filterWorkspaceHomeworks } from "@/features/workspace/lib/workspace-homework-filter";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import type { SubmitFunction } from "$app/forms";
 import HomeworksCardsView from "./HomeworksCardsView.svelte";
 import HomeworksListView from "./HomeworksListView.svelte";
 import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
@@ -117,12 +117,12 @@ $: ({
     />
   {:else}
     <HomeworksTabToolbar
-      {homeworksCopy}
-      {homeworkFilter}
+      homeworksCopy={homeworksCopy}
+      homeworkFilter={homeworkFilter}
       onHomeworkFilterChange={(value) => {
         homeworkFilter = value;
       }}
-      {openCreateHomeworkDialog}
+      openCreateHomeworkDialog={openCreateHomeworkDialog}
     />
 
     {#if homeworkActionError}
@@ -133,67 +133,67 @@ $: ({
 
     <div class="md:hidden">
       <HomeworksCardsView
-        {locale}
+        locale={locale}
         unknownSemesterLabel={commonCopy.unknown}
-        {filteredHomeworkItems}
-        {hasHomeworkItems}
+        filteredHomeworkItems={filteredHomeworkItems}
+        hasHomeworkItems={hasHomeworkItems}
         onClearFilter={clearHomeworkFilter}
-        {fmtDate}
-        {homeworkCompletionActionLabel}
-        {homeworkCopy}
-        {homeworkEtaLabel}
-        {homeworkIsOverdue}
-        {homeworkSectionHref}
-        {homeworksCopy}
-        {homeworkSavingById}
+        fmtDate={fmtDate}
+        homeworkCompletionActionLabel={homeworkCompletionActionLabel}
+        homeworkCopy={homeworkCopy}
+        homeworkEtaLabel={homeworkEtaLabel}
+        homeworkIsOverdue={homeworkIsOverdue}
+        homeworkSectionHref={homeworkSectionHref}
+        homeworksCopy={homeworksCopy}
+        homeworkSavingById={homeworkSavingById}
         bind:selectedHomework
-        {toggleHomeworkCompletion}
+        toggleHomeworkCompletion={toggleHomeworkCompletion}
       />
     </div>
     <div class="hidden min-w-0 overflow-x-auto md:block">
       <HomeworksListView
-        {locale}
+        locale={locale}
         unknownSemesterLabel={commonCopy.unknown}
-        {filteredHomeworkItems}
-        {hasHomeworkItems}
+        filteredHomeworkItems={filteredHomeworkItems}
+        hasHomeworkItems={hasHomeworkItems}
         onClearFilter={clearHomeworkFilter}
-        {fmtDate}
-        {homeworkCompletionActionLabel}
-        {homeworkCopy}
-        {homeworkEtaLabel}
-        {homeworkIsOverdue}
-        {homeworkSectionHref}
-        {homeworksCopy}
-        {homeworkSavingById}
+        fmtDate={fmtDate}
+        homeworkCompletionActionLabel={homeworkCompletionActionLabel}
+        homeworkCopy={homeworkCopy}
+        homeworkEtaLabel={homeworkEtaLabel}
+        homeworkIsOverdue={homeworkIsOverdue}
+        homeworkSectionHref={homeworkSectionHref}
+        homeworksCopy={homeworksCopy}
+        homeworkSavingById={homeworkSavingById}
         bind:selectedHomework
-        {toggleHomeworkCompletion}
+        toggleHomeworkCompletion={toggleHomeworkCompletion}
       />
     </div>
 
     <HomeworksTabDialogs
-      {CommentsPanel}
-      {applyHomeworkDueAtSemesterEnd}
-      {applyHomeworkStartNow}
-      {commentsCopy}
-      {createHomeworkAction}
+      CommentsPanel={CommentsPanel}
+      applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
+      applyHomeworkStartNow={applyHomeworkStartNow}
+      commentsCopy={commentsCopy}
+      createHomeworkAction={createHomeworkAction}
       bind:createHomeworkAdvancedOpen
       bind:createHomeworkError
       bind:createHomeworkPublishedAt
       bind:createHomeworkSectionId
       bind:createHomeworkSubmissionDueAt
       bind:createHomeworkSubmissionStartAt
-      {homeworkCourseLabel}
-      {homeworksCopy}
-      {homeworkSavingById}
-      {homeworkSectionHref}
-      {homeworkSectionLabel}
-      {isCreatingHomework}
-      {locale}
-      {referenceDate}
+      homeworkCourseLabel={homeworkCourseLabel}
+      homeworksCopy={homeworksCopy}
+      homeworkSavingById={homeworkSavingById}
+      homeworkSectionHref={homeworkSectionHref}
+      homeworkSectionLabel={homeworkSectionLabel}
+      isCreatingHomework={isCreatingHomework}
+      locale={locale}
+      referenceDate={referenceDate}
       sections={signedData.homeworks.sections}
       bind:selectedHomework
       bind:showCreateHomework
-      {toggleHomeworkCompletion}
+      toggleHomeworkCompletion={toggleHomeworkCompletion}
     />
   {/if}
 </section>

@@ -1,8 +1,8 @@
 <script lang="ts">
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import type {
   SectionCopy,
   SectionHomework,

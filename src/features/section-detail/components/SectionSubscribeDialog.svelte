@@ -1,9 +1,8 @@
 <script lang="ts">
 import LinkIcon from "@lucide/svelte/icons/link-2";
-import type { SubmitFunction } from "@sveltejs/kit";
-import { enhance } from "$app/forms";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 
 export let close: () => void;
 export let commonCopy: {

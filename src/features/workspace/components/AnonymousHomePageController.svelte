@@ -7,9 +7,9 @@ import LinkIcon from "@lucide/svelte/icons/link";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import UsersIcon from "@lucide/svelte/icons/users";
 import type { Component } from "svelte";
-import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 
 type DestinationCopy = { description: string; title: string };
 

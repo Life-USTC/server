@@ -5,8 +5,8 @@ export type WorkspaceTaskCompletionFilter = "incomplete" | "completed" | "all";
 <script lang="ts">
 import Plus from "@lucide/svelte/icons/plus";
 import { onMount } from "svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 
 export let ariaLabel: string;
 export let filter: WorkspaceTaskCompletionFilter;

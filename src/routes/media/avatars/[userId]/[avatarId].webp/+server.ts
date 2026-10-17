@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getPublicProfileAvatar } from "@/features/profile/server/profile-avatar-service";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
+import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ params }) => {
   try {

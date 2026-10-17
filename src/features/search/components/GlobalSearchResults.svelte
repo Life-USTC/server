@@ -7,6 +7,12 @@ import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import RouteIcon from "@lucide/svelte/icons/route";
 import SearchXIcon from "@lucide/svelte/icons/search-x";
 import UsersIcon from "@lucide/svelte/icons/users";
+import TruncatedCode from "#lib/components/TruncatedCode.svelte";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import { Separator } from "#lib/components/ui/separator/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
+import { cn } from "#lib/utils.js";
 import {
   flattenSearchGroups,
   GLOBAL_SEARCH_LISTBOX_ID,
@@ -17,12 +23,6 @@ import type {
   GlobalSearchResultGroupType,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
-import TruncatedCode from "$lib/components/TruncatedCode.svelte";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import type { LayoutCopy } from "$lib/shell/layout-server-data";
-import { cn } from "$lib/utils.js";
 
 export let copy: LayoutCopy["globalSearch"];
 export let groups: GlobalSearchResultGroup[] = [];

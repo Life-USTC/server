@@ -1,13 +1,13 @@
 <script lang="ts">
-import FilterToolbar from "$lib/components/FilterToolbar.svelte";
-import SearchField from "$lib/components/SearchField.svelte";
+import FilterToolbar from "#lib/components/FilterToolbar.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
 import {
   toolbarControlClass,
   toolbarSelectClass,
-} from "$lib/components/toolbar-control";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+} from "#lib/components/toolbar-control.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 
 type FilterOption = {
   label: string;

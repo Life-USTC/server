@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
 
 export let hint: string | null | undefined = undefined;
 export let message: string;

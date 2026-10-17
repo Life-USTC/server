@@ -1,8 +1,8 @@
 <script lang="ts">
+import MarkdownEditor from "#lib/components/MarkdownEditor.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
 
 export let cancelEdit: () => void;
 export let copy: {

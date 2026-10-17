@@ -166,12 +166,22 @@ export type CloudflareRequestContext = {
   route: string;
 };
 
-const cloudflareRuntimeStorage =
-  new AsyncLocalStorage<CloudflareRuntimeContext>();
-
 const globalForCloudflareRuntime = globalThis as typeof globalThis & {
   __lifeUstcCloudflareRuntimeEnv?: CloudflareRuntimeEnv;
+  __lifeUstcCloudflareRuntimeStorage?: AsyncLocalStorage<CloudflareRuntimeContext>;
 };
+
+// The outer Worker entry (src/worker.js) and the SvelteKit server are separate
+// bundles, each with its own copy of this module. Keep the request-context
+// storage on globalThis so the SvelteKit hooks see the context the Worker
+// entry established — adapter-cloudflare 8 no longer passes `event.platform`,
+// and the `cloudflare:workers` module does not expose `ctx.exports`, which
+// the catalog cache invalidator needs.
+const cloudflareRuntimeStorage =
+  globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeStorage ??
+  new AsyncLocalStorage<CloudflareRuntimeContext>();
+globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeStorage =
+  cloudflareRuntimeStorage;
 
 function normalizeCloudflareRuntimeEnv(env: unknown) {
   return env && typeof env === "object"

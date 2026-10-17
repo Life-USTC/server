@@ -4,8 +4,8 @@
 		Button,
 		type ButtonVariant,
 		type ButtonSize,
-	} from "$lib/components/ui/button/index.js";
-	import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
+	} from "#lib/components/ui/button/index.js";
+	import { cn, type WithoutChildrenOrChild } from "#lib/utils.js";
 	import type { Snippet } from "svelte";
 
 	let {

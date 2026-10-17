@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
 
 export let title: string;
 export let description: string | undefined = undefined;

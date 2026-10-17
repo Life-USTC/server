@@ -1,11 +1,11 @@
 <script lang="ts">
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { buttonVariants } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { cn } from "#lib/utils.js";
 import { enhance } from "$app/forms";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { buttonVariants } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import { cn } from "$lib/utils.js";
 import type {
   SettingsCopy,
   SettingsDeleteAccountAction,

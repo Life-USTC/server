@@ -1,4 +1,5 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
 import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
@@ -6,7 +7,6 @@ import type {
   WorkspaceLinkPinAction,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
 import OverviewSection from "./OverviewSection.svelte";
 import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";

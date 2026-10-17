@@ -2,10 +2,9 @@
 import CalendarIcon from "@lucide/svelte/icons/calendar";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import LinkIcon from "@lucide/svelte/icons/link-2";
-import type { SubmitFunction } from "@sveltejs/kit";
-import { enhance } from "$app/forms";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 

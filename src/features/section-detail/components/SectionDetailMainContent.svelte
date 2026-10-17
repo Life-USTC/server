@@ -1,14 +1,14 @@
 <script lang="ts">
 import CalendarIcon from "@lucide/svelte/icons/calendar";
-import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Separator } from "#lib/components/ui/separator/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { cn } from "#lib/utils.js";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import { cn } from "$lib/utils.js";
+import type { SubmitFunction } from "$app/forms";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionDetailIdentity from "./SectionDetailIdentity.svelte";
@@ -59,6 +59,7 @@ let DescriptionCard:
 let CommentsPanel:
   | typeof import("@/features/comments/components/CommentsPanel.svelte").default
   | null = null;
+
 let SectionCalendarTab:
   | typeof import("./SectionCalendarTab.svelte").default
   | null = null;
@@ -149,11 +150,11 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     <div class="page-frame page-frame-content grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-10">
       <div class="min-w-0 lg:col-start-2 lg:row-start-1" data-detail-identity>
         <SectionDetailIdentity
-          {notAvailable}
-          {primaryName}
+          notAvailable={notAvailable}
+          primaryName={primaryName}
           section={displaySection}
-          {sectionCopy}
-          {teacherName}
+          sectionCopy={sectionCopy}
+          teacherName={teacherName}
           teachers={displaySection.teachers}
         />
       </div>
@@ -194,13 +195,12 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             </Button>
           </div>
           {#if SectionCalendarTab}
-            <svelte:component
-              this={SectionCalendarTab}
-              {roomMapCopy}
-              {sectionCalendarEvents}
-              {sectionCopy}
-              {unscheduledCalendarEvents}
-            />
+            <svelte:component this={SectionCalendarTab}
+              roomMapCopy={roomMapCopy}
+              sectionCalendarEvents={sectionCalendarEvents}
+              sectionCopy={sectionCopy}
+              unscheduledCalendarEvents={unscheduledCalendarEvents}
+             />
           {/if}
         </section>
 
@@ -212,11 +212,11 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             <svelte:component
               this={SectionExamSection}
               events={sectionExamEvents}
-              {fmtDate}
+              fmtDate={fmtDate}
               heading={sectionCopy.tabs.exams}
-              {roomMapCopy}
-              {sectionCopy}
-            />
+              roomMapCopy={roomMapCopy}
+              sectionCopy={sectionCopy}
+             />
           {/if}
         </section>
 
@@ -239,12 +239,11 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             {/if}
           </div>
           {#if SectionHomeworkTab}
-            <svelte:component
-              this={SectionHomeworkTab}
-              {fmtDateTime}
-              {homeworkCopy}
-              {homeworks}
-              {sectionCopy}
+            <svelte:component this={SectionHomeworkTab}
+              fmtDateTime={fmtDateTime}
+              homeworkCopy={homeworkCopy}
+              homeworks={homeworks}
+              sectionCopy={sectionCopy}
               selectHomework={setSelectedHomework}
             />
           {/if}
@@ -269,14 +268,14 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
 
       <aside class="min-w-0 lg:col-start-2 lg:row-start-2" id="overview">
         <SectionBasicInfoCard
-          {commonCopy}
-          {notAvailable}
-          {periodDetailRows}
-          {primaryName}
+          commonCopy={commonCopy}
+          notAvailable={notAvailable}
+          periodDetailRows={periodDetailRows}
+          primaryName={primaryName}
           section={displaySection}
-          {sectionCopy}
-          {sectionTeachersLabel}
-          {yesNo}
+          sectionCopy={sectionCopy}
+          sectionTeachersLabel={sectionTeachersLabel}
+          yesNo={yesNo}
         />
       </aside>
     </div>
@@ -296,10 +295,10 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}
         retired={data.section.retiredAt != null}
-        {sectionCopy}
+        sectionCopy={sectionCopy}
         stretched
-        {subscriptionAction}
-        {subscriptionPendingAction}
+        subscriptionAction={subscriptionAction}
+        subscriptionPendingAction={subscriptionPendingAction}
         viewer={viewer}
       />
     </div>

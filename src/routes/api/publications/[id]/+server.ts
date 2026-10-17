@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getPublicPublicationRoute } from "@/lib/api/routes/publication-public-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Get one public USTC news item or notice.

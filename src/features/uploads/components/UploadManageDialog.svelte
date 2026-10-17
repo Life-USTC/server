@@ -1,14 +1,14 @@
 <script lang="ts">
 import { untrack } from "svelte";
 import { toast } from "svelte-sonner";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { invalidateAll } from "$app/navigation";
-import * as Alert from "$lib/components/ui/alert";
-import * as AlertDialog from "$lib/components/ui/alert-dialog";
-import { Button } from "$lib/components/ui/button";
-import * as Dialog from "$lib/components/ui/dialog";
-import * as Field from "$lib/components/ui/field";
-import { Input } from "$lib/components/ui/input";
-import { Spinner } from "$lib/components/ui/spinner";
 import type { getUploadPageCopy } from "../server/upload-page-copy";
 
 let {

@@ -2,11 +2,11 @@
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import MenuIcon from "@lucide/svelte/icons/menu";
 import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
-import type { ShellLink } from "$lib/components/shell/types";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Sheet from "$lib/components/ui/sheet/index.js";
-import type { LayoutCopy } from "$lib/shell/layout-server-data";
+import type { ShellLink } from "#lib/components/shell/types.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Sheet from "#lib/components/ui/sheet/index.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 
 let {
   copy,

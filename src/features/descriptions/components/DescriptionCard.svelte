@@ -1,6 +1,10 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import {
   createDescriptionCardActions,
   type DescriptionData,
@@ -14,10 +18,6 @@ import type { AppLocale } from "@/i18n/config";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { invalidateAll } from "$app/navigation";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";

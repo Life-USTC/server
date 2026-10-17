@@ -4,10 +4,10 @@ import CheckIcon from "@lucide/svelte/icons/check";
 import CopyIcon from "@lucide/svelte/icons/copy";
 import DownloadIcon from "@lucide/svelte/icons/download";
 import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
-import { writeClipboardText } from "$lib/browser/clipboard";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import { writeClipboardText } from "#lib/browser/clipboard.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Tabs from "#lib/components/ui/tabs/index.js";
 
 type ClientCopy = {
   emptyAlt: string;

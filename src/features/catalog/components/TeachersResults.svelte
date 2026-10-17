@@ -1,4 +1,10 @@
 <script lang="ts">
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
@@ -7,13 +13,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import { page as appPage } from "$app/stores";
-import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
@@ -22,6 +22,8 @@ import type {
   TeacherListLabels,
   TeacherListRow,
 } from "./catalog-teacher-list-types";
+
+const appPage = legacyPageStore();
 
 export let commonLabels: TeacherListCommonLabels;
 export let filters: TeacherListFilters;
@@ -55,100 +57,102 @@ $: pageLabel = teacherLabels.pageOf
   .replace("{totalPages}", String(totalPages));
 </script>
 
+
 <section class="grid min-w-0 gap-3">
-  <ResultsSummary summary={[teacherSummaryBase, teacherSearchSummary, teacherDepartmentSummary].filter(Boolean).join(" ")}
-
-    {page}
-
-
-    {totalPages}
+  <ResultsSummary
+    summary={[
+      teacherSummaryBase,
+      teacherSearchSummary,
+      teacherDepartmentSummary
+    ].filter(Boolean).join(" ")}
+    page={page}
+    totalPages={totalPages}
   />
   {#if teachers.length > 0}
     <ResponsiveCollection>
       {#snippet mobile()}
-      <Item.Group class="gap-0" role="list">
-        {#each teachers as teacher, index}
-          {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-          <div role="listitem">
-            <Item.Root size="sm">
-              {#snippet child({ props })}
-                <a href={teacherHref} {...props}>
-                  <Item.Content>
-                    <Item.Title><CatalogEntityName item={teacher} {locale} /></Item.Title>
-                  </Item.Content>
-                  <Item.Actions>
-                    <span class="tabular-nums text-muted-foreground text-sm"
-                      >{teacher._count.sections}</span
+        <Item.Group class="gap-0" role="list">
+          {#each teachers as teacher, index}
+            {@const teacherHref = `/catalog/teachers/${teacher.id}`}
+            <div role="listitem">
+              <Item.Root size="sm">
+                {#snippet child({ props })}
+                  <a href={teacherHref} {...props}>
+                    <Item.Content><Item.Title><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
+                    <Item.Actions><span class="tabular-nums text-muted-foreground text-sm">{teacher._count.sections}</span></Item.Actions>
+
+                    <Item.Footer
+                      class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm"
                     >
-                  </Item.Actions>
-                  <Item.Footer class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm">
-                    {#if teacher.code}
-                      <span class="font-mono text-muted-foreground">{teacher.code}</span>
-                    {/if}
+                      {#if teacher.code}
+                        <span class="font-mono text-muted-foreground">{teacher.code}</span>
+                      {/if}
                     <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
                     <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
-                    <span>{teacher.email ?? "-"}</span>
-                  </Item.Footer>
-                </a>
-              {/snippet}
-            </Item.Root>
-          </div>
-          {#if index < teachers.length - 1}
-            <Item.Separator aria-hidden="true" />
-          {/if}
-        {/each}
-      </Item.Group>
+                      <span>{teacher.email ?? "-"}</span>
+                    </Item.Footer>
+                  </a>
+                {/snippet}
+              </Item.Root>
+            </div>
+            {#if index < teachers.length - 1}
+              <Item.Separator aria-hidden="true" />
+            {/if}
+          {/each}
+        </Item.Group>
       {/snippet}
       {#snippet desktop()}
-      <Table.Root class="">
-        <Table.Header>
-          <Table.Row>
-            <Table.Head>{teacherLabels.name}</Table.Head>
-            <Table.Head>{teacherLabels.code}</Table.Head>
-            <Table.Head>{teacherLabels.department}</Table.Head>
-            <Table.Head>{teacherLabels.title_label}</Table.Head>
-            <Table.Head>{teacherLabels.email}</Table.Head>
-            <Table.Head class="text-right">{teacherLabels.sections}</Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {#each teachers as teacher}
-            {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-            <Table.Row class="has-[a:hover]:bg-muted/50">
-              <Table.Cell class="p-0">
-                <CatalogTableLink class="font-medium" href={teacherHref}>
+        <Table.Root class="">
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>{teacherLabels.name}</Table.Head>
+              <Table.Head>{teacherLabels.code}</Table.Head>
+              <Table.Head>{teacherLabels.department}</Table.Head>
+              <Table.Head>{teacherLabels.title_label}</Table.Head>
+              <Table.Head>{teacherLabels.email}</Table.Head>
+              <Table.Head class="text-right">{teacherLabels.sections}</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {#each teachers as teacher}
+              {@const teacherHref = `/catalog/teachers/${teacher.id}`}
+              <Table.Row class="has-[a:hover]:bg-muted/50">
+                <Table.Cell class="p-0">
+                  <CatalogTableLink class="font-medium" href={teacherHref}>
                   <TruncatedText class="font-medium"
-                    text={catalogLocalizedDisplayName(teacher, locale)}
-                  >
-                    {#snippet children()}<CatalogEntityName item={teacher} {locale} />{/snippet}
-                  </TruncatedText>
-                </CatalogTableLink>
-              </Table.Cell>
+                      text={catalogLocalizedDisplayName(teacher, locale)}
+                    >
+                      {#snippet children()}
+                        <CatalogEntityName item={teacher} locale={locale} />
+                      {/snippet}
+                    </TruncatedText>
+                  </CatalogTableLink>
+                </Table.Cell>
               <Table.Cell class="whitespace-nowrap font-mono">
                 {teacher.code || "-"}
               </Table.Cell>
-              <Table.Cell>
-                <TruncatedText
-                  text={teacher.department
-                    ? primaryName(teacher.department)
-                    : teacherLabels.noDepartment}
-                />
-              </Table.Cell>
-              <Table.Cell>
-                {teacher.teacherTitle
-                  ? primaryName(teacher.teacherTitle)
-                  : commonLabels.unknown}
-              </Table.Cell>
+                <Table.Cell>
+                  <TruncatedText
+                    text={teacher.department
+                      ? primaryName(teacher.department)
+                      : teacherLabels.noDepartment}
+                  />
+                </Table.Cell>
+                <Table.Cell>
+                  {teacher.teacherTitle
+                    ? primaryName(teacher.teacherTitle)
+                    : commonLabels.unknown}
+                </Table.Cell>
               <Table.Cell>
                 <TruncatedText text={teacher.email ?? "-"} />
               </Table.Cell>
               <Table.Cell class="whitespace-nowrap text-right tabular-nums">
                 {teacher._count.sections}
               </Table.Cell>
-            </Table.Row>
-          {/each}
-        </Table.Body>
-      </Table.Root>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
       {/snippet}
     </ResponsiveCollection>
   {:else}

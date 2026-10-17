@@ -1,7 +1,9 @@
 <script lang="ts">
-import { page } from "$app/stores";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+
+const page = legacyPageStore();
 
 type ErrorCopy = {
   backHome: string;
@@ -29,6 +31,7 @@ $: title = isNotFound ? errorCopy.notFoundTitle : errorCopy.somethingWentWrong;
 $: description = isNotFound
   ? errorCopy.notFoundDescription
   : ($page.error?.message ?? errorCopy.error);
+
 $: backLabel =
   backHref === "/catalog/courses"
     ? ($page.data?.copy?.nav?.courses ?? errorCopy.backHome)

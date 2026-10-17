@@ -1,7 +1,7 @@
 <script lang="ts">
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import type {
   AdminModerationCopy,
   AdminModerationStatusOptions,

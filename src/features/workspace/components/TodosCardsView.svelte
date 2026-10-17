@@ -3,16 +3,16 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type {
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;

@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
 import type { AdminUserRow, AdminUsersCopy } from "./admin-user-types";
 
 export let copy: AdminUsersCopy;

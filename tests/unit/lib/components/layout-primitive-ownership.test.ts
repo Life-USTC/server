@@ -23,7 +23,7 @@ function walk(value: unknown, visitor: (node: Node) => void): void {
 function resolveModule(filename: string, module: string) {
   const resolved = module.startsWith("@/")
     ? `src/${module.slice(2)}`
-    : module.startsWith("$lib/")
+    : module.startsWith("#lib/")
       ? `src/lib/${module.slice(5)}`
       : module.startsWith(".")
         ? path.posix.join(path.posix.dirname(filename), module)

@@ -1,6 +1,8 @@
 <script lang="ts">
-import { page } from "$app/stores";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+
+const page = legacyPageStore();
 
 $: callbackPayload = {
   code: $page.url.searchParams.get("code"),

@@ -1,10 +1,10 @@
 <script lang="ts">
+import * as Kbd from "#lib/components/ui/kbd/index.js";
 import {
   isApplePlatform,
   pageSearchShortcutKeys,
 } from "@/lib/browser/page-search-shortcut";
-import { browser } from "$app/environment";
-import * as Kbd from "$lib/components/ui/kbd/index.js";
+import { browser } from "$app/env";
 
 $: keys = pageSearchShortcutKeys(browser && isApplePlatform());
 </script>

@@ -4,11 +4,11 @@ import CalendarIcon from "@lucide/svelte/icons/calendar";
 import {
   dateTimeLocalValue,
   parseDateTimeLocal,
-} from "$lib/components/date-time-picker-value";
-import { Calendar } from "$lib/components/ui/calendar/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import * as Popover from "$lib/components/ui/popover/index.js";
-import { cn } from "$lib/utils.js";
+} from "#lib/components/date-time-picker-value.js";
+import { Calendar } from "#lib/components/ui/calendar/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
+import * as Popover from "#lib/components/ui/popover/index.js";
+import { cn } from "#lib/utils.js";
 
 export let disabled = false;
 export let name: string | undefined = undefined;

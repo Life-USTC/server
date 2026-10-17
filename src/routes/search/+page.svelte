@@ -2,6 +2,9 @@
 import SearchIcon from "@lucide/svelte/icons/search";
 import { onMount } from "svelte";
 import { get } from "svelte/store";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
 import GlobalSearchResults from "@/features/search/components/GlobalSearchResults.svelte";
 import {
   GLOBAL_SEARCH_MAX_QUERY_LENGTH,
@@ -15,13 +18,12 @@ import {
   GLOBAL_SEARCH_LISTBOX_ID,
   globalSearchItemDomId,
 } from "@/features/search/lib/global-search-keyboard";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { afterNavigate, goto } from "$app/navigation";
-import { page } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import type { PageData } from "./$types";
+
+const page = legacyPageStore();
 
 export let data: PageData;
 
@@ -36,7 +38,7 @@ const search = createGlobalSearchController({
   }),
   limit: GLOBAL_SEARCH_PAGE_LIMIT,
   urlSync: {
-    getPageUrl: () => $page.url,
+    getPageUrl: () => new URL($page.url.href),
     goto,
   },
 });
@@ -70,7 +72,7 @@ onMount(() => {
     search.applyQueryFromUrl(currentQuery, true);
   });
   urlSyncMount = mountGlobalSearchUrlSync(search, {
-    getPageUrl: () => $page.url,
+    getPageUrl: () => new URL($page.url.href),
   });
   queueMicrotask(() => inputElement?.focus());
   return () => {
@@ -79,14 +81,14 @@ onMount(() => {
   };
 });
 
-afterNavigate(({ to }) => {
+afterNavigate(({ to, shallow, type }) => {
+  if (shallow && type === "goto") return;
+
   urlSyncMount?.handleAfterNavigate(to?.url);
 });
 </script>
 
-<svelte:head>
-  <title>{data.copy.pageTitle} - Life@USTC</title>
-</svelte:head>
+<svelte:head><title>{data.copy.pageTitle} - Life@USTC</title></svelte:head>
 
 <CollectionPage description={data.copy.pageDescription} title={data.copy.pageTitle}>
   {#snippet toolbar()}

@@ -1,7 +1,7 @@
 <script lang="ts">
+import * as Alert from "#lib/components/ui/alert/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
 import type {
   SectionCreateHomeworkCommentsCopy,
   SectionCreateHomeworkFieldsCopy,

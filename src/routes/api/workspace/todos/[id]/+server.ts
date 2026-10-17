@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { deleteTodoRoute, patchTodoRoute } from "@/lib/api/routes/todos";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Update one todo.

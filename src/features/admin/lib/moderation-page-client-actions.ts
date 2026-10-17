@@ -1,4 +1,4 @@
-import type { SubmitFunction } from "@sveltejs/kit";
+import type { SubmitFunction } from "$app/forms";
 
 export type PendingModerationServerAction =
   | "description"
@@ -16,7 +16,7 @@ export function createAdminActionEnhancer(input: {
       input.setPendingServerAction(action);
       return async ({ result, update }) => {
         try {
-          await update();
+          await update({ navigate: false });
           if (result.type === "success") onSuccess?.();
         } finally {
           input.setPendingServerAction(null);

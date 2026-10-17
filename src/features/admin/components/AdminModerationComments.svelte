@@ -1,5 +1,5 @@
 <script lang="ts">
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import AdminModerationCommentsMobile from "./AdminModerationCommentsMobile.svelte";
 import AdminModerationCommentsTable from "./AdminModerationCommentsTable.svelte";
 import type {

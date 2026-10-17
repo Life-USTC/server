@@ -134,7 +134,9 @@ export async function linkSettingsAccountAction({
       headers: request.headers,
       cookies,
     });
-    throw redirect(303, result.url);
+    // result.url is the configured OAuth provider's authorize endpoint;
+    // SvelteKit 3 requires an explicit opt-in for external redirects.
+    throw redirect(303, result.url, { external: true });
   } catch (error) {
     if (
       error &&

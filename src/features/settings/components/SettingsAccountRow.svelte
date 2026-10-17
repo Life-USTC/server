@@ -1,8 +1,8 @@
 <script lang="ts">
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import { enhance } from "$app/forms";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import SettingsUstcIdentityPanel from "./SettingsUstcIdentityPanel.svelte";
 import type {
   SettingsAccount,

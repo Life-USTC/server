@@ -1,6 +1,6 @@
 <script lang="ts">
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
 import AdminUsersMobileList from "./AdminUsersMobileList.svelte";
 import type {

@@ -1,10 +1,10 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import TruncatedCode from "#lib/components/TruncatedCode.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import TruncatedCode from "$lib/components/TruncatedCode.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Table from "$lib/components/ui/table/index.js";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
