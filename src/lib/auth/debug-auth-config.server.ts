@@ -1,5 +1,4 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
-import { allowE2EDebugAuth, isDevelopment } from "./auth-config";
 import {
   DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,
@@ -22,7 +21,6 @@ type DebugProviderDefaults = {
   name: string;
   emailEnv: string;
   passwordEnv: string;
-  password: string;
   isAdmin: boolean;
   imageSeed: string;
 };
@@ -36,7 +34,6 @@ const DEBUG_PROVIDER_DEFAULTS: Record<DebugProviderId, DebugProviderDefaults> =
       name: "Dev User",
       emailEnv: "DEV_DEBUG_EMAIL",
       passwordEnv: "DEV_DEBUG_PASSWORD",
-      password: "dev-debug-password",
       isAdmin: false,
       imageSeed: "life-ustc-dev-user",
     },
@@ -47,32 +44,24 @@ const DEBUG_PROVIDER_DEFAULTS: Record<DebugProviderId, DebugProviderDefaults> =
       name: "Dev Admin User",
       emailEnv: "DEV_ADMIN_EMAIL",
       passwordEnv: "DEV_ADMIN_PASSWORD",
-      password: "dev-admin-password",
       isAdmin: true,
       imageSeed: "life-ustc-dev-admin",
     },
   };
 
-function requiresExplicitDebugPassword() {
-  return allowE2EDebugAuth() && !isDevelopment();
-}
-
 function getLowercaseDebugEnv(envName: string, fallback: string) {
   return getOptionalTrimmedEnv(envName)?.toLowerCase() ?? fallback;
 }
 
-function getDebugPassword(envName: string, fallback: string) {
+function getDebugPassword(envName: string) {
   const value = getOptionalTrimmedEnv(envName);
-  if (requiresExplicitDebugPassword()) {
-    if (!value) {
-      throw new Error(
-        `${envName} is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)`,
-      );
-    }
+  if (value) {
     return value;
   }
 
-  return value || fallback;
+  throw new Error(
+    `${envName} is required for debug auth credentials; configure it via wrangler.dev.jsonc, wrangler.e2e.jsonc, or the active test harness`,
+  );
 }
 
 function buildDebugProviderConfig({
@@ -82,7 +71,6 @@ function buildDebugProviderConfig({
   name,
   emailEnv,
   passwordEnv,
-  password,
   isAdmin,
   imageSeed,
 }: DebugProviderDefaults): DebugProviderConfig {
@@ -92,7 +80,7 @@ function buildDebugProviderConfig({
     username,
     name: getOptionalTrimmedEnv(nameEnv) ?? name,
     email: getLowercaseDebugEnv(emailEnv, `${username}@debug.local`),
-    password: getDebugPassword(passwordEnv, password),
+    password: getDebugPassword(passwordEnv),
     isAdmin,
     image: `https://api.dicebear.com/9.x/shapes/svg?seed=${imageSeed}`,
   };

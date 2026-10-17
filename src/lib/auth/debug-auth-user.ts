@@ -1,6 +1,6 @@
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { createLocalAccountIssuer } from "./account-issuer";
-import { getDebugProviderConfig } from "./debug-auth-config";
+import { getDebugProviderConfig } from "./debug-auth-config.server";
 import type { DebugProviderId } from "./provider-ids";
 
 /**
