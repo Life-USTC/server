@@ -39,7 +39,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@/lib/catalog-runtime-cache", () => ({
+vi.mock("@/features/catalog/server/catalog-runtime-cache", () => ({
   cachedCatalogListRuntimeData: mocks.cacheList,
   cachedCatalogRuntimeData: (
     _namespace: string,

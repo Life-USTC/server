@@ -4,7 +4,7 @@ const { courseFindUniqueMock } = vi.hoisted(() => ({
   courseFindUniqueMock: vi.fn(),
 }));
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: vi.fn(async () => "test-revision"),
 }));
 

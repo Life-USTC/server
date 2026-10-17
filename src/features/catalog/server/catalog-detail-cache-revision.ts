@@ -1,8 +1,8 @@
+import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import {
   getCloudflareRuntimeContext,
   runCloudflareTraceSpan,
-} from "@/lib/adapters/cloudflare-runtime";
-import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
+} from "@/lib/ports/runtime";
 
 // Bump whenever a cached catalog payload changes shape or ordering, even if source data is unchanged.
 // Shared by list/detail L1, colo, and KV keys; never reuse an older payload revision.

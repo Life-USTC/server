@@ -95,7 +95,7 @@ vi.mock("@/lib/site-url", () => ({
   getCanonicalOrigin: () => "https://life.example",
 }));
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
 }));
 
@@ -122,7 +122,7 @@ vi.mock("@/lib/db/prisma", () => ({
     }),
 }));
 
-import { PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS } from "@/lib/catalog-runtime-cache";
+import { PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS } from "@/features/catalog/server/catalog-runtime-cache";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
 async function flushAsyncWork() {
@@ -700,7 +700,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
 test("bus.route-search-public-cache", async () => {
   const { getCatalogDetailCacheRevision } = await import(
-    "@/lib/catalog-detail-cache-revision"
+    "@/features/catalog/server/catalog-detail-cache-revision"
   );
   const { getBusRoutesSearchRoute } = await import("@/lib/api/routes/bus");
   const revision = vi.mocked(getCatalogDetailCacheRevision);

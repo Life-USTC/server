@@ -1,3 +1,4 @@
+import { cachedPublicDetailRuntimeData } from "@/features/catalog/server/catalog-detail-runtime-cache";
 import {
   buildSectionPageLoadData,
   SECTION_RELATED_PREVIEW_LIMIT,
@@ -6,7 +7,6 @@ import {
   sectionPageTeachersWithDepartmentSelect,
 } from "@/features/section-detail/server/section-page-shape";
 import type { AppLocale } from "@/i18n/config";
-import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 

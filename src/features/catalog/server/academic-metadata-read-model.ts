@@ -6,10 +6,10 @@ import {
   buildCurrentSemesterWhere,
   currentSemesterDateKey,
 } from "@/features/catalog/lib/current-semester";
+import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import type { Prisma, PrismaClient, Semester } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";
 import { paginatedQuery } from "@/lib/query-pagination";

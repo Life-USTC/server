@@ -29,7 +29,7 @@ vi.mock("@/lib/site-url", () => ({
   getCanonicalOrigin: () => "https://life.example",
 }));
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
 }));
 

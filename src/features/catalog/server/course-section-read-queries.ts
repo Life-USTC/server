@@ -8,6 +8,7 @@ import {
   teacherAssignmentPublicSelect,
   teacherPublicReferenceSelect,
 } from "@/features/catalog/server/academic-query-includes";
+import { cachedPublicDetailRuntimeData } from "@/features/catalog/server/catalog-detail-runtime-cache";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -15,7 +16,6 @@ import {
   type SectionDetailDto,
   sectionDetailSchema,
 } from "@/lib/api/schemas/academic-section-detail-response-schemas";
-import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";

@@ -1,4 +1,4 @@
-import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-runtime-cache";
+import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-edge-cache-tag";
 import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
 

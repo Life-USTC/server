@@ -1,4 +1,5 @@
 import { CATALOG_SEARCH_MIN_LENGTH } from "@/features/catalog/lib/catalog-list-query";
+import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import {
   searchCoursesForGlobal,
   searchSectionsForGlobal,
@@ -14,7 +15,6 @@ import type {
 import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
-import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";

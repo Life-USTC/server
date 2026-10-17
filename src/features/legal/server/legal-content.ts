@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/i18n/config";
-import enUsMessages from "../../messages/en-us.json";
-import zhCnMessages from "../../messages/zh-cn.json";
+import { renderMarkdown } from "@/lib/components/markdown-preview-renderer";
+import enUsMessages from "../../../../messages/en-us.json";
+import zhCnMessages from "../../../../messages/zh-cn.json";
 
 export type LegalSection = {
   title: string;
@@ -38,10 +39,21 @@ function legalContentToMdx(content: LegalMessageContent) {
   ].join("\n\n");
 }
 
-export function getLegalContent(locale: AppLocale, key: "privacy" | "terms") {
+export type LegalDocumentKey = "privacy" | "terms";
+
+export function getLegalContent(locale: AppLocale, key: LegalDocumentKey) {
   const content = legalMessages[locale][key];
   return {
     ...content,
     mdx: legalContentToMdx(content),
+  };
+}
+
+/** Legal page payload shared by `/privacy` and `/terms`: copy plus rendered HTML. */
+export function getLegalPageContent(locale: AppLocale, key: LegalDocumentKey) {
+  const content = getLegalContent(locale, key);
+  return {
+    ...content,
+    renderedHtml: renderMarkdown(content.mdx),
   };
 }
