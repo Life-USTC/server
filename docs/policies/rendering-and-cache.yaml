@@ -229,7 +229,9 @@ requirements:
     their root and leaf projections contain no private viewer or subscription state. Young event pages and
     section details stay reusable for at most 60 seconds and never past the next Asia/Shanghai midnight.
     Cache identity includes origin and locale; full invalidation drops only that origin's stored page and requests again. Clock-driven bus and weather pages,
-    the site root, workspace and other private routes are never stored. HTTP responses stay private, no-store.
+    the site root, workspace and other private routes are never stored. Admission rejects malformed or ambiguous paths.
+    Sign-out and leaving the document clear all tab entries; responses started before clearing or full invalidation
+    cannot repopulate the cache. HTTP responses stay private, no-store.
   acceptance:
     given: Actual browsers and a Worker serve successful public page data, private projections, cookie-setting
       responses, redirects, errors and deferred payloads, with two distinct session viewers and locales.
@@ -239,6 +241,7 @@ requirements:
     - Only explicitly attested successful public data is reused; root and leaf envelopes are viewer-independent.
     - Cookie-setting responses, private projections, redirects, errors, deferred streams and malformed data are fetched again.
     - Full invalidation drops the matching page; clock-sensitive entries expire at midnight without a grace interval.
+    - Sign-out and pagehide clear every stored tab navigation entry; outstanding responses cannot restore cleared entries.
     - Workspace retains its private server-rendered viewer and never uses the public tab cache.
     test:
       file: tests/e2e/src/app/cache-policy/public-navigation-admission.test.ts
