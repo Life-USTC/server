@@ -10,6 +10,7 @@ import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import {
   getCloudflareRequestContext,
   getCloudflareRuntimeTaskScheduler,
+  hasCloudflareRuntimeEnv,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
@@ -410,9 +411,6 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
 
 type CloudflareWorkersModule = {
   env?: unknown;
-  waitUntil?: (promise: Promise<unknown>) => void;
-  exports?: unknown;
-  tracing?: unknown;
 };
 
 let cloudflareWorkersModulePromise:
@@ -420,11 +418,11 @@ let cloudflareWorkersModulePromise:
   | undefined;
 
 /**
- * adapter-cloudflare 8 no longer provides `event.platform`: the Workers env
- * and execution context are exposed through the `cloudflare:workers` module
- * instead (during `vite dev` it is a virtual module backed by
- * `getPlatformProxy`). The import rejects outside a Workers runtime, such as
- * Vitest, where tests keep injecting a `platform` object on the event.
+ * adapter-cloudflare 8 no longer provides `event.platform`: the Workers env is
+ * exposed through the `cloudflare:workers` module instead (during `vite dev`
+ * it is a virtual module backed by `getPlatformProxy`). The import rejects
+ * outside a Workers runtime, such as Vitest, where tests keep injecting a
+ * `platform` object on the event.
  */
 function loadCloudflareWorkersModule() {
   cloudflareWorkersModulePromise ??= import("cloudflare:workers").then(
@@ -434,33 +432,22 @@ function loadCloudflareWorkersModule() {
   return cloudflareWorkersModulePromise;
 }
 
-function cloudflareExecutionContext(workers: CloudflareWorkersModule) {
-  let workerExports: unknown;
-  try {
-    // The dev stub's `exports` proxy throws on any property access; treat it
-    // as absent there so catalog cache invalidation falls back cleanly.
-    workerExports = (workers.exports as { PublicSsr?: unknown } | undefined)
-      ?.PublicSsr
-      ? workers.exports
-      : undefined;
-  } catch {
-    workerExports = undefined;
-  }
-  return {
-    waitUntil:
-      typeof workers.waitUntil === "function" ? workers.waitUntil : undefined,
-    exports: workerExports,
-    tracing: workers.tracing,
-  };
-}
-
 export const handle: Handle = async (input) => {
-  const workers = await loadCloudflareWorkersModule();
   const platform = input.event.platform as
     | { env?: unknown; context?: unknown; ctx?: unknown }
     | undefined;
+  // In the deployed Worker the entry (src/worker.js) has already established
+  // the shared runtime context with the per-request env and execution context
+  // (waitUntil, ctx.exports, tracing) it was invoked with, which test
+  // harnesses may have instrumented; inherit it instead of reading the
+  // `cloudflare:workers` module, which only exposes the raw bindings. The
+  // module is the env source for `vite dev`, where no Worker entry runs, and
+  // unit tests keep injecting `event.platform`.
+  const workers = hasCloudflareRuntimeEnv()
+    ? undefined
+    : await loadCloudflareWorkersModule();
   return await runWithCloudflareRuntimeEnv(
-    workers?.env ?? platform?.env,
+    platform?.env ?? workers?.env,
     () =>
       runWithObservability(
         () =>
@@ -472,9 +459,7 @@ export const handle: Handle = async (input) => {
               ),
         getCloudflareRuntimeTaskScheduler(),
       ),
-    workers
-      ? cloudflareExecutionContext(workers)
-      : (platform?.ctx ?? platform?.context),
+    platform?.ctx ?? platform?.context,
   );
 };
 
