@@ -12,7 +12,7 @@
  * ## Edge Cases
  * - Page works without authentication (public data)
  * - Empty state shown when no bus data is available
- * - Responsive: SVG scales within a height-capped aspect box
+ * - Responsive: SVG scales to the viewport under shell chrome
  */
 import { expect } from "@playwright/test";
 import {
@@ -96,15 +96,20 @@ test.describe("校车线路图", () => {
             paintOrder: label.getAttribute("paint-order"),
           };
         });
+        const canvas = svgElement.closest(".bus-map-canvas");
+        if (!canvas) throw new Error("Bus map canvas missing");
         return {
           campusLabelCount: campusLabels.length,
           campusLabelGeometry,
+          canvasHeight: canvas.getBoundingClientRect().height,
           labelHeights,
+          sectionHeight: section.getBoundingClientRect().height,
           sectionWidth: section.getBoundingClientRect().width,
           svgHeight: svgElement.getBoundingClientRect().height,
           svgWidth: svgElement.getBoundingClientRect().width,
           viewBoxHeight: svgElement.viewBox.baseVal.height,
           viewBoxWidth: svgElement.viewBox.baseVal.width,
+          viewportHeight: window.innerHeight,
         };
       });
 
@@ -113,7 +118,11 @@ test.describe("校车线路图", () => {
         geometry.viewBoxWidth / geometry.viewBoxHeight,
       ).toBeGreaterThanOrEqual(1.2 - 1e-6);
       expect(geometry.svgWidth).toBeLessThanOrEqual(geometry.sectionWidth + 1);
-      expect(geometry.svgHeight).toBeLessThanOrEqual(26 * 16 + 1);
+      expect(geometry.svgHeight).toBeLessThanOrEqual(geometry.canvasHeight + 1);
+      expect(geometry.sectionHeight).toBeGreaterThan(
+        geometry.viewportHeight * 0.55,
+      );
+      expect(geometry.svgWidth).toBeCloseTo(geometry.sectionWidth, 0);
       expect(geometry.svgHeight).toBeCloseTo(
         (geometry.svgWidth * geometry.viewBoxHeight) / geometry.viewBoxWidth,
         0,
@@ -149,6 +158,63 @@ test.describe("校车线路图", () => {
       );
 
       await expectNoPageHorizontalOverflow(page);
+    });
+  });
+
+  test("地图使用可用视口高度且随窗口缩放", { tag: "@Bus/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await gotoAndWaitForReady(page, "/catalog/bus/map");
+      const svg = page.locator('main svg[role="img"][aria-label]').first();
+      await expect(svg).toBeVisible();
+
+      for (const height of [1000, 600]) {
+        await page.setViewportSize({ width: 1440, height });
+        await expect(async () => {
+          const geometry = await svg.evaluate((node) => {
+            const map = node as SVGSVGElement;
+            const canvas = map.parentElement;
+            const section = map.closest("section");
+            const topbar = document.querySelector("[data-shell-topbar]");
+            if (!canvas || !section || !topbar)
+              throw new Error("Missing map layout");
+            return {
+              map: map.getBoundingClientRect().toJSON(),
+              canvas: canvas.getBoundingClientRect().toJSON(),
+              section: section.getBoundingClientRect().toJSON(),
+              topbar: topbar.getBoundingClientRect().toJSON(),
+              ratio: map.viewBox.baseVal.width / map.viewBox.baseVal.height,
+              padding:
+                2 *
+                Number.parseFloat(
+                  getComputedStyle(document.documentElement).fontSize,
+                ),
+            };
+          });
+          expect(geometry.section.height).toBeCloseTo(
+            height - geometry.topbar.height - geometry.padding,
+            0,
+          );
+          expect(geometry.map.height).toBeCloseTo(
+            Math.min(
+              geometry.canvas.height,
+              geometry.canvas.width / geometry.ratio,
+            ),
+            0,
+          );
+          expect(geometry.map.bottom).toBeLessThanOrEqual(height);
+          expect(geometry.map.width / geometry.map.height).toBeCloseTo(
+            geometry.ratio,
+            2,
+          );
+          if (height === 1000)
+            expect(geometry.map.height).toBeGreaterThan(26 * 16);
+        }).toPass({ timeout: 5_000 });
+        await expectNoPageHorizontalOverflow(page);
+      }
     });
   });
 

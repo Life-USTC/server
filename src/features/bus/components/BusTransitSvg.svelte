@@ -27,7 +27,7 @@ export let viewBox: MapViewBox;
 
 $: mapSizeStyle = [
   `aspect-ratio:${viewBox.width}/${viewBox.height}`,
-  `width:min(100%,calc(min(52vh,26rem)*${viewBox.width}/${viewBox.height}))`,
+  `width:min(100%,calc(100cqh*${viewBox.width}/${viewBox.height}))`,
 ].join(";");
 </script>
 
