@@ -111,7 +111,13 @@ jobs:
       - name: Resolve pinned Playwright version
         if: ${{ matrix.browser }}
         id: playwright-version
-        run: echo "version=$(jq -r '.overrides["playwright-core"]' package.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(jq -r '.overrides["playwright-core"]' package.json)
+          if [ -z "$version" ] || [ "$version" = "null" ]; then
+            echo '::error::The Playwright browser cache key needs the playwright-core override in package.json; restore the override or update this step to resolve the version another way.'
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browser downloads
         if: ${{ matrix.browser }}
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
