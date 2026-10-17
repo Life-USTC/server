@@ -1,12 +1,12 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import TableRowActions from "#lib/components/TableRowActions.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import TableRowActions from "$lib/components/TableRowActions.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Table from "$lib/components/ui/table/index.js";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 import type {
   ExamMetadataLabels,

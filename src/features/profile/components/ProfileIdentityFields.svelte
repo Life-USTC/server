@@ -1,10 +1,10 @@
 <script lang="ts">
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
 import {
   PROFILE_USERNAME_MAX_LENGTH,
   PROFILE_USERNAME_PATTERN,
 } from "@/features/profile/lib/profile-username";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
 import type {
   ProfileFormUser,
   ProfileIdentityCopy,

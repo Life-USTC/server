@@ -1,16 +1,16 @@
 <script lang="ts">
-import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import CalendarAgenda from "$lib/components/calendar/CalendarAgenda.svelte";
-import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
+import CalendarAgenda from "#lib/components/calendar/CalendarAgenda.svelte";
+import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
 import {
   toolbarControlClass,
   toolbarFieldClass,
-} from "$lib/components/toolbar-control";
-import { Button } from "$lib/components/ui/button";
-import * as Field from "$lib/components/ui/field";
-import { Input } from "$lib/components/ui/input";
-import * as ToggleGroup from "$lib/components/ui/toggle-group";
+} from "#lib/components/toolbar-control.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
+import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
   fetchPersonalCalendar,
   type PersonalCalendarItem,

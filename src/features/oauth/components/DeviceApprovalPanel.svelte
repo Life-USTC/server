@@ -1,11 +1,11 @@
 <script lang="ts">
 import CheckCircle from "@lucide/svelte/icons/check-circle";
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   DeviceApprovalRequest,
   DeviceCopy,

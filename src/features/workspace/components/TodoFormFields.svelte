@@ -1,4 +1,9 @@
 <script lang="ts">
+import DateTimePicker from "#lib/components/DateTimePicker.svelte";
+import MarkdownEditor from "#lib/components/MarkdownEditor.svelte";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import {
   TODO_CONTENT_MAX_LENGTH,
@@ -8,11 +13,6 @@ import type {
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import DateTimePicker from "$lib/components/DateTimePicker.svelte";
-import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 
 export let commentsCopy: CommentsCopy;
 export let contentValue = "";

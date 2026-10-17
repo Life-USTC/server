@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
 
 type Props = {
   children: Snippet;

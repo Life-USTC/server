@@ -1,6 +1,6 @@
 <script lang="ts">
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { cn } from "$lib/utils.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { cn } from "#lib/utils.js";
 import CalendarGridDayCell from "./CalendarGridDayCell.svelte";
 import type { CalendarGridWeek } from "./types";
 

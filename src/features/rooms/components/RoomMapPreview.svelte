@@ -5,13 +5,13 @@ import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
 import ZoomInIcon from "@lucide/svelte/icons/zoom-in";
 import ZoomOutIcon from "@lucide/svelte/icons/zoom-out";
 import { onDestroy, onMount } from "svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Popover from "$lib/components/ui/popover/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
-import { cn } from "$lib/utils.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Popover from "#lib/components/ui/popover/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import { cn } from "#lib/utils.js";
 import {
   formatRoomMapCopy,
   isRoomMapResult,

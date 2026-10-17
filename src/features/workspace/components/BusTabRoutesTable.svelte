@@ -2,6 +2,8 @@
 import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import { onMount } from "svelte";
+import * as Table from "#lib/components/ui/table/index.js";
+import { cn } from "#lib/utils.js";
 import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
 import {
@@ -9,8 +11,6 @@ import {
   busStopTimeLabel,
   busTripStopTimeForOrder,
 } from "@/features/workspace/lib/bus";
-import * as Table from "$lib/components/ui/table/index.js";
-import { cn } from "$lib/utils.js";
 
 export let busNextTripHighlightKey: string | null;
 export let routes: BusApplicableRoute[];

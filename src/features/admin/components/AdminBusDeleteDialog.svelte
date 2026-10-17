@@ -1,8 +1,8 @@
 <script lang="ts">
 import Trash2 from "@lucide/svelte/icons/trash-2";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,

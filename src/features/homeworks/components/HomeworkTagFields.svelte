@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import type { HomeworkTagCopy } from "./homework-form-types";
 
 export let copy: HomeworkTagCopy;

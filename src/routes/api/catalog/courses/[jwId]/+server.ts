@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getCourseDetailRoute } from "@/lib/api/routes/academic-course-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Get course.

@@ -3,8 +3,8 @@ import ArrowRightIcon from "@lucide/svelte/icons/arrow-right";
 import BotIcon from "@lucide/svelte/icons/bot";
 import QrCodeIcon from "@lucide/svelte/icons/qr-code";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Popover from "$lib/components/ui/popover/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Popover from "#lib/components/ui/popover/index.js";
 
 type GuideKind = "bot" | "cli";
 

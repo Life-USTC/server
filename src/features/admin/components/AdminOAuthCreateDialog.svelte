@@ -1,15 +1,14 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { Textarea } from "#lib/components/ui/textarea/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
 import { buildOAuthScopesPickerCopy } from "@/features/oauth/lib/oauth-scopes-picker-copy";
-import { enhance } from "$app/forms";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import { Textarea } from "$lib/components/ui/textarea/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import type { AdminOAuthCopy } from "./admin-oauth-client-types";
 import type {
   AuthPatternOption,
@@ -67,60 +66,60 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
       >
         <Field.Group class="min-h-0 flex-1 gap-4 overflow-hidden">
           <div class="min-h-0 flex-1 overflow-y-auto px-1">
-          <Field.Set>
-            <Field.Group>
-              <Field.Field>
+            <Field.Set>
+              <Field.Group>
+                <Field.Field>
                 <Field.Title id="admin-oauth-auth-pattern-label">
                   {copy.clientType}
                 </Field.Title>
-                <Field.Description>{copy.createFlowIntro}</Field.Description>
-                <ToggleGroup.Root
-                  aria-labelledby="admin-oauth-auth-pattern-label"
-                  class="grid w-full gap-2 sm:grid-cols-3"
-                  spacing={2}
-                  type="single"
-                  required
-                  value={selectedAuthMethod}
-                  variant="outline"
-                  onValueChange={(value) => {
-                    if (typeof value === "string" && value) {
-                      selectedAuthMethod = value;
-                    }
-                  }}
-                >
-                  {#each authPatterns as option}
-                    <ToggleGroup.Item
-                      class="h-auto min-h-10 w-full whitespace-normal px-3 py-2"
-                      value={option.value}
+                  <Field.Description>{copy.createFlowIntro}</Field.Description>
+                  <ToggleGroup.Root
+                    aria-labelledby="admin-oauth-auth-pattern-label"
+                    class="grid w-full gap-2 sm:grid-cols-3"
+                    spacing={2}
+                    type="single"
+                    required
+                    value={selectedAuthMethod}
+                    variant="outline"
+                    onValueChange={(value) => {
+                      if (typeof value === "string" && value) {
+                        selectedAuthMethod = value;
+                      }
+                    }}
+                  >
+                    {#each authPatterns as option}
+                      <ToggleGroup.Item
+                        class="h-auto min-h-10 w-full whitespace-normal px-3 py-2"
+                        value={option.value}
                     >
                       {oauthCopy(option.titleKey)}
                     </ToggleGroup.Item>
-                  {/each}
-                </ToggleGroup.Root>
-                <input
-                  type="hidden"
-                  name="tokenEndpointAuthMethod"
-                  value={selectedAuthMethod}
-                />
+                    {/each}
+                  </ToggleGroup.Root>
+                  <input
+                    type="hidden"
+                    name="tokenEndpointAuthMethod"
+                    value={selectedAuthMethod}
+                  />
                 <Field.Description aria-live="polite">
                   {oauthCopy(selectedAuthPattern.descriptionKey)}
                 </Field.Description>
-              </Field.Field>
+                </Field.Field>
 
-              <Field.Field>
+                <Field.Field>
                 <Field.Label for="admin-oauth-client-name">
                   {copy.clientName}
                 </Field.Label>
-                <Input
-                  id="admin-oauth-client-name"
-                  name="name"
-                  autocomplete="off"
-                  placeholder={copy.clientNamePlaceholder}
-                  required
-                />
-              </Field.Field>
+                  <Input
+                    id="admin-oauth-client-name"
+                    name="name"
+                    autocomplete="off"
+                    placeholder={copy.clientNamePlaceholder}
+                    required
+                  />
+                </Field.Field>
 
-              <Field.Field>
+                <Field.Field>
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <Field.Label for="admin-oauth-redirect-uris">
                     {copy.redirectUris}
@@ -128,34 +127,34 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
                   <Field.Description aria-live="polite">
                     {redirectCountLabel(parsedRedirectUris.length)}
                   </Field.Description>
-                </div>
-                <Textarea
-                  id="admin-oauth-redirect-uris"
-                  bind:value={redirectDraft}
-                  class="min-h-24"
-                  name="redirectUris"
-                  placeholder={copy.redirectUrisPlaceholder}
-                  required
-                />
-                <Field.Description>{copy.redirectUrisHint}</Field.Description>
-              </Field.Field>
+                  </div>
+                  <Textarea
+                    id="admin-oauth-redirect-uris"
+                    bind:value={redirectDraft}
+                    class="min-h-24"
+                    name="redirectUris"
+                    placeholder={copy.redirectUrisPlaceholder}
+                    required
+                  />
+                  <Field.Description>{copy.redirectUrisHint}</Field.Description>
+                </Field.Field>
 
-              <OAuthScopesPicker
-                copy={scopesPickerCopy}
-                idPrefix="admin-oauth-scope"
-                items={scopeItems}
-                {selectedScopes}
-                onSelectedChange={(next) => {
-                  selectedScopes = next;
-                }}
-              />
-              {#each selectedScopes as scope}
-                <input type="hidden" name="scopes" value={scope} />
-              {/each}
-            </Field.Group>
-          </Field.Set>
-        </div>
-      </Field.Group>
+                <OAuthScopesPicker
+                  copy={scopesPickerCopy}
+                  idPrefix="admin-oauth-scope"
+                  items={scopeItems}
+                  selectedScopes={selectedScopes}
+                  onSelectedChange={(next) => {
+                    selectedScopes = next;
+                  }}
+                />
+                {#each selectedScopes as scope}
+                  <input type="hidden" name="scopes" value={scope} />
+                {/each}
+              </Field.Group>
+            </Field.Set>
+          </div>
+        </Field.Group>
 
       <Dialog.Footer>
           <Button

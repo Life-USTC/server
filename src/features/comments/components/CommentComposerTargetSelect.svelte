@@ -1,7 +1,7 @@
 <script lang="ts">
+import * as Field from "#lib/components/ui/field/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   CommentSelectOption,
   CommentsCopy,

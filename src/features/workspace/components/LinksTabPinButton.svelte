@@ -1,12 +1,12 @@
 <script lang="ts">
 import Pin from "@lucide/svelte/icons/pin";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 import type {
   WorkspaceLinkPinAction,
   WorkspaceLinkPinSubmit,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 
 export let link: WorkspaceOverviewLinkItem;
 export let linkReturnTo: string;

@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 import type { Action } from "svelte/action";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import { cn } from "$lib/utils.js";
+import * as Tooltip from "#lib/components/ui/tooltip/index.js";
+import { cn } from "#lib/utils.js";
 
 export let text: string | number | null | undefined;
 export let lines: 1 | 2 = 1;

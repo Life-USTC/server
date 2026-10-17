@@ -1,17 +1,17 @@
 <script lang="ts">
 import { untrack } from "svelte";
-import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { page } from "$app/stores";
-import ActiveFilters from "$lib/components/ActiveFilters.svelte";
-import FilterToolbar from "$lib/components/FilterToolbar.svelte";
-import SearchField from "$lib/components/SearchField.svelte";
+import ActiveFilters from "#lib/components/ActiveFilters.svelte";
+import FilterToolbar from "#lib/components/FilterToolbar.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
 import {
   toolbarControlClass,
   toolbarSelectClass,
-} from "$lib/components/toolbar-control";
-import { Button } from "$lib/components/ui/button";
-import * as Field from "$lib/components/ui/field";
-import * as NativeSelect from "$lib/components/ui/native-select";
+} from "#lib/components/toolbar-control.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { page } from "$app/state";
 import { removeYoungFilter } from "../lib/young-navigation";
 import type { YoungOrganizerSummary } from "../server/young-event-service";
 import type { YoungEventsPageFilters } from "../server/young-page-load";
@@ -77,6 +77,7 @@ $effect(() => {
     };
   }
 });
+
 const unknownModule = $derived(
   Boolean(advancedDraft.module) && !modules.includes(advancedDraft.module),
 );
@@ -84,10 +85,10 @@ const unknownLevel = $derived(
   Boolean(advancedDraft.activityLevel) &&
     !levels.includes(advancedDraft.activityLevel),
 );
-
 const activeCount = $derived(
   advancedKeys.filter((key) => Boolean(filters[key])).length,
 );
+
 const activeFilters = $derived(
   [
     { key: "search", label: filters.search },
@@ -128,7 +129,7 @@ const activeFilters = $derived(
       Boolean(item.label),
     )
     .map((item) => ({
-      href: removeYoungFilter($page.url, item.key),
+      href: removeYoungFilter(new URL(page.url.href), item.key),
       label: item.label,
       removeLabel: labels.removeFilter.replace("{value}", item.label),
     })),
@@ -143,9 +144,14 @@ const activeFilters = $derived(
   {#if filters.dateUnknown != null}<input type="hidden" name="dateUnknown" value={String(filters.dateUnknown)} />{/if}
 {/snippet}
 
-<FilterToolbar bind:open {activeCount} filterTitle={labels.moreFilters} filterDescription={labels.description}>
+<FilterToolbar
+  bind:open
+  activeCount={activeCount}
+  filterTitle={labels.moreFilters}
+  filterDescription={labels.description}
+>
   {#snippet primary()}
-    <form {action} method="get" class="contents">
+    <form action={action} method="get" class="contents">
       {@render browseContext()}
       {#each advancedKeys as key}
         {#if filters[key]}<input type="hidden" name={key} value={filters[key]} />{/if}
@@ -178,7 +184,7 @@ const activeFilters = $derived(
     </form>
   {/snippet}
   {#snippet advanced()}
-    <form {action} method="get" class="grid gap-5">
+    <form action={action} method="get" class="grid gap-5">
       {@render browseContext()}
       <input type="hidden" name="search" value={searchDraft} />
       <input type="hidden" name="active" value={activeDraft} />
@@ -224,4 +230,10 @@ const activeFilters = $derived(
     </form>
   {/snippet}
 </FilterToolbar>
-<ActiveFilters items={activeFilters} ariaLabel={labels.activeFilters} {clearHref} clearLabel={copy.common.clear} />
+
+<ActiveFilters
+  items={activeFilters}
+  ariaLabel={labels.activeFilters}
+  clearHref={clearHref}
+  clearLabel={copy.common.clear}
+/>

@@ -1,5 +1,5 @@
-import type { SubmitFunction } from "@sveltejs/kit";
-import { redirectWithExternalFallback } from "$lib/navigation/redirect";
+import { redirectWithExternalFallback } from "#lib/navigation/redirect.js";
+import type { SubmitFunction } from "$app/forms";
 
 export function createSettingsAccountAction(input: {
   setPendingAccountAction: (
@@ -18,7 +18,7 @@ export function createSettingsAccountAction(input: {
             await redirectWithExternalFallback(result.location);
             return;
           }
-          await update({ reset: false });
+          await update({ navigate: false, reset: false });
         } finally {
           input.setPendingAccountAction(null);
         }
@@ -34,7 +34,7 @@ export function createDeleteAccountAction(input: {
     input.setDeletingAccount(true);
     return async ({ update }) => {
       try {
-        await update();
+        await update({ navigate: false });
       } finally {
         input.setDeletingAccount(false);
       }

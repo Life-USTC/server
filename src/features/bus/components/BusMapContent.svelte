@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Empty from "#lib/components/ui/empty/index.js";
 import BusMapPageHeader from "@/features/bus/components/BusMapPageHeader.svelte";
 import BusTransitSvg from "@/features/bus/components/BusTransitSvg.svelte";
 import type {
@@ -7,7 +8,6 @@ import type {
   BusMapDayTypeLabels,
 } from "@/features/bus/lib/bus-map-types";
 import { buildBusMapViewState } from "@/features/bus/lib/bus-map-view-state";
-import * as Empty from "$lib/components/ui/empty/index.js";
 
 export let copy: BusMapCopy;
 export let dayTypeLabels: BusMapDayTypeLabels;

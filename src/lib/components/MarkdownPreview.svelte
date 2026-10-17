@@ -1,9 +1,9 @@
 <script lang="ts">
 import type { PluggableList } from "unified";
-import { renderEmbeddedMarkdown } from "$lib/components/markdown-preview-renderer";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import { cn } from "$lib/utils.js";
-import "$lib/components/markdown-preview.css";
+import { renderEmbeddedMarkdown } from "#lib/components/markdown-preview-renderer.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import { cn } from "#lib/utils.js";
+import "#lib/components/markdown-preview.css";
 import "katex/dist/katex.min.css";
 
 export let content = "";

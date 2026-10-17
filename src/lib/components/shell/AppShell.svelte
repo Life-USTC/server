@@ -25,24 +25,21 @@ import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount, setContext } from "svelte";
 import { writable } from "svelte/store";
-import AdminMobileNav from "@/features/admin/components/AdminMobileNav.svelte";
-import { afterNavigate, goto } from "$app/navigation";
-import { navigating, page } from "$app/stores";
-import { shouldRedirectIncompleteProfileToWelcome } from "$lib/auth/auth-routing";
+import { shouldRedirectIncompleteProfileToWelcome } from "#lib/auth/auth-routing.js";
 import {
   isApplePlatform,
   isGlobalSearchShortcut,
-} from "$lib/browser/page-search-shortcut";
-import AppFooter from "$lib/components/shell/AppFooter.svelte";
+} from "#lib/browser/page-search-shortcut.js";
+import AppFooter from "#lib/components/shell/AppFooter.svelte";
 import AppSidebar, {
   type SectionSidebar,
-} from "$lib/components/shell/AppSidebar.svelte";
-import AppTopbar from "$lib/components/shell/AppTopbar.svelte";
+} from "#lib/components/shell/AppSidebar.svelte";
+import AppTopbar from "#lib/components/shell/AppTopbar.svelte";
 import {
   loadStoredThemeMode,
   SHELL_THEME_CHANGE_EVENT,
   setStoredThemeMode,
-} from "$lib/components/shell/app-shell-actions";
+} from "#lib/components/shell/app-shell-actions.js";
 import {
   applyShellTheme,
   buildFooterLinks,
@@ -53,27 +50,33 @@ import {
   shouldShowAppFooter,
   shouldUseFocusedShell,
   type ThemeMode,
-} from "$lib/components/shell/layout-shell";
-import MobilePrimaryNav from "$lib/components/shell/MobilePrimaryNav.svelte";
-import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { setClientLocale } from "$lib/locale/client-locale";
+} from "#lib/components/shell/layout-shell.js";
+import MobilePrimaryNav from "#lib/components/shell/MobilePrimaryNav.svelte";
+import RouteLoadingBar from "#lib/components/shell/RouteLoadingBar.svelte";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
+import { setClientLocale } from "#lib/locale/client-locale.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
-} from "$lib/shell/layout-server-data";
+} from "#lib/shell/layout-server-data.js";
 import {
   type ClientShellNavigationType,
   getClientShellBootstrap,
   shouldRequestClientShellBootstrap,
   type WorkspaceNavigationSummary,
   workspaceNavigationFromPageData,
-} from "$lib/shell/shell-bootstrap";
+} from "#lib/shell/shell-bootstrap.js";
 import {
   SHELL_VIEWER_CONTEXT,
   type ShellViewerState,
-} from "$lib/shell/shell-viewer";
-import { cn } from "$lib/utils.js";
+} from "#lib/shell/shell-viewer.js";
+import { cn } from "#lib/utils.js";
+import AdminMobileNav from "@/features/admin/components/AdminMobileNav.svelte";
+import {
+  legacyNavigatingStore,
+  legacyPageStore,
+} from "@/lib/navigation/legacy-page-stores";
+import { afterNavigate, goto } from "$app/navigation";
 import {
   buildDetailSecondaryLinks,
   currentNewsItem,
@@ -82,15 +85,18 @@ import {
 } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
 
+const navigating = legacyNavigatingStore();
+const page = legacyPageStore();
+
 if (typeof window !== "undefined") {
   const originalFetch = window.fetch.bind(window);
   let navigationCache:
-    | Promise<typeof import("$lib/shell/public-navigation-cache")>
+    | Promise<typeof import("#lib/shell/public-navigation-cache.js")>
     | undefined;
   window.fetch = (input, init) => {
     const raw = input instanceof Request ? input.url : String(input);
     if (!raw.includes("__data.json")) return originalFetch(input, init);
-    navigationCache ??= import("$lib/shell/public-navigation-cache");
+    navigationCache ??= import("#lib/shell/public-navigation-cache.js");
     const locale =
       document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]*)/)?.[1] ?? "";
     return navigationCache.then(({ cachedPublicNavigationFetch }) =>
@@ -436,7 +442,13 @@ function buildShellNavGroups(
         },
       ],
     },
-    { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
+
+    {
+      href: "/catalog/links",
+      icon: LinkIcon,
+      label: copy.nav.links,
+    },
+
     {
       href: "/catalog/young-events",
       icon: SparklesIcon,
@@ -546,6 +558,7 @@ function buildShellNavGroups(
         },
       ],
     },
+
     {
       defaultOpen: true,
       label: copy.nav.groups.catalog,
@@ -626,6 +639,7 @@ function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
         },
       ],
     },
+
     {
       href: "/admin/oauth",
       glyph: "key",
@@ -694,6 +708,7 @@ function buildMobileSecondaryNavGroups(
         },
       ],
     },
+
     {
       href: "/catalog/links",
       icon: LinkIcon,
@@ -760,10 +775,20 @@ function buildMobileSecondaryNavGroups(
         { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
         { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
         { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
-        { href: "/terms", icon: ScrollTextIcon, label: copy.footer.terms },
-        { href: "/privacy", icon: GavelIcon, label: copy.footer.privacy },
+        {
+          href: "/terms",
+          icon: ScrollTextIcon,
+          label: copy.footer.terms,
+        },
+
+        {
+          href: "/privacy",
+          icon: GavelIcon,
+          label: copy.footer.privacy,
+        },
       ],
     },
+
     ...(isAdmin
       ? [
           {
@@ -851,11 +876,13 @@ function isActiveLink(link: ShellLink) {
     const eventId = pathname.startsWith("/catalog/young-events/")
       ? pathname.slice("/catalog/young-events/".length).split("/")[0]
       : "";
+
     return (
       pathname === "/catalog/young-events" ||
       (eventId.length > 0 && eventId !== "calendar" && eventId !== "organizers")
     );
   }
+
   if (
     target.pathname === "/catalog/young-events/calendar" ||
     target.pathname === "/catalog/young-events/organizers"
@@ -1040,7 +1067,7 @@ async function resolveClientShell(
     if (
       shouldRedirectIncompleteProfileToWelcome({
         pathname: $page.url.pathname,
-        url: $page.url,
+        url: new URL($page.url.href),
         hasUser: Boolean(viewerUser?.id),
         hasCompleteProfile: Boolean(viewerUser?.name && viewerUser.username),
       })
@@ -1107,7 +1134,8 @@ onMount(() => {
   };
 });
 
-afterNavigate(({ from, to, type }) => {
+afterNavigate(({ from, to, type, shallow }) => {
+  if (shallow && type === "goto") return;
   if (!from || !to) return;
   void resolveClientShell(type);
   if (
@@ -1120,19 +1148,6 @@ afterNavigate(({ from, to, type }) => {
 });
 </script>
 
-<style>
-  @keyframes -global-route-loading-bar {
-    0% {
-      transform: translateX(-120%);
-    }
-    55% {
-      transform: translateX(35%);
-    }
-    100% {
-      transform: translateX(320%);
-    }
-  }
-</style>
 
 <a
   class="sr-only top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
@@ -1148,22 +1163,22 @@ afterNavigate(({ from, to, type }) => {
 {#if focusedShell}
   <div class="flex min-h-screen flex-col" data-shell="focused">
     <AppTopbar
-      {closeMenus}
+      closeMenus={closeMenus}
       copy={data.copy}
       focused
       globalSearchShortcutLabel={globalSearchShortcutLabel}
       locale={data.locale}
-      {localeMenuOpen}
+      localeMenuOpen={localeMenuOpen}
       onOpenGlobalSearch={openGlobalSearch}
-      {setLocale}
-      {setLocaleMenuOpen}
-      {setThemeMenuOpen}
-      {setThemeMode}
-      {themeMenuOpen}
-      {themeMode}
+      setLocale={setLocale}
+      setLocaleMenuOpen={setLocaleMenuOpen}
+      setThemeMenuOpen={setThemeMenuOpen}
+      setThemeMode={setThemeMode}
+      themeMenuOpen={themeMenuOpen}
+      themeMode={themeMode}
       signedIn={Boolean(viewerUser)}
       user={viewerUser}
-      {viewerLoading}
+      viewerLoading={viewerLoading}
     />
 
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip-link target -->
@@ -1174,9 +1189,7 @@ afterNavigate(({ from, to, type }) => {
       data-shell-scroll-container
       id="main-content"
       tabindex={-1}
-    >
-      <slot />
-    </main>
+    ><slot></slot></main>
   </div>
 {:else}
   <Sidebar.Provider
@@ -1188,21 +1201,21 @@ afterNavigate(({ from, to, type }) => {
   >
     <div class="flex min-h-0 w-full flex-1">
       <AppSidebar
-        {avatarFallback}
-        {closeMenus}
+        avatarFallback={avatarFallback}
+        closeMenus={closeMenus}
         copy={data.copy}
         currentPathname={$page.url.pathname}
         dockAboveFooter={showFooter}
-        {sectionSidebar}
-        {isActiveLink}
-        {mobileNavGroups}
-        {navGroups}
-        {profileHref}
-        {setUserMenuOpen}
+        sectionSidebar={sectionSidebar}
+        isActiveLink={isActiveLink}
+        mobileNavGroups={mobileNavGroups}
+        navGroups={navGroups}
+        profileHref={profileHref}
+        setUserMenuOpen={setUserMenuOpen}
         showAccountFooter={!showFooter}
         user={viewerUser}
-        {userMenuOpen}
-        {viewerLoading}
+        userMenuOpen={userMenuOpen}
+        viewerLoading={viewerLoading}
       />
 
       <Sidebar.Inset
@@ -1212,21 +1225,21 @@ afterNavigate(({ from, to, type }) => {
         class="relative flex w-full min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden"
       >
         <AppTopbar
-          {closeMenus}
+          closeMenus={closeMenus}
           copy={data.copy}
           globalSearchShortcutLabel={globalSearchShortcutLabel}
           locale={data.locale}
-          {localeMenuOpen}
+          localeMenuOpen={localeMenuOpen}
           onOpenGlobalSearch={openGlobalSearch}
-          {setLocale}
-          {setLocaleMenuOpen}
-          {setThemeMenuOpen}
-          {setThemeMode}
-          {themeMenuOpen}
-          {themeMode}
+          setLocale={setLocale}
+          setLocaleMenuOpen={setLocaleMenuOpen}
+          setThemeMenuOpen={setThemeMenuOpen}
+          setThemeMode={setThemeMode}
+          themeMenuOpen={themeMenuOpen}
+          themeMode={themeMode}
           signedIn={Boolean(viewerUser)}
           user={viewerUser}
-          {viewerLoading}
+          viewerLoading={viewerLoading}
         />
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard-scrollable viewport -->
@@ -1247,30 +1260,27 @@ afterNavigate(({ from, to, type }) => {
             class={cn(
               "w-full flex-1",
               youngEventBanner
-                ? "p-0"
-                : detailWorkspace
-                  ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
-                  : "px-4 py-4 sm:px-5 lg:px-6",
-            )}
-          >
-            <slot />
-          </div>
+              ? "p-0"
+              : detailWorkspace
+                ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
+                : "px-4 py-4 sm:px-5 lg:px-6")}
+          ><slot></slot></div>
         </div>
       </Sidebar.Inset>
     </div>
 
     {#if showFooter}
       <AppFooter
-        {avatarFallback}
-        {closeMenus}
+        avatarFallback={avatarFallback}
+        closeMenus={closeMenus}
         copy={data.copy}
         currentPathname={$page.url.pathname}
-        {footerLinks}
-        {profileHref}
-        {setUserMenuOpen}
+        footerLinks={footerLinks}
+        profileHref={profileHref}
+        setUserMenuOpen={setUserMenuOpen}
         user={viewerUser}
-        {userMenuOpen}
-        {viewerLoading}
+        userMenuOpen={userMenuOpen}
+        viewerLoading={viewerLoading}
       />
     {/if}
 
@@ -1304,3 +1314,17 @@ afterNavigate(({ from, to, type }) => {
     {/if}
   </Sidebar.Provider>
 {/if}
+
+<style>
+  @keyframes -global-route-loading-bar {
+    0% {
+      transform: translateX(-120%);
+    }
+    55% {
+      transform: translateX(35%);
+    }
+    100% {
+      transform: translateX(320%);
+    }
+  }
+</style>

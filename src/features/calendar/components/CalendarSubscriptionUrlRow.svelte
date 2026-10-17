@@ -1,8 +1,8 @@
 <script lang="ts">
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import LinkIcon from "@lucide/svelte/icons/link-2";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
 
 export let buttonLabel: string;
 export let copied: boolean;

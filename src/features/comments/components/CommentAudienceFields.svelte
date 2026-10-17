@@ -1,7 +1,7 @@
 <script lang="ts">
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import type {
   CommentSelectOption,
   CommentsCopy,

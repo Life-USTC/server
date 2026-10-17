@@ -1,9 +1,9 @@
-import { formatCampusDate } from "@/lib/time/campus-date";
-import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import type {
   CalendarAgendaDay,
   CalendarGridEvent,
-} from "$lib/components/calendar/types";
+} from "#lib/components/calendar/types.js";
+import { formatCampusDate } from "@/lib/time/campus-date";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { addDays } from "./calendar-date-keys";
 
 export type WorkspaceTimelineItem = CalendarGridEvent & {

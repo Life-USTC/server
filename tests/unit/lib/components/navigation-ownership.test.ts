@@ -53,7 +53,7 @@ async function renderedComponents(root: string) {
       if (module.startsWith("."))
         pending.push(path.posix.join(path.posix.dirname(filename), module));
       else if (module.startsWith("@/")) pending.push(`src/${module.slice(2)}`);
-      else if (module.startsWith("$lib/"))
+      else if (module.startsWith("#lib/"))
         pending.push(`src/lib/${module.slice(5)}`);
     }
   }

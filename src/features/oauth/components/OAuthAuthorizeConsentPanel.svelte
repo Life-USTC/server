@@ -1,12 +1,11 @@
 <script lang="ts">
 import CheckCircle from "@lucide/svelte/icons/check-circle";
-import type { SubmitFunction } from "@sveltejs/kit";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { oauthScopeCountLabel } from "@/features/admin/lib/oauth-controller";
 import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
 import { buildOAuthScopesPickerCopy } from "@/features/oauth/lib/oauth-scopes-picker-copy";
-import { enhance } from "$app/forms";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 
 export let copy: Record<string, string>;
 export let locale: string = "zh-cn";
@@ -23,7 +22,7 @@ function consentAction(decision: "allow" | "deny"): SubmitFunction {
     pendingDecision = decision;
     return async ({ update }) => {
       try {
-        await update({ reset: false });
+        await update({ navigate: false, reset: false });
       } finally {
         pendingDecision = null;
       }
@@ -53,7 +52,7 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
     copy={scopesPickerCopy}
     idPrefix="oauth-consent-scope"
     items={scopes}
-    {selectedScopes}
+    selectedScopes={selectedScopes}
     onSelectedChange={(next) => {
       selectedScopes = next;
     }}

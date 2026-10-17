@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
-import { Button } from "$lib/components/ui/button/index.js";
 import type {
   DescriptionContent,
   DescriptionCopy,

@@ -1,7 +1,7 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import AdminListShell from "./AdminListShell.svelte";
 import {
   adminModerationDescriptionEditedAt,

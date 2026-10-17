@@ -1,7 +1,7 @@
 <script lang="ts">
-import { Button, type ButtonVariant } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import { cn } from "$lib/utils.js";
+import { Button, type ButtonVariant } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import { cn } from "#lib/utils.js";
 
 type WorkspaceNoSubscriptionsAction = {
   href?: string;

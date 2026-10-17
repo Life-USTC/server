@@ -1,7 +1,7 @@
 <script lang="ts">
-import SearchField from "$lib/components/SearchField.svelte";
-import { Checkbox } from "$lib/components/ui/checkbox";
-import * as Field from "$lib/components/ui/field";
+import SearchField from "#lib/components/SearchField.svelte";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import type {
   PublicationPageCopy,
   PublicationSourceOption,

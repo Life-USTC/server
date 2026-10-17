@@ -1,5 +1,5 @@
+import type { CalendarGridWeek } from "#lib/components/calendar/types.js";
 import { calendarGridEventsForDay } from "@/features/workspace/lib/calendar-grid-events";
-import type { CalendarGridWeek } from "$lib/components/calendar/types";
 
 type CalendarSession = {
   courseName: string;

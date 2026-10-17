@@ -1,8 +1,8 @@
 <script lang="ts">
-import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 </script>
 
 <Card.Header class="bg-subtle p-6">

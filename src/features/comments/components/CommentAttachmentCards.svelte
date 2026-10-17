@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 
 type CommentAttachment = {
   filename: string;

@@ -100,7 +100,8 @@ for (const kind of ["settings", "rest"] as const)
             },
             { headers, kind, bodyMarker, uploadId },
           );
-          expect(response.status).toBe(200);
+          // SvelteKit 3 serializes action failures with their real status.
+          expect(response.status).toBe(kind === "settings" ? 403 : 200);
           if (kind === "settings") expect(response.actionStatus).toBe(403);
           expect(response.requestId).toMatch(/^[0-9a-f-]{36}$/);
           expect(response.requestId).not.toBe(publicSpoof);
@@ -150,7 +151,7 @@ for (const kind of ["settings", "rest"] as const)
                   kind === "settings"
                     ? "/account/settings/security"
                     : `/api/workspace/uploads/${uploads[index].uploadId}`,
-                status: 200,
+                status: kind === "settings" ? 403 : 200,
                 requestId: [...responseIds][index],
               })),
             );
@@ -169,7 +170,7 @@ for (const kind of ["settings", "rest"] as const)
                 ? variants.map(() => [
                     "POST",
                     "/account/settings/security",
-                    200,
+                    403,
                   ])
                 : uploads.flatMap(({ uploadId }) => [
                     ["POST", "/api/workspace/uploads", 200],
@@ -284,7 +285,7 @@ for (const kind of ["settings", "rest"] as const)
             ? "/account/settings/security"
             : `/api/workspace/uploads/${upload.uploadId}`,
         );
-        expect(response.status()).toBe(200);
+        expect(response.status()).toBe(settings ? 403 : 200);
         if (settings) expect((await response.json()).status).toBe(403);
         const requestId = response.headers()["x-request-id"];
         expect(requestId).toMatch(/^[0-9a-f-]{36}$/);

@@ -1,5 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import {
   addDays,
   addMonths,
@@ -38,15 +40,15 @@ import {
 import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import { createWorkspacePageControllerActions } from "@/features/workspace/lib/workspace-page-controller-actions";
-import { page } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import SignedWorkspaceOverviewBranch from "./SignedWorkspaceOverviewBranch.svelte";
 import SignedWorkspacePublicTabs from "./SignedWorkspacePublicTabs.svelte";
 import SignedWorkspaceSubscriptionsBranch from "./SignedWorkspaceSubscriptionsBranch.svelte";
 import SignedWorkspaceTaskTabs from "./SignedWorkspaceTaskTabs.svelte";
 import type { WorkspaceSubscriptionsTabProps } from "./subscription-tab-types";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
+
+const page = legacyPageStore();
 
 type PageData = WorkspacePageData;
 type ActionData = WorkspaceActionData;
@@ -388,7 +390,7 @@ $: catalogLinkItems = derivedState.catalogLinkItems;
 $: overviewLinkItems = derivedState.overviewLinkItems;
 $: signedLinkGroups = derivedState.signedLinkGroups;
 $: calendarData = derivedState.calendarData;
-$: syncCalendarStateFromUrl($page.url, calendarData);
+$: syncCalendarStateFromUrl(new URL($page.url.href), calendarData);
 $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
 $: canMatchImportSections =
   bulkImportSemesterId !== "" &&
@@ -398,9 +400,7 @@ $: canMatchImportSections =
 onMount(mount);
 </script>
 
-<svelte:head>
-  <title>{pageTitle} - Life@USTC</title>
-</svelte:head>
+<svelte:head><title>{pageTitle} - Life@USTC</title></svelte:head>
 
 <CollectionPage density="compact" panel={false} title={data.signedIn && data.mainContentLabel ? data.mainContentLabel : undefined}>
 
@@ -413,156 +413,156 @@ onMount(mount);
   {#if signedData}
     {#if signedData.tab === "overview"}
       <SignedWorkspaceOverviewBranch
-      {calendarTimelineItemsForDay}
-      {commonCopy}
-      {copy}
-      {workspaceCopy}
-      {workspaceTabHref}
-      {data}
-      {linkIconLabel}
-      {overviewLinkItems}
-      {sectionCopy}
-      {subscriptionsCopy}
-      {signedData}
-      {submitWorkspaceLinkPin}
-      {todosCopy}
-      {updatingCatalogLinkSlug}
+        calendarTimelineItemsForDay={calendarTimelineItemsForDay}
+        commonCopy={commonCopy}
+        copy={copy}
+        workspaceCopy={workspaceCopy}
+        workspaceTabHref={workspaceTabHref}
+        data={data}
+        linkIconLabel={linkIconLabel}
+        overviewLinkItems={overviewLinkItems}
+        sectionCopy={sectionCopy}
+        subscriptionsCopy={subscriptionsCopy}
+        signedData={signedData}
+        submitWorkspaceLinkPin={submitWorkspaceLinkPin}
+        todosCopy={todosCopy}
+        updatingCatalogLinkSlug={updatingCatalogLinkSlug}
       />
     {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
       <SignedWorkspaceTaskTabs
-      activeTab={signedData.tab}
-      {applyHomeworkDueAtSemesterEnd}
-      {applyHomeworkStartNow}
-      {commentsCopy}
-      {commonCopy}
-      {createHomeworkAction}
-      {createTodoAction}
-      {workspaceCopy}
-      {workspaceTabHref}
-      {data}
-      {deleteTodo}
-      {examMetadataLabels}
-      {examRows}
-      {examTimeLabel}
-      {filteredExamRows}
-      {filteredTodos}
-      {homeworkActionError}
-      {homeworkCopy}
-      {homeworkReferenceDate}
-      {homeworksCopy}
-      {isCreatingTodo}
-      {isUpdatingTodo}
-      {namePrimary}
-      {openCreateHomeworkDialog}
-      {openTodoEditor}
-      {sectionCopy}
-      {signedData}
-      {subscriptionsCopy}
-      {todoActionError}
-      {todoPriorityOptions}
-      {todoSavingById}
-      {todosCopy}
-      {toggleHomeworkCompletion}
-      {toggleTodoCompletion}
-      {updateTodoAction}
-      bind:createHomeworkAdvancedOpen
-      bind:createHomeworkError
-      bind:createHomeworkPublishedAt
-      bind:createHomeworkSectionId
-      bind:createHomeworkSubmissionDueAt
-      bind:createHomeworkSubmissionStartAt
-      bind:createTodoError
-      bind:editTodoError
-      bind:editingTodo
-      bind:examFilter
-      bind:homeworkFilter
-      bind:homeworkItems
-      bind:homeworkSavingById
-      bind:isCreatingHomework
-      bind:selectedHomework
-      bind:selectedTodo
-      bind:showCreateHomework
-      bind:showCreateTodo
-      bind:todoFilter
+        activeTab={signedData.tab}
+        applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
+        applyHomeworkStartNow={applyHomeworkStartNow}
+        commentsCopy={commentsCopy}
+        commonCopy={commonCopy}
+        createHomeworkAction={createHomeworkAction}
+        createTodoAction={createTodoAction}
+        workspaceCopy={workspaceCopy}
+        workspaceTabHref={workspaceTabHref}
+        data={data}
+        deleteTodo={deleteTodo}
+        examMetadataLabels={examMetadataLabels}
+        examRows={examRows}
+        examTimeLabel={examTimeLabel}
+        filteredExamRows={filteredExamRows}
+        filteredTodos={filteredTodos}
+        homeworkActionError={homeworkActionError}
+        homeworkCopy={homeworkCopy}
+        homeworkReferenceDate={homeworkReferenceDate}
+        homeworksCopy={homeworksCopy}
+        isCreatingTodo={isCreatingTodo}
+        isUpdatingTodo={isUpdatingTodo}
+        namePrimary={namePrimary}
+        openCreateHomeworkDialog={openCreateHomeworkDialog}
+        openTodoEditor={openTodoEditor}
+        sectionCopy={sectionCopy}
+        signedData={signedData}
+        subscriptionsCopy={subscriptionsCopy}
+        todoActionError={todoActionError}
+        todoPriorityOptions={todoPriorityOptions}
+        todoSavingById={todoSavingById}
+        todosCopy={todosCopy}
+        toggleHomeworkCompletion={toggleHomeworkCompletion}
+        toggleTodoCompletion={toggleTodoCompletion}
+        updateTodoAction={updateTodoAction}
+        bind:createHomeworkAdvancedOpen
+        bind:createHomeworkError
+        bind:createHomeworkPublishedAt
+        bind:createHomeworkSectionId
+        bind:createHomeworkSubmissionDueAt
+        bind:createHomeworkSubmissionStartAt
+        bind:createTodoError
+        bind:editTodoError
+        bind:editingTodo
+        bind:examFilter
+        bind:homeworkFilter
+        bind:homeworkItems
+        bind:homeworkSavingById
+        bind:isCreatingHomework
+        bind:selectedHomework
+        bind:selectedTodo
+        bind:showCreateHomework
+        bind:showCreateTodo
+        bind:todoFilter
       />
     {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
       {@const subscriptionsSignedData = signedData as WorkspaceSubscriptionsTabProps["signedData"]}
       <SignedWorkspaceSubscriptionsBranch
-      {workspaceCopy}
-      {sectionCopy}
-      {subscriptionsCopy}
-      signedData={subscriptionsSignedData}
-      {selectedImportSectionIdSet}
-      {canMatchImportSections}
-      {formatMessage}
-      {namePrimary}
-      {nameSecondary}
-      {resetBulkImport}
-      {searchQuickAddSections}
-      {openBulkImportDialog}
-      {subscribeQuickAddSections}
-      {toggleImportSectionSelection}
-      {matchImportSections}
-      {confirmImportSections}
-      {removeSubscribedSection}
-      {bulkImportMessage}
-      {bulkImportError}
-      {isMatchingSections}
-      {isImportingSections}
-      {removingSectionId}
-      {subscriptionActionError}
-      {matchedSections}
-      {unmatchedSectionCodes}
-      bind:isBulkImportOpen
-      bind:isConfirmImportOpen
-      bind:bulkImportSemesterId
-      bind:bulkImportText
+        workspaceCopy={workspaceCopy}
+        sectionCopy={sectionCopy}
+        subscriptionsCopy={subscriptionsCopy}
+        signedData={subscriptionsSignedData}
+        selectedImportSectionIdSet={selectedImportSectionIdSet}
+        canMatchImportSections={canMatchImportSections}
+        formatMessage={formatMessage}
+        namePrimary={namePrimary}
+        nameSecondary={nameSecondary}
+        resetBulkImport={resetBulkImport}
+        searchQuickAddSections={searchQuickAddSections}
+        openBulkImportDialog={openBulkImportDialog}
+        subscribeQuickAddSections={subscribeQuickAddSections}
+        toggleImportSectionSelection={toggleImportSectionSelection}
+        matchImportSections={matchImportSections}
+        confirmImportSections={confirmImportSections}
+        removeSubscribedSection={removeSubscribedSection}
+        bulkImportMessage={bulkImportMessage}
+        bulkImportError={bulkImportError}
+        isMatchingSections={isMatchingSections}
+        isImportingSections={isImportingSections}
+        removingSectionId={removingSectionId}
+        subscriptionActionError={subscriptionActionError}
+        matchedSections={matchedSections}
+        unmatchedSectionCodes={unmatchedSectionCodes}
+        bind:isBulkImportOpen
+        bind:isConfirmImportOpen
+        bind:bulkImportSemesterId
+        bind:bulkImportText
       />
     {:else}
       {@const calendarSignedData = signedData as WorkspaceCalendarTabProps["signedData"]}
       <SignedWorkspacePublicTabs
-      {copy}
-      {commonCopy}
-      {busCopy}
-      {workspaceCopy}
-      {sectionCopy}
-      {subscriptionsCopy}
-      {calendarWeekdayLabels}
-      signedData={calendarSignedData}
-      {workspaceTabHref}
-      {formatMessage}
-      {sessionHref}
-      {setCalendarView}
-      {setCalendarDay}
-      {setCalendarMonth}
-      {setCalendarWeek}
-      {setCalendarSemester}
-      {addDays}
-      {addMonths}
-      {monthWeeks}
-      {calendarEventsForDay}
-      {calendarTimelineItemsForDay}
-      {calendarWeekLabel}
-      {calendarEventParts}
-      {calendarHomeworkHref}
-      {calendarSessionChipFields}
-      {calendarExamChipFields}
-      {calendarHomeworkChipFields}
-      {calendarTodoChipFields}
-      {calendarSemesterIndex}
-      {calendarView}
-      {calendarDay}
-      {calendarMonth}
-      {calendarWeekStart}
-      {calendarSemesterId}
-      {calendarData}
-      {linkActionError}
-      {linkIconLabel}
-      {linkReturnTo}
-      bind:linkSearchQuery
-      {signedLinkGroups}
-      {submitWorkspaceLinkPin}
-      {updatingCatalogLinkSlug}
+        copy={copy}
+        commonCopy={commonCopy}
+        busCopy={busCopy}
+        workspaceCopy={workspaceCopy}
+        sectionCopy={sectionCopy}
+        subscriptionsCopy={subscriptionsCopy}
+        calendarWeekdayLabels={calendarWeekdayLabels}
+        signedData={calendarSignedData}
+        workspaceTabHref={workspaceTabHref}
+        formatMessage={formatMessage}
+        sessionHref={sessionHref}
+        setCalendarView={setCalendarView}
+        setCalendarDay={setCalendarDay}
+        setCalendarMonth={setCalendarMonth}
+        setCalendarWeek={setCalendarWeek}
+        setCalendarSemester={setCalendarSemester}
+        addDays={addDays}
+        addMonths={addMonths}
+        monthWeeks={monthWeeks}
+        calendarEventsForDay={calendarEventsForDay}
+        calendarTimelineItemsForDay={calendarTimelineItemsForDay}
+        calendarWeekLabel={calendarWeekLabel}
+        calendarEventParts={calendarEventParts}
+        calendarHomeworkHref={calendarHomeworkHref}
+        calendarSessionChipFields={calendarSessionChipFields}
+        calendarExamChipFields={calendarExamChipFields}
+        calendarHomeworkChipFields={calendarHomeworkChipFields}
+        calendarTodoChipFields={calendarTodoChipFields}
+        calendarSemesterIndex={calendarSemesterIndex}
+        calendarView={calendarView}
+        calendarDay={calendarDay}
+        calendarMonth={calendarMonth}
+        calendarWeekStart={calendarWeekStart}
+        calendarSemesterId={calendarSemesterId}
+        calendarData={calendarData}
+        linkActionError={linkActionError}
+        linkIconLabel={linkIconLabel}
+        linkReturnTo={linkReturnTo}
+        bind:linkSearchQuery
+        signedLinkGroups={signedLinkGroups}
+        submitWorkspaceLinkPin={submitWorkspaceLinkPin}
+        updatingCatalogLinkSlug={updatingCatalogLinkSlug}
       />
     {/if}
   {:else if data.signedIn && data.userMissing}

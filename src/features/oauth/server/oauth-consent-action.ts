@@ -624,7 +624,10 @@ export async function submitOAuthConsentAction({
   }
 
   if (redirectTarget) {
-    throw redirect(303, redirectTarget);
+    // The consent flow validated redirectTarget against the client's
+    // registered redirect URIs; SvelteKit 3 requires an explicit opt-in for
+    // redirects that leave the app origin.
+    throw redirect(303, redirectTarget, { external: true });
   }
   throw redirect(303, `/error?error=${failureCode}`);
 }

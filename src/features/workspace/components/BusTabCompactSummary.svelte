@@ -1,5 +1,8 @@
 <script lang="ts">
 import ArrowLeftRightIcon from "@lucide/svelte/icons/arrow-left-right";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
 import {
@@ -7,9 +10,6 @@ import {
   nextBusDepartures,
 } from "@/features/workspace/lib/bus";
 import type { WorkspaceBusCopy } from "@/features/workspace/lib/bus-tab-types";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 
 export let busApplicableRoutes: BusApplicableRoute[];
 export let busCopy: WorkspaceBusCopy;

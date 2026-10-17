@@ -1,16 +1,16 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import PageSectionNav from "#lib/components/PageSectionNav.svelte";
+import Panel from "#lib/components/Panel.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
+import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import PageSectionNav from "$lib/components/PageSectionNav.svelte";
-import Panel from "$lib/components/Panel.svelte";
-import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
-import { formatShanghaiDate } from "$lib/time/shanghai-format";
 import type {
   PublicationPageCopy,
   PublicationSourceDirectoryPageData,

@@ -1,11 +1,10 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import ProfileAvatarPicker from "@/features/profile/components/ProfileAvatarPicker.svelte";
 import ProfileIdentityFields from "@/features/profile/components/ProfileIdentityFields.svelte";
-import { enhance } from "$app/forms";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import type { SettingsCopy, SettingsUser } from "./settings-component-types";
 
 export let avatarOptions: string[];
@@ -22,7 +21,7 @@ const updateProfile: SubmitFunction = () => {
   saving = true;
   return async ({ update }) => {
     try {
-      await update();
+      await update({ navigate: false });
     } finally {
       saving = false;
     }
@@ -44,21 +43,21 @@ const updateProfile: SubmitFunction = () => {
   </div>
 
   <ProfileAvatarPicker
-    {avatarOptions}
+    avatarOptions={avatarOptions}
     label={copy.profile.profilePicture}
     avatarOptionLabel={copy.accessibility.avatarOption}
     previewTestId="current-avatar"
-    {currentImage}
+    currentImage={currentImage}
     disabled={!isMounted}
-    {previewImage}
+    previewImage={previewImage}
     bind:selectedImage
-    {user}
+    user={user}
   />
 
   <Field.Group class="grid gap-4 md:grid-cols-2">
     <ProfileIdentityFields
       copy={copy.profile}
-      {user}
+      user={user}
       disabled={!isMounted || saving}
       showUsernameRequiredIndicator={false}
     />

@@ -1,7 +1,7 @@
 <script lang="ts">
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Badge, type BadgeVariant } from "$lib/components/ui/badge/index.js";
-import { cn } from "$lib/utils.js";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import { Badge, type BadgeVariant } from "#lib/components/ui/badge/index.js";
+import { cn } from "#lib/utils.js";
 
 export let text: string | number;
 export let variant: BadgeVariant = "outline";

@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { patchAdminCommentRoute } from "@/lib/api/routes/admin-comment-update-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Moderate one comment.

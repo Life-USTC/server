@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createTodoTabDisplayActions } from "@/features/workspace/lib/todos-tab-display";
 import type {
@@ -10,7 +10,7 @@ import type {
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import type { SubmitFunction } from "$app/forms";
 import TodosCardsView from "./TodosCardsView.svelte";
 import TodosListView from "./TodosListView.svelte";
 import TodosTabDialogs from "./TodosTabDialogs.svelte";
@@ -76,11 +76,11 @@ function clearTodoFilter() {
   <TodosTabToolbar
     bind:createTodoError
     bind:showCreateTodo
-    {todoFilter}
+    todoFilter={todoFilter}
     onTodoFilterChange={(value) => {
       todoFilter = value;
     }}
-    {todosCopy}
+    todosCopy={todosCopy}
   />
 
   {#if todoActionError}
@@ -91,56 +91,56 @@ function clearTodoFilter() {
 
   <div class="md:hidden">
     <TodosCardsView
-      {filteredTodos}
-      {hasTodoItems}
+      filteredTodos={filteredTodos}
+      hasTodoItems={hasTodoItems}
       onClearFilter={clearTodoFilter}
-      {fmtDate}
-      {openTodoEditor}
+      fmtDate={fmtDate}
+      openTodoEditor={openTodoEditor}
       bind:selectedTodo
-      {todoActionLabel}
-      {todoSavingById}
-      {todosCopy}
-      {todoStatus}
-      {toggleTodoCompletion}
+      todoActionLabel={todoActionLabel}
+      todoSavingById={todoSavingById}
+      todosCopy={todosCopy}
+      todoStatus={todoStatus}
+      toggleTodoCompletion={toggleTodoCompletion}
     />
   </div>
   <div class="hidden min-w-0 overflow-x-auto md:block">
     <TodosListView
-      {filteredTodos}
-      {hasTodoItems}
+      filteredTodos={filteredTodos}
+      hasTodoItems={hasTodoItems}
       onClearFilter={clearTodoFilter}
-      {fmtDate}
-      {openTodoEditor}
+      fmtDate={fmtDate}
+      openTodoEditor={openTodoEditor}
       bind:selectedTodo
-      {todoActionLabel}
-      {todoSavingById}
-      {todosCopy}
-      {toggleTodoCompletion}
+      todoActionLabel={todoActionLabel}
+      todoSavingById={todoSavingById}
+      todosCopy={todosCopy}
+      toggleTodoCompletion={toggleTodoCompletion}
     />
   </div>
 
   <TodosTabDialogs
-    {commentsCopy}
-    {createTodoAction}
+    commentsCopy={commentsCopy}
+    createTodoAction={createTodoAction}
     bind:createTodoError
-    {datetimeLocalValue}
-    {deleteTodo}
+    datetimeLocalValue={datetimeLocalValue}
+    deleteTodo={deleteTodo}
     bind:editTodoError
     bind:editingTodo
-    {fmtDate}
-    {isCreatingTodo}
-    {isUpdatingTodo}
-    {isDueOverdue}
-    {openTodoEditor}
-    {relativeDueLabel}
+    fmtDate={fmtDate}
+    isCreatingTodo={isCreatingTodo}
+    isUpdatingTodo={isUpdatingTodo}
+    isDueOverdue={isDueOverdue}
+    openTodoEditor={openTodoEditor}
+    relativeDueLabel={relativeDueLabel}
     bind:selectedTodo
     bind:showCreateTodo
-    {todoActionLabel}
-    {todoPriorityOptions}
-    {todoSavingById}
-    {todosCopy}
-    {todoStatus}
-    {toggleTodoCompletion}
-    {updateTodoAction}
+    todoActionLabel={todoActionLabel}
+    todoPriorityOptions={todoPriorityOptions}
+    todoSavingById={todoSavingById}
+    todosCopy={todosCopy}
+    todoStatus={todoStatus}
+    toggleTodoCompletion={toggleTodoCompletion}
+    updateTodoAction={updateTodoAction}
   />
 </section>

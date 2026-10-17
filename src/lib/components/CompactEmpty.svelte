@@ -1,6 +1,6 @@
 <script lang="ts">
-import * as Empty from "$lib/components/ui/empty/index.js";
-import { cn } from "$lib/utils.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import { cn } from "#lib/utils.js";
 
 let {
   class: className = "",

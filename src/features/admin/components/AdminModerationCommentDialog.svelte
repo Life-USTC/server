@@ -1,10 +1,10 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Separator } from "#lib/components/ui/separator/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import AdminModerationCommentPreview from "./AdminModerationCommentPreview.svelte";
 import AdminModerationCommentStatusSection from "./AdminModerationCommentStatusSection.svelte";
 import AdminModerationCommentSuspensionSection from "./AdminModerationCommentSuspensionSection.svelte";

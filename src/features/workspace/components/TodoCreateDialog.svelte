@@ -1,17 +1,16 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import { enhance } from "$app/forms";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import TodoFormFields from "./TodoFormFields.svelte";
 
 export let commentsCopy: CommentsCopy;
@@ -52,11 +51,11 @@ export let todosCopy: WorkspaceTodosCopy;
               </Alert.Root>
             {/if}
             <TodoFormFields
-              {commentsCopy}
+              commentsCopy={commentsCopy}
               disabled={isCreatingTodo}
               idPrefix="create-todo"
-              {todoPriorityOptions}
-              {todosCopy}
+              todoPriorityOptions={todoPriorityOptions}
+              todosCopy={todosCopy}
             />
           </Field.Group>
         </ScrollArea>

@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getCommunityUserRoute } from "@/lib/api/routes/public-user-profile";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Get one public community user.

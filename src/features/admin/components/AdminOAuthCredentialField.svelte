@@ -1,7 +1,7 @@
 <script lang="ts">
 import CopyIcon from "@lucide/svelte/icons/copy";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 
 export let copyLabel = "";
 export let copiedMessage = "";

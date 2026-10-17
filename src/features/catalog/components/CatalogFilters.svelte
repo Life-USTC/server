@@ -1,10 +1,10 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import ActiveFilters from "$lib/components/ActiveFilters.svelte";
-import FilterToolbar from "$lib/components/FilterToolbar.svelte";
-import SearchField from "$lib/components/SearchField.svelte";
-import { toolbarControlClass } from "$lib/components/toolbar-control";
-import { Button } from "$lib/components/ui/button";
+import ActiveFilters from "#lib/components/ActiveFilters.svelte";
+import FilterToolbar from "#lib/components/FilterToolbar.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
+import { toolbarControlClass } from "#lib/components/toolbar-control.js";
+import { Button } from "#lib/components/ui/button/index.js";
 
 let {
   activeFilters = [],

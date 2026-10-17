@@ -1,13 +1,13 @@
 <script lang="ts">
-import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import type { ThemeMode } from "$lib/components/shell/layout-shell";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
-} from "$lib/shell/layout-server-data";
+} from "#lib/shell/layout-server-data.js";
 import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import GlobalSearchTrigger from "./GlobalSearchTrigger.svelte";
 

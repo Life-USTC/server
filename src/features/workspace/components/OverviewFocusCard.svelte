@@ -1,7 +1,7 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
 import type { WorkspaceFocusItem } from "@/features/workspace/lib/workspace-agenda";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 
 export let copy: {

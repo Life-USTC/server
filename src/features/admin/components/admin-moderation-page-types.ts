@@ -1,8 +1,9 @@
-import type { SubmitFunction } from "@sveltejs/kit";
+import type { SubmitFunction } from "$app/forms";
 import type {
   AdminModerationComment,
   AdminModerationCommentsCopy,
 } from "./admin-moderation-comment-types";
+
 import type {
   AdminModerationDescription,
   AdminModerationDescriptionCopy,

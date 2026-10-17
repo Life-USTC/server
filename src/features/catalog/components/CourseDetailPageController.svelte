@@ -1,4 +1,5 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
 import {
   catalogPrimaryName,
   catalogSecondaryName,
@@ -7,7 +8,6 @@ import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   catalogLocalizedDisplayName,

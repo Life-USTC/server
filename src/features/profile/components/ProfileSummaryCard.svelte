@@ -1,7 +1,7 @@
 <script lang="ts">
-import Panel from "$lib/components/Panel.svelte";
-import * as Avatar from "$lib/components/ui/avatar/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import Panel from "#lib/components/Panel.svelte";
+import * as Avatar from "#lib/components/ui/avatar/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import type {
   ProfileSummaryCopy,
   ProfileSummaryUser,

@@ -1,10 +1,10 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type { CommentTargetLoadState } from "@/features/comments/lib/comment-panel-data";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import CommentsThreadList from "./CommentsThreadList.svelte";
 import type {
   CommentThreadProps,

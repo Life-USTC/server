@@ -2,14 +2,14 @@
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import * as Collapsible from "$lib/components/ui/collapsible/index.js";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import * as Collapsible from "#lib/components/ui/collapsible/index.js";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
-} from "$lib/shell/layout-server-data";
+} from "#lib/shell/layout-server-data.js";
 import AppUserMenu from "./AppUserMenu.svelte";
 import SettingsGlyph from "./SettingsGlyph.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";

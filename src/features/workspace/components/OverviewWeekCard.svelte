@@ -1,6 +1,6 @@
 <script lang="ts">
+import CalendarWeekStrip from "#lib/components/calendar/CalendarWeekStrip.svelte";
 import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-helpers";
-import CalendarWeekStrip from "$lib/components/calendar/CalendarWeekStrip.svelte";
 import OverviewSection from "./OverviewSection.svelte";
 import type { OverviewWeekDay } from "./overview-tab-types";
 import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";

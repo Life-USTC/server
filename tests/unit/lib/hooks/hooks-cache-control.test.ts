@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle } from "@sveltejs/kit/hooks";
 import { afterEach, expect, it, vi } from "vitest";
 import { handle } from "@/hooks.server";
 import { PUBLIC_NAVIGATION_HEADER } from "@/lib/shell/public-navigation-contract";

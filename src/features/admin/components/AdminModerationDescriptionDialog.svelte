@@ -1,13 +1,12 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { Textarea } from "#lib/components/ui/textarea/index.js";
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
-import { enhance } from "$app/forms";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import { Textarea } from "$lib/components/ui/textarea/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import AdminModerationDescriptionMeta from "./AdminModerationDescriptionMeta.svelte";
 import type { AdminModerationDescription } from "./admin-moderation-description-types";
 import type { AdminModerationCopy } from "./admin-moderation-page-types";
@@ -62,10 +61,10 @@ export let targetLabel: (description: AdminModerationDescription) => string;
             <Field.Group class="gap-4 px-5 py-4">
               <input type="hidden" name="id" value={description.id} />
               <AdminModerationDescriptionMeta
-                {copy}
-                {description}
-                {descriptionTargetHref}
-                {formatMessage}
+                copy={copy}
+                description={description}
+                descriptionTargetHref={descriptionTargetHref}
+                formatMessage={formatMessage}
               />
 
               <Field.Field>

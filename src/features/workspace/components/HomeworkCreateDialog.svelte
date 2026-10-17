@@ -1,10 +1,9 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
-import { enhance } from "$app/forms";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import HomeworkCreateFormFields from "./HomeworkCreateFormFields.svelte";
 import type {
   WorkspaceHomeworkCommentsCopy,
@@ -57,21 +56,21 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         </Dialog.Header>
         <ScrollArea class="h-0 min-h-0 flex-1">
           <HomeworkCreateFormFields
-            {locale}
-            {applyHomeworkDueAtSemesterEnd}
-            {applyHomeworkStartNow}
-            {commentsCopy}
+            locale={locale}
+            applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
+            applyHomeworkStartNow={applyHomeworkStartNow}
+            commentsCopy={commentsCopy}
             bind:createHomeworkAdvancedOpen
-            {createHomeworkError}
+            createHomeworkError={createHomeworkError}
             bind:createHomeworkPublishedAt
             bind:createHomeworkSectionId
             bind:createHomeworkSubmissionDueAt
             bind:createHomeworkSubmissionStartAt
-            {homeworkSectionLabel}
-            {homeworksCopy}
-            {isCreatingHomework}
-            {sections}
-            {toShanghaiDateTimeLocalValue}
+            homeworkSectionLabel={homeworkSectionLabel}
+            homeworksCopy={homeworksCopy}
+            isCreatingHomework={isCreatingHomework}
+            sections={sections}
+            toShanghaiDateTimeLocalValue={toShanghaiDateTimeLocalValue}
           />
         </ScrollArea>
         <Dialog.Footer class="mx-0 mb-0 shrink-0">

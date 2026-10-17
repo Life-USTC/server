@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { deleteAdminHomeworkRoute } from "@/lib/api/routes/admin-homework-delete-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Delete one homework.

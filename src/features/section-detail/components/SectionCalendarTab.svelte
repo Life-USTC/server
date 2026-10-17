@@ -1,4 +1,6 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import { formatMessage } from "@/features/section-detail/lib/display";
@@ -8,8 +10,6 @@ import {
   calendarEventTime,
 } from "@/features/section-detail/lib/section-calendar-display";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import * as Table from "$lib/components/ui/table/index.js";
 import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
 export let sectionCalendarEvents: SectionCalendarEvent[];

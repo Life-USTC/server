@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
@@ -14,9 +15,8 @@ import {
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
-import { replaceState } from "$app/navigation";
-import { page } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { goto } from "$app/navigation";
 import type {
   SettingsAccount,
   SettingsCopy,
@@ -24,6 +24,8 @@ import type {
   SettingsSecurityActivity,
   SettingsUser,
 } from "./settings-component-types";
+
+const page = legacyPageStore();
 
 type PageData = {
   accounts: SettingsAccount[];
@@ -33,10 +35,7 @@ type PageData = {
   locale: "en-us" | "zh-cn";
   message?: string | null;
   tab: SettingsTab;
-  user: SettingsUser & {
-    image?: string | null;
-    profilePictures: string[];
-  };
+  user: SettingsUser & { image?: string | null; profilePictures: string[] };
 };
 
 type ActionData = {
@@ -89,9 +88,9 @@ $: if (
             ? copy.profile.disconnectSuccess
             : copy.profile.updateSuccess;
     toast.success(message);
-    const nextUrl = new URL($page.url);
+    const nextUrl = new URL($page.url.href);
     nextUrl.searchParams.delete("message");
-    replaceState(nextUrl, {});
+    goto(nextUrl, { shallow: true, replace: true });
   }
 }
 $: if (
@@ -129,55 +128,63 @@ onMount(() => {
 
 <svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
 
-<CollectionPage description={copy.settings.description} panel={false} title={copy.settings.title} width="content">
-  <div class="grid min-w-0 gap-4" data-settings-active-panel>
-      <SettingsStatusAlert {copy} {statusMessage} />
+<CollectionPage
+  description={copy.settings.description}
+  panel={false}
+  title={copy.settings.title}
+  width="content"
+>
+  <div
+    class="grid min-w-0 gap-4"
+    data-settings-active-panel
+  >
+    <SettingsStatusAlert copy={copy} statusMessage={statusMessage} />
 
-      {#if data.tab === "profile"}
-        <SettingsProfileTab
-          {avatarOptions}
-          {copy}
-          currentImage={currentImage}
-          isMounted={_isMounted}
-          previewImage={previewImage}
-          bind:selectedImage
-          user={data.user}
-        />
-      {:else if data.tab === "preferences"}
-        <SettingsPreferencesTab {copy} locale={data.locale} />
-      {:else if data.tab === "accounts"}
-        <SettingsAccountsTab
-          accountAction={accountAction}
-          accounts={data.accounts}
-          {copy}
-          locale={data.locale}
-          hasPendingAccountAction={_hasPendingAccountAction}
-          isMounted={_isMounted}
-          pendingAccountAction={_pendingAccountAction}
-          unlinkAccount={_unlinkAccount}
-          bind:unlinkAccountId={_unlinkAccountId}
-        />
-      {:else if data.tab === "authorizations"}
-        <SettingsAuthorizationsTab
-          authorizations={data.authorizations}
-          {copy}
-          locale={data.locale}
-        />
-      {:else if data.tab === "security"}
-        <SettingsSecurityTab
-          activity={data.securityActivity}
-          {copy}
-          locale={data.locale}
-        />
-      {:else}
-        <SettingsDangerTab
-          {copy}
-          {deleteAccountAction}
-          bind:deleteConfirmValue={_deleteConfirmValue}
-          bind:isDeleteAccountOpen={_isDeleteAccountOpen}
-          isDeletingAccount={_isDeletingAccount}
-          isMounted={_isMounted}
-        />
-      {/if}
+    {#if data.tab === "profile"}
+      <SettingsProfileTab
+        avatarOptions={avatarOptions}
+        copy={copy}
+        currentImage={currentImage}
+        isMounted={_isMounted}
+        previewImage={previewImage}
+        bind:selectedImage
+        user={data.user}
+      />
+    {:else if data.tab === "preferences"}
+      <SettingsPreferencesTab copy={copy} locale={data.locale} />
+    {:else if data.tab === "accounts"}
+      <SettingsAccountsTab
+        accountAction={accountAction}
+        accounts={data.accounts}
+        copy={copy}
+        locale={data.locale}
+        hasPendingAccountAction={_hasPendingAccountAction}
+        isMounted={_isMounted}
+        pendingAccountAction={_pendingAccountAction}
+        unlinkAccount={_unlinkAccount}
+        bind:unlinkAccountId={_unlinkAccountId}
+      />
+    {:else if data.tab === "authorizations"}
+      <SettingsAuthorizationsTab
+        authorizations={data.authorizations}
+        copy={copy}
+        locale={data.locale}
+      />
+    {:else if data.tab === "security"}
+      <SettingsSecurityTab
+        activity={data.securityActivity}
+        copy={copy}
+        locale={data.locale}
+      />
+    {:else}
+      <SettingsDangerTab
+        copy={copy}
+        deleteAccountAction={deleteAccountAction}
+        bind:deleteConfirmValue={_deleteConfirmValue}
+        bind:isDeleteAccountOpen={_isDeleteAccountOpen}
+        isDeletingAccount={_isDeletingAccount}
+        isMounted={_isMounted}
+      />
+    {/if}
   </div>
 </CollectionPage>

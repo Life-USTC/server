@@ -3,15 +3,15 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCwIcon from "@lucide/svelte/icons/refresh-cw";
 import type { Snippet } from "svelte";
 import { onMount } from "svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import {
   type HomeworkDateValue,
   type HomeworkDeadlineState,
   type HomeworkDetailModel,
   homeworkDeadlineState,
 } from "@/features/homeworks/lib/homework-presentation";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import HomeworkDeadlineSummary from "./HomeworkDeadlineSummary.svelte";
 import HomeworkDetailDescription from "./HomeworkDetailDescription.svelte";
 import HomeworkDetailDiscussion from "./HomeworkDetailDiscussion.svelte";

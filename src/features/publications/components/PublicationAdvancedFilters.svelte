@@ -1,8 +1,8 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
-import { Button } from "$lib/components/ui/button";
-import { Checkbox } from "$lib/components/ui/checkbox";
-import * as Field from "$lib/components/ui/field";
 import PublicationSourceFilter from "./PublicationSourceFilter.svelte";
 import type {
   PublicationListPageData,

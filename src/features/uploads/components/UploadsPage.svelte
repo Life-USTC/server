@@ -1,16 +1,16 @@
 <script lang="ts">
+import ListPagination from "#lib/components/ListPagination.svelte";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import PageLayout from "#lib/components/PageLayout.svelte";
+import Panel from "#lib/components/Panel.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
+import { createShanghaiDateTimeFormatter } from "#lib/time/shanghai-format.js";
 import { formatBytes } from "@/shared/lib/format-bytes";
-import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
-import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Button } from "$lib/components/ui/button";
-import * as Item from "$lib/components/ui/item";
-import * as Table from "$lib/components/ui/table";
-import { createShanghaiDateTimeFormatter } from "$lib/time/shanghai-format";
 import type { PageData } from "../../../routes/workspace/uploads/$types";
 import UploadManageDialog from "./UploadManageDialog.svelte";
 

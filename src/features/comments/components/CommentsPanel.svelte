@@ -1,6 +1,8 @@
 <script lang="ts">
 import { onMount, tick } from "svelte";
 import { toast } from "svelte-sonner";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import {
   commentEditAttachmentOptions,
   commentPanelSignInHref,
@@ -40,15 +42,15 @@ import {
 import { getCommentsCopy } from "@/features/comments/lib/comments-copy";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { AppLocale } from "@/i18n/config";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import { page } from "$app/stores";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import CommentDeleteDialog from "./CommentDeleteDialog.svelte";
 import CommentsComposerSection from "./CommentsComposerSection.svelte";
 import CommentsHiddenNotice from "./CommentsHiddenNotice.svelte";
 import CommentsPanelSuspensionAlert from "./CommentsPanelSuspensionAlert.svelte";
 import CommentsThreadSection from "./CommentsThreadSection.svelte";
+
+const page = legacyPageStore();
 
 export let targetType: TargetType;
 export let targetId: number | string | null = null;
@@ -489,6 +491,7 @@ $: _replyUploading = commentUploadPendingForMode(_uploadPending, "reply");
 $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
 </script>
 
+
 <section class="grid min-w-0 gap-4">
   {#if _message && !_deleteTarget}
     <Alert.Root variant={_messageVariant}>
@@ -510,7 +513,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
     viewerResolved={_viewerResolved}
     bind:body={_body}
     commentCopy={_commentCopy}
-    {heading}
+    heading={heading}
     handleEditorDrop={_handleEditorDrop}
     handleSubmitShortcut={_handleSubmitShortcut}
     bind:isAnonymous={_isAnonymous}
@@ -564,7 +567,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
     reactionLabel={_reactionLabel}
     bind:reactionMenuId={_reactionMenuId}
     reactionName={_reactionName}
-    {reactionOptions}
+    reactionOptions={reactionOptions}
     removeReplyAttachment={_removeReplyAttachment}
     bind:replyDraft={_replyDraft}
     replyingId={_replyingId}

@@ -4,27 +4,31 @@ import { manifest } from "../../.svelte-kit/output/server/manifest.js";
 
 // Check initial client assets for representative public entry and detail pages.
 // Both request count and gzip size are limits; neither may hide a regression.
+// SvelteKit 3 splits the client entry into more, smaller chunks (e.g. the new
+// entry/payload chunk), which raises request counts by 2-3 per route and `/`
+// by ~3.5 kB gzip while shrinking the heavy catalog detail pages by ~35%.
+// Request and byte budgets below track that new baseline with slim headroom.
 const budgets = {
-  "/": { gzipBytes: 195_792, requests: 69 },
+  "/": { gzipBytes: 203_000, requests: 73 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
-  "/news": { gzipBytes: 232_000, requests: 88 },
-  "/news/[id]": { gzipBytes: 221_000, requests: 79 },
+  "/news": { gzipBytes: 232_000, requests: 93 },
+  "/news/[id]": { gzipBytes: 221_000, requests: 84 },
   "/news/sources": { gzipBytes: 225_000, requests: 86 },
 };
 
 let failed = false;
 
 for (const [routeId, budget] of Object.entries(budgets)) {
-  const route = manifest._.routes.find((candidate) => candidate.id === routeId);
+  const route = manifest.routes.find((candidate) => candidate.id === routeId);
   if (!route?.page) {
     throw new Error(
       `Cannot resolve page route ${routeId} from the build manifest`,
     );
   }
 
-  const scripts = new Set(manifest._.client.imports);
-  const stylesheets = new Set(manifest._.client.stylesheets);
+  const scripts = new Set(manifest.client.imports);
+  const stylesheets = new Set(manifest.client.stylesheets);
   const nodeIndexes = [
     ...route.page.layouts.filter((index) => index !== undefined),
     route.page.leaf,

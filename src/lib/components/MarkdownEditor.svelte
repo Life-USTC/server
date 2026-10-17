@@ -1,10 +1,10 @@
 <script lang="ts">
 import type { ComponentProps } from "svelte";
 import type { PluggableList } from "unified";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
+import * as Tabs from "#lib/components/ui/tabs/index.js";
 
 type MarkdownEditorProps = Omit<
   ComponentProps<typeof InputGroup.Textarea>,
@@ -95,7 +95,7 @@ function setActiveTab(value: string) {
   {/snippet}
 
   {#snippet markdownPreview()}
-    {#await import("$lib/components/MarkdownPreview.svelte") then previewModule}
+    {#await import("#lib/components/MarkdownPreview.svelte") then previewModule}
       {@const Preview = previewModule.default}
       <Preview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
     {/await}

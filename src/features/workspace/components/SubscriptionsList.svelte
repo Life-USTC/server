@@ -2,6 +2,13 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import TableRowActions from "#lib/components/TableRowActions.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
   SubscriptionsData,
@@ -9,18 +16,13 @@ import type {
   WorkspaceSectionCopy,
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import { page } from "$app/stores";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import TableRowActions from "$lib/components/TableRowActions.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import SubscriptionKindDialog from "./SubscriptionKindDialog.svelte";
 import SubscriptionsCardsView from "./SubscriptionsCardsView.svelte";
 import type { FormatMessage } from "./subscription-tab-types";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+
+const page = legacyPageStore();
 
 type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
@@ -92,6 +94,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
 }
 </script>
 
+
 {#if subscriptions.length > 0}
   <div
     class="subscription-semester-groups grid min-w-0 gap-6"
@@ -118,13 +121,13 @@ function handleRemoveDialogOpenChange(open: boolean) {
         </div>
         <div class="md:hidden">
           <SubscriptionsCardsView
-            {workspaceCopy}
-            {requestRemoveSection}
-            {requestEditKind}
-            {removingSectionId}
-            {sectionCopy}
+            workspaceCopy={workspaceCopy}
+            requestRemoveSection={requestRemoveSection}
+            requestEditKind={requestEditKind}
+            removingSectionId={removingSectionId}
+            sectionCopy={sectionCopy}
             sections={group.sections}
-            {subscriptionsCopy}
+            subscriptionsCopy={subscriptionsCopy}
           />
         </div>
         <div class="hidden min-w-0 overflow-x-auto md:block">
@@ -149,32 +152,32 @@ function handleRemoveDialogOpenChange(open: boolean) {
                 <Table.Row class="group">
                   <Table.Cell>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <a
-                      class="block min-w-0 max-w-full overflow-hidden font-medium hover:underline"
-                      href={`/catalog/sections/${section.jwId}`}
-                      data-testid="subscription-course-link"
+                      <a
+                        class="block min-w-0 max-w-full overflow-hidden font-medium hover:underline"
+                        href={`/catalog/sections/${section.jwId}`}
+                        data-testid="subscription-course-link"
                     >
                       <TruncatedText text={courseName(section)} />
                     </a>
-                    {#if section.kind !== "regular"}
-                      <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
-                    {/if}
+                      {#if section.kind !== "regular"}
+                        <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
+                      {/if}
                     </div>
                     <p class="text-muted-foreground font-mono text-xs break-words">
                       {section.code}
                     </p>
                   </Table.Cell>
-                  <Table.Cell>
-                    {teacherNames(section)}
-                  </Table.Cell>
-                  <Table.Cell class="text-end">
-                    {section.credits ?? workspaceCopy.notAvailable}
-                  </Table.Cell>
+
+                  <Table.Cell>{teacherNames(section)}</Table.Cell>
+                  <Table.Cell class="text-end">{section.credits ?? workspaceCopy.notAvailable}</Table.Cell>
+
                   <Table.Cell>
                     <TableRowActions>
-                      <TableIconButton label={subscriptionsCopy.kindEditor.title} onclick={() => requestEditKind(section)}>
-                        <Pencil data-icon="inline-start" />
-                      </TableIconButton>
+                      <TableIconButton
+                        label={subscriptionsCopy.kindEditor.title}
+                        onclick={() => requestEditKind(section)}
+                      ><Pencil data-icon="inline-start" /></TableIconButton>
+
                       <TableIconButton
                         disabled={removingSectionId === section.id}
                         label={subscriptionsCopy.unsubscribe}
@@ -208,7 +211,11 @@ function handleRemoveDialogOpenChange(open: boolean) {
     title={subscriptionsCopy.noSubscriptions}
     description={subscriptionsCopy.noSubscriptionsDescription}
     actions={[
-      { label: subscriptionsCopy.quickAdd.title, onclick: openQuickAddDialog },
+      {
+        label: subscriptionsCopy.quickAdd.title,
+        onclick: openQuickAddDialog
+      },
+
       {
         label: subscriptionsCopy.bulkImport.title,
         onclick: openBulkImportDialog,

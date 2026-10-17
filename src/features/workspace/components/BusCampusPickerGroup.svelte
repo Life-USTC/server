@@ -1,7 +1,7 @@
 <script lang="ts">
+import * as Field from "#lib/components/ui/field/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import type { BusCampusSummary } from "@/features/bus/lib/bus-timetable-types";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let campuses: BusCampusSummary[];
 export let disabled: boolean;

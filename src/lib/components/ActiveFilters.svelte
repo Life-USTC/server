@@ -7,7 +7,7 @@ export type ActiveFilter = {
 </script>
 <script lang="ts">
 import XIcon from "@lucide/svelte/icons/x";
-import { Button } from "$lib/components/ui/button";
+import { Button } from "#lib/components/ui/button/index.js";
 let { items, ariaLabel, clearHref, clearLabel }: { items: ActiveFilter[]; ariaLabel: string; clearHref: string; clearLabel: string } = $props();
 </script>
 {#if items.length}

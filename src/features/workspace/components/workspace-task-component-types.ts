@@ -1,4 +1,3 @@
-import type { SubmitFunction } from "@sveltejs/kit";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
   ExamView,
@@ -19,6 +18,7 @@ import type {
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import type { WorkspaceTabId } from "@/features/workspace/lib/workspace-nav";
+import type { SubmitFunction } from "$app/forms";
 import type {
   ExamMetadataLabels,
   ExamTimeLabel,
@@ -33,24 +33,22 @@ export type WorkspaceTaskDateValue = Date | string;
 export type WorkspaceTaskShortcut = () => void;
 export type WorkspaceTaskStringDraft = string;
 export type WorkspaceTaskSavingById = Record<string, boolean>;
+
 export type WorkspaceTaskHomeworksCopy = WorkspaceHomeworksCopy & {
   markComplete: string;
   markIncomplete: string;
 };
-export type WorkspaceTaskHomeworkCopy = WorkspaceMyHomeworksCopy;
 
+export type WorkspaceTaskHomeworkCopy = WorkspaceMyHomeworksCopy;
 export type WorkspaceHomeworkToggle = (
   homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
-
 export type WorkspaceTodoToggle = (
   todo: WorkspaceTodoItem,
 ) => void | Promise<void>;
-
 export type WorkspaceTodoAction = (
   todo: WorkspaceTodoItem,
 ) => void | Promise<void>;
-
 export type WorkspaceTodoEditor = (todo: WorkspaceTodoItem) => void;
 
 export type WorkspaceTaskBaseProps = {

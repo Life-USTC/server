@@ -1,6 +1,6 @@
 <script lang="ts">
-import ListPagination from "$lib/components/ListPagination.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import ListPagination from "#lib/components/ListPagination.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import AdminUsersHeader from "./AdminUsersHeader.svelte";
 import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import AdminUsersTableCard from "./AdminUsersTableCard.svelte";

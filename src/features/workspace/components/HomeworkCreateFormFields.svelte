@@ -1,13 +1,13 @@
 <script lang="ts">
+import * as Alert from "#lib/components/ui/alert/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import HomeworkDescriptionFields from "@/features/homeworks/components/HomeworkDescriptionFields.svelte";
 import HomeworkTagFields from "@/features/homeworks/components/HomeworkTagFields.svelte";
 import HomeworkTimestampFields from "@/features/homeworks/components/HomeworkTimestampFields.svelte";
 import HomeworkTitleField from "@/features/homeworks/components/HomeworkTitleField.svelte";
 import { buildHomeworkDueShortcuts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import { homeworkDueAtSemesterEnd } from "@/features/homeworks/lib/homework-timestamp-defaults";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   WorkspaceHomeworkCommentsCopy,
   WorkspaceHomeworkCreateCopy,

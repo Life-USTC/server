@@ -1,8 +1,8 @@
 <script lang="ts">
+import MarkdownPreview from "#lib/components/MarkdownPreview.svelte";
+import RenderedMarkdown from "#lib/components/RenderedMarkdown.svelte";
 import type { HomeworkDetailModel } from "@/features/homeworks/lib/homework-presentation";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
-import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import type { HomeworkDetailCopy } from "./homework-detail-types";
 
 export let copy: HomeworkDetailCopy;

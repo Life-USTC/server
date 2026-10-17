@@ -1,11 +1,11 @@
 <script lang="ts">
 import CalendarClock from "@lucide/svelte/icons/calendar-clock";
 import type { Snippet } from "svelte";
-import DateTimePicker from "$lib/components/DateTimePicker.svelte";
-import * as Accordion from "$lib/components/ui/accordion/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
+import DateTimePicker from "#lib/components/DateTimePicker.svelte";
+import * as Accordion from "#lib/components/ui/accordion/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import type {
   HomeworkDueShortcut,
   HomeworkTimestampActions,

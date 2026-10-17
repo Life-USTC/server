@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import type { SettingsCopy } from "./settings-component-types";
 
 export let copy: SettingsCopy;

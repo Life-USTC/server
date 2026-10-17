@@ -3,8 +3,8 @@ import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 import CalendarCheck from "@lucide/svelte/icons/calendar-check";
 import Share2 from "@lucide/svelte/icons/share-2";
 import UserRound from "@lucide/svelte/icons/user-round";
+import { Button } from "#lib/components/ui/button/index.js";
 import WelcomeGuideRow from "@/features/welcome/components/WelcomeGuideRow.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
 import type { WelcomeCopy } from "./welcome-component-types";
 
 export let backUrl: string | null;

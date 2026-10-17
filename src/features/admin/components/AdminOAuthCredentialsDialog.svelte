@@ -1,10 +1,10 @@
 <script lang="ts">
 import CopyIcon from "@lucide/svelte/icons/copy";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import AdminOAuthCredentialField from "./AdminOAuthCredentialField.svelte";
 import AdminOAuthCredentialMetadata from "./AdminOAuthCredentialMetadata.svelte";
 import type { AdminOAuthCopy } from "./admin-oauth-client-types";

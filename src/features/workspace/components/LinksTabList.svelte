@@ -1,4 +1,6 @@
 <script lang="ts">
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import {
   LINK_TABLE_ACTIONS_COL,
   LINK_TABLE_CLASS,
@@ -9,8 +11,6 @@ import type {
   WorkspaceLinkPinSubmit,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Table from "$lib/components/ui/table/index.js";
 import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
 

@@ -1,4 +1,12 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import DetailDefinitionList from "#lib/components/DetailDefinitionList.svelte";
+import ListPagination from "#lib/components/ListPagination.svelte";
+import Panel from "#lib/components/Panel.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventPage,
@@ -7,14 +15,6 @@ import type {
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
-import ListPagination from "$lib/components/ListPagination.svelte";
-import Panel from "$lib/components/Panel.svelte";
-import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import { youngDateRange } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
 import YoungSourceNote from "./YoungSourceNote.svelte";

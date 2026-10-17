@@ -1,13 +1,13 @@
 <script lang="ts">
 import TrashIcon from "@lucide/svelte/icons/trash-2";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import TableRowActions from "$lib/components/TableRowActions.svelte";
-import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import TableRowActions from "#lib/components/TableRowActions.svelte";
+import TruncatedBadge from "#lib/components/TruncatedBadge.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import AdminListShell from "./AdminListShell.svelte";
 import AdminTableShell from "./AdminTableShell.svelte";
 import type {

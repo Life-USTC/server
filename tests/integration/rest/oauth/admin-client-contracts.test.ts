@@ -70,11 +70,15 @@ async function prepare(worker: IsolatedWorker, request: APIRequestContext) {
       if (body.type === "error") {
         expect(response.status()).toBeGreaterThanOrEqual(400);
         expect(body.error).toBeDefined();
+      } else if (body.type === "failure") {
+        // SvelteKit 3 serializes action failures with their real HTTP status.
+        expect(typeof body.status).toBe("number");
+        expect(response.status()).toBe(body.status);
+        expect(body.status).toBeGreaterThanOrEqual(400);
       } else {
         expect(response.status()).toBe(200);
-        expect(typeof body.status).toBe("number");
-        if (body.type === "success") expect(body.status).toBe(200);
-        else expect(body.status).toBeGreaterThanOrEqual(400);
+        // A success without data carries status 204 in the SvelteKit 3 body.
+        expect([200, 204]).toContain(body.status);
       }
       return {
         type: body.type as "success" | "failure" | "error",

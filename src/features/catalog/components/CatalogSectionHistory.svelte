@@ -1,9 +1,9 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
+import ListPagination from "#lib/components/ListPagination.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
-import { page as currentPage } from "$app/stores";
-import ListPagination from "$lib/components/ListPagination.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
+import { page as currentPage } from "$app/state";
 
 let {
   pagination,
@@ -32,24 +32,31 @@ const summary = $derived(
 );
 
 function pageHref(targetPage: number) {
-  const params = new URLSearchParams($currentPage.url.searchParams);
+  const params = new URLSearchParams(currentPage.url.search);
+
   if (targetPage === 1) params.delete("sectionsPage");
   else params.set("sectionsPage", String(targetPage));
-  return `${$currentPage.url.pathname}${params.size ? `?${params}` : ""}#sections`;
+
+  return `${currentPage.url.pathname}${params.size ? `?${params}` : ""}#sections`;
 }
 </script>
 
 <div class="grid gap-4" data-testid="section-history">
-  <ResultsSummary {summary} {page} {totalPages} />
+  <ResultsSummary
+    summary={summary}
+    page={page}
+    totalPages={totalPages}
+  />
+
   {@render children()}
   <ListPagination
-    {page}
-    {totalPages}
-    {pageHref}
-    {ariaLabel}
-    {nextLabel}
+    page={page}
+    totalPages={totalPages}
+    pageHref={pageHref}
+    ariaLabel={ariaLabel}
+    nextLabel={nextLabel}
     nextPageLabel={nextLabel}
-    {previousLabel}
+    previousLabel={previousLabel}
     previousPageLabel={previousLabel}
   />
 </div>

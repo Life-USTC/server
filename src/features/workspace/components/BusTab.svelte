@@ -1,6 +1,10 @@
 <script lang="ts">
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import { onMount } from "svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Collapsible from "#lib/components/ui/collapsible/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import {
   hasEstimatedBusTimes,
   nextBusTripHighlightKey,
@@ -16,10 +20,6 @@ import {
   removeLocalStorageItem,
   setLocalStorageItem,
 } from "@/lib/browser/local-storage";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Collapsible from "$lib/components/ui/collapsible/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import BusTabCompactSummary from "./BusTabCompactSummary.svelte";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";

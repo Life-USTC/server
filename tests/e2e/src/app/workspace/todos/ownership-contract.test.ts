@@ -219,7 +219,8 @@ for (const role of roles)
               priority: "medium",
             },
           });
-          expect(response.status()).toBe(200);
+          // SvelteKit 3 serializes action failures with their real HTTP status.
+          expect(response.status()).toBe(400);
           expect(await response.json()).toMatchObject({
             type: "failure",
             status: 400,

@@ -2,10 +2,10 @@
 import ChevronLeft from "@lucide/svelte/icons/chevron-left";
 import ChevronRight from "@lucide/svelte/icons/chevron-right";
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import { weekStartFor } from "@/features/workspace/lib/calendar";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import CalendarTabNavigationControls from "./CalendarTabNavigationControls.svelte";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";

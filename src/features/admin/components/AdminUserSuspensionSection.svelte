@@ -1,11 +1,11 @@
 <script lang="ts">
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import AdminSuspensionFields from "./AdminSuspensionFields.svelte";
 import type {
   AdminUserFormatter,

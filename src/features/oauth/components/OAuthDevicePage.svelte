@@ -1,7 +1,7 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import * as Card from "$lib/components/ui/card/index.js";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import * as Card from "#lib/components/ui/card/index.js";
+import type { SubmitFunction } from "$app/forms";
 import DeviceApprovalPanel from "./DeviceApprovalPanel.svelte";
 import DeviceCodeForm from "./DeviceCodeForm.svelte";
 import DeviceErrorPanel from "./DeviceErrorPanel.svelte";
@@ -33,7 +33,7 @@ function deviceDecisionAction(decision: "approve" | "deny"): SubmitFunction {
     pendingDecision = decision;
     return async ({ update }) => {
       try {
-        await update({ reset: false });
+        await update({ navigate: false, reset: false });
       } finally {
         pendingDecision = null;
       }
@@ -65,10 +65,10 @@ $: deviceResult = data.result === "approved" ? "approved" : "denied";
         />
       {:else if data.state === "approval" && approvalRequest}
         <DeviceApprovalPanel
-          {approvalRequest}
+          approvalRequest={approvalRequest}
           copy={data.copy}
-          {deviceDecisionAction}
-          {pendingDecision}
+          deviceDecisionAction={deviceDecisionAction}
+          pendingDecision={pendingDecision}
         />
       {:else}
         <DeviceCodeForm code={data.code ?? ""} copy={data.copy} />

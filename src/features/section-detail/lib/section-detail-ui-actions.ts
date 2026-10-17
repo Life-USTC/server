@@ -1,4 +1,4 @@
-import type { SubmitFunction } from "@sveltejs/kit";
+import type { SubmitFunction } from "$app/forms";
 import {
   dateTimeInputValue,
   initialHomeworkDraft,
@@ -6,6 +6,7 @@ import {
   type SectionHomework,
   sectionSemesterDate,
 } from "./section-detail-controller-helpers";
+
 import {
   persistSectionHomeworkView,
   type SectionHomeworkView,
@@ -82,7 +83,7 @@ export function createSectionDetailUiActions(input: {
       input.setSubscriptionPendingAction(action);
       return async ({ result, update }) => {
         try {
-          await update({ reset: false });
+          await update({ navigate: false, reset: false });
           if (result.type === "success" && action === "subscribe") {
             input.setShowSubscribeDialog(false);
           }

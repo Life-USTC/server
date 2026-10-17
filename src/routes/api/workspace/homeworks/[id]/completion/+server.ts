@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { putHomeworkCompletionRoute } from "@/lib/api/routes/homework-completion";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Update homework completion.

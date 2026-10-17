@@ -13,8 +13,7 @@ export type AdminBusVersion = {
 export type AdminBusEnhancedAction = (
   actionKey: string,
   onSuccess?: () => void,
-) => import("@sveltejs/kit").SubmitFunction;
-
+) => import("$app/forms").SubmitFunction;
 export type AdminBusVersionFormatter = (version: AdminBusVersion) => string;
 
 export type AdminBusCopy = {

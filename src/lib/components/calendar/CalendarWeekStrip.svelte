@@ -1,6 +1,6 @@
 <script lang="ts">
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { cn } from "$lib/utils.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { cn } from "#lib/utils.js";
 import CalendarEventChip from "./CalendarEventChip.svelte";
 
 type CalendarWeekEvent = {
