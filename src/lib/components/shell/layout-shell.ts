@@ -40,12 +40,12 @@ export function isOnboardingPath(pathname: string) {
 }
 
 export function shouldUseFocusedShell(pathname: string) {
-  return isOnboardingPath(pathname);
+  return isOnboardingPath(pathname) || pathname === "/account/sign-in";
 }
 
 export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
   if (isDetailWorkspacePath(pathname)) return false;
-  if (isOnboardingPath(pathname)) return false;
+  if (shouldUseFocusedShell(pathname)) return false;
   if (workspaceRoots.some((root) => matchesPathRoot(pathname, root))) {
     return false;
   }
