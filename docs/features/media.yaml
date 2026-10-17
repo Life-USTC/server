@@ -1,0 +1,69 @@
+kind: feature
+id: media
+name: Media Delivery
+areas:
+- account
+- platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+access:
+  anon: May fetch published avatar bytes when the owning profile references a current avatar identifier.
+  user: May fetch their own avatar bytes and any avatar URL referenced on a public profile they can already
+    view.
+  admin: Same anonymous avatar delivery rules as other principals; governance does not add alternate media
+    routes.
+  agent: Avatar delivery is browser and REST navigation; MCP and GraphQL do not stream avatar bytes.
+requirements:
+- id: media.avatar-current-reference
+  category: authorization
+  rule: Avatar delivery checks the owning profile's current image or available picture references on every
+    request. Removed references, missing or deleted owners, malformed avatar IDs, and missing objects return
+    404 without serving stale cached bytes.
+  acceptance:
+    given: An owner uploads an avatar, serves it once, then clears the profile reference and deletes the
+      stored object.
+    when: Anonymous and signed-in GET requests hit the avatar URL before and after each state change.
+    then:
+    - Valid references return image/webp bytes with no-store cache semantics.
+    - After reference removal or object deletion, every request returns 404.
+    test:
+      file: tests/integration/profile-avatar-contract.test.ts
+      name: user.avatar-current-reference
+- id: media.avatar-upload-boundary
+  category: validation
+  rule: Avatar processing accepts nonempty JPG, PNG, WebP, or AVIF files of at most 5 MiB and rejects unsupported
+    types, empty files, and oversized files before transform or storage.
+  acceptance:
+    given: Representative valid and invalid avatar files.
+    when: The avatar service validates each upload.
+    then:
+    - Supported in-bounds files proceed to transform.
+    - Unsupported, empty, and oversized files fail before storage.
+    test:
+      file: tests/unit/features/profile/profile-avatar-service.test.ts
+      name: user.welcome-avatar-upload
+capabilities:
+  profile-avatar:
+    title: Profile Avatar Delivery
+    auth: anon
+    web: unavailable
+    rest:
+      routes:
+      - path: /media/avatars/{userId}/{avatarId}.webp
+        method: GET
+        notes:
+        - Serves owner-scoped WebP bytes from private object storage.
+        - Authorization follows the current profile reference, not the URL alone.
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: protocol
+      items:
+      - Immutable avatar identifier in the URL
+      - Current-reference check on every request
+rationale:
+- User profile fields and upload processing remain in the user feature. Publication-linked media objects
+  and crawler ingestion media stay in publications. This feature owns the /media avatar byte route only.
