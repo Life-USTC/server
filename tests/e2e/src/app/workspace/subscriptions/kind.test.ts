@@ -5,7 +5,7 @@ import { waitForUiSettled } from "../../../../utils/page-ready";
 async function openKindDialog(page: Page, jwId: number, width: number) {
   await waitForUiSettled(page);
   const row = page
-    .locator(width < 768 ? '[data-slot="item"]' : "tr")
+    .locator(width < 1280 ? '[data-slot="item"]' : "tr")
     .filter({ has: page.locator(`a[href="/catalog/sections/${jwId}"]`) })
     .filter({ visible: true })
     .first();
@@ -165,7 +165,7 @@ for (const viewport of [
           .click();
         for (const title of [homeworks[0].title, homeworks[1].title]) {
           const homework = page
-            .locator(viewport.width < 768 ? '[data-slot="item"]' : "tr")
+            .locator(viewport.width < 1280 ? '[data-slot="item"]' : "tr")
             .filter({ hasText: title })
             .filter({ visible: true })
             .first();

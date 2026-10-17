@@ -1,5 +1,5 @@
 <script lang="ts">
-import { cn } from "#lib/utils.js";
+import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
 import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import type {
@@ -74,39 +74,59 @@ function clearExamFilter() {
       }}
     />
 
-    <div class={cn("md:hidden", mobileView !== "cards" && "hidden")}>
-      <ExamsCardsView
-        {locale}
-        unknownSemesterLabel={signedData.copy.common.unknown}
-        {workspaceCopy}
-        {workspaceTabHref}
-        {examMetadataLabels}
-        exams={filteredExamRows}
-        hasExamRows={examRows.length > 0}
-        onClearFilter={clearExamFilter}
-        {examTimeLabel}
-        {fmtExamDate}
-        {namePrimary}
-        {sectionCopy}
-        {subscriptionsCopy}
-      />
-    </div>
-    <div class={cn("min-w-0 overflow-x-auto md:block", mobileView !== "list" && "hidden")}>
-      <ExamsListView
-        {examMetadataLabels}
-        {locale}
-        unknownSemesterLabel={signedData.copy.common.unknown}
-        {namePrimary}
-        {workspaceCopy}
-        {workspaceTabHref}
-        {examTimeLabel}
-        exams={filteredExamRows}
-        hasExamRows={examRows.length > 0}
-        onClearFilter={clearExamFilter}
-        {fmtExamDate}
-        {sectionCopy}
-        {subscriptionsCopy}
-      />
-    </div>
+    <WorkspaceCollection>
+      {#snippet mobile()}
+        {#if mobileView === "cards"}
+          <ExamsCardsView
+            {locale}
+            unknownSemesterLabel={signedData.copy.common.unknown}
+            {workspaceCopy}
+            {workspaceTabHref}
+            {examMetadataLabels}
+            exams={filteredExamRows}
+            hasExamRows={examRows.length > 0}
+            onClearFilter={clearExamFilter}
+            {examTimeLabel}
+            {fmtExamDate}
+            {namePrimary}
+            {sectionCopy}
+            {subscriptionsCopy}
+          />
+        {:else}
+          <ExamsListView
+            {examMetadataLabels}
+            {locale}
+            unknownSemesterLabel={signedData.copy.common.unknown}
+            {namePrimary}
+            {workspaceCopy}
+            {workspaceTabHref}
+            {examTimeLabel}
+            exams={filteredExamRows}
+            hasExamRows={examRows.length > 0}
+            onClearFilter={clearExamFilter}
+            {fmtExamDate}
+            {sectionCopy}
+            {subscriptionsCopy}
+          />
+        {/if}
+      {/snippet}
+      {#snippet desktop()}
+        <ExamsListView
+          {examMetadataLabels}
+          {locale}
+          unknownSemesterLabel={signedData.copy.common.unknown}
+          {namePrimary}
+          {workspaceCopy}
+          {workspaceTabHref}
+          {examTimeLabel}
+          exams={filteredExamRows}
+          hasExamRows={examRows.length > 0}
+          onClearFilter={clearExamFilter}
+          {fmtExamDate}
+          {sectionCopy}
+          {subscriptionsCopy}
+        />
+      {/snippet}
+    </WorkspaceCollection>
   {/if}
 </section>

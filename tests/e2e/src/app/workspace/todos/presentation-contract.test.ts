@@ -2,11 +2,12 @@ import { expect, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { expectTodoFormResponse, test } from "../../../../utils/todo-fixture";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 
 test.describe.configure({ mode: "parallel" });
 const widths = [1280, 390];
 function surface(page: Page, width: number) {
-  return width >= 768
+  return width >= COLLECTION_DESKTOP_MIN_WIDTH_PX
     ? page.getByRole("table")
     : page.getByTestId("workspace-todos-cards");
 }
@@ -90,7 +91,7 @@ for (const locale of ["zh-CN", "en-US"] as const) {
                 ? { low: "Low", medium: "Medium", high: "High" }[priority]
                 : { low: "低", medium: "中", high: "高" }[priority];
             const row =
-              width >= 768
+              width >= COLLECTION_DESKTOP_MIN_WIDTH_PX
                 ? surface(page, width)
                     .getByRole("row")
                     .filter({ hasText: title })

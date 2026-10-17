@@ -9,6 +9,7 @@ import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
   SubscriptionsData,
@@ -119,18 +120,19 @@ function handleRemoveDialogOpenChange(open: boolean) {
             )}
           </span>
         </div>
-        <div class="md:hidden">
-          <SubscriptionsCardsView
-            workspaceCopy={workspaceCopy}
-            requestRemoveSection={requestRemoveSection}
-            requestEditKind={requestEditKind}
-            removingSectionId={removingSectionId}
-            sectionCopy={sectionCopy}
-            sections={group.sections}
-            subscriptionsCopy={subscriptionsCopy}
-          />
-        </div>
-        <div class="hidden min-w-0 overflow-x-auto md:block">
+        <WorkspaceCollection>
+          {#snippet mobile()}
+            <SubscriptionsCardsView
+              workspaceCopy={workspaceCopy}
+              requestRemoveSection={requestRemoveSection}
+              requestEditKind={requestEditKind}
+              removingSectionId={removingSectionId}
+              sectionCopy={sectionCopy}
+              sections={group.sections}
+              subscriptionsCopy={subscriptionsCopy}
+            />
+          {/snippet}
+          {#snippet desktop()}
           <Table.Root
             class="min-w-0 w-full"
             data-testid="subscription-semester-table"
@@ -202,7 +204,8 @@ function handleRemoveDialogOpenChange(open: boolean) {
               {/each}
             </Table.Body>
           </Table.Root>
-        </div>
+          {/snippet}
+        </WorkspaceCollection>
       </section>
     {/each}
   </div>

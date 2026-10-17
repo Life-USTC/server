@@ -312,7 +312,7 @@ for (const timezoneId of ["UTC", "Asia/Shanghai"]) {
             await gotoAndWaitForReady(page, fixture.academicUrl());
             const surface = page
               .getByTestId(
-                width >= 768 ? "workspace-calendar-grid" : "calendar-agenda",
+                width >= 1280 ? "workspace-calendar-grid" : "calendar-agenda",
               )
               .filter({ visible: true });
             const course = surface
@@ -334,7 +334,7 @@ for (const timezoneId of ["UTC", "Asia/Shanghai"]) {
             });
             await expect(todo).toBeVisible();
             await expect(todo).toContainText("15:00");
-            if (width < 768) {
+            if (width < 1280) {
               const day = surface
                 .locator(`#agenda-${fixture.date}`)
                 .locator("xpath=ancestor::section[1]");

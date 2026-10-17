@@ -218,7 +218,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
 
     {#if calendarData && calendarData.semesterWeeks.length > 0}
       {#key `${calendarView}-${calendarDay}-${calendarMonth}-${calendarWeekStart}-${calendarSemesterId ?? ""}`}
-        <div class={calendarView === "day" ? "" : "md:hidden"}>
+        <div class={calendarView === "day" ? "" : "xl:hidden"}>
           <CalendarAgenda
             days={agendaDays}
             emptyLabel={workspaceCopy.calendarAgendaEmpty}
@@ -227,7 +227,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
           />
         </div>
         {#if calendarView !== "day"}
-        <div class="hidden md:block" data-testid="workspace-calendar-grid">
+        <div class="hidden xl:block" data-testid="workspace-calendar-grid">
           <CalendarGrid
             weeks={calendarGridWeeks}
             weekdays={calendarWeekdayLabels}
