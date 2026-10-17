@@ -1,7 +1,7 @@
 <script lang="ts">
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { cn } from "#lib/utils.js";
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { cn } from "$lib/utils.js";
 import type { ProfileStat } from "./profile-contribution-types";
 
 type LegendItem = {

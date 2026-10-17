@@ -1,6 +1,6 @@
 <script lang="ts">
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 
 type HomeworkTarget = {
   title: string;

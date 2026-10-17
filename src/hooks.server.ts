@@ -1,14 +1,10 @@
+import { isHttpError, isRedirect, redirect } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit/hooks";
+
 /**
  * SvelteKit request hooks: locale negotiation, auth routing, CSP nonce,
  * public-SSR headers, and API/page observability for the Cloudflare Worker.
  */
-import {
-  type Handle,
-  type HandleServerError,
-  isHttpError,
-  isRedirect,
-  redirect,
-} from "@sveltejs/kit";
 import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import {
@@ -412,9 +408,59 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   }
 };
 
-export const handle: Handle = async (input) =>
-  await runWithCloudflareRuntimeEnv(
-    (input.event.platform as { env?: unknown } | undefined)?.env,
+type CloudflareWorkersModule = {
+  env?: unknown;
+  waitUntil?: (promise: Promise<unknown>) => void;
+  exports?: unknown;
+  tracing?: unknown;
+};
+
+let cloudflareWorkersModulePromise:
+  | Promise<CloudflareWorkersModule | undefined>
+  | undefined;
+
+/**
+ * adapter-cloudflare 8 no longer provides `event.platform`: the Workers env
+ * and execution context are exposed through the `cloudflare:workers` module
+ * instead (during `vite dev` it is a virtual module backed by
+ * `getPlatformProxy`). The import rejects outside a Workers runtime, such as
+ * Vitest, where tests keep injecting a `platform` object on the event.
+ */
+function loadCloudflareWorkersModule() {
+  cloudflareWorkersModulePromise ??= import("cloudflare:workers").then(
+    (module) => module as CloudflareWorkersModule,
+    () => undefined,
+  );
+  return cloudflareWorkersModulePromise;
+}
+
+function cloudflareExecutionContext(workers: CloudflareWorkersModule) {
+  let workerExports: unknown;
+  try {
+    // The dev stub's `exports` proxy throws on any property access; treat it
+    // as absent there so catalog cache invalidation falls back cleanly.
+    workerExports = (workers.exports as { PublicSsr?: unknown } | undefined)
+      ?.PublicSsr
+      ? workers.exports
+      : undefined;
+  } catch {
+    workerExports = undefined;
+  }
+  return {
+    waitUntil:
+      typeof workers.waitUntil === "function" ? workers.waitUntil : undefined,
+    exports: workerExports,
+    tracing: workers.tracing,
+  };
+}
+
+export const handle: Handle = async (input) => {
+  const workers = await loadCloudflareWorkersModule();
+  const platform = input.event.platform as
+    | { env?: unknown; context?: unknown; ctx?: unknown }
+    | undefined;
+  return await runWithCloudflareRuntimeEnv(
+    workers?.env ?? platform?.env,
     () =>
       runWithObservability(
         () =>
@@ -426,13 +472,22 @@ export const handle: Handle = async (input) =>
               ),
         getCloudflareRuntimeTaskScheduler(),
       ),
-    (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
-      ?.ctx ??
-      (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
-        ?.context,
+    workers
+      ? cloudflareExecutionContext(workers)
+      : (platform?.ctx ?? platform?.context),
   );
+};
 
-export const handleError: HandleServerError = ({ error, event, status }) => {
+export const handleError: HandleServerError = (input) => {
+  const { event } = input;
+  // SvelteKit 3 routes expected errors (created with `error(...)`) and remote
+  // function validation errors through this hook as well. Their bodies are
+  // already safe to expose: keep the framework defaults and SvelteKit 2's
+  // behavior of not logging them as server errors.
+  if (input.kind === "app" || input.kind === "validation") {
+    return;
+  }
+  const status = input.kind === "framework" ? input.error.status : 500;
   if (status === 404 && event.route.id === null) {
     return { message: "Not Found" };
   }
@@ -448,7 +503,7 @@ export const handleError: HandleServerError = ({ error, event, status }) => {
       source: "sveltekit",
       status,
     },
-    error,
+    input.error,
   );
 
   return { message: "Internal Error" };

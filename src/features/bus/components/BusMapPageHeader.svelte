@@ -1,10 +1,10 @@
 <script lang="ts">
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { BusMapCopy } from "@/features/bus/lib/bus-map-types";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 export let copy: BusMapCopy;
 export let refreshMap: () => void | Promise<void>;

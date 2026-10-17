@@ -1,7 +1,7 @@
 <script lang="ts">
+import FilterToolbar from "#lib/components/FilterToolbar.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
 import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-helpers";
-import FilterToolbar from "$lib/components/FilterToolbar.svelte";
-import SearchField from "$lib/components/SearchField.svelte";
 
 export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
 export let linkSearchQuery: string;

@@ -1,10 +1,10 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getHomeworkDetailRoute } from "@/lib/api/routes/homework-detail-read-route";
 import {
   deleteHomeworkRoute,
   patchHomeworkRoute,
 } from "@/lib/api/routes/homework-mutation-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Read one shared section homework with its detail relations and audit history.

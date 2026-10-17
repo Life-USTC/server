@@ -1,9 +1,11 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
 import { getOAuthCopy } from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
-import { page } from "$app/stores";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+
+const page = legacyPageStore();
 
 $: copy = getOAuthCopy(($page.data.locale ?? "zh-cn") as AppLocale);
 $: errorCode = $page.url.searchParams.get("error");

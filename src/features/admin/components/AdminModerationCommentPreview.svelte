@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import type { AdminModerationComment } from "./admin-moderation-comment-types";
 import type { AdminModerationCopy } from "./admin-moderation-page-types";
 

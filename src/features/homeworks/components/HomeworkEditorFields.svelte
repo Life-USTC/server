@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Field from "$lib/components/ui/field/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import HomeworkDescriptionFields from "./HomeworkDescriptionFields.svelte";
 import HomeworkStyleGuide from "./HomeworkStyleGuide.svelte";
 import HomeworkTagFields from "./HomeworkTagFields.svelte";

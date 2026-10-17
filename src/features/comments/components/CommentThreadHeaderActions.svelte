@@ -1,8 +1,8 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
+import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import type { CommentsCopy } from "./comment-component-types";
 
 export let actionMenuId: string | null;

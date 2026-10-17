@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
 import type { AdminModerationDescriptionCopy } from "./admin-moderation-description-types";
 
 export let copy: AdminModerationDescriptionCopy;

@@ -1,4 +1,4 @@
-import type { SubmitFunction } from "@sveltejs/kit";
+import type { SubmitFunction } from "$app/forms";
 import {
   actionResultError,
   validateCreateHomeworkForm as validateCreateHomeworkFormData,

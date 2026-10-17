@@ -1,11 +1,9 @@
-import type { SubmitFunction } from "@sveltejs/kit";
 import { writeClipboardText } from "@/lib/browser/clipboard";
+import type { SubmitFunction } from "$app/forms";
 import { toggleOAuthScope } from "./oauth-controller";
 
 export function createOAuthPageActions<
-  ClientShape extends {
-    clientId?: string | null;
-  },
+  ClientShape extends { clientId?: string | null },
 >(input: {
   getAuthMethods: () => string[];
   getCopy: () => Record<string, string>;

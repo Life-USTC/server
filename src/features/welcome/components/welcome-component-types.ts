@@ -1,6 +1,6 @@
-import type { SubmitFunction } from "@sveltejs/kit";
 import type { WelcomeMatchedSection } from "@/features/welcome/lib/welcome-bulk-import-types";
 import type { WelcomeStep } from "@/features/welcome/lib/welcome-steps";
+import type { SubmitFunction } from "$app/forms";
 
 export type WelcomeStepIndicator = {
   id: WelcomeStep;

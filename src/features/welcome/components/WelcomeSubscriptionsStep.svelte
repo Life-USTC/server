@@ -1,19 +1,19 @@
 <script lang="ts">
 import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 import ArrowRight from "@lucide/svelte/icons/arrow-right";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { Textarea } from "#lib/components/ui/textarea/index.js";
 import {
   GRADUATE_ACADEMIC_PORTAL_URL,
   UNDERGRADUATE_ACADEMIC_PORTAL_URL,
 } from "@/features/welcome/lib/welcome-academic-portals";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type {
   WelcomeBulkImportCopy,
   WelcomeCopy,

@@ -1,4 +1,4 @@
-import type { SubmitFunction } from "@sveltejs/kit";
+import type { SubmitFunction } from "$app/forms";
 import {
   dateTimeInputValue,
   initialHomeworkDraft,
@@ -6,6 +6,7 @@ import {
   type SectionHomework,
   sectionSemesterDate,
 } from "./section-detail-controller-helpers";
+
 import {
   persistSectionHomeworkView,
   type SectionHomeworkView,

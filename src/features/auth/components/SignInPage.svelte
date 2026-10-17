@@ -2,20 +2,19 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
-import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
-import { enhance } from "$app/forms";
 import {
   isPasskeySupported,
   passkeyAuthClient,
   passkeyClientErrorKind,
-} from "$lib/auth/passkey-client";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import { redirectWithExternalFallback } from "$lib/navigation/redirect";
+} from "#lib/auth/passkey-client.js";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { redirectWithExternalFallback } from "#lib/navigation/redirect.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 
 type PageData = {
   callbackUrl: string;

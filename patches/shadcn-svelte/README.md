@@ -20,7 +20,7 @@ deliberate divergence is recorded here as a diff against the registry version.
    diff -u /tmp/upstream.svelte src/lib/components/ui/<path> > patches/shadcn-svelte/<file>.patch
    ```
 
-The `$UTILS$` → `$lib/utils` line in each patch is the registry's own
+The `$UTILS$` → `#lib/utils` line in each patch is the registry's own
 placeholder substitution, not a divergence.
 
 ## Current patches

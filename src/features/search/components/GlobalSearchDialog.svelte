@@ -3,6 +3,12 @@ import SearchIcon from "@lucide/svelte/icons/search";
 import XIcon from "@lucide/svelte/icons/x";
 import { createEventDispatcher } from "svelte";
 import { writable } from "svelte/store";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import GlobalSearchResults from "@/features/search/components/GlobalSearchResults.svelte";
 import {
   GLOBAL_SEARCH_DIALOG_LIMIT,
@@ -17,12 +23,6 @@ import {
 import type { GlobalSearchResultItem } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
 import { goto } from "$app/navigation";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import type { LayoutCopy } from "$lib/shell/layout-server-data";
 
 export let copy: LayoutCopy["globalSearch"];
 export let locale: AppLocale;

@@ -1,8 +1,8 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { deleteCommentRoute } from "@/lib/api/routes/comments-delete-route";
 import { getCommentRoute } from "@/lib/api/routes/comments-thread-route";
 import { patchCommentRoute } from "@/lib/api/routes/comments-update-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Get comment thread.

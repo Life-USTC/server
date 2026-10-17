@@ -1,4 +1,4 @@
-import type { ShellLink } from "$lib/components/shell/types";
+import type { ShellLink } from "#lib/components/shell/types.js";
 
 export type ThemeMode = "system" | "light" | "dark";
 

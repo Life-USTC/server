@@ -1,9 +1,9 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import TruncatedCode from "$lib/components/TruncatedCode.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import TruncatedCode from "#lib/components/TruncatedCode.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import type { SubmitFunction } from "$app/forms";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 
 type SectionHeaderCopy = {
@@ -55,13 +55,13 @@ export let viewer: SectionHeaderViewer;
   {/snippet}
   {#snippet actions()}
     <SectionDetailPrimaryActions
-      {onOpenCalendar}
-      {onOpenSubscribe}
+      onOpenCalendar={onOpenCalendar}
+      onOpenSubscribe={onOpenSubscribe}
       retired={section.retiredAt != null}
-      {sectionCopy}
-      {subscriptionAction}
-      {subscriptionPendingAction}
-      {viewer}
+      sectionCopy={sectionCopy}
+      subscriptionAction={subscriptionAction}
+      subscriptionPendingAction={subscriptionPendingAction}
+      viewer={viewer}
     />
   {/snippet}
   {#snippet after()}

@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
 import AdminModerationComments from "@/features/admin/components/AdminModerationComments.svelte";
 import AdminModerationDescriptions from "@/features/admin/components/AdminModerationDescriptions.svelte";
 import AdminModerationHomeworks from "@/features/admin/components/AdminModerationHomeworks.svelte";
@@ -20,6 +19,7 @@ import {
   moderationTargetLabel,
 } from "@/features/admin/lib/moderation-display";
 import type { PendingModerationServerAction } from "@/features/admin/lib/moderation-page-client-actions";
+import type { SubmitFunction } from "$app/forms";
 
 export let copy: AdminModerationCopy;
 export let data: AdminModerationPageData;
@@ -38,7 +38,7 @@ export let visibleComments: AdminModerationComment[];
 
 {#if data.tab === "descriptions"}
   <AdminModerationDescriptions
-    {copy}
+    copy={copy}
     descriptions={data.descriptions}
     descriptionTargetHref={(description: AdminModerationDescription) =>
       moderationDescriptionTargetHref(description)}
@@ -49,19 +49,18 @@ export let visibleComments: AdminModerationComment[];
   />
 {:else if data.tab === "homeworks"}
   <AdminModerationHomeworks
-    {copy}
+    copy={copy}
     formatDate={formatDate}
     homeworks={data.homeworks}
     onDelete={onDeleteHomework}
   />
 {:else if data.tab === "suspensions"}
   <AdminModerationSuspensions
-    {copy}
-    enhanceLiftSuspension={(id) =>
-      enhanceAdminAction(`liftSuspension:${id}`)}
+    copy={copy}
+    enhanceLiftSuspension={(id) => enhanceAdminAction(`liftSuspension:${id}`)}
     formatDate={formatDate}
     formatMessage={moderationFormatMessage}
-    {liftingSuspensionId}
+    liftingSuspensionId={liftingSuspensionId}
     suspensions={data.suspensions}
   />
 {:else}
@@ -69,7 +68,7 @@ export let visibleComments: AdminModerationComment[];
     commentAuthorLabel={(comment) =>
       moderationCommentAuthorLabel(comment as AdminModerationComment, copy.guestLabel)}
     comments={visibleComments}
-    {copy}
+    copy={copy}
     formatDate={formatDate}
     onManage={onManageComment}
     statusLabel={(status) => moderationStatusLabel(status, copy)}

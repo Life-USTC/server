@@ -1,13 +1,13 @@
 <script lang="ts">
 import Trash2 from "@lucide/svelte/icons/trash-2";
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import TableRowActions from "$lib/components/TableRowActions.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import TableRowActions from "#lib/components/TableRowActions.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import AdminListShell from "./AdminListShell.svelte";
 import AdminTableShell from "./AdminTableShell.svelte";
 import type { AdminModerationHomework } from "./admin-moderation-page-types";

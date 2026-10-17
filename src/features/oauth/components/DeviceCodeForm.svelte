@@ -1,8 +1,8 @@
 <script lang="ts">
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "bits-ui";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as InputOTP from "$lib/components/ui/input-otp/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as InputOTP from "#lib/components/ui/input-otp/index.js";
 import type { DeviceCopy } from "./device-component-types";
 
 export let code: string;

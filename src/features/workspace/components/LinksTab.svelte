@@ -1,11 +1,11 @@
 <script lang="ts">
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import type {
   SignedLinkGroup,
   WorkspaceCopy,
   WorkspaceLinkPinSubmit,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import LinksTabGroup from "./LinksTabGroup.svelte";
 import LinksTabToolbar from "./LinksTabToolbar.svelte";
 import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";

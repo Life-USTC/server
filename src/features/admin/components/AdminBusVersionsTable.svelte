@@ -1,7 +1,7 @@
 <script lang="ts">
-import CompactEmpty from "$lib/components/CompactEmpty.svelte";
-import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Table from "$lib/components/ui/table/index.js";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import AdminTableShell from "./AdminTableShell.svelte";

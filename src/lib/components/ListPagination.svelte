@@ -1,10 +1,10 @@
 <script lang="ts">
 import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import { Button } from "$lib/components/ui/button";
-import * as Pagination from "$lib/components/ui/pagination/index.js";
-import { getPaginationTokens } from "$lib/navigation/pagination";
-import { cn } from "$lib/utils.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Pagination from "#lib/components/ui/pagination/index.js";
+import { getPaginationTokens } from "#lib/navigation/pagination.js";
+import { cn } from "#lib/utils.js";
 
 export let ariaLabel: string;
 export let nextLabel: string;

@@ -2,16 +2,16 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
+import TableIconButton from "#lib/components/TableIconButton.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type {
   SubscriptionsData,
   WorkspaceCopy,
   WorkspaceSectionCopy,
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import TableIconButton from "$lib/components/TableIconButton.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];

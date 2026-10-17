@@ -1,7 +1,7 @@
 <script lang="ts">
+import { cn } from "#lib/utils.js";
 import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
 import type { WorkspaceOverviewLinkItem } from "@/features/workspace/lib/workspace-controller-helpers";
-import { cn } from "$lib/utils.js";
 
 export let link: WorkspaceOverviewLinkItem;
 

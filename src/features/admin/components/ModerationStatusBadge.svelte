@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Badge } from "#lib/components/ui/badge/index.js";
 import type { ModerationCommentLike } from "@/features/admin/lib/moderation-display-types";
-import { Badge } from "$lib/components/ui/badge/index.js";
 
 export let label: string;
 export let status: ModerationCommentLike["status"];

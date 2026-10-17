@@ -1,7 +1,7 @@
 <script lang="ts">
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
 import { HOMEWORK_TITLE_MAX_LENGTH } from "@/features/homeworks/lib/homework-limits";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
 import type { HomeworkFormCopy } from "./homework-form-types";
 
 export let copy: HomeworkFormCopy;

@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Table from "$lib/components/ui/table/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
 import AdminModerationCommentTableRow from "./AdminModerationCommentTableRow.svelte";
 import AdminTableShell from "./AdminTableShell.svelte";
 import type {

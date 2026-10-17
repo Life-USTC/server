@@ -7,6 +7,7 @@
     "tests/unit/**/*.ts",
     "tests/integration/**/*.ts",
     "src/app.d.ts",
+    "src/cloudflare-workers.d.ts",
     "playwright.config.ts",
     "prisma.config.ts",
     "vitest.base.ts",

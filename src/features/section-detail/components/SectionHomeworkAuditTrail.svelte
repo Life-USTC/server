@@ -1,6 +1,6 @@
 <script lang="ts">
-import * as Accordion from "$lib/components/ui/accordion/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import * as Accordion from "#lib/components/ui/accordion/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import type {
   SectionHomeworkAuditLog,
   SectionHomeworkCommonCopy,

@@ -2,8 +2,8 @@
 import {
   detailDefinitionListClass,
   detailDefinitionTermClass,
-} from "$lib/components/detail-definition-list";
-import { Button } from "$lib/components/ui/button/index.js";
+} from "#lib/components/detail-definition-list.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import type {
   TeacherDetailCopy,
   TeacherDetailTeacher,

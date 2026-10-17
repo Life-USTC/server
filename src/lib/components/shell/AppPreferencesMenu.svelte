@@ -3,10 +3,10 @@ import LanguagesIcon from "@lucide/svelte/icons/languages";
 import MonitorIcon from "@lucide/svelte/icons/monitor";
 import MoonIcon from "@lucide/svelte/icons/moon";
 import SunIcon from "@lucide/svelte/icons/sun";
-import type { ThemeMode } from "$lib/components/shell/layout-shell";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-import type { LayoutCopy } from "$lib/shell/layout-server-data";
+import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 
 export let copy: LayoutCopy;
 export let locale: "en-us" | "zh-cn";

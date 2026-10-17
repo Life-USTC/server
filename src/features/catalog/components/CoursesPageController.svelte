@@ -1,13 +1,13 @@
 <script lang="ts">
+import CollectionPage from "#lib/components/CollectionPage.svelte";
+import ListPagination from "#lib/components/ListPagination.svelte";
 import { catalogPrimaryName as primaryName } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import {
   buildCourseFilterOptions,
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
-import { page } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
-import ListPagination from "$lib/components/ListPagination.svelte";
+import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import CatalogFilters from "./CatalogFilters.svelte";
 import CoursesFilters from "./CoursesFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
@@ -19,6 +19,8 @@ import type {
   CourseListRow,
 } from "./catalog-course-list-types";
 
+const page = legacyPageStore();
+
 type PageData = {
   data: CourseListRow[];
   filterOptions: CourseListFilterOptions;
@@ -29,15 +31,9 @@ type PageData = {
       home: string;
       loading: string;
     };
-    courses: CourseListLabels & {
-      title: string;
-    };
+    courses: CourseListLabels & { title: string };
   };
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination: { page: number; total: number; totalPages: number };
 };
 
 export let data: PageData;
@@ -93,7 +89,7 @@ $: courseHiddenFilters = [
 ].filter((filter) => Boolean(filter.value));
 
 function pageHref(targetPage: number) {
-  return catalogListPageHref($page.url, targetPage);
+  return catalogListPageHref(new URL($page.url.href), targetPage);
 }
 
 function courseFilterHref(overrides: Partial<CourseListFilters>) {
@@ -120,6 +116,7 @@ function courseEmptyDescription() {
 }
 </script>
 
+
 {#snippet paginationFooter()}
   <ListPagination
     ariaLabel={commonLabels.pagination}
@@ -127,45 +124,45 @@ function courseEmptyDescription() {
     nextLabel={commonLabels.next}
     nextPageLabel={commonLabels.nextPage}
     page={data.pagination.page}
-    {pageHref}
+    pageHref={pageHref}
     previousLabel={commonLabels.previous}
     previousPageLabel={commonLabels.previousPage}
-    {totalPages}
+    totalPages={totalPages}
   />
 {/snippet}
 
 <CollectionPage description={courseLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={courseLabels.title}>
   {#snippet toolbar()}
-      <CatalogFilters
-        activeFilters={courseActiveFilters}
-        clearHref="/catalog/courses"
-        clearLabel={commonLabels.clear}
-        filterDescription={courseLabels.filterDescription}
-        filterTitle={courseLabels.summary.filters}
-        hiddenFilters={courseHiddenFilters}
-        searchId="mobile-course-search"
-        searchLabel={commonLabels.search}
-        searchPlaceholder={courseLabels.searchPlaceholder}
-        bind:searchValue={courseSearch}
-      >
-        <CoursesFilters
-          {categoryOptions}
-          {classTypeOptions}
-          {commonLabels}
-          {courseLabels}
-          {courseSearch}
-          {educationLevelOptions}
-          filters={data.filters}
-          idPrefix="mobile-course"
-        />
-      </CatalogFilters>
+    <CatalogFilters
+      activeFilters={courseActiveFilters}
+      clearHref="/catalog/courses"
+      clearLabel={commonLabels.clear}
+      filterDescription={courseLabels.filterDescription}
+      filterTitle={courseLabels.summary.filters}
+      hiddenFilters={courseHiddenFilters}
+      searchId="mobile-course-search"
+      searchLabel={commonLabels.search}
+      searchPlaceholder={courseLabels.searchPlaceholder}
+      bind:searchValue={courseSearch}
+    >
+      <CoursesFilters
+        categoryOptions={categoryOptions}
+        classTypeOptions={classTypeOptions}
+        commonLabels={commonLabels}
+        courseLabels={courseLabels}
+        courseSearch={courseSearch}
+        educationLevelOptions={educationLevelOptions}
+        filters={data.filters}
+        idPrefix="mobile-course"
+      />
+    </CatalogFilters>
   {/snippet}
-    <CoursesResults
-      {courseEmptyDescription}
-      {courseLabels}
-      data={courseResultsData}
-      page={data.pagination.page}
-      {primaryName}
-      {totalPages}
-    />
+  <CoursesResults
+    courseEmptyDescription={courseEmptyDescription}
+    courseLabels={courseLabels}
+    data={courseResultsData}
+    page={data.pagination.page}
+    primaryName={primaryName}
+    totalPages={totalPages}
+  />
 </CollectionPage>

@@ -2,6 +2,11 @@
 import { ChevronDownIcon } from "@lucide/svelte";
 import { untrack } from "svelte";
 import { toast } from "svelte-sonner";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Collapsible from "#lib/components/ui/collapsible/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import {
   youngEventSubscriptionStateSchema,
   youngOrganizerSubscriptionStateSchema,
@@ -9,12 +14,7 @@ import {
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { goto, invalidateAll } from "$app/navigation";
-import { page } from "$app/stores";
-import { Badge } from "$lib/components/ui/badge";
-import { Button } from "$lib/components/ui/button";
-import { Checkbox } from "$lib/components/ui/checkbox";
-import * as Collapsible from "$lib/components/ui/collapsible";
-import * as Field from "$lib/components/ui/field";
+import { page } from "$app/state";
 
 let {
   id,
@@ -146,8 +146,9 @@ async function retry() {
 async function save(next: boolean) {
   if (!signedIn) {
     await goto(
-      `/account/sign-in?callbackUrl=${encodeURIComponent($page.url.pathname + $page.url.search)}`,
+      `/account/sign-in?callbackUrl=${encodeURIComponent(page.url.pathname + page.url.search)}`,
     );
+
     return;
   }
   busy = true;
@@ -185,45 +186,55 @@ async function save(next: boolean) {
     </Button>
   {/if}
 {:else}
-<div class="grid gap-3">
-  <div class="flex flex-wrap items-center gap-3">
-    {#if failed}
-      <span role="alert">{copy.failed}</span>
-      <Button variant="outline" onclick={retry}>{copy.retry}</Button>
-    {:else}
-      <Button disabled={!loaded || busy} variant="outline" onclick={() => save(!subscribed)}>
-        {!loaded ? copy.loading : !signedIn ? copy.signin : kind === "events" ? (subscribed ? copy.unsubscribe : copy.subscribe) : (subscribed ? copy.unfollow : copy.follow)}
-      </Button>
-    {/if}
+  <div class="grid gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+      {#if failed}
+        <span role="alert">{copy.failed}</span>
+        <Button variant="outline" onclick={retry}>{copy.retry}</Button>
+      {:else}
+        <Button
+          disabled={!loaded || busy}
+          variant="outline"
+          onclick={() => save(!subscribed)}
+        >
+          {!loaded
+            ? copy.loading
+            : !signedIn
+              ? copy.signin
+              : kind === "events"
+                ? subscribed ? copy.unsubscribe : copy.subscribe
+                : subscribed ? copy.unfollow : copy.follow}
+        </Button>
+      {/if}
     {#if subscribed && loaded && !failed}<Badge variant="secondary">{kind === "events" ? copy.subscribed : copy.followed}</Badge>{/if}
     {#if !initialState}<Button href="/workspace/subscriptions/activities" variant="link">{copy.manage}</Button>{/if}
-  </div>
+    </div>
   {#if !initialState}<p class="text-muted-foreground text-sm">{kind === "events" ? copy.hint : copy.followHint}</p>{/if}
-  {#if kind === "events" && subscribed && loaded && !failed}
-    <div class="text-muted-foreground text-sm">{copy.reminderSummary.replace("{value}", reminderSummary)}</div>
-    <Collapsible.Root class="group/reminders">
-      <Collapsible.Trigger>
-        {#snippet child({ props })}
-          <Button {...props} variant="ghost" size="sm">
-            {copy.reminderSettings}
+    {#if kind === "events" && subscribed && loaded && !failed}
+      <div class="text-muted-foreground text-sm">{copy.reminderSummary.replace("{value}", reminderSummary)}</div>
+      <Collapsible.Root class="group/reminders">
+        <Collapsible.Trigger>
+          {#snippet child({ props })}
+            <Button {...props} variant="ghost" size="sm">
+              {copy.reminderSettings} 
             <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-[state=open]/reminders:rotate-180" />
-          </Button>
-        {/snippet}
-      </Collapsible.Trigger>
-      <Collapsible.Content>
-        <div class="grid gap-3 pt-3">
-          <Field.FieldSet disabled={busy}>
-            <Field.FieldLegend class="sr-only">{copy.reminderSettings}</Field.FieldLegend>
-            <Field.FieldGroup>
+            </Button>
+          {/snippet}
+        </Collapsible.Trigger>
+        <Collapsible.Content>
+          <div class="grid gap-3 pt-3">
+            <Field.FieldSet disabled={busy}>
+              <Field.FieldLegend class="sr-only">{copy.reminderSettings}</Field.FieldLegend>
+              <Field.FieldGroup>
               <Field.Field orientation="horizontal"><Checkbox id={`${prefix}-signup`} bind:checked={remindSignup} /><Field.FieldLabel for={`${prefix}-signup`}>{copy.signupReminder}</Field.FieldLabel></Field.Field>
               <Field.Field orientation="horizontal"><Checkbox id={`${prefix}-deadline`} bind:checked={remindDeadline} /><Field.FieldLabel for={`${prefix}-deadline`}>{copy.deadlineReminder}</Field.FieldLabel></Field.Field>
               <Field.Field orientation="horizontal"><Checkbox id={`${prefix}-start`} bind:checked={remindStart} /><Field.FieldLabel for={`${prefix}-start`}>{copy.startReminder}</Field.FieldLabel></Field.Field>
-            </Field.FieldGroup>
-          </Field.FieldSet>
+              </Field.FieldGroup>
+            </Field.FieldSet>
           <Button class="justify-self-start" disabled={busy} variant="outline" onclick={() => save(true)}>{copy.save}</Button>
-        </div>
-      </Collapsible.Content>
-    </Collapsible.Root>
-  {/if}
-</div>
+          </div>
+        </Collapsible.Content>
+      </Collapsible.Root>
+    {/if}
+  </div>
 {/if}

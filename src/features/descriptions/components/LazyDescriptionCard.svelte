@@ -1,8 +1,8 @@
 <script lang="ts">
 import { type ComponentProps, onMount } from "svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type DescriptionCardComponent from "./DescriptionCard.svelte";
 
 type CardProps = ComponentProps<typeof DescriptionCardComponent>;

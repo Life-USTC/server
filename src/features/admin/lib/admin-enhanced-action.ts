@@ -1,4 +1,4 @@
-import type { SubmitFunction } from "@sveltejs/kit";
+import type { SubmitFunction } from "$app/forms";
 
 export function createPendingEnhancedAction(input: {
   setPendingAction: (value: string | null) => void;

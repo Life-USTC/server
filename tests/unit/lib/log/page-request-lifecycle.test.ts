@@ -1,4 +1,5 @@
-import { type Handle, redirect } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
+import type { Handle } from "@sveltejs/kit/hooks";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createWaitUntil } from "../../../shared/wait-until";
 
@@ -51,6 +52,7 @@ function handleInput(
       delete: vi.fn(),
       get: vi.fn(),
       getAll: vi.fn(() => []),
+      parse: vi.fn(() => ({ name: "", value: "" })),
       serialize: vi.fn(() => ""),
       set: vi.fn(),
     },
@@ -113,6 +115,7 @@ function pageEvents(
 ) {
   return calls.filter((call) => {
     const [prefix, value] = call;
+
     return (
       prefix === "[app]" &&
       typeof value === "object" &&
@@ -277,8 +280,7 @@ describe("SvelteKit page request lifecycle", () => {
       handleError({
         error: new TypeError("private database detail"),
         event,
-        message: "Internal Error",
-        status: 500,
+        kind: "unknown",
       }),
     ).toEqual({ message: "Internal Error" });
 
@@ -305,10 +307,9 @@ describe("SvelteKit page request lifecycle", () => {
 
     expect(
       handleError({
-        error: new Error("Not found: /wp-login.php"),
+        error: { message: "Not Found", status: 404 },
         event,
-        message: "Not Found",
-        status: 404,
+        kind: "framework",
       }),
     ).toEqual({ message: "Not Found" });
     expect(error).not.toHaveBeenCalled();
@@ -316,12 +317,11 @@ describe("SvelteKit page request lifecycle", () => {
 
   it("wires the SvelteKit dispatch through the Worker trace span", async () => {
     const spanNames: string[] = [];
-    vi.spyOn(console, "info").mockImplementation(() => {});
 
+    vi.spyOn(console, "info").mockImplementation(() => {});
     await handle(
       handleInput(async () => Response.json({ ok: true }), { spanNames }),
     );
-
     expect(spanNames).toContain("app.sveltekit.resolve");
   });
 

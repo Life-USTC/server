@@ -1,8 +1,8 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import { cn } from "$lib/utils.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as Tooltip from "#lib/components/ui/tooltip/index.js";
+import { cn } from "#lib/utils.js";
 import type { CalendarTone } from "./types";
 
 export let href: string | undefined = undefined;

@@ -1,6 +1,6 @@
 <script lang="ts">
-import PageHeader from "$lib/components/PageHeader.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
 import type {
   AdminModerationAdminCopy,
   AdminModerationCopy,

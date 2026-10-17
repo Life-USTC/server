@@ -1,8 +1,8 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
 import AdminOAuthCreateDialog from "@/features/admin/components/AdminOAuthCreateDialog.svelte";
 import AdminOAuthCredentialsDialog from "@/features/admin/components/AdminOAuthCredentialsDialog.svelte";
 import AdminOAuthDeleteDialog from "@/features/admin/components/AdminOAuthDeleteDialog.svelte";
+import type { SubmitFunction } from "$app/forms";
 import type {
   AdminOAuthClient,
   AdminOAuthCopy,
@@ -54,37 +54,37 @@ export let clientTypeLabel: (method: string) => string;
 </script>
 
 <AdminOAuthCreateDialog
-  {authPatterns}
+  authPatterns={authPatterns}
   close={closeCreateDialog}
-  {copy}
-  {createClientAction}
-  {isCreatingClient}
-  {oauthCopy}
+  copy={copy}
+  createClientAction={createClientAction}
+  isCreatingClient={isCreatingClient}
+  oauthCopy={oauthCopy}
   open={showCreateDialog}
-  {parsedRedirectUris}
-  {redirectCountLabel}
+  parsedRedirectUris={parsedRedirectUris}
+  redirectCountLabel={redirectCountLabel}
   bind:redirectDraft
-  {scopeCountLabel}
-  {scopeLabel}
-  {scopeOptions}
+  scopeCountLabel={scopeCountLabel}
+  scopeLabel={scopeLabel}
+  scopeOptions={scopeOptions}
   bind:selectedAuthMethod
-  {selectedAuthPattern}
+  selectedAuthPattern={selectedAuthPattern}
   bind:selectedScopes
 />
 
 <AdminOAuthCredentialsDialog
   clientId={form?.createdClientId}
   clientSecret={form?.createdClientSecret}
-  {clientTypeLabel}
+  clientTypeLabel={clientTypeLabel}
   close={closeCredentialsDialog}
-  {copy}
-  {copyMessage}
-  {copyMessageVariant}
-  {copyText}
-  {credentialsJson}
+  copy={copy}
+  copyMessage={copyMessage}
+  copyMessageVariant={copyMessageVariant}
+  copyText={copyText}
+  credentialsJson={credentialsJson}
   redirectUris={form?.createdClientRedirectUris ?? []}
   scopes={form?.createdClientScopes ?? []}
-  {scopeLabel}
+  scopeLabel={scopeLabel}
   tokenEndpointAuthMethod={form?.createdClientTokenEndpointAuthMethod}
   trusted={form?.createdClientTrusted}
   open={isCredentialsDialogOpen}
@@ -95,7 +95,7 @@ export let clientTypeLabel: (method: string) => string;
   close={() => {
     setPendingDeleteClient(null);
   }}
-  {copy}
-  {deleteClientAction}
-  {deletingClientId}
+  copy={copy}
+  deleteClientAction={deleteClientAction}
+  deletingClientId={deletingClientId}
 />

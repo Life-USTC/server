@@ -2,9 +2,9 @@
 import BookOpen from "@lucide/svelte/icons/book-open";
 import History from "@lucide/svelte/icons/history";
 import Search from "@lucide/svelte/icons/search";
+import SoftEmptyMessage from "#lib/components/SoftEmptyMessage.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
 import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-types";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 

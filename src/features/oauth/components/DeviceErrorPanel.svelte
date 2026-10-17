@@ -1,6 +1,6 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import type { DeviceCopy } from "./device-component-types";
 
 export let copy: DeviceCopy;

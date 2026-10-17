@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
 import AdminModerationCommentDialog from "@/features/admin/components/AdminModerationCommentDialog.svelte";
 import AdminModerationDeleteHomeworkDialog from "@/features/admin/components/AdminModerationDeleteHomeworkDialog.svelte";
 import AdminModerationDescriptionDialog from "@/features/admin/components/AdminModerationDescriptionDialog.svelte";
@@ -19,6 +18,7 @@ import {
   moderationTargetHref,
   moderationTargetLabel,
 } from "@/features/admin/lib/moderation-display";
+import type { SubmitFunction } from "$app/forms";
 
 export let closeCommentDialog: () => void;
 export let closeDescriptionDialog: () => void;
@@ -60,16 +60,16 @@ export let deleteHomeworkAction: SubmitFunction;
   close={closeCommentDialog}
   comment={selectedComment}
   commentAuthorLabel={(comment) => moderationCommentAuthorLabel(comment, copy.guestLabel)}
-  {commentStatusOptions}
-  {copy}
-  {dialogMessage}
-  {dialogMessageVariant}
-  {inputValue}
-  {isSavingComment}
-  {isSuspendingUser}
-  {saveCommentModeration}
-  {suspendCommentAuthor}
-  {suspensionDurationOptions}
+  commentStatusOptions={commentStatusOptions}
+  copy={copy}
+  dialogMessage={dialogMessage}
+  dialogMessageVariant={dialogMessageVariant}
+  inputValue={inputValue}
+  isSavingComment={isSavingComment}
+  isSuspendingUser={isSuspendingUser}
+  saveCommentModeration={saveCommentModeration}
+  suspendCommentAuthor={suspendCommentAuthor}
+  suspensionDurationOptions={suspensionDurationOptions}
   targetHref={moderationTargetHref}
   targetLabel={(item) => moderationTargetLabel(item, copy)}
 />
@@ -78,7 +78,7 @@ export let deleteHomeworkAction: SubmitFunction;
   close={() => {
     setPendingDeleteHomework(null);
   }}
-  {copy}
+  copy={copy}
   enhanceDeleteHomework={deleteHomeworkAction}
   formatMessage={moderationFormatMessage}
   homework={pendingDeleteHomework}
@@ -88,14 +88,14 @@ export let deleteHomeworkAction: SubmitFunction;
 <AdminModerationDescriptionDialog
   bind:descriptionDraft
   close={closeDescriptionDialog}
-  {copy}
+  copy={copy}
   description={selectedDescription}
   descriptionEditedAt={moderationDescriptionEditedAt}
   descriptionTargetHref={moderationDescriptionTargetHref}
   enhanceAction={editDescriptionAction}
-  {formatDate}
+  formatDate={formatDate}
   formatMessage={moderationFormatMessage}
-  {inputValue}
+  inputValue={inputValue}
   isSaving={isSavingDescription}
   targetLabel={(item) => moderationTargetLabel(item, copy)}
 />

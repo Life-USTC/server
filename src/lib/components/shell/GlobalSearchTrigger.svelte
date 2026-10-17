@@ -1,8 +1,8 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Kbd from "$lib/components/ui/kbd/index.js";
-import type { LayoutCopy } from "$lib/shell/layout-server-data";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Kbd from "#lib/components/ui/kbd/index.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 
 export let copy: LayoutCopy["globalSearch"];
 export let onOpen: () => void;

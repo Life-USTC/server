@@ -1,6 +1,6 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getCommentRepliesRoute } from "@/lib/api/routes/comments-replies-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Continue a bounded reply preview for one comment root.

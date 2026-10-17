@@ -1,4 +1,9 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { saveSubscriptionKind } from "@/features/subscriptions/lib/subscription-kind-client";
 import type {
@@ -6,11 +11,6 @@ import type {
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { invalidateAll } from "$app/navigation";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let section: WorkspaceSubscribedSection;
 export let copy: WorkspaceSubscriptionsCopy["kindEditor"];

@@ -1,9 +1,9 @@
 <script lang="ts">
+import MarkdownEditor from "#lib/components/MarkdownEditor.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
 import CommentAudienceFields from "./CommentAudienceFields.svelte";
 import CommentUploadButton from "./CommentUploadButton.svelte";

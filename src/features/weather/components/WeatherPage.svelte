@@ -2,17 +2,17 @@
 import Droplets from "@lucide/svelte/icons/droplets";
 import Thermometer from "@lucide/svelte/icons/thermometer";
 import Wind from "@lucide/svelte/icons/wind";
+import Panel from "#lib/components/Panel.svelte";
+import {
+  createShanghaiDateTimeFormatter,
+  formatShanghaiTime,
+} from "#lib/time/shanghai-format.js";
 import WeatherConditionIcon from "@/features/weather/components/WeatherConditionIcon.svelte";
 import WeatherHourlyChart from "@/features/weather/components/WeatherHourlyChart.svelte";
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
 import { temperatureRangePositions } from "@/features/weather/weather-ui";
 import type { AppLocale } from "@/i18n/config";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import Panel from "$lib/components/Panel.svelte";
-import {
-  createShanghaiDateTimeFormatter,
-  formatShanghaiTime,
-} from "$lib/time/shanghai-format";
 
 type Props = {
   locations: WeatherPageLocation[];

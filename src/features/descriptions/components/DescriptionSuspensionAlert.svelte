@@ -1,6 +1,6 @@
 <script lang="ts">
+import * as Alert from "#lib/components/ui/alert/index.js";
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import type {
   DescriptionCopy,
   DescriptionViewer,

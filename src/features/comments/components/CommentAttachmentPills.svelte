@@ -1,7 +1,7 @@
 <script lang="ts">
 import XIcon from "@lucide/svelte/icons/x";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 
 type AttachmentOption = {
   filename: string;

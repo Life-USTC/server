@@ -1,11 +1,11 @@
 <script lang="ts">
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
+import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
-} from "$lib/shell/layout-server-data";
-import { cn } from "$lib/utils.js";
+} from "#lib/shell/layout-server-data.js";
+import { cn } from "#lib/utils.js";
 import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellLink } from "./types";
 

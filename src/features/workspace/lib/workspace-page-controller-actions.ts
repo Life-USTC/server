@@ -26,7 +26,7 @@ import { mountWorkspaceController } from "@/features/workspace/lib/workspace-con
 import { createWorkspaceSubscriptionActions } from "@/features/workspace/lib/workspace-controller-subscription-actions";
 import { createWorkspaceTodoActions } from "@/features/workspace/lib/workspace-controller-todo-actions";
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
-import { goto, invalidateAll, replaceState } from "$app/navigation";
+import { goto, invalidateAll } from "$app/navigation";
 
 type Setter<T> = (value: T) => void;
 
@@ -254,7 +254,7 @@ export function createWorkspacePageControllerActions(input: {
       );
     },
     replaceState: (href) => {
-      replaceState(href, {});
+      goto(href, { shallow: true, replace: true });
     },
     setCatalogLinkItems: input.setCatalogLinkSourceItems,
     setLinkActionError: input.setLinkActionError,
@@ -284,7 +284,7 @@ export function createWorkspacePageControllerActions(input: {
     getCalendarView: input.getCalendarView,
     getCalendarWeekStart: input.getCalendarWeekStart,
     navigateUrl: (href) => {
-      void goto(href, { noScroll: true, replaceState: true });
+      void goto(href, { reset: false, replaceState: true });
     },
     replaceUrl: (href) => {
       window.history.replaceState({}, "", href);
@@ -305,7 +305,7 @@ export function createWorkspacePageControllerActions(input: {
         workspace: getWorkspaceCopy(),
       },
       replaceState: (href) => {
-        replaceState(href, {});
+        goto(href, { shallow: true, replace: true });
       },
       setLinkActionError: input.setLinkActionError,
       setLinkReturnTo: input.setLinkReturnTo,

@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 import type { CalendarAgendaDay } from "./types";
 
 export let days: CalendarAgendaDay[];

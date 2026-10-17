@@ -1,7 +1,7 @@
-import type { RequestHandler } from "@sveltejs/kit";
 import { getCloudflareTaskScheduler } from "@/lib/adapters/cloudflare-runtime";
 import { getPublicPublicationImageRoute } from "@/lib/api/routes/publication-public-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Lazily fetch and cache an image referenced by a public publication's

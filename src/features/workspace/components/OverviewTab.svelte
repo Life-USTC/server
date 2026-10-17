@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
+import { Button } from "#lib/components/ui/button/index.js";
 import {
   addDays,
   calendarEventsForDay,
@@ -41,8 +42,7 @@ import {
   personalItemsForDay,
 } from "@/features/young/lib/personal-calendar-client";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
-import { browser } from "$app/environment";
-import { Button } from "$lib/components/ui/button";
+import { browser } from "$app/env";
 import OverviewFocusCard from "./OverviewFocusCard.svelte";
 import OverviewLinksGrid from "./OverviewLinksGrid.svelte";
 import OverviewSummaryCards from "./OverviewSummaryCards.svelte";
@@ -289,60 +289,60 @@ function overviewFocus(
       {/if}
 
       <OverviewTodayOverdueCards
-        {copy}
-        {commonCopy}
-        {workspaceCopy}
-        {workspaceTabHref}
+        copy={copy}
+        commonCopy={commonCopy}
+        workspaceCopy={workspaceCopy}
+        workspaceTabHref={workspaceTabHref}
         dueTodayHomeworks={signedData.overview.dueToday}
         dueTodayTodos={overviewTodosDueToday}
-        {fmtDate}
-        {fmtTime}
-        {homeworkEtaLabel}
+        fmtDate={fmtDate}
+        fmtTime={fmtTime}
+        homeworkEtaLabel={homeworkEtaLabel}
         overdueHomeworks={overviewOverdueHomeworks}
         overdueTodos={overviewOverdueTodos}
         previewLimit={WORKSPACE_OVERVIEW_PREVIEW_LIMIT}
-        {sessionHref}
+        sessionHref={sessionHref}
         todaySessions={signedData.overview.todaySessions}
-        {todosCopy}
-        {todoStatus}
+        todosCopy={todosCopy}
+        todoStatus={todoStatus}
         viewAllLabel={workspaceCopy.viewAll as string}
       />
 
       <div class="min-w-0">
         <OverviewWeekCard
-          {workspaceCopy}
-          {workspaceTabHref}
+          workspaceCopy={workspaceCopy}
+          workspaceTabHref={workspaceTabHref}
           days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart, visibleYoungItems)}
-          {formatMessage}
+          formatMessage={formatMessage}
         />
       </div>
 
       <OverviewSummaryCards
-        {calendarExamDetail}
-        {commonCopy}
-        {workspaceCopy}
-        {workspaceTabHref}
+        calendarExamDetail={calendarExamDetail}
+        commonCopy={commonCopy}
+        workspaceCopy={workspaceCopy}
+        workspaceTabHref={workspaceTabHref}
         examsCount={signedData.navStats.examsCount}
-        {fmtDate}
-        {formatMessage}
+        fmtDate={fmtDate}
+        formatMessage={formatMessage}
         homeworkCopy={copy.homeworks}
-        {homeworkEtaLabel}
+        homeworkEtaLabel={homeworkEtaLabel}
         pendingHomeworks={overviewSummaryHomeworks}
         pendingTodos={overviewSummaryTodos}
         previewLimit={WORKSPACE_OVERVIEW_PREVIEW_LIMIT}
-        {sectionCopy}
-        {todosCopy}
+        sectionCopy={sectionCopy}
+        todosCopy={todosCopy}
         todosDueSoon={overviewTodosDueSoon}
         todosDueToday={overviewTodosDueToday}
-        {todoStatus}
+        todoStatus={todoStatus}
         upcomingExams={upcomingOverviewExams}
         viewAllLabel={workspaceCopy.viewAll as string}
       />
 
       {#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasWorkspaceSubscriptions(signedData)}
         <OverviewTermSelectionCard
-          {workspaceCopy}
-          {workspaceTabHref}
+          workspaceCopy={workspaceCopy}
+          workspaceTabHref={workspaceTabHref}
           description={signedData.overview.currentTermName
             ? workspaceCopy.termSelection.noCurrentTerm
             : workspaceCopy.termSelection.noCurrentSemester}
@@ -352,12 +352,12 @@ function overviewFocus(
       {/if}
 
       <OverviewLinksGrid
-        {workspaceCopy}
-        {workspaceTabHref}
-        {linkIconLabel}
+        workspaceCopy={workspaceCopy}
+        workspaceTabHref={workspaceTabHref}
+        linkIconLabel={linkIconLabel}
         links={overviewLinkItems}
-        {submitWorkspaceLinkPin}
-        {updatingCatalogLinkSlug}
+        submitWorkspaceLinkPin={submitWorkspaceLinkPin}
+        updatingCatalogLinkSlug={updatingCatalogLinkSlug}
       />
     </div>
   {/if}

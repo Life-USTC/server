@@ -3,14 +3,14 @@ import {
   toolbarControlClass,
   toolbarFieldClass,
   toolbarSelectClass,
-} from "$lib/components/toolbar-control";
-import * as Accordion from "$lib/components/ui/accordion/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+} from "#lib/components/toolbar-control.js";
+import * as Accordion from "#lib/components/ui/accordion/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as ButtonGroup from "#lib/components/ui/button-group/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import type {
   SectionListCommonLabels,
   SectionListFilters,

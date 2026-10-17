@@ -1,7 +1,7 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { CommentsCopy } from "./comment-component-types";
 
 export let close: () => void;

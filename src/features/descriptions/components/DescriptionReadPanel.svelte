@@ -1,7 +1,7 @@
 <script lang="ts">
+import RenderedMarkdown from "#lib/components/RenderedMarkdown.svelte";
+import * as Tabs from "#lib/components/ui/tabs/index.js";
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
-import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
 import DescriptionHistoryList from "./DescriptionHistoryList.svelte";
 import type {
   DescriptionContent,

@@ -1,9 +1,9 @@
 <script lang="ts">
-import DateTimePicker from "$lib/components/DateTimePicker.svelte";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
-import { cn } from "$lib/utils.js";
+import DateTimePicker from "#lib/components/DateTimePicker.svelte";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+import { cn } from "#lib/utils.js";
 
 type Props = {
   compact?: boolean;

@@ -1,9 +1,9 @@
 <script lang="ts">
+import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
+import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button, buttonVariants } from "$lib/components/ui/button";
-import * as Collapsible from "$lib/components/ui/collapsible";
 import {
   normalizeYoungCalendarDate,
   type YoungCalendarView,

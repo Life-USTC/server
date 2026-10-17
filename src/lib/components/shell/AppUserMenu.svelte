@@ -3,9 +3,9 @@ import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
 import LogOutIcon from "@lucide/svelte/icons/log-out";
 import SettingsIcon from "@lucide/svelte/icons/settings";
 import UserRoundIcon from "@lucide/svelte/icons/user-round";
-import * as Avatar from "$lib/components/ui/avatar/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import * as Avatar from "#lib/components/ui/avatar/index.js";
+import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
 import type { ShellCopy, ShellUser } from "./types";
 
 export let avatarFallback: string;

@@ -1,9 +1,9 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import {
   detailDefinitionListClass,
   detailDefinitionTermClass,
-} from "$lib/components/detail-definition-list";
+} from "#lib/components/detail-definition-list.js";
+import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import type {
   CourseDetailCopy,
   CourseDetailCourse,

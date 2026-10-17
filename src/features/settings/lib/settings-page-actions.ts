@@ -1,5 +1,5 @@
-import type { SubmitFunction } from "@sveltejs/kit";
-import { redirectWithExternalFallback } from "$lib/navigation/redirect";
+import { redirectWithExternalFallback } from "#lib/navigation/redirect.js";
+import type { SubmitFunction } from "$app/forms";
 
 export function createSettingsAccountAction(input: {
   setPendingAccountAction: (

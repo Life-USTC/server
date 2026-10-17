@@ -1,6 +1,6 @@
 <script lang="ts">
+import * as Alert from "#lib/components/ui/alert/index.js";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import type { CommentsCopy } from "./comment-component-types";
 
 export let commentCopy: CommentsCopy;

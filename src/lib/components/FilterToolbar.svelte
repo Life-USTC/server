@@ -1,11 +1,11 @@
 <script lang="ts">
 import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import { onMount, type Snippet } from "svelte";
+import { toolbarControlClass } from "#lib/components/toolbar-control.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Sheet from "#lib/components/ui/sheet/index.js";
 import { afterNavigate } from "$app/navigation";
-import { toolbarControlClass } from "$lib/components/toolbar-control";
-import { Badge } from "$lib/components/ui/badge";
-import { Button } from "$lib/components/ui/button";
-import * as Sheet from "$lib/components/ui/sheet";
 
 let {
   primary,
@@ -27,7 +27,9 @@ let {
 
 let narrow = $state(false);
 
-afterNavigate(() => {
+afterNavigate(({ shallow, type }) => {
+  if (shallow && type === "goto") return;
+
   open = false;
 });
 

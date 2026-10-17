@@ -1,8 +1,8 @@
 <script lang="ts">
-import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
 
 export let appName: string;
 export let clientHost: string | undefined = undefined;

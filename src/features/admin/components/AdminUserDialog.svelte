@@ -1,14 +1,14 @@
 <script lang="ts">
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import AdminUserDialogHeader from "@/features/admin/components/AdminUserDialogHeader.svelte";
 import AdminUserProfileSection from "@/features/admin/components/AdminUserProfileSection.svelte";
 import AdminUserSuspensionSection from "@/features/admin/components/AdminUserSuspensionSection.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminUserFormatter,
   AdminUserRow,

@@ -1,5 +1,5 @@
-import type { SubmitFunction } from "@sveltejs/kit";
 import { displayWelcomeName } from "@/features/welcome/lib/welcome-display";
+import type { SubmitFunction } from "$app/forms";
 
 export function createCompleteProfileAction({
   setCompleting,

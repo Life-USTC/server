@@ -1,20 +1,20 @@
 <script lang="ts">
 import Search from "@lucide/svelte/icons/search";
 import SearchX from "@lucide/svelte/icons/search-x";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as InputGroup from "#lib/components/ui/input-group/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Separator } from "#lib/components/ui/separator/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   FormatMessage,
   MatchedImportSection,

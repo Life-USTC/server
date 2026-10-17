@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import * as Empty from "$lib/components/ui/empty";
+import * as Empty from "#lib/components/ui/empty/index.js";
 
 let {
   title,

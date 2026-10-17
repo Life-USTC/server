@@ -1,6 +1,6 @@
 <script lang="ts">
-import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import { Badge } from "#lib/components/ui/badge/index.js";
 import type { AdminUsersAdminCopy, AdminUsersCopy } from "./admin-user-types";
 
 export let adminCopy: AdminUsersAdminCopy;

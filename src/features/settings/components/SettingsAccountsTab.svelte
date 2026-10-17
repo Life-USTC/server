@@ -1,6 +1,6 @@
 <script lang="ts">
+import * as Item from "#lib/components/ui/item/index.js";
 import type { AppLocale } from "@/i18n/config";
-import * as Item from "$lib/components/ui/item/index.js";
 import SettingsAccountRow from "./SettingsAccountRow.svelte";
 import SettingsDisconnectAccountDialog from "./SettingsDisconnectAccountDialog.svelte";
 import SettingsPasskeysCard from "./SettingsPasskeysCard.svelte";

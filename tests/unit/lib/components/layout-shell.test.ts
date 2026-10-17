@@ -141,15 +141,17 @@ describe("settings redirect success feedback", () => {
       "utf8",
     );
 
+    expect(controller).toContain('import { goto } from "$app/navigation";');
     expect(controller).toContain(
-      'import { replaceState } from "$app/navigation";',
+      'import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";',
     );
-    expect(controller).toContain('import { page } from "$app/stores";');
     expect(controller).toContain('$page.url.searchParams.get("message")');
     expect(controller).toContain("_isMounted &&");
     expect(controller).toContain("const mountTimer = setTimeout(() => {");
     expect(controller).toContain("return () => clearTimeout(mountTimer);");
-    expect(controller).toContain("replaceState(nextUrl, {})");
+    expect(controller).toContain(
+      "goto(nextUrl, { shallow: true, replace: true })",
+    );
     expect(controller).not.toContain("window.history.replaceState");
   });
 });

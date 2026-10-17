@@ -1,19 +1,18 @@
 <script lang="ts">
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import TrashIcon from "@lucide/svelte/icons/trash-2";
-import type { SubmitFunction } from "@sveltejs/kit";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import {
   oauthFeatureLabel,
   oauthScopeLabel,
 } from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
-import { enhance } from "$app/forms";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import type {
   SettingsCopy,
   SettingsOAuthAuthorization,

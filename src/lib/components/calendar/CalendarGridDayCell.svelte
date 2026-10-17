@@ -1,5 +1,5 @@
 <script lang="ts">
-import { cn } from "$lib/utils.js";
+import { cn } from "#lib/utils.js";
 import CalendarEventChip from "./CalendarEventChip.svelte";
 import type { CalendarGridWeek } from "./types";
 

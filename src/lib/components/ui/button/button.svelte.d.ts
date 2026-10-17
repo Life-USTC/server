@@ -3,7 +3,7 @@ import type {
 	HTMLAnchorAttributes,
 	HTMLButtonAttributes,
 } from "svelte/elements";
-import type { WithElementRef } from "$lib/utils.js";
+import type { WithElementRef } from "#lib/utils.js";
 
 export type ButtonVariant =
 	| "default"

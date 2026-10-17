@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import * as Avatar from "$lib/components/ui/avatar/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+import * as Avatar from "#lib/components/ui/avatar/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import type { ProfileFormUser } from "./profile-form-types";
 
 export let avatarOptions: string[];

@@ -1,7 +1,7 @@
 <script lang="ts">
 import BookPlus from "@lucide/svelte/icons/book-plus";
 import ClipboardList from "@lucide/svelte/icons/clipboard-list";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
 import type {
   WorkspaceSubscriptionsTabCopy,

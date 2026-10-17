@@ -2,7 +2,7 @@
 import {
   detailDefinitionListClass,
   detailDefinitionTermClass,
-} from "$lib/components/detail-definition-list";
+} from "#lib/components/detail-definition-list.js";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,

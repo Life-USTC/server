@@ -2,7 +2,7 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { observedApiRoute } from "@/lib/log/api-observability";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import type { RequestHandler } from "./$types";
 
 export const trailingSlash = "ignore";
@@ -14,7 +14,6 @@ const observedGraphqlRoute = observedApiRoute(
       handleGraphqlRequest(event),
     ),
 );
-
 const handle: RequestHandler = (event) =>
   observedGraphqlRoute(event.request, event);
 

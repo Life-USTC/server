@@ -20,8 +20,7 @@ export type GlobalSearchUrlSyncOptions = {
   goto: (
     href: string,
     options?: {
-      keepFocus?: boolean;
-      noScroll?: boolean;
+      reset?: boolean;
       replaceState?: boolean;
     },
   ) => Promise<void>;
@@ -159,8 +158,7 @@ export function createGlobalSearchController(
     const currentHref = `${currentUrl.pathname}${currentUrl.search}`;
     if (nextHref !== currentHref) {
       void urlSync.goto(nextHref, {
-        keepFocus: true,
-        noScroll: true,
+        reset: false,
         replaceState: true,
       });
     }

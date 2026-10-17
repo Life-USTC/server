@@ -23,9 +23,9 @@ export type CalendarSubscriptionUrl = {
 
 <script lang="ts">
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
 import CalendarSubscriptionUrlRow from "./CalendarSubscriptionUrlRow.svelte";
 
 /** Apple Calendar: subscribe by URL guide (locale-neutral). */

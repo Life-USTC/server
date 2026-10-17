@@ -3,19 +3,19 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import Trash2 from "@lucide/svelte/icons/trash-2";
+import MarkdownPreview from "#lib/components/MarkdownPreview.svelte";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import * as Table from "#lib/components/ui/table/index.js";
+import { cn } from "#lib/utils.js";
 import type {
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
-import { cn } from "$lib/utils.js";
 
 export let deleteTodo: (todo: WorkspaceTodoItem) => void | Promise<void>;
 export let fmtDate: (value: string | Date | null | undefined) => string;

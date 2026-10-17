@@ -1,5 +1,9 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
+import CalendarAgenda from "#lib/components/calendar/CalendarAgenda.svelte";
+import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
 import { weekStartFor } from "@/features/workspace/lib/calendar";
 import { buildWorkspaceCalendarGridWeeks } from "@/features/workspace/lib/calendar-grid";
 import {
@@ -15,11 +19,7 @@ import {
 } from "@/features/young/lib/personal-calendar-client";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
-import { browser } from "$app/environment";
-import CalendarAgenda from "$lib/components/calendar/CalendarAgenda.svelte";
-import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
-import { Button } from "$lib/components/ui/button";
-import * as Empty from "$lib/components/ui/empty/index.js";
+import { browser } from "$app/env";
 import CalendarTabToolbar from "./CalendarTabToolbar.svelte";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
 import type { FormatMessage } from "./workspace-component-types";
@@ -184,32 +184,36 @@ $: agendaDays = baseAgendaDays.map((day) => ({
   {#if signedData.navStats.user.id !== ownerId}
     <p role="status">{activityCopy.youngEvents.workspace.loading}</p>
   {:else if !hasWorkspaceSubscriptions(signedData)}
-    <PersonalActivityCalendar copy={activityCopy} locale={signedData.locale} {ownerId} />
+    <PersonalActivityCalendar
+      copy={activityCopy}
+      locale={signedData.locale}
+      ownerId={ownerId}
+    />
   {:else}
     <Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="link">{activityCopy.youngEvents.workspace.manage}</Button>
     {#if youngLoading}<p role="status">{activityCopy.youngEvents.workspace.loading}</p>{/if}
     {#if youngFailed}<p role="alert">{activityCopy.youngEvents.workspace.failed}</p><Button variant="outline" onclick={() => requestedRange = ""}>{activityCopy.youngEvents.workspace.retry}</Button>{/if}
     <CalendarTabToolbar
-      {addDays}
-      {addMonths}
-      {calendarData}
-      {calendarDay}
-      {calendarMonth}
-      {calendarSemesterIndex}
-      {calendarView}
-      {calendarWeekStart}
-      {agendaWeekStart}
-      {commonCopy}
-      {workspaceCopy}
-      {formatMessage}
-      {sectionCopy}
-      {setCalendarDay}
-      {setCalendarMonth}
-      {setCalendarSemester}
-      {setCalendarView}
-      {setCalendarWeek}
-      {signedData}
-      {subscriptionsCopy}
+      addDays={addDays}
+      addMonths={addMonths}
+      calendarData={calendarData}
+      calendarDay={calendarDay}
+      calendarMonth={calendarMonth}
+      calendarSemesterIndex={calendarSemesterIndex}
+      calendarView={calendarView}
+      calendarWeekStart={calendarWeekStart}
+      agendaWeekStart={agendaWeekStart}
+      commonCopy={commonCopy}
+      workspaceCopy={workspaceCopy}
+      formatMessage={formatMessage}
+      sectionCopy={sectionCopy}
+      setCalendarDay={setCalendarDay}
+      setCalendarMonth={setCalendarMonth}
+      setCalendarSemester={setCalendarSemester}
+      setCalendarView={setCalendarView}
+      setCalendarWeek={setCalendarWeek}
+      signedData={signedData}
+      subscriptionsCopy={subscriptionsCopy}
     />
 
     {#if calendarData && calendarData.semesterWeeks.length > 0}

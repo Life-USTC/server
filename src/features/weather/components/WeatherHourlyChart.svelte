@@ -1,11 +1,11 @@
 <script lang="ts">
-import type { WeatherHourly } from "@/features/weather/server/weather-types";
-import { buildHourlyChartGeometry } from "@/features/weather/weather-ui";
-import type { AppPageCopy } from "@/lib/shell/page-copy";
 import {
   formatShanghaiDate,
   formatShanghaiTime,
-} from "$lib/time/shanghai-format";
+} from "#lib/time/shanghai-format.js";
+import type { WeatherHourly } from "@/features/weather/server/weather-types";
+import { buildHourlyChartGeometry } from "@/features/weather/weather-ui";
+import type { AppPageCopy } from "@/lib/shell/page-copy";
 import WeatherConditionIcon from "./WeatherConditionIcon.svelte";
 
 let {

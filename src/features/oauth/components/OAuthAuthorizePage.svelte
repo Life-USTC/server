@@ -1,7 +1,7 @@
 <script lang="ts">
-import PageHeader from "$lib/components/PageHeader.svelte";
-import * as Card from "$lib/components/ui/card/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import * as Card from "#lib/components/ui/card/index.js";
+import { Separator } from "#lib/components/ui/separator/index.js";
 import OAuthAuthorizeConsentPanel from "./OAuthAuthorizeConsentPanel.svelte";
 import OAuthAuthorizeErrorPanel from "./OAuthAuthorizeErrorPanel.svelte";
 import OAuthAuthorizeSidePanel from "./OAuthAuthorizeSidePanel.svelte";

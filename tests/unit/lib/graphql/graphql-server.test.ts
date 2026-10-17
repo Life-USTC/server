@@ -996,13 +996,18 @@ describe("GraphQL HTTP boundary", () => {
             return { id: "late-write" };
           });
           const controller = new AbortController();
-          const event = sessionRequestEvent({
+          const baseEvent = sessionRequestEvent({
             query:
               'mutation { todoCreate(input: { title: "Late write" }) { id } }',
           });
-          event.request = new Request(event.request, {
-            signal: controller.signal,
-          });
+          // `event.request` is readonly in SvelteKit 3; rebuild the event
+          // with an abortable request instead of assigning to it.
+          const event = {
+            ...baseEvent,
+            request: new Request(baseEvent.request, {
+              signal: controller.signal,
+            }),
+          };
           let settled = false;
           const execution =
             transport === "http"

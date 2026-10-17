@@ -1,5 +1,5 @@
 <script lang="ts">
-import CollectionPage from "$lib/components/CollectionPage.svelte";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
 import type { PageData } from "./$types";
 import MarkdownGuideSection from "./MarkdownGuideSection.svelte";
 import { buildMarkdownGuideSections } from "./markdown-guide-sections";

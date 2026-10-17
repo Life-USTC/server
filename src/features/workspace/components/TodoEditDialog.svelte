@@ -1,18 +1,17 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
   WorkspaceTodoItem,
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import { enhance } from "$app/forms";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
+import { enhance, type SubmitFunction } from "$app/forms";
 import TodoFormFields from "./TodoFormFields.svelte";
 
 export let commentsCopy: CommentsCopy;
@@ -57,15 +56,15 @@ export let updateTodoAction: SubmitFunction;
               </Alert.Root>
             {/if}
             <TodoFormFields
-              {commentsCopy}
+              commentsCopy={commentsCopy}
               contentValue={todo.content ?? ""}
               disabled={isUpdatingTodo}
               dueAtValue={datetimeLocalValue(todo.dueAt)}
               idPrefix="edit-todo"
               priorityValue={todo.priority ?? "medium"}
               titleValue={todo.title}
-              {todoPriorityOptions}
-              {todosCopy}
+              todoPriorityOptions={todoPriorityOptions}
+              todosCopy={todosCopy}
             />
           </Field.Group>
         </ScrollArea>

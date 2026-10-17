@@ -1,4 +1,4 @@
-import type { CalendarGridEvent } from "$lib/components/calendar/types";
+import type { CalendarGridEvent } from "#lib/components/calendar/types.js";
 
 type CalendarSession = {
   badge?: string;

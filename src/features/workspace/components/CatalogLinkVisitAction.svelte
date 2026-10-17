@@ -1,8 +1,8 @@
 <script lang="ts">
+import * as Item from "#lib/components/ui/item/index.js";
+import { cn } from "#lib/utils.js";
 import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
 import type { WorkspaceOverviewLinkItem } from "@/features/workspace/lib/workspace-controller-helpers";
-import * as Item from "$lib/components/ui/item/index.js";
-import { cn } from "$lib/utils.js";
 
 export let link: WorkspaceOverviewLinkItem;
 export let linkIconLabel: (icon: string) => string;

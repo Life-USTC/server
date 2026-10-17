@@ -1,7 +1,7 @@
 <script lang="ts">
+import Panel from "#lib/components/Panel.svelte";
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
-import Panel from "$lib/components/Panel.svelte";
 import ProfileContributionFooter from "./ProfileContributionFooter.svelte";
 import ProfileContributionHeatmap from "./ProfileContributionHeatmap.svelte";
 import type {

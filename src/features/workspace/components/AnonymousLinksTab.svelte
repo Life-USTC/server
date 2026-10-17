@@ -1,9 +1,9 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
 import type {
   AnonymousLinkGroup,
   WorkspaceCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import { Button } from "$lib/components/ui/button/index.js";
 import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
 import LinksTabToolbar from "./LinksTabToolbar.svelte";
 import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";

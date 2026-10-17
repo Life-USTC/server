@@ -1,3 +1,4 @@
+import type { CalendarGridDay } from "#lib/components/calendar/types.js";
 import type { WorkspaceTimelineItem } from "@/features/workspace/lib/workspace-agenda";
 import type {
   SignedWorkspaceData,
@@ -6,7 +7,6 @@ import type {
   WorkspaceSectionCopy,
   WorkspaceTodoItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import type { CalendarGridDay } from "$lib/components/calendar/types";
 import type { WorkspaceCalendarEvents } from "./workspace-calendar-component-types";
 
 export type OverviewTimelineItem = WorkspaceTimelineItem;

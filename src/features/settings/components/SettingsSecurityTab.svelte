@@ -1,14 +1,14 @@
 <script lang="ts">
 import ActivityIcon from "@lucide/svelte/icons/activity";
 import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Item from "#lib/components/ui/item/index.js";
+import { Separator } from "#lib/components/ui/separator/index.js";
 import { groupSecurityActivity } from "@/features/settings/lib/security-activity-groups";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
 import type {
   SettingsCopy,
   SettingsSecurityActivity,

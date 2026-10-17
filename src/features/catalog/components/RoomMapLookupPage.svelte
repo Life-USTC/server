@@ -1,16 +1,16 @@
 <script lang="ts">
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
-import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
-import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
+import CollectionPage from "#lib/components/CollectionPage.svelte";
 import {
   toolbarControlClass,
   toolbarFieldClass,
-} from "$lib/components/toolbar-control";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+} from "#lib/components/toolbar-control.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
+import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 
 export let copy: RoomMapCopy;
 export let initialRoom = "";
