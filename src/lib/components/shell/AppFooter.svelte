@@ -41,7 +41,7 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
 </script>
 
 <footer
-  class="border-border relative z-20 flex h-16 w-full shrink-0 items-stretch border-t bg-background"
+  class="border-border relative z-20 flex h-[calc(4rem+env(safe-area-inset-bottom))] w-full shrink-0 items-stretch border-t bg-background pb-[env(safe-area-inset-bottom)] md:h-16 md:pb-0"
 >
   {#if showAccount}
     <div

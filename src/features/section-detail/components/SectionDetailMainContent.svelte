@@ -111,12 +111,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class={cn(
-      "min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 pt-4 sm:px-5 lg:px-6 md:pb-4",
-      viewer.signedIn
-        ? "pb-[calc(9rem+max(0.75rem,env(safe-area-inset-bottom)))]"
-        : "pb-[calc(5rem+max(0.75rem,env(safe-area-inset-bottom)))]",
-    )}
+    class="min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
@@ -282,11 +277,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class={cn(
-      "sticky bottom-0 z-10 bg-background md:hidden",
-      viewer.signedIn &&
-        "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]",
-    )}
+    class="sticky bottom-0 z-10 bg-background md:hidden"
     data-testid="section-mobile-primary-actions"
   >
     <Separator />

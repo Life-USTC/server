@@ -2,6 +2,7 @@
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import LayoutGridIcon from "@lucide/svelte/icons/layout-grid";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
@@ -11,6 +12,7 @@ import type {
   LayoutUserSummary,
 } from "#lib/shell/layout-server-data.js";
 import AppUserMenu from "./AppUserMenu.svelte";
+import { FEATURE_HUB_PATH } from "./navigation";
 import SettingsGlyph from "./SettingsGlyph.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
@@ -18,7 +20,7 @@ export type SectionSidebar = {
   backHref: string;
   backLabel: string;
   backTestId: string;
-  level: "settings" | "young";
+  level: "settings" | "young" | "admin";
   navLabel: string;
   testId: string;
 };
@@ -30,7 +32,6 @@ let {
   currentPathname,
   dockAboveFooter = false,
   isActiveLink,
-  mobileNavGroups,
   navGroups,
   profileHref,
   sectionSidebar = null,
@@ -46,7 +47,6 @@ let {
   currentPathname: string;
   dockAboveFooter?: boolean;
   isActiveLink: (link: ShellLink) => boolean;
-  mobileNavGroups: ShellNavGroup[];
   navGroups: ShellNavGroup[];
   profileHref: string;
   sectionSidebar?: SectionSidebar | null;
@@ -105,12 +105,8 @@ function closeMobileSidebar(): void {
 
 {#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
   <nav
-    aria-label={sectionSidebar
-      ? sectionSidebar.navLabel
-      : mobile
-        ? copy.shell.secondaryNavigation
-        : copy.shell.primaryNavigation}
-    data-shell-navigation={mobile ? "secondary" : "desktop"}
+    aria-label={sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
+    data-shell-navigation={mobile ? "mobile" : "desktop"}
     data-sidebar-level={sectionSidebar?.level}
     data-testid={sectionSidebar?.testId}
     class="flex min-h-0 flex-1 flex-col"
@@ -120,7 +116,7 @@ function closeMobileSidebar(): void {
         <Sidebar.MenuItem>
           {#if sectionSidebar}
             {@const section = sectionSidebar}
-            <Sidebar.MenuButton tooltipContent={section.backLabel}>
+            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? section.backLabel : undefined}>
               {#snippet child({ props })}
                 <a
                   {...props}
@@ -134,7 +130,7 @@ function closeMobileSidebar(): void {
               {/snippet}
             </Sidebar.MenuButton>
           {:else}
-            <Sidebar.MenuButton tooltipContent="Life@USTC">
+            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
               {#snippet child({ props })}
                 <a
                   {...props}
@@ -154,6 +150,17 @@ function closeMobileSidebar(): void {
               {/snippet}
             </Sidebar.MenuButton>
           {/if}
+        </Sidebar.MenuItem>
+        <Sidebar.MenuItem>
+          {@const hubActive = showActiveState(currentPathname === FEATURE_HUB_PATH)}
+          <Sidebar.MenuButton isActive={hubActive} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? copy.nav.hub.title : undefined}>
+            {#snippet child({ props })}
+              <a {...props} href={FEATURE_HUB_PATH} aria-current={hubActive ? "page" : undefined} onclick={closeMobileSidebar}>
+                <LayoutGridIcon />
+                <span>{copy.nav.hub.title}</span>
+              </a>
+            {/snippet}
+          </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       </Sidebar.Menu>
     </Sidebar.Header>
@@ -203,7 +210,7 @@ function closeMobileSidebar(): void {
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
-                          tooltipContent={link.label}
+                          tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
                           {#snippet child({ props })}
                             <a
@@ -311,7 +318,7 @@ function closeMobileSidebar(): void {
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
-                          tooltipContent={link.label}
+                          tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
                           {#snippet child({ props })}
                             <a
@@ -348,21 +355,21 @@ function closeMobileSidebar(): void {
 {/snippet}
 
 <Sidebar.Root
-  class={dockAboveFooter
+  class={dockAboveFooter && !sidebar.isMobile
     ? "top-0! bottom-16! h-auto! max-h-none!"
     : undefined}
   collapsible="icon"
   data-testid="app-sidebar"
 >
   {#if sidebar.isMobile}
-    {@render navigation(mobileNavGroups, true)}
+    {@render navigation(navGroups, true)}
   {:else}
     {@render navigation(navGroups, false)}
     <Sidebar.Rail />
   {/if}
 
   {#if showAccountFooter || sidebar.isMobile}
-    <Sidebar.Footer class="h-16 justify-center border-t p-2">
+    <Sidebar.Footer class="min-h-16 justify-center border-t p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-2">
       {#if viewerLoading}
         <div
           aria-hidden="true"

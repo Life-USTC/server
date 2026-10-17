@@ -8,12 +8,6 @@ type ShellUser = {
   username?: string | null;
 } | null;
 
-type NavCopy = {
-  courses: string;
-  sections: string;
-  teachers: string;
-};
-
 type FooterCopy = {
   mobileApp: string;
   privacy: string;
@@ -61,14 +55,6 @@ export function resolveProfileHref(user: ShellUser) {
 
 export function resolveAvatarFallback(user: ShellUser) {
   return user?.name?.charAt(0) ?? "U";
-}
-
-export function buildPrimaryLinks(copy: NavCopy): ShellLink[] {
-  return [
-    { href: "/catalog/courses", label: copy.courses },
-    { href: "/catalog/sections", label: copy.sections },
-    { href: "/catalog/teachers", label: copy.teachers },
-  ];
 }
 
 export function buildFooterLinks(copy: FooterCopy): ShellLink[] {

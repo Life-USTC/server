@@ -403,7 +403,7 @@ shellTest(
         });
 
         for (const name of [
-          /^(今天|Today)$/i,
+          /^(概览|Overview)$/i,
           /^(日历|Calendar)$/i,
           /^(作业|Homework)$/i,
           /^(待办|Todos)$/i,
@@ -427,7 +427,7 @@ shellTest(
         ).toHaveAttribute("aria-current", "page");
 
         const catalog = navigation.getByRole("button", {
-          name: /^(校园服务|Campus Services)$/i,
+          name: /^(课程目录|Catalog)$/i,
         });
         await expect(catalog).toHaveAttribute("aria-expanded", "true");
         await expect(
@@ -554,7 +554,7 @@ shellTest(
             name: /主导航|Primary navigation/i,
           });
         const catalog = navigation.getByRole("button", {
-          name: /^(校园服务|Campus Services)$/i,
+          name: /^(课程目录|Catalog)$/i,
         });
 
         await expect(catalog).toHaveAttribute("aria-expanded", "true");
@@ -565,7 +565,9 @@ shellTest(
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
 
         // The empty overview exposes a real course discovery link outside the collapsed group.
-        await navigation.getByRole("link", { name: /^(今天|Today)$/i }).click();
+        await navigation
+          .getByRole("link", { name: /^(概览|Overview)$/i })
+          .click();
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
         await page
           .getByRole("link", { name: /浏览课程|Browse Courses/i })
@@ -594,26 +596,13 @@ shellTest(
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/workspace/todos");
 
-      const primaryNavigation = page.getByRole("navigation", {
-        name: /移动主导航|Mobile primary navigation/i,
-      });
-      const primaryNames = [
-        /^(今天|Today)$/i,
-        /^(日历|Calendar)$/i,
-        /^(任务|Tasks)$/i,
-        /^(发现|Explore)$/i,
-      ];
-
-      for (const name of primaryNames) {
-        const link = primaryNavigation.getByRole("link", { name });
-        await expect(link).toBeVisible();
-        const box = await link.boundingBox();
-        expect(box?.width).toBeGreaterThanOrEqual(44);
-        expect(box?.height).toBeGreaterThanOrEqual(44);
-      }
-
+      await expect(
+        page.locator(
+          '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"]',
+        ),
+      ).toHaveCount(0);
       const selector =
-        '[data-shell-topbar] button:visible, [data-shell-navigation="mobile-primary"] a:visible';
+        "[data-shell-topbar] button:visible, [data-shell-topbar] a:visible";
       const controls = page.locator(selector);
       expect(await controls.count()).toBeGreaterThan(0);
       for (const control of await controls.all()) {
@@ -623,12 +612,6 @@ shellTest(
         expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
       }
 
-      await expect(
-        primaryNavigation.locator('[aria-current="page"]'),
-      ).toHaveCount(1);
-      await expect(
-        primaryNavigation.getByRole("link", { name: /^(任务|Tasks)$/i }),
-      ).toHaveAttribute("aria-current", "page");
       const topbar = page.locator("[data-shell-topbar]");
       await expect(
         topbar.getByRole("button", { name: /语言|Language/i }),
@@ -655,7 +638,7 @@ shellTest(
       const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
       await expect(sidebar).toBeVisible();
       await expect(
-        sidebar.getByRole("button", { name: /^(次级导航|Secondary)$/i }),
+        sidebar.getByRole("button", { name: /^(日程|Schedule)$/i }),
       ).toBeVisible();
       await expect(
         sidebar.getByRole("button", { name: /^(管理工具|Admin tools)$/i }),
@@ -839,7 +822,7 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/W
     });
 
     const catalogGroup = sidebar.getByRole("button", {
-      name: /^(校园服务|Campus Services)$/i,
+      name: /^(课程目录|Catalog)$/i,
     });
     await expect(async () => {
       await catalogGroup.click();

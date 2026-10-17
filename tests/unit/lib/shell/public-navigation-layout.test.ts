@@ -1,14 +1,5 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { load } from "@/routes/+layout.server";
-
-const { listSections } = vi.hoisted(() => ({ listSections: vi.fn() }));
-vi.mock("@/features/workspace/server/workspace-navigation-summary", () => ({
-  listShellSubscribedSections: listSections,
-}));
-
-beforeEach(() => {
-  listSections.mockReset().mockResolvedValue([{ id: 12 }]);
-});
 
 async function layout(path: string) {
   return load({
@@ -28,6 +19,7 @@ async function layout(path: string) {
 
 test.each([
   "/catalog/courses",
+  "/catalog/features",
   "/news",
   "/news/story",
   "/news/sources",
@@ -39,19 +31,15 @@ test.each([
   const data = await layout(path);
   expect(data).toMatchObject({
     user: null,
-    subscribedSections: null,
     resolveViewerOnClient: true,
   });
   expect(JSON.stringify(data)).not.toContain("private-viewer");
-  expect(listSections).not.toHaveBeenCalled();
 });
 
-test("keeps viewer and subscription SSR for private workspace routes", async () => {
+test("keeps the viewer in SSR for private workspace routes", async () => {
   const data = await layout("/workspace/overview");
   expect(data).toMatchObject({
     user: { id: "private-viewer" },
-    subscribedSections: [{ id: 12 }],
     resolveViewerOnClient: false,
   });
-  expect(listSections).toHaveBeenCalledWith("private-viewer", "zh-cn");
 });

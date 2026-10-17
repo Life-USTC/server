@@ -166,7 +166,7 @@ export async function checkWorkspaceOverviewPriorityViews(
   if (width < 768)
     await page.getByRole("button", { name: /^(菜单|Menu)$/i }).click();
   const navigation = page.locator(
-    `[data-shell-navigation="${width < 768 ? "secondary" : "desktop"}"]`,
+    `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
   );
   const item = navigation
     .getByRole("listitem")

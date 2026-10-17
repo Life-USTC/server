@@ -64,7 +64,7 @@ $: documentTitle = socialMetadata?.title ?? "Life@USTC";
 
 <Toaster
   mobileOffset={{
-    bottom: "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)",
+    bottom: "max(1rem, env(safe-area-inset-bottom))",
     left: "1rem",
     right: "1rem",
   }}

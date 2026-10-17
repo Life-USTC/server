@@ -19,6 +19,7 @@ const layoutMessages = {
     weather: enUsMessages.weather,
     youngEvents: enUsMessages.youngEvents,
     settingsNav: enUsMessages.settings.nav,
+    shell: enUsMessages.shell,
   },
   "zh-cn": {
     accessibility: zhCnMessages.accessibility,
@@ -36,6 +37,7 @@ const layoutMessages = {
     weather: zhCnMessages.weather,
     youngEvents: zhCnMessages.youngEvents,
     settingsNav: zhCnMessages.settings.nav,
+    shell: zhCnMessages.shell,
   },
 };
 
@@ -59,10 +61,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
     },
     nav: {
       courses: messages.common.courses,
-      today: locale === "zh-cn" ? "今天" : "Today",
-      tasks: locale === "zh-cn" ? "任务" : "Tasks",
-      explore: locale === "zh-cn" ? "发现" : "Explore",
-      me: messages.common.me,
+      overview: messages.workspace.nav.overview.title,
       settings: messages.metadata.pages.settings,
       uploads: messages.metadata.pages.uploads,
       sections: messages.common.sections,
@@ -88,16 +87,8 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       prestoBot: messages.metadata.pages.prestoBot,
       mcp: messages.metadata.pages.mcp,
       cli: messages.metadata.pages.cli,
-      groups: {
-        workspace: locale === "zh-cn" ? "工作台" : "Workspace",
-        publicTools: locale === "zh-cn" ? "公开工具" : "Public tools",
-        catalog: messages.common.campusServices,
-        usage: locale === "zh-cn" ? "使用方式" : "Usage",
-        adminTools: locale === "zh-cn" ? "管理工具" : "Admin tools",
-        explore: locale === "zh-cn" ? "发现" : "Explore",
-        secondary: locale === "zh-cn" ? "次级导航" : "Secondary",
-        preferences: locale === "zh-cn" ? "偏好设置" : "Preferences",
-      },
+      groups: messages.shell.groups,
+      hub: messages.shell.hub,
       settingsSections: {
         accounts: messages.settingsNav.accounts.title,
         authorizations: messages.settingsNav.authorizations.title,
@@ -123,32 +114,28 @@ export function buildLayoutCopy(locale: LayoutLocale) {
     menu: {
       home: messages.common.home,
       me: messages.common.me,
-      personalPage: locale === "zh-cn" ? "个人主页" : "Personal page",
+      personalPage: messages.shell.personalPage,
       settings: messages.metadata.pages.settings,
       signIn: messages.common.signIn,
       signOut: messages.profile.signOut,
     },
     footer: {
-      locale: locale === "zh-cn" ? "语言" : "Locale",
+      locale: messages.shell.locale,
       terms: messages.common.terms,
       privacy: messages.common.privacy,
       mobileApp: messages.homepage.actions.mobileApp,
     },
     shell: {
+      backToApp: messages.shell.backToApp,
       backToHome: messages.common.backToHome,
       footerNavigation: messages.common.footerNavigation,
       loading: messages.common.loading,
-      menu: locale === "zh-cn" ? "菜单" : "Menu",
-      mobilePrimaryNavigation:
-        locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
+      menu: messages.shell.menu,
       primaryNavigation: messages.common.primaryNavigation,
       profileMenu: messages.common.profileMenu,
-      secondaryNavigation:
-        locale === "zh-cn" ? "次级导航" : "Secondary navigation",
-      scrollRegion:
-        locale === "zh-cn" ? "主要内容滚动区域" : "Main content scroll region",
+      scrollRegion: messages.shell.scrollRegion,
       skipToMainContent: messages.accessibility.skipToMainContent,
-      theme: locale === "zh-cn" ? "主题" : "Theme",
+      theme: messages.shell.theme,
     },
     errorPage: {
       backHome: messages.common.backToHome,

@@ -93,23 +93,9 @@ describe("application shell theme", () => {
 });
 
 describe("mobile toast placement", () => {
-  it("keeps bottom toasts above the fixed mobile navigation", async () => {
-    const [layout, primaryNav, adminNav, sonner] = await Promise.all([
+  it("uses the bottom safe area without a retired tab-bar offset", async () => {
+    const [layout, sonner] = await Promise.all([
       readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
-      readFile(
-        resolve(
-          process.cwd(),
-          "src/lib/components/shell/MobilePrimaryNav.svelte",
-        ),
-        "utf8",
-      ),
-      readFile(
-        resolve(
-          process.cwd(),
-          "src/features/admin/components/AdminMobileNav.svelte",
-        ),
-        "utf8",
-      ),
       readFile(
         resolve(process.cwd(), "src/lib/components/ui/sonner/sonner.svelte"),
         "utf8",
@@ -117,14 +103,10 @@ describe("mobile toast placement", () => {
     ]);
 
     expect(layout).toContain(
-      'bottom: "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)"',
+      'bottom: "max(1rem, env(safe-area-inset-bottom))"',
     );
     expect(layout).toContain('left: "1rem"');
     expect(layout).toContain('right: "1rem"');
-    expect(primaryNav).toContain("min-h-14");
-    expect(primaryNav).toContain("pb-[env(safe-area-inset-bottom)]");
-    expect(adminNav).toContain("min-h-14");
-    expect(adminNav).toContain("pb-[env(safe-area-inset-bottom)]");
     expect(sonner).toContain("max-width: calc(100vw");
     expect(sonner).toContain("pointer-events: none;");
     expect(sonner).toContain("pointer-events: auto;");

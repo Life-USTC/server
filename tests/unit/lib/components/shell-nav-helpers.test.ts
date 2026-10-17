@@ -1,35 +1,51 @@
 import { describe, expect, test } from "vitest";
 import {
+  currentCatalogDetailItem,
   currentNewsItem,
-  sectionDirectoryItems,
 } from "@/lib/components/shell/shell-nav-helpers";
 
 describe("shell branch navigation", () => {
-  test("lists subscribed sections and adds the open section once", () => {
-    const subscribed = [
-      { href: "/catalog/sections/11", label: "线性代数" },
-      { href: "/catalog/sections/22", label: "密码工程" },
-    ];
+  test.each([
+    [
+      "/catalog/courses",
+      { course: { namePrimary: "  Linear Algebra  " } },
+      "Linear Algebra",
+    ],
+    [
+      "/catalog/sections",
+      { section: { course: { nameCn: "线性代数" } } },
+      "线性代数",
+    ],
+    ["/catalog/teachers", { teacher: { name: "Teacher" } }, "Teacher"],
+  ] as const)(
+    "adds only the open record under %s",
+    (collection, data, label) => {
+      expect(
+        currentCatalogDetailItem(collection, `${collection}/12`, data),
+      ).toEqual({ href: `${collection}/12`, label });
+      expect(
+        currentCatalogDetailItem(
+          collection,
+          `${collection}/12/description`,
+          data,
+        ),
+      ).toEqual({ href: `${collection}/12`, label });
+      expect(
+        currentCatalogDetailItem(collection, "/workspace/subscriptions", data),
+      ).toBeNull();
+      expect(currentCatalogDetailItem(collection, collection, data)).toBeNull();
+      expect(
+        currentCatalogDetailItem(collection, `${collection}/12`, {}),
+      ).toBeNull();
+    },
+  );
 
+  test("never puts a different collection's record under Sections", () => {
     expect(
-      sectionDirectoryItems("/workspace/overview", {}, subscribed).map(
-        (item) => item.label,
-      ),
-    ).toEqual(["线性代数", "密码工程"]);
-    expect(
-      sectionDirectoryItems(
-        "/catalog/sections/22",
-        { section: { course: { namePrimary: "密码工程" } } },
-        subscribed,
-      ).map((item) => item.href),
-    ).toEqual(["/catalog/sections/11", "/catalog/sections/22"]);
-    expect(
-      sectionDirectoryItems(
-        "/catalog/sections/33",
-        { section: { course: { namePrimary: "编译原理" } } },
-        subscribed,
-      ).at(-1),
-    ).toEqual({ href: "/catalog/sections/33", label: "编译原理" });
+      currentCatalogDetailItem("/catalog/sections", "/catalog/courses/12", {
+        course: { name: "Course" },
+      }),
+    ).toBeNull();
   });
 
   test("adds the open news article beside the source directory", () => {
@@ -43,5 +59,6 @@ describe("shell branch navigation", () => {
         publication: { id: "article-1", revision: { title: "校园通知" } },
       }),
     ).toEqual({ href: "/news/article-1", label: "校园通知" });
+    expect(currentNewsItem("/news/article-1", {})).toBeNull();
   });
 });

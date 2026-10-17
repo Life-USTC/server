@@ -223,17 +223,21 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
   );
 });
 
-async function actionBarAboveNavigation(page: Page) {
+async function actionBarAtViewportBottom(page: Page) {
   const bar = page.getByTestId("section-mobile-primary-actions");
   const navigation = page.locator('[data-shell-navigation="mobile-primary"]');
   await expect(bar).toBeInViewport();
-  await expect(navigation).toBeInViewport();
+  await expect(navigation).toHaveCount(0);
   const barBox = await bar.boundingBox();
-  const navBox = await navigation.boundingBox();
-  if (!barBox || !navBox)
-    throw new Error("Missing mobile action/navigation geometry");
+
+  if (!barBox) throw new Error("Missing mobile action geometry");
   expect(barBox.y).toBeGreaterThanOrEqual(0);
-  expect(barBox.y + barBox.height).toBeLessThanOrEqual(navBox.y + 1);
+  expect(barBox.y + barBox.height).toBeLessThanOrEqual(
+    (page.viewportSize()?.height ?? 0) + 1,
+  );
+  expect(
+    await bar.evaluate((element) => getComputedStyle(element).bottom),
+  ).toBe("0px");
   for (const button of await bar.getByRole("button").all()) {
     await expect(button).toBeEnabled();
     await expect(button).toBeInViewport();
@@ -282,7 +286,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
             page,
             `/catalog/sections/${fixture.sections[0].jwId}`,
           );
-          await actionBarAboveNavigation(page);
+          await actionBarAtViewportBottom(page);
           await page.evaluate(() => {
             document
               .querySelectorAll("[data-detail-scroll-container]")
@@ -291,7 +295,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               });
             window.scrollTo(0, document.documentElement.scrollHeight);
           });
-          const bar = await actionBarAboveNavigation(page);
+          const bar = await actionBarAtViewportBottom(page);
 
           if (domain === "Calendar") {
             await bar
