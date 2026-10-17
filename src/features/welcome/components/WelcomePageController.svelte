@@ -118,7 +118,7 @@ const completeProfileAction = createCompleteProfileAction({
 
 <svelte:head><title>{welcomeCopy.title} - Life@USTC</title></svelte:head>
 
-<section class="mx-auto grid min-h-[calc(100dvh-8rem)] w-full max-w-xl content-start gap-6 py-8">
+<section class="mx-auto grid min-h-[calc(100dvh-8rem)] w-full max-w-2xl content-start gap-6 py-8">
   <WelcomeStepper {progressLabel} steps={data.stepIndicators} />
 
   {#if data.step === "profile"}

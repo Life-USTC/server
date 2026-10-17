@@ -10,7 +10,7 @@ type Props = {
   belowTitle?: Snippet;
   class?: string;
   description?: string;
-  density?: "comfortable" | "compact";
+  density?: "comfortable" | "detail" | "compact";
   eyebrow?: string;
   eyebrowContent?: Snippet;
   meta?: Snippet;
@@ -34,6 +34,14 @@ let {
   titleClass = "",
   titleExtra,
 }: Props = $props();
+
+/** Detail headers step down one size so a long localized name still fits a phone. */
+const titleScaleClasses = {
+  comfortable: "text-3xl",
+  detail: "text-2xl leading-tight sm:text-3xl",
+  compact: "text-xl sm:text-2xl",
+} as const;
+const titleScaleClass = $derived(titleScaleClasses[density]);
 </script>
 
 <header class={cn("grid min-w-0 gap-4", density === "compact" ? "py-0 md:py-1" : "py-2 md:py-3", className)}>
@@ -46,7 +54,7 @@ let {
       {:else if eyebrow}
         <Badge class="mb-2" variant="secondary">{eyebrow}</Badge>
       {/if}
-      <h1 class={cn("break-words font-semibold tracking-normal", density === "compact" ? "text-xl sm:text-2xl" : "text-3xl", titleClass)}>
+      <h1 class={cn("break-words font-semibold tracking-normal", titleScaleClass, titleClass)}>
         {title}{#if titleExtra}{@render titleExtra()}{/if}
       </h1>
       {#if description}
