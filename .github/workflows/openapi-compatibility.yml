@@ -13,6 +13,7 @@ jobs:
   breaking-changes:
     name: OpenAPI breaking changes
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
