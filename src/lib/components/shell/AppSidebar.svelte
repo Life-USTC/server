@@ -47,7 +47,7 @@ let {
   copy: LayoutCopy;
   currentPathname: string;
   dockAboveFooter?: boolean;
-  /** Legal/help links when the public page footer is omitted (catalog details). */
+  /** Legal/help links for catalog detail chrome (public footer omitted there). */
   footerLinks?: ShellLink[];
   isActiveLink: (link: ShellLink) => boolean;
   navGroups: ShellNavGroup[];
