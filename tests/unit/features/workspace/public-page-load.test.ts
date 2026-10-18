@@ -19,9 +19,9 @@ vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
 }));
 
+import { loadPublicLinksPage } from "@/features/catalog-links/server/public-links-page-load";
 import { loadAnonymousHomePage } from "@/features/workspace/server/anonymous-home-page-load";
 import { loadPublicBusPage } from "@/features/workspace/server/public-bus-page-load";
-import { loadPublicLinksPage } from "@/features/workspace/server/public-links-page-load";
 
 const url = new URL("https://example.test/");
 const event = {

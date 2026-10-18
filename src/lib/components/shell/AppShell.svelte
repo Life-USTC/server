@@ -68,9 +68,16 @@ if (typeof window !== "undefined") {
   let navigationCache:
     | Promise<typeof import("#lib/shell/public-navigation-cache.js")>
     | undefined;
+  window.addEventListener("pagehide", () => {
+    void navigationCache?.then(({ clearPublicNavigationCache }) =>
+      clearPublicNavigationCache(),
+    );
+  });
   window.fetch = (input, init) => {
     const raw = input instanceof Request ? input.url : String(input);
-    if (!raw.includes("__data.json")) return originalFetch(input, init);
+    if (!raw.includes("__data.json") && !raw.includes("/sign-out")) {
+      return originalFetch(input, init);
+    }
     navigationCache ??= import("#lib/shell/public-navigation-cache.js");
     const locale =
       document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]*)/)?.[1] ?? "";

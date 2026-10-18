@@ -15,6 +15,7 @@ export {
   getCloudflareCatalogDetailCoreNamespace,
   getCloudflareNamedCache,
   getCloudflareR2PublicationsBucket,
+  getCloudflareRuntimeContext,
   getCloudflareRuntimeTaskScheduler,
   getCloudflareWeatherNamespace,
   invalidateCloudflareCatalogRepresentations,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { MAX_MULTI_SECTION_CALENDAR_IDS } from "@/features/calendar/server/calendar-section-ids";
 import {
   canonicalSectionsCalendarUrl,
-  MAX_MULTI_SECTION_CALENDAR_IDS,
   parseSectionsCalendarIds,
 } from "@/lib/api/routes/calendar-route-request";
 

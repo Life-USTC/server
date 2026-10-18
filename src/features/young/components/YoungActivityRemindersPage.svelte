@@ -1,9 +1,11 @@
 <script lang="ts">
 import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -91,15 +93,23 @@ function pageHref(number: number) {
 {/snippet}
 
 {#snippet filtersHeader()}
-
-  {#if data.notifications}
-      <ToggleGroup.Root type="single" variant="outline" bind:value={() => data.unread ? "unread" : "all", filterNotifications} aria-label={copy.notificationFilter}>
-      <ToggleGroup.Item value="all">{copy.allNotifications}</ToggleGroup.Item>
-      <ToggleGroup.Item value="unread">{copy.unreadNotifications}</ToggleGroup.Item>
-    </ToggleGroup.Root>
-  {:else if data.events}
-    <p class="text-muted-foreground text-sm">{copy.eventSubscriptionsHint}</p>
-  {/if}
+  <FilterToolbar>
+    {#snippet primary()}
+      {#if data.notifications}
+        <ToggleGroup.Root
+          type="single"
+          variant="outline"
+          bind:value={() => (data.unread ? "unread" : "all"), filterNotifications}
+          aria-label={copy.notificationFilter}
+        >
+          <ToggleGroup.Item value="all" class={toolbarControlClass}>{copy.allNotifications}</ToggleGroup.Item>
+          <ToggleGroup.Item value="unread" class={toolbarControlClass}>{copy.unreadNotifications}</ToggleGroup.Item>
+        </ToggleGroup.Root>
+      {:else if data.events}
+        <p class="text-muted-foreground text-sm">{copy.eventSubscriptionsHint}</p>
+      {/if}
+    {/snippet}
+  </FilterToolbar>
 {/snippet}
 
 <CollectionPage

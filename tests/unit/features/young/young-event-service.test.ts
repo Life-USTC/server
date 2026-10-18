@@ -30,7 +30,7 @@ vi.mock("@/features/young/server/young-calendar-query", () => ({
 }));
 
 const revision = vi.hoisted(() => ({ value: "snapshot-1" }));
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: async () => revision.value,
 }));
 vi.mock("@/lib/site-url", () => ({

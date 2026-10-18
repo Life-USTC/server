@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/db/prisma", () => ({ getPrisma: mocks.getPrisma }));
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: mocks.revision,
 }));
 vi.mock("@/features/catalog/server/course-section-queries", () => ({

@@ -119,6 +119,7 @@
     "placeholder": "例如：3A204",
     "submit": "查询",
     "empty": "输入教室编号后查看地图。",
+    "emptyTitle": "尚未查询教室",
     "triggerLabel": "查看 {code} 的位置地图",
     "dialogTitle": "{code} 的位置地图",
     "dialogDescription": "滚动查看周边教室，使用按钮或 Ctrl/⌘ + 滚轮缩放。",

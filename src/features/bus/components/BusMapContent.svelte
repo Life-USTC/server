@@ -26,9 +26,24 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
       stroke-dashoffset: -12;
     }
   }
+  .bus-map-page {
+    /* AppTopbar height plus the shell content slot's vertical padding. */
+    height: calc(100dvh - 3.5rem - 2rem);
+    min-height: 20rem;
+  }
+
+  .bus-map-canvas {
+    container-type: size;
+  }
+
+  @media (min-width: 768px) {
+    .bus-map-page {
+      height: calc(100dvh - 3rem - 2rem);
+    }
+  }
 </style>
 
-<section class="grid gap-5">
+<section class="bus-map-page grid grid-rows-[auto_minmax(0,1fr)] gap-5">
   <BusMapPageHeader
     {copy}
     {refreshMap}
@@ -43,19 +58,21 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
       </Empty.Header>
     </Empty.Root>
   {:else}
-    <BusTransitSvg
-      activeRouteIds={busMapView.activeRouteIds}
-      allRouteIds={busMapView.allRouteIds}
-      {copy}
-      departingSoonTrips={busMapView.departingSoonTrips}
-      departingTripsByCampus={busMapView.departingTripsByCampus}
-      enRouteTrips={busMapView.enRouteTrips}
-      bind:hoveredRoute
-      {mapData}
-      offsets={busMapView.offsets}
-      positions={busMapView.positions}
-      routePaths={busMapView.routePaths}
-      viewBox={busMapView.viewBox}
-    />
+    <div class="bus-map-canvas flex min-h-0 min-w-0 items-center justify-center">
+      <BusTransitSvg
+        activeRouteIds={busMapView.activeRouteIds}
+        allRouteIds={busMapView.allRouteIds}
+        {copy}
+        departingSoonTrips={busMapView.departingSoonTrips}
+        departingTripsByCampus={busMapView.departingTripsByCampus}
+        enRouteTrips={busMapView.enRouteTrips}
+        bind:hoveredRoute
+        {mapData}
+        offsets={busMapView.offsets}
+        positions={busMapView.positions}
+        routePaths={busMapView.routePaths}
+        viewBox={busMapView.viewBox}
+      />
+    </div>
   {/if}
 </section>

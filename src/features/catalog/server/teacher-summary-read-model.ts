@@ -1,6 +1,6 @@
+import { cachedPublicDetailRuntimeData } from "@/features/catalog/server/catalog-detail-runtime-cache";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { paginatedTeacherQuery } from "./academic-paginated-queries";
 import {

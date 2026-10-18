@@ -1,0 +1,92 @@
+kind: feature
+id: search
+name: Global Search
+areas:
+- catalog
+- workspace
+- platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+access:
+  anon: Can search public catalog groups through the search page and GET /api/search with catalog scope.
+  user: Signed-in viewers may include personal workspace results once the shell viewer resolves; private
+    scope never leaks into anonymous responses.
+  admin: Same search behavior as ordinary signed-in users; no admin-specific search surface.
+  agent: Cross-domain global discovery is a Web and REST surface. MCP catalog search tools remain owned
+    by their catalog features.
+requirements:
+- id: search.rest-query-bound
+  category: validation
+  rule: REST global search accepts trimmed query strings of at most 200 characters, matching catalog list
+    search bounds.
+  acceptance:
+    given: The production search route is reachable without credentials.
+    when: Anonymous GET requests submit 200-character and 201-character queries.
+    then:
+    - The bounded query succeeds.
+    - The overlong query returns 400 with the catalog search length error.
+    test:
+      file: tests/integration/rest/search/test.ts
+      name: accepts the catalog search bound and rejects longer queries
+- id: search.personal-viewer-overlay
+  category: authorization
+  rule: The public search page resolves personal scope from the shell viewer. Anonymous searches never
+    request workspace scope or return private results; a viewer change cancels in-flight private requests
+    before showing the next viewer's results.
+  acceptance:
+    given: Two isolated owners each have a distinct private todo matching the same query, plus an anonymous
+      session.
+    when: The browser opens search with a URL query, resolves each viewer, and switches viewers mid-request.
+    then:
+    - Anonymous responses omit workspace scope and private hits.
+    - Signed-in searches wait for viewer resolution, repeat the URL query for the resolved owner, and clear
+      stale private results before applying the next viewer's response.
+    test:
+      file: tests/e2e/src/app/search/personal-overlay.test.ts
+      name: an open search clears the previous viewer's results before receiving the next viewer's results
+- id: search.public-page
+  category: presentation
+  rule: The /search page lists public catalog and link matches for anonymous queries and supports keyboard
+    navigation into result destinations.
+  acceptance:
+    given: Seeded catalog and link entries match a Chinese query term.
+    when: An anonymous browser opens /search, submits the query, and activates a result with the keyboard.
+    then:
+    - Catalog and link groups appear with working destinations.
+    - Keyboard navigation can focus and follow a result link.
+    test:
+      file: tests/e2e/src/app/search/test.ts
+      name: search page supports keyboard navigation into results
+capabilities:
+  global-search:
+    title: Global Search
+    auth: anon
+    web:
+      pages:
+      - /search
+    rest:
+      routes:
+      - path: /api/search
+        method: GET
+        notes:
+        - Accepts q or query, locale, optional limit, and scope catalog or workspace.
+        - Workspace scope requires a resolved signed-in viewer.
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - query
+          secondary:
+          - result.title
+          - result.context
+          tertiary:
+          - result.href
+rationale:
+- Collection-page keyword search stays owned by course, section, teacher and related catalog features.
+  This feature owns cross-domain discovery, the search page, dialog shell integration, and GET /api/search.

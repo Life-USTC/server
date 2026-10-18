@@ -3,7 +3,10 @@ import {
   PUBLIC_SSR_CACHE_PURGE_PATH,
   PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER,
 } from "@/lib/cloudflare/public-ssr-cache-purge-contract";
-import { runPostImportCachePurge } from "@/static-loader/post-import-cache-purge";
+import {
+  ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE_ENV,
+  runPostImportCachePurge,
+} from "@/static-loader/post-import-cache-purge";
 
 const ORIGIN = "https://life-ustc.test";
 const PURGE_SECRET = "edge-cache-purge-secret-value";
@@ -28,6 +31,7 @@ describe("post-import cache purge", () => {
 
   beforeEach(() => {
     for (const name of [
+      ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE_ENV,
       "APP_PUBLIC_ORIGIN",
       "CLOUDFLARE_API_TOKEN",
       "CLOUDFLARE_ZONE_ID",
@@ -181,10 +185,33 @@ describe("post-import cache purge", () => {
     expect(String(log.error.mock.calls[0]?.[1])).not.toContain(PURGE_SECRET);
   });
 
-  it("never sends the secret to an unconfigured origin", async () => {
+  it("rendering-and-cache.cache-layers-and-invalidation-12", async () => {
     process.env.CLOUDFLARE_ZONE_ID = "zone-1";
     process.env.CLOUDFLARE_API_TOKEN = "token-1";
     process.env.EDGE_CACHE_PURGE_SECRET = PURGE_SECRET;
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(okResponse());
+    const log = logger();
+
+    const report = await runPostImportCachePurge({ outcome: "committed" }, log);
+
+    expect(report).toEqual({
+      failed: true,
+      workerEntrypoint: "failed",
+      zone: "purged",
+    });
+    expect(log.error).toHaveBeenCalledWith(
+      expect.stringContaining("Workers entrypoint"),
+    );
+    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain(PURGE_SECRET);
+  });
+
+  it("allows skipping purge layers locally when explicitly opted in", async () => {
+    process.env.CLOUDFLARE_ZONE_ID = "zone-1";
+    process.env.CLOUDFLARE_API_TOKEN = "token-1";
+    process.env.EDGE_CACHE_PURGE_SECRET = PURGE_SECRET;
+    process.env[ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE_ENV] = "true";
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(okResponse());
@@ -194,8 +221,11 @@ describe("post-import cache purge", () => {
       logger(),
     );
 
-    expect(report.workerEntrypoint).toBe("skipped");
-    expect(report.failed).toBe(false);
-    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain(PURGE_SECRET);
+    expect(report).toEqual({
+      failed: false,
+      workerEntrypoint: "skipped",
+      zone: "purged",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

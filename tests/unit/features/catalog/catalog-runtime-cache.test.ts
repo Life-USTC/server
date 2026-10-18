@@ -6,12 +6,12 @@ import {
 import {
   buildPublicCatalogRuntimeCacheOptions,
   catalogListCacheNamespace,
-} from "@/lib/catalog-runtime-cache";
+} from "@/features/catalog/server/catalog-runtime-cache";
 
 const { revision } = vi.hoisted(() => ({
   revision: vi.fn(async () => "rev123"),
 }));
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: revision,
 }));
 beforeEach(() => revision.mockResolvedValue("rev123"));

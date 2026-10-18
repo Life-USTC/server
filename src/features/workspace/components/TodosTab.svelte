@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
+import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createTodoTabDisplayActions } from "@/features/workspace/lib/todos-tab-display";
 import type {
@@ -89,35 +90,37 @@ function clearTodoFilter() {
     </Alert.Root>
   {/if}
 
-  <div class="md:hidden">
-    <TodosCardsView
-      filteredTodos={filteredTodos}
-      hasTodoItems={hasTodoItems}
-      onClearFilter={clearTodoFilter}
-      fmtDate={fmtDate}
-      openTodoEditor={openTodoEditor}
-      bind:selectedTodo
-      todoActionLabel={todoActionLabel}
-      todoSavingById={todoSavingById}
-      todosCopy={todosCopy}
-      todoStatus={todoStatus}
-      toggleTodoCompletion={toggleTodoCompletion}
-    />
-  </div>
-  <div class="hidden min-w-0 overflow-x-auto md:block">
-    <TodosListView
-      filteredTodos={filteredTodos}
-      hasTodoItems={hasTodoItems}
-      onClearFilter={clearTodoFilter}
-      fmtDate={fmtDate}
-      openTodoEditor={openTodoEditor}
-      bind:selectedTodo
-      todoActionLabel={todoActionLabel}
-      todoSavingById={todoSavingById}
-      todosCopy={todosCopy}
-      toggleTodoCompletion={toggleTodoCompletion}
-    />
-  </div>
+  <WorkspaceCollection>
+    {#snippet mobile()}
+      <TodosCardsView
+        filteredTodos={filteredTodos}
+        hasTodoItems={hasTodoItems}
+        onClearFilter={clearTodoFilter}
+        fmtDate={fmtDate}
+        openTodoEditor={openTodoEditor}
+        bind:selectedTodo
+        todoActionLabel={todoActionLabel}
+        todoSavingById={todoSavingById}
+        todosCopy={todosCopy}
+        todoStatus={todoStatus}
+        toggleTodoCompletion={toggleTodoCompletion}
+      />
+    {/snippet}
+    {#snippet desktop()}
+      <TodosListView
+        filteredTodos={filteredTodos}
+        hasTodoItems={hasTodoItems}
+        onClearFilter={clearTodoFilter}
+        fmtDate={fmtDate}
+        openTodoEditor={openTodoEditor}
+        bind:selectedTodo
+        todoActionLabel={todoActionLabel}
+        todoSavingById={todoSavingById}
+        todosCopy={todosCopy}
+        toggleTodoCompletion={toggleTodoCompletion}
+      />
+    {/snippet}
+  </WorkspaceCollection>
 
   <TodosTabDialogs
     commentsCopy={commentsCopy}

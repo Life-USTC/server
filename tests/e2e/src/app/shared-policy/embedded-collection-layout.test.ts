@@ -1,4 +1,5 @@
 import { expect, type Locator } from "@playwright/test";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import {
   type EmbeddedTablePolicyFixture,
   test,
@@ -19,7 +20,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       summary: "",
       pagination: false,
       records:
-        width < 768
+        width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? `[data-testid="workspace-${name}-cards"] [data-slot="item"]`
           : "main table:visible tbody tr",
     })),
@@ -32,7 +33,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
         '[data-testid="subscription-semester-groups"] section > div:first-child > span',
       pagination: false,
       records:
-        width < 768
+        width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? '[data-testid="subscription-semester-cards"] [data-slot="item"]'
           : '[data-testid="subscription-semester-table"] tbody tr',
     },

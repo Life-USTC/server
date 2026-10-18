@@ -51,9 +51,9 @@ describe("feature transport bindings", () => {
       skipLoadingLibFiles: true,
       compilerOptions: { noResolve: true },
     });
-    // Include metadata routes in dot-directories as well as the ordinary API.
+    // Include all HTTP routes, plus metadata routes in dot-directories.
     project.addSourceFilesAtPaths([
-      `${root}src/routes/api/**/+server.ts`,
+      `${root}src/routes/**/+server.ts`,
       `${root}src/routes/.well-known/**/+server.ts`,
       `${root}src/routes/api/**/.well-known/**/+server.ts`,
     ]);

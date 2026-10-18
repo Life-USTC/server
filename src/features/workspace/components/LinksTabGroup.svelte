@@ -1,4 +1,5 @@
 <script lang="ts">
+import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type {
   SignedLinkGroup,
   WorkspaceCopy,
@@ -31,29 +32,31 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
   <h3 class="font-medium text-muted-foreground text-sm">
     {entry.label}
   </h3>
-  <div class="xl:hidden">
-    <LinksTabGrid
-      links={entry.links}
-      {linkIconLabel}
-      {linkReturnTo}
-      {pinAction}
-      {pinLabel}
-      {submitWorkspaceLinkPin}
-      {updatingCatalogLinkSlug}
-    />
-  </div>
-  <div class="hidden xl:block">
-    <LinksTabList
-      colActions={workspaceCopy.linkHub.colActions}
-      colDescription={workspaceCopy.linkHub.colDescription}
-      colName={workspaceCopy.linkHub.colName}
-      links={entry.links}
-      {linkIconLabel}
-      {linkReturnTo}
-      {pinAction}
-      {pinLabel}
-      {submitWorkspaceLinkPin}
-      {updatingCatalogLinkSlug}
-    />
-  </div>
+  <WorkspaceCollection>
+    {#snippet mobile()}
+      <LinksTabGrid
+        links={entry.links}
+        {linkIconLabel}
+        {linkReturnTo}
+        {pinAction}
+        {pinLabel}
+        {submitWorkspaceLinkPin}
+        {updatingCatalogLinkSlug}
+      />
+    {/snippet}
+    {#snippet desktop()}
+      <LinksTabList
+        colActions={workspaceCopy.linkHub.colActions}
+        colDescription={workspaceCopy.linkHub.colDescription}
+        colName={workspaceCopy.linkHub.colName}
+        links={entry.links}
+        {linkIconLabel}
+        {linkReturnTo}
+        {pinAction}
+        {pinLabel}
+        {submitWorkspaceLinkPin}
+        {updatingCatalogLinkSlug}
+      />
+    {/snippet}
+  </WorkspaceCollection>
 </section>

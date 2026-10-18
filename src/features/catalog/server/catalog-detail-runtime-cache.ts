@@ -1,9 +1,9 @@
-import type { AppLocale } from "@/i18n/config";
-import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
+import { getCatalogDetailCacheRevision } from "@/features/catalog/server/catalog-detail-cache-revision";
 import {
   PUBLIC_CATALOG_KV_CACHE_TTL_MS,
   PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS,
-} from "@/lib/catalog-runtime-cache";
+} from "@/features/catalog/server/catalog-runtime-cache";
+import type { AppLocale } from "@/i18n/config";
 import {
   cachedPublicRuntimeData,
   type PublicDetailColoCacheKind,

@@ -1,12 +1,12 @@
 <script lang="ts">
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import {
   toolbarControlClass,
   toolbarFieldClass,
 } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
@@ -68,10 +68,8 @@ function submit(event: SubmitEvent) {
       />
     {/key}
   {:else}
-    <Empty.Root class="min-h-40 rounded-none border-0 p-0">
-      <Empty.Header>
-        <Empty.Description>{copy.empty}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <div class="py-10">
+      <ResultsEmpty description={copy.empty} title={copy.emptyTitle} />
+    </div>
   {/if}
 </CollectionPage>

@@ -1,5 +1,5 @@
+import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import type { AppLocale } from "@/i18n/config";
-import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import { getCanonicalOrigin } from "@/lib/site-url";
 

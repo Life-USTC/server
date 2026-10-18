@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
+import { getCatalogDetailCacheRevision } from "@/features/catalog/server/catalog-detail-cache-revision";
 import {
   buildPublicDetailRuntimeCacheOptions,
   cachedPublicDetailRuntimeData,
-} from "@/lib/catalog-detail-runtime-cache";
+} from "@/features/catalog/server/catalog-detail-runtime-cache";
 import {
   buildPublicCatalogRuntimeCacheOptions,
   cachedCatalogRuntimeData,
-} from "@/lib/catalog-runtime-cache";
+} from "@/features/catalog/server/catalog-runtime-cache";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
   cachedPublicRuntimeData,
   resetPublicRuntimeCacheForTest,

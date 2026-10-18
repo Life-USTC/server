@@ -3,6 +3,7 @@ import {
   getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
+import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
 import { schemaJsonResponse } from "@/lib/api/responses";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
@@ -12,7 +13,6 @@ import {
   paginatedSemesterResponseSchema,
   semesterSchema,
 } from "@/lib/api/schemas/response-schemas";
-import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import {
   currentSemesterCacheHeaders,
   PUBLIC_CATALOG_HEADERS,

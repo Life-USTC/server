@@ -9,7 +9,7 @@ vi.mock("@/features/workspace/server/public-bus-page-load", () => ({
   loadPublicBusPage: loadPublicBusPageMock,
 }));
 
-vi.mock("@/features/workspace/server/public-links-page-load", () => ({
+vi.mock("@/features/catalog-links/server/public-links-page-load", () => ({
   loadPublicLinksPage: loadPublicLinksPageMock,
 }));
 

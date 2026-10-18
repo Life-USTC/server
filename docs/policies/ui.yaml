@@ -982,6 +982,22 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.workspace-footer-policy-2
+- id: ui.sign-in-focused-shell
+  category: presentation
+  topic: workspace-footer-policy
+  rule: /account/sign-in uses a focused authentication shell with no sidebar, navigation toggle or public footer.
+    The login card remains centered in the available content area, with language and theme preferences in the header
+    and Terms and Privacy links inside the card.
+  acceptance:
+    given: An anonymous visitor at desktop and mobile widths.
+    when: The visitor opens /account/sign-in.
+    then:
+    - The focused shell and login card are visible without horizontal overflow.
+    - No sidebar navigation, sidebar toggle or public footer is rendered.
+    - Language and theme preferences and the card's legal links remain reachable.
+    test:
+      file: tests/e2e/src/app/signin/test.ts
+      name: /account/sign-in uses the focused auth shell
 - id: ui.workspace-filters-and-empty-states-1
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -1168,6 +1184,7 @@ requirements:
     when: Chinese and English touch-capable browsers inspect all day labels, navigate with arrows and Home/End, and tap empty and populated days.
     then:
     - Every day exposes the expected localized date and database-backed count; keyboard and touch selection update the accessible live detail.
+    - Contribution day cells and the legend do not duplicate that text in native title tooltips; the live detail region carries the selected day summary.
     test:
       file: tests/e2e/src/app/shared-policy/contribution-heatmap.test.ts
       name: ui.contribution-heatmap-2

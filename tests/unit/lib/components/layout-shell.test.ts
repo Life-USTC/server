@@ -5,6 +5,7 @@ import {
   isDetailWorkspacePath,
   isOnboardingPath,
   isYoungEventDetailPath,
+  resolveMobileToastBottomOffset,
   resolveShellTheme,
   shouldShowAppFooter,
   shouldUseFocusedShell,
@@ -38,6 +39,7 @@ describe("application shell footer policy", () => {
     ["/account/settings/profile", true, false],
     ["/admin/oauth", true, false],
     ["/account/welcome", true, false],
+    ["/account/sign-in", false, false],
     ["/catalog/courses", false, true],
     ["/catalog/courses", true, true],
     ["/guides/markdown-support", true, true],
@@ -50,7 +52,7 @@ describe("application shell footer policy", () => {
   );
 });
 
-describe("application shell onboarding chrome", () => {
+describe("application shell focused chrome", () => {
   it.each([
     ["/account/welcome", true],
     ["/account/welcome/", true],
@@ -58,6 +60,17 @@ describe("application shell onboarding chrome", () => {
     ["/workspace/overview", false],
   ])("pathname %s is onboarding=%s", (pathname, expected) => {
     expect(isOnboardingPath(pathname)).toBe(expected);
+  });
+
+  it.each([
+    ["/account/welcome", true],
+    ["/account/welcome/", true],
+    ["/account/sign-in", true],
+    ["/account/sign-in-other", false],
+    ["/account/sign-in/nested", false],
+    ["/account/settings", false],
+    ["/workspace/overview", false],
+  ])("pathname %s uses focused shell=%s", (pathname, expected) => {
     expect(shouldUseFocusedShell(pathname)).toBe(expected);
   });
 });
@@ -93,7 +106,19 @@ describe("application shell theme", () => {
 });
 
 describe("mobile toast placement", () => {
-  it("uses the bottom safe area without a retired tab-bar offset", async () => {
+  it.each([
+    [false, "calc(env(safe-area-inset-bottom) + 1rem)"],
+    [true, "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)"],
+  ])(
+    "resolveMobileToastBottomOffset(showMobileTabBar=%s)",
+    (showMobileTabBar, expected) => {
+      expect(resolveMobileToastBottomOffset(showMobileTabBar)).toBe(expected);
+    },
+  );
+
+  it("defers mobile bottom offset to sonner; layout only sets horizontal inset", async () => {
+    // This PR retires fixed mobile tab bars; signed-in lift selectors remain in
+    // sonner for any future nav that remounts those data attributes.
     const [layout, sonner] = await Promise.all([
       readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
       readFile(
@@ -103,10 +128,13 @@ describe("mobile toast placement", () => {
     ]);
 
     expect(layout).toContain(
-      'bottom: "max(1rem, env(safe-area-inset-bottom))"',
+      'mobileOffset={{ left: "1rem", right: "1rem" }}',
     );
-    expect(layout).toContain('left: "1rem"');
-    expect(layout).toContain('right: "1rem"');
+    expect(layout).not.toMatch(/mobileOffset=\{\{[^}]*bottom:/);
+    expect(sonner).toContain("mobileToastBottomSignedOut");
+    expect(sonner).toContain("mobileToastBottomSignedIn");
+    expect(sonner).toContain('[data-shell-navigation="mobile-primary"]');
+    expect(sonner).toContain('[data-shell-navigation="admin-mobile"]');
     expect(sonner).toContain("max-width: calc(100vw");
     expect(sonner).toContain("pointer-events: none;");
     expect(sonner).toContain("pointer-events: auto;");

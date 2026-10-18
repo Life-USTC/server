@@ -29,18 +29,3 @@ export function calendarNotModifiedResponse(
     headers: responseHeaders,
   });
 }
-
-export function parseUserCalendarIdentifier(rawUserId: string) {
-  const separatorIndex = rawUserId.indexOf(":");
-  if (separatorIndex === -1) {
-    return {
-      userId: rawUserId,
-      tokenFromPath: null,
-    };
-  }
-
-  return {
-    userId: rawUserId.slice(0, separatorIndex),
-    tokenFromPath: rawUserId.slice(separatorIndex + 1),
-  };
-}

@@ -62,7 +62,9 @@ Invoke Playwright directly against that prepared source.
 
 `tests/e2e/fixtures/scenario.json` and `tests/fixtures/dev-seed.ts` supply explicit
 values to private fixtures. Development seeding remains available through
-`ALLOW_DATABASE_SEED=true bunx prisma db seed`; it is not test setup.
+`ALLOW_DATABASE_SEED=true bunx prisma db seed`; it is not test setup. Seeded
+sign-in hashes come from `DEV_ADMIN_PASSWORD` / `DEV_DEBUG_PASSWORD` at seed
+time; fixtures arrange their own credentials.
 
 ## Layout
 

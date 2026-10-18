@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cachedPublicDetailRuntimeData } from "@/features/catalog/server/catalog-detail-runtime-cache";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
 const {
@@ -19,7 +19,7 @@ const {
   teacherFindUniqueMock: vi.fn(),
 }));
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: getCatalogDetailCacheRevisionMock,
 }));
 

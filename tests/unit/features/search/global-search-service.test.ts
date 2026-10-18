@@ -37,7 +37,7 @@ vi.mock("@/features/search/server/global-search-link-queries", () => ({
   searchLinksForGlobal: searchLinksForGlobalMock,
 }));
 
-vi.mock("@/lib/catalog-runtime-cache", () => ({
+vi.mock("@/features/catalog/server/catalog-runtime-cache", () => ({
   cachedCatalogRuntimeData: cachedCatalogRuntimeDataMock,
 }));
 
