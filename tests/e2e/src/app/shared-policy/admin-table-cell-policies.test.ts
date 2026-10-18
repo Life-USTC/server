@@ -256,14 +256,21 @@ for (const domain of ["Admin", "Teacher"] as const) {
               page,
               `/catalog/teachers?search=${fixture.teacher.code}`,
             );
-            const title = fixtureRow(
+            const table = page.locator("table:visible");
+            await expect(table).toBeVisible();
+            // Sparse title/email columns stay hidden instead of Unknown-filled.
+            await expect(
+              table.getByRole("columnheader", { name: /^(Title|职称)$/ }),
+            ).toHaveCount(0);
+            await expect(
+              table.getByRole("columnheader", { name: /^(Email|邮箱)$/ }),
+            ).toHaveCount(0);
+            const row = fixtureRow(
               page,
               "Table unknown teacher (表格未知值教师)",
-            )
-              .locator("td")
-              .nth(3);
-            await expect(title).toHaveText("Unknown");
-            expect(await title.ariaSnapshot()).toContain("Unknown");
+            );
+            await expect(row).toBeVisible();
+            await expect(row.getByText("Unknown")).toHaveCount(0);
           }
         },
         {},

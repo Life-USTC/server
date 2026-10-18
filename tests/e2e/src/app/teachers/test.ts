@@ -282,4 +282,73 @@ test.describe("/catalog/teachers", () => {
       );
     });
   });
+
+  test("mixed title page still shows 未知 for empty titles", {
+    tag: "@Teacher/Web",
+  }, async ({ page, preferenceFlow, isolatedWorker }) => {
+    await preferenceFlow.run(async () => {
+      const marker = crypto.randomUUID().slice(0, 8);
+      const base = 1_810_000_000 + Math.floor(Math.random() * 100_000_000);
+      const { titled, untitled, title } = await preferenceFlow.prepare(() =>
+        isolatedWorker.database.owner.$transaction(async (db) => {
+          const department = await db.department.create({
+            data: {
+              code: marker,
+              nameCn: `混合院系${marker}`,
+              nameEn: `Mixed dept ${marker}`,
+            },
+          });
+          const title = await db.teacherTitle.create({
+            data: {
+              jwId: base,
+              code: marker,
+              nameCn: `混合职称${marker}`,
+              nameEn: `Mixed title ${marker}`,
+            },
+          });
+          const titled = await db.teacher.create({
+            data: {
+              jwId: base + 1,
+              code: `MX-T-${marker}`,
+              nameCn: `有职称教师${marker}`,
+              nameEn: `Titled teacher ${marker}`,
+              departmentId: department.id,
+              teacherTitleId: title.id,
+            },
+          });
+          const untitled = await db.teacher.create({
+            data: {
+              jwId: base + 2,
+              code: `MX-U-${marker}`,
+              nameCn: `无职称教师${marker}`,
+              nameEn: `Untitled teacher ${marker}`,
+              departmentId: department.id,
+            },
+          });
+          return { titled, untitled, title };
+        }),
+      );
+
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/teachers?search=${encodeURIComponent(marker)}`,
+      );
+      const table = page.locator("table:visible");
+      await expect(
+        table.getByRole("columnheader", { name: /职称|Title/i }),
+      ).toHaveCount(1);
+      const untitledRow = table
+        .locator("tbody tr")
+        .filter({ hasText: untitled.nameCn });
+      await expect(untitledRow.locator("td").nth(3)).toHaveText(/未知|Unknown/);
+      await expect(
+        table
+          .locator("tbody tr")
+          .filter({ hasText: titled.nameCn })
+          .locator("td")
+          .nth(3),
+      ).toHaveText(title.nameCn);
+    });
+  });
 });

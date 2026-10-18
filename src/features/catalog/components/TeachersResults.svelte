@@ -173,7 +173,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                   <TruncatedText text={teacher.email ?? "-"} />
                 </Table.Cell>
               {/if}
-              <Table.Cell class="whitespace-nowrap text-right tabular-nums">
+              <Table.Cell class="p-0 whitespace-nowrap text-right tabular-nums">
                 {#if sectionCount > 0}
                   <CatalogTableLink
                     class="tabular-nums"
@@ -183,7 +183,10 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                     <span data-testid="teacher-section-count">{sectionCount}</span>
                   </CatalogTableLink>
                 {:else}
-                  <span data-testid="teacher-section-count">0</span>
+                  <span
+                    class="flex h-full min-h-12 min-w-0 w-full items-center justify-end px-3 tabular-nums"
+                    data-testid="teacher-section-count"
+                  >0</span>
                 {/if}
               </Table.Cell>
               </Table.Row>
