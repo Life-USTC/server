@@ -1617,10 +1617,10 @@ requirements:
   category: presentation
   topic: workspace-footer-policy
   rule: Directly opened course, section, and teacher detail pages provide reachable Terms, Privacy, and usage-help
-    links through the public shell, on desktop and mobile without requiring sign-in.
+    links through the public footer, on desktop and mobile without requiring sign-in.
   acceptance:
     given: An anonymous user directly opens each kind of public catalog detail at desktop and mobile widths.
-    when: The user expands navigation when necessary and activates each legal or help destination.
+    when: The user activates each legal or help destination from the public footer.
     then:
     - Each destination is reachable without sign-in, responds successfully, and has a visible page heading.
     test:

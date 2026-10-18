@@ -403,7 +403,7 @@ shellTest(
         });
 
         for (const name of [
-          /^(概览|Overview)$/i,
+          /^(总览|Overview)$/i,
           /^(日历|Calendar)$/i,
           /^(作业|Homework)$/i,
           /^(待办|Todos)$/i,
@@ -440,7 +440,7 @@ shellTest(
 );
 
 shellTest(
-  "/ shell 中等视口只显示侧栏品牌并采用 stock 宽度",
+  "/ shell 中等视口保留顶栏品牌并采用 stock 宽度",
   { tag: "@Site/Web" },
   async ({ communityFlow, page, account: _account }) => {
     await communityFlow.run(async () => {
@@ -448,9 +448,11 @@ shellTest(
       await gotoAndWaitForReady(page, "/workspace/overview");
 
       await expect(page.locator("#app-logo")).toBeVisible();
+      // #1077 / shell hub: topbar brand stays through the tablet range
+      // (hidden only at lg+); sidebar brand remains as well.
       await expect(
-        page.locator('[data-shell-topbar] a[href="/"]'),
-      ).toBeHidden();
+        page.locator("[data-shell-topbar] [data-shell-brand]"),
+      ).toBeVisible();
       await expect
         .poll(() =>
           page.locator('[data-slot="sidebar-wrapper"]').evaluate((element) => {
@@ -566,7 +568,7 @@ shellTest(
 
         // The empty overview exposes a real course discovery link outside the collapsed group.
         await navigation
-          .getByRole("link", { name: /^(概览|Overview)$/i })
+          .getByRole("link", { name: /^(总览|Overview)$/i })
           .click();
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
         await page
