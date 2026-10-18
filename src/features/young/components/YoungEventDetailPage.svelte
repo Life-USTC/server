@@ -102,10 +102,7 @@ const facts = $derived(
   youngDetailFacts({
     time: youngDateRange(event.startAt, event.endAt, youngCopy),
     place: placeLabel,
-    hours:
-      event.hours == null
-        ? null
-        : `${event.hours} ${youngCopy.hours}`,
+    hours: event.hours == null ? null : `${event.hours} ${youngCopy.hours}`,
     capacity: capacityLabel,
     deadline: deadlineLabel,
   }),
