@@ -38,6 +38,7 @@ describe("application shell footer policy", () => {
     ["/account/settings/profile", true, false],
     ["/admin/oauth", true, false],
     ["/account/welcome", true, false],
+    ["/account/sign-in", false, false],
     ["/catalog/courses", false, true],
     ["/catalog/courses", true, true],
     ["/guides/markdown-support", true, true],
@@ -50,7 +51,7 @@ describe("application shell footer policy", () => {
   );
 });
 
-describe("application shell onboarding chrome", () => {
+describe("application shell focused chrome", () => {
   it.each([
     ["/account/welcome", true],
     ["/account/welcome/", true],
@@ -58,6 +59,17 @@ describe("application shell onboarding chrome", () => {
     ["/workspace/overview", false],
   ])("pathname %s is onboarding=%s", (pathname, expected) => {
     expect(isOnboardingPath(pathname)).toBe(expected);
+  });
+
+  it.each([
+    ["/account/welcome", true],
+    ["/account/welcome/", true],
+    ["/account/sign-in", true],
+    ["/account/sign-in-other", false],
+    ["/account/sign-in/nested", false],
+    ["/account/settings", false],
+    ["/workspace/overview", false],
+  ])("pathname %s uses focused shell=%s", (pathname, expected) => {
     expect(shouldUseFocusedShell(pathname)).toBe(expected);
   });
 });
