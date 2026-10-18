@@ -141,7 +141,7 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
             ]);
           await page
             .getByTestId("app-sidebar")
-            .getByRole("link", { name: "Today", exact: true })
+            .getByRole("link", { name: "Overview", exact: true })
             .filter({ visible: true })
             .click();
           await expect(page).toHaveURL(`${calendar.origin}/workspace/overview`);

@@ -2,6 +2,7 @@
 export const PUBLIC_NAVIGATION_HEADER = "x-life-public-navigation";
 
 const PUBLIC_PATHS = new Set([
+  "/catalog/features",
   "/catalog/courses",
   "/catalog/sections",
   "/catalog/teachers",

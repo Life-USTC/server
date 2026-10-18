@@ -944,7 +944,7 @@ for (const routePath of [
       await expect(page.locator("#main-content")).toBeVisible();
       await expandWorkspaceSidebarGroup(page);
       await expect(
-        sidebarNavigationLink(page, /^(今天|Today)$/i),
+        sidebarNavigationLink(page, /^(总览|Overview)$/i),
       ).toBeVisible();
     });
   });

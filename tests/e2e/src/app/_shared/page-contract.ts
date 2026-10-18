@@ -155,9 +155,11 @@ export async function assertPageContract(
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
     await expandWorkspaceSidebarGroup(page);
-    await expect(sidebarNavigationLink(page, /^(今天|Today)$/i)).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(sidebarNavigationLink(page, /^(总览|Overview)$/i)).toBeVisible(
+      {
+        timeout: 10_000,
+      },
+    );
     return;
   }
 

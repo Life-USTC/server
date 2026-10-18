@@ -116,34 +116,19 @@ describe("mobile toast placement", () => {
     },
   );
 
-  it("keeps bottom toasts above the fixed mobile navigation when it is mounted", async () => {
-    const [primaryNav, adminNav, sonner] = await Promise.all([
-      readFile(
-        resolve(
-          process.cwd(),
-          "src/lib/components/shell/MobilePrimaryNav.svelte",
-        ),
-        "utf8",
-      ),
-      readFile(
-        resolve(
-          process.cwd(),
-          "src/features/admin/components/AdminMobileNav.svelte",
-        ),
-        "utf8",
-      ),
+  it("defers mobile bottom offset to sonner; layout only sets horizontal inset", async () => {
+    // This PR retires fixed mobile tab bars; signed-in lift selectors remain in
+    // sonner for any future nav that remounts those data attributes.
+    const [layout, sonner] = await Promise.all([
+      readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
       readFile(
         resolve(process.cwd(), "src/lib/components/ui/sonner/sonner.svelte"),
         "utf8",
       ),
     ]);
 
-    expect(primaryNav).toContain('data-shell-navigation="mobile-primary"');
-    expect(primaryNav).toContain("min-h-14");
-    expect(primaryNav).toContain("pb-[env(safe-area-inset-bottom)]");
-    expect(adminNav).toContain('data-shell-navigation="admin-mobile"');
-    expect(adminNav).toContain("min-h-14");
-    expect(adminNav).toContain("pb-[env(safe-area-inset-bottom)]");
+    expect(layout).toContain('mobileOffset={{ left: "1rem", right: "1rem" }}');
+    expect(layout).not.toMatch(/mobileOffset=\{\{[^}]*bottom:/);
     expect(sonner).toContain("mobileToastBottomSignedOut");
     expect(sonner).toContain("mobileToastBottomSignedIn");
     expect(sonner).toContain('[data-shell-navigation="mobile-primary"]');

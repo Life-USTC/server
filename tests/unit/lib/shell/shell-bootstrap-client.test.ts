@@ -28,7 +28,6 @@ test("rendering-and-cache.personal-overlays-12", () => {
   const anonymous = {
     navigationUserId: null,
     resolveViewerOnClient: true,
-    sectionsReady: false,
     viewerUserId: null,
   };
   expect(
@@ -71,7 +70,6 @@ test("rendering-and-cache.personal-overlays-12", () => {
       navigationType: "link",
       navigationUserId: "user-1",
       resolveViewerOnClient: true,
-      sectionsReady: true,
       shellResolved: true,
       viewerUserId: "user-1",
     }),
@@ -81,7 +79,6 @@ test("rendering-and-cache.personal-overlays-12", () => {
       navigationType: "mount",
       navigationUserId: null,
       resolveViewerOnClient: false,
-      sectionsReady: false,
       shellResolved: false,
       viewerUserId: null,
     }),
@@ -92,16 +89,14 @@ describe("shell bootstrap client", () => {
   test("accepts explicit anonymous and matched authenticated payloads", () => {
     expect(
       parseShellBootstrapPayload({ viewer: null, navigation: null }),
-    ).toEqual({ viewer: null, navigation: null, subscribedSections: [] });
+    ).toEqual({ viewer: null, navigation: null });
     expect(parseShellBootstrapPayload({ viewer, navigation: null })).toEqual({
       viewer,
       navigation: null,
-      subscribedSections: [],
     });
     expect(parseShellBootstrapPayload({ viewer, navigation })).toEqual({
       viewer,
       navigation,
-      subscribedSections: [],
     });
   });
 
@@ -156,7 +151,6 @@ describe("shell bootstrap client", () => {
     await expect(getClientShellBootstrap(fetcher)).resolves.toEqual({
       viewer,
       navigation,
-      subscribedSections: [],
     });
     expect(fetcher).toHaveBeenCalledWith("/_internal/shell-bootstrap", {
       cache: "no-store",

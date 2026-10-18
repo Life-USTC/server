@@ -3036,5 +3036,59 @@
         }
       ]
     }
+  },
+  "shell": {
+    "menu": "Menu",
+    "scrollRegion": "Main content scroll region",
+    "theme": "Theme",
+    "locale": "Locale",
+    "personalPage": "Personal page",
+    "backToApp": "Back to app",
+    "groups": {
+      "schedule": "Schedule",
+      "subscriptions": "Subscriptions",
+      "catalog": "Catalog",
+      "campus": "Campus life",
+      "account": "Account",
+      "clients": "Apps & integrations",
+      "admin": "Admin tools"
+    },
+    "hub": {
+      "title": "All features",
+      "description": "Browse everything Life@USTC offers, grouped by purpose.",
+      "searchLabel": "Search features",
+      "searchPlaceholder": "Search by feature name or description",
+      "empty": "No features match your search.",
+      "signInPrompt": "Sign in to use your schedule, homework, todos, and subscriptions.",
+      "descriptions": {
+        "overview": "Today's classes, deadlines, and the week ahead",
+        "calendar": "Classes, homework deadlines, and exams on one calendar",
+        "homeworks": "Homework from your subscribed sections and your progress",
+        "todos": "Personal tasks that are not tied to a section",
+        "exams": "Exam schedules for your subscribed sections",
+        "subscriptions": "Add and manage section subscriptions",
+        "activityNotifications": "Reminders for Second Classroom events and organizers you follow",
+        "courses": "Find courses by semester, department, and category",
+        "sections": "Look up section times, rooms, and teachers",
+        "teachers": "Browse teachers and the courses they teach",
+        "rooms": "Locate classrooms on the campus map",
+        "bus": "Next departures and timetables between campuses",
+        "weather": "Current conditions and forecasts for each campus",
+        "youngEvents": "Second Classroom events, calendar, and organizers",
+        "news": "News and notices from university sources",
+        "links": "Frequently used campus websites, searchable and pinnable",
+        "uploads": "Manage files uploaded through comment attachments",
+        "settings": "Profile, preferences, linked accounts, and security",
+        "mobileApp": "Schedules, shuttles, courses, and homework in your pocket",
+        "prestoBot": "Check schedules, homework, and shuttles from chat",
+        "mcp": "Connect AI assistants to your data over MCP",
+        "cli": "Use Life@USTC from the terminal",
+        "adminUsers": "Search accounts, manage roles, and handle suspensions",
+        "adminModeration": "Review comment, description, homework, and suspension queues",
+        "adminOauth": "Manage third-party OAuth clients",
+        "adminBus": "Import and publish shuttle timetable versions"
+      },
+      "clearSearch": "Clear search"
+    }
   }
 }
