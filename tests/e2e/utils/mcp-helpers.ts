@@ -9,6 +9,7 @@ import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { sha256Base64Url } from "../../shared/crypto";
 import { mcpPostOptions } from "../../shared/mcp-http-request";
 import type { IsolatedWorker } from "./isolated-worker";
+import { gotoAndWaitForReady } from "./page-ready";
 
 async function generateCodeChallenge(codeVerifier: string) {
   return sha256Base64Url(codeVerifier);
@@ -90,7 +91,7 @@ async function authorizeAndGetCode(
   expect(typeof consentLocation).toBe("string");
   expect(consentLocation).toContain("/oauth/authorize?");
 
-  await page.goto(consentLocation);
+  await gotoAndWaitForReady(page, consentLocation);
   await expect(page.getByText(/回调主机|Redirect host/i)).toBeVisible();
   await expect(
     page.getByText(/本地应用|application on your device/i),
