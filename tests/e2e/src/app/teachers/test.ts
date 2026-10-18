@@ -201,4 +201,85 @@ test.describe("/catalog/teachers", () => {
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
     });
   });
+
+  test("teacher.list-hides-sparse-columns", { tag: "@Teacher/Web" }, async ({
+    page,
+    preferenceFlow,
+    isolatedWorker,
+  }) => {
+    await preferenceFlow.run(async () => {
+      const marker = crypto.randomUUID().slice(0, 8);
+      const base = 1_800_000_000 + Math.floor(Math.random() * 100_000_000);
+      const { teacher } = await preferenceFlow.prepare(() =>
+        isolatedWorker.database.owner.$transaction(async (db) => {
+          const department = await db.department.create({
+            data: {
+              code: marker,
+              nameCn: `稀疏院系${marker}`,
+              nameEn: `Sparse dept ${marker}`,
+            },
+          });
+          const teacher = await db.teacher.create({
+            data: {
+              jwId: base,
+              code: `SP-${marker}`,
+              nameCn: `稀疏列教师${marker}`,
+              nameEn: `Sparse columns ${marker}`,
+              departmentId: department.id,
+            },
+          });
+          const education = await db.educationLevel.create({
+            data: { nameCn: `层次${marker}`, nameEn: `Level ${marker}` },
+          });
+          const course = await db.course.create({
+            data: {
+              jwId: base + 1,
+              code: `SP-C-${marker}`,
+              nameCn: `稀疏课程${marker}`,
+              nameEn: `Sparse course ${marker}`,
+              educationLevelId: education.id,
+            },
+          });
+          const semester = await db.semester.create({
+            data: {
+              jwId: base + 2,
+              code: marker,
+              nameCn: "2026-2027学年第一学期",
+            },
+          });
+          await db.section.create({
+            data: {
+              jwId: base + 3,
+              code: "01",
+              courseId: course.id,
+              semesterId: semester.id,
+              teachers: { connect: { id: teacher.id } },
+              sectionTeachers: { create: { teacherId: teacher.id } },
+            },
+          });
+          return { teacher };
+        }),
+      );
+
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/teachers?search=${encodeURIComponent(teacher.nameCn)}`,
+      );
+      const table = page.locator("table:visible");
+      await expect(table).toBeVisible();
+      await expect(
+        table.getByRole("columnheader", { name: /职称|Title/i }),
+      ).toHaveCount(0);
+      await expect(
+        table.getByRole("columnheader", { name: /邮箱|Email/i }),
+      ).toHaveCount(0);
+      const countLink = table.getByTestId("teacher-section-count");
+      await expect(countLink).toHaveText("1");
+      await expect(countLink.locator("xpath=ancestor::a[1]")).toHaveAttribute(
+        "href",
+        `/catalog/teachers/${teacher.id}#sections`,
+      );
+    });
+  });
 });

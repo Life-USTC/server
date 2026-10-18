@@ -13,6 +13,7 @@ export type CourseDetailCopy = {
     capacity: string;
     classType: string;
     courseType: string;
+    emptySectionsDescription: string;
     noSections: string;
     sectionCode: string;
     sectionHistorySummary: string;

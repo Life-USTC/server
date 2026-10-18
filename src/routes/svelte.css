@@ -49,6 +49,11 @@
   --chart-3: var(--warning);
   --chart-4: var(--info);
   --chart-5: var(--destructive);
+  /* Weather charts stay off brand primary (teal) so forecasts are not CTA-colored. */
+  --weather-temp: oklch(0.75 0.14 75);
+  --weather-temp-low: oklch(0.7 0.12 230);
+  --weather-temp-high: oklch(0.78 0.14 75);
+  --weather-precip: oklch(0.65 0.12 230);
 }
 
 html {
@@ -93,6 +98,10 @@ html {
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
+  --weather-temp: oklch(0.8 0.12 75);
+  --weather-temp-low: oklch(0.72 0.1 230);
+  --weather-temp-high: oklch(0.82 0.12 75);
+  --weather-precip: oklch(0.7 0.1 230);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -132,6 +141,10 @@ html {
     --sidebar-accent-foreground: var(--foreground);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
+    --weather-temp: oklch(0.8 0.12 75);
+    --weather-temp-low: oklch(0.72 0.1 230);
+    --weather-temp-high: oklch(0.82 0.12 75);
+    --weather-precip: oklch(0.7 0.1 230);
   }
 }
 

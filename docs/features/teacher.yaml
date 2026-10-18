@@ -15,6 +15,20 @@ access:
   agent: Can directly read teacher lists and details; also indirectly consumes teacher information in
     course and section results.
 requirements:
+- id: teacher.list-hides-sparse-columns
+  category: presentation
+  rule: The teachers browse table hides title and email columns when every row on the current page lacks
+    a title or email. Section counts greater than zero link to that teacher’s teaching-history anchor.
+  acceptance:
+    given: A teachers list page whose visible rows have no titles and no emails, and at least one teacher
+      with a positive section count.
+    when: An anonymous browser opens the desktop teachers table.
+    then:
+    - Title and email column headers are absent.
+    - The positive section count is a link to the teacher detail sections anchor.
+    test:
+      file: tests/e2e/src/app/teachers/test.ts
+      name: teacher.list-hides-sparse-columns
 - id: teacher.identified-by-name
   category: presentation
   rule: Teacher names are the primary display labels. Teachers with equal names remain distinct records

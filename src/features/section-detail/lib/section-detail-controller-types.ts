@@ -133,6 +133,7 @@ export type SectionDetailCopy = {
     editorPlaceholder: string;
     editorUnknown: string;
     empty: string;
+    emptyTitle: string;
     emptyValue: string;
     historyEmpty: string;
     historyTitle: string;

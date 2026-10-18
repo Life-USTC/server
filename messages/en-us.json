@@ -118,8 +118,10 @@
     "searchLabel": "Room code",
     "placeholder": "For example: 3A204",
     "submit": "Look up",
-    "empty": "Enter a room code to view its map.",
+    "empty": "Enter a room code to view its map, or try a sample below.",
     "emptyTitle": "No room selected yet",
+    "sampleGuidance": "Try these rooms:",
+    "sampleRooms": ["3A204", "3A205", "2101"],
     "triggerLabel": "View the location map for {code}",
     "dialogTitle": "Location map for {code}",
     "dialogDescription": "Scroll around the floor map and use the controls or Ctrl/⌘ + scroll to zoom.",
@@ -1030,9 +1032,14 @@
   "weather": {
     "title": "Campus Weather",
     "description": "Live conditions, hourly precipitation forecast, and alerts for the main campuses and the Gaoxin campus.",
+    "campusTabsLabel": "Campus",
     "locationNames": {
       "ustc-main": "Main campus",
       "ustc-gaoxin": "Gaoxin campus"
+    },
+    "locationTabNames": {
+      "ustc-main": "Main",
+      "ustc-gaoxin": "Gaoxin"
     },
     "currentConditions": "Current conditions",
     "feelsLike": "Feels like {value}°C",
@@ -1593,6 +1600,7 @@
     "basicInfo": "Basic Information",
     "basicInfoDescription": "Imported course metadata.",
     "noSections": "No sections available for this course",
+    "emptySectionsDescription": "Historical sections will appear here once the course is offered.",
     "notAvailable": "N/A",
     "semester": "Semester",
     "sectionCode": "Section Code",
@@ -2140,7 +2148,8 @@
   },
   "descriptions": {
     "title": "Description",
-    "empty": "No description yet. Add one to help others.",
+    "emptyTitle": "No description yet",
+    "empty": "Add an introduction to help others.",
     "edit": "Edit",
     "editAction": "Edit description",
     "editorPlaceholder": "Write a helpful description...",
@@ -2357,6 +2366,7 @@
     "loading": "Loading comments...",
     "retry": "Retry",
     "emptyTitle": "No comments yet",
+    "emptyDescription": "Sign in to share your experience and tips.",
     "anonymousLabel": "Anonymous",
     "anonymousBadge": "Anonymous",
     "ustcVerified": "USTC verified",

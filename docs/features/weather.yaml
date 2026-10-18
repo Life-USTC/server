@@ -33,7 +33,7 @@ requirements:
   expectation:
     kind: localized_regions
     route: /catalog/weather
-    selector: '#main-content h2'
+    selector: "#main-content [data-testid='weather-campus-grid'] h2"
     labels:
       zh-cn:
       - 本部
@@ -47,16 +47,16 @@ requirements:
     viewports:
     - width: 1280
       height: 900
-    - width: 390
-      height: 900
     regions: 2
   rationale: Accepted API location keys and provider mapping are independently owned by weather.location-key-boundary
-    and weather.location-provider-mapping.
+    and weather.location-provider-mapping. Mobile widths use segmented campus tabs (本部|高新) instead of stacking
+    both panels; chart strokes use --weather-temp/--weather-precip tokens that stay independent of brand --primary.
   acceptance:
     given: The production weather page receives valid forecast fixtures built for its configured locations.
     when: The browser renders Chinese and English at desktop and mobile widths.
     then:
-    - Exactly the main-campus and Gaoxin panels appear in order, each with its own forecast chart and localized heading.
+    - Desktop shows both campus panels in order with localized headings and charts.
+    - Mobile shows a dual tab control switching between the same campuses without stacking both forecasts.
     test:
       file: tests/e2e/src/app/weather/test.ts
       name: weather.two-locations-only

@@ -67,8 +67,8 @@ function inspectKeyboard(event: KeyboardEvent) {
 <div class="grid min-w-0 gap-2" data-testid="weather-hourly-chart">
   <span class="sr-only" id={hintId}>{weatherCopy.hourlyChartHint}</span>
   <div class="text-muted-foreground flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs" aria-hidden="true">
-    <span class="flex items-center gap-1.5"><span class="h-0.5 w-3 bg-amber-500"></span>{weatherCopy.temperatureLegend}</span>
-    <span class="flex items-center gap-1.5"><span class="h-2 w-2 bg-sky-500/70"></span>{weatherCopy.precipitationLegend}</span>
+    <span class="flex items-center gap-1.5"><span class="h-0.5 w-3 bg-[var(--weather-temp)]"></span>{weatherCopy.temperatureLegend}</span>
+    <span class="flex items-center gap-1.5"><span class="h-2 w-2 bg-[var(--weather-precip)]/70"></span>{weatherCopy.precipitationLegend}</span>
   </div>
   <div
     class="relative min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -90,20 +90,20 @@ function inspectKeyboard(event: KeyboardEvent) {
   >
     <svg viewBox="0 0 {width} {geometry.height}" class="block w-full select-none" aria-hidden="true">
       <line x1="0" x2={width} y1={geometry.tempBaselineY} y2={geometry.tempBaselineY} class="stroke-border" stroke-dasharray="3 4" />
-      {#if geometry.areaPath}<path d={geometry.areaPath} class="fill-amber-500/10" />{/if}
+      {#if geometry.areaPath}<path d={geometry.areaPath} class="fill-[var(--weather-temp)]/10" />{/if}
       {#each geometry.bars as bar, i (hours[i].at)}
-        <rect x={bar.x} y={bar.y} width={bar.width} height={bar.height} rx="2" class={bar.probability > 0 ? "fill-sky-500/60" : "fill-transparent"} />
+        <rect x={bar.x} y={bar.y} width={bar.width} height={bar.height} rx="2" class={bar.probability > 0 ? "fill-[var(--weather-precip)]/60" : "fill-transparent"} />
       {/each}
-      {#if geometry.tempPath}<path d={geometry.tempPath} fill="none" class="stroke-amber-500" stroke-width="2" vector-effect="non-scaling-stroke" />{/if}
+      {#if geometry.tempPath}<path d={geometry.tempPath} fill="none" class="stroke-[var(--weather-temp)]" stroke-width="2" vector-effect="non-scaling-stroke" />{/if}
       {#if geometry.points.length === 1}
-        <circle cx={geometry.points[0].x} cy={geometry.points[0].y} r="3" class="fill-amber-500" />
+        <circle cx={geometry.points[0].x} cy={geometry.points[0].y} r="3" class="fill-[var(--weather-temp)]" />
       {/if}
       {#each geometry.xLabels as label, i (label.label + label.x)}
         <text x={label.x} y={geometry.height - 6} text-anchor={geometry.xLabels.length === 1 ? "middle" : i === 0 ? "start" : i === geometry.xLabels.length - 1 ? "end" : "middle"} class="fill-muted-foreground text-[11px]">{label.label}</text>
       {/each}
       {#if activePoint}
         <line x1={activePoint.x} x2={activePoint.x} y1="4" y2={geometry.tempBaselineY} class="stroke-foreground/30" />
-        <circle cx={activePoint.x} cy={activePoint.y} r="3" class="fill-amber-500" />
+        <circle cx={activePoint.x} cy={activePoint.y} r="3" class="fill-[var(--weather-temp)]" />
       {/if}
     </svg>
     {#if activeHour && activePoint}
@@ -119,7 +119,7 @@ function inspectKeyboard(event: KeyboardEvent) {
         {/if}
         <p class="font-medium">{Math.round(activeHour.temperature)}°C</p>
         {#if activeHour.precipitationProbability !== undefined}
-          <p class="text-sky-700 dark:text-sky-400">{weatherCopy.precipitationProbability.replace("{value}", String(activeHour.precipitationProbability))}</p>
+          <p class="text-[color:var(--weather-precip)]">{weatherCopy.precipitationProbability.replace("{value}", String(activeHour.precipitationProbability))}</p>
         {/if}
         {#if activeHour.precipitationAmount !== undefined && activeHour.precipitationAmount > 0}<p>{activeHour.precipitationAmount} mm</p>{/if}
       </div>

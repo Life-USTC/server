@@ -119,7 +119,10 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
   {/if}
 
   {#if comments.length === 0 && targetLoadStates.some((state) => state.loaded)}
-    <CompactEmpty description={commentCopy.emptyTitle} />
+    <CompactEmpty
+      title={commentCopy.emptyTitle}
+      description={commentCopy.emptyDescription}
+    />
   {:else}
     <CommentsThreadList
       bind:actionMenuId

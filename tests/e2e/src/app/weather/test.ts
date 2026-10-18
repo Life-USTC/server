@@ -45,21 +45,53 @@ test.describe("/catalog/weather", () => {
         for (const width of [1280, 390]) {
           await page.setViewportSize({ width, height: 900 });
           await showWeatherFixture(page);
-          const selector = "#main-content h2";
-          const headings = page.locator(selector);
           expect(new URL(page.url()).pathname).toBe("/catalog/weather");
-          await expect(headings).toHaveText(
-            locale === "zh-cn"
-              ? ["本部", "高新校区"]
-              : ["Main campus", "Gaoxin campus"],
-          );
-          expect(
-            await headings.evaluateAll((nodes) =>
-              nodes.map((node) => node.getAttribute("data-weather-location")),
-            ),
-          ).toEqual(["ustc-main", "ustc-gaoxin"]);
-          await expect(page.getByTestId("weather-location")).toHaveCount(2);
-          await expect(page.getByTestId("weather-hourly-chart")).toHaveCount(2);
+
+          if (width >= 768) {
+            const headings = page.locator(
+              "#main-content [data-testid='weather-campus-grid'] h2",
+            );
+            await expect(headings).toHaveText(
+              locale === "zh-cn"
+                ? ["本部", "高新校区"]
+                : ["Main campus", "Gaoxin campus"],
+            );
+            expect(
+              await headings.evaluateAll((nodes) =>
+                nodes.map((node) => node.getAttribute("data-weather-location")),
+              ),
+            ).toEqual(["ustc-main", "ustc-gaoxin"]);
+            await expect(
+              page
+                .getByTestId("weather-campus-grid")
+                .getByTestId("weather-location"),
+            ).toHaveCount(2);
+            await expect(
+              page
+                .getByTestId("weather-campus-grid")
+                .getByTestId("weather-hourly-chart"),
+            ).toHaveCount(2);
+          } else {
+            const tabs = page.getByTestId("weather-campus-tabs");
+            await expect(tabs.getByRole("tab")).toHaveText(
+              locale === "zh-cn" ? ["本部", "高新"] : ["Main", "Gaoxin"],
+            );
+            for (const [index, key] of (
+              ["ustc-main", "ustc-gaoxin"] as const
+            ).entries()) {
+              await tabs.getByRole("tab").nth(index).click();
+              const visibleLocation = tabs.locator(
+                '[data-testid="weather-location"]:visible',
+              );
+              await expect(visibleLocation).toHaveAttribute(
+                "data-weather-location",
+                key,
+              );
+              await expect(
+                tabs.locator('[data-testid="weather-hourly-chart"]:visible'),
+              ).toHaveCount(1);
+            }
+          }
           await expect(
             page.getByTestId("weather-hourly-scroll-region"),
           ).toHaveCount(0);
@@ -80,7 +112,9 @@ for (const width of [1280, 390]) {
         "href",
         new URL("/catalog/weather", page.url()).href,
       );
-      const chart = page.getByTestId("weather-hourly-chart").first();
+      const chart = page
+        .locator('[data-testid="weather-hourly-chart"]:visible')
+        .first();
       const slider = chart.getByRole("slider");
       const tooltip = chart.getByRole("tooltip");
       await expect(slider).toHaveAttribute("aria-valuemax", "23");
@@ -138,8 +172,8 @@ test("weather.missing-current-display", { tag: "@Weather/Web" }, async ({
   await preferenceFlow.run(async () => {
     await showWeatherFixture(page, null);
 
-    await expect(page.getByTestId("weather-temperature").first()).toHaveText(
-      "—",
-    );
+    await expect(
+      page.locator('[data-testid="weather-temperature"]:visible').first(),
+    ).toHaveText("—");
   });
 });

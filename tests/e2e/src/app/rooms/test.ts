@@ -230,4 +230,24 @@ test.describe("/catalog/rooms 教室地图", () => {
       expect(requests).toBe(2);
     });
   });
+
+  test("room-map.empty-samples", { tag: "@RoomMap/Web" }, async ({
+    page,
+    preferenceFlow,
+  }) => {
+    await preferenceFlow.run(async () => {
+      await mockRoomMap(page);
+      await gotoAndWaitForReady(page, "/catalog/rooms");
+      const samples = page.getByTestId("room-map-sample-chips");
+      await expect(samples).toBeVisible();
+      await expect(page.getByTestId("room-map-sample-chip").first()).toHaveText(
+        ROOM_CODE,
+      );
+      await page.getByTestId("room-map-sample-chip").first().click();
+      await expect(
+        page.getByTestId("room-map-preview").getByRole("img"),
+      ).toBeVisible();
+      await expect(page.getByTestId("room-map-sample-chips")).toHaveCount(0);
+    });
+  });
 });

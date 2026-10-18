@@ -118,8 +118,10 @@
     "searchLabel": "教室编号",
     "placeholder": "例如：3A204",
     "submit": "查询",
-    "empty": "输入教室编号后查看地图。",
+    "empty": "输入教室编号后查看地图，或试试下面的示例。",
     "emptyTitle": "尚未查询教室",
+    "sampleGuidance": "试试这些教室：",
+    "sampleRooms": ["3A204", "3A205", "2101"],
     "triggerLabel": "查看 {code} 的位置地图",
     "dialogTitle": "{code} 的位置地图",
     "dialogDescription": "滚动查看周边教室，使用按钮或 Ctrl/⌘ + 滚轮缩放。",
@@ -1240,6 +1242,7 @@
     "basicInfo": "基本信息",
     "basicInfoDescription": "已导入的课程元数据。",
     "noSections": "此课程暂无可用班级",
+    "emptySectionsDescription": "开课后将在此显示历史教学班。",
     "notAvailable": "暂无",
     "semester": "学期",
     "sectionCode": "班级代码",
@@ -1787,7 +1790,8 @@
   },
   "descriptions": {
     "title": "简介",
-    "empty": "暂无简介，欢迎补充。",
+    "emptyTitle": "暂无简介",
+    "empty": "欢迎补充课程或教师介绍。",
     "edit": "编辑",
     "editAction": "编辑简介",
     "editorPlaceholder": "写下简明的简介...",
@@ -2004,6 +2008,7 @@
     "loading": "正在加载评论...",
     "retry": "重试",
     "emptyTitle": "暂无评论",
+    "emptyDescription": "登录后即可分享体验与建议。",
     "anonymousLabel": "匿名",
     "anonymousBadge": "匿名",
     "ustcVerified": "USTC 认证",
@@ -2687,9 +2692,14 @@
   "weather": {
     "title": "校园天气",
     "description": "本部与高新校区的实时天气、逐小时降水预报与天气预警。",
+    "campusTabsLabel": "校区",
     "locationNames": {
       "ustc-main": "本部",
       "ustc-gaoxin": "高新校区"
+    },
+    "locationTabNames": {
+      "ustc-main": "本部",
+      "ustc-gaoxin": "高新"
     },
     "currentConditions": "当前天气",
     "feelsLike": "体感 {value}°C",
