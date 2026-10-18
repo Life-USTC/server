@@ -1,3 +1,4 @@
+import { INTERNAL_ROUTE_PREFIX } from "@/lib/navigation/internal-routes";
 import { buildSearchParams } from "@/lib/navigation/search-params";
 
 type SignInSearchParams = {
@@ -113,7 +114,7 @@ function isNonPageRequestPath(pathname: string): boolean {
     pathname.startsWith("/media/") ||
     pathname.startsWith("/.well-known/") ||
     pathname.startsWith("/_app/") ||
-    pathname.startsWith("/_internal/") ||
+    pathname.startsWith(`${INTERNAL_ROUTE_PREFIX}/`) ||
     pathname === "/llms.txt" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml"

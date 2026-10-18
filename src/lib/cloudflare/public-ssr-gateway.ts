@@ -13,6 +13,7 @@ import {
   resolveSectionDetailTabRedirect,
 } from "@/features/section-detail/lib/section-detail-tab";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
+import { INTERNAL_ROUTE_PREFIX } from "@/lib/navigation/internal-routes";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 export {
@@ -135,7 +136,7 @@ export function publicSsrCacheHeaders(
 }
 
 const DYNAMIC_OR_PRIVATE_ROOTS = [
-  "/_internal",
+  INTERNAL_ROUTE_PREFIX,
   "/account",
   "/admin",
   "/api",

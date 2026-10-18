@@ -1,3 +1,4 @@
+import { sectionViewerPath } from "@/lib/navigation/internal-routes";
 import type { SectionDetailPageData } from "./section-detail-controller-types";
 
 export type SectionPersonalData = Pick<
@@ -13,14 +14,11 @@ export async function fetchSectionPersonalData(input: {
   const params = new URLSearchParams();
   if (input.focusedHomeworkId)
     params.set("homeworkId", input.focusedHomeworkId);
-  const response = await fetch(
-    `/_internal/catalog/sections/${input.jwId}/viewer?${params}`,
-    {
-      cache: "no-store",
-      credentials: "same-origin",
-      signal: input.signal,
-    },
-  );
+  const response = await fetch(`${sectionViewerPath(input.jwId)}?${params}`, {
+    cache: "no-store",
+    credentials: "same-origin",
+    signal: input.signal,
+  });
   if (!response.ok) throw new Error("Failed to load section viewer");
   return (await response.json()) as SectionPersonalData;
 }

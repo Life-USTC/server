@@ -1,3 +1,4 @@
+import { SHELL_BOOTSTRAP_PATH } from "@/lib/navigation/internal-routes";
 import type { LayoutUserSummary } from "@/lib/shell/layout-server-data";
 
 export type WorkspaceNavigationSummary = {
@@ -161,7 +162,7 @@ export async function getClientShellBootstrap(
   fetcher: typeof fetch = globalThis.fetch,
   signal?: AbortSignal,
 ): Promise<ShellBootstrapPayload> {
-  const response = await fetcher("/_internal/shell-bootstrap", {
+  const response = await fetcher(SHELL_BOOTSTRAP_PATH, {
     cache: "no-store",
     credentials: "same-origin",
     headers: { accept: "application/json" },
