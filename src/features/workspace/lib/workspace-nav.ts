@@ -1,19 +1,35 @@
 import { semanticSectionCompatibilityHref } from "@/lib/navigation/semantic-section-redirect";
 
+/**
+ * Tabs served by the dynamic `/workspace/[tab]` route.
+ * Subscriptions lives at `/workspace/subscriptions` instead; see `workspaceNavTabIds`.
+ */
 export const workspaceTabIds = [
   "overview",
   "calendar",
   "homeworks",
   "todos",
   "exams",
-  "subscriptions",
 ] as const;
 
 export type WorkspaceTabId = (typeof workspaceTabIds)[number];
 
-const workspaceTabIdSet = new Set<string>(workspaceTabIds);
-const legacyHomeTabIdSet = new Set<string>([
+/** Static-route workspace section excluded from `[tab]`. */
+export const WORKSPACE_SUBSCRIPTIONS_SECTION = "subscriptions" as const;
+
+export const workspaceNavTabIds = [
   ...workspaceTabIds,
+  WORKSPACE_SUBSCRIPTIONS_SECTION,
+] as const;
+
+export type WorkspaceNavTabId = (typeof workspaceNavTabIds)[number];
+
+export const WORKSPACE_SUBSCRIPTIONS_PATH = "/workspace/subscriptions";
+
+const workspaceTabIdSet = new Set<string>(workspaceTabIds);
+const workspaceNavTabIdSet = new Set<string>(workspaceNavTabIds);
+const legacyHomeTabIdSet = new Set<string>([
+  ...workspaceNavTabIds,
   "bus",
   "links",
 ]);
@@ -32,6 +48,32 @@ const homeWorkspaceQueryKeys = new Set([
   "todoView",
 ]);
 
+/**
+ * Permanent compatibility for bookmarked `?tab=` query URLs from the pre-semantic
+ * workspace shell. Supported entry points:
+ * - `/` anonymous: `homeTabCompatibilityRedirectHref` (catalog + workspace tabs)
+ * - `/` signed-in: `workspaceRedirectHrefFromHome` after home compatibility passes
+ * - `/workspace`: `workspaceTabCompatibilityRedirectHref` (308 to `/workspace/{section}`)
+ *
+ * Unrecognized `tab` values are ignored on `/` (public home stays put) or fall back
+ * to overview on `/workspace`. There is no sunset date; redirects stay until traffic
+ * metrics justify removal.
+ */
+function resolveLegacyWorkspaceNavTab(
+  value: string | null,
+): WorkspaceNavTabId | null {
+  if (!value || !workspaceNavTabIdSet.has(value)) {
+    return null;
+  }
+  return value as WorkspaceNavTabId;
+}
+
+function workspacePathForNavTab(tab: WorkspaceNavTabId) {
+  return tab === WORKSPACE_SUBSCRIPTIONS_SECTION
+    ? WORKSPACE_SUBSCRIPTIONS_PATH
+    : `/workspace/${tab}`;
+}
+
 function appendSearch(pathname: string, query: URLSearchParams) {
   const search = query.toString();
   return `${pathname}${search ? `?${search}` : ""}`;
@@ -49,8 +91,14 @@ export function isWorkspaceTab(
   return Boolean(value && workspaceTabIdSet.has(value));
 }
 
+export function isWorkspaceNavTab(
+  value: string | null | undefined,
+): value is WorkspaceNavTabId {
+  return Boolean(value && workspaceNavTabIdSet.has(value));
+}
+
 export function workspaceTabHref(
-  id: WorkspaceTabId,
+  id: WorkspaceNavTabId,
   params: Record<string, string | number | null | undefined> = {},
 ) {
   const query = new URLSearchParams();
@@ -59,8 +107,7 @@ export function workspaceTabHref(
       query.set(key, String(value));
     }
   }
-  const search = query.toString();
-  return `/workspace/${id}${search ? `?${search}` : ""}`;
+  return appendSearch(workspacePathForNavTab(id), query);
 }
 
 export function workspaceRedirectHrefFromHome(url: URL) {
@@ -73,10 +120,12 @@ export function workspaceRedirectHrefFromHome(url: URL) {
     }
   }
 
-  return appendSearch(
-    isWorkspaceTab(tab) ? `/workspace/${tab}` : "/workspace/overview",
-    query,
-  );
+  const navTab = resolveLegacyWorkspaceNavTab(tab);
+  const pathname = navTab
+    ? workspacePathForNavTab(navTab)
+    : "/workspace/overview";
+
+  return appendSearch(pathname, query);
 }
 
 export function homeTabCompatibilityRedirectHref(url: URL, _signedIn: boolean) {
@@ -84,7 +133,9 @@ export function homeTabCompatibilityRedirectHref(url: URL, _signedIn: boolean) {
   if (!tab || !legacyHomeTabIdSet.has(tab)) return null;
 
   const pathname =
-    tab === "bus" || tab === "links" ? `/catalog/${tab}` : `/workspace/${tab}`;
+    tab === "bus" || tab === "links"
+      ? `/catalog/${tab}`
+      : workspacePathForNavTab(tab as WorkspaceNavTabId);
   return appendSearch(pathname, queryWithoutTab(url));
 }
 
@@ -96,7 +147,7 @@ export function workspaceTabCompatibilityRedirectHref(
     basePath: "/workspace",
     defaultSection: "overview",
     method,
-    resolveSection: (tab) => (isWorkspaceTab(tab) ? tab : null),
+    resolveSection: resolveLegacyWorkspaceNavTab,
     url,
   });
 }
