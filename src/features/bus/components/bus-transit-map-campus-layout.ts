@@ -111,8 +111,8 @@ export function computeMapViewBox(
       minX = Math.min(minX, anchorX - width / 2);
       maxX = Math.max(maxX, anchorX + width / 2);
     }
-    minY = Math.min(minY, position.y + label.dy - 32);
-    maxY = Math.max(maxY, position.y + label.dy + 20);
+    minY = Math.min(minY, position.y + label.dy - 28);
+    maxY = Math.max(maxY, position.y + label.dy + 16);
   }
 
   let width = Math.max(maxX - minX, 1);
