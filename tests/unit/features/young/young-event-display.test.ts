@@ -100,14 +100,14 @@ describe("young event display", () => {
       youngDetailFacts({
         time: "2026-09-27 15:00–16:00",
         place: "东区",
-        hours: 2.5,
+        hours: "2.5 学时",
         capacity: "3 / 20",
         deadline: "2026-09-20 12:00",
       }),
     ).toEqual([
       "2026-09-27 15:00–16:00",
       "东区",
-      "2.5",
+      "2.5 学时",
       "3 / 20",
       "2026-09-20 12:00",
     ]);

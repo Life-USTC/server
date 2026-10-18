@@ -128,14 +128,14 @@ export function youngListTimeLabel(
 export function youngDetailFacts(options: {
   time: string | null;
   place: string | null;
-  hours: number | null;
+  hours: string | null;
   capacity: string | null;
   deadline: string | null;
 }): string[] {
   return [
     options.time,
     options.place,
-    options.hours == null ? null : String(options.hours),
+    options.hours,
     options.capacity,
     options.deadline,
   ].filter((value): value is string => Boolean(value));
