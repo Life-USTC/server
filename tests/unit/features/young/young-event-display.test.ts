@@ -5,7 +5,11 @@ import {
   youngClockTime,
   youngDateRange,
   youngDateTime,
+  youngDetailFacts,
+  youngEventStatusLabel,
   youngListDayLabel,
+  youngListMetaBadges,
+  youngListTimeLabel,
   youngMonthDay,
 } from "@/features/young/lib/young-event-display";
 
@@ -61,6 +65,51 @@ describe("young event display", () => {
     ]);
     expect(groups.find((group) => group.key === "")?.events).toEqual([
       { startAt: null, name: "unknown" },
+    ]);
+    expect(
+      youngListMetaBadges(["德", "校级", "主办方", "体", "德"], 3),
+    ).toEqual({
+      visible: ["德", "校级", "主办方"],
+      overflow: 1,
+    });
+    expect(
+      youngEventStatusLabel(
+        { status: null, isActive: true },
+        { statusOpen: "报名中", statusClosed: "已结束" },
+      ),
+    ).toBe("报名中");
+    expect(
+      youngEventStatusLabel(
+        { status: " 进行中 ", isActive: false },
+        { statusOpen: "报名中", statusClosed: "已结束" },
+      ),
+    ).toBe("进行中");
+    expect(
+      youngListTimeLabel(null, true, {
+        unknownTime: "时间待公布",
+        unknownValue: "未提供",
+      }),
+    ).toBe("时间待公布");
+    expect(
+      youngListTimeLabel(null, false, {
+        unknownTime: "时间待公布",
+        unknownValue: "未提供",
+      }),
+    ).toBe("未提供");
+    expect(
+      youngDetailFacts({
+        time: "2026-09-27 15:00–16:00",
+        place: "东区",
+        hours: 2.5,
+        capacity: "3 / 20",
+        deadline: "2026-09-20 12:00",
+      }),
+    ).toEqual([
+      "2026-09-27 15:00–16:00",
+      "东区",
+      "2.5",
+      "3 / 20",
+      "2026-09-20 12:00",
     ]);
   });
 

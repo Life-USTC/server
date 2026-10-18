@@ -60,15 +60,17 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
       await expect(
         banner.getByText(DEV_SEED.youngEvent.activityLevel),
       ).toBeVisible();
-      await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
+      await expect(page.getByTestId("young-event-overview")).toBeVisible();
       await expect(
         page.getByRole("button", {
           name: /更多活动资料|More activity details/,
         }),
       ).toHaveCount(0);
       await expect(
-        page.getByRole("link", { name: /前往官方平台|official site/i }),
-      ).toHaveCount(0);
+        banner.getByRole("link", {
+          name: /前往官方平台|official site|View official/i,
+        }),
+      ).toBeVisible();
 
       const youngNav = page.getByTestId("young-sidebar");
       await expect(youngNav).toBeVisible();
@@ -173,7 +175,7 @@ for (const width of [1280, 390]) {
                 exact: true,
               }),
           ).toBeVisible();
-          await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
+          await expect(page.getByTestId("young-event-overview")).toBeVisible();
           await expect(
             page.getByText("opaque-department-id", { exact: true }),
           ).toHaveCount(0);

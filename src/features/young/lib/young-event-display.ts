@@ -81,3 +81,62 @@ export function youngCapacity(
   if (capacity != null) return `${applied ?? unknown} / ${capacity}`;
   return applied == null ? unknown : String(applied);
 }
+
+/** Prefer upstream status text; otherwise use short open/closed badges. */
+export function youngEventStatusLabel(
+  event: { status: string | null; isActive: boolean },
+  copy: { statusOpen: string; statusClosed: string },
+): string {
+  const status = event.status?.trim();
+  if (status) return status;
+  return event.isActive ? copy.statusOpen : copy.statusClosed;
+}
+
+/** Horizontal list metadata: keep at most `limit` chips and report overflow. */
+export function youngListMetaBadges(
+  values: readonly (string | null | undefined)[],
+  limit = 3,
+): { visible: string[]; overflow: number } {
+  const unique = [
+    ...new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+  if (unique.length <= limit) return { visible: unique, overflow: 0 };
+  return {
+    visible: unique.slice(0, limit),
+    overflow: unique.length - limit,
+  };
+}
+
+/** Ended rows must not claim a time is “to be announced”. */
+export function youngListTimeLabel(
+  startAt: string | null | undefined,
+  isActive: boolean,
+  copy: { unknownTime: string; unknownValue: string },
+): string {
+  const formatted = youngDateTime(startAt);
+  if (formatted) {
+    const [date, time] = formatted.split(" ");
+    return time ? `${date} ${time.slice(0, 5)}` : formatted;
+  }
+  return isActive ? copy.unknownTime : copy.unknownValue;
+}
+
+export function youngDetailFacts(options: {
+  time: string | null;
+  place: string | null;
+  hours: number | null;
+  capacity: string | null;
+  deadline: string | null;
+}): string[] {
+  return [
+    options.time,
+    options.place,
+    options.hours == null ? null : String(options.hours),
+    options.capacity,
+    options.deadline,
+  ].filter((value): value is string => Boolean(value));
+}

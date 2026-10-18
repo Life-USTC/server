@@ -1,4 +1,5 @@
 <script lang="ts">
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
@@ -162,8 +163,6 @@ function eventMeta(event: YoungCalendarEvent) {
             {#if visible.length > limit}
               <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
             {/if}
-          {:else}
-            <p class="py-1 text-sm text-muted-foreground">{labels.calendarEmpty}</p>
           {/if}
         </section>
       {/each}
@@ -183,6 +182,13 @@ function eventMeta(event: YoungCalendarEvent) {
       {/each}
     </nav>
   </div>
+
+  {#if events.length === 0}
+    <CompactEmpty
+      class="justify-self-stretch"
+      description={labels.calendarEmpty}
+    />
+  {/if}
 
   <div class="md:hidden" data-testid="young-calendar-agenda">
     <div aria-label={labels.agenda} class="grid gap-5" role="region">
@@ -207,23 +213,19 @@ function eventMeta(event: YoungCalendarEvent) {
               dateStyle: "full",
             }).format(day.date)}
           </div>
-          {#if day.events.length > 0}
-            {#each day.events as event (event.youngId)}
-              <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
-                <div class="font-medium">{event.name}</div>
-                <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
-                <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
-              </a>
-            {/each}
-          {:else}
-            <p class="py-1 text-sm text-muted-foreground">{labels.calendarEmpty}</p>
-          {/if}
+          {#each day.events as event (event.youngId)}
+            <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
+              <div class="font-medium">{event.name}</div>
+              <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
+              <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
+            </a>
+          {/each}
         </div>
       {/if}
     {:else}
       <CalendarGrid
         density="lines"
-        emptyLabel={labels.calendarEmpty}
+        emptyLabel=""
         eventLimit={view === "week" ? 6 : 3}
         moreLabel={(count) => labels.moreEvents.replace("{count}", String(count))}
         minWidth="760px"
@@ -238,10 +240,4 @@ function eventMeta(event: YoungCalendarEvent) {
       />
     {/if}
   </div>
-
-  {#if unknownDateCount > 0}
-    <p class="text-right text-xs text-muted-foreground" data-testid="young-calendar-unknown-dates">
-      <a class="underline underline-offset-4" href={unknownDatesHref}>{unknownDateCount} {labels.unknownDates}</a>
-    </p>
-  {/if}
 </section>

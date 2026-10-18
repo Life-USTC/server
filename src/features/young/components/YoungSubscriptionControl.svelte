@@ -181,7 +181,12 @@ async function save(next: boolean) {
     <span class="sr-only" role="alert">{copy.failed}</span>
     <Button variant="outline" onclick={retry}>{copy.retry}</Button>
   {:else}
-    <Button class="shrink-0" disabled={!loaded || busy} onclick={() => save(!subscribed)}>
+    <Button
+      class="shrink-0"
+      disabled={!loaded || busy}
+      variant="outline"
+      onclick={() => save(!subscribed)}
+    >
       {subscribed && loaded ? copy.unsubscribe : copy.subscribe}
     </Button>
   {/if}

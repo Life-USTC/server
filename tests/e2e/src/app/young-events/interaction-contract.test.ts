@@ -216,19 +216,21 @@ test("young-event.web-detail-priority", { tag: "@Young/Web" }, async ({
         banner.getByRole("heading", { level: 1, name: fixture.young.name }),
       ).toBeVisible();
       await expect(
+        banner.getByRole("link", {
+          name: /View and sign up on the official site|View official activity/,
+        }),
+      ).toBeVisible();
+      await expect(
         banner.getByRole("button", { name: "Subscribe to event", exact: true }),
       ).toBeVisible();
       await expect(banner.getByTestId("young-event-badges")).toBeVisible();
+      await expect(page.getByTestId("young-event-overview")).toBeVisible();
       await expect(banner.locator("img")).toHaveAttribute(
         "src",
         "/api/catalog/young-events/images/group1/contract/poster.jpg",
       );
-      await expect(page.getByTestId("young-event-overview")).toHaveCount(0);
       await expect(
         page.getByRole("link", { name: /Back to all events|返回活动列表/ }),
-      ).toHaveCount(0);
-      await expect(
-        page.locator('#main-content a[href="https://young.ustc.edu.cn"]'),
       ).toHaveCount(0);
       await expect(
         page.getByRole("button", {
@@ -263,6 +265,53 @@ test("young-event.web-detail-priority", { tag: "@Young/Web" }, async ({
     }
   });
 });
+
+publicTest(
+  "young-event.web-calendar-empty",
+  { tag: "@Young/Web" },
+  async ({ page, isolatedWorker, publicFlow }) => {
+    await publicFlow.run(async () => {
+      await identify(page, isolatedWorker.origin);
+      await page.setViewportSize({ width: 1280, height: 1000 });
+      await page.goto(
+        "/catalog/young-events/calendar?view=month&date=2035-09-25",
+      );
+      const calendar = page.getByTestId("young-calendar");
+      await expect(calendar).toBeVisible();
+      await expect(page.getByText(/No dated events in this range/)).toHaveCount(
+        1,
+      );
+      const grid = page.getByTestId("young-calendar-grid");
+      await expect(grid).toBeVisible();
+      await expect(grid.getByText(/No dated events in this range/)).toHaveCount(
+        0,
+      );
+      await expect(
+        page.getByTestId("young-calendar-unknown-dates"),
+      ).toHaveCount(0);
+
+      const youngId = `unknown-date-${crypto.randomUUID()}`;
+      await isolatedWorker.database.owner.youngEvent.create({
+        data: {
+          youngId,
+          name: youngId,
+          isActive: true,
+          rawJson: {},
+          startAt: null,
+          endAt: null,
+        },
+      });
+      await page.reload();
+      const unknown = page.getByTestId("young-calendar-unknown-dates");
+      await expect(unknown).toBeVisible();
+      await expect(unknown).toContainText(/Events with unknown dates/);
+      await expect(unknown.getByRole("link")).toHaveAttribute(
+        "href",
+        /dateUnknown=true/,
+      );
+    });
+  },
+);
 
 publicTest(
   "young-event.web-mobile-calendar",

@@ -19,8 +19,10 @@ import { page as appPage } from "$app/state";
 import {
   groupYoungEventsByStartDate,
   youngCapacity,
-  youngDateTime,
+  youngEventStatusLabel,
   youngListDayLabel,
+  youngListMetaBadges,
+  youngListTimeLabel,
 } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
 import YoungEventFilters from "./YoungEventFilters.svelte";
@@ -66,13 +68,45 @@ const summary = $derived(
   ),
 );
 
-function listDateTime(value: string | null | undefined) {
-  const formatted = youngDateTime(value);
-  if (!formatted) return null;
-  const [date, time] = formatted.split(" ");
-  return time ? `${date} ${time.slice(0, 5)}` : formatted;
+function listTime(event: YoungEventSummary) {
+  return youngListTimeLabel(event.startAt, event.isActive, youngCopy);
+}
+
+function listStatus(event: YoungEventSummary) {
+  return youngEventStatusLabel(event, youngCopy);
+}
+
+function listMeta(event: YoungEventSummary) {
+  return youngListMetaBadges([
+    event.category,
+    event.module,
+    event.activityLevel,
+    event.organizer,
+  ]);
 }
 </script>
+
+{#snippet metaBadges(event: YoungEventSummary)}
+  {@const meta = listMeta(event)}
+  {#if meta.visible.length > 0}
+    <div class="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+      {#each meta.visible as badge (badge)}
+        <Badge variant="outline" class="font-normal">{badge}</Badge>
+      {/each}
+      {#if meta.overflow > 0}
+        <Badge variant="ghost" class="font-normal text-muted-foreground">
+          {youngCopy.moreMeta.replace("{count}", String(meta.overflow))}
+        </Badge>
+      {/if}
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet statusBadge(event: YoungEventSummary)}
+  <Badge variant={event.isActive ? "secondary" : "outline"}>
+    {listStatus(event)}
+  </Badge>
+{/snippet}
 
 {#snippet paginationFooter()}
   <div class="grid w-full gap-3">
@@ -137,19 +171,14 @@ function listDateTime(value: string | null | undefined) {
                           <a href={youngDetailHref(event.youngId)} {...props}>
                             <Item.Content>
                               <Item.Title>{event.name}</Item.Title>
-                                <p class="text-sm leading-normal text-muted-foreground">
-                                <span>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</span>
-                                  {#if event.location}<span> · {event.location}</span>{/if}
-                                  {#if event.category}<span> · {event.category}</span>{/if}
-                                  {#if event.module}<span> · {event.module}</span>{/if}
-                                  {#if event.activityLevel}<span> · {event.activityLevel}</span>{/if}
-                                  {#if event.organizer}<span> · {event.organizer}</span>{/if}
+                              <p class="text-sm leading-normal text-muted-foreground">
+                                <span>{listTime(event)}</span>
+                                {#if event.location}<span> · {event.location}</span>{/if}
                               </p>
+                              {@render metaBadges(event)}
                             </Item.Content>
                             <Item.Actions>
-                                <Badge variant={event.isActive ? "default" : "outline"}>
-                                  {event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}
-                                </Badge>
+                              {@render statusBadge(event)}
                             </Item.Actions>
                           </a>
                         {/snippet}
@@ -179,15 +208,12 @@ function listDateTime(value: string | null | undefined) {
                       <a class="font-medium underline-offset-4 hover:underline" href={youngDetailHref(event.youngId)}>
                         <span>{event.name}</span>
                       </a>
-                      {#if event.category}<span class="mt-0.5 block text-xs text-muted-foreground">{event.category}</span>{/if}
-                      {#if event.module}<span class="block text-xs text-muted-foreground">{event.module}</span>{/if}
-                      {#if event.activityLevel}<span class="block text-xs text-muted-foreground">{event.activityLevel}</span>{/if}
-                      {#if event.organizer}<span class="block text-xs text-muted-foreground">{event.organizer}</span>{/if}
+                      {@render metaBadges(event)}
                   </Table.Cell>
-                  <Table.Cell>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</Table.Cell>
+                  <Table.Cell>{listTime(event)}</Table.Cell>
                   <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
                     <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
-                  <Table.Cell>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Table.Cell>
+                  <Table.Cell>{@render statusBadge(event)}</Table.Cell>
                 </Table.Row>
               {/each}
             </Table.Body>

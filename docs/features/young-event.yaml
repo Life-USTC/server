@@ -67,8 +67,8 @@ requirements:
     given: An anonymous browser opens an imported activity.
     when: The actual detail page renders and the viewer returns to the public catalog.
     then:
-    - Activity facts and public navigation are available without sign-in.
-    - The detail page does not show an official registration link.
+    - Activity facts, the official signup link, and public navigation are available without sign-in.
+    - Returning through the second-classroom sidebar reaches the public activity list.
     test:
       file: tests/e2e/src/app/young-events/[youngId]/test.ts
       name: young-event.public-no-signin
@@ -246,12 +246,15 @@ requirements:
       name: young-event.structured-participation
 - id: young-event.display-known-values
   category: presentation
-  rule: The default detail page shows the poster banner, title, status badges, and a subscribe button to the right of the title. It does not show an activity summary, official signup button, expandable statistics, registration requirements, meeting information, attachment formats, or an external sponsor.
+  rule: The default detail page shows a constrained poster, title, status badges, a facts strip
+    (time · place · hours · capacity · deadline), a primary official-signup CTA, and a secondary subscribe
+    control. It does not show expandable statistics, registration requirements, meeting information,
+    attachment formats, or an external sponsor.
   acceptance:
     given: A persisted activity provides registration requirements, accepted attachments, online meeting information and an external sponsor.
     when: The actual detail page renders at desktop and mobile widths.
     then:
-    - The banner, title, and subscribe button are visible.
+    - The poster region, title, official signup link, and subscribe control are visible.
     - Those participation facts are not repeated on the default page.
     test:
       file: tests/e2e/src/app/young-events/detail-contract.test.ts
@@ -286,27 +289,50 @@ requirements:
       name: young-event.web-organizer-order
 - id: young-event.web-detail-priority
   category: presentation
-  rule: The poster is a full-width banner at the top of the page. A fade from white, or black in dark mode, up to transparent covers the image. The title, subscribe button, and status badges sit on that lower edge. The page has no back button, activity summary, official signup button, or expandable statistics.
+  rule: The poster is height-constrained beside the title on wide viewports (stacked and max-height capped on
+    narrow ones). Below the title, a facts strip lists time · place · hours · capacity · deadline when known.
+    The primary CTA is the official signup link; subscribe is secondary outline. The page has no back button
+    or expandable statistics.
   acceptance:
     given: An isolated activity supplies a poster, time, venue, credited hours, and a signup deadline.
     when: The actual detail page renders at desktop and mobile widths.
     then:
-    - The banner contains the title, subscribe button, and status badges.
-    - There is no activity summary, back button, official signup button, or expandable statistics toggle.
+    - The poster region shows the title, facts strip, official signup link, and secondary subscribe control.
+    - There is no back button or expandable statistics toggle.
     test:
       file: tests/e2e/src/app/young-events/interaction-contract.test.ts
       name: young-event.web-detail-priority
 - id: young-event.web-list-scan
   category: presentation
-  rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of place, module, level, hours and signup deadline, and the signup status. The platform name in the description links to the official site.
+  rule: The activity list is a date-grouped agenda. Each row shows the start time, name, place, up to three
+    horizontal metadata badges with an overflow count, and a status badge only (never the signup-list /
+    history filter labels). Ended rows without a start use the unknown-value label rather than “time to be
+    announced”. The platform name in the description links to the official site.
   acceptance:
-    given: Activities start on different Shanghai dates, including one without a start time.
-    when: The list groups those activities.
+    given: Activities start on different Shanghai dates, including one without a start time and one ended
+      without a start.
+    when: The list groups those activities and builds metadata badges.
     then:
     - Events with the same start date share one group, and an unknown start is its own group.
+    - Metadata badges stay within three chips plus an overflow count; status labels stay short open/closed
+      badges when upstream status is absent.
     test:
       file: tests/unit/features/young/young-event-display.test.ts
       name: young-event.web-list-scan
+- id: young-event.web-calendar-empty
+  category: presentation
+  rule: Month and week grid cells stay blank when they have no events. The calendar shows one page-level empty
+    message when the selected range has no dated events. Unknown-date counts appear in the page results
+    summary with a link to the filtered list.
+  acceptance:
+    given: A month range with empty days and a separate unknown-date count greater than zero.
+    when: The calendar page renders with and without dated events in range.
+    then:
+    - Empty grid cells do not repeat the empty-range sentence.
+    - A page-level empty appears only when the range has no dated events; unknown dates remain in the summary.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.web-calendar-empty
 - id: young-event.calendar-compact-facts
   category: consistency
   rule: Public calendar reads return the complete selected range using only event identity, name, activity

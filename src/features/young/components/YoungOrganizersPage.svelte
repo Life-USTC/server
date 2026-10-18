@@ -145,7 +145,7 @@ const summary = $derived(
                     <a href={organizerHref(organizer.id)} {...props}>
                       <Item.Content>
                         <Item.Title>{organizer.name}</Item.Title>
-                        <Item.Description>
+                        <Item.Description title={youngCopy.organizerCountsHint}>
                             {youngCopy.activeEvents}: {organizer.activeCount} ·
                             {youngCopy.upcomingEvents}: {organizer.upcomingCount} ·
                             {youngCopy.historyEvents}: {organizer.historyCount}
@@ -169,9 +169,21 @@ const summary = $derived(
             <Table.Header>
               <Table.Row>
                 <Table.Head>{youngCopy.organizer}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{youngCopy.activeEvents}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{youngCopy.upcomingEvents}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{youngCopy.historyEvents}</Table.Head>
+                <Table.Head
+                  class="text-right"
+                  style="text-align: right"
+                  title={youngCopy.activeEventsTitle}
+                >{youngCopy.activeEvents}</Table.Head>
+                <Table.Head
+                  class="text-right"
+                  style="text-align: right"
+                  title={youngCopy.upcomingEventsTitle}
+                >{youngCopy.upcomingEvents}</Table.Head>
+                <Table.Head
+                  class="text-right"
+                  style="text-align: right"
+                  title={youngCopy.historyEventsTitle}
+                >{youngCopy.historyEvents}</Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>

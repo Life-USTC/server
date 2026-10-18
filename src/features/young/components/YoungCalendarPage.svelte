@@ -156,7 +156,16 @@ const calendarLabels = $derived({
   title={youngCopy.calendarTitle}
 >
     <div class="grid gap-3">
-    <ResultsSummary {summary} />
+    <ResultsSummary {summary}>
+      {#if unknownDateCount > 0}
+        <span data-testid="young-calendar-unknown-dates">
+          ·
+          <a class="underline underline-offset-4" href={unknownDatesHref()}>
+            {unknownDateCount} {youngCopy.unknownDates}
+          </a>
+        </span>
+      {/if}
+    </ResultsSummary>
     <YoungCalendar
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}
