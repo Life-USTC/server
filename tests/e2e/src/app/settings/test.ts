@@ -62,7 +62,7 @@ test.describe("/account/settings 设置中心", () => {
       ).toHaveAttribute("aria-current", "page");
       await expect(back).toHaveAttribute("href", "/");
       await expect(
-        sidebar.getByRole("link", { name: /^(今天|Today)$/i }),
+        sidebar.getByRole("link", { name: /^(总览|Overview)$/i }),
       ).toHaveCount(0);
       await expect(page.getByTestId("detail-section-nav")).toHaveCount(0);
       const sidebarBox = await sidebar.boundingBox();
@@ -72,11 +72,17 @@ test.describe("/account/settings 设置中心", () => {
       await page.waitForURL(/\/(?:workspace\/overview)?(?:\?.*)?$/);
       await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
       await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);
-      await expect(
-        page
-          .getByTestId("app-sidebar")
-          .getByRole("link", { name: /^(今天|Today)$/i }),
-      ).toBeVisible();
+      const appSidebar = page.getByTestId("app-sidebar");
+      const overview = appSidebar.getByRole("link", {
+        name: /^(总览|Overview)$/i,
+      });
+      await expect(overview).toBeVisible();
+      await expect(overview).toHaveAttribute("href", "/workspace/overview");
+      const featureHub = appSidebar.getByRole("link", {
+        name: /^(全部功能|All features)$/i,
+      });
+      await expect(featureHub).toBeVisible();
+      await expect(featureHub).toHaveAttribute("href", "/catalog/features");
 
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/account/settings/danger");

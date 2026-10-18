@@ -24,7 +24,7 @@ vi.mock("@/lib/db/prisma", () => ({
   }),
 }));
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: getCatalogDetailCacheRevisionMock,
 }));
 

@@ -1,7 +1,7 @@
 import {
   cachedCatalogRuntimeData,
   PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS,
-} from "@/lib/catalog-runtime-cache";
+} from "@/features/catalog/server/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";

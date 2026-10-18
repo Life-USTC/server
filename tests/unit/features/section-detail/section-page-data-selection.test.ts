@@ -17,7 +17,7 @@ vi.mock("@/features/section-detail/server/section-page-mutable-data", () => ({
   loadSectionPageMutableData: mutableQuery,
 }));
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: vi.fn(async () => "test-revision"),
 }));
 

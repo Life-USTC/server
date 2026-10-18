@@ -8,12 +8,6 @@ type ShellUser = {
   username?: string | null;
 } | null;
 
-type NavCopy = {
-  courses: string;
-  sections: string;
-  teachers: string;
-};
-
 type FooterCopy = {
   mobileApp: string;
   privacy: string;
@@ -40,12 +34,25 @@ export function isOnboardingPath(pathname: string) {
 }
 
 export function shouldUseFocusedShell(pathname: string) {
-  return isOnboardingPath(pathname);
+  return isOnboardingPath(pathname) || pathname === "/account/sign-in";
+}
+
+/** Matches `min-h-14` on mobile primary / admin tab bars. */
+export const MOBILE_SHELL_TAB_BAR_HEIGHT = "3.5rem";
+
+const MOBILE_TOAST_EDGE_GAP = "1rem";
+
+export function resolveMobileToastBottomOffset(showMobileTabBar: boolean) {
+  const safeArea = "env(safe-area-inset-bottom)";
+  if (showMobileTabBar) {
+    return `calc(${MOBILE_SHELL_TAB_BAR_HEIGHT} + ${safeArea} + ${MOBILE_TOAST_EDGE_GAP})`;
+  }
+  return `calc(${safeArea} + ${MOBILE_TOAST_EDGE_GAP})`;
 }
 
 export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
   if (isDetailWorkspacePath(pathname)) return false;
-  if (isOnboardingPath(pathname)) return false;
+  if (shouldUseFocusedShell(pathname)) return false;
   if (workspaceRoots.some((root) => matchesPathRoot(pathname, root))) {
     return false;
   }
@@ -61,14 +68,6 @@ export function resolveProfileHref(user: ShellUser) {
 
 export function resolveAvatarFallback(user: ShellUser) {
   return user?.name?.charAt(0) ?? "U";
-}
-
-export function buildPrimaryLinks(copy: NavCopy): ShellLink[] {
-  return [
-    { href: "/catalog/courses", label: copy.courses },
-    { href: "/catalog/sections", label: copy.sections },
-    { href: "/catalog/teachers", label: copy.teachers },
-  ];
 }
 
 export function buildFooterLinks(copy: FooterCopy): ShellLink[] {

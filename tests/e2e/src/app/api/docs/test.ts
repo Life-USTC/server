@@ -15,7 +15,17 @@ async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
 
 async function waitForSectionsReference(page: Page) {
   const reference = page.locator("#api-reference");
-  await expect(reference).toContainText("List sections", { timeout: 30_000 });
+  // Scalar defers operation details below the viewport on tag pages.
+  await expect(
+    reference.getByRole("heading", {
+      level: 1,
+      name: "catalog.section",
+      exact: true,
+    }),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(
+    reference.getByRole("list", { name: "catalog.section endpoints" }),
+  ).toContainText("/api/catalog/sections");
   return reference;
 }
 
@@ -158,6 +168,24 @@ test.describe("/api/docs 页面", () => {
       expect(
         await sidebar.evaluate((element) => getComputedStyle(element).position),
       ).toBe("sticky");
+
+      await sidebar
+        .getByRole("link", { name: "GET List sections", exact: true })
+        .click();
+      await expect(page).toHaveURL(
+        /\/api\/docs\/tag\/catalog-section\/GET\/api\/catalog\/sections$/,
+      );
+      await expect(
+        reference.getByRole("heading", {
+          level: 1,
+          name: "GET /api/catalog/sections",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await reference
+        .getByRole("list", { name: "catalog.section endpoints" })
+        .scrollIntoViewIfNeeded();
+      await expect(reference).toContainText("List sections");
     });
   });
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  addScriptNonce,
   buildContentSecurityPolicy,
   createScriptNonce,
   formActionSourceFromOAuthRedirectUri,
@@ -13,6 +14,26 @@ describe("CSP 辅助函数", () => {
   it("创建非空 nonce", () => {
     const nonce = createScriptNonce();
     expect(nonce.length).toBeGreaterThan(10);
+  });
+
+  it("为 script 标签注入 nonce，且跳过已有 nonce 的标签", () => {
+    const html =
+      '<head><script type="module" src="/app.js"></script><script nonce="existing"></script></head>';
+    expect(addScriptNonce(html, "fresh")).toBe(
+      '<head><script nonce="fresh" type="module" src="/app.js"></script><script nonce="existing"></script></head>',
+    );
+  });
+
+  it("不为非 script 标签误注入 nonce", () => {
+    const html =
+      '<article><scripture book="genesis">text</scripture><scripting>demo</scripting></article>';
+    expect(addScriptNonce(html, "fresh")).toBe(html);
+  });
+
+  it("匹配大小写不敏感的 script 开标签", () => {
+    expect(addScriptNonce("<SCRIPT></SCRIPT>", "fresh")).toBe(
+      '<script nonce="fresh"></SCRIPT>',
+    );
   });
 
   it("构建要求匹配脚本 nonce 的 CSP", () => {
@@ -68,13 +89,38 @@ describe("CSP 辅助函数", () => {
       .split("; ")
       .find((directive) => directive.startsWith("form-action"));
 
-    expect(formDirective).toBeDefined();
-    expect(formDirective).toContain("'self'");
-    expect(formDirective).toContain("http://localhost:*");
+    expect(formDirective).toBe("form-action 'self'");
     expect(formDirective).not.toContain("https://chatgpt.com");
     expect(formDirective).not.toContain("https://www.perplexity.ai");
     expect(formDirective?.split(/\s+/)).not.toContain("https:");
     expect(formDirective).not.toContain("https://*");
+  });
+
+  it("仅在开发环境全局允许回环 form-action 来源", () => {
+    const formDirective = (isDevelopment: boolean) =>
+      buildContentSecurityPolicy("abc123", { isDevelopment })
+        .split("; ")
+        .find((directive) => directive.startsWith("form-action"));
+
+    expect(formDirective(false)).not.toContain("localhost");
+    expect(formDirective(false)).not.toContain("127.0.0.1");
+    expect(formDirective(true)?.split(/\s+/)).toEqual(
+      expect.arrayContaining(["http://localhost:*", "http://127.0.0.1:*"]),
+    );
+  });
+
+  it("部署环境只允许当前 OAuth 授权请求的回环回调来源", () => {
+    const formDirective = buildContentSecurityPolicy("abc123", {
+      formActionSources: [
+        formActionSourceFromOAuthRedirectUri(
+          "http://127.0.0.1:61000/callback",
+        ) ?? "",
+      ],
+    })
+      .split("; ")
+      .find((directive) => directive.startsWith("form-action"));
+
+    expect(formDirective).toBe("form-action 'self' http://127.0.0.1:61000");
   });
 
   it("允许按响应添加 OAuth 回调 form-action 来源", () => {
@@ -104,6 +150,9 @@ describe("CSP 辅助函数", () => {
         "http://127.0.0.1:3456/oauth/callback",
       ),
     ).toBe("http://127.0.0.1:3456");
+    expect(
+      formActionSourceFromOAuthRedirectUri("http://[::1]:3456/oauth/callback"),
+    ).toBe("http://[::1]:3456");
   });
 
   it("拒绝不适合作为 OAuth form-action 来源的 redirect_uri", () => {

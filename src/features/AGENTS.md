@@ -34,12 +34,13 @@ workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
 | api-docs | OpenAPI reference UI shell (no `server/` use-cases) |
 | auth | Sign-in page load and related helpers |
 | bus | Public timetable; signed-in preferences; import idempotent by version |
-| calendar | Feature event queries + iCal; generic time helpers stay in `src/lib/time` |
-| catalog | Courses, sections, teachers, schedules, exams, public list/detail pages |
+| calendar | Feature event queries + iCal, feed-token access rules, public section exports; generic time helpers stay in `src/lib/time` |
+| catalog | Courses, sections, teachers, schedules, exams, public list/detail pages, and the revision-scoped public catalog runtime caches (`catalog-*-cache*.ts`) |
 | comments | Scoped to section/course/teacher/homework; audience + anonymous flags; suspended cannot create |
 | catalog-links | Campus link catalog + pin/visit preferences |
 | descriptions | Shared wiki-like text on course/section/teacher/homework |
 | homeworks | Attached to section; signed-in unsuspended create/update; ordinary delete creator-only; admin deletion uses governance; completion is per-user |
+| legal | Privacy and terms copy (from `messages/`) rendered for `/privacy` and `/terms` |
 | markdown | Shared Markdown rendering helpers for guides/community |
 | mobile-app | Mobile app marketing/download page |
 | oauth | Device, consent, authorize, and client-registration policies |

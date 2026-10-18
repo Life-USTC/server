@@ -1,7 +1,7 @@
 /** Browser route samples and mobile batches. Behavioral coverage is reviewed manually. */
 
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
-import { workspaceTabIds } from "@/features/workspace/lib/workspace-nav";
+import { workspaceNavTabIds } from "@/features/workspace/lib/workspace-nav";
 import { DEV_SEED } from "../../../../fixtures/dev-seed";
 
 export type PageAuth = "public" | "user" | "admin";
@@ -21,7 +21,7 @@ export type PageInventoryEntry = {
  * Exported for unit gate cross-checks.
  */
 export const INVENTORY_SETTINGS_TABS = SETTINGS_TABS;
-export const INVENTORY_WORKSPACE_TABS = workspaceTabIds;
+export const INVENTORY_WORKSPACE_TABS = workspaceNavTabIds;
 export const WORKSPACE_TAB_DOMAINS = {
   overview: "Overview",
   calendar: "Calendar",
@@ -29,8 +29,16 @@ export const WORKSPACE_TAB_DOMAINS = {
   todos: "Todo",
   exams: "Exam",
   subscriptions: "Subscription",
-} as const satisfies Record<(typeof workspaceTabIds)[number], string>;
+} as const satisfies Record<(typeof workspaceNavTabIds)[number], string>;
 export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
+  {
+    routeId: "/catalog/features",
+    domain: "Site",
+    samplePath: "/catalog/features",
+    kind: "page",
+    auth: "public",
+    mobileChecks: ["public", "authed"],
+  },
   {
     routeId: "/",
     domain: "Site",
@@ -473,7 +481,7 @@ export function mobilePageCases(
   ).map((entry) => ({ path: entry.samplePath, domain: entry.domain }));
 
   if (group === "authed") {
-    for (const tab of workspaceTabIds) {
+    for (const tab of workspaceNavTabIds) {
       const path = `/workspace/${tab}`;
       if (!paths.some((entry) => entry.path === path)) {
         paths.push({ path, domain: WORKSPACE_TAB_DOMAINS[tab] });

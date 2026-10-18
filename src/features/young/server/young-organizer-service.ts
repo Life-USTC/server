@@ -1,5 +1,5 @@
+import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import type { Prisma } from "@/generated/prisma/client";
-import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
 import {
   buildPaginatedResponse,

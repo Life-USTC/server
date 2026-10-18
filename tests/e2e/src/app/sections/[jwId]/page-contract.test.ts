@@ -339,15 +339,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         });
         await expect(actions).toBeVisible();
         await expect(actions).toBeInViewport();
-        const [actionsBox, navigationBox] = await Promise.all([
-          actions.boundingBox(),
-          mobileNavigation.boundingBox(),
-        ]);
+        await expect(mobileNavigation).toHaveCount(0);
+        const actionsBox = await actions.boundingBox();
         expect(actionsBox).not.toBeNull();
-        expect(navigationBox).not.toBeNull();
         expect(
           (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
-        ).toBeLessThanOrEqual((navigationBox?.y ?? 0) + 1);
+        ).toBeLessThanOrEqual((page.viewportSize()?.height ?? 0) + 1);
+        expect(
+          await actions.evaluate((element) => getComputedStyle(element).bottom),
+        ).toBe("0px");
         await actions
           .getByRole("button", { name: /添加到日历|Add to calendar/i })
           .click();

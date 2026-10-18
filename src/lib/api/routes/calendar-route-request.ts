@@ -1,4 +1,8 @@
 import {
+  MAX_MULTI_SECTION_CALENDAR_IDS,
+  normalizeSectionCalendarIds,
+} from "@/features/calendar/server/calendar-section-ids";
+import {
   badRequest,
   invalidParamResponse,
   parseInteger,
@@ -10,8 +14,6 @@ import {
   sectionsCalendarQuerySchema,
   userCalendarPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-
-export const MAX_MULTI_SECTION_CALENDAR_IDS = 50;
 
 export function parseSectionsCalendarIds(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -35,10 +37,8 @@ export function parseSectionsCalendarIds(request: Request) {
     parsedSectionIds.push(sectionId);
   }
 
-  const sectionIds = Array.from(new Set(parsedSectionIds)).sort(
-    (left, right) => left - right,
-  );
-  if (sectionIds.length > MAX_MULTI_SECTION_CALENDAR_IDS) {
+  const sectionIds = normalizeSectionCalendarIds(parsedSectionIds);
+  if (!sectionIds) {
     return badRequest(
       `sectionIds must contain at most ${MAX_MULTI_SECTION_CALENDAR_IDS} unique IDs`,
     );

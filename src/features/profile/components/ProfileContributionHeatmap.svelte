@@ -117,7 +117,6 @@ function handleCellKeydown(event: KeyboardEvent, index: number) {
                 selectedCellLabel = label;
               }}
               onkeydown={(event) => handleCellKeydown(event, cellIndex)}
-              title={label}
               type="button"
             >
               <span
@@ -135,15 +134,18 @@ function handleCellKeydown(event: KeyboardEvent, index: number) {
   </div>
 </div>
 
-{#if selectedCellLabel}
-  <p
-    aria-live="polite"
-    class="mt-2 text-muted-foreground text-sm"
-    data-profile-contribution-detail
-  >
-    {selectedCellLabel}
-  </p>
-{/if}
+<p
+  aria-live="polite"
+  class={cn(
+    "text-muted-foreground text-sm",
+    selectedCellLabel
+      ? "mt-2 min-h-9 rounded-md border border-border/60 bg-muted/40 px-3 py-2"
+      : "sr-only",
+  )}
+  data-profile-contribution-detail
+>
+  {selectedCellLabel}
+</p>
 
 <style>
   .profile-heatmap {

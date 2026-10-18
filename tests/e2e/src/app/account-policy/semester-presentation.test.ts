@@ -96,13 +96,13 @@ for (const domain of [
         [],
       );
       for (const locale of ["en-us", "zh-cn"] as const) {
-        expect(
-          (
-            await page.request.post("/api/account/preferences", {
-              data: { locale },
-            })
-          ).status(),
-        ).toBe(200);
+        // Locale is prepared consumer state; preference writes have their own
+        // Account contract. Avoid coupling these reads to an idle HTTP client.
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
         const labels =
           locale === "en-us"
             ? ["Spring 2026", "Fall 2025", "专项短学期 α"]
@@ -213,7 +213,7 @@ for (const domain of [
       }
       return observation.checks({
         feedTokenCreated: ["Subscription", "Calendar", "Exam"].includes(domain),
-        requests: [["POST", "/api/account/preferences", [200, 200]]],
+        requests: [],
       });
     });
   });

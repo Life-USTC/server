@@ -86,29 +86,43 @@ const summary = $derived(
   title={youngCopy.organizersTitle}
 >
   {#snippet toolbar()}
-    <FilterToolbar>
-      {#snippet primary()}
-          <form action="/catalog/young-events/organizers" method="get" class="flex min-w-0 flex-1 items-center gap-2">
-            <SearchField id="young-organizer-search" label={commonLabels.search} name="search" placeholder={youngCopy.organizerSearchPlaceholder} value={search ?? ""} />
-          <Button type="submit" class={toolbarControlClass}>{commonLabels.search}</Button>
-        </form>
-      {/snippet}
-    </FilterToolbar>
+    <div class="grid min-w-0 gap-3">
+      <FilterToolbar>
+        {#snippet primary()}
+          <form
+            action="/catalog/young-events/organizers"
+            method="get"
+            class="flex min-w-0 flex-1 items-center gap-2"
+          >
+            <SearchField
+              id="young-organizer-search"
+              label={commonLabels.search}
+              name="search"
+              placeholder={youngCopy.organizerSearchPlaceholder}
+              value={search ?? ""}
+            />
+            <Button type="submit" class={toolbarControlClass}>
+              {commonLabels.search}
+            </Button>
+          </form>
+        {/snippet}
+      </FilterToolbar>
 
-    <ActiveFilters
-      items={search
-        ? [
-          {
-            href: removeYoungFilter(new URL(appPage.url.href), "search"),
-            label: search,
-            removeLabel: youngCopy.removeFilter.replace("{value}", search)
-          }
-        ]
-        : []}
-      ariaLabel={youngCopy.activeFilters}
-      clearHref="/catalog/young-events/organizers"
-      clearLabel={commonLabels.clear}
-    />
+      <ActiveFilters
+        items={search
+          ? [
+              {
+                href: removeYoungFilter(new URL(appPage.url.href), "search"),
+                label: search,
+                removeLabel: youngCopy.removeFilter.replace("{value}", search),
+              },
+            ]
+          : []}
+        ariaLabel={youngCopy.activeFilters}
+        clearHref="/catalog/young-events/organizers"
+        clearLabel={commonLabels.clear}
+      />
+    </div>
   {/snippet}
 
   <section

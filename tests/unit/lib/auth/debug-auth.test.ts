@@ -1,8 +1,20 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,
 } from "@/lib/auth/provider-ids";
+
+const debugAuthConfigSource = readFileSync(
+  fileURLToPath(
+    new URL(
+      "../../../../src/lib/auth/debug-auth-config.server.ts",
+      import.meta.url,
+    ),
+  ),
+  "utf8",
+);
 
 const prismaMock = vi.hoisted(() => ({
   account: { findUnique: vi.fn(), upsert: vi.fn() },
@@ -41,6 +53,8 @@ describe("debug 认证配置", () => {
     prismaMock.account.findUnique.mockResolvedValue({
       id: "seeded-credential",
     });
+    vi.stubEnv("DEV_DEBUG_PASSWORD", "dev-debug-password");
+    vi.stubEnv("DEV_ADMIN_PASSWORD", "dev-admin-password");
   });
 
   afterEach(() => {
@@ -85,15 +99,45 @@ describe("debug 认证配置", () => {
     });
   });
 
-  it("非开发环境 E2E 认证需要显式 debug 密码", async () => {
-    vi.stubEnv("NODE_ENV", "test");
-    vi.stubEnv("E2E_DEBUG_AUTH", "1");
+  describe.each([
+    [DEV_DEBUG_PROVIDER_ID, "DEV_DEBUG_PASSWORD"],
+    [DEV_ADMIN_PROVIDER_ID, "DEV_ADMIN_PASSWORD"],
+  ] as const)("%s requires its environment password", (providerId, envName) => {
+    describe.each(["development", "test"])("%s", (nodeEnv) => {
+      it.each([undefined, "", "   "])(
+        "rejects missing or blank password %j",
+        async (password) => {
+          vi.stubEnv("NODE_ENV", nodeEnv);
+          vi.stubEnv("E2E_DEBUG_AUTH", nodeEnv === "test" ? "1" : undefined);
+          vi.stubEnv(envName, password);
+          const { getDebugProviderConfig } = await import(
+            "@/lib/auth/debug-auth"
+          );
 
-    const { getDebugProviderConfig } = await import("@/lib/auth/debug-auth");
+          expect(() => getDebugProviderConfig(providerId)).toThrow(
+            `${envName} is required for debug auth credentials`,
+          );
+        },
+      );
 
-    expect(() => getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID)).toThrow(
-      "DEV_DEBUG_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
-    );
+      it("uses the explicit environment password", async () => {
+        vi.stubEnv("NODE_ENV", nodeEnv);
+        vi.stubEnv("E2E_DEBUG_AUTH", nodeEnv === "test" ? "1" : undefined);
+        vi.stubEnv(envName, "  configured-fixture-password  ");
+        const { getDebugProviderConfig } = await import(
+          "@/lib/auth/debug-auth"
+        );
+
+        expect(getDebugProviderConfig(providerId).password).toBe(
+          "configured-fixture-password",
+        );
+      });
+    });
+  });
+
+  it("debug-auth-config.server 源码不包含可打包的默认 debug 密码字面量", () => {
+    expect(debugAuthConfigSource).not.toMatch(/dev-debug-password/);
+    expect(debugAuthConfigSource).not.toMatch(/dev-admin-password/);
   });
 
   it("只读取预置的 debug 用户和 credential，不写 auth 数据库", async () => {

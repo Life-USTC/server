@@ -1,10 +1,10 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import {
   cachedPublicNavigationFetch,
-  resetPublicNavigationCacheForTests,
+  clearPublicNavigationCache,
 } from "@/lib/shell/public-navigation-cache";
-
 import { PUBLIC_NAVIGATION_HEADER } from "@/lib/shell/public-navigation-contract";
+import { createDeferred } from "../../../shared/deferred";
 
 const noon = Date.parse("2026-09-28T04:00:00.000Z");
 const beforeMidnight = Date.parse("2026-09-28T15:59:50.000Z");
@@ -17,8 +17,150 @@ function jsonResponse(body: unknown, headers?: HeadersInit) {
 }
 
 beforeEach(() => {
-  resetPublicNavigationCacheForTests();
+  clearPublicNavigationCache();
 });
+
+test("clearPublicNavigationCache drops stored navigation entries", async () => {
+  const fetcher = vi.fn(async () => jsonResponse({ page: "news" }));
+  const url =
+    "https://life.example/news/__data.json?x-sveltekit-invalidated=01";
+  await cachedPublicNavigationFetch(fetcher, url, undefined, noon, "zh-cn");
+  await cachedPublicNavigationFetch(
+    fetcher,
+    url,
+    undefined,
+    noon + 1_000,
+    "zh-cn",
+  );
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  clearPublicNavigationCache();
+  await cachedPublicNavigationFetch(
+    fetcher,
+    url,
+    undefined,
+    noon + 2_000,
+    "zh-cn",
+  );
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+test.each(["clear", "invalidate"])(
+  "%s prevents outstanding responses from repopulating the cache",
+  async (action) => {
+    const pending = createDeferred<Response>();
+    const fetcher = vi.fn(() => pending.promise);
+    const url =
+      "https://life.example/news/__data.json?x-sveltekit-invalidated=01";
+    const outstanding = cachedPublicNavigationFetch(
+      fetcher,
+      url,
+      undefined,
+      noon,
+    );
+
+    if (action === "clear") {
+      clearPublicNavigationCache();
+    } else {
+      await cachedPublicNavigationFetch(
+        async () => jsonResponse({ page: "invalidated" }),
+        url.replace("=01", "=11"),
+        undefined,
+        noon,
+      );
+    }
+
+    const fresh = vi.fn(async () => jsonResponse({ page: "fresh" }));
+    await cachedPublicNavigationFetch(fresh, url, undefined, noon);
+    pending.resolve(jsonResponse({ page: "old" }));
+    expect((await (await outstanding).json()).nodes[1].data[0]).toEqual({
+      page: "old",
+    });
+    const next = await cachedPublicNavigationFetch(fresh, url, undefined, noon);
+    expect((await next.json()).nodes[1].data[0]).toEqual({ page: "fresh" });
+    expect(fresh).toHaveBeenCalledTimes(1);
+  },
+);
+
+test("clearing while a response body is pending prevents it from being retained", async () => {
+  const body = createDeferred<ArrayBuffer>();
+  const reading = createDeferred();
+  const response = jsonResponse({ page: "old" });
+  const bytes = await response.clone().arrayBuffer();
+  vi.spyOn(response, "arrayBuffer").mockImplementation(() => {
+    reading.resolve();
+    return body.promise;
+  });
+  const url =
+    "https://life.example/news/__data.json?x-sveltekit-invalidated=01";
+  const outstanding = cachedPublicNavigationFetch(
+    async () => response,
+    url,
+    undefined,
+    noon,
+  );
+  await reading.promise;
+  clearPublicNavigationCache();
+  body.resolve(bytes);
+  await outstanding;
+  const fresh = vi.fn(async () => jsonResponse({ page: "fresh" }));
+  await cachedPublicNavigationFetch(fresh, url, undefined, noon);
+  expect(fresh).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  { path: "/api/auth/sign-out", method: "POST", status: 200, cleared: true },
+  { path: "/account/sign-out", method: "POST", status: 303, cleared: true },
+  { path: "/api/auth/sign-out", method: "POST", status: 403, cleared: false },
+  { path: "/account/sign-out", method: "GET", status: 200, cleared: false },
+  {
+    path: "/api/auth/sign-out-other",
+    method: "POST",
+    status: 200,
+    cleared: false,
+  },
+  {
+    path: "https://external.example/api/auth/sign-out",
+    method: "POST",
+    status: 200,
+    cleared: false,
+  },
+])(
+  "$method $path ($status) clears only successful same-origin sign-out",
+  async ({ path, method, status, cleared }) => {
+    vi.stubGlobal("location", new URL("https://life.example/privacy"));
+    const fetcher = vi.fn(async () => jsonResponse({ page: "public" }));
+    const cached = [
+      { path: "/news", locale: "en-us" },
+      { path: "/catalog/courses", locale: "zh-cn" },
+    ];
+    for (const entry of cached) {
+      await cachedPublicNavigationFetch(
+        fetcher,
+        `${entry.path}/__data.json?x-sveltekit-invalidated=01`,
+        undefined,
+        noon,
+        entry.locale,
+      );
+    }
+    const response = new Response(null, { status });
+    const signOut = vi.fn(async () => response);
+    const init = { method };
+    expect(await cachedPublicNavigationFetch(signOut, path, init, noon)).toBe(
+      response,
+    );
+    expect(signOut).toHaveBeenCalledWith(path, init);
+    for (const entry of cached) {
+      await cachedPublicNavigationFetch(
+        fetcher,
+        `${entry.path}/__data.json?x-sveltekit-invalidated=01`,
+        undefined,
+        noon,
+        entry.locale,
+      );
+    }
+    expect(fetcher).toHaveBeenCalledTimes(cleared ? 4 : 2);
+  },
+);
 
 test("rendering-and-cache.cacheable-public-pages-15", async () => {
   const courseUrl =
@@ -125,6 +267,23 @@ test("rendering-and-cache.cacheable-public-pages-15", async () => {
   await cachedPublicNavigationFetch(cookied, newsUrl, undefined, noon, "zh-cn");
   await cachedPublicNavigationFetch(cookied, newsUrl, undefined, noon, "zh-cn");
   expect(cookied).toHaveBeenCalledTimes(2);
+});
+
+test("forwards sign-out Request bodies without consuming them", async () => {
+  vi.stubGlobal("location", new URL("https://life.example/privacy"));
+  const request = new Request("https://life.example/api/auth/sign-out", {
+    method: "POST",
+    body: "{}",
+    headers: { "content-type": "application/json" },
+  });
+  const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+    expect(input).toBe(request);
+    expect(request.bodyUsed).toBe(false);
+    expect(await request.text()).toBe("{}");
+    return Response.json({ success: true });
+  });
+  await cachedPublicNavigationFetch(fetcher, request, undefined, noon);
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
 test.each([

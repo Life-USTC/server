@@ -106,13 +106,16 @@ requirements:
 - id: user.debug-password-boundary
   category: authorization
   rule: Email/password authentication is enabled only for local development or the explicit non-production
-    E2E debug mode; production does not expose debug password authentication.
+    E2E debug mode; production does not expose debug password authentication. Debug credentials
+    require explicit nonblank environment passwords in both development and E2E mode; server-only
+    credential configuration contains no password fallbacks.
   acceptance:
     given: Development, ordinary test, explicit E2E and production environments.
     when: The actual debug policy configures Better Auth options.
     then:
     - Password sign-in is enabled only for development or explicit non-production E2E.
     - Password signup stays disabled in every mode; enabling the debug flag in production throws.
+    - Both debug providers reject missing or blank passwords and use explicitly configured environment passwords.
     test:
       file: tests/unit/lib/auth/better-auth-options.test.ts
       name: user.debug-password-boundary

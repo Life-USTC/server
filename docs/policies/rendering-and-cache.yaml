@@ -229,7 +229,9 @@ requirements:
     their root and leaf projections contain no private viewer or subscription state. Young event pages and
     section details stay reusable for at most 60 seconds and never past the next Asia/Shanghai midnight.
     Cache identity includes origin and locale; full invalidation drops only that origin's stored page and requests again. Clock-driven bus and weather pages,
-    the site root, workspace and other private routes are never stored. HTTP responses stay private, no-store.
+    the site root, workspace and other private routes are never stored. Admission rejects malformed or ambiguous paths.
+    Sign-out and leaving the document clear all tab entries; responses started before clearing or full invalidation
+    cannot repopulate the cache. HTTP responses stay private, no-store.
   acceptance:
     given: Actual browsers and a Worker serve successful public page data, private projections, cookie-setting
       responses, redirects, errors and deferred payloads, with two distinct session viewers and locales.
@@ -239,6 +241,7 @@ requirements:
     - Only explicitly attested successful public data is reused; root and leaf envelopes are viewer-independent.
     - Cookie-setting responses, private projections, redirects, errors, deferred streams and malformed data are fetched again.
     - Full invalidation drops the matching page; clock-sensitive entries expire at midnight without a grace interval.
+    - Sign-out and pagehide clear every stored tab navigation entry; outstanding responses cannot restore cleared entries.
     - Workspace retains its private server-rendered viewer and never uses the public tab cache.
     test:
       file: tests/e2e/src/app/cache-policy/public-navigation-admission.test.ts
@@ -249,9 +252,9 @@ requirements:
   rule: Pages without a workspace SSR projection hydrate viewer and navigation state through the same-origin,
     session-cookie-only /_internal/shell-bootstrap endpoint. It returns only viewer id, name, username, image
     and isAdmin plus matching navigation userId and calendar, pending homework, pending todo, upcoming exam, subscribed section,
-    and unread activity notification counts, and subscribed section links limited to href and course label.
-    Anonymous results have null viewer, null navigation, and an empty subscribed section list. Workspace SSR
-    includes that same section list so hydration does not request shell bootstrap again. Every response
+    and unread activity notification counts. Anonymous results have null viewer and null navigation.
+    Subscribed section directories are not part of the shell payload. Workspace SSR provides the viewer
+    and navigation counts directly so hydration does not request shell bootstrap again. Every response
     uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and Vary Cookie. Bearer
     authentication is rejected even alongside a session cookie.
   acceptance:
@@ -546,6 +549,20 @@ requirements:
     test:
       file: tests/unit/features/catalog/catalog-detail-cache-eligibility.test.ts
       name: rendering-and-cache.cache-layers-and-invalidation-11
+- id: rendering-and-cache.cache-layers-and-invalidation-12
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: A committed static import fails when purge credentials are missing unless local development explicitly
+    opts out.
+  acceptance:
+    given: A static import has committed, the zone purge is configured, and the Workers entrypoint purge
+      origin is unset while the purge secret is present.
+    when: The post-import invalidator runs without `ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE=true`.
+    then:
+    - The run reports failure for the entrypoint layer and does not send the secret to an unconfigured origin.
+    test:
+      file: tests/unit/static-loader/post-import-cache-purge.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-12
 - id: rendering-and-cache.cache-origin-recovery
   category: consistency
   topic: cache-layers-and-invalidation
@@ -773,6 +790,7 @@ cache_contracts:
       rendering-and-cache.cache-layers-and-invalidation-5,
       rendering-and-cache.cache-layers-and-invalidation-6,
       rendering-and-cache.cache-layers-and-invalidation-9,
+      rendering-and-cache.cache-layers-and-invalidation-12,
       description.public-cache-invalidation
     ]
   rationale: Only admitted routes and query forms share HTML; delivered responses remain private. Build is the entrypoint deployment

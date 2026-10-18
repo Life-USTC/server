@@ -42,10 +42,8 @@ export type ShellCopy = {
   shell: {
     footerNavigation: string;
     menu: string;
-    mobilePrimaryNavigation: string;
     primaryNavigation: string;
     profileMenu: string;
-    secondaryNavigation: string;
   };
 };
 

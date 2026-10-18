@@ -114,7 +114,6 @@ test("rendering-and-cache.personal-overlays-4", { tag: "@Site/Web" }, async ({
       expect(await anonymous.json()).toEqual({
         viewer: null,
         navigation: null,
-        subscribedSections: [],
       });
       for (const [index, user] of users.entries()) {
         const context = await flow.newContext();
@@ -304,7 +303,6 @@ test("rendering-and-cache.personal-overlays-7", { tag: "@Site/Web" }, async ({
       expect(await anonymous.json()).toEqual({
         viewer: null,
         navigation: null,
-        subscribedSections: [],
       });
 
       await context.addCookies([await sessionCookie(users[1].id)]);
@@ -978,7 +976,6 @@ test("public navigation data keeps the root projection independent of session ch
           const root = unflatten(envelope.nodes[0].data);
           expect(root, path).toMatchObject({
             user: null,
-            subscribedSections: null,
             resolveViewerOnClient: true,
             locale,
           });
@@ -1007,7 +1004,6 @@ test("public navigation data keeps the root projection independent of session ch
       expect(networkRequests).toBe(1);
       expect(unflatten(first.nodes[0].data)).toMatchObject({
         user: null,
-        subscribedSections: null,
         resolveViewerOnClient: true,
       });
       expect(second).toEqual(first);

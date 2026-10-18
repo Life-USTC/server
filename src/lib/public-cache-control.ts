@@ -1,4 +1,4 @@
-import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-runtime-cache";
+import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-edge-cache-tag";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 const HOUR_SECONDS = 3_600;

@@ -2,6 +2,7 @@
 export const PUBLIC_NAVIGATION_HEADER = "x-life-public-navigation";
 
 const PUBLIC_PATHS = new Set([
+  "/catalog/features",
   "/catalog/courses",
   "/catalog/sections",
   "/catalog/teachers",
@@ -22,8 +23,28 @@ const PUBLIC_PATHS = new Set([
   "/community/comments/guide",
 ]);
 
-/** Keep this list limited to routes whose loaders contain no viewer data. */
+/** Keep this allowlist limited to routes whose loaders contain no viewer data. */
 export function isPublicNavigationPath(pathname: string) {
+  if (
+    !pathname.startsWith("/") ||
+    /[\\?#]/.test(pathname) ||
+    pathname.includes("//") ||
+    /%2f|%5c/i.test(pathname)
+  ) {
+    return false;
+  }
+  try {
+    if (
+      decodeURIComponent(pathname)
+        .split("/")
+        .some((segment) => segment === "." || segment === "..")
+    ) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
   return (
     PUBLIC_PATHS.has(pathname) ||
     /^\/catalog\/(?:courses|sections|teachers)\/[1-9]\d*$/.test(pathname) ||

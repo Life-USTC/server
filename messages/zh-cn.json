@@ -119,6 +119,7 @@
     "placeholder": "例如：3A204",
     "submit": "查询",
     "empty": "输入教室编号后查看地图。",
+    "emptyTitle": "尚未查询教室",
     "triggerLabel": "查看 {code} 的位置地图",
     "dialogTitle": "{code} 的位置地图",
     "dialogDescription": "滚动查看周边教室，使用按钮或 Ctrl/⌘ + 滚轮缩放。",
@@ -3031,5 +3032,59 @@
     "backToBus": "返回时刻表",
     "noData": "暂无班车数据。",
     "noDataDescription": "请先导入或启用班车时刻表版本后再查看线路图。"
+  },
+  "shell": {
+    "menu": "菜单",
+    "scrollRegion": "主要内容滚动区域",
+    "theme": "主题",
+    "locale": "语言",
+    "personalPage": "个人主页",
+    "backToApp": "返回应用",
+    "groups": {
+      "schedule": "日程",
+      "subscriptions": "订阅",
+      "catalog": "课程目录",
+      "campus": "校园生活",
+      "account": "账户",
+      "clients": "客户端",
+      "admin": "管理工具"
+    },
+    "hub": {
+      "title": "全部功能",
+      "description": "按用途浏览 Life@USTC 的全部功能。",
+      "searchLabel": "搜索功能",
+      "searchPlaceholder": "搜索功能名称或说明",
+      "empty": "没有匹配的功能。",
+      "signInPrompt": "登录后可使用日程、作业、待办与订阅等个人功能。",
+      "descriptions": {
+        "overview": "今天的课程、截止事项与本周安排",
+        "calendar": "在一个日历中查看课表、作业截止与考试",
+        "homeworks": "订阅班级的作业及你的完成状态",
+        "todos": "与班级无关的个人待办",
+        "exams": "订阅班级的考试安排",
+        "subscriptions": "添加和管理教学班订阅",
+        "activityNotifications": "第二课堂活动与组织者的订阅提醒",
+        "courses": "按学期、院系与类别查找课程",
+        "sections": "查找教学班的时间、地点与教师",
+        "teachers": "浏览教师及其开设的课程",
+        "rooms": "在校园地图上查找教室位置",
+        "bus": "校区之间的下一班校车与时刻表",
+        "weather": "各校区当前天气与预报",
+        "youngEvents": "第二课堂活动、日历与组织者",
+        "news": "学校与院系发布的新闻与通知",
+        "links": "常用校园网站，可搜索与置顶",
+        "uploads": "管理通过评论附件上传的文件",
+        "settings": "资料、偏好、关联账户与安全设置",
+        "mobileApp": "把课表、校车、课程与作业装进口袋",
+        "prestoBot": "在聊天中查询课表、作业与校车",
+        "mcp": "让 AI 助手通过 MCP 访问你的数据",
+        "cli": "在终端中使用 Life@USTC",
+        "adminUsers": "搜索账户、调整权限并处理封禁",
+        "adminModeration": "处理评论、简介、作业与封禁队列",
+        "adminOauth": "管理第三方 OAuth 客户端",
+        "adminBus": "导入与发布校车时刻表版本"
+      },
+      "clearSearch": "清除搜索"
+    }
   }
 }

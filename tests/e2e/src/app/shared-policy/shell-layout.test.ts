@@ -233,19 +233,23 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
       try {
         await page.setViewportSize({ width: 390, height: 700 });
         await gotoAndWaitForReady(page, "/workspace/todos");
-        const navigation = page.locator(
-          '[data-shell-navigation="mobile-primary"]',
-        );
+        await expect(
+          page.locator(
+            '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"]',
+          ),
+        ).toHaveCount(0);
         const destinations = [
-          ["Today", "/workspace/overview"],
+          ["Overview", "/workspace/overview"],
           ["Calendar", "/workspace/calendar"],
-          ["Tasks", "/workspace/homeworks"],
-          ["Explore", "/catalog/courses"],
+          ["Homework", "/workspace/homeworks"],
+          ["Todos", "/workspace/todos"],
+          ["Courses", "/catalog/courses"],
         ];
-        await expect(navigation.getByRole("link")).toHaveText(
-          destinations.map(([label]) => label),
-        );
         for (const [label, href] of destinations) {
+          await page
+            .locator('[data-shell-topbar] [data-sidebar="trigger"]')
+            .click();
+          const navigation = page.locator('[data-shell-navigation="mobile"]');
           const link = navigation.getByRole("link", {
             name: label,
             exact: true,
@@ -254,7 +258,18 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           await link.focus();
           await page.keyboard.press("Enter");
           await expect(page).toHaveURL(new RegExp(`${href}$`));
-          await expect(link).toHaveAttribute("aria-current", "page");
+          await expect(navigation).toBeHidden();
+          await page
+            .locator('[data-shell-topbar] [data-sidebar="trigger"]')
+            .click();
+          await expect(navigation.locator('[aria-current="page"]')).toHaveCount(
+            1,
+          );
+          await expect(
+            navigation.locator('[aria-current="page"]'),
+          ).toHaveAttribute("href", href);
+          await page.keyboard.press("Escape");
+          await expect(navigation).toBeHidden();
         }
         await gotoAndWaitForReady(page, "/terms");
         const contentEnd = page
@@ -264,34 +279,30 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           await cdp.send("Emulation.setSafeAreaInsetsOverride", {
             insets: { bottom: inset },
           });
+          const footer = page.getByRole("contentinfo");
           await expect
             .poll(() =>
-              navigation.evaluate((element) =>
+              footer.evaluate((element) =>
                 Number.parseFloat(getComputedStyle(element).paddingBottom),
               ),
             )
             .toBe(inset);
-          const height = await navigation.evaluate(
-            (element) => element.getBoundingClientRect().height,
-          );
-          expect(height).toBe(57 + inset);
-          const padding = await page
-            .locator('[data-slot="sidebar-wrapper"]')
-            .evaluate((element) =>
-              Number.parseFloat(getComputedStyle(element).paddingBottom),
-            );
-          expect(padding).toBe(56 + inset);
+          expect(
+            await page
+              .locator('[data-slot="sidebar-wrapper"]')
+              .evaluate((element) =>
+                Number.parseFloat(getComputedStyle(element).paddingBottom),
+              ),
+          ).toBe(0);
           await page.evaluate(() =>
             window.scrollTo(0, document.documentElement.scrollHeight),
           );
           await expect(contentEnd).toBeInViewport();
           const endBox = await contentEnd.boundingBox();
-          const navigationBox = await navigation.boundingBox();
-          expect(endBox).not.toBeNull();
-          expect(navigationBox).not.toBeNull();
-          if (!endBox || !navigationBox)
-            throw new Error("Missing mobile content or navigation bounds");
-          expect(endBox.y + endBox.height).toBeLessThanOrEqual(navigationBox.y);
+          const footerBox = await footer.boundingBox();
+          if (!endBox || !footerBox)
+            throw new Error("Missing mobile content or footer bounds");
+          expect(endBox.y + endBox.height).toBeLessThanOrEqual(footerBox.y);
           expect(
             await page.evaluate(() => document.documentElement.scrollWidth),
           ).toBeLessThanOrEqual(390);
@@ -328,7 +339,7 @@ test("ui.navigation-landmarks-5", { tag: "@Site/Web" }, async ({ page }) => {
           .getByRole("button", { name: /^(Menu|菜单)$/ })
           .click();
       const navigation = page.locator(
-        `[data-shell-navigation="${width < 768 ? "secondary" : "desktop"}"]`,
+        `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
       );
       const link = navigation.getByRole("link", { name });
       await expect(link).toHaveCount(1);
@@ -350,10 +361,10 @@ test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
         .getByRole("button", { name: /^(Menu|菜单)$/ })
         .click();
     const navigation = page.locator(
-      `[data-shell-navigation="${width < 768 ? "secondary" : "desktop"}"]`,
+      `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
     );
     const campusGroup = navigation.getByRole("button", {
-      name: /^(Campus services|校园服务)$/i,
+      name: /^(Catalog|课程目录)$/i,
     });
     const courses = navigation.getByRole("link", { name: /^(Courses|课程)$/ });
     await expect(campusGroup).toHaveAttribute("aria-expanded", "true");

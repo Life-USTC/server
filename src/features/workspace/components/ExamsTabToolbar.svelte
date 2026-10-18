@@ -1,5 +1,6 @@
 <script lang="ts">
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+import { collectionCompactClass } from "#lib/components/collection-responsive-breakpoint.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
@@ -24,7 +25,7 @@ export let onExamFilterChange: (value: WorkspaceExamFilter) => void;
   filterAllLabel={workspaceCopy.nav.exams.filterAll}
 />
 
-  <div class="md:hidden">
+  <div class={collectionCompactClass}>
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
         {#snippet child({ props })}

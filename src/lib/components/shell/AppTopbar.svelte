@@ -1,4 +1,5 @@
 <script lang="ts">
+import LayoutGridIcon from "@lucide/svelte/icons/layout-grid";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -10,6 +11,7 @@ import type {
 } from "#lib/shell/layout-server-data.js";
 import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import GlobalSearchTrigger from "./GlobalSearchTrigger.svelte";
+import { FEATURE_HUB_PATH } from "./navigation";
 
 export let closeMenus: () => void;
 export let copy: LayoutCopy;
@@ -31,9 +33,9 @@ export let signedIn = false;
 
 <header
   data-shell-topbar
-  class="bg-card/95 sticky top-0 z-20 h-14 shrink-0 border-b backdrop-blur md:h-12"
+  class="bg-card/95 sticky top-0 z-20 min-h-14 shrink-0 border-b backdrop-blur md:h-12 md:min-h-12"
 >
-  <div class="flex h-full items-center gap-1 px-2 sm:gap-2 sm:px-3 lg:px-6">
+  <div class="flex min-h-14 items-center gap-1 px-2 md:h-full md:min-h-0 sm:gap-2 sm:px-3 lg:px-6">
     {#if !focused}
       <!-- #1077: stay visible/focusable through the tablet range (hidden only
            at >=1024px), while the focused onboarding shell has no sidebar to
@@ -49,7 +51,7 @@ export let signedIn = false;
       aria-label="Life@USTC"
       class="hidden size-11 min-h-11 min-w-0 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 min-[320px]:inline-flex sm:w-auto sm:px-2 {focused
         ? ''
-        : 'md:hidden'}"
+        : 'lg:hidden'}"
       data-shell-brand
       href="/"
       title="Life@USTC"
@@ -75,8 +77,11 @@ export let signedIn = false;
       </div>
     {/if}
 
-    <div class="ml-auto flex items-center gap-1">
+    <div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
       {#if !focused}
+        <Button href={FEATURE_HUB_PATH} variant="ghost" size="icon" class="size-11" aria-label={copy.nav.hub.title} title={copy.nav.hub.title}>
+          <LayoutGridIcon />
+        </Button>
         <div class="md:hidden">
           <GlobalSearchTrigger
             copy={copy.globalSearch}

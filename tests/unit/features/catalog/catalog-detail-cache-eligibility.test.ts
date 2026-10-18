@@ -3,11 +3,11 @@ import {
   isCoursePageCore,
   isTeacherPageCore,
 } from "@/features/catalog/server/catalog-detail-cache-validation";
+import { cachedPublicDetailRuntimeData } from "@/features/catalog/server/catalog-detail-runtime-cache";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: async () => "eligibility-revision",
 }));
 

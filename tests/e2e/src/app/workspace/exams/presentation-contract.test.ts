@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import { formatSemesterName } from "../../../../../../src/lib/text/format-semester-name";
 import type { TestPrismaClient } from "../../../../../shared/prisma";
 import {
@@ -92,7 +93,7 @@ async function waitForMenuAutofocus(page: Page) {
 const filters = (page: Page) =>
   page.getByRole("group", { name: "Exams", exact: true });
 const visibleRows = (page: Page, width: number) =>
-  width < 768
+  width < COLLECTION_DESKTOP_MIN_WIDTH_PX
     ? page.getByTestId("workspace-exams-cards").locator('[data-slot="item"]')
     : page
         .getByRole("table")

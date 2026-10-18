@@ -1,0 +1,272 @@
+import { expect, type Page } from "@playwright/test";
+import { test } from "../../../utils/account-fixture";
+import { gotoAndWaitForReady } from "../../../utils/page-ready";
+
+const labels = {
+  "en-us": {
+    title: "All features",
+    search: "Search features",
+    clear: "Clear search",
+    empty: "No features match your search.",
+    schedule: "Schedule",
+    catalog: "Catalog",
+    campus: "Campus life",
+    account: "Account",
+    admin: "Admin tools",
+    homework: "Homework",
+    query: "homework progress",
+  },
+  "zh-cn": {
+    title: "全部功能",
+    search: "搜索功能",
+    clear: "清除搜索",
+    empty: "没有匹配的功能。",
+    schedule: "日程",
+    catalog: "课程目录",
+    campus: "校园生活",
+    account: "账户",
+    admin: "管理工具",
+    homework: "作业",
+    query: "作业 完成",
+  },
+};
+const publicPaths = [
+  "/catalog/courses",
+  "/catalog/sections",
+  "/catalog/teachers",
+  "/catalog/rooms",
+  "/catalog/bus",
+  "/catalog/weather",
+  "/catalog/young-events",
+  "/news",
+  "/catalog/links",
+  "/usage/mobile",
+  "/usage/bot",
+  "/usage/mcp",
+  "/usage/cli",
+];
+const userPaths = [
+  "/workspace/overview",
+  "/workspace/calendar",
+  "/workspace/homeworks",
+  "/workspace/todos",
+  "/workspace/exams",
+  "/workspace/subscriptions",
+  "/workspace/subscriptions/activities?view=notifications",
+  "/workspace/uploads",
+  "/account/settings/profile",
+];
+const adminPaths = [
+  "/admin/users",
+  "/admin/moderation",
+  "/admin/oauth",
+  "/admin/bus",
+];
+async function hrefs(page: Page, selector: string) {
+  return page
+    .locator(selector)
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+}
+
+for (const locale of ["en-us", "zh-cn"] as const) {
+  for (const role of ["anonymous", "user", "admin"] as const) {
+    test(`feature hub ${locale} ${role}`, { tag: "@Site/Web" }, async ({
+      page,
+      isolatedWorker,
+      run,
+    }) => {
+      test.setTimeout(120_000);
+      const copy = labels[locale];
+      if (role !== "anonymous") {
+        const user = await run(() =>
+          isolatedWorker.database.owner.user.create({
+            data: {
+              name: "Feature hub user",
+              username: "feature-hub-user",
+              email: "feature-hub@example.test",
+              isAdmin: role === "admin",
+            },
+          }),
+        );
+        await page
+          .context()
+          .addCookies([(await isolatedWorker.createSession(user.id)).cookie]);
+      }
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+        ]);
+      const expected = [
+        ...publicPaths,
+        ...(role !== "anonymous" ? userPaths : []),
+        ...(role === "admin" ? adminPaths : []),
+      ].sort();
+      let desktopLinks: (string | null)[] = [];
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        await gotoAndWaitForReady(page, "/catalog/features");
+        const main = page.locator("#main-content");
+        const hub = page.locator("[data-feature-hub]");
+        await expect(main.getByRole("heading", { level: 1 })).toHaveText(
+          copy.title,
+        );
+        await expect(page).toHaveTitle(`${copy.title} - Life@USTC`);
+        await expect
+          .poll(async () =>
+            (
+              await hrefs(page, '[data-feature-hub] [data-slot="card-title"] a')
+            ).sort(),
+          )
+          .toEqual(expected);
+        await expect(
+          hub.getByRole("heading", { name: copy.catalog, exact: true }),
+        ).toBeVisible();
+        await expect(
+          hub.getByRole("heading", { name: copy.campus, exact: true }),
+        ).toBeVisible();
+        await expect(
+          hub.getByRole("heading", { name: copy.account, exact: true }),
+        ).toHaveCount(role === "anonymous" ? 0 : 1);
+        await expect(
+          hub.getByRole("heading", { name: copy.admin, exact: true }),
+        ).toHaveCount(role === "admin" ? 1 : 0);
+        await expect(
+          page.locator(
+            '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"], [data-shell-navigation="secondary"]',
+          ),
+        ).toHaveCount(0);
+        await expect(
+          page
+            .locator("[data-shell-topbar]")
+            .getByRole("link", { name: copy.title, exact: true }),
+        ).toBeVisible();
+        const allHubLinks = await hrefs(page, "[data-feature-hub] a");
+        if (width < 768)
+          await page
+            .locator('[data-shell-topbar] [data-sidebar="trigger"]')
+            .click();
+        const navigation = page.locator(
+          `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
+        );
+        await expect(navigation).toHaveAttribute(
+          "aria-label",
+          locale === "zh-cn" ? "主导航" : "Primary navigation",
+        );
+        const collapsedGroups = navigation.locator(
+          '[data-slot="sidebar-group-label"][aria-expanded="false"]',
+        );
+        const collapsedGroupCount = await collapsedGroups.count();
+        for (let index = 0; index < collapsedGroupCount; index++)
+          await collapsedGroups.first().click();
+        const links = await navigation
+          .locator(
+            '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',
+          )
+          .evaluateAll((nodes) =>
+            nodes.map((node) => node.getAttribute("href")).sort(),
+          );
+        expect(links).toEqual(expected);
+        for (const href of links) expect(allHubLinks).toContain(href);
+        if (width >= 768) desktopLinks = links;
+        else expect(links).toEqual(desktopLinks);
+        await expect(
+          navigation.locator('[aria-current="page"]'),
+        ).toHaveAttribute("href", "/catalog/features");
+        await expect(
+          navigation.locator('a[href="/terms"], a[href="/privacy"]'),
+        ).toHaveCount(0);
+        await expect(
+          navigation.locator('a[href^="/catalog/sections/"]'),
+        ).toHaveCount(0);
+        if (width < 768) {
+          await page.keyboard.press("Escape");
+          await expect(navigation).toBeHidden();
+        }
+        const search = main.getByRole("searchbox", { name: copy.search });
+        if (role !== "anonymous") {
+          await search.fill(copy.query);
+          await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(
+            1,
+          );
+          await expect(
+            hub.getByRole("link", { name: copy.homework, exact: true }),
+          ).toHaveAttribute("href", "/workspace/homeworks");
+          await main
+            .getByRole("button", { name: copy.clear, exact: true })
+            .click();
+        }
+        await search.fill("/catalog/bus/map");
+        await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(1);
+        await expect(hub.locator('a[href="/catalog/bus/map"]')).toBeVisible();
+        await search.fill("no-such-feature-1215");
+        await expect(hub.getByRole("status")).toContainText(copy.empty);
+        await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(0);
+        await hub
+          .getByRole("button", { name: copy.clear, exact: true })
+          .click();
+        await expect(search).toHaveValue("");
+        await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(
+          expected.length,
+        );
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(width);
+        await hub.locator('a[href="/catalog/courses"]').click();
+        await expect(page).toHaveURL(/\/catalog\/courses$/);
+        await page
+          .locator("[data-shell-topbar]")
+          .getByRole("link", { name: copy.title, exact: true })
+          .click();
+        await expect(page).toHaveURL(/\/catalog\/features$/);
+      }
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
+test("feature hub and brand stay reachable through the tablet range", {
+  tag: "@Site/Web",
+}, async ({ page }) => {
+  for (const width of [768, 900, 1023]) {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoAndWaitForReady(page, "/catalog/features");
+    const topbar = page.locator("[data-shell-topbar]");
+    await expect(topbar.locator("[data-shell-brand]")).toBeVisible();
+    const menu = topbar.locator('[data-sidebar="trigger"]');
+    await expect(menu).toBeVisible();
+    await expect(topbar.locator('a[href="/catalog/features"]')).toBeVisible();
+    await menu.focus();
+    await page.keyboard.press("Enter");
+    await expect(menu).toHaveAttribute("aria-expanded", "true");
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+  }
+});
+
+for (const locale of ["en-us", "zh-cn"] as const) {
+  test(`feature hub compact topbar ${locale}`, { tag: "@Site/Web" }, async ({
+    page,
+    isolatedWorker,
+  }) => {
+    await page
+      .context()
+      .addCookies([
+        { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+      ]);
+    for (const width of [280, 320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoAndWaitForReady(page, "/catalog/features", {
+        expectNoHorizontalOverflow: true,
+      });
+      const topbar = page.locator("[data-shell-topbar]");
+      await expect(
+        topbar.getByRole("link", { name: labels[locale].title, exact: true }),
+      ).toBeVisible();
+      await expect(topbar.locator('a[href="/account/sign-in"]')).toBeVisible();
+    }
+  });
+}

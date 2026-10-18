@@ -79,9 +79,7 @@ async function openMobileMenu(page: Page) {
     .locator("[data-shell-topbar]")
     .getByRole("button", { name: /^菜单$|^Menu$/i })
     .click();
-  await expect(
-    page.locator('[data-shell-navigation="secondary"]'),
-  ).toBeVisible();
+  await expect(page.locator('[data-shell-navigation="mobile"]')).toBeVisible();
 }
 
 async function assertReadingOrder(page: Page, items: readonly string[]) {
@@ -157,7 +155,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           await gotoAndWaitForReady(page, href);
           if (viewport.width < 768) await openMobileMenu(page);
           const navigation = page.locator(
-            `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
+            `[data-shell-navigation="${viewport.width < 768 ? "mobile" : "desktop"}"]`,
           );
           const link = navigation.locator(`a[href="${collection}"]`);
           await expect(link).toBeVisible();
@@ -366,16 +364,14 @@ taskFilterTest(
           await setLocale(page, locale, headers);
           await gotoAndWaitForReady(page, "/workspace/overview");
           await expect(
-            page.getByRole("navigation", {
-              name:
-                locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
-              exact: true,
-            }),
-          ).toBeVisible();
+            page.locator(
+              '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"]',
+            ),
+          ).toHaveCount(0);
           await openMobileMenu(page);
           await expect(
             page.getByRole("navigation", {
-              name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+              name: locale === "zh-cn" ? "主导航" : "Primary navigation",
               exact: true,
             }),
           ).toBeVisible();
@@ -488,11 +484,12 @@ test("ui.public-legal-help-navigation", { tag: "@Site/Web" }, async ({
       for (const { href } of pages) {
         for (const destination of ["/terms", "/privacy", "/usage/mobile"]) {
           await gotoAndWaitForReady(page, href);
+          // Catalog details omit the public footer; legal/help links move to
+          // the sidebar strip (`data-shell-legal-nav`). List pages keep footer.
           if (viewport.width < 768) await openMobileMenu(page);
-          const nav = page.locator(
-            `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
-          );
-          const link = nav.locator(`a[href="${destination}"]`);
+          const shellLegal = page.locator("footer, [data-shell-legal-nav]");
+          await expect(shellLegal.first()).toBeVisible();
+          const link = shellLegal.locator(`a[href="${destination}"]`).first();
           await expect(link).toBeVisible();
           await link.click();
           await expect(page).toHaveURL(new RegExp(`${destination}$`));

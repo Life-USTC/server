@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
+import { getCatalogDetailCacheRevision } from "@/features/catalog/server/catalog-detail-cache-revision";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
 import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import { createFixturePrisma } from "../shared/prisma";
 

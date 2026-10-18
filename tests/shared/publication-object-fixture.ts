@@ -336,9 +336,16 @@ function ownPublicationResources(isolatedDatabase: IsolatedDatabase) {
       );
       objectBodies.clear();
       await attempt(async () => {
-        expect(
-          await db.$queryRaw`SELECT application_name FROM pg_stat_activity WHERE application_name = ${connectionLabel}`,
-        ).toEqual([]);
+        // pg's pool.end() can resolve before backend exit is visible to another
+        // connection. Keep this below the runtime pool's 5s idle timeout so
+        // missing disconnects still fail instead of expiring during the wait.
+        await expect
+          .poll(
+            () =>
+              db.$queryRaw`SELECT application_name FROM pg_stat_activity WHERE application_name = ${connectionLabel}`,
+            { timeout: 1_000, interval: 25 },
+          )
+          .toEqual([]);
       });
       if (platform) {
         const actual = platform.env.R2_PUBLICATIONS;

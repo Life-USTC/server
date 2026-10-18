@@ -1,7 +1,4 @@
-import {
-  getWorkspaceNavigationSummary,
-  listShellSubscribedSections,
-} from "@/features/workspace/server/workspace-navigation-summary";
+import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
 import {
   privateSessionJson,
   rejectBearerOnSessionRoute,
@@ -20,32 +17,14 @@ export const GET: RequestHandler = async ({ locals, request }) => {
     return privateSessionJson({
       viewer: null,
       navigation: null,
-      subscribedSections: [],
     } satisfies ShellBootstrapPayload);
   }
 
   try {
     const navigation = await getWorkspaceNavigationSummary(viewer.id);
-    let subscribedSections: ShellBootstrapPayload["subscribedSections"] = [];
-    try {
-      subscribedSections = await listShellSubscribedSections(
-        viewer.id,
-        locals.locale,
-      );
-    } catch (error) {
-      logRouteFailure(
-        "Failed to load subscribed sections for the shell",
-        500,
-        error,
-        {
-          source: "web-shell-bootstrap",
-        },
-      );
-    }
     return privateSessionJson({
       viewer,
       navigation,
-      subscribedSections,
     } satisfies ShellBootstrapPayload);
   } catch (error) {
     logRouteFailure("Failed to load shell bootstrap", 500, error, {
@@ -54,7 +33,6 @@ export const GET: RequestHandler = async ({ locals, request }) => {
     return privateSessionJson({
       viewer,
       navigation: null,
-      subscribedSections: [],
     } satisfies ShellBootstrapPayload);
   }
 };

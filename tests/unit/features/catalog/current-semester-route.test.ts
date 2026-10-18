@@ -10,8 +10,7 @@ vi.mock("@/features/catalog/server/academic-metadata-read-model", () => ({
   listSemesters: vi.fn(),
 }));
 
-vi.mock("@/lib/catalog-runtime-cache", () => ({
-  CATALOG_EDGE_CACHE_TAG: "catalog",
+vi.mock("@/features/catalog/server/catalog-runtime-cache", () => ({
   cachedCatalogRuntimeData: vi.fn(),
 }));
 

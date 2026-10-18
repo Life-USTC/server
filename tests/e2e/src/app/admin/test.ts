@@ -83,7 +83,7 @@ const test = adminTest.extend<{
 
 function adminPrimaryNav(page: import("@playwright/test").Page) {
   return page.getByTestId("app-sidebar").getByRole("navigation", {
-    name: /主导航|Primary navigation/i,
+    name: /管理后台|Admin/i,
   });
 }
 
@@ -307,29 +307,31 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", {
           { path: "/admin/users", name: /用户管理|User Management/i },
         ] as const;
 
-        const mobileNavigation = page.getByTestId("admin-mobile-navigation");
-        await expect(mobileNavigation).toBeVisible();
-        await expect(page.getByTestId("mobile-primary-navigation")).toHaveCount(
-          0,
-        );
-        const current = mobileNavigation.getByTestId(
-          "admin-mobile-navigation-current",
-        );
-        await expect(current).toContainText(/用户管理|User Management/i);
-
+        await expect(
+          page.locator(
+            '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"]',
+          ),
+        ).toHaveCount(0);
         for (const { path, name } of paths) {
-          await mobileNavigation
-            .getByTestId("admin-mobile-navigation-trigger")
+          await page
+            .locator('[data-shell-topbar] [data-sidebar="trigger"]')
             .click();
-          const panel = page.getByTestId("admin-mobile-navigation-panel");
+          const panel = page.getByTestId("admin-sidebar");
           await expect(panel).toBeVisible();
           await expect(panel.getByRole("link", { name })).toBeVisible();
-          await expect(panel.getByRole("link", { name: /./ })).toHaveCount(8);
+          await expect(page.getByTestId("admin-sidebar-back")).toHaveAttribute(
+            "href",
+            "/",
+          );
           await panel.getByRole("link", { name }).click();
           await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
           await waitForUiSettled(page);
           await expect(panel).toBeHidden();
-          await expect(current).toContainText(name);
+          await page
+            .locator('[data-shell-topbar] [data-sidebar="trigger"]')
+            .click();
+          await expect(panel.locator('[aria-current="page"]')).toHaveCount(1);
+          await page.keyboard.press("Escape");
         }
       },
       {},

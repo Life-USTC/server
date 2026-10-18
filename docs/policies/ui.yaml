@@ -280,7 +280,7 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings routes replace the primary sidebar with a settings sidebar whose top control returns home. Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list. The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings routes replace the primary sidebar with a settings sidebar whose top control returns home. Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list. Admin routes replace the primary sidebar with admin tools and a back-to-app link, without a duplicate bottom bar. The home page keeps the primary sidebar.
   rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
@@ -860,20 +860,30 @@ requirements:
 - id: ui.shell-layout-4
   category: presentation
   topic: shell-layout
-  rule: Signed-in mobile navigation exposes Today, Calendar, Tasks, and Explore. The content layout reserves
-    navigation height and the device safe-area inset so the final content is not covered.
+  rule: Mobile and desktop use the same functional sidebar destinations. No student or admin bottom tab bar renders. Mobile drawers close after navigation. Footer, content and section actions account for the device safe area once without reserving a tab-bar height.
   acceptance:
-    given: A signed-in user opens the mobile shell and a long public document.
-    when: The user activates every primary destination with the keyboard and the real browser emulates bottom
-      safe-area insets of zero and 34 pixels.
+    given: A signed-in browser opens the mobile shell.
+    when: The user activates schedule and catalog links from the drawer and emulates bottom safe-area insets of zero and 34 pixels.
     then:
-    - Today, Calendar, Tasks, and Explore reach their canonical routes and identify the active destination.
-    - Navigation padding and content reservation include the emulated safe-area inset.
-    - After scrolling to the document end, its final text is fully above the navigation bar with no horizontal
-      document overflow.
+    - The drawer reaches canonical routes, closes after activation, and identifies one current destination when reopened.
+    - No bottom navigation bar renders or reserves layout space; the footer respects the safe area and final content stays visible.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.shell-layout-4
+- id: ui.shell-feature-hub
+  category: presentation
+  topic: shell-layout
+  rule: The sidebar, mobile drawer and searchable /catalog/features hub share one destination model, grouped by schedule, subscriptions, catalog, campus life, account, clients and administration. The hub is linked from the sidebar and topbar at every shell width. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
+  acceptance:
+    given: Anonymous, ordinary and administrator viewers use Chinese and English on desktop and mobile.
+    when: They open the feature hub, search, clear and use its links and the sidebar.
+    then:
+    - Functional groups and accessible destinations agree between the hub and sidebar for the same viewer.
+    - Matching, empty and cleared searches render correctly; private and admin entries are visible only to their intended viewers.
+    - Mobile and desktop landmarks contain at most one current link and never expose a bottom tab bar.
+    test:
+      file: tests/e2e/src/app/shared-policy/feature-hub.test.ts
+      name: feature hub en-us user
 - id: ui.shell-layout-5
   category: presentation
   topic: shell-layout
@@ -911,7 +921,7 @@ requirements:
     surface: web
     target:
       by: css
-      value: '[data-shell-topbar] button:visible, [data-shell-navigation="mobile-primary"] a:visible'
+      value: '[data-shell-topbar] button:visible, [data-shell-topbar] a:visible'
     viewport:
       width: 390
       height: 844
@@ -921,10 +931,10 @@ requirements:
   - shell-layout
   acceptance:
     given: A signed-in administrator opens workspace todos at the viewport declared by the target-size expectation.
-    when: The browser measures the mobile primary links and menu, language, and theme controls, then opens the
+    when: The browser measures the feature-hub link and menu, language, and theme controls, then opens the
       navigation drawer.
     then:
-    - Rendered mobile topbar and primary-navigation hit targets meet the declared width and height at the declared
+    - Rendered mobile topbar hit targets meet the declared width and height at the declared
       viewport.
     test:
       file: tests/e2e/src/app/test.ts
@@ -972,6 +982,22 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.workspace-footer-policy-2
+- id: ui.sign-in-focused-shell
+  category: presentation
+  topic: workspace-footer-policy
+  rule: /account/sign-in uses a focused authentication shell with no sidebar, navigation toggle or public footer.
+    The login card remains centered in the available content area, with language and theme preferences in the header
+    and Terms and Privacy links inside the card.
+  acceptance:
+    given: An anonymous visitor at desktop and mobile widths.
+    when: The visitor opens /account/sign-in.
+    then:
+    - The focused shell and login card are visible without horizontal overflow.
+    - No sidebar navigation, sidebar toggle or public footer is rendered.
+    - Language and theme preferences and the card's legal links remain reachable.
+    test:
+      file: tests/e2e/src/app/signin/test.ts
+      name: /account/sign-in uses the focused auth shell
 - id: ui.workspace-filters-and-empty-states-1
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -1158,6 +1184,7 @@ requirements:
     when: Chinese and English touch-capable browsers inspect all day labels, navigate with arrows and Home/End, and tap empty and populated days.
     then:
     - Every day exposes the expected localized date and database-backed count; keyboard and touch selection update the accessible live detail.
+    - Contribution day cells and the legend do not duplicate that text in native title tooltips; the live detail region carries the selected day summary.
     test:
       file: tests/e2e/src/app/shared-policy/contribution-heatmap.test.ts
       name: ui.contribution-heatmap-2
@@ -1451,29 +1478,27 @@ requirements:
 - id: ui.navigation-landmarks-2
   category: presentation
   topic: navigation-landmarks
-  rule: 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
+  rule: 'The mobile drawer uses the same Primary navigation / 主导航 landmark as desktop; no secondary or bottom navigation landmark exists.'
   acceptance:
     given: A signed-in user opens the workspace overview at 390 pixels in Chinese and English.
-    when: The browser reads the visible mobile primary navigation, opens the menu, and reads the secondary navigation’s
+    when: The browser opens the menu and reads the primary navigation’s
       accessible name.
     then:
-    - 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
+    - 'The mobile drawer uses the same Primary navigation / 主导航 landmark as desktop; no secondary or bottom navigation landmark exists.'
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.navigation-landmarks-2
 - id: ui.navigation-landmarks-3
   category: presentation
   topic: navigation-landmarks
-  rule: Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
-    navigation landmarks may each identify their own active destination.
+  rule: Each navigation landmark contains at most one aria-current=page link. The desktop sidebar and mobile drawer identify the same destination.
   acceptance:
     given: A signed-in user visits workspace todos, the public course list, and preference settings at 1280
       and 390 pixels.
     when: The browser opens the mobile menu when needed and counts current-page links separately within every
       navigation landmark.
     then:
-    - Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
-      navigation landmarks may each identify their own active destination.
+    - Each navigation landmark contains at most one aria-current=page link. The desktop sidebar and mobile drawer identify the same destination.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.navigation-landmarks-3
@@ -1492,7 +1517,7 @@ requirements:
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
-  rule: Campus services navigation exposes distinct entries for the academic catalog, Young activities, and
+  rule: Functional sidebar groups expose distinct entries for the academic catalog, Young activities, and
     news, each linking to its canonical destination.
   acceptance:
     given: An anonymous visitor opens the desktop navigation or mobile navigation drawer.
@@ -1609,10 +1634,12 @@ requirements:
   category: presentation
   topic: workspace-footer-policy
   rule: Directly opened course, section, and teacher detail pages provide reachable Terms, Privacy, and usage-help
-    links through the public shell, on desktop and mobile without requiring sign-in.
+    links through the public shell (page footer when present, otherwise the sidebar legal strip), on desktop and
+    mobile without requiring sign-in.
   acceptance:
     given: An anonymous user directly opens each kind of public catalog detail at desktop and mobile widths.
-    when: The user expands navigation when necessary and activates each legal or help destination.
+    when: The user expands mobile navigation when necessary and activates each legal or help destination from the
+      public footer or sidebar legal strip.
     then:
     - Each destination is reachable without sign-in, responds successfully, and has a visible page heading.
     test:

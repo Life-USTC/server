@@ -1,0 +1,79 @@
+kind: feature
+id: usage
+name: Client Usage Guides
+areas:
+- platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+access:
+  anon: Can read every public client usage guide page.
+  user: Same public guides as anonymous visitors; guides do not expose personal workspace data.
+  admin: Same public guides as anonymous visitors.
+  agent: Usage guides are Web-only marketing and onboarding pages, not REST, GraphQL, or MCP capabilities.
+requirements:
+- id: usage.public-cache-admission
+  category: consistency
+  rule: Anonymous HTML cache admission includes the mobile, Bot, MCP, and CLI usage guide routes.
+  acceptance:
+    given: Each declared usage guide URL.
+    when: The public SSR admission resolver evaluates a document request.
+    then:
+    - Every usage guide route is admitted as a public page.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-5
+- id: usage.page-contract
+  category: presentation
+  rule: Each usage guide satisfies the shared public page contract at desktop and mobile widths in Chinese
+    and English.
+  acceptance:
+    given: The four client usage guide routes.
+    when: An anonymous browser opens each route through the shared page contract helper.
+    then:
+    - Each page passes the public layout, navigation, and accessibility contract checks.
+    test:
+      file: tests/e2e/src/app/usage/test.ts
+      name: /usage/mobile page contract
+- id: usage.primary-handoffs
+  category: presentation
+  rule: Usage guides expose their primary client handoff controls, including download, contact, or repository
+    links appropriate to each client surface.
+  acceptance:
+    given: Public usage guide fixtures for mobile, Bot, MCP, and CLI clients.
+    when: An anonymous browser opens each guide and inspects its primary call to action.
+    then:
+    - Mobile exposes an App Store or download handoff.
+    - Bot exposes the Presto contact handoff and illustrative response images without leaking private command
+      paths.
+    test:
+      file: tests/e2e/src/app/usage/test.ts
+      name: usage pages expose their primary handoff
+capabilities:
+  usage-guides:
+    title: Client Usage Guides
+    auth: anon
+    web:
+      pages:
+      - /usage/mobile
+      - /usage/bot
+      - /usage/mcp
+      - /usage/cli
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - guide.title
+          secondary:
+          - guide.summary
+          tertiary:
+          - guide.primaryHandoff
+rationale:
+- Usage guides explain how to adopt Life@USTC clients. Product behavior for each client remains in the
+  owning repositories; these pages only document public entry points and handoffs.
