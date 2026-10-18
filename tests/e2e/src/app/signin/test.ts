@@ -86,6 +86,31 @@ test("/account/sign-in 页面契约", { tag: "@Account/Web" }, async ({ page }) 
   await assertPageContract(page, { routePath: "/account/sign-in" });
 });
 
+test("/account/sign-in uses the focused auth shell", {
+  tag: "@Account/Web",
+}, async ({ page }) => {
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    await gotoAndWaitForReady(page, "/account/sign-in");
+    await expect(page.locator('[data-shell="focused"]')).toBeVisible();
+    await expect(page.locator("[data-shell-navigation]")).toHaveCount(0);
+    await expect(page.locator('[data-slot="sidebar-trigger"]')).toHaveCount(0);
+    await expect(page.locator("[data-shell-preferences]")).toBeVisible();
+    await expect(page.locator('[data-slot="card"]')).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await expect(
+      page.getByRole("navigation", {
+        name: "Footer navigation",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+  }
+});
+
 test("/account/sign-in narrow mobile shell uses an accessible compact brand", {
   tag: "@Account/Web",
 }, async ({ page }) => {
