@@ -127,9 +127,7 @@ describe("mobile toast placement", () => {
       ),
     ]);
 
-    expect(layout).toContain(
-      'mobileOffset={{ left: "1rem", right: "1rem" }}',
-    );
+    expect(layout).toContain('mobileOffset={{ left: "1rem", right: "1rem" }}');
     expect(layout).not.toMatch(/mobileOffset=\{\{[^}]*bottom:/);
     expect(sonner).toContain("mobileToastBottomSignedOut");
     expect(sonner).toContain("mobileToastBottomSignedIn");
