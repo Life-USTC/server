@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDetailWorkspacePath,
   isOnboardingPath,
+  isSignInPath,
   isYoungEventDetailPath,
   resolveMobileToastBottomOffset,
   resolveShellTheme,
@@ -67,11 +68,30 @@ describe("application shell focused chrome", () => {
     ["/account/welcome/", true],
     ["/account/sign-in", true],
     ["/account/sign-in-other", false],
-    ["/account/sign-in/nested", false],
+    ["/account/sign-in/nested", true],
     ["/account/settings", false],
     ["/workspace/overview", false],
   ])("pathname %s uses focused shell=%s", (pathname, expected) => {
     expect(shouldUseFocusedShell(pathname)).toBe(expected);
+  });
+
+  it.each([
+    ["/account/sign-in", true],
+    ["/account/sign-in/", true],
+    ["/account/sign-in/nested", true],
+    ["/account/sign-in-other", false],
+    ["/account/settings", false],
+  ])("pathname %s is sign-in=%s", (pathname, expected) => {
+    expect(isSignInPath(pathname)).toBe(expected);
+  });
+
+  it("omits the topbar Sign in control on the sign-in route", async () => {
+    const topbar = await readFile(
+      resolve(process.cwd(), "src/lib/components/shell/AppTopbar.svelte"),
+      "utf8",
+    );
+    expect(topbar).toContain("hideSignIn");
+    expect(topbar).toContain("!user && !hideSignIn");
   });
 });
 
@@ -86,6 +106,20 @@ describe("application shell compact brand", () => {
     expect(topbar).toContain("min-[320px]:inline-flex");
     expect(topbar).toMatch(/class="hidden size-11/);
     expect(topbar).not.toMatch(/class="inline-flex size-11/);
+  });
+});
+
+describe("application shell footer contrast", () => {
+  it("keeps footer links above muted-only weight", async () => {
+    const footer = await readFile(
+      resolve(process.cwd(), "src/lib/components/shell/AppFooter.svelte"),
+      "utf8",
+    );
+    expect(footer).toContain("text-foreground/80");
+    expect(footer).toContain("bg-muted/40");
+    expect(footer).not.toMatch(
+      /flex min-w-0 flex-1 items-center justify-between gap-4 bg-background\/80 px-4 text-muted-foreground/,
+    );
   });
 });
 

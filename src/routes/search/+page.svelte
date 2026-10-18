@@ -56,7 +56,14 @@ const {
   handleInputKeydown,
   handleResultKeydown,
   navigateTo,
+  applyQueryFromUrl,
 } = search;
+
+function pickExample(example: string) {
+  // Debounced path updates ?q= and keeps the page search secondary to the top bar.
+  applyQueryFromUrl(example);
+  queueMicrotask(() => inputElement?.focus());
+}
 
 let urlSyncMount: ReturnType<typeof mountGlobalSearchUrlSync>;
 
@@ -92,13 +99,16 @@ afterNavigate(({ to, shallow, type }) => {
 
 <CollectionPage description={data.copy.pageDescription} title={data.copy.pageTitle}>
   {#snippet toolbar()}
-  <Field.Field class="gap-1">
+  <Field.Field class="max-w-xl gap-1">
     <Field.Label class="sr-only" for="global-search-page-input">
       {data.copy.pageTitle}
     </Field.Label>
-    <InputGroup.Root class="h-11 rounded-lg">
-      <InputGroup.Addon class="px-0 ps-3">
-        <SearchIcon aria-hidden="true" class="text-muted-foreground" />
+    <InputGroup.Root
+      class="h-9 rounded-md border-border/70 bg-muted/30 shadow-none"
+      data-search-page-field
+    >
+      <InputGroup.Addon class="px-0 ps-2.5">
+        <SearchIcon aria-hidden="true" class="size-4 text-muted-foreground" />
       </InputGroup.Addon>
       <InputGroup.Input
         bind:ref={inputElement}
@@ -109,7 +119,7 @@ afterNavigate(({ to, shallow, type }) => {
         aria-busy={$isSearching}
         aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
         aria-expanded={$canNavigateResults}
-        class="h-11 rounded-lg border-0 bg-transparent pr-3 ps-3 text-base outline-none md:text-sm"
+        class="h-9 rounded-md border-0 bg-transparent pr-2.5 ps-2.5 text-sm outline-none"
         id="global-search-page-input"
         oncompositionend={handleCompositionEnd}
         oninput={handleQueryInput}
@@ -128,8 +138,11 @@ afterNavigate(({ to, shallow, type }) => {
       copy={data.copy}
       groups={$groups}
       isSearching={$isSearching}
+      onPickExample={pickExample}
       showHint={$showHint}
       showInitialHint={$showInitialHint}
+      signedIn={viewerId !== null}
+      variant="page"
       onResultKeydown={(event, itemIndex) =>
         handleResultKeydown(event, itemIndex, inputElement)}
       onSelect={navigateTo}
