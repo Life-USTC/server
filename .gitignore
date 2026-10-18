@@ -63,3 +63,4 @@ ENV/
 
 # worktrees
 .worktrees/
+/.claude/worktrees/
