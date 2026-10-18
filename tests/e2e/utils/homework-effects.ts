@@ -358,23 +358,30 @@ export async function withHomeworkEffects(
           }
           return;
         }
-        let fulfilled = false;
+        let continued = false;
         const operation = (async () => {
           try {
             if (!accepting)
               throw new Error("Homework request started during teardown");
             const incoming = route.request();
-            const response = await route.fetch({
-              maxRedirects: 0,
+            // Keep writes on the browser transport. Observer requests can
+            // leave an idle pooled socket in the separate API request client.
+            await route.continue({
               headers: { ...incoming.headers(), ...headers },
             });
-            await response.body();
-            // Deliver the genuine response before joining native asynchronous effects.
-            await route.fulfill({ response });
-            fulfilled = true;
+            continued = true;
+            const response = await incoming.response();
+            if (!response)
+              throw new Error(
+                incoming.failure()?.errorText ??
+                  "Homework write has no response",
+              );
+            // Teardown still owns the write until its real response completes.
+            const failure = await response.finished();
+            if (failure) throw failure;
           } catch (error) {
             errors.push(error);
-            if (!fulfilled)
+            if (!continued)
               try {
                 await route.abort("aborted");
               } catch (abortError) {

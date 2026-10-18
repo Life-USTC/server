@@ -309,7 +309,12 @@ export async function withPreferenceFlow(
       }
       if (registered) {
         try {
-          const response = await observer.get(probePath, probeOptions);
+          // This read-only final snapshot may outlive a pooled connection.
+          // Recover one reset without replaying registration or browser writes.
+          const response = await observer.get(probePath, {
+            ...probeOptions,
+            maxRetries: 1,
+          });
           expect(response.status()).toBe(200);
           const observation = await response.json();
           expect(observation.backgroundErrors).toEqual([]);
