@@ -3,6 +3,19 @@ import {
   purgeCloudflareCacheByTags,
   purgeWorkerEntrypointCache,
 } from "./edge-cache-purge";
+import { parseBooleanSetting } from "./validation";
+
+/** Local-only opt-in; production sync must configure both purge layers. */
+export const ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE_ENV =
+  "ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE";
+
+function allowSkippingPostImportCachePurge(): boolean {
+  return parseBooleanSetting(
+    ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE_ENV,
+    process.env[ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE_ENV],
+    false,
+  );
+}
 
 export type CachePurgeLayerOutcome =
   | "failed"
@@ -37,10 +50,17 @@ async function runLayer(
   purge: () => Promise<{ skipped: boolean }>,
   skippedHint: string,
   logger: Logger,
+  allowSkip: boolean,
 ): Promise<CachePurgeLayerOutcome> {
   try {
     const result = await purge();
     if (result.skipped) {
+      if (!allowSkip) {
+        logger.error(
+          `FAILED ${layer} cache purge after a committed import (${skippedHint})`,
+        );
+        return "failed";
+      }
       logger.log(`Skipped ${layer} cache purge (${skippedHint})`);
       return "skipped";
     }
@@ -73,17 +93,21 @@ export async function runPostImportCachePurge(
     return { failed: false, workerEntrypoint: "not-run", zone: "not-run" };
   }
 
+  const allowSkip = allowSkippingPostImportCachePurge();
+
   const zone = await runLayer(
     "Cloudflare zone/CDN",
     () => purgeCloudflareCacheByTags([CATALOG_EDGE_CACHE_TAG]),
     "CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set",
     logger,
+    allowSkip,
   );
   const workerEntrypoint = await runLayer(
     "Workers entrypoint (public SSR)",
     purgeWorkerEntrypointCache,
     "APP_PUBLIC_ORIGIN or EDGE_CACHE_PURGE_SECRET not set",
     logger,
+    allowSkip,
   );
 
   return {
