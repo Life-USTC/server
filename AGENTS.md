@@ -131,7 +131,9 @@ back to main.
 
 MCP tool names match each capability's `mcp.tools[].name`, not its contract ID.
 Fixtures: `tests/e2e/fixtures/scenario.json` feeds `tests/fixtures/dev-seed.ts`
-(`DEV_SEED_ANCHOR`). Keep `prisma/seed.sql` aligned with that scenario.
+(`DEV_SEED_ANCHOR`). Keep `prisma/seed.sql` aligned with that scenario. Seed
+credential hashes are generated at seed time from `DEV_ADMIN_PASSWORD` /
+`DEV_DEBUG_PASSWORD`, never committed (`prisma/AGENTS.md`).
 
 ## Web and auth
 
