@@ -41,6 +41,7 @@ export let labels: {
   day: string;
   moreEvents: string;
   sourceMissing: string;
+  calendarEmpty: string;
 };
 export let hrefFor: (view: YoungCalendarView, date: string) => string = (
   targetView,
@@ -161,6 +162,8 @@ function eventMeta(event: YoungCalendarEvent) {
             {#if visible.length > limit}
               <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
             {/if}
+          {:else}
+            <p class="py-1 text-sm text-muted-foreground">{labels.calendarEmpty}</p>
           {/if}
         </section>
       {/each}
@@ -204,19 +207,23 @@ function eventMeta(event: YoungCalendarEvent) {
               dateStyle: "full",
             }).format(day.date)}
           </div>
-          {#each day.events as event (event.youngId)}
-            <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
-              <div class="font-medium">{event.name}</div>
-              <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
-              <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
-            </a>
-          {/each}
+          {#if day.events.length > 0}
+            {#each day.events as event (event.youngId)}
+              <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
+                <div class="font-medium">{event.name}</div>
+                <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
+                <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
+              </a>
+            {/each}
+          {:else}
+            <p class="py-1 text-sm text-muted-foreground">{labels.calendarEmpty}</p>
+          {/if}
         </div>
       {/if}
     {:else}
       <CalendarGrid
         density="lines"
-        emptyLabel=""
+        emptyLabel={labels.calendarEmpty}
         eventLimit={view === "week" ? 6 : 3}
         moreLabel={(count) => labels.moreEvents.replace("{count}", String(count))}
         minWidth="760px"
