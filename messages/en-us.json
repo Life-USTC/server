@@ -2254,7 +2254,7 @@
     "contentHistoryAction": "Content history",
     "contentHistoryActor": "By {name}",
     "descriptionEmpty": "No homework details yet",
-    "emptyDescription": "No homework details yet",
+    "emptyDescription": "Your subscribed sections haven't published homework.",
     "errorTitleRequired": "Please enter a homework title.",
     "errorTitleTooLong": "Title is too long (max 200 characters).",
     "errorDescriptionTooLong": "Description is too long (max 4000 characters).",

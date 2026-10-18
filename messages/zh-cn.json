@@ -1901,7 +1901,7 @@
     "contentHistoryAction": "内容记录",
     "contentHistoryActor": "操作人：{name}",
     "descriptionEmpty": "暂无作业说明",
-    "emptyDescription": "暂无作业说明",
+    "emptyDescription": "你订阅的教学班还没有发布作业。",
     "errorTitleRequired": "请输入作业标题。",
     "errorTitleTooLong": "作业标题过长（最多 200 字）。",
     "errorDescriptionTooLong": "作业说明过长（最多 4000 字）。",

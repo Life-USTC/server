@@ -190,10 +190,10 @@ $: agendaDays = baseAgendaDays.map((day) => ({
       ownerId={ownerId}
     />
   {:else}
-    <Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="link">{activityCopy.youngEvents.workspace.manage}</Button>
     {#if youngLoading}<p role="status">{activityCopy.youngEvents.workspace.loading}</p>{/if}
     {#if youngFailed}<p role="alert">{activityCopy.youngEvents.workspace.failed}</p><Button variant="outline" onclick={() => requestedRange = ""}>{activityCopy.youngEvents.workspace.retry}</Button>{/if}
     <CalendarTabToolbar
+      activitiesManageLabel={activityCopy.youngEvents.workspace.manage}
       addDays={addDays}
       addMonths={addMonths}
       calendarData={calendarData}

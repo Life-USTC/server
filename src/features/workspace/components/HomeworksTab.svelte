@@ -87,6 +87,9 @@ function clearHomeworkFilter() {
   homeworkFilter = "all";
 }
 
+$: showClearHomeworkFilter =
+  homeworkFilter !== "incomplete" && homeworkItems.length > 0;
+
 $: ({
   fmtDate,
   homeworkCompletionActionLabel,
@@ -139,6 +142,7 @@ $: ({
           unknownSemesterLabel={commonCopy.unknown}
           filteredHomeworkItems={filteredHomeworkItems}
           hasHomeworkItems={hasHomeworkItems}
+          showClearFilter={showClearHomeworkFilter}
           onClearFilter={clearHomeworkFilter}
           fmtDate={fmtDate}
           homeworkCompletionActionLabel={homeworkCompletionActionLabel}
@@ -158,6 +162,7 @@ $: ({
           unknownSemesterLabel={commonCopy.unknown}
           filteredHomeworkItems={filteredHomeworkItems}
           hasHomeworkItems={hasHomeworkItems}
+          showClearFilter={showClearHomeworkFilter}
           onClearFilter={clearHomeworkFilter}
           fmtDate={fmtDate}
           homeworkCompletionActionLabel={homeworkCompletionActionLabel}

@@ -519,9 +519,7 @@ for (const [domain, tab] of [
               const clear = page
                 .getByRole("button", { name: /清除筛选|Clear filter/i })
                 .filter({ visible: true });
-              const empty = page
-                .locator('[data-slot="empty"]')
-                .filter({ has: clear });
+              const empty = page.locator('[data-slot="empty"]').first();
               await expect(empty).toBeVisible();
               await expect(empty.locator("svg, img")).toHaveCount(0);
               expect(
@@ -534,22 +532,32 @@ for (const [domain, tab] of [
                 '[data-slot="empty-description"]',
               );
               await expect(description).toBeVisible();
-              const descriptionBox = await description.boundingBox();
-              const clearBox = await clear.boundingBox();
-              if (!descriptionBox || !clearBox)
-                throw new Error("Missing empty-state geometry");
-              expect(clearBox.y).toBeGreaterThan(
-                descriptionBox.y + descriptionBox.height,
-              );
-              expect(
-                await clear.evaluate((node) =>
-                  Number.parseFloat(getComputedStyle(node).borderTopWidth),
-                ),
-              ).toBeGreaterThan(0);
-              if (viewport.width >= 768)
-                await expect(
-                  page.getByRole("columnheader").first(),
-                ).toBeVisible();
+              if (tab === "todos") {
+                const emptyWithClear = page
+                  .locator('[data-slot="empty"]')
+                  .filter({ has: clear });
+                await expect(emptyWithClear).toBeVisible();
+                const descriptionBox = await description.boundingBox();
+                const clearBox = await clear.boundingBox();
+                if (!descriptionBox || !clearBox)
+                  throw new Error("Missing empty-state geometry");
+                expect(clearBox.y).toBeGreaterThan(
+                  descriptionBox.y + descriptionBox.height,
+                );
+                expect(
+                  await clear.evaluate((node) =>
+                    Number.parseFloat(getComputedStyle(node).borderTopWidth),
+                  ),
+                ).toBeGreaterThan(0);
+                if (viewport.width >= 768)
+                  await expect(
+                    page.getByRole("columnheader").first(),
+                  ).toBeVisible();
+              } else {
+                await expect(clear).toHaveCount(0);
+                if (viewport.width >= 768)
+                  await expect(page.getByRole("columnheader")).toHaveCount(0);
+              }
             }
           }
         },
@@ -576,16 +584,24 @@ for (const [domain, tab] of [
             const clear = page
               .getByRole("button", { name: /清除筛选|Clear filter/i })
               .filter({ visible: true });
-            const empty = page
-              .locator('[data-slot="empty"]')
-              .filter({ has: clear });
+            const empty = page.locator('[data-slot="empty"]').first();
             await expect(empty.locator('[data-slot="empty-title"]')).toHaveText(
               /.+/,
             );
             await expect(
               empty.locator('[data-slot="empty-description"]'),
             ).toHaveText(/.+/);
-            await clear.click();
+            if (tab === "todos") {
+              await expect(clear).toBeVisible();
+              await clear.click();
+            } else {
+              await expect(clear).toHaveCount(0);
+              await page
+                .locator('[data-slot="toggle-group"]')
+                .filter({ has: page.locator('[data-value="incomplete"]') })
+                .locator('[data-value="all"]')
+                .click();
+            }
             await expect(
               page.locator('[data-slot="toggle-group"] [aria-checked="true"]'),
             ).toHaveAttribute("data-value", "all");

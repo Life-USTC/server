@@ -23,6 +23,7 @@ export let locale: string;
 export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
+export let showClearFilter = false;
 export let onClearFilter: () => void;
 export let fmtDate: HomeworkDateFormatter;
 export let homeworkCompletionActionLabel: HomeworkAction;
@@ -142,10 +143,12 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
     </Item.Group>
   {:else}
     <WorkspaceTaskEmptyState
-            title={homeworksCopy.filterEmptyTitle}
-            description={hasHomeworkItems ? homeworksCopy.filterEmptyDescription : undefined}
-            clearFilterLabel={homeworksCopy.clearFilter}
-            onClearFilter={hasHomeworkItems ? onClearFilter : undefined}
-          />
+      title={hasHomeworkItems ? homeworksCopy.filterEmptyTitle : homeworksCopy.emptyTitle}
+      description={hasHomeworkItems
+        ? homeworksCopy.filterEmptyDescription
+        : homeworksCopy.emptyDescription}
+      clearFilterLabel={homeworksCopy.clearFilter}
+      onClearFilter={showClearFilter ? onClearFilter : undefined}
+    />
   {/if}
 </div>
