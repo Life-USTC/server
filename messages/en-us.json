@@ -119,6 +119,7 @@
     "placeholder": "For example: 3A204",
     "submit": "Look up",
     "empty": "Enter a room code to view its map.",
+    "emptyTitle": "No room selected yet",
     "triggerLabel": "View the location map for {code}",
     "dialogTitle": "Location map for {code}",
     "dialogDescription": "Scroll around the floor map and use the controls or Ctrl/⌘ + scroll to zoom.",
