@@ -239,6 +239,20 @@ requirements:
     test:
       file: tests/e2e/src/app/bus/presentation-contract.test.ts
       name: bus.responsive-route-surfaces
+- id: bus.map-usable-height
+  category: presentation
+  rule: The transit-map canvas uses the viewport below the topbar and page padding, without reserving
+    bottom-tab space. The SVG fits both canvas dimensions while preserving its aspect ratio.
+  acceptance:
+    given: The transit map renders on desktop and narrow mobile screens.
+    when: The viewer opens the map and resizes the viewport.
+    then:
+    - Desktop maps can grow beyond the former 26rem height cap.
+    - The map stays within the available canvas height and width without distortion or horizontal overflow.
+    - Narrow screens retain a full-width map and a reachable refresh control.
+    test:
+      file: tests/e2e/src/app/bus-map/test.ts
+      name: 地图使用可用视口高度且随窗口缩放
 - id: bus.canonical-compact-mode
   category: presentation
   rule: The default catalog_bus_timetable_get response contains counts, route/campus summaries and relevant
