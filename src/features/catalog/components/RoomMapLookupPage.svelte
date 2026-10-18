@@ -1,7 +1,7 @@
 <script lang="ts">
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import {
   toolbarControlClass,
   toolbarFieldClass,
@@ -9,6 +9,7 @@ import {
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
+import { ACTION_BUTTON_VARIANT } from "#lib/ui/action-status-tokens.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 
@@ -50,7 +51,11 @@ function submit(event: SubmitEvent) {
           spellcheck="false"
         />
       </Field.Field>
-      <Button type="submit" class={toolbarControlClass}>
+      <Button
+        type="submit"
+        class={toolbarControlClass}
+        variant={ACTION_BUTTON_VARIANT.primary}
+      >
         <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
         {copy.submit}
       </Button>
@@ -68,8 +73,10 @@ function submit(event: SubmitEvent) {
       />
     {/key}
   {:else}
-    <div class="py-10">
-      <ResultsEmpty description={copy.empty} title={copy.emptyTitle} />
-    </div>
+    <CollectionEmpty
+      description={copy.empty}
+      title={copy.emptyTitle}
+      variant="setup"
+    />
   {/if}
 </CollectionPage>

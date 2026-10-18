@@ -6,6 +6,10 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import {
+  resolveStatusToken,
+  statusBadgeClass,
+} from "#lib/ui/action-status-tokens.js";
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
 import type {
@@ -83,7 +87,22 @@ const badges = $derived(
         <YoungSubscriptionControl compact id={event.youngId} copy={youngCopy.workspace} />
       </div>
       <div class="flex min-w-0 flex-wrap gap-2" data-testid="young-event-badges">
-        <Badge variant={event.isActive ? "default" : "outline"}>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Badge>
+        <Badge
+          class={statusBadgeClass(
+            resolveStatusToken({
+              status: event.status,
+              isActive: event.isActive,
+            }),
+          )}
+          data-status-token={resolveStatusToken({
+            status: event.status,
+            isActive: event.isActive,
+          })}
+          variant="outline"
+        >
+          {event.status ??
+            (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}
+        </Badge>
         {#each badges as badge (badge)}
           <Badge variant="secondary">{badge}</Badge>
         {/each}

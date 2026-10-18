@@ -81,7 +81,15 @@
     "userNotFound": "未找到用户",
     "unknown": "未知",
     "campusServices": "校园服务",
-    "applyFilters": "应用筛选"
+    "applyFilters": "应用筛选",
+    "statusInProgress": "进行中",
+    "statusOpen": "报名中",
+    "statusOverdue": "逾期",
+    "statusEnded": "已结束",
+    "emptyFilterClear": "清除筛选后重试",
+    "emptyBrowse": "未找到相关结果",
+    "emptySetup": "还没有内容，完成设置后即可开始使用",
+    "emptyQuiet": "此范围内暂无内容"
   },
   "globalSearch": {
     "title": "搜索",

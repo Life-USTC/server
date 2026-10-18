@@ -1588,6 +1588,22 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
       name: ui.public-browse-pagination-state Course
+- id: ui.action-status-tokens
+  category: presentation
+  topic: chrome-tokens
+  rule: Shared theme tokens separate primary CTA fill (at most one solid primary action per view) and secondary
+    outline actions from status-* colors for 进行中, 报名中, 逾期 and 已结束. Collection empty surfaces reuse
+    filter-clear, browse, setup and quiet variants instead of per-feature chrome.
+  acceptance:
+    given: The action/status token module, empty variant exports and theme CSS custom properties.
+    when: Unit tests import the token and empty exports and read svelte.css.
+    then:
+    - Primary maps to the solid button default and secondary to outline; status-active, status-open,
+      status-overdue and status-ended classes and CSS variables are present.
+    - Empty variants filter-clear, browse, setup and quiet are exported with CollectionEmpty ownership.
+    test:
+      file: tests/unit/lib/ui/action-status-tokens.test.ts
+      name: action-status-tokens
 - id: ui.theme-system-response
   category: presentation
   topic: shell-layout
@@ -1708,6 +1724,10 @@ topics:
   title: Calendar Export Dialog
 - id: shell-layout
   title: Shell Layout
+- id: chrome-tokens
+  title: Action Status and Empty Chrome Tokens
+  requirement_refs:
+  - ui.action-status-tokens
 - id: workspace-footer-policy
   title: Workspace Footer Policy
 - id: workspace-filters-and-empty-states

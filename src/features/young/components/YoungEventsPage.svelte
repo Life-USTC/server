@@ -1,12 +1,16 @@
 <script lang="ts">
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import {
+  resolveStatusToken,
+  statusBadgeClass,
+} from "#lib/ui/action-status-tokens.js";
 import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventSummary,
@@ -71,6 +75,19 @@ function listDateTime(value: string | null | undefined) {
   if (!formatted) return null;
   const [date, time] = formatted.split(" ");
   return time ? `${date} ${time.slice(0, 5)}` : formatted;
+}
+
+function eventStatusLabel(event: YoungEventSummary) {
+  return (
+    event.status ??
+    (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)
+  );
+}
+
+function eventStatusClass(event: YoungEventSummary) {
+  return statusBadgeClass(
+    resolveStatusToken({ status: event.status, isActive: event.isActive }),
+  );
 }
 </script>
 
@@ -147,8 +164,15 @@ function listDateTime(value: string | null | undefined) {
                               </p>
                             </Item.Content>
                             <Item.Actions>
-                                <Badge variant={event.isActive ? "default" : "outline"}>
-                                  {event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}
+                                <Badge
+                                  class={eventStatusClass(event)}
+                                  data-status-token={resolveStatusToken({
+                                    status: event.status,
+                                    isActive: event.isActive,
+                                  })}
+                                  variant="outline"
+                                >
+                                  {eventStatusLabel(event)}
                                 </Badge>
                             </Item.Actions>
                           </a>
@@ -187,7 +211,18 @@ function listDateTime(value: string | null | undefined) {
                   <Table.Cell>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</Table.Cell>
                   <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
                     <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
-                  <Table.Cell>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Table.Cell>
+                  <Table.Cell>
+                    <Badge
+                      class={eventStatusClass(event)}
+                      data-status-token={resolveStatusToken({
+                        status: event.status,
+                        isActive: event.isActive,
+                      })}
+                      variant="outline"
+                    >
+                      {eventStatusLabel(event)}
+                    </Badge>
+                  </Table.Cell>
                 </Table.Row>
               {/each}
             </Table.Body>
@@ -195,12 +230,11 @@ function listDateTime(value: string | null | undefined) {
         {/snippet}
       </ResponsiveCollection>
     {:else}
-      <div class="py-10">
-        <ResultsEmpty
-          description={youngCopy.description}
-          title={youngCopy.noEventsFound}
-        />
-      </div>
+      <CollectionEmpty
+        description={youngCopy.description}
+        title={youngCopy.noEventsFound}
+        variant="browse"
+      />
     {/if}
   </section>
 </CollectionPage>
