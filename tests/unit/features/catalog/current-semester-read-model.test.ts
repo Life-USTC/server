@@ -14,7 +14,7 @@ const { cachedCatalogRuntimeDataMock, semesterFindFirstMock } = vi.hoisted(
   }),
 );
 
-vi.mock("@/lib/catalog-runtime-cache", () => ({
+vi.mock("@/features/catalog/server/catalog-runtime-cache", () => ({
   cachedCatalogRuntimeData: cachedCatalogRuntimeDataMock,
 }));
 

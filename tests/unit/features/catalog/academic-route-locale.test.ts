@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const PUBLIC_CATALOG_CDN_CACHE =
   "public, max-age=86400, stale-while-revalidate=300";
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
 }));
 

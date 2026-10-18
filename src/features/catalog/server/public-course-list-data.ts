@@ -1,13 +1,13 @@
 import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
+import {
+  cachedCatalogListRuntimeData,
+  catalogListCacheNamespace,
+} from "@/features/catalog/server/catalog-runtime-cache";
 import { listCourseSummaries } from "@/features/catalog/server/course-section-queries";
 import { getCourseListFilterOptions } from "@/features/catalog/server/public-catalog-filter-options";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
-import {
-  cachedCatalogListRuntimeData,
-  catalogListCacheNamespace,
-} from "@/lib/catalog-runtime-cache";
 import {
   optionalValue,
   parsePositivePage,

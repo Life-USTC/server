@@ -2,16 +2,12 @@ import {
   getCachedUserCalendarExport,
   requestMatchesEtag,
 } from "@/features/calendar/server/calendar-export-cache";
-import {
-  getSectionForCalendar,
-  getSectionsForCalendar,
-  getUserCalendarRecord,
-} from "@/features/calendar/server/calendar-export-data";
+import { getUserCalendarRecord } from "@/features/calendar/server/calendar-export-data";
 import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
 import {
-  createMultiSectionCalendar,
-  createSectionCalendar,
-} from "@/features/calendar/server/ical";
+  buildSectionCalendarExport,
+  buildSectionsCalendarExport,
+} from "@/features/calendar/server/calendar-section-export";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
 import {
   calendarNotModifiedResponse,
@@ -19,34 +15,30 @@ import {
 } from "./calendar-route-utils";
 
 export async function generateSectionsCalendarAction(sectionIds: number[]) {
-  const sections = await getSectionsForCalendar(sectionIds);
+  const calendar = await buildSectionsCalendarExport(sectionIds);
 
-  if (sections.length === 0) {
+  if (!calendar) {
     return handleRouteError("No sections found", new Error("No sections"), 404);
   }
 
-  const calendar = await createMultiSectionCalendar(sections);
-
   return calendarResponse(
-    calendar.toString(),
-    "life-ustc-schedule.ics",
-    "public, max-age=3600",
+    calendar.text,
+    calendar.filename,
+    calendar.cacheControl,
   );
 }
 
 export async function generateSectionCalendarAction(sectionJwId: number) {
-  const section = await getSectionForCalendar(sectionJwId);
+  const calendar = await buildSectionCalendarExport(sectionJwId);
 
-  if (!section) {
+  if (!calendar) {
     return notFound("Section not found");
   }
 
-  const calendar = await createSectionCalendar(section);
-
   return calendarResponse(
-    calendar.toString(),
-    `life-ustc-${section.semesterId}-${section.code}.ics`,
-    "public, max-age=3600",
+    calendar.text,
+    calendar.filename,
+    calendar.cacheControl,
   );
 }
 

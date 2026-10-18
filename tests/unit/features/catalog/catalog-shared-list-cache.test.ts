@@ -14,7 +14,7 @@ vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
   paginatedCourseQuery: paginatedCourseQueryMock,
 }));
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: getCatalogDetailCacheRevisionMock,
 }));
 
