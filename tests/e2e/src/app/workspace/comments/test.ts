@@ -83,7 +83,7 @@ test.describe("仪表盘无效标签（comments）", () => {
         // Overview is the fallback — should show the overview sidebar entry as active
         await expandWorkspaceSidebarGroup(page);
         await expect(
-          sidebarNavigationLink(page, /^(今天|Today)$/i),
+          sidebarNavigationLink(page, /^(总览|Overview)$/i),
         ).toHaveAttribute("aria-current", "page");
       });
     },

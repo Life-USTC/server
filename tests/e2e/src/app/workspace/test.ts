@@ -57,7 +57,7 @@ test.describe("仪表盘", () => {
         // Task-oriented workspace destinations are directly reachable.
         await expandWorkspaceSidebarGroup(page);
         for (const label of [
-          /^(今天|Today)$/i,
+          /^(总览|Overview)$/i,
           /^(日历|Calendar)$/i,
           /^(作业|Homework)$/i,
         ]) {
