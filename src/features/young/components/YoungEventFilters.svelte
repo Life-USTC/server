@@ -144,6 +144,7 @@ const activeFilters = $derived(
   {#if filters.dateUnknown != null}<input type="hidden" name="dateUnknown" value={String(filters.dateUnknown)} />{/if}
 {/snippet}
 
+<div class="grid min-w-0 gap-3">
 <FilterToolbar
   bind:open
   activeCount={activeCount}
@@ -237,3 +238,4 @@ const activeFilters = $derived(
   clearHref={clearHref}
   clearLabel={copy.common.clear}
 />
+</div>
