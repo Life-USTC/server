@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import { test } from "../../../../utils/homework-fixture";
 import { homeworkDescription as description } from "../../../../utils/homework-state";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -7,11 +8,13 @@ const widths = [1280, 390];
 test.describe.configure({ mode: "parallel" });
 function list(page: Page, width: number) {
   return page.getByTestId(
-    width >= 768 ? "workspace-homeworks-list" : "workspace-homeworks-cards",
+    width >= COLLECTION_DESKTOP_MIN_WIDTH_PX
+      ? "workspace-homeworks-list"
+      : "workspace-homeworks-cards",
   );
 }
 function row(page: Page, width: number, title: string) {
-  return width >= 768
+  return width >= COLLECTION_DESKTOP_MIN_WIDTH_PX
     ? list(page, width).getByRole("row").filter({ hasText: title })
     : list(page, width)
         .locator('[data-slot="item"]')
@@ -37,7 +40,9 @@ test("homework.responsive-workspace-view", { tag: "@Homework/Web" }, async ({
         await page.setViewportSize({ width, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/homeworks");
         await expect(list(page, width)).toBeVisible();
-        await expect(list(page, width >= 768 ? 390 : 1280)).toBeHidden();
+        await expect(
+          list(page, width >= COLLECTION_DESKTOP_MIN_WIDTH_PX ? 390 : 1280),
+        ).toBeHidden();
         for (const label of [
           /^(未完成|Incomplete)$/i,
           /^(已完成|Completed)$/i,

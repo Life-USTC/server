@@ -1,5 +1,9 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
+import {
+  collectionCompactClass,
+  collectionDesktopClass,
+} from "#lib/components/collection-responsive-breakpoint.js";
 import { cn } from "#lib/utils.js";
 
 type Props = {
@@ -15,10 +19,10 @@ let { class: className = "", desktop, mobile }: Props = $props();
   class={cn("min-w-0", className)}
   data-slot="responsive-collection"
 >
-  <div class="xl:hidden" data-slot="responsive-collection-mobile">
+  <div class={collectionCompactClass} data-slot="responsive-collection-mobile">
     {@render mobile()}
   </div>
-  <div class="hidden xl:block" data-slot="responsive-collection-desktop">
+  <div class={collectionDesktopClass} data-slot="responsive-collection-desktop">
     {@render desktop()}
   </div>
 </div>

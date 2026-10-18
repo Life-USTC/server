@@ -43,7 +43,7 @@ for (const viewport of [
           );
           await expect(page).toHaveTitle(/待办|Todos/i);
           const list =
-            viewport.width >= 768
+            viewport.width >= 1280
               ? page.getByRole("table")
               : page.getByTestId("workspace-todos-cards");
           const titles = list.getByRole("button").filter({ hasText: prefix });

@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
+import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createHomeworkTabDisplayActions } from "@/features/workspace/lib/homeworks-tab-display";
@@ -131,44 +132,46 @@ $: ({
       </Alert.Root>
     {/if}
 
-    <div class="md:hidden">
-      <HomeworksCardsView
-        locale={locale}
-        unknownSemesterLabel={commonCopy.unknown}
-        filteredHomeworkItems={filteredHomeworkItems}
-        hasHomeworkItems={hasHomeworkItems}
-        onClearFilter={clearHomeworkFilter}
-        fmtDate={fmtDate}
-        homeworkCompletionActionLabel={homeworkCompletionActionLabel}
-        homeworkCopy={homeworkCopy}
-        homeworkEtaLabel={homeworkEtaLabel}
-        homeworkIsOverdue={homeworkIsOverdue}
-        homeworkSectionHref={homeworkSectionHref}
-        homeworksCopy={homeworksCopy}
-        homeworkSavingById={homeworkSavingById}
-        bind:selectedHomework
-        toggleHomeworkCompletion={toggleHomeworkCompletion}
-      />
-    </div>
-    <div class="hidden min-w-0 overflow-x-auto md:block">
-      <HomeworksListView
-        locale={locale}
-        unknownSemesterLabel={commonCopy.unknown}
-        filteredHomeworkItems={filteredHomeworkItems}
-        hasHomeworkItems={hasHomeworkItems}
-        onClearFilter={clearHomeworkFilter}
-        fmtDate={fmtDate}
-        homeworkCompletionActionLabel={homeworkCompletionActionLabel}
-        homeworkCopy={homeworkCopy}
-        homeworkEtaLabel={homeworkEtaLabel}
-        homeworkIsOverdue={homeworkIsOverdue}
-        homeworkSectionHref={homeworkSectionHref}
-        homeworksCopy={homeworksCopy}
-        homeworkSavingById={homeworkSavingById}
-        bind:selectedHomework
-        toggleHomeworkCompletion={toggleHomeworkCompletion}
-      />
-    </div>
+    <WorkspaceCollection>
+      {#snippet mobile()}
+        <HomeworksCardsView
+          locale={locale}
+          unknownSemesterLabel={commonCopy.unknown}
+          filteredHomeworkItems={filteredHomeworkItems}
+          hasHomeworkItems={hasHomeworkItems}
+          onClearFilter={clearHomeworkFilter}
+          fmtDate={fmtDate}
+          homeworkCompletionActionLabel={homeworkCompletionActionLabel}
+          homeworkCopy={homeworkCopy}
+          homeworkEtaLabel={homeworkEtaLabel}
+          homeworkIsOverdue={homeworkIsOverdue}
+          homeworkSectionHref={homeworkSectionHref}
+          homeworksCopy={homeworksCopy}
+          homeworkSavingById={homeworkSavingById}
+          bind:selectedHomework
+          toggleHomeworkCompletion={toggleHomeworkCompletion}
+        />
+      {/snippet}
+      {#snippet desktop()}
+        <HomeworksListView
+          locale={locale}
+          unknownSemesterLabel={commonCopy.unknown}
+          filteredHomeworkItems={filteredHomeworkItems}
+          hasHomeworkItems={hasHomeworkItems}
+          onClearFilter={clearHomeworkFilter}
+          fmtDate={fmtDate}
+          homeworkCompletionActionLabel={homeworkCompletionActionLabel}
+          homeworkCopy={homeworkCopy}
+          homeworkEtaLabel={homeworkEtaLabel}
+          homeworkIsOverdue={homeworkIsOverdue}
+          homeworkSectionHref={homeworkSectionHref}
+          homeworksCopy={homeworksCopy}
+          homeworkSavingById={homeworkSavingById}
+          bind:selectedHomework
+          toggleHomeworkCompletion={toggleHomeworkCompletion}
+        />
+      {/snippet}
+    </WorkspaceCollection>
 
     <HomeworksTabDialogs
       CommentsPanel={CommentsPanel}
