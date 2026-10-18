@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  addScriptNonce,
   buildContentSecurityPolicy,
   createScriptNonce,
   formActionSourceFromOAuthRedirectUri,
@@ -13,6 +14,26 @@ describe("CSP 辅助函数", () => {
   it("创建非空 nonce", () => {
     const nonce = createScriptNonce();
     expect(nonce.length).toBeGreaterThan(10);
+  });
+
+  it("为 script 标签注入 nonce，且跳过已有 nonce 的标签", () => {
+    const html =
+      '<head><script type="module" src="/app.js"></script><script nonce="existing"></script></head>';
+    expect(addScriptNonce(html, "fresh")).toBe(
+      '<head><script nonce="fresh" type="module" src="/app.js"></script><script nonce="existing"></script></head>',
+    );
+  });
+
+  it("不为非 script 标签误注入 nonce", () => {
+    const html =
+      '<article><scripture book="genesis">text</scripture><scripting>demo</scripting></article>';
+    expect(addScriptNonce(html, "fresh")).toBe(html);
+  });
+
+  it("匹配大小写不敏感的 script 开标签", () => {
+    expect(addScriptNonce("<SCRIPT></SCRIPT>", "fresh")).toBe(
+      '<script nonce="fresh"></SCRIPT>',
+    );
   });
 
   it("构建要求匹配脚本 nonce 的 CSP", () => {
