@@ -359,7 +359,7 @@ test("interface-hierarchy.transport-specific-exceptions-4", async () => {
   const { PAGE_INVENTORY } = await import(
     "../../e2e/src/app/_shared/page-inventory"
   );
-  const { workspaceTabIds, workspaceTabHref } = await import(
+  const { workspaceNavTabIds, workspaceTabHref } = await import(
     "@/features/workspace/lib/workspace-nav"
   );
   const { SETTINGS_TABS } = await import(
@@ -369,7 +369,7 @@ test("interface-hierarchy.transport-specific-exceptions-4", async () => {
     "../../../scripts/specifications/repository"
   );
   const routes = await pageRoutes();
-  for (const tab of workspaceTabIds) {
+  for (const tab of workspaceNavTabIds) {
     const href = workspaceTabHref(tab);
     expect(href).toBe(`/workspace/${tab}`);
     expect(
