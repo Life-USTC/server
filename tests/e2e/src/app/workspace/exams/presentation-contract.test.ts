@@ -1,11 +1,11 @@
 import { expect, type Page } from "@playwright/test";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import { formatSemesterName } from "../../../../../../src/lib/text/format-semester-name";
 import type { TestPrismaClient } from "../../../../../shared/prisma";
 import {
   type CalendarFixture,
   test as calendarTest,
 } from "../../../../utils/calendar-presentation-fixture";
-import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 
 async function arrangeExams(db: TestPrismaClient, base: CalendarFixture) {
   const extra = await db.$transaction(async (db) => {

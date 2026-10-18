@@ -1,8 +1,8 @@
 import { expect, type Page } from "@playwright/test";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import { test } from "../../../../utils/homework-fixture";
 import { homeworkDescription as description } from "../../../../utils/homework-state";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 
 const widths = [1280, 390];
 test.describe.configure({ mode: "parallel" });
@@ -41,10 +41,7 @@ test("homework.responsive-workspace-view", { tag: "@Homework/Web" }, async ({
         await gotoAndWaitForReady(page, "/workspace/homeworks");
         await expect(list(page, width)).toBeVisible();
         await expect(
-          list(
-            page,
-            width >= COLLECTION_DESKTOP_MIN_WIDTH_PX ? 390 : 1280,
-          ),
+          list(page, width >= COLLECTION_DESKTOP_MIN_WIDTH_PX ? 390 : 1280),
         ).toBeHidden();
         for (const label of [
           /^(未完成|Incomplete)$/i,

@@ -1,8 +1,8 @@
 import { expect, type Page } from "@playwright/test";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { expectTodoFormResponse, test } from "../../../../utils/todo-fixture";
-import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 
 test.describe.configure({ mode: "parallel" });
 const widths = [1280, 390];

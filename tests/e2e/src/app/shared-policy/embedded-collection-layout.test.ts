@@ -1,4 +1,5 @@
 import { expect, type Locator } from "@playwright/test";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import {
   type EmbeddedTablePolicyFixture,
   test,
@@ -7,7 +8,6 @@ import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
-import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 
 function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
   const c = fixture.catalog;
