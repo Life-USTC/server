@@ -26,6 +26,8 @@ const EXTERNAL_IMAGE_SOURCES = [
   "https://api.dicebear.com",
 ];
 
+// Deployed responses allow a loopback form target only for the exact
+// redirect_uri origin of the OAuth authorization request being rendered.
 const LOOPBACK_FORM_ACTION_SOURCES = [
   "http://localhost:*",
   "http://127.0.0.1:*",
@@ -47,7 +49,9 @@ export function addScriptNonce(html: string, nonce: string) {
 function isLoopbackHttpRedirect(url: URL) {
   return (
     url.protocol === "http:" &&
-    (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+    (url.hostname === "localhost" ||
+      url.hostname === "127.0.0.1" ||
+      url.hostname === "[::1]")
   );
 }
 
@@ -88,7 +92,7 @@ export function buildContentSecurityPolicy(
   const formActionSources = Array.from(
     new Set([
       "'self'",
-      ...LOOPBACK_FORM_ACTION_SOURCES,
+      ...(options.isDevelopment ? LOOPBACK_FORM_ACTION_SOURCES : []),
       ...(options.formActionSources ?? []),
     ]),
   );

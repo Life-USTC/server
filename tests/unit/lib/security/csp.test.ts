@@ -89,13 +89,38 @@ describe("CSP 辅助函数", () => {
       .split("; ")
       .find((directive) => directive.startsWith("form-action"));
 
-    expect(formDirective).toBeDefined();
-    expect(formDirective).toContain("'self'");
-    expect(formDirective).toContain("http://localhost:*");
+    expect(formDirective).toBe("form-action 'self'");
     expect(formDirective).not.toContain("https://chatgpt.com");
     expect(formDirective).not.toContain("https://www.perplexity.ai");
     expect(formDirective?.split(/\s+/)).not.toContain("https:");
     expect(formDirective).not.toContain("https://*");
+  });
+
+  it("仅在开发环境全局允许回环 form-action 来源", () => {
+    const formDirective = (isDevelopment: boolean) =>
+      buildContentSecurityPolicy("abc123", { isDevelopment })
+        .split("; ")
+        .find((directive) => directive.startsWith("form-action"));
+
+    expect(formDirective(false)).not.toContain("localhost");
+    expect(formDirective(false)).not.toContain("127.0.0.1");
+    expect(formDirective(true)?.split(/\s+/)).toEqual(
+      expect.arrayContaining(["http://localhost:*", "http://127.0.0.1:*"]),
+    );
+  });
+
+  it("部署环境只允许当前 OAuth 授权请求的回环回调来源", () => {
+    const formDirective = buildContentSecurityPolicy("abc123", {
+      formActionSources: [
+        formActionSourceFromOAuthRedirectUri(
+          "http://127.0.0.1:61000/callback",
+        ) ?? "",
+      ],
+    })
+      .split("; ")
+      .find((directive) => directive.startsWith("form-action"));
+
+    expect(formDirective).toBe("form-action 'self' http://127.0.0.1:61000");
   });
 
   it("允许按响应添加 OAuth 回调 form-action 来源", () => {
@@ -125,6 +150,9 @@ describe("CSP 辅助函数", () => {
         "http://127.0.0.1:3456/oauth/callback",
       ),
     ).toBe("http://127.0.0.1:3456");
+    expect(
+      formActionSourceFromOAuthRedirectUri("http://[::1]:3456/oauth/callback"),
+    ).toBe("http://[::1]:3456");
   });
 
   it("拒绝不适合作为 OAuth form-action 来源的 redirect_uri", () => {
