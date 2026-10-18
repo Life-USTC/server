@@ -31,6 +31,7 @@ let {
   copy,
   currentPathname,
   dockAboveFooter = false,
+  footerLinks = [],
   isActiveLink,
   navGroups,
   profileHref,
@@ -46,6 +47,8 @@ let {
   copy: LayoutCopy;
   currentPathname: string;
   dockAboveFooter?: boolean;
+  /** Legal/help links when the public page footer is omitted (catalog details). */
+  footerLinks?: ShellLink[];
   isActiveLink: (link: ShellLink) => boolean;
   navGroups: ShellNavGroup[];
   profileHref: string;
@@ -369,7 +372,25 @@ function closeMobileSidebar(): void {
   {/if}
 
   {#if showAccountFooter || sidebar.isMobile}
-    <Sidebar.Footer class="min-h-16 justify-center border-t p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-2">
+    <Sidebar.Footer class="justify-center gap-2 border-t p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-2">
+      {#if showAccountFooter && footerLinks.length > 0}
+        <nav
+          aria-label={copy.shell.footerNavigation}
+          class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 px-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden"
+          data-shell-legal-nav
+        >
+          {#each footerLinks as link}
+            <a
+              class="transition-colors hover:text-foreground"
+              href={link.href}
+              rel={link.rel}
+              target={link.target}
+            >
+              {link.label}
+            </a>
+          {/each}
+        </nav>
+      {/if}
       {#if viewerLoading}
         <div
           aria-hidden="true"

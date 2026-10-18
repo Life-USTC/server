@@ -483,6 +483,7 @@ afterNavigate(({ from, to, type, shallow }) => {
         copy={data.copy}
         currentPathname={$page.url.pathname}
         dockAboveFooter={showFooter}
+        footerLinks={showFooter ? [] : footerLinks}
         sectionSidebar={sectionSidebar}
         isActiveLink={isActiveLink}
         navGroups={navGroups}

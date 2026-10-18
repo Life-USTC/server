@@ -484,11 +484,12 @@ test("ui.public-legal-help-navigation", { tag: "@Site/Web" }, async ({
       for (const { href } of pages) {
         for (const destination of ["/terms", "/privacy", "/usage/mobile"]) {
           await gotoAndWaitForReady(page, href);
-          // Legal/help destinations live in the public footer (not primary
-          // sidebar groups) after the shell feature-hub unification.
-          const footer = page.locator("footer");
-          await expect(footer).toBeVisible();
-          const link = footer.locator(`a[href="${destination}"]`);
+          // Catalog details omit the public footer; legal/help links move to
+          // the sidebar strip (`data-shell-legal-nav`). List pages keep footer.
+          if (viewport.width < 768) await openMobileMenu(page);
+          const shellLegal = page.locator("footer, [data-shell-legal-nav]");
+          await expect(shellLegal.first()).toBeVisible();
+          const link = shellLegal.locator(`a[href="${destination}"]`).first();
           await expect(link).toBeVisible();
           await link.click();
           await expect(page).toHaveURL(new RegExp(`${destination}$`));
