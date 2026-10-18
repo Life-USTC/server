@@ -1174,6 +1174,7 @@ requirements:
     when: Chinese and English touch-capable browsers inspect all day labels, navigate with arrows and Home/End, and tap empty and populated days.
     then:
     - Every day exposes the expected localized date and database-backed count; keyboard and touch selection update the accessible live detail.
+    - Contribution day cells and the legend do not duplicate that text in native title tooltips; the live detail region carries the selected day summary.
     test:
       file: tests/e2e/src/app/shared-policy/contribution-heatmap.test.ts
       name: ui.contribution-heatmap-2

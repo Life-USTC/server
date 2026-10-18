@@ -149,12 +149,15 @@ test("ui.contribution-heatmap-2", { tag: "@User/Web" }, async ({
               : `${count} activities on ${date}`,
           );
         }
+        await expect(grid.locator("[title]")).toHaveCount(0);
+        const detail = page.locator("[data-profile-contribution-detail]");
+        await expect(detail).toHaveCount(1);
+        await expect(detail).toHaveAttribute("aria-live", "polite");
+        await expect(detail).toBeEmpty();
         expect(actual.some((cell) => cell.count === 3)).toBe(true);
         await expect(grid.locator('[tabindex="0"]')).toHaveCount(1);
         await cells.first().focus();
         const columns = Number(await grid.getAttribute("aria-colcount"));
-        const detail = page.locator("[data-profile-contribution-detail]");
-        await expect(detail).toHaveAttribute("aria-live", "polite");
         for (const [key, index] of [
           ["ArrowRight", 1],
           ["ArrowDown", columns + 1],
