@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
-import { workspaceTabIds } from "@/features/workspace/lib/workspace-nav";
+import { workspaceNavTabIds } from "@/features/workspace/lib/workspace-nav";
 import {
   mobilePageCases,
   PAGE_INVENTORY,
@@ -59,7 +59,7 @@ describe("browser route inventory", () => {
       }
     }
     const paths = mobilePageCases("authed").map(({ path }) => path);
-    for (const tab of workspaceTabIds)
+    for (const tab of workspaceNavTabIds)
       expect(paths).toContain(`/workspace/${tab}`);
     for (const tab of SETTINGS_TABS)
       expect(paths).toContain(`/account/settings/${tab}`);
