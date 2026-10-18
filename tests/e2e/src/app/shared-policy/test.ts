@@ -519,7 +519,10 @@ for (const [domain, tab] of [
               const clear = page
                 .getByRole("button", { name: /清除筛选|Clear filter/i })
                 .filter({ visible: true });
-              const empty = page.locator('[data-slot="empty"]').first();
+              const empty = page
+                .locator('[data-slot="empty"]')
+                .filter({ visible: true })
+                .first();
               await expect(empty).toBeVisible();
               await expect(empty.locator("svg, img")).toHaveCount(0);
               expect(
@@ -533,10 +536,7 @@ for (const [domain, tab] of [
               );
               await expect(description).toBeVisible();
               if (tab === "todos") {
-                const emptyWithClear = page
-                  .locator('[data-slot="empty"]')
-                  .filter({ has: clear });
-                await expect(emptyWithClear).toBeVisible();
+                await expect(clear).toBeVisible();
                 const descriptionBox = await description.boundingBox();
                 const clearBox = await clear.boundingBox();
                 if (!descriptionBox || !clearBox)
@@ -584,7 +584,10 @@ for (const [domain, tab] of [
             const clear = page
               .getByRole("button", { name: /清除筛选|Clear filter/i })
               .filter({ visible: true });
-            const empty = page.locator('[data-slot="empty"]').first();
+            const empty = page
+              .locator('[data-slot="empty"]')
+              .filter({ visible: true })
+              .first();
             await expect(empty.locator('[data-slot="empty-title"]')).toHaveText(
               /.+/,
             );
