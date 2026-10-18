@@ -1,4 +1,4 @@
-import type { WorkspaceTabId } from "@/features/workspace/lib/workspace-nav";
+import type { WorkspaceNavTabId } from "@/features/workspace/lib/workspace-nav";
 import { getWorkspacePageCopy } from "@/features/workspace/server/workspace-page-copy";
 import { loadSignedWorkspacePageData } from "@/features/workspace/server/workspace-page-load-signed";
 import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
@@ -40,7 +40,7 @@ export async function loadSignedWorkspacePage({
   tab,
   url,
   userId,
-}: WorkspacePageLoadEvent & { tab: WorkspaceTabId; userId: string }) {
+}: WorkspacePageLoadEvent & { tab: WorkspaceNavTabId; userId: string }) {
   const startMs = monotonicNowMs();
   const locale = locals.locale;
   const pageCopy = getWorkspacePageCopy(locale);
