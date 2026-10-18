@@ -115,7 +115,7 @@ describe("application shell footer contrast", () => {
       resolve(process.cwd(), "src/lib/components/shell/AppFooter.svelte"),
       "utf8",
     );
-    expect(footer).toContain("text-foreground/80");
+    expect(footer).toContain("text-foreground/90");
     expect(footer).toContain("bg-muted/40");
     expect(footer).not.toMatch(
       /flex min-w-0 flex-1 items-center justify-between gap-4 bg-background\/80 px-4 text-muted-foreground/,

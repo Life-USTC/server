@@ -81,7 +81,10 @@ onMount(() => {
   urlSyncMount = mountGlobalSearchUrlSync(search, {
     getPageUrl: () => new URL($page.url.href),
   });
-  queueMicrotask(() => inputElement?.focus());
+  // Keep the top-bar Ctrl-K control primary: only autofocus when a query is already present.
+  if (new URL($page.url.href).searchParams.get("q")?.trim()) {
+    queueMicrotask(() => inputElement?.focus());
+  }
   return () => {
     unsubscribe();
     search.reset();
@@ -104,7 +107,7 @@ afterNavigate(({ to, shallow, type }) => {
       {data.copy.pageTitle}
     </Field.Label>
     <InputGroup.Root
-      class="h-9 rounded-md border-border/70 bg-muted/30 shadow-none"
+      class="h-9 max-h-9 rounded-md border-border/60 bg-muted/40 shadow-none has-[[data-slot=input-group-control]:focus-visible]:border-border has-[[data-slot=input-group-control]:focus-visible]:ring-1 has-[[data-slot=input-group-control]:focus-visible]:ring-border/60"
       data-search-page-field
     >
       <InputGroup.Addon class="px-0 ps-2.5">
