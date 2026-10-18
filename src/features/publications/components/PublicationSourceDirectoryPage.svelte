@@ -6,9 +6,8 @@ import Panel from "#lib/components/Panel.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import SearchField from "#lib/components/SearchField.svelte";
-import SoftEmptyMessage from "#lib/components/SoftEmptyMessage.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
@@ -131,13 +130,18 @@ const levelIndex = $derived(filteredGroups);
 
   {#snippet toolbar()}
     {#if data.directory.groups.length > 0}
-      <SearchField
-        id="publication-source-directory-query"
-        label={copy.searchSources}
-        bind:value={sourceQuery}
-        placeholder={copy.searchSources}
-        maxlength={200}
-      />
+      <div class="min-w-0 flex-1" data-slot="search-field">
+        <label class="sr-only" for="publication-source-directory-query"
+          >{copy.searchSources}</label
+        >
+        <Input
+          id="publication-source-directory-query"
+          type="search"
+          bind:value={sourceQuery}
+          placeholder={copy.searchSources}
+          maxlength={200}
+        />
+      </div>
     {/if}
   {/snippet}
 
@@ -146,7 +150,7 @@ const levelIndex = $derived(filteredGroups);
   {:else}
     <ResultsSummary summary={totalsSummary()} />
     {#if levelIndex.length === 0}
-      <SoftEmptyMessage message={copy.sourceSearchEmpty} />
+      <p class="text-sm text-muted-foreground">{copy.sourceSearchEmpty}</p>
     {:else}
       <PageSectionNav ariaLabel={copy.organizationLevel} items={levelIndex.map((group) => ({ href: `#level-${group.organizationLevel}`, label: levelLabel(group.organizationLevel), meta: group.sourceCount }))} />
 
