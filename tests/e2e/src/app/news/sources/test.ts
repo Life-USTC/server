@@ -16,6 +16,12 @@ test.describe("/news/sources 来源目录", () => {
     await browseRun(async () => {
       await gotoAndWaitForReady(page, "/news/sources");
 
+      await expect(
+        page.getByRole("searchbox", {
+          name: /搜索来源名称|Search source names/i,
+        }),
+      ).toBeVisible();
+
       const universityGroup = page.getByRole("heading", {
         level: 2,
         name: /^(学校机关|University)$/,
@@ -51,6 +57,10 @@ test.describe("/news/sources 来源目录", () => {
           exact: true,
         }),
       ).toBeVisible();
+      // Contentful sources must not show the empty-state never-published label.
+      await expect(
+        officeRow.getByText(/暂无发布|Nothing published yet/i),
+      ).toHaveCount(0);
     });
   });
 

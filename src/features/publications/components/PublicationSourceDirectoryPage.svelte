@@ -6,14 +6,18 @@ import Panel from "#lib/components/Panel.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
+import SoftEmptyMessage from "#lib/components/SoftEmptyMessage.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
+import { publicationSourceLastPublishedLabel } from "@/features/publications/lib/publication-source-last-published";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import type {
   PublicationPageCopy,
   PublicationSourceDirectoryPageData,
+  PublicationSourceSummary,
 } from "./publication-component-types";
 
 type Props = {
@@ -22,6 +26,7 @@ type Props = {
 };
 
 let { copy, data }: Props = $props();
+let sourceQuery = $state("");
 
 function levelLabel(level: PublicationSourceOrganizationLevel) {
   return copy.organizationLevelLabels[level] ?? level;
@@ -35,8 +40,13 @@ function sourceHref(id: string) {
   return `/news?source=${encodeURIComponent(id)}`;
 }
 
-function formatLastPublished(value: Date | string | null) {
-  return value ? formatShanghaiDate(value) : copy.neverPublished;
+function formatLastPublished(source: PublicationSourceSummary) {
+  return publicationSourceLastPublishedLabel(
+    source.lastPublishedAt,
+    source.publicationCount,
+    copy.neverPublished,
+    formatShanghaiDate,
+  );
 }
 
 function countSummary(
@@ -73,10 +83,33 @@ function totalsSummary() {
   );
 }
 
-// The service already returns groups in the registry's display order, so the
-// anchors and the sections below share that one ordering and the client needs
-// no copy of the level vocabulary.
-const levelIndex = $derived(data.directory.groups);
+function matchesQuery(source: PublicationSourceSummary, query: string) {
+  if (!query) return true;
+  const haystack = `${source.name} ${source.hosts.join(" ")}`.toLowerCase();
+  return haystack.includes(query);
+}
+
+const normalizedQuery = $derived(sourceQuery.trim().toLowerCase());
+const filteredGroups = $derived(
+  data.directory.groups
+    .map((group) => {
+      const sources = group.sources.filter((source) =>
+        matchesQuery(source, normalizedQuery),
+      );
+      if (sources.length === 0) return null;
+      return {
+        ...group,
+        sources,
+        sourceCount: sources.length,
+        publicationCount: sources.reduce(
+          (total, source) => total + source.publicationCount,
+          0,
+        ),
+      };
+    })
+    .filter((group) => group !== null),
+);
+const levelIndex = $derived(filteredGroups);
 </script>
 
 <svelte:head>
@@ -84,123 +117,143 @@ const levelIndex = $derived(data.directory.groups);
 </svelte:head>
 
 <CollectionPage
+  density="compact"
   description={copy.sourcesPageDescription}
   panel={false}
   title={copy.sourcesPageTitle}
 >
   {#snippet actions()}
-        <Button href="/news" variant="outline">
+        <Button href="/news" variant="outline" size="sm">
           <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
           {copy.backToList}
         </Button>
+  {/snippet}
+
+  {#snippet toolbar()}
+    {#if data.directory.groups.length > 0}
+      <SearchField
+        id="publication-source-directory-query"
+        label={copy.searchSources}
+        bind:value={sourceQuery}
+        placeholder={copy.searchSources}
+        maxlength={200}
+      />
+    {/if}
   {/snippet}
 
   {#if data.directory.groups.length === 0}
     <ResultsEmpty title={copy.sourcesEmptyTitle} description={copy.sourcesEmptyDescription} />
   {:else}
     <ResultsSummary summary={totalsSummary()} />
-    <PageSectionNav ariaLabel={copy.organizationLevel} items={levelIndex.map((group) => ({ href: `#level-${group.organizationLevel}`, label: levelLabel(group.organizationLevel), meta: group.sourceCount }))} />
+    {#if levelIndex.length === 0}
+      <SoftEmptyMessage message={copy.sourceSearchEmpty} />
+    {:else}
+      <PageSectionNav ariaLabel={copy.organizationLevel} items={levelIndex.map((group) => ({ href: `#level-${group.organizationLevel}`, label: levelLabel(group.organizationLevel), meta: group.sourceCount }))} />
 
-    {#each levelIndex as group (group.organizationLevel)}
-      <section
-        class="grid min-w-0 gap-3 scroll-mt-20"
-        id={`level-${group.organizationLevel}`}
-      >
-        <Panel>
-          {#snippet header()}
-            <div class="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 class="font-semibold text-xl">
-                {levelLabel(group.organizationLevel)}
-              </h2>
-              <div class="flex flex-wrap items-center gap-3">
-                <span class="text-sm text-muted-foreground">
-                  {groupSummary(group.sourceCount, group.publicationCount)}
-                </span>
-                <a
-                  class="text-sm text-primary hover:underline"
-                  href={levelHref(group.organizationLevel)}
-                >
-                  {copy.viewSourceArticles}
-                </a>
+      {#each levelIndex as group (group.organizationLevel)}
+        <section
+          class="grid min-w-0 gap-2 scroll-mt-20"
+          id={`level-${group.organizationLevel}`}
+        >
+          <Panel class="gap-2">
+            {#snippet header()}
+              <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 class="font-semibold text-base sm:text-lg">
+                  {levelLabel(group.organizationLevel)}
+                </h2>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span class="text-sm text-muted-foreground">
+                    {groupSummary(group.sourceCount, group.publicationCount)}
+                  </span>
+                  <a
+                    class="text-sm text-primary hover:underline"
+                    href={levelHref(group.organizationLevel)}
+                  >
+                    {copy.viewSourceArticles}
+                  </a>
+                </div>
               </div>
-            </div>
-          {/snippet}
-
-          <ResponsiveCollection>
-            {#snippet mobile()}
-              <Item.Group class="gap-0" role="list">
-                {#each group.sources as source (source.id)}
-                  <div role="listitem">
-                    <Item.Root size="sm">
-                      {#snippet child({ props })}
-                        <a href={sourceHref(source.id)} {...props}>
-                          <Item.Content>
-                            <Item.Title>{source.name}</Item.Title>
-                            <Item.Description class="[overflow-wrap:anywhere]">{source.hosts.join(" · ")}</Item.Description>
-                            <Item.Description>
-                              {copy.sourceArticleCount}: {source.publicationCount}
-                              · {copy.lastPublishedAt}:
-                              {formatLastPublished(source.lastPublishedAt)}
-                            </Item.Description>
-                          </Item.Content>
-                        </a>
-                      {/snippet}
-                    </Item.Root>
-                  </div>
-                {/each}
-              </Item.Group>
             {/snippet}
 
-            {#snippet desktop()}
-              <Table.Root
-                containerLabel={levelLabel(group.organizationLevel)}
-                class="table-fixed"
-              >
-                <Table.Caption class="sr-only">
-                  {levelLabel(group.organizationLevel)} —
-                  {groupSummary(group.sourceCount, group.publicationCount)}
-                </Table.Caption>
-                <Table.Header class="bg-muted/30">
-                  <Table.Row>
-                    <Table.Head>{copy.source}</Table.Head>
-                    <Table.Head class="w-28 text-right">
-                      {copy.sourceArticleCount}
-                    </Table.Head>
-                    <Table.Head class="w-36">{copy.lastPublishedAt}</Table.Head>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
+            <ResponsiveCollection>
+              {#snippet mobile()}
+                <Item.Group class="gap-0" role="list">
                   {#each group.sources as source (source.id)}
-                    <Table.Row class="has-[a:hover]:bg-muted/50">
-                      <Table.Cell class="align-top">
-                        <a
-                          class="font-medium text-foreground hover:underline [overflow-wrap:anywhere]"
-                          href={sourceHref(source.id)}
-                        >
-                          {source.name}
-                        </a>
-                        <p class="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                          {source.hosts.join(" · ")}
-                        </p>
-                      </Table.Cell>
-                      <Table.Cell
-                        class="align-top text-right tabular-nums text-muted-foreground"
-                      >
-                        {source.publicationCount}
-                      </Table.Cell>
-                      <Table.Cell
-                        class="align-top whitespace-nowrap tabular-nums text-muted-foreground"
-                      >
-                        {formatLastPublished(source.lastPublishedAt)}
-                      </Table.Cell>
-                    </Table.Row>
+                    {@const lastPublished = formatLastPublished(source)}
+                    <div role="listitem">
+                      <Item.Root size="sm" class="py-2">
+                        {#snippet child({ props })}
+                          <a href={sourceHref(source.id)} {...props}>
+                            <Item.Content class="gap-0.5">
+                              <Item.Title class="text-sm">{source.name}</Item.Title>
+                              <Item.Description class="text-xs [overflow-wrap:anywhere]">{source.hosts.join(" · ")}</Item.Description>
+                              <Item.Description class="text-xs">
+                                {copy.sourceArticleCount}: {source.publicationCount}
+                                {#if lastPublished}
+                                  · {copy.lastPublishedAt}: {lastPublished}
+                                {/if}
+                              </Item.Description>
+                            </Item.Content>
+                          </a>
+                        {/snippet}
+                      </Item.Root>
+                    </div>
                   {/each}
-                </Table.Body>
-              </Table.Root>
-            {/snippet}
-          </ResponsiveCollection>
-        </Panel>
-      </section>
-    {/each}
+                </Item.Group>
+              {/snippet}
+
+              {#snippet desktop()}
+                <Table.Root
+                  containerLabel={levelLabel(group.organizationLevel)}
+                  class="table-fixed"
+                >
+                  <Table.Caption class="sr-only">
+                    {levelLabel(group.organizationLevel)} —
+                    {groupSummary(group.sourceCount, group.publicationCount)}
+                  </Table.Caption>
+                  <Table.Header class="bg-muted/30">
+                    <Table.Row>
+                      <Table.Head class="h-9">{copy.source}</Table.Head>
+                      <Table.Head class="h-9 w-24 text-right">
+                        {copy.sourceArticleCount}
+                      </Table.Head>
+                      <Table.Head class="h-9 w-32">{copy.lastPublishedAt}</Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {#each group.sources as source (source.id)}
+                      {@const lastPublished = formatLastPublished(source)}
+                      <Table.Row class="has-[a:hover]:bg-muted/50">
+                        <Table.Cell class="py-2 align-middle">
+                          <a
+                            class="font-medium text-sm text-foreground hover:underline [overflow-wrap:anywhere]"
+                            href={sourceHref(source.id)}
+                          >
+                            {source.name}
+                          </a>
+                          <p class="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                            {source.hosts.join(" · ")}
+                          </p>
+                        </Table.Cell>
+                        <Table.Cell
+                          class="py-2 align-middle text-right tabular-nums text-muted-foreground"
+                        >
+                          {source.publicationCount}
+                        </Table.Cell>
+                        <Table.Cell
+                          class="py-2 align-middle whitespace-nowrap tabular-nums text-muted-foreground"
+                        >
+                          {lastPublished ?? "—"}
+                        </Table.Cell>
+                      </Table.Row>
+                    {/each}
+                  </Table.Body>
+                </Table.Root>
+              {/snippet}
+            </ResponsiveCollection>
+          </Panel>
+        </section>
+      {/each}
+    {/if}
   {/if}
 </CollectionPage>
