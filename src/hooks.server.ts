@@ -55,6 +55,7 @@ import {
   OAUTH_TOKEN_ENDPOINT_PATH,
 } from "@/lib/oauth/constants";
 import {
+  addScriptNonce,
   buildContentSecurityPolicy,
   createScriptNonce,
   formActionSourceFromOAuthRedirectUri,
@@ -134,10 +135,6 @@ function observedRoute(pathname: string, routeId: string | null) {
 
 function isHtmlResponse(response: Response) {
   return response.headers.get("content-type")?.includes("text/html");
-}
-
-function addScriptNonce(html: string, nonce: string) {
-  return html.replace(/<script(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
 }
 
 function responseWithMutableHeaders(response: Response) {
