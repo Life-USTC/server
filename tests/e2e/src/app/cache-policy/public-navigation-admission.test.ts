@@ -106,3 +106,62 @@ test("browser caches only attested successful public navigation responses", {
     await page.unroute(`**${path}`);
   }
 });
+
+for (const trigger of ["sign-out", "pagehide"] as const) {
+  test(`browser clears public navigation entries on ${trigger}`, {
+    tag: "@Site/Web",
+  }, async ({ page }) => {
+    await gotoAndWaitForReady(page, "/privacy");
+    const paths = ["/news", "/catalog/courses"].map(
+      (path) =>
+        `${path}/__data.json?x-sveltekit-invalidated=01&clear=${trigger}`,
+    );
+    const requests = new Map<string, number>();
+    for (const path of paths) {
+      await page.route(`**${path}`, async (route) => {
+        requests.set(path, (requests.get(path) ?? 0) + 1);
+        await route.fulfill({
+          json: publicData,
+          headers: {
+            "cache-control": "private, no-store",
+            [PUBLIC_NAVIGATION_HEADER]: "1",
+          },
+        });
+      });
+    }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      for (const path of paths) {
+        expect(
+          await page.evaluate(async (path) => (await fetch(path)).json(), path),
+        ).toEqual(publicData);
+        expect(requests.get(path)).toBe(1);
+      }
+    }
+
+    if (trigger === "sign-out") {
+      expect(
+        await page.evaluate(async () => {
+          const response = await fetch("/api/auth/sign-out", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: "{}",
+          });
+          return response.status;
+        }),
+      ).toBe(200);
+    } else {
+      await page.evaluate(() => {
+        window.dispatchEvent(
+          new PageTransitionEvent("pagehide", { persisted: true }),
+        );
+      });
+    }
+
+    for (const path of paths) {
+      expect(
+        await page.evaluate(async (path) => (await fetch(path)).json(), path),
+      ).toEqual(publicData);
+      expect(requests.get(path)).toBe(2);
+    }
+  });
+}
