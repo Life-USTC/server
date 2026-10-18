@@ -5,6 +5,7 @@ import {
   isDetailWorkspacePath,
   isOnboardingPath,
   isYoungEventDetailPath,
+  resolveMobileToastBottomOffset,
   resolveShellTheme,
   shouldShowAppFooter,
   shouldUseFocusedShell,
@@ -105,9 +106,18 @@ describe("application shell theme", () => {
 });
 
 describe("mobile toast placement", () => {
-  it("keeps bottom toasts above the fixed mobile navigation", async () => {
-    const [layout, primaryNav, adminNav, sonner] = await Promise.all([
-      readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
+  it.each([
+    [false, "calc(env(safe-area-inset-bottom) + 1rem)"],
+    [true, "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)"],
+  ])(
+    "resolveMobileToastBottomOffset(showMobileTabBar=%s)",
+    (showMobileTabBar, expected) => {
+      expect(resolveMobileToastBottomOffset(showMobileTabBar)).toBe(expected);
+    },
+  );
+
+  it("keeps bottom toasts above the fixed mobile navigation when it is mounted", async () => {
+    const [primaryNav, adminNav, sonner] = await Promise.all([
       readFile(
         resolve(
           process.cwd(),
@@ -128,15 +138,16 @@ describe("mobile toast placement", () => {
       ),
     ]);
 
-    expect(layout).toContain(
-      'bottom: "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)"',
-    );
-    expect(layout).toContain('left: "1rem"');
-    expect(layout).toContain('right: "1rem"');
+    expect(primaryNav).toContain('data-shell-navigation="mobile-primary"');
     expect(primaryNav).toContain("min-h-14");
     expect(primaryNav).toContain("pb-[env(safe-area-inset-bottom)]");
+    expect(adminNav).toContain('data-shell-navigation="admin-mobile"');
     expect(adminNav).toContain("min-h-14");
     expect(adminNav).toContain("pb-[env(safe-area-inset-bottom)]");
+    expect(sonner).toContain("mobileToastBottomSignedOut");
+    expect(sonner).toContain("mobileToastBottomSignedIn");
+    expect(sonner).toContain('[data-shell-navigation="mobile-primary"]');
+    expect(sonner).toContain('[data-shell-navigation="admin-mobile"]');
     expect(sonner).toContain("max-width: calc(100vw");
     expect(sonner).toContain("pointer-events: none;");
     expect(sonner).toContain("pointer-events: auto;");

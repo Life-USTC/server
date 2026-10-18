@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { resolveMobileToastBottomOffset } from "#lib/components/shell/layout-shell.js";
 	import { Toaster as Sonner, type ToasterProps as SonnerProps } from "svelte-sonner";
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
@@ -9,6 +10,9 @@
 
 	let { ...restProps }: SonnerProps = $props();
 	let theme = $state<NonNullable<SonnerProps["theme"]>>("light");
+
+	const mobileToastBottomSignedOut = resolveMobileToastBottomOffset(false);
+	const mobileToastBottomSignedIn = resolveMobileToastBottomOffset(true);
 
 	onMount(() => {
 		const syncTheme = () => {
@@ -65,6 +69,20 @@
 			max-width: calc(
 				100vw - var(--mobile-offset-left) - var(--mobile-offset-right)
 			);
+		}
+
+		:global([data-sonner-toaster][data-y-position="bottom"]) {
+			bottom: v-bind(mobileToastBottomSignedOut) !important;
+		}
+
+		:global(
+				html:has(
+						[data-shell-navigation="mobile-primary"],
+						[data-shell-navigation="admin-mobile"]
+					)
+					[data-sonner-toaster][data-y-position="bottom"]
+			) {
+			bottom: v-bind(mobileToastBottomSignedIn) !important;
 		}
 	}
 </style>
