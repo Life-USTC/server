@@ -31,6 +31,7 @@ export let positions: Map<number, BusMapPoint>;
     .campus-label-secondary {
       font-size: 16px;
       stroke-width: 7;
+      transform: translateY(11px);
     }
   }
 </style>

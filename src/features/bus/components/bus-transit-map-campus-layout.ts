@@ -2,7 +2,6 @@ import { normalizeBusCampusCoordinates } from "@/features/bus/lib/bus-import-rou
 import type { BusMapCampusNode } from "@/features/bus/lib/bus-types";
 import {
   MIN_VIEW_BOX_ASPECT,
-  NODE_R,
   PAD,
   SVG_H,
   SVG_W,
@@ -46,7 +45,8 @@ export function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
     y: offsetY + (maxLatitude - campus.latitude) * scale,
   }));
 
-  const minGap = NODE_R * 4.5;
+  // Keep room for mobile labels independently of the smaller station rings.
+  const minGap = 126;
   for (let iteration = 0; iteration < 60; iteration += 1) {
     let moved = false;
     for (let index = 0; index < positions.length; index += 1) {
