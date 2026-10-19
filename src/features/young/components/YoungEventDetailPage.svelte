@@ -104,8 +104,14 @@ const facts = $derived(
     time: youngDateRange(event.startAt, event.endAt, youngCopy),
     place: placeLabel,
     hours: event.hours == null ? null : `${event.hours} ${youngCopy.hours}`,
-    capacity: capacityLabel,
-    deadline: deadlineLabel,
+    capacity:
+      capacityLabel == null ? null : `${youngCopy.capacity}: ${capacityLabel}`,
+    deadline:
+      deadlineLabel == null
+        ? null
+        : event.requiresSignup === false
+          ? deadlineLabel
+          : `${youngCopy.signupDeadline}: ${deadlineLabel}`,
   }),
 );
 const signupHref = "https://young.ustc.edu.cn";
@@ -152,7 +158,7 @@ const signupLabel = $derived(
         </div>
         {#if facts.length > 0}
           <p
-            class="text-sm text-muted-foreground [overflow-wrap:anywhere]"
+            class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground [overflow-wrap:anywhere]"
             data-testid="young-event-overview"
           >
             {#each facts as fact, index (index)}

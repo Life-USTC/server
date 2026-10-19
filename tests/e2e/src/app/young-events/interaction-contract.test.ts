@@ -224,7 +224,10 @@ test("young-event.web-detail-priority", { tag: "@Young/Web" }, async ({
         banner.getByRole("button", { name: "Subscribe to event", exact: true }),
       ).toBeVisible();
       await expect(banner.getByTestId("young-event-badges")).toBeVisible();
-      await expect(page.getByTestId("young-event-overview")).toBeVisible();
+      const facts = page.getByTestId("young-event-overview");
+      await expect(facts).toContainText("Calendar activity room");
+      await expect(facts).toContainText("2.5 Hours");
+      await expect(facts).toContainText("Signup deadline: 2026-04-29 20:00");
       await expect(banner.locator("img")).toHaveAttribute(
         "src",
         "/api/catalog/young-events/images/group1/contract/poster.jpg",
