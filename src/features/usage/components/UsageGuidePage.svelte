@@ -1,14 +1,37 @@
 <script lang="ts">
 import ArrowRightIcon from "@lucide/svelte/icons/arrow-right";
 import BotIcon from "@lucide/svelte/icons/bot";
+import CheckIcon from "@lucide/svelte/icons/check";
+import CopyIcon from "@lucide/svelte/icons/copy";
 import QrCodeIcon from "@lucide/svelte/icons/qr-code";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
+import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
+import {
+  usageMarketingBlurbClass,
+  usageMarketingCtaRowClass,
+  usageMarketingExampleCardBodyClass,
+  usageMarketingExampleCardClass,
+  usageMarketingExampleGridClass,
+  usageMarketingHeroCopyClass,
+  usageMarketingHeroGridClass,
+  usageMarketingHeroShellClass,
+  usageMarketingIconClass,
+  usageMarketingIconGlyphClass,
+  usageMarketingPageClass,
+  usageMarketingPrimaryCtaClass,
+  usageMarketingSectionTitleClass,
+  usageMarketingStepIndex,
+  usageMarketingStepIndexClass,
+  usageMarketingTitleClass,
+} from "../lib/usage-marketing-layout.js";
 
 type GuideKind = "bot" | "cli";
 
 type GuideCopy = {
+  copiedInstallAction?: string;
+  copyInstallAction?: string;
   installCommand?: string;
   installTitle?: string;
   previewAriaLabel?: string;
@@ -37,10 +60,17 @@ export let kind: GuideKind;
 export let primaryHref: string;
 export let primaryQrSrc: string | undefined = undefined;
 
-$: iconTone =
-  kind === "bot"
-    ? "bg-primary/10 text-primary"
-    : "bg-secondary text-secondary-foreground";
+let installCopied = false;
+
+async function copyInstallCommand() {
+  const command = data.copy.installCommand;
+  if (!command) return;
+  await writeClipboardText(command);
+  installCopied = true;
+  window.setTimeout(() => {
+    installCopied = false;
+  }, 1800);
+}
 </script>
 
 <style>
@@ -124,38 +154,37 @@ $: iconTone =
 
 <svelte:head><title>{data.metadataTitle} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-14 pb-10 sm:gap-16">
-  <div
-    class="relative -mx-4 -mt-4 bg-[radial-gradient(120%_80%_at_10%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklab,var(--muted)_55%,transparent),var(--background))] sm:-mx-5 lg:-mx-6"
-  >
+{#if installCopied}
+  <span class="sr-only" aria-live="polite">
+    {data.copy.copiedInstallAction}
+  </span>
+{/if}
+
+<section class={usageMarketingPageClass} data-usage-marketing="page">
+  <div class={usageMarketingHeroShellClass} data-usage-marketing="hero">
     <div
-      class={`grid items-center gap-10 px-4 py-10 sm:px-5 sm:py-14 lg:gap-14 lg:px-6 lg:py-16 ${kind === "bot" ? "lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]" : ""}`}
+      class={`${usageMarketingHeroGridClass} ${kind === "bot" ? "lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]" : ""}`}
     >
-      <div class={`hero-copy grid gap-6 ${kind === "bot" ? "max-w-xl" : "max-w-3xl"}`}>
-        <div
-          class={`flex size-14 items-center justify-center rounded-2xl border border-border shadow-sm ${iconTone}`}
-        >
+      <div class={usageMarketingHeroCopyClass}>
+        <div class={usageMarketingIconClass}>
           {#if kind === "bot"}
-            <BotIcon class="size-7" strokeWidth={1.8} />
+            <BotIcon class={usageMarketingIconGlyphClass} strokeWidth={1.8} />
           {:else}
-            <TerminalIcon class="size-7" strokeWidth={1.8} />
+            <TerminalIcon
+              class={usageMarketingIconGlyphClass}
+              strokeWidth={1.8}
+            />
           {/if}
         </div>
 
         <div class="grid gap-3">
-          <h1
-            class={`font-semibold text-4xl tracking-tight sm:text-5xl ${kind === "cli" ? "lg:text-5xl" : "text-balance lg:text-6xl"}`}
-          >
-            {data.copy.title}
-          </h1>
-          <p class="max-w-lg text-pretty text-base text-muted-foreground sm:text-lg">
-            {data.copy.subtitle}
-          </p>
+          <h1 class={usageMarketingTitleClass}>{data.copy.title}</h1>
+          <p class={usageMarketingBlurbClass}>{data.copy.subtitle}</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <div class={usageMarketingCtaRowClass}>
           <Button
-            class="h-10 no-underline"
+            class={usageMarketingPrimaryCtaClass}
             href={primaryHref}
             rel="noreferrer"
             target="_blank"
@@ -246,17 +275,47 @@ $: iconTone =
     </div>
   </div>
 
-  <div class="content-section grid gap-12">
-    {#if kind === "bot"}
-      <div class="grid gap-6">
-        <h2 class="font-semibold text-2xl tracking-tight sm:text-3xl">
-          {data.copy.startTitle}
-        </h2>
-        <div class="grid gap-5 md:grid-cols-3">
-          {#each data.copy.steps as step}
+  <div class="content-section grid gap-12" data-usage-marketing="examples">
+    {#if kind === "cli" && data.copy.installCommand}
+      <div
+        class="grid gap-3 rounded-2xl border border-border bg-card p-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-6"
+        data-usage-marketing="install"
+      >
+        <h2 class="font-semibold text-lg">{data.copy.installTitle}</h2>
+        <Button
+          aria-label={data.copy.copyInstallAction}
+          class="group h-auto min-w-0 w-full justify-between rounded-xl bg-muted px-4 py-3 text-left whitespace-normal hover:bg-muted/80"
+          type="button"
+          variant="ghost"
+          onclick={copyInstallCommand}
+        >
+          <code class="min-w-0 flex-1 overflow-x-auto font-mono text-sm"
+            >{data.copy.installCommand}</code
+          >
+          {#if installCopied}
+            <CheckIcon class="ms-3 shrink-0" data-icon="inline-end" />
+          {:else}
+            <CopyIcon
+              class="ms-3 shrink-0 text-muted-foreground group-hover:text-foreground"
+              data-icon="inline-end"
+            />
+          {/if}
+        </Button>
+      </div>
+    {/if}
+
+    <div class="grid gap-6">
+      <h2 class={usageMarketingSectionTitleClass}>{data.copy.startTitle}</h2>
+      <div class={usageMarketingExampleGridClass}>
+        {#each data.copy.steps as step, index}
+          {#if kind === "bot"}
             <article
-              class="mx-auto grid w-full min-w-0 content-start gap-3 p-2 sm:p-3"
+              class="mx-auto grid h-full w-full min-w-0 content-start gap-3 p-2 sm:p-3"
+              data-usage-marketing="example-card"
             >
+              <span class={usageMarketingStepIndexClass}>
+                {usageMarketingStepIndex(index)}
+              </span>
               <div
                 class="imessage-outgoing ms-auto px-3.5 py-2 font-sans text-sm"
               >
@@ -274,43 +333,27 @@ $: iconTone =
                 </div>
               {/if}
             </article>
-          {/each}
-        </div>
-      </div>
-    {:else}
-      <div class="grid gap-6">
-        {#if data.copy.installCommand}
-          <div
-            class="grid gap-2 rounded-2xl border border-border bg-card p-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-6"
-          >
-            <h2 class="font-semibold text-lg">{data.copy.installTitle}</h2>
-            <code
-              class="min-w-0 overflow-x-auto rounded-lg bg-muted px-4 py-3 font-mono text-sm"
-              >{data.copy.installCommand}</code
-            >
-          </div>
-        {/if}
-        <h2 class="font-semibold text-2xl tracking-tight sm:text-3xl">
-          {data.copy.startTitle}
-        </h2>
-        <div class="grid gap-5 xl:grid-cols-3">
-          {#each data.copy.steps as step}
+          {:else}
             <article
-              class="grid min-w-0 content-start overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-sm"
+              class={usageMarketingExampleCardClass}
+              data-usage-marketing="example-card"
             >
-              <div class="grid gap-5 p-5 sm:p-6">
+              <div class={usageMarketingExampleCardBodyClass}>
+                <span class={usageMarketingStepIndexClass}>
+                  {usageMarketingStepIndex(index)}
+                </span>
                 <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 font-mono text-sm">
                   <span class="text-muted-foreground">$</span>
                   <code class="break-words">{step.title}</code>
                 </div>
                 <pre
-                  class="min-w-0 overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground text-xs leading-6">{(step.resultLines ?? []).join("\n")}</pre
+                  class="min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground text-xs leading-6">{(step.resultLines ?? []).join("\n")}</pre
                 >
               </div>
             </article>
-          {/each}
-        </div>
+          {/if}
+        {/each}
       </div>
-    {/if}
+    </div>
   </div>
 </section>

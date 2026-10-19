@@ -530,6 +530,8 @@
       "primaryAction": "View on GitHub",
       "installTitle": "Install with Go",
       "installCommand": "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest",
+      "copyInstallAction": "Copy install command",
+      "copiedInstallAction": "Copied",
       "startTitle": "Real command results",
       "steps": [
         {
