@@ -8,7 +8,6 @@ import {
   youngDetailFacts,
   youngEventStatusLabel,
   youngListDayLabel,
-  youngListMetaBadges,
   youngListTimeLabel,
   youngMonthDay,
 } from "@/features/young/lib/young-event-display";
@@ -66,12 +65,6 @@ describe("young event display", () => {
     expect(groups.find((group) => group.key === "")?.events).toEqual([
       { startAt: null, name: "unknown" },
     ]);
-    expect(
-      youngListMetaBadges(["德", "校级", "主办方", "体", "德"], 3),
-    ).toEqual({
-      visible: ["德", "校级", "主办方"],
-      overflow: 1,
-    });
     expect(
       youngEventStatusLabel(
         { status: null, isActive: true },

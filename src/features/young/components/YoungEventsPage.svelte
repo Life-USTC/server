@@ -21,7 +21,6 @@ import {
   youngCapacity,
   youngEventStatusLabel,
   youngListDayLabel,
-  youngListMetaBadges,
   youngListTimeLabel,
 } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
@@ -75,31 +74,19 @@ function listTime(event: YoungEventSummary) {
 function listStatus(event: YoungEventSummary) {
   return youngEventStatusLabel(event, youngCopy);
 }
-
-function listMeta(event: YoungEventSummary) {
-  return youngListMetaBadges([
-    event.category,
-    event.module,
-    event.organizer,
-    event.activityLevel,
-  ]);
-}
 </script>
 
 {#snippet metaBadges(event: YoungEventSummary)}
-  {@const meta = listMeta(event)}
-  {#if meta.visible.length > 0}
-    <div class="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
-      {#each meta.visible as badge (badge)}
-        <Badge variant="outline" class="font-normal">{badge}</Badge>
-      {/each}
-      {#if meta.overflow > 0}
-        <Badge variant="ghost" class="font-normal text-muted-foreground">
-          {youngCopy.moreMeta.replace("{count}", String(meta.overflow))}
-        </Badge>
+  <div class="mt-1 flex min-w-0 flex-wrap items-center gap-1.5" data-testid="young-list-metadata">
+    {#each [event.category, event.module, event.activityLevel] as value}
+      {#if value?.trim()}
+        <Badge variant="outline" class="h-auto max-w-full whitespace-normal [overflow-wrap:anywhere]">{value}</Badge>
       {/if}
-    </div>
-  {/if}
+    {/each}
+    {#if event.organizer}
+      <span class="text-xs text-muted-foreground [overflow-wrap:anywhere]">{event.organizer}</span>
+    {/if}
+  </div>
 {/snippet}
 
 {#snippet statusBadge(event: YoungEventSummary)}
@@ -169,7 +156,7 @@ function listMeta(event: YoungEventSummary) {
                       <Item.Root size="sm">
                         {#snippet child({ props })}
                           <a href={youngDetailHref(event.youngId)} {...props}>
-                            <Item.Content>
+                            <Item.Content class="min-w-0 basis-full [overflow-wrap:anywhere]">
                               <Item.Title>{event.name}</Item.Title>
                               <p class="text-sm leading-normal text-muted-foreground">
                                 <span>{listTime(event)}</span>

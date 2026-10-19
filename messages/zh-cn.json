@@ -2735,7 +2735,6 @@
     "statusEnded": "历史活动列表",
     "statusOpen": "报名中",
     "statusClosed": "已结束",
-    "moreMeta": "+{count}",
     "category": "类别",
     "allCategories": "全部类别",
     "eventName": "活动",

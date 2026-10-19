@@ -92,25 +92,6 @@ export function youngEventStatusLabel(
   return event.isActive ? copy.statusOpen : copy.statusClosed;
 }
 
-/** Horizontal list metadata: keep at most `limit` chips and report overflow. */
-export function youngListMetaBadges(
-  values: readonly (string | null | undefined)[],
-  limit = 3,
-): { visible: string[]; overflow: number } {
-  const unique = [
-    ...new Set(
-      values
-        .map((value) => value?.trim())
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ];
-  if (unique.length <= limit) return { visible: unique, overflow: 0 };
-  return {
-    visible: unique.slice(0, limit),
-    overflow: unique.length - limit,
-  };
-}
-
 /** Ended rows must not claim a time is “to be announced”. */
 export function youngListTimeLabel(
   startAt: string | null | undefined,

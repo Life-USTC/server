@@ -305,7 +305,7 @@ requirements:
 - id: young-event.web-list-scan
   category: presentation
   rule: The activity list is a date-grouped agenda. Each row shows the start time, name, place, up to three
-    horizontal metadata badges with an overflow count, and a status badge only (never the signup-list /
+    horizontal category/module/level badges, the organizer as secondary text, and a status badge only (never the signup-list /
     history filter labels). Ended rows without a start use the unknown-value label rather than “time to be
     announced”. The platform name in the description links to the official site.
   acceptance:
@@ -314,11 +314,12 @@ requirements:
     when: The list groups those activities and builds metadata badges.
     then:
     - Events with the same start date share one group, and an unknown start is its own group.
-    - Metadata badges stay within three chips plus an overflow count; status labels stay short open/closed
-      badges when upstream status is absent.
+    - Category, module and level remain visible in at most three wrapping chips; the organizer remains visible
+      alongside them. Long metadata fits narrow rows without horizontal overflow.
+    - Status labels stay short open/closed badges when upstream status is absent.
     test:
-      file: tests/unit/features/young/young-event-display.test.ts
-      name: young-event.web-list-scan
+      file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
+      name: young-event.fixed-browse-filter-options
 - id: young-event.web-calendar-empty
   category: presentation
   rule: Month and week grid cells stay blank when they have no events. The calendar shows one page-level empty

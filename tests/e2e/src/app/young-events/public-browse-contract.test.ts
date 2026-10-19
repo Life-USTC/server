@@ -209,6 +209,15 @@ test("young-event.fixed-browse-filter-options", { tag: "@Young/Web" }, async ({
     );
     await expect(eventLink(page, fixture, 7)).toContainText("未知模块");
     await expect(eventLink(page, fixture, 7)).toContainText("未知级别");
+    const metadata = eventLink(page, fixture, 7).getByTestId(
+      "young-list-metadata",
+    );
+    await expect(metadata.locator('[data-slot="badge"]')).toHaveCount(3);
+    await expect(metadata.getByText("未知模块", { exact: true })).toBeVisible();
+    await expect(metadata.getByText("未知级别", { exact: true })).toBeVisible();
+    await expect(
+      metadata.getByText(`Z ${fixture.marker} tie`, { exact: true }),
+    ).toBeVisible();
     // The calendar consumes the same filters from the URL but owns no filter UI.
     await gotoAndWaitForReady(
       page,

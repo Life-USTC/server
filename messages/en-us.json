@@ -1078,7 +1078,6 @@
     "statusEnded": "Historical activity list",
     "statusOpen": "Open for signup",
     "statusClosed": "Ended",
-    "moreMeta": "+{count}",
     "category": "Category",
     "allCategories": "All categories",
     "eventName": "Event",
