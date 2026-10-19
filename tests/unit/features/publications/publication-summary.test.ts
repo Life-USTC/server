@@ -58,4 +58,13 @@ describe("publicationSummary", () => {
     );
     expect(publicationListSummaryIsUrlHeavy("校园通知补充说明")).toBe(false);
   });
+
+  it("truncates each row independently of URL detection on preceding rows", () => {
+    const summary = `详情 https://example.test/${"a".repeat(100)}`;
+    const expected = `详情 ${`https://example.test/${"a".repeat(100)}`.slice(0, 47)}…`;
+    for (let row = 0; row < 3; row++) {
+      expect(publicationListSummaryIsUrlHeavy(summary)).toBe(true);
+      expect(publicationListSummary("通知", summary)).toBe(expected);
+    }
+  });
 });

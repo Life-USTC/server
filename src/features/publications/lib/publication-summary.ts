@@ -29,8 +29,6 @@ export function publicationListSummary(
 ) {
   const text = publicationSummary(title, summary);
   if (!text) return "";
-  if (!URL_IN_TEXT.test(text)) return text;
-  URL_IN_TEXT.lastIndex = 0;
   return text.replace(URL_IN_TEXT, (url) =>
     url.length > LIST_URL_MAX ? `${url.slice(0, LIST_URL_MAX - 1)}…` : url,
   );
@@ -38,6 +36,5 @@ export function publicationListSummary(
 
 /** True when the list summary contains a URL that should use a one-line clamp. */
 export function publicationListSummaryIsUrlHeavy(summary: string) {
-  URL_IN_TEXT.lastIndex = 0;
-  return URL_IN_TEXT.test(summary);
+  return /https?:\/\/\S+/iu.test(summary);
 }
