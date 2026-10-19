@@ -32,12 +32,12 @@ export let setCalendarWeek: WorkspaceCalendarTabProps["setCalendarWeek"];
 export let signedData: WorkspaceCalendarTabProps["signedData"];
 export let subscriptionsCopy: WorkspaceCalendarTabProps["subscriptionsCopy"];
 export let activitiesManageLabel: string;
-export let activitiesManageHref = "/workspace/subscriptions/activities";
+const activitiesManageHref = "/workspace/subscriptions/activities";
 
 let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 </script>
 
-<div class="hidden gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+<div class="hidden gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
   <div class="flex flex-wrap items-center gap-2 md:justify-start">
     <ToggleGroup.Root
       aria-label={workspaceCopy.nav.calendar.title}
