@@ -1,24 +1,15 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { EMPTY_VARIANTS } from "#lib/components/empty-variants.js";
 import {
-  EMPTY_COMPONENT_EXPORTS,
-  EMPTY_VARIANTS,
-} from "#lib/components/empty-variants.js";
-import {
-  ACTION_BUTTON_VARIANT,
-  ACTION_TOKEN_KEYS,
   resolveStatusToken,
   STATUS_BADGE_CLASS,
   STATUS_TOKEN_KEYS,
-  statusBadgeClass,
 } from "#lib/ui/action-status-tokens.js";
 
 describe("action-status-tokens", () => {
-  it("exports primary/secondary action tokens and status-* roles", () => {
-    expect([...ACTION_TOKEN_KEYS]).toEqual(["primary", "secondary"]);
-    expect(ACTION_BUTTON_VARIANT.primary).toBe("default");
-    expect(ACTION_BUTTON_VARIANT.secondary).toBe("outline");
+  it("exports status-* roles", () => {
     expect([...STATUS_TOKEN_KEYS]).toEqual([
       "active",
       "open",
@@ -27,7 +18,6 @@ describe("action-status-tokens", () => {
     ]);
     for (const key of STATUS_TOKEN_KEYS) {
       expect(STATUS_BADGE_CLASS[key]).toContain(`bg-status-${key}`);
-      expect(statusBadgeClass(key)).toBe(STATUS_BADGE_CLASS[key]);
     }
   });
 
@@ -60,12 +50,6 @@ describe("empty-variants", () => {
       "setup",
       "quiet",
     ]);
-    expect([...EMPTY_COMPONENT_EXPORTS]).toEqual([
-      "CollectionEmpty",
-      "ResultsEmpty",
-      "CompactEmpty",
-      "SoftEmptyMessage",
-    ]);
   });
 
   it("ships CollectionEmpty.svelte with the shared variant contract", () => {
@@ -73,11 +57,8 @@ describe("empty-variants", () => {
       resolve("src/lib/components/CollectionEmpty.svelte"),
       "utf8",
     );
-    for (const variant of EMPTY_VARIANTS) {
-      expect(source).toContain(variant);
-    }
-    expect(source).toContain('data-empty-variant="filter-clear"');
-    expect(source).toContain('data-empty-variant="setup"');
-    expect(source).toContain('data-empty-variant="browse"');
+    expect(source).toContain("data-empty-variant={variant}");
+    expect(source).toContain('variant === "filter-clear" && onClearFilter');
+    expect(source).toContain('variant === "quiet"');
   });
 });

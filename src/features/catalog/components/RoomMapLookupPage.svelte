@@ -9,7 +9,6 @@ import {
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { ACTION_BUTTON_VARIANT } from "#lib/ui/action-status-tokens.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 
@@ -54,7 +53,7 @@ function submit(event: SubmitEvent) {
       <Button
         type="submit"
         class={toolbarControlClass}
-        variant={ACTION_BUTTON_VARIANT.primary}
+        variant="default"
       >
         <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
         {copy.submit}

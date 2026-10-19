@@ -6,10 +6,7 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
-import {
-  resolveStatusToken,
-  statusBadgeClass,
-} from "#lib/ui/action-status-tokens.js";
+import { resolveStatusToken } from "#lib/ui/action-status-tokens.js";
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
 import type {
@@ -88,17 +85,11 @@ const badges = $derived(
       </div>
       <div class="flex min-w-0 flex-wrap gap-2" data-testid="young-event-badges">
         <Badge
-          class={statusBadgeClass(
-            resolveStatusToken({
-              status: event.status,
-              isActive: event.isActive,
-            }),
-          )}
           data-status-token={resolveStatusToken({
             status: event.status,
             isActive: event.isActive,
           })}
-          variant="outline"
+          variant={`status-${resolveStatusToken(event)}`}
         >
           {event.status ??
             (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}

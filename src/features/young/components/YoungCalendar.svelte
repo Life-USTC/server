@@ -1,6 +1,6 @@
 <script lang="ts">
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
-import SoftEmptyMessage from "#lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
@@ -239,7 +239,7 @@ function eventMeta(event: YoungCalendarEvent) {
   </div>
 
   {#if !rangeHasEvents}
-    <SoftEmptyMessage message={labels.calendarEmpty} />
+    <CollectionEmpty variant="quiet" description={labels.calendarEmpty} />
   {/if}
 
   {#if unknownDateCount > 0}

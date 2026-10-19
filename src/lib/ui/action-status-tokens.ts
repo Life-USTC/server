@@ -6,9 +6,6 @@
  * - `status-*`: lifecycle badges (进行中 / 报名中 / 逾期 / 已结束), never primary fill.
  */
 
-export const ACTION_TOKEN_KEYS = ["primary", "secondary"] as const;
-export type ActionToken = (typeof ACTION_TOKEN_KEYS)[number];
-
 export const STATUS_TOKEN_KEYS = [
   "active",
   "open",
@@ -16,12 +13,6 @@ export const STATUS_TOKEN_KEYS = [
   "ended",
 ] as const;
 export type StatusToken = (typeof STATUS_TOKEN_KEYS)[number];
-
-/** Button variant names that map to action tokens. */
-export const ACTION_BUTTON_VARIANT = {
-  primary: "default",
-  secondary: "outline",
-} as const satisfies Record<ActionToken, "default" | "outline">;
 
 /** Tailwind utility classes bound to CSS status tokens in `svelte.css`. */
 export const STATUS_BADGE_CLASS = {
@@ -85,8 +76,4 @@ export function resolveStatusToken(input: {
   if (input.isActive === false) return "ended";
   if (input.isActive === true) return "active";
   return "ended";
-}
-
-export function statusBadgeClass(token: StatusToken): string {
-  return STATUS_BADGE_CLASS[token];
 }

@@ -1598,8 +1598,7 @@ requirements:
     given: The action/status token module, empty variant exports and theme CSS custom properties.
     when: Unit tests import the token and empty exports and read svelte.css.
     then:
-    - Primary maps to the solid button default and secondary to outline; status-active, status-open,
-      status-overdue and status-ended classes and CSS variables are present.
+    - Status-active, status-open, status-overdue and status-ended classes and CSS variables are present.
     - Empty variants filter-clear, browse, setup and quiet are exported with CollectionEmpty ownership.
     test:
       file: tests/unit/lib/ui/action-status-tokens.test.ts

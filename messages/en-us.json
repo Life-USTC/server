@@ -81,15 +81,7 @@
     "userNotFound": "User not found",
     "unknown": "Unknown",
     "campusServices": "Campus services",
-    "applyFilters": "Apply filters",
-    "statusInProgress": "In progress",
-    "statusOpen": "Open for signup",
-    "statusOverdue": "Overdue",
-    "statusEnded": "Ended",
-    "emptyFilterClear": "Clear filters and try again",
-    "emptyBrowse": "No matching results",
-    "emptySetup": "Nothing here yet — finish setup to get started",
-    "emptyQuiet": "Nothing in this range"
+    "applyFilters": "Apply filters"
   },
   "globalSearch": {
     "title": "Search",

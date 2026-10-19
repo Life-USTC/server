@@ -7,10 +7,7 @@ import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import {
-  resolveStatusToken,
-  statusBadgeClass,
-} from "#lib/ui/action-status-tokens.js";
+import { resolveStatusToken } from "#lib/ui/action-status-tokens.js";
 import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventSummary,
@@ -81,12 +78,6 @@ function eventStatusLabel(event: YoungEventSummary) {
   return (
     event.status ??
     (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)
-  );
-}
-
-function eventStatusClass(event: YoungEventSummary) {
-  return statusBadgeClass(
-    resolveStatusToken({ status: event.status, isActive: event.isActive }),
   );
 }
 </script>
@@ -165,12 +156,11 @@ function eventStatusClass(event: YoungEventSummary) {
                             </Item.Content>
                             <Item.Actions>
                                 <Badge
-                                  class={eventStatusClass(event)}
                                   data-status-token={resolveStatusToken({
                                     status: event.status,
                                     isActive: event.isActive,
                                   })}
-                                  variant="outline"
+                                  variant={`status-${resolveStatusToken(event)}`}
                                 >
                                   {eventStatusLabel(event)}
                                 </Badge>
@@ -213,12 +203,11 @@ function eventStatusClass(event: YoungEventSummary) {
                     <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
                   <Table.Cell>
                     <Badge
-                      class={eventStatusClass(event)}
                       data-status-token={resolveStatusToken({
                         status: event.status,
                         isActive: event.isActive,
                       })}
-                      variant="outline"
+                      variant={`status-${resolveStatusToken(event)}`}
                     >
                       {eventStatusLabel(event)}
                     </Badge>

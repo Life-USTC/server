@@ -15,11 +15,3 @@ export const EMPTY_VARIANTS = [
 ] as const;
 
 export type EmptyVariant = (typeof EMPTY_VARIANTS)[number];
-
-/** Components that implement the shared empty contract. */
-export const EMPTY_COMPONENT_EXPORTS = [
-  "CollectionEmpty",
-  "ResultsEmpty",
-  "CompactEmpty",
-  "SoftEmptyMessage",
-] as const;

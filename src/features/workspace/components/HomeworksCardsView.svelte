@@ -6,10 +6,6 @@ import TableIconButton from "#lib/components/TableIconButton.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
-import {
-  resolveStatusToken,
-  statusBadgeClass,
-} from "#lib/ui/action-status-tokens.js";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
 import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
@@ -99,16 +95,11 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
                 <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
               {:else if !homework.completion}
                 <Badge
-                  class={homeworkIsOverdue(homework.submissionDueAt)
-                    ? statusBadgeClass(
-                        resolveStatusToken({ overdue: true }),
-                      )
-                    : undefined}
                   data-status-token={homeworkIsOverdue(homework.submissionDueAt)
                     ? "overdue"
                     : undefined}
                   variant={homeworkIsOverdue(homework.submissionDueAt)
-                    ? "outline"
+                    ? "status-overdue"
                     : "ghost"}
                 >
                   {homeworkEtaLabel(homework.submissionDueAt)}
