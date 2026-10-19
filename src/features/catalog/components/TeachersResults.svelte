@@ -79,7 +79,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
           {#each teachers as teacher, index}
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
             {@const sectionCount = teacher._count.sections}
-            <div role="listitem">
+            <div role="listitem" class="relative">
               <Item.Root size="sm">
                 {#snippet child({ props })}
                   <a href={teacherHref} {...props}>
@@ -87,8 +87,8 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                     <Item.Actions>
                       {#if sectionCount > 0}
                         <span
-                          class="tabular-nums text-muted-foreground text-sm underline-offset-2"
-                          data-testid="teacher-section-count"
+                          class="invisible min-w-11 tabular-nums text-sm"
+                          aria-hidden="true"
                         >{sectionCount}</span>
                       {:else}
                         <span class="tabular-nums text-muted-foreground text-sm" data-testid="teacher-section-count">0</span>
@@ -112,6 +112,13 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                   </a>
                 {/snippet}
               </Item.Root>
+              {#if sectionCount > 0}
+                <a
+                  href={teacherSectionsHref(teacher)}
+                  class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2 hover:underline"
+                  data-testid="teacher-section-count"
+                >{sectionCount}</a>
+              {/if}
             </div>
             {#if index < teachers.length - 1}
               <Item.Separator aria-hidden="true" />

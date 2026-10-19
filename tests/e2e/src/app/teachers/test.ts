@@ -280,6 +280,15 @@ test.describe("/catalog/teachers", () => {
         "href",
         `/catalog/teachers/${teacher.id}#sections`,
       );
+      await page.setViewportSize({ width: 390, height: 900 });
+      const mobileCount = page.locator(
+        '[data-testid="teacher-section-count"]:visible',
+      );
+      await expect(mobileCount).toHaveText("1");
+      await expect(mobileCount).toHaveAttribute(
+        "href",
+        `/catalog/teachers/${teacher.id}#sections`,
+      );
     });
   });
 
@@ -348,7 +357,11 @@ test.describe("/catalog/teachers", () => {
           .filter({ hasText: titled.nameCn })
           .locator("td")
           .nth(3),
-      ).toHaveText(title.nameCn);
+      ).toHaveText(
+        (await page.locator("html").getAttribute("lang")) === "en-us"
+          ? `Mixed title ${marker}`
+          : title.nameCn,
+      );
     });
   });
 });

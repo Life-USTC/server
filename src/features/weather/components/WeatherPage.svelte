@@ -1,6 +1,7 @@
 <script lang="ts">
 import Panel from "#lib/components/Panel.svelte";
 import * as Tabs from "#lib/components/ui/tabs/index.js";
+import { IsMobile } from "#lib/hooks/is-mobile.svelte.js";
 import { formatShanghaiTime } from "#lib/time/shanghai-format.js";
 import WeatherLocationPanel from "@/features/weather/components/WeatherLocationPanel.svelte";
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
@@ -15,7 +16,9 @@ type Props = {
 
 let { locations, locale, weatherCopy }: Props = $props();
 
-let activeCampus = $state((locations[0]?.locationKey ?? "ustc-main") as string);
+const isMobile = new IsMobile();
+
+let activeCampus = $state("ustc-main");
 
 function onCampusChange(value: string) {
   if (value) activeCampus = value;
@@ -45,7 +48,8 @@ function formatTemplate(template: string, values: Record<string, string>) {
 </script>
 
 <!-- Mobile: segmented campus tabs (本部 | 高新). Desktop keeps both panels. -->
-<div class="md:hidden" data-testid="weather-campus-tabs">
+{#if isMobile.current}
+<div data-testid="weather-campus-tabs">
   <Tabs.Root value={activeCampus} onValueChange={onCampusChange}>
     <Tabs.List
       class="grid h-auto w-full grid-cols-2"
@@ -64,6 +68,11 @@ function formatTemplate(template: string, values: Record<string, string>) {
     {#each locations as location (location.locationKey)}
       <Tabs.Content value={location.locationKey} class="mt-4">
         <Panel>
+          {#snippet header()}
+            <h2 class="text-lg font-semibold" data-weather-location={location.locationKey}>
+              {weatherCopy.locationNames[location.locationKey]}
+            </h2>
+          {/snippet}
           <WeatherLocationPanel
             {location}
             {locale}
@@ -76,7 +85,8 @@ function formatTemplate(template: string, values: Record<string, string>) {
   </Tabs.Root>
 </div>
 
-<div class="hidden min-w-0 gap-5 md:grid md:grid-cols-2" data-testid="weather-campus-grid">
+{:else}
+<div class="grid min-w-0 gap-5 grid-cols-2" data-testid="weather-campus-grid">
   {#each locations as location (location.locationKey)}
     <Panel>
       {#snippet header()}
@@ -96,6 +106,8 @@ function formatTemplate(template: string, values: Record<string, string>) {
     </Panel>
   {/each}
 </div>
+
+{/if}
 
 {#if latestFetchedAt}
   <div

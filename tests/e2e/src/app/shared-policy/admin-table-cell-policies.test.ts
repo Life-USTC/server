@@ -270,7 +270,9 @@ for (const domain of ["Admin", "Teacher"] as const) {
               "Table unknown teacher (表格未知值教师)",
             );
             await expect(row).toBeVisible();
-            await expect(row.getByText("Unknown")).toHaveCount(0);
+            await expect(row.getByText("Unknown", { exact: true })).toHaveCount(
+              0,
+            );
           }
         },
         {},

@@ -107,6 +107,8 @@ export async function showWeatherFixture(
     await page.locator('[data-slot="sidebar-trigger"]').click();
   }
   await page.locator('a[href="/catalog/weather"]').first().click();
-  await expect(page.getByTestId("weather-hourly-chart")).toHaveCount(2);
+  await expect(
+    page.locator('[data-testid="weather-hourly-chart"]:visible'),
+  ).toHaveCount((page.viewportSize()?.width ?? 1280) < 768 ? 1 : 2);
   return locations[0].snapshot;
 }
