@@ -987,7 +987,8 @@ requirements:
   topic: workspace-footer-policy
   rule: /account/sign-in uses a focused authentication shell with no sidebar, navigation toggle or public footer.
     The login card remains centered in the available content area, with language and theme preferences in the header
-    and Terms and Privacy links inside the card.
+    and Terms and Privacy links inside the card. The topbar does not repeat a Sign in control while already on
+    /account/sign-in*.
   acceptance:
     given: An anonymous visitor at desktop and mobile widths.
     when: The visitor opens /account/sign-in.
@@ -995,6 +996,7 @@ requirements:
     - The focused shell and login card are visible without horizontal overflow.
     - No sidebar navigation, sidebar toggle or public footer is rendered.
     - Language and theme preferences and the card's legal links remain reachable.
+    - The topbar Sign in control is absent on the sign-in route.
     test:
       file: tests/e2e/src/app/signin/test.ts
       name: /account/sign-in uses the focused auth shell
@@ -1092,16 +1094,18 @@ requirements:
   category: presentation
   topic: settings-navigation
   rule: The default settings destination is /account/settings/profile. Canonical settings navigation does not
-    depend on legacy tab query inputs.
+    depend on legacy tab query inputs. The page H1 matches the active settings tab (for example Edit Profile /
+    编辑资料) rather than repeating the hub label Settings / 设置.
   acceptance:
     given: A signed-in user requests the settings root without a subsection or tab query.
     when: The browser follows the root redirect and inspects the resulting profile form.
     then:
     - The default settings destination is /account/settings/profile. Canonical settings navigation does not
       depend on legacy tab query inputs.
+    - The profile settings H1 shows the tab title, not the hub label alone.
     test:
-      file: tests/e2e/src/app/settings/test.ts
-      name: ui.settings-navigation-2
+      file: tests/e2e/src/app/settings/profile/test.ts
+      name: 页面契约
 - id: ui.settings-navigation-4
   category: presentation
   topic: settings-navigation

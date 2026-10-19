@@ -86,7 +86,7 @@
   "globalSearch": {
     "title": "Search",
     "pageTitle": "Search",
-    "pageDescription": "Search sections, teachers, courses, campus links, and your homework or todos.",
+    "pageDescription": "You can keep searching here; prefer the top bar or Ctrl K.",
     "placeholder": "Search sections, teachers, courses…",
     "placeholderSignedIn": "Search sections, teachers, courses, homework, todos…",
     "shortcut": "Ctrl K",
@@ -97,6 +97,15 @@
     "openSearch": "Open search",
     "close": "Close",
     "viewAllResults": "View all search results",
+    "emptyLead": "Start from a type or example, or use the top search bar.",
+    "typesLabel": "Search types",
+    "examplesLabel": "Try these",
+    "examples": {
+      "course": "calculus",
+      "section": "CS101",
+      "teacher": "Zhang",
+      "link": "registrar"
+    },
     "groups": {
       "courses": "Courses",
       "sections": "Sections",

@@ -97,6 +97,14 @@ test("/account/sign-in uses the focused auth shell", {
     await expect(page.locator('[data-slot="sidebar-trigger"]')).toHaveCount(0);
     await expect(page.locator("[data-shell-preferences]")).toBeVisible();
     await expect(page.locator('[data-slot="card"]')).toBeVisible();
+    await expect(
+      page.locator("[data-shell-topbar] [data-shell-sign-in]"),
+    ).toHaveCount(0);
+    await expect(
+      page
+        .locator("[data-shell-topbar]")
+        .getByRole("link", { name: /^(登录|Sign in)$/i }),
+    ).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

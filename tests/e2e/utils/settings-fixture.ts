@@ -144,6 +144,17 @@ export const test = accountTest.extend<{
   },
 });
 
+const settingsPageHeadingByPath: Record<string, RegExp> = {
+  "/account/settings": /编辑资料|Edit Profile/i,
+  "/account/settings/profile": /编辑资料|Edit Profile/i,
+  "/account/settings/preferences": /偏好设置|Preferences/i,
+  "/account/settings/accounts": /关联账户|Linked Accounts/i,
+  "/account/settings/security": /账户安全活动|Account security activity/i,
+  "/account/settings/authorizations":
+    /已授权的 OAuth 应用|Authorized OAuth applications/i,
+  "/account/settings/danger": /危险操作|Danger zone/i,
+};
+
 export async function expectSettingsPage(page: Page, path: string) {
   const response = await gotoAndWaitForReady(page, path, {
     browserHealth: {},
@@ -153,9 +164,14 @@ export async function expectSettingsPage(page: Page, path: string) {
   });
   expect(response?.ok()).toBe(true);
   await expect(page.locator("#main-content")).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /设置|Settings/i, level: 1 }),
-  ).toBeVisible();
+  const headingPattern =
+    settingsPageHeadingByPath[path] ?? /编辑资料|Edit Profile/i;
+  const heading = page.getByRole("heading", {
+    name: headingPattern,
+    level: 1,
+  });
+  await expect(heading).toBeVisible();
+  await expect(heading).not.toHaveText(/^(设置|Settings)$/);
 }
 
 export function storedProfile(db: TestPrismaClient, userId: string) {

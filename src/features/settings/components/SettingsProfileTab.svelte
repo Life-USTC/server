@@ -35,13 +35,6 @@ const updateProfile: SubmitFunction = () => {
   action="?/updateProfile"
   use:enhance={updateProfile}
 >
-  <div class="grid gap-1">
-    <h2 class="text-base font-normal tracking-tight">{copy.profile.editProfile}</h2>
-    <p class="text-muted-foreground text-sm">
-      {copy.profile.editProfileDescription}
-    </p>
-  </div>
-
   <ProfileAvatarPicker
     avatarOptions={avatarOptions}
     label={copy.profile.profilePicture}
