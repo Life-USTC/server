@@ -26,10 +26,8 @@ export let events: YoungCalendarEvent[] = [];
 export let locale = "zh-cn";
 export let timeBasis: YoungEventTimeBasis = "activity";
 export let view: YoungCalendarView = "month";
-export let unknownDateCount = 0;
 export let conflictIds = new Set<string>();
 export let conflictLabel = "";
-export let unknownDatesHref = "/catalog/young-events?dateUnknown=true";
 export let labels: {
   agenda: string;
   earlierDates: string;
@@ -37,7 +35,6 @@ export let labels: {
   next: string;
   previous: string;
   today: string;
-  unknownDates: string;
   week: string;
   day: string;
   moreEvents: string;

@@ -140,7 +140,6 @@ const calendarLabels = $derived({
   previous: youngCopy.previous,
   sourceMissing: youngCopy.sourceMissing,
   today: youngCopy.today,
-  unknownDates: youngCopy.unknownDates,
   week: youngCopy.week,
   calendarEmpty: youngCopy.calendarEmpty,
 });
@@ -176,8 +175,6 @@ const calendarLabels = $derived({
       labels={calendarLabels}
       {locale}
       timeBasis={filters.timeBasis}
-      {unknownDateCount}
-      unknownDatesHref={unknownDatesHref()}
       {view}
     />
     {#if filters.timeBasis === "activity"}

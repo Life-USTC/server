@@ -6,6 +6,7 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import { cn } from "#lib/utils.js";
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
 import type {
@@ -117,7 +118,7 @@ const signupLabel = $derived(
 
 <div class="page-frame page-frame-content px-4 py-6 sm:px-5 lg:px-6">
   <header
-    class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:items-start"
+    class={cn("grid min-w-0 gap-6 lg:items-start", event.imageUrl && "lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]")}
     data-testid="young-event-banner"
   >
     {#if event.imageUrl}
@@ -154,7 +155,7 @@ const signupLabel = $derived(
             class="text-sm text-muted-foreground [overflow-wrap:anywhere]"
             data-testid="young-event-overview"
           >
-            {#each facts as fact, index (fact)}
+            {#each facts as fact, index (index)}
               {#if index > 0}<span aria-hidden="true"> · </span>{/if}<span
                 >{fact}</span
               >

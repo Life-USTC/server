@@ -80,8 +80,8 @@ function listMeta(event: YoungEventSummary) {
   return youngListMetaBadges([
     event.category,
     event.module,
-    event.activityLevel,
     event.organizer,
+    event.activityLevel,
   ]);
 }
 </script>
