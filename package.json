@@ -88,7 +88,7 @@
     "tailwind-variants": "3.3.1",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
