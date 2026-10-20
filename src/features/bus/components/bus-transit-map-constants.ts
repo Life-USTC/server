@@ -14,7 +14,15 @@ export const ROUTE_PALETTE = [
 export const SVG_W = 900;
 export const SVG_H = 560;
 export const PAD = 56;
-export const NODE_R = 28;
+/** Campus node radius in SVG user units (halved from 28 for desktop visual weight). */
+export const NODE_R = 14;
+/**
+ * Primary campus label size used for viewBox / width estimates and on narrow
+ * viewports. Desktop CSS halves this via `max-md` so nodes no longer dominate
+ * while #372 mobile `labelHeights >= 10` stays intact.
+ */
+export const CAMPUS_LABEL_FONT_PX = 28;
+export const CAMPUS_LABEL_FONT_PX_DESKTOP = 14;
 export const TRACK_SPACING = 9;
 export const BUS_W = 20;
 export const BUS_H = 12;

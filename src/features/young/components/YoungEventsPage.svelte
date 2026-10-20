@@ -1,12 +1,13 @@
 <script lang="ts">
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import { resolveStatusToken } from "#lib/ui/action-status-tokens.js";
 import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventSummary,
@@ -90,7 +91,13 @@ function listStatus(event: YoungEventSummary) {
 {/snippet}
 
 {#snippet statusBadge(event: YoungEventSummary)}
-  <Badge variant={event.isActive ? "secondary" : "outline"}>
+  <Badge
+    data-status-token={resolveStatusToken({
+      status: event.status,
+      isActive: event.isActive,
+    })}
+    variant={`status-${resolveStatusToken(event)}`}
+  >
     {listStatus(event)}
   </Badge>
 {/snippet}
@@ -208,12 +215,11 @@ function listStatus(event: YoungEventSummary) {
         {/snippet}
       </ResponsiveCollection>
     {:else}
-      <div class="py-10">
-        <ResultsEmpty
-          description={youngCopy.description}
-          title={youngCopy.noEventsFound}
-        />
-      </div>
+      <CollectionEmpty
+        description={youngCopy.description}
+        title={youngCopy.noEventsFound}
+        variant="browse"
+      />
     {/if}
   </section>
 </CollectionPage>

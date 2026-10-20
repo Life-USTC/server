@@ -6,6 +6,7 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import { resolveStatusToken } from "#lib/ui/action-status-tokens.js";
 import { cn } from "#lib/utils.js";
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
@@ -81,6 +82,12 @@ const statusLabel = $derived(
     statusClosed: youngCopy.statusClosed,
   }),
 );
+const statusToken = $derived(
+  resolveStatusToken({
+    status: event.status,
+    isActive: event.isActive,
+  }),
+);
 const placeLabel = $derived(
   event.location ??
     event.places
@@ -149,7 +156,10 @@ const signupLabel = $derived(
           {event.name}
         </h1>
         <div class="flex min-w-0 flex-wrap gap-2" data-testid="young-event-badges">
-          <Badge variant={event.isActive ? "secondary" : "outline"}>
+          <Badge
+            data-status-token={statusToken}
+            variant={`status-${statusToken}`}
+          >
             {statusLabel}
           </Badge>
           {#each badges as badge (badge)}

@@ -10,6 +10,13 @@ test.describe("/news 新闻与通知预览", () => {
   test("页面契约", { tag: "@Publication/Web" }, async ({ browseRun, page }) => {
     await browseRun(async () => {
       await assertPageContract(page, { routePath: "/news" });
+      // Source directory stays a single sidebar entry; do not repeat it in the
+      // list page header actions (ui.route-navigation / issue #1251).
+      await expect(
+        page
+          .locator("main")
+          .getByRole("link", { name: /来源目录|Source directory/i }),
+      ).toHaveCount(0);
     });
   });
 

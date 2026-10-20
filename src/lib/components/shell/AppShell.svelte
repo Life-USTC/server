@@ -20,6 +20,7 @@ import {
   applyShellTheme,
   buildFooterLinks,
   isDetailWorkspacePath,
+  isSignInPath,
   isYoungEventDetailPath,
   resolveAvatarFallback,
   resolveProfileHref,
@@ -213,6 +214,7 @@ $: sectionSidebar = settingsSidebar
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
 $: youngEventBanner = isYoungEventDetailPath($page.url.pathname);
 $: focusedShell = shouldUseFocusedShell($page.url.pathname);
+$: hideSignIn = isSignInPath($page.url.pathname);
 $: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(viewerUser));
 $: mainContentLabel = resolveMainContentLabel($page.data);
 const footerLinks = buildFooterLinks(data.copy.footer);
@@ -454,6 +456,7 @@ afterNavigate(({ from, to, type, shallow }) => {
       copy={data.copy}
       focused
       globalSearchShortcutLabel={globalSearchShortcutLabel}
+      hideSignIn={hideSignIn}
       locale={data.locale}
       localeMenuOpen={localeMenuOpen}
       onOpenGlobalSearch={openGlobalSearch}
@@ -512,6 +515,7 @@ afterNavigate(({ from, to, type, shallow }) => {
           closeMenus={closeMenus}
           copy={data.copy}
           globalSearchShortcutLabel={globalSearchShortcutLabel}
+          hideSignIn={hideSignIn}
           locale={data.locale}
           localeMenuOpen={localeMenuOpen}
           onOpenGlobalSearch={openGlobalSearch}

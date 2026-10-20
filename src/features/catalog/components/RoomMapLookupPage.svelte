@@ -1,7 +1,7 @@
 <script lang="ts">
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import {
   toolbarControlClass,
   toolbarFieldClass,
@@ -50,7 +50,11 @@ function submit(event: SubmitEvent) {
           spellcheck="false"
         />
       </Field.Field>
-      <Button type="submit" class={toolbarControlClass}>
+      <Button
+        type="submit"
+        class={toolbarControlClass}
+        variant="default"
+      >
         <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
         {copy.submit}
       </Button>
@@ -68,8 +72,10 @@ function submit(event: SubmitEvent) {
       />
     {/key}
   {:else}
-    <div class="py-10">
-      <ResultsEmpty description={copy.empty} title={copy.emptyTitle} />
-    </div>
+    <CollectionEmpty
+      description={copy.empty}
+      title={copy.emptyTitle}
+      variant="setup"
+    />
   {/if}
 </CollectionPage>

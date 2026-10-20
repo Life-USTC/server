@@ -6,6 +6,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
+import { publicationAttributionValue } from "@/features/publications/lib/publication-attribution";
 import {
   publicationDetailHref,
   publicationReturnHref,
@@ -35,16 +36,21 @@ const summary = $derived(
 );
 
 const articleInformation = $derived(
-  [
-    [copy.author, revision.author],
+  (
     [
-      copy.reporter,
-      revision.reporter !== revision.author ? revision.reporter : null,
-    ],
-    [copy.editor, revision.editor],
-    [copy.originalPublisher, revision.originalPublisher],
-    [copy.category, revision.category],
-  ].filter((entry) => entry[1]),
+      [copy.author, revision.author],
+      [
+        copy.reporter,
+        revision.reporter !== revision.author ? revision.reporter : null,
+      ],
+      [copy.editor, revision.editor],
+      [copy.originalPublisher, revision.originalPublisher],
+      [copy.category, revision.category],
+    ] as const
+  ).flatMap(([label, value]) => {
+    const cleaned = publicationAttributionValue(value);
+    return cleaned ? ([[label, cleaned]] as const) : [];
+  }),
 );
 </script>
 

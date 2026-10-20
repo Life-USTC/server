@@ -8,6 +8,24 @@ import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Tabs from "#lib/components/ui/tabs/index.js";
+import {
+  usageMarketingBlurbClass,
+  usageMarketingCtaRowClass,
+  usageMarketingHeroCopyClass,
+  usageMarketingHeroGridClass,
+  usageMarketingHeroShellClass,
+  usageMarketingIconClass,
+  usageMarketingIconGlyphClass,
+  usageMarketingPageClass,
+  usageMarketingPrimaryCtaClass,
+  usageMarketingSectionTitleClass,
+  usageMarketingStepColumnClass,
+  usageMarketingStepGridClass,
+  usageMarketingStepIndex,
+  usageMarketingStepIndexClass,
+  usageMarketingStepTitleClass,
+  usageMarketingTitleClass,
+} from "../lib/usage-marketing-layout.js";
 
 type ClientCopy = {
   emptyAlt: string;
@@ -181,36 +199,34 @@ function selectClient(value: string) {
   </div>
 {/snippet}
 
-<section class="grid gap-6 pb-10 sm:gap-12">
-  <div
-    class="mcp-intro relative -mx-4 -mt-4 overflow-hidden bg-[radial-gradient(120%_80%_at_10%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklab,var(--muted)_55%,transparent),var(--background))] sm:-mx-5 lg:-mx-6"
-  >
+<section class={usageMarketingPageClass} data-usage-marketing="page">
+  <div class={`${usageMarketingHeroShellClass} overflow-hidden`} data-usage-marketing="hero">
     <div
-      class="grid items-center gap-8 px-4 py-8 sm:px-5 sm:py-10 lg:grid-cols-[minmax(20rem,0.78fr)_minmax(32rem,1.22fr)] lg:gap-12 lg:px-6 lg:py-10"
+      class={`${usageMarketingHeroGridClass} lg:grid-cols-[minmax(20rem,0.78fr)_minmax(32rem,1.22fr)]`}
     >
-      <div class="grid max-w-xl gap-6">
-        <div
-          class="flex size-14 items-center justify-center rounded-2xl border border-border bg-primary/10 text-primary shadow-sm"
-        >
-          <CableIcon class="size-7" strokeWidth={1.8} />
+      <div class={usageMarketingHeroCopyClass}>
+        <div class={usageMarketingIconClass}>
+          <CableIcon class={usageMarketingIconGlyphClass} strokeWidth={1.8} />
         </div>
         <div class="grid gap-3">
-          <h1 class="text-balance font-semibold text-4xl tracking-tight sm:text-5xl lg:text-6xl">
-            {data.copy.title}
-          </h1>
-          <p class="max-w-lg text-pretty text-base text-muted-foreground sm:text-lg">
-            {data.copy.subtitle}
-          </p>
+          <h1 class={usageMarketingTitleClass}>{data.copy.title}</h1>
+          <p class={usageMarketingBlurbClass}>{data.copy.subtitle}</p>
         </div>
-        <Button class="h-10 w-fit" type="button" onclick={copyEndpoint}>
-          {#if copiedKey === "endpoint"}
-            <CheckIcon data-icon="inline-start" />
-            {data.copy.copiedAction}
-          {:else}
-            <CopyIcon data-icon="inline-start" />
-            {data.copy.primaryAction}
-          {/if}
-        </Button>
+        <div class={usageMarketingCtaRowClass}>
+          <Button
+            class={usageMarketingPrimaryCtaClass}
+            type="button"
+            onclick={copyEndpoint}
+          >
+            {#if copiedKey === "endpoint"}
+              <CheckIcon data-icon="inline-start" />
+              {data.copy.copiedAction}
+            {:else}
+              <CopyIcon data-icon="inline-start" />
+              {data.copy.primaryAction}
+            {/if}
+          </Button>
+        </div>
       </div>
 
       <figure
@@ -239,8 +255,8 @@ function selectClient(value: string) {
     </div>
   </div>
 
-  <div class="grid gap-8">
-    <h2 class="font-semibold text-2xl tracking-tight sm:text-3xl">
+  <div class="grid gap-8" data-usage-marketing="steps">
+    <h2 class={usageMarketingSectionTitleClass}>
       {data.copy.configurationTitle}
     </h2>
 
@@ -284,11 +300,11 @@ function selectClient(value: string) {
 
       <Tabs.Content value="chatgpt" class="m-0">
         <article class="grid gap-0">
-        <div class="grid gap-10 py-10 lg:grid-cols-3 lg:items-start lg:gap-8 lg:py-14">
-          <section class="grid min-w-0 gap-6 lg:content-start">
+        <div class={usageMarketingStepGridClass} data-usage-marketing="example-cards">
+          <section class={usageMarketingStepColumnClass} data-usage-marketing="example-card">
             <div class="grid gap-3">
-              <span class="font-mono text-muted-foreground text-sm">01</span>
-              <h4 class="text-balance font-semibold text-xl leading-8">
+              <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(0)}</span>
+              <h4 class={usageMarketingStepTitleClass}>
                 <a
                   class="inline-flex items-center gap-2 text-foreground underline-offset-4 hover:underline"
                   href={CHATGPT_DOCS_URL}
@@ -305,11 +321,11 @@ function selectClient(value: string) {
             </a>
           </section>
 
-          <section class="grid min-w-0 gap-6 lg:content-start">
+          <section class={usageMarketingStepColumnClass} data-usage-marketing="example-card">
             <div class="grid gap-6">
               <div class="grid gap-3">
-                <span class="font-mono text-muted-foreground text-sm">02</span>
-                <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.chatgpt.steps[1]}</h4>
+                <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(1)}</span>
+                <h4 class={usageMarketingStepTitleClass}>{data.copy.chatgpt.steps[1]}</h4>
               </div>
               {@render chatgptFormValues()}
             </div>
@@ -318,10 +334,10 @@ function selectClient(value: string) {
             </a>
           </section>
 
-          <section class="grid min-w-0 gap-6 lg:content-start">
+          <section class={usageMarketingStepColumnClass} data-usage-marketing="example-card">
             <div class="grid gap-3">
-              <span class="font-mono text-muted-foreground text-sm">03</span>
-              <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.chatgpt.steps[2]}</h4>
+              <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(2)}</span>
+              <h4 class={usageMarketingStepTitleClass}>{data.copy.chatgpt.steps[2]}</h4>
             </div>
             <a class="flex w-full items-start justify-center" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
               {@render tutorialImage("/images/usage/mcp-use-case.png", data.copy.useCaseAlt, "max-h-[34rem]")}
@@ -333,22 +349,22 @@ function selectClient(value: string) {
 
       <Tabs.Content value="claude" class="m-0">
         <article class="grid gap-0">
-        <div class="grid gap-10 py-10 lg:grid-cols-3 lg:items-start lg:gap-8 lg:py-14">
-          <section class="grid min-w-0 gap-6 lg:content-start">
+        <div class={usageMarketingStepGridClass} data-usage-marketing="example-cards">
+          <section class={usageMarketingStepColumnClass} data-usage-marketing="example-card">
             <div class="grid gap-3">
-              <span class="font-mono text-muted-foreground text-sm">01</span>
-              <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.claude.steps[0]}</h4>
+              <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(0)}</span>
+              <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[0]}</h4>
             </div>
             <a class="flex w-full items-start justify-center" href="/images/usage/mcp-claude-empty.png" rel="noreferrer" target="_blank">
               {@render tutorialImage("/images/usage/mcp-claude-empty.png", data.copy.claude.emptyAlt, "max-h-[34rem]")}
             </a>
           </section>
 
-          <section class="grid min-w-0 gap-6 lg:content-start">
+          <section class={usageMarketingStepColumnClass} data-usage-marketing="example-card">
             <div class="grid gap-6">
               <div class="grid gap-3">
-                <span class="font-mono text-muted-foreground text-sm">02</span>
-                <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.claude.steps[1]}</h4>
+                <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(1)}</span>
+                <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[1]}</h4>
               </div>
               <div class="grid gap-2">
                 {@render copyField("claude-name", data.copy.fieldLabels.name, "Life@USTC")}
@@ -361,10 +377,10 @@ function selectClient(value: string) {
             </a>
           </section>
 
-          <section class="grid min-w-0 gap-6 lg:content-start">
+          <section class={usageMarketingStepColumnClass} data-usage-marketing="example-card">
             <div class="grid gap-3">
-              <span class="font-mono text-muted-foreground text-sm">03</span>
-              <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.claude.steps[2]}</h4>
+              <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(2)}</span>
+              <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[2]}</h4>
             </div>
             <a class="flex w-full items-start justify-center" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
               {@render tutorialImage("/images/usage/mcp-use-case.png", data.copy.useCaseAlt, "max-h-[34rem]")}

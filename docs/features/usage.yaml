@@ -51,6 +51,20 @@ requirements:
     test:
       file: tests/e2e/src/app/usage/test.ts
       name: usage pages expose their primary handoff
+- id: usage.marketing-composition
+  category: presentation
+  rule: Bot, MCP, and CLI marketing pages share one composition recipe — icon container, title, one-line blurb,
+    primary CTA, three equal-height example cards, and numbered steps. MCP keeps copy-endpoint as the primary
+    CTA; CLI install exposes a copy affordance.
+  acceptance:
+    given: Anonymous desktop visits to /usage/bot, /usage/mcp, and /usage/cli.
+    when: Each page renders its marketing hero and example or step strip.
+    then:
+    - Each page exposes the shared marketing markers for hero and three numbered example cards.
+    - MCP primary CTA copies the MCP endpoint; CLI install exposes a copy control for the install command.
+    test:
+      file: tests/e2e/src/app/usage/test.ts
+      name: bot mcp and cli marketing composition stays aligned
 capabilities:
   usage-guides:
     title: Client Usage Guides
