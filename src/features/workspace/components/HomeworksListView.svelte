@@ -25,6 +25,7 @@ export let locale: string;
 export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
+export let showClearFilter = false;
 export let onClearFilter: () => void;
 export let fmtDate: HomeworkDateFormatter;
 export let homeworkCompletionActionLabel: HomeworkAction;
@@ -56,108 +57,108 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
 }
 </script>
 
-<Table.Root class="min-w-0 w-full" data-testid="workspace-homeworks-list">
-  <Table.Header>
-    <Table.Row>
-      <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>
-      <Table.Head>{homeworksCopy.titleLabel}</Table.Head>
-      <Table.Head>{homeworksCopy.submissionDue}</Table.Head>
-      <Table.Head>{homeworksCopy.statusLabel}</Table.Head>
-      <Table.Head>
-        <span class="sr-only">{homeworksCopy.markComplete}</span>
-      </Table.Head>
-    </Table.Row>
-  </Table.Header>
-  <Table.Body>
-    {#each filteredHomeworkItems as homework}
-      <Table.Row class="group">
-        <Table.Cell>
-          <a
-            class="hover:underline"
-            href={homeworkSectionHref(homework)}
-          >
-            {homework.section?.courseName ?? homeworkCopy.section}
-          </a>
-          <span class="block text-muted-foreground text-sm">{formatSemesterName(locale, homework.section?.semesterName ?? unknownSemesterLabel)}</span>
-        </Table.Cell>
-        <Table.Cell>
-          <button
-            class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
-            type="button"
-            onclick={() => {
-              selectedHomework = homework;
-            }}
-          >
-            <TruncatedText text={homework.title} lines={2} />
-          </button>
-        </Table.Cell>
-        <Table.Cell>
-          {fmtDate(homework.submissionDueAt)}
-        </Table.Cell>
-        <Table.Cell>
-          <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-            {#if homework.completionRequired === false}
-              <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
-            {:else if !homework.completion}
-              <Badge
-                data-status-token={homeworkIsOverdue(homework.submissionDueAt)
-                  ? "overdue"
-                  : undefined}
-                variant={homeworkIsOverdue(homework.submissionDueAt)
-                  ? "status-overdue"
-                  : "ghost"}
-              >
-                {homeworkEtaLabel(homework.submissionDueAt)}
-              </Badge>
-            {/if}
-            {#each summaryBadges(homework) as badge (badge.key)}
-              <Badge variant={badge.variant}>{badge.label}</Badge>
-            {/each}
-          </div>
-        </Table.Cell>
-        <Table.Cell>
-          <TableRowActions>
-            {#if homework.completionRequired !== false}
-              <TableIconButton
-              disabled={homeworkSavingById[homework.id]}
-              label={homeworkSavingById[homework.id]
-                ? homeworksCopy.saving
-                : homeworkCompletionActionLabel(homework)}
-              variant={homework.completion ? "secondary" : "default"}
-              onclick={() => toggleHomeworkCompletion(homework)}
-              >
-                {#if homeworkSavingById[homework.id]}
-                  <Spinner data-icon="inline-start" />
-                {:else if homework.completion}
-                  <RefreshCw data-icon="inline-start" />
-                {:else}
-                  <CheckCircleIcon data-icon="inline-start" />
-                {/if}
-              </TableIconButton>
-            {/if}
-            <TableIconButton
-              label={homeworksCopy.viewDetails}
-              variant="outline"
+{#if filteredHomeworkItems.length === 0}
+  <WorkspaceTaskEmptyState
+    title={hasHomeworkItems ? homeworksCopy.filterEmptyTitle : homeworksCopy.emptyTitle}
+    description={hasHomeworkItems
+      ? homeworksCopy.filterEmptyDescription
+      : homeworksCopy.emptyDescription}
+    clearFilterLabel={homeworksCopy.clearFilter}
+    onClearFilter={showClearFilter ? onClearFilter : undefined}
+  />
+{:else}
+  <Table.Root class="min-w-0 w-full" data-testid="workspace-homeworks-list">
+    <Table.Header>
+      <Table.Row>
+        <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>
+        <Table.Head>{homeworksCopy.titleLabel}</Table.Head>
+        <Table.Head>{homeworksCopy.submissionDue}</Table.Head>
+        <Table.Head>{homeworksCopy.statusLabel}</Table.Head>
+        <Table.Head>
+          <span class="sr-only">{homeworksCopy.markComplete}</span>
+        </Table.Head>
+      </Table.Row>
+    </Table.Header>
+    <Table.Body>
+      {#each filteredHomeworkItems as homework}
+        <Table.Row class="group">
+          <Table.Cell>
+            <a
+              class="hover:underline"
+              href={homeworkSectionHref(homework)}
+            >
+              {homework.section?.courseName ?? homeworkCopy.section}
+            </a>
+            <span class="block text-muted-foreground text-sm">{formatSemesterName(locale, homework.section?.semesterName ?? unknownSemesterLabel)}</span>
+          </Table.Cell>
+          <Table.Cell>
+            <button
+              class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
+              type="button"
               onclick={() => {
                 selectedHomework = homework;
               }}
             >
-              <ArrowUpRight data-icon="inline-start" />
-            </TableIconButton>
-          </TableRowActions>
-        </Table.Cell>
-      </Table.Row>
-    {:else}
-      <Table.Row class="hover:bg-transparent">
-        <Table.Cell class="p-0" colspan={5}>
-          <WorkspaceTaskEmptyState
-            title={homeworksCopy.filterEmptyTitle}
-            description={hasHomeworkItems ? homeworksCopy.filterEmptyDescription : undefined}
-            clearFilterLabel={homeworksCopy.clearFilter}
-            onClearFilter={hasHomeworkItems ? onClearFilter : undefined}
-          />
-        </Table.Cell>
-      </Table.Row>
-    {/each}
-  </Table.Body>
-</Table.Root>
+              <TruncatedText text={homework.title} lines={2} />
+            </button>
+          </Table.Cell>
+          <Table.Cell>
+            {fmtDate(homework.submissionDueAt)}
+          </Table.Cell>
+          <Table.Cell>
+            <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+              {#if homework.completionRequired === false}
+                <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
+              {:else if !homework.completion}
+                <Badge
+                  data-status-token={homeworkIsOverdue(homework.submissionDueAt)
+                    ? "overdue"
+                    : undefined}
+                  variant={homeworkIsOverdue(homework.submissionDueAt)
+                    ? "status-overdue"
+                    : "ghost"}
+                >
+                  {homeworkEtaLabel(homework.submissionDueAt)}
+                </Badge>
+              {/if}
+              {#each summaryBadges(homework) as badge (badge.key)}
+                <Badge variant={badge.variant}>{badge.label}</Badge>
+              {/each}
+            </div>
+          </Table.Cell>
+          <Table.Cell>
+            <TableRowActions>
+              {#if homework.completionRequired !== false}
+                <TableIconButton
+                disabled={homeworkSavingById[homework.id]}
+                label={homeworkSavingById[homework.id]
+                  ? homeworksCopy.saving
+                  : homeworkCompletionActionLabel(homework)}
+                variant={homework.completion ? "secondary" : "default"}
+                onclick={() => toggleHomeworkCompletion(homework)}
+                >
+                  {#if homeworkSavingById[homework.id]}
+                    <Spinner data-icon="inline-start" />
+                  {:else if homework.completion}
+                    <RefreshCw data-icon="inline-start" />
+                  {:else}
+                    <CheckCircleIcon data-icon="inline-start" />
+                  {/if}
+                </TableIconButton>
+              {/if}
+              <TableIconButton
+                label={homeworksCopy.viewDetails}
+                variant="outline"
+                onclick={() => {
+                  selectedHomework = homework;
+                }}
+              >
+                <ArrowUpRight data-icon="inline-start" />
+              </TableIconButton>
+            </TableRowActions>
+          </Table.Cell>
+        </Table.Row>
+      {/each}
+    </Table.Body>
+  </Table.Root>
+{/if}

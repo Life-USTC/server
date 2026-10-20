@@ -31,11 +31,13 @@ export let setCalendarView: WorkspaceCalendarTabProps["setCalendarView"];
 export let setCalendarWeek: WorkspaceCalendarTabProps["setCalendarWeek"];
 export let signedData: WorkspaceCalendarTabProps["signedData"];
 export let subscriptionsCopy: WorkspaceCalendarTabProps["subscriptionsCopy"];
+export let activitiesManageLabel: string;
+const activitiesManageHref = "/workspace/subscriptions/activities";
 
 let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 </script>
 
-<div class="hidden gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+<div class="hidden gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
   <div class="flex flex-wrap items-center gap-2 md:justify-start">
     <ToggleGroup.Root
       aria-label={workspaceCopy.nav.calendar.title}
@@ -80,6 +82,9 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     />
   </div>
   <div class="flex flex-wrap items-center gap-2 md:justify-end">
+    <Button class="min-w-28" href={activitiesManageHref} variant="outline">
+      {activitiesManageLabel}
+    </Button>
     {#if signedData.calendarSubscriptionUrl}
       <PersonalCalendarLinkButton
         bind:this={personalCalendarLink}
@@ -132,31 +137,36 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
         </Button>
       </div>
 
-      {#if signedData.calendarSubscriptionUrl}
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger>
-            {#snippet child({ props })}
-              <Button
-                {...props}
-                aria-label={workspaceCopy.calendarMoreActions}
-                class="size-11"
-                size="icon"
-                type="button"
-                variant="outline"
-              >
-                <MoreHorizontal data-icon="inline-start" />
-              </Button>
-            {/snippet}
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="end" preventScroll={false}>
-            <DropdownMenu.Group>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              aria-label={workspaceCopy.calendarMoreActions}
+              class="size-11"
+              size="icon"
+              type="button"
+              variant="outline"
+            >
+              <MoreHorizontal data-icon="inline-start" />
+            </Button>
+          {/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="end" preventScroll={false}>
+          <DropdownMenu.Group>
+            <DropdownMenu.Item>
+              {#snippet child({ props })}
+                <a {...props} href={activitiesManageHref}>{activitiesManageLabel}</a>
+              {/snippet}
+            </DropdownMenu.Item>
+            {#if signedData.calendarSubscriptionUrl}
               <DropdownMenu.Item onSelect={() => personalCalendarLink?.open()}>
                 {subscriptionsCopy.iCalLink}
               </DropdownMenu.Item>
-            </DropdownMenu.Group>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-      {/if}
+            {/if}
+          </DropdownMenu.Group>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
     </div>
     <p class="truncate text-sm text-muted-foreground">
       {calendarView === "day" ? calendarDay : formatMessage(workspaceCopy.calendarWeek.current, {

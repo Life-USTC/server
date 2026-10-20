@@ -115,16 +115,26 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                 await expect(pending).toHaveCount(includePending ? 1 : 0);
 
                 if (!includePending) {
-                  if (!mobile) {
-                    await expect(page.getByRole("table")).toBeVisible();
-                    await expect(
-                      page.getByRole("columnheader").first(),
-                    ).toBeVisible();
-                  }
-                  await page
+                  const clear = page
                     .getByRole("button", { name: /清除筛选|Clear filter/i })
-                    .filter({ visible: true })
-                    .click();
+                    .filter({ visible: true });
+                  if (tab === "todos") {
+                    if (!mobile) {
+                      await expect(page.getByRole("table")).toBeVisible();
+                      await expect(
+                        page.getByRole("columnheader").first(),
+                      ).toBeVisible();
+                    }
+                    await clear.click();
+                  } else {
+                    await expect(clear).toHaveCount(0);
+                    if (!mobile) {
+                      await expect(page.getByRole("columnheader")).toHaveCount(
+                        0,
+                      );
+                    }
+                    await group.locator('[data-value="all"]').click();
+                  }
                   await expectSelection(group, "all");
                   await expect(completed).toHaveCount(1);
                   // Only the currently active read for this removed card belongs
@@ -240,10 +250,21 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   await expectSelection(group, "incomplete");
                   await expect(pending).toHaveCount(0);
                   await expect(completed).toHaveCount(0);
-                  await page
-                    .getByRole("button", { name: /清除筛选|Clear filter/i })
-                    .filter({ visible: true })
-                    .click();
+                  if (tab === "todos") {
+                    await page
+                      .getByRole("button", { name: /清除筛选|Clear filter/i })
+                      .filter({ visible: true })
+                      .click();
+                  } else {
+                    await expect(
+                      page
+                        .getByRole("button", {
+                          name: /清除筛选|Clear filter/i,
+                        })
+                        .filter({ visible: true }),
+                    ).toHaveCount(0);
+                    await group.locator('[data-value="all"]').click();
+                  }
                   await expectSelection(group, "all");
                   await expect(pending).toHaveCount(1);
                   await expect(completed).toHaveCount(1);

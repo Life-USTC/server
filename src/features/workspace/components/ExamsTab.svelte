@@ -51,6 +51,8 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
 function clearExamFilter() {
   examFilter = "all";
 }
+
+$: showClearExamFilter = examFilter !== "incomplete" && examRows.length > 0;
 </script>
 
 <section class="grid gap-4">
@@ -85,6 +87,7 @@ function clearExamFilter() {
             {examMetadataLabels}
             exams={filteredExamRows}
             hasExamRows={examRows.length > 0}
+            showClearFilter={showClearExamFilter}
             onClearFilter={clearExamFilter}
             {examTimeLabel}
             {fmtExamDate}
@@ -103,6 +106,7 @@ function clearExamFilter() {
             {examTimeLabel}
             exams={filteredExamRows}
             hasExamRows={examRows.length > 0}
+            showClearFilter={showClearExamFilter}
             onClearFilter={clearExamFilter}
             {fmtExamDate}
             {sectionCopy}
@@ -121,6 +125,7 @@ function clearExamFilter() {
           {examTimeLabel}
           exams={filteredExamRows}
           hasExamRows={examRows.length > 0}
+          showClearFilter={showClearExamFilter}
           onClearFilter={clearExamFilter}
           {fmtExamDate}
           {sectionCopy}

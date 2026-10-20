@@ -1004,17 +1004,18 @@ requirements:
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Homework, todo, and exam status filters retain the selected value through repeated activation, empty
-    results, and completing the last pending task. Only an explicit selection or clear action changes the applied
-    filter.
+    results, and completing the last pending task. Only an explicit selection, clear action (todos), or All
+    filter selection (exams and homeworks on the default incomplete empty) changes the applied filter.
   acceptance:
     given: Independent completed-only and pending scenarios each visit homework, todo, and exam pages at desktop
       and mobile widths, with completed records and either no pending record or one pending record.
     when: The user repeatedly clicks and keyboard-activates filters while offline; after reconnecting, the user
-      completes the last pending homework or todo and clears the resulting filter-empty state.
+      completes the last pending homework or todo and leaves the resulting default-filter empty via Clear
+      filter (todos) or All (exams and homeworks).
     then:
     - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
-      results, and completing the last pending task. Only an explicit selection or clear action changes the
-      applied filter.
+      results, and completing the last pending task. Only an explicit selection, clear action (todos), or All
+      filter selection (exams and homeworks on the default incomplete empty) changes the applied filter.
     test:
       file: tests/e2e/src/app/workspace/task-filters.test.ts
       name: ui.workspace-filters-and-empty-states-1 (desktop, pending)
@@ -1038,28 +1039,35 @@ requirements:
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
-    or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
-    the explanation.
+    or filled background. Exams and homeworks hide table headers when there are zero rows and hide clear-filter
+    on the default incomplete filter; todos retain desktop headers and an outline clear-filter below the
+    explanation.
   acceptance:
     given: An isolated user has completed homework, todo, and exam records and no pending records.
     when: The browser loads each page’s pending filter at desktop and mobile widths and inspects empty-state
       geometry, colors, icon, action, and table header visibility.
     then:
     - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
-      or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
-      the explanation.
+      or filled background. Exams and homeworks hide table headers when there are zero rows and hide clear-filter
+      on the default incomplete filter; todos retain desktop headers and an outline clear-filter below the
+      explanation.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.workspace-filters-and-empty-states-3
 - id: ui.workspace-filters-and-empty-states-5
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Filter-empty results explain the selection and offer clear-filter.
+  rule: Filter-empty results explain the selection. Todos offer clear-filter from the default incomplete empty
+    state; exams and homeworks hide clear-filter until a non-default filter is active and reveal completed
+    rows via the All filter instead.
   acceptance:
     given: An isolated user has completed homework, todo, and exam records and no pending records.
-    when: The browser reads each pending-filter explanation and activates Clear filter.
+    when: The browser reads each pending-filter explanation, then clears via Clear filter (todos) or selects
+      All (exams and homeworks).
     then:
-    - Filter-empty results explain the selection and offer clear-filter.
+    - Filter-empty results explain the selection. Todos offer clear-filter from the default incomplete empty
+      state; exams and homeworks hide clear-filter until a non-default filter is active and reveal completed
+      rows via the All filter instead.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.workspace-filters-and-empty-states-5

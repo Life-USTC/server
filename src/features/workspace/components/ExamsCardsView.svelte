@@ -21,6 +21,7 @@ export let unknownSemesterLabel: string;
 export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
 export let workspaceTabHref: WorkspaceTabHref;
 export let hasExamRows: boolean;
+export let showClearFilter = false;
 export let onClearFilter: () => void;
 export let exams: WorkspaceExamRow[];
 export let examMetadataLabels: ExamMetadataLabels;
@@ -95,11 +96,11 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {/if}
   {:else}
     <WorkspaceTaskEmptyState
-            title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
-            description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
-            clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
-            onClearFilter={hasExamRows ? onClearFilter : undefined}
-          />
+      title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
+      description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
+      clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
+      onClearFilter={showClearFilter ? onClearFilter : undefined}
+    />
   {/each}
   </Item.Group>
 </div>
