@@ -1,5 +1,4 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import type { WorkspaceFocusItem } from "@/features/workspace/lib/workspace-agenda";
 import OverviewSection from "./OverviewSection.svelte";
@@ -49,8 +48,8 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
       </div>
     </a>
   {:else if loadingLabel}
-    <p role="status" class="py-6 text-muted-foreground text-sm">{loadingLabel}</p>
+    <p role="status" class="text-muted-foreground text-sm">{loadingLabel}</p>
   {:else}
-    <CompactEmpty description={copy.noUpcoming} />
+    <p class="text-muted-foreground text-sm">{copy.noUpcoming}</p>
   {/if}
 </OverviewSection>

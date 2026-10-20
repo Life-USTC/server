@@ -414,18 +414,14 @@ onMount(mount);
     {#if signedData.tab === "overview"}
       <SignedWorkspaceOverviewBranch
         calendarTimelineItemsForDay={calendarTimelineItemsForDay}
-        commonCopy={commonCopy}
-        copy={copy}
         workspaceCopy={workspaceCopy}
         workspaceTabHref={workspaceTabHref}
         data={data}
         linkIconLabel={linkIconLabel}
         overviewLinkItems={overviewLinkItems}
-        sectionCopy={sectionCopy}
         subscriptionsCopy={subscriptionsCopy}
         signedData={signedData}
         submitWorkspaceLinkPin={submitWorkspaceLinkPin}
-        todosCopy={todosCopy}
         updatingCatalogLinkSlug={updatingCatalogLinkSlug}
       />
     {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}

@@ -733,6 +733,7 @@
     "tags": "标签"
   },
   "workspace": {
+    "stack": { "urgency": "需要关注", "upcoming": "即将到来" },
     "title": "工作区",
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}",

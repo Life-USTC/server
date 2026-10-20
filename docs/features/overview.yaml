@@ -60,7 +60,7 @@ requirements:
       and mobile.
     then:
     - The historical class, homework and activity remain eligible for the focus card, and the personal todo
-      remains visible in summaries.
+      remains visible in the action stack.
     - With only historical subscriptions, the term context and history links follow the focus instead of
       replacing it.
     test:
@@ -166,7 +166,7 @@ requirements:
     given: An isolated subscriber has an ongoing class and personal learning tasks.
     when: The signed overview renders on desktop and mobile.
     then:
-    - The current class focus precedes today, week, task summaries and frequent links; a full catalog directory does not replace the personal action.
+    - The current class focus precedes the merged urgency list, unified upcoming list and frequent links; a full catalog directory does not replace the personal action.
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
       name: overview.personal-next-action-page
@@ -178,7 +178,7 @@ requirements:
     given: Two subscribed sections share one course title but have different codes and campus rooms, and two same-title todos have different priorities.
     when: Desktop and mobile overviews render each class as current.
     then:
-    - Focus and today rows retain the exact section code and campus while keeping the course title separate.
+    - Focus and upcoming rows retain the exact section code and campus while keeping the course title separate; the focused class is not duplicated.
     - Both same-title todos retain their individual high/low priority labels.
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
@@ -225,18 +225,30 @@ requirements:
       value: '[data-overview-sections]'
     items:
     - workspace-overview-focus
-    - workspace-overview-today-overdue
-    - workspace-overview-week
-    - workspace-overview-summaries
+    - workspace-overview-urgency
+    - workspace-overview-upcoming
     - workspace-overview-links
   acceptance:
     given: An authenticated viewer opens the overview on desktop or mobile.
-    when: The real overview renders its focus, urgency, week, summary and links sections.
+    when: The real overview renders its focus, urgency, upcoming and links sections.
     then:
-    - The rendered document and vertical position follow the declared section order.
+    - The rendered document and vertical position follow the declared section order at 390 and 1280 pixels in both locales without horizontal page overflow.
+    - A focus item is omitted from urgency and upcoming; each remaining task appears only once, and full calendar, homework, todo and exam destinations remain linked.
     test:
       file: tests/e2e/src/app/workspace/overview-order.test.ts
       name: overview.card-order
+- id: overview.omit-empty-bands
+  category: presentation
+  rule: Empty urgency and upcoming bands are omitted. Focus retains a quiet one-line empty state after activity loading finishes; optional term context and compact shortcuts follow decisions.
+  acceptance:
+    given: An authenticated owner has no actionable dated items.
+    when: The overview completes its real activity read at desktop and mobile widths in both locales.
+    then:
+    - Focus displays its empty sentence without a large empty panel, and no urgency, upcoming or week placeholders appear.
+    - Any website shortcuts follow focus without horizontal page overflow.
+    test:
+      file: tests/e2e/src/app/workspace/overview-order.test.ts
+      name: overview.omit-empty-bands
 capabilities:
   authenticated-overview:
     title: Authenticated Workspace Overview
@@ -303,28 +315,18 @@ capabilities:
           - focus.dateLabel
           - focus.weekdayLabel
           - focus.detail
-          - todaySessions.startTime
-          - todaySessions.section.course.namePrimary
-          - dueTodayHomeworks.title
-          - dueTodayTodos.title
-          - days.label
-          - days.events.title
-          - pendingHomeworks.title
-          - pendingHomeworks.submissionDueAt
-          - pendingTodos.title
-          - pendingTodos.dueAt
-          - upcomingExams.section.course.namePrimary
-          - upcomingExams.examDate
+          - urgency.title
+          - urgency.time
+          - upcoming.title
+          - upcoming.dateLabel
           tertiary:
           - focus.key
-        # Each horizontally scrollable week card identifies its business object;
-        # time/type and extra context stay subordinate to that title.
-        web-week-strip:
+        web-stack-items:
           primary:
-          - days.events.title
+          - items.title
           secondary:
-          - days.events.time
-          - days.events.meta
+          - items.time
+          - items.detail
           tertiary: []
         mcp-workspace-overview-get:
           primary:
@@ -338,7 +340,7 @@ capabilities:
           - samples.upcomingExams
           tertiary: []
       items:
-      - Focus action, today and overdue lists, seven-day strip, then homework/todo/exam summaries.
+      - Focus action, merged overdue and due-today list, then one seven-day upcoming list with no cross-band duplicate items. Empty bands are omitted; term/history context is conditional and shortcuts follow decisions.
     requirement_refs:
     - rendering-and-cache.personal-overlays-4
     - rendering-and-cache.personal-overlays-5
@@ -480,4 +482,4 @@ rationale:
   class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter
   counts and samples suffice.
 - The loader returns localized static copy only and performs no business-data queries.
-- The overview week strip uses each business title as its identity on desktop and mobile; time and additional context stay subordinate within that individual card. Event-type labels are included for academic/task cards; subscribed activity cards identify their specific title and location.
+- Overview uses a single vertical stack at all widths. The full week calendar belongs to Calendar; overview list rows identify each business title before time, date and context.
