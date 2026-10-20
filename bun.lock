@@ -19,7 +19,7 @@
         "@prisma/adapter-pg": "7.10.1",
         "@prisma/client": "7.10.1",
         "@scalar/api-reference": "^1.75.0",
-        "better-auth": "1.7.7",
+        "better-auth": "1.7.10",
         "clsx": "^2.1.1",
         "dataloader": "2.2.3",
         "dayjs": "^1.11.23",
