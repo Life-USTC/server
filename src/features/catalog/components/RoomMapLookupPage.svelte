@@ -25,6 +25,12 @@ function submit(event: SubmitEvent) {
   selectedRoom = room;
   searchRevision += 1;
 }
+
+function selectSample(code: string) {
+  input = code;
+  selectedRoom = code;
+  searchRevision += 1;
+}
 </script>
 
 <svelte:head>
@@ -76,6 +82,26 @@ function submit(event: SubmitEvent) {
       description={copy.empty}
       title={copy.emptyTitle}
       variant="setup"
-    />
+    >
+      {#if copy.sampleRooms.length > 0}
+        <div class="grid gap-2" data-testid="room-map-sample-chips">
+          <p class="text-muted-foreground text-sm">{copy.sampleGuidance}</p>
+          <div class="flex flex-wrap gap-2">
+            {#each copy.sampleRooms as code (code)}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="font-mono"
+                data-testid="room-map-sample-chip"
+                onclick={() => selectSample(code)}
+              >
+                {code}
+              </Button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    </CollectionEmpty>
   {/if}
 </CollectionPage>

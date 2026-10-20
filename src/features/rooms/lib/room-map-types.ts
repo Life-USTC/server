@@ -25,6 +25,8 @@ export type RoomMapCopy = {
   overview: string;
   placeholder: string;
   resetZoom: string;
+  sampleGuidance: string;
+  sampleRooms: string[];
   searchLabel: string;
   sourceImage: string;
   subtitle: string;

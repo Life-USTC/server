@@ -21,7 +21,10 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
 
 {#if course.sections.length === 0}
   <div class="md:hidden">
-    <CompactEmpty description={copy.courseDetail.noSections} />
+    <CompactEmpty
+      title={copy.courseDetail.noSections}
+      description={copy.courseDetail.emptySectionsDescription}
+    />
   </div>
 {:else}
   <Item.Group class="md:hidden">

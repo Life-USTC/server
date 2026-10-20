@@ -23,7 +23,10 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
 
 <div class="hidden md:block">
   {#if course.sections.length === 0}
-    <CompactEmpty description={copy.courseDetail.noSections} />
+    <CompactEmpty
+      title={copy.courseDetail.noSections}
+      description={copy.courseDetail.emptySectionsDescription}
+    />
   {:else}
     <Table.Root class="">
       <Table.Header>

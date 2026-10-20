@@ -27,6 +27,7 @@ export type CommentsCopy = {
   editAction: string;
   editedLabel: string;
   editorPlaceholder: string;
+  emptyDescription: string;
   emptyTitle: string;
   hiddenNotice: string;
   hiddenNoticeOne: string;

@@ -55,7 +55,7 @@ export let viewer: DescriptionViewer;
         <Button
           data-testid="description-edit-login"
           href="/account/sign-in"
-          variant="outline"
+          variant="secondary"
         >
           {copy.loginToEdit}
         </Button>

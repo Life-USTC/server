@@ -72,17 +72,27 @@ describe("API 辅助函数", () => {
     );
   });
 
-  it("skips the UTF-8 size traversal when no trace span is sampled", () => {
+  async function expectNoMeasuredBodySize(
+    produce: () => Response | Promise<Response>,
+  ) {
     const encode = vi.spyOn(TextEncoder.prototype, "encode");
+    // Node 24's Response constructor encodes a string body. Count that
+    // platform call so an extra serializer traversal still fails the test.
+    new Response('{"label":"科"}');
+    const platformEncodes = encode.mock.calls.length;
+    encode.mockClear();
 
-    const response = jsonResponse({ label: "科" });
+    const response = await produce();
 
     expect(response).toBeInstanceOf(Response);
-    expect(encode).not.toHaveBeenCalled();
+    expect(encode).toHaveBeenCalledTimes(platformEncodes);
+  }
+
+  it("skips the UTF-8 size traversal when no trace span is sampled", async () => {
+    await expectNoMeasuredBodySize(() => jsonResponse({ label: "科" }));
   });
 
   it("skips the UTF-8 size traversal for an unsampled trace span", async () => {
-    const encode = vi.spyOn(TextEncoder.prototype, "encode");
     const setAttribute = vi.fn();
     const enterSpan = <T>(
       _name: string,
@@ -92,14 +102,11 @@ describe("API 辅助函数", () => {
       }) => T,
     ) => callback({ isTraced: false, setAttribute });
 
-    const response = await runWithCloudflareRuntimeEnv(
-      {},
-      () => jsonResponse({ label: "科" }),
-      { tracing: { enterSpan } },
+    await expectNoMeasuredBodySize(() =>
+      runWithCloudflareRuntimeEnv({}, () => jsonResponse({ label: "科" }), {
+        tracing: { enterSpan },
+      }),
     );
-
-    expect(response).toBeInstanceOf(Response);
-    expect(encode).not.toHaveBeenCalled();
     expect(setAttribute).toHaveBeenCalledWith("response.format", "json");
     expect(setAttribute).not.toHaveBeenCalledWith(
       "http.response.body.size",

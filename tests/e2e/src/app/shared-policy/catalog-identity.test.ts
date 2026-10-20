@@ -133,8 +133,32 @@ for (const { domain, route, select } of [
         .filter({ has: page.getByText(name, { exact: true }) })
         .filter({ visible: true });
       await expect(item).toHaveCount(1);
-      const link = item.getByRole("link");
+      await expect(item.getByRole("link")).toHaveCount(
+        route === "teachers" ? 2 : 1,
+      );
+      const link = item.getByRole("link", { name: new RegExp(name) });
       await expect(link).toHaveCount(1);
+      if (route === "teachers") {
+        const historyLink = item.getByRole("link", { name: "1", exact: true });
+        await expect(historyLink).toHaveCount(1);
+        await expect(historyLink).toHaveAttribute(
+          "href",
+          `/catalog/teachers/${destination}#sections`,
+        );
+        await expect(item.locator("a a")).toHaveCount(0);
+        await link.focus();
+        await page.keyboard.press("Tab");
+        await expect(historyLink).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(page).toHaveURL(
+          new RegExp(`/catalog/teachers/${destination}#sections$`),
+        );
+        await expect(page.locator("#sections")).toBeInViewport();
+        await page.goBack();
+        await expect(page).toHaveURL(
+          new RegExp(`/catalog/teachers\\?search=${search}$`),
+        );
+      }
       await expect(link).toHaveAccessibleName(new RegExp(name));
       await expect(link).toHaveAttribute(
         "href",

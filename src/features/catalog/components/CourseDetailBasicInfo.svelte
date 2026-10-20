@@ -14,7 +14,7 @@ export let course: CourseDetailCourse;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
 </script>
 
-<dl class={detailDefinitionListClass}>
+<dl class={detailDefinitionListClass} data-testid="course-detail-aside-facts">
   {#if course.classType}
     <dt class={detailDefinitionTermClass}>{copy.courseDetail.classType}</dt>
     <dd class="m-0 min-w-0 font-medium">{primaryName(course.classType)}</dd>

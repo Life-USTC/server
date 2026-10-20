@@ -617,7 +617,9 @@ for (const locale of ["zh-cn", "en-us"] as const)
                     amap: { rawMarker: `weather-raw-${f.marker}` },
                   },
                 });
-                const location = page.getByTestId("weather-location").first();
+                const location = page
+                  .locator('[data-testid="weather-location"]:visible')
+                  .first();
                 const card = location.locator(
                   'xpath=ancestor::*[@data-slot="page-section"][1]',
                 );

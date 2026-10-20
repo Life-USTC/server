@@ -79,6 +79,19 @@ requirements:
     test:
       file: tests/e2e/src/app/rooms/test.ts
       name: room-map.web
+- id: room-map.empty-samples
+  category: presentation
+  rule: The classroom map browse empty state offers sample room chips that start a lookup without requiring
+    the viewer to invent a code.
+  acceptance:
+    given: The rooms page opens with no room query selected.
+    when: The viewer activates a sample room chip.
+    then:
+    - The empty guidance remains visible until a sample is chosen.
+    - Choosing a sample loads that room’s map preview.
+    test:
+      file: tests/e2e/src/app/rooms/test.ts
+      name: room-map.empty-samples
 - id: room-map.exam-map-attachments
   category: behavior
   rule: Each mapped exam room contributes its public image URL to the event attachments, deduplicated

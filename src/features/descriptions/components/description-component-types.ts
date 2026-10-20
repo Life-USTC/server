@@ -11,6 +11,7 @@ export type DescriptionCopy = {
   editedBy: string;
   emptyValue: string;
   empty: string;
+  emptyTitle: string;
   historyEmpty: string;
   historyTitle: string;
   lastEdited: string;

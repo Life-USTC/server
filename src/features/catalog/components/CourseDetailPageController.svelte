@@ -57,6 +57,7 @@ type PageData = {
       capacity: string;
       classType: string;
       courseType: string;
+      emptySectionsDescription: string;
       noSections: string;
       notAvailable: string;
       sectionCode: string;
@@ -161,7 +162,6 @@ $: displayName =
           {/key}
         </section>
   {#snippet aside()}
-
         <section id="overview">
           <CourseDetailBasicInfo
             copy={detailCopy}

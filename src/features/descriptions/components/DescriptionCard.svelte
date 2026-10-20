@@ -40,6 +40,7 @@ export let copy: {
   editorPlaceholder: string;
   editorUnknown: string;
   empty: string;
+  emptyTitle: string;
   emptyValue: string;
   historyEmpty: string;
   historyTitle: string;
@@ -200,7 +201,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
       <Button
         data-testid="description-edit-login"
         href="/account/sign-in"
-        variant="outline"
+        variant="secondary"
       >
         {copy.loginToEdit}
       </Button>
@@ -248,7 +249,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
         {saveDescription}
       />
     {:else if softEmpty}
-      <CompactEmpty description={copy.empty} />
+      <CompactEmpty title={copy.emptyTitle} description={copy.empty} />
     {:else}
       <DescriptionReadPanel
         bind:activePanelTab
