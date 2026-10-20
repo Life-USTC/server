@@ -30,7 +30,7 @@ export let positions: Map<number, BusMapPoint>;
       {@const siblingCount = Math.max(1, siblings.length)}
       {@const spread = siblingCount > 1 ? (Math.PI * 0.6) / (siblingCount - 1) : 0}
       {@const angle = -Math.PI / 2 - (spread * (siblingCount - 1)) / 2 + siblingIndex * spread}
-      {@const markerRadius = NODE_R + 14}
+      {@const markerRadius = NODE_R + 7}
       {@const x = position.x + Math.cos(angle) * markerRadius}
       {@const y = position.y + Math.sin(angle) * markerRadius}
       {@const nextStop = route.stops[1]}
