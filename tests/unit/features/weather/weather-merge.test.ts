@@ -242,3 +242,30 @@ it("weather.provider-attribution", () => {
     mergeWeatherSnapshots(location, amapDaily, openCurrent).providers,
   ).toEqual(["amap", "open-meteo"]);
 });
+
+it("keeps actual observation provenance distinct from modeled current weather", () => {
+  const unavailable = { ok: false as const, error: new Error("unavailable") };
+  const location = getWeatherLocation("ustc-main");
+  const observedAt = "2026-10-20T13:33:49.000Z";
+  const observed = mergeWeatherSnapshots(
+    location,
+    {
+      ok: true,
+      raw: {},
+      data: { current: { temperature: 16, weather: "小雨", observedAt } },
+    },
+    unavailable,
+  );
+  expect(observed.current).toMatchObject({ source: "amap", observedAt });
+  expect(observed.fetchedAt).not.toBe(observedAt);
+  const modeled = mergeWeatherSnapshots(location, unavailable, {
+    ok: true,
+    raw: {},
+    data: { current: { temperature_2m: 16, weather_code: 61 } },
+  });
+  expect(modeled.current.source).toBe("open-meteo");
+  expect(modeled.current.observedAt).toBeUndefined();
+  expect(
+    mergeWeatherSnapshots(location, unavailable, unavailable).current.source,
+  ).toBeUndefined();
+});

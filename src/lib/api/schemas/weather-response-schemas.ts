@@ -7,6 +7,8 @@ const weatherConditionSchema = z.strictObject({
 });
 
 const weatherCurrentSchema = z.strictObject({
+  source: z.enum(["amap", "open-meteo"]).optional(),
+  observedAt: dateTimeSchema.optional(),
   temperature: z.number().nullable(),
   feelsLike: z.number().optional(),
   humidity: z.number().optional(),

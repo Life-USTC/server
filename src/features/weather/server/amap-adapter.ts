@@ -1,8 +1,10 @@
 import { getOptionalTrimmedEnv } from "@/lib/ports/env";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import type { ProviderResult, WeatherLocation } from "./weather-types";
 
 export type AmapWeatherData = {
   current?: {
+    observedAt?: string;
     temperature: number;
     feelsLike?: number;
     humidity?: number;
@@ -152,6 +154,11 @@ export async function fetchAmapWeather(
     const data: AmapWeatherData = {
       current: live
         ? {
+            observedAt: /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(
+              live.reporttime ?? "",
+            )
+              ? parseDateInput(live.reporttime)?.toISOString()
+              : undefined,
             temperature: Number(live.temperature ?? 0),
             humidity: live.humidity ? Number(live.humidity) : undefined,
             windDirection: live.winddirection,

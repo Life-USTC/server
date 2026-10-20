@@ -39,6 +39,9 @@ export type WeatherCondition = {
 };
 
 export type WeatherCurrent = {
+  source?: WeatherProviderName;
+  /** Actual provider observation time, never the fetch time or a model timestamp. */
+  observedAt?: string;
   temperature: number | null;
   feelsLike?: number;
   humidity?: number;
