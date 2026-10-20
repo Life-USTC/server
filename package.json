@@ -126,9 +126,6 @@
     "yaml": "2.9.1",
     "zod-openapi": "^6.0.2"
   },
-  "patchedDependencies": {
-    "@better-auth/cimd@1.7.7": "patches/@better-auth%2Fcimd@1.7.7.patch"
-  },
   "imports": {
     "#lib": "./src/lib/index.js",
     "#lib/*": "./src/lib/*"
