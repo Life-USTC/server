@@ -33,8 +33,14 @@ export function isOnboardingPath(pathname: string) {
   return matchesPathRoot(pathname, "/account/welcome");
 }
 
+export function isSignInPath(pathname: string) {
+  return (
+    pathname === "/account/sign-in" || pathname.startsWith("/account/sign-in/")
+  );
+}
+
 export function shouldUseFocusedShell(pathname: string) {
-  return isOnboardingPath(pathname) || pathname === "/account/sign-in";
+  return isOnboardingPath(pathname) || isSignInPath(pathname);
 }
 
 /** Matches `min-h-14` on mobile primary / admin tab bars. */

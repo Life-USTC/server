@@ -86,7 +86,7 @@
   "globalSearch": {
     "title": "搜索",
     "pageTitle": "搜索",
-    "pageDescription": "搜索班级、教师、课程、校园链接，以及你的作业与待办。",
+    "pageDescription": "也可在此继续搜索；优先使用顶部栏或 Ctrl K。",
     "placeholder": "搜索班级、教师、课程…",
     "placeholderSignedIn": "搜索班级、教师、课程、作业、待办…",
     "shortcut": "Ctrl K",
@@ -97,6 +97,15 @@
     "openSearch": "打开搜索",
     "close": "关闭",
     "viewAllResults": "查看全部搜索结果",
+    "emptyLead": "从类型或示例开始，或使用顶部搜索栏。",
+    "typesLabel": "搜索类型",
+    "examplesLabel": "试试这些",
+    "examples": {
+      "course": "微积分",
+      "section": "CS101",
+      "teacher": "张三",
+      "link": "教务"
+    },
     "groups": {
       "courses": "课程",
       "sections": "班级",
@@ -532,6 +541,8 @@
       "primaryAction": "在 GitHub 查看",
       "installTitle": "使用 Go 安装",
       "installCommand": "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest",
+      "copyInstallAction": "复制安装命令",
+      "copiedInstallAction": "已复制",
       "startTitle": "真实运行示例",
       "steps": [
         {

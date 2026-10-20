@@ -200,6 +200,14 @@ test("usage pages expose their primary handoff", { tag: "@Site/Web" }, async ({
         /go install github\.com\/Life-USTC\/CLI\/cmd\/life-ustc@latest/,
       ),
     ).toBeVisible();
+    const installCopy = page.getByRole("button", {
+      name: /复制安装命令|Copy install command/i,
+    });
+    await expect(installCopy).toBeVisible();
+    await installCopy.click();
+    await expect(installCopy).toContainText(
+      /go install github\.com\/Life-USTC\/CLI\/cmd\/life-ustc@latest/,
+    );
     await expect(
       page.getByText(/Showing 3 of 6 · page 1 of 2/).first(),
     ).toBeVisible();
@@ -207,5 +215,52 @@ test("usage pages expose their primary handoff", { tag: "@Site/Web" }, async ({
       page.getByText(/MATH1004.*线性代数\(A1\)/).first(),
     ).toBeVisible();
     await expect(page.getByText(/07:30 → 07:40/).first()).toBeVisible();
+  });
+});
+
+test("bot mcp and cli marketing composition stays aligned", {
+  tag: "@Site/Web",
+}, async ({ page, publicFlow }) => {
+  await publicFlow.run(async () => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+
+    for (const routePath of ["/usage/bot", "/usage/mcp", "/usage/cli"]) {
+      await gotoAndWaitForReady(page, routePath);
+      await expect(page.locator('[data-usage-marketing="hero"]')).toBeVisible();
+      const exampleCards = page.locator(
+        '[data-usage-marketing="example-card"]:visible',
+      );
+      await expect(exampleCards).toHaveCount(3);
+      await expect(exampleCards.nth(0)).toContainText("01");
+      await expect(exampleCards.nth(1)).toContainText("02");
+      await expect(exampleCards.nth(2)).toContainText("03");
+
+      const heights = await exampleCards.evaluateAll((nodes) =>
+        nodes.map((node) => Math.round(node.getBoundingClientRect().height)),
+      );
+      expect(heights).toHaveLength(3);
+      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(
+        2,
+      );
+    }
+
+    await gotoAndWaitForReady(page, "/usage/mcp");
+    const mcpPrimary = page
+      .locator('[data-usage-marketing="hero"]')
+      .getByRole("button", { name: /复制 MCP 端点|Copy MCP endpoint/i });
+    await expect(mcpPrimary).toBeVisible();
+    await expect(mcpPrimary).toHaveAttribute("data-slot", "button");
+
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await gotoAndWaitForReady(page, "/usage/cli");
+    const installCopy = page.getByRole("button", {
+      name: /复制安装命令|Copy install command/i,
+    });
+    await installCopy.click();
+    await expect
+      .poll(async () => page.evaluate(() => navigator.clipboard.readText()))
+      .toContain("go install github.com/Life-USTC/CLI/cmd/life-ustc@latest");
   });
 });

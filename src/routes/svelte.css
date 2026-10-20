@@ -36,6 +36,15 @@
   --success-foreground: #ffffff;
   --warning: oklch(0.74 0.14 75);
   --warning-foreground: #2b1700;
+  /* Status roles are separate from primary CTA teal (进行中/报名中/逾期/已结束). */
+  --status-active: oklch(0.55 0.12 250);
+  --status-active-foreground: #ffffff;
+  --status-open: oklch(0.55 0.13 155);
+  --status-open-foreground: #ffffff;
+  --status-overdue: oklch(0.58 0.18 45);
+  --status-overdue-foreground: #ffffff;
+  --status-ended: #e4e4e7;
+  --status-ended-foreground: #52525b;
   --sidebar: #ffffff;
   --sidebar-foreground: #27272a;
   --sidebar-primary: var(--primary);
@@ -90,6 +99,14 @@ html {
   --success-foreground: oklch(0.08 0.012 155);
   --warning: oklch(0.78 0.12 75);
   --warning-foreground: oklch(0.12 0.02 75);
+  --status-active: oklch(0.68 0.12 250);
+  --status-active-foreground: oklch(0.12 0.02 250);
+  --status-open: oklch(0.72 0.12 155);
+  --status-open-foreground: oklch(0.08 0.012 155);
+  --status-overdue: oklch(0.72 0.16 45);
+  --status-overdue-foreground: oklch(0.14 0.03 45);
+  --status-ended: oklch(0.28 0.012 210);
+  --status-ended-foreground: oklch(0.78 0.012 210);
   --sidebar: var(--card);
   --sidebar-foreground: var(--card-foreground);
   --sidebar-primary: var(--primary);
@@ -133,6 +150,14 @@ html {
     --success-foreground: oklch(0.08 0.012 155);
     --warning: oklch(0.78 0.12 75);
     --warning-foreground: oklch(0.12 0.02 75);
+    --status-active: oklch(0.68 0.12 250);
+    --status-active-foreground: oklch(0.12 0.02 250);
+    --status-open: oklch(0.72 0.12 155);
+    --status-open-foreground: oklch(0.08 0.012 155);
+    --status-overdue: oklch(0.72 0.16 45);
+    --status-overdue-foreground: oklch(0.14 0.03 45);
+    --status-ended: oklch(0.28 0.012 210);
+    --status-ended-foreground: oklch(0.78 0.012 210);
     --sidebar: var(--card);
     --sidebar-foreground: var(--card-foreground);
     --sidebar-primary: var(--primary);
@@ -190,6 +215,14 @@ html {
   --color-info: var(--info);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-status-active: var(--status-active);
+  --color-status-active-foreground: var(--status-active-foreground);
+  --color-status-open: var(--status-open);
+  --color-status-open-foreground: var(--status-open-foreground);
+  --color-status-overdue: var(--status-overdue);
+  --color-status-overdue-foreground: var(--status-overdue-foreground);
+  --color-status-ended: var(--status-ended);
+  --color-status-ended-foreground: var(--status-ended-foreground);
 }
 
 @layer base {

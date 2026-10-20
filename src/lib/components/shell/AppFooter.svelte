@@ -41,7 +41,7 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
 </script>
 
 <footer
-  class="border-border relative z-20 flex h-[calc(4rem+env(safe-area-inset-bottom))] w-full shrink-0 items-stretch border-t bg-background pb-[env(safe-area-inset-bottom)] md:h-16 md:pb-0"
+  class="border-border relative z-20 flex h-[calc(4rem+env(safe-area-inset-bottom))] w-full shrink-0 items-stretch border-t bg-muted/40 pb-[env(safe-area-inset-bottom)] md:h-16 md:pb-0"
 >
   {#if showAccount}
     <div
@@ -80,7 +80,7 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
   {/if}
 
   <div
-    class="flex min-w-0 flex-1 items-center justify-between gap-4 bg-background/80 px-4 text-muted-foreground text-sm sm:px-5 lg:px-6"
+    class="flex min-w-0 flex-1 items-center justify-between gap-4 bg-transparent px-4 text-foreground/90 text-sm sm:px-5 lg:px-6"
   >
     <nav
       aria-label={copy.shell.footerNavigation}
@@ -88,7 +88,7 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
     >
       {#each footerLinks as link}
         <a
-          class="transition-colors hover:text-foreground"
+          class="text-foreground/90 underline-offset-4 transition-colors hover:text-foreground hover:underline"
           href={link.href}
           rel={link.rel}
           target={link.target}
@@ -97,6 +97,6 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
         </a>
       {/each}
     </nav>
-    <p class="shrink-0 text-xs">Life@USTC</p>
+    <p class="shrink-0 text-foreground/80 text-xs">Life@USTC</p>
   </div>
 </footer>

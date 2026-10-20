@@ -18,7 +18,10 @@ import {
   publicationListHref,
 } from "@/features/publications/lib/publication-page-navigation";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
-import { publicationSummary } from "@/features/publications/lib/publication-summary";
+import {
+  publicationListSummary,
+  publicationListSummaryIsUrlHeavy,
+} from "@/features/publications/lib/publication-summary";
 import { goto } from "$app/navigation";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
 import type {
@@ -120,7 +123,6 @@ function changeType(value: string) {
 {/snippet}
 
 <CollectionPage description={copy.pageDescription} footer={data.publications.pagination.totalPages > 1 ? pagination : undefined} title={copy.pageTitle}>
-  {#snippet actions()}<Button href="/news/sources" variant="outline">{copy.sourcesTitle}</Button>{/snippet}
   {#snippet toolbar()}
       <div class="grid min-w-0 gap-3">
         <ToggleGroup.Root type="single" variant="outline" bind:value={() => data.filters.type ?? "all", changeType} aria-label={copy.publicationType}>
@@ -159,9 +161,9 @@ function changeType(value: string) {
     {:else}
       <ul class="grid min-w-0 divide-y" aria-label={copy.pageTitle}>
         {#each data.publications.data as item (item.id)}
-          {@const summary = publicationSummary(item.revision.title, item.revision.summary)}
-          <li class="grid min-w-0 gap-2 py-4">
-            <h2 class="min-w-0 text-base font-semibold leading-relaxed [overflow-wrap:anywhere]">
+          {@const summary = publicationListSummary(item.revision.title, item.revision.summary)}
+          <li class="grid min-w-0 gap-1.5 py-3">
+            <h2 class="min-w-0 text-base font-semibold leading-snug [overflow-wrap:anywhere]">
               <a class="hover:underline" href={publicationDetailHref(item.id, returnHref)}>{item.revision.title}</a>
             </h2>
             <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -174,7 +176,15 @@ function changeType(value: string) {
               {/if}
               {#if item.foldGroup}<Badge variant="secondary">{(item.foldGroup.siblingCount === 1 ? copy.foldSiblingCountOne : copy.foldSiblingCount).replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
             </div>
-            {#if summary}<p class="line-clamp-2 min-w-0 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>{/if}
+            {#if summary}
+              <p
+                class="min-w-0 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] {publicationListSummaryIsUrlHeavy(summary)
+                  ? 'line-clamp-1'
+                  : 'line-clamp-2'}"
+              >
+                {summary}
+              </p>
+            {/if}
           </li>
         {/each}
       </ul>

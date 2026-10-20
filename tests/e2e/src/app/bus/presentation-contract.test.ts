@@ -244,7 +244,7 @@ test("bus.map-label-legibility", { tag: "@Bus/Web" }, async ({
       expect(rendered.length).toBeGreaterThan(2);
       for (const label of rendered) {
         expect(label.paintOrder).toContain("stroke");
-        expect(label.strokeWidth).toBeGreaterThanOrEqual(7);
+        expect(label.strokeWidth).toBe(width < 768 ? 8 : 4);
         expect(label.stroke).not.toBe("none");
         expect(label.stroke).not.toBe(label.fill);
         expect(label.width).toBeGreaterThan(0);

@@ -1,7 +1,7 @@
 <script lang="ts">
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import {
   toolbarControlClass,
   toolbarFieldClass,
@@ -56,7 +56,11 @@ function selectSample(code: string) {
           spellcheck="false"
         />
       </Field.Field>
-      <Button type="submit" class={toolbarControlClass}>
+      <Button
+        type="submit"
+        class={toolbarControlClass}
+        variant="default"
+      >
         <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
         {copy.submit}
       </Button>
@@ -74,28 +78,30 @@ function selectSample(code: string) {
       />
     {/key}
   {:else}
-    <div class="py-10">
-      <ResultsEmpty description={copy.empty} title={copy.emptyTitle}>
-        {#if copy.sampleRooms.length > 0}
-          <div class="grid gap-2" data-testid="room-map-sample-chips">
-            <p class="text-muted-foreground text-sm">{copy.sampleGuidance}</p>
-            <div class="flex flex-wrap gap-2">
-              {#each copy.sampleRooms as code (code)}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  class="font-mono"
-                  data-testid="room-map-sample-chip"
-                  onclick={() => selectSample(code)}
-                >
-                  {code}
-                </Button>
-              {/each}
-            </div>
+    <CollectionEmpty
+      description={copy.empty}
+      title={copy.emptyTitle}
+      variant="setup"
+    >
+      {#if copy.sampleRooms.length > 0}
+        <div class="grid gap-2" data-testid="room-map-sample-chips">
+          <p class="text-muted-foreground text-sm">{copy.sampleGuidance}</p>
+          <div class="flex flex-wrap gap-2">
+            {#each copy.sampleRooms as code (code)}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="font-mono"
+                data-testid="room-map-sample-chip"
+                onclick={() => selectSample(code)}
+              >
+                {code}
+              </Button>
+            {/each}
           </div>
-        {/if}
-      </ResultsEmpty>
-    </div>
+        </div>
+      {/if}
+    </CollectionEmpty>
   {/if}
 </CollectionPage>

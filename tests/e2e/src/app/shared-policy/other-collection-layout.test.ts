@@ -98,7 +98,7 @@ function cases() {
       name: "sources",
       domain: "Publication",
       path: "/news/sources",
-      filter: false,
+      filter: true,
       summary: true,
       pagination: false,
     },

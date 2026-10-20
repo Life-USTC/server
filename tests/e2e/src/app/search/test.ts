@@ -101,6 +101,36 @@ test("search page supports keyboard navigation into results", {
   });
 });
 
+test("empty search page shows type chips and example queries", {
+  tag: "@Search/Web",
+}, async ({ page, searchRun }) => {
+  await searchRun(async () => {
+    await gotoAndWaitForReady(page, "/search");
+
+    const hints = page.locator("[data-search-empty-hints]");
+    await expect(hints).toBeVisible();
+    await expect(page.locator("[data-search-page-field]")).toBeVisible();
+    await expect(hints.getByText(/课程|Courses/)).toBeVisible();
+    await expect(hints.getByText(/教师|Teachers/)).toBeVisible();
+
+    const example = hints.getByRole("button").first();
+    await expect(example).toBeVisible();
+    await observeAction(
+      () =>
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/search") &&
+            response.ok() &&
+            Boolean(new URL(response.url()).searchParams.get("q")),
+        ),
+      () => example.click(),
+    );
+    await expect(
+      page.getByRole("combobox", { name: /搜索|Search/i }),
+    ).not.toHaveValue("");
+  });
+});
+
 test("search page matches course and teacher terms in one section", {
   tag: "@Search/Web",
 }, async ({ page, searchRun }) => {

@@ -118,6 +118,14 @@ export type SettingsCopy = {
       outcomes: Record<string, string>;
     };
     description: string;
+    nav: {
+      accounts: { description: string; title: string };
+      authorizations: { description: string; title: string };
+      danger: { description: string; title: string };
+      preferences: { description: string; title: string };
+      profile: { description: string; title: string };
+      security: { description: string; title: string };
+    };
     preferences: {
       appearance: {
         description: string;

@@ -201,6 +201,7 @@ it("ui.feature-interaction-ownership", async () => {
     "WorkspaceCollection",
     "ResultsSummary",
     "ResultsEmpty",
+    "CollectionEmpty",
     "ListPagination",
   ].map((name) => `src/lib/components/${name}.svelte`);
   for (const name of await readdir("src/lib/components/ui/field"))

@@ -2,6 +2,9 @@ function compact(value: string) {
   return value.replace(/\s+/gu, "").replace(/[。.!！?？:：]+$/u, "");
 }
 
+const URL_IN_TEXT = /https?:\/\/\S+/giu;
+const LIST_URL_MAX = 48;
+
 /** Hide crawler placeholders and text already visible as the title/body lead. */
 export function publicationSummary(
   title: string,
@@ -14,4 +17,24 @@ export function publicationSummary(
   if (!normalized || normalized === compact(title)) return "";
   if (bodyMarkdown && compact(bodyMarkdown).startsWith(normalized)) return "";
   return text;
+}
+
+/**
+ * List-row summary: omit empties, and shorten embedded long URLs so a single
+ * line clamp stays readable instead of stretching the row.
+ */
+export function publicationListSummary(
+  title: string,
+  summary: string | null | undefined,
+) {
+  const text = publicationSummary(title, summary);
+  if (!text) return "";
+  return text.replace(URL_IN_TEXT, (url) =>
+    url.length > LIST_URL_MAX ? `${url.slice(0, LIST_URL_MAX - 1)}…` : url,
+  );
+}
+
+/** True when the list summary contains a URL that should use a one-line clamp. */
+export function publicationListSummaryIsUrlHeavy(summary: string) {
+  return /https?:\/\/\S+/iu.test(summary);
 }
