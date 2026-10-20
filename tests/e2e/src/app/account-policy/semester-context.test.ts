@@ -44,31 +44,56 @@ for (const [domain, method] of [
           ).status(),
         ).toBe(200);
         if (domain === "Overview") {
-          await gotoAndWaitForReady(page, snapshot);
+          for (const width of [1280, 390]) {
+            await page.setViewportSize({ width, height: 1000 });
+            await gotoAndWaitForReady(page, snapshot);
 
-          await expect(page.locator("#main-content")).toContainText(
-            locale === "en-us"
-              ? "Current semester is unavailable."
-              : "暂无当前学期信息。",
-          );
-          expect(await page.locator("#main-content").innerText()).not.toContain(
-            locale === "en-us"
-              ? "You only have past-term section subscriptions."
-              : "你目前只订阅了往期教学班",
-          );
-          const todoLink = page
-            .locator('#main-content a[href="/workspace/todos"]')
-            .first();
-          await expect(todoLink).toBeVisible();
-          await todoLink.click();
-          await expect(page.locator("#main-content")).toContainText(marker);
-          await gotoAndWaitForReady(page, snapshot);
-          await page
-            .getByRole("link", { name: /View Past Homework|查看往期作业/ })
-            .click();
-          await expect(page.locator("#main-content")).toContainText(
-            DEV_SEED.homeworks.historicalTitle,
-          );
+            await expect(page.locator("#main-content")).toContainText(
+              locale === "en-us"
+                ? "Current semester is unavailable."
+                : "暂无当前学期信息。",
+            );
+            expect(
+              await page.locator("#main-content").innerText(),
+            ).not.toContain(
+              locale === "en-us"
+                ? "You only have past-term section subscriptions."
+                : "你目前只订阅了往期教学班",
+            );
+            // Undated tasks stay in the full inventory. The overview does not
+            // recreate empty dated bands just to supply navigation links.
+            await expect(
+              page.getByTestId("workspace-overview-urgency"),
+            ).toHaveCount(0);
+            await expect(
+              page.getByTestId("workspace-overview-upcoming"),
+            ).toHaveCount(0);
+            if (width < 768)
+              await page.getByRole("button", { name: /^(菜单|Menu)$/ }).click();
+            const sidebar =
+              width < 768
+                ? page.getByRole("dialog", { name: "Sidebar", exact: true })
+                : page.getByTestId("app-sidebar");
+            await expect(sidebar).toBeVisible();
+            const scheduleGroup = sidebar.getByRole("button", {
+              name: /^(日程|Schedule)$/,
+            });
+            if ((await scheduleGroup.getAttribute("data-state")) === "closed")
+              await scheduleGroup.click();
+            const todoLink = sidebar.getByRole("link", {
+              name: /^(Todos|待办)$/,
+            });
+            await expect(todoLink).toBeVisible();
+            await todoLink.click();
+            await expect(page.locator("#main-content")).toContainText(marker);
+            await gotoAndWaitForReady(page, snapshot);
+            await page
+              .getByRole("link", { name: /View Past Homework|查看往期作业/ })
+              .click();
+            await expect(page.locator("#main-content")).toContainText(
+              DEV_SEED.homeworks.historicalTitle,
+            );
+          }
         }
         if (domain === "Young" && method === "Web") {
           await gotoAndWaitForReady(
