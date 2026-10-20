@@ -242,20 +242,15 @@ test.describe("仪表盘教学班订阅", () => {
           })
           .first(),
       ).toBeVisible();
-      await expect(
-        page
-          .getByRole("link", {
-            name: /浏览班级|Browse Sections/i,
-          })
-          .first(),
-      ).toBeVisible();
-      await expect(
-        page
-          .getByRole("link", {
-            name: /浏览课程|Browse Courses/i,
-          })
-          .first(),
-      ).toBeVisible();
+      const content = page.locator("[data-shell-scroll-container]");
+      for (const [name, href] of [
+        [/浏览班级|Browse Sections/i, "/catalog/sections"],
+        [/浏览课程|Browse Courses/i, "/catalog/courses"],
+      ] as const) {
+        const link = content.getByRole("link", { name });
+        await expect(link).toBeVisible();
+        await expect(link).toHaveAttribute("href", href);
+      }
     });
   });
   test("移动端订阅列表与操作区不产生页面级横向滚动", {

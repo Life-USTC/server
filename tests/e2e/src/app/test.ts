@@ -576,6 +576,7 @@ shellTest(
           .click();
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
         await page
+          .locator("[data-shell-scroll-container]")
           .getByRole("link", { name: /浏览课程|Browse Courses/i })
           .click();
         await page.waitForURL("**/catalog/courses");
@@ -884,16 +885,23 @@ shellTest(
           where: { userId: account.id },
         }),
       ).toEqual([]);
-      await expect(page.locator("#main-content")).toBeVisible();
+      const content = page.locator("[data-shell-scroll-container]");
+      await expect(content).toBeVisible();
 
       await expect(
-        page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+        content.getByRole("link", { name: /浏览班级|Browse Sections/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+        content.getByRole("link", { name: /浏览课程|Browse Courses/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
+        content.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+      ).toHaveAttribute("href", "/catalog/sections");
+      await expect(
+        content.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+      ).toHaveAttribute("href", "/catalog/courses");
+      await expect(
+        content.getByRole("link", { name: /按代码匹配|Match by Code/i }),
       ).toBeVisible();
     }, {});
   },
