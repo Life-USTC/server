@@ -11,7 +11,7 @@
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",
         "@escape.tech/graphql-armor": "3.2.0",
-        "@graphql-tools/executor": "2.0.1",
+        "@graphql-tools/executor": "2.0.5",
         "@graphql-yoga/plugin-disable-introspection": "2.25.6",
         "@internationalized/date": "^3.12.4",
         "@lucide/svelte": "^1.59.0",
@@ -356,13 +356,13 @@
 
     "@floating-ui/vue": ["@floating-ui/vue@1.1.9", "", { "dependencies": { "@floating-ui/dom": "^1.7.4", "@floating-ui/utils": "^0.2.10", "vue-demi": ">=0.13.0" } }, "sha512-BfNqNW6KA83Nexspgb9DZuz578R7HT8MZw1CfK9I6Ah4QReNWEJsXWHN+SdmOVLNGmTPDi+fDT535Df5PzMLbQ=="],
 
-    "@graphql-tools/executor": ["@graphql-tools/executor@2.0.1", "", { "dependencies": { "@graphql-tools/utils": "^12.0.1", "@graphql-typed-document-node/core": "^3.2.0", "@repeaterjs/repeater": "^3.1.0", "@whatwg-node/disposablestack": "^0.0.6", "@whatwg-node/promise-helpers": "^1.0.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-rvlOaoTUXUUHlu7090e94566SeBnU9PV6xMztIt2s8StXy5HbP0p+tYSfg3N/gCdEzJ78ZQLjXJz4UFgWGZ/7A=="],
+    "@graphql-tools/executor": ["@graphql-tools/executor@2.0.5", "", { "dependencies": { "@graphql-tools/utils": "^12.1.0", "@graphql-typed-document-node/core": "^3.2.0", "@repeaterjs/repeater": "^3.1.0", "@whatwg-node/disposablestack": "^0.1.0", "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-9pdJ4YPRKlBbLi19dqpvrQ9NAnJyD3Oj2hBGEnl07hLstq0tnFuKg6r30qCO4UmEfTPk5AVALHEzDcDhFzt/fg=="],
 
     "@graphql-tools/merge": ["@graphql-tools/merge@9.2.8", "", { "dependencies": { "@graphql-tools/utils": "^12.1.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-OsCEmJ9RIMT4LB/1jBbyKHe7pMIlfGhLAQ0FVNaZqteydDUC+rTI9wZ+yaKqxQpPOFFycD+UtMhovg19lPq92Q=="],
 
     "@graphql-tools/schema": ["@graphql-tools/schema@10.1.5", "", { "dependencies": { "@graphql-tools/merge": "^9.2.8", "@graphql-tools/utils": "^12.1.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-F0Onw0ZBREakKGqcgsKhdSCjOXgmntzQWL0QA+/WrwKmnJ7nJRyGKUJavwuVZL2TrXblaIUvQxm4t1h3FuA3cA=="],
 
-    "@graphql-tools/utils": ["@graphql-tools/utils@12.0.1", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^1.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-8YC6jn4xYDS6YTY6xDAgQAs/nGgvzRaIGHS8GeSfVItQzNK7Ms24CQtE3EJY+amvR+tBnhRSX0N83aGj+V/RIg=="],
+    "@graphql-tools/utils": ["@graphql-tools/utils@12.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^2.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-+mOuIX7u83/BHG0L9JviMzKid1j35cxOWhLoox47TXHAJ6Tnn30RgrmEQPmk1FhmaQbhJEcwYBDVyieUvZopJw=="],
 
     "@graphql-typed-document-node/core": ["@graphql-typed-document-node/core@3.2.0", "", { "peerDependencies": { "graphql": "^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ=="],
 
@@ -878,7 +878,7 @@
 
     "@vueuse/shared": ["@vueuse/shared@13.9.0", "", { "peerDependencies": { "vue": "^3.5.0" } }, "sha512-e89uuTLMh0U5cZ9iDpEI2senqPGfbPRTHM/0AaQkcxnpqjkZqDYP8rpfm7edOz8s+pOCOROEy1PIveSW8+fL5g=="],
 
-    "@whatwg-node/disposablestack": ["@whatwg-node/disposablestack@0.0.6", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.0.0", "tslib": "^2.6.3" } }, "sha512-LOtTn+JgJvX8WfBVJtF08TGrdjuFzGJc4mkP8EdDI8ADbvO7kiexYep1o8dwnt0okb0jYclCDXF13xU7Ge4zSw=="],
+    "@whatwg-node/disposablestack": ["@whatwg-node/disposablestack@0.1.0", "", { "dependencies": { "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.6.3" } }, "sha512-ok0A9+D+mdeb3w1GNCpVr+2gVVLRWKo9Ywm/whNsoWSNfNg3jNxS0/wUF6NSUYbfOtFGu2wZgJnLjasbaQEfvA=="],
 
     "@whatwg-node/events": ["@whatwg-node/events@0.1.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-ApcWxkrs1WmEMS2CaLLFUEem/49erT3sxIVjpzU5f6zmVcnijtDSrhoK2zVobOIikZJdH63jdAXOrvjf6eOUNQ=="],
 
@@ -886,7 +886,7 @@
 
     "@whatwg-node/node-fetch": ["@whatwg-node/node-fetch@0.8.6", "", { "dependencies": { "@fastify/busboy": "^3.1.1", "@whatwg-node/disposablestack": "^0.0.6", "@whatwg-node/promise-helpers": "^1.3.2", "tslib": "^2.6.3" } }, "sha512-BDMdYFcerLQkwA2RTldxOqRCs6ZQD1S7UgP3pUdGUkcbgTrP/V5ko77ZkCww9DHmC4lpoYuwigGfQYj285gMvA=="],
 
-    "@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
+    "@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
 
     "@whatwg-node/server": ["@whatwg-node/server@0.11.0", "", { "dependencies": { "@envelop/instrumentation": "^1.0.0", "@whatwg-node/disposablestack": "^0.0.6", "@whatwg-node/fetch": "^0.10.13", "@whatwg-node/promise-helpers": "^1.3.2", "tslib": "^2.6.3" } }, "sha512-VSdkwnJRr8Yv9UgB2aXB3VUPWwd6Oqnn0hycFwhg9pZgWxJXb7JmhsiXe9tmpMwjHFxli12PGcz9aI63YYloGQ=="],
 
@@ -2078,9 +2078,13 @@
 
     "@envelop/core/@envelop/instrumentation": ["@envelop/instrumentation@1.0.0", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.2.1", "tslib": "^2.5.0" } }, "sha512-cxgkB66RQB95H3X27jlnxCRNTmPuSTgmBAq6/4n2Dtv4hsk4yz8FadA1ggmd0uZzvKqWD6CR+WFgTjhDqg7eyw=="],
 
-    "@graphql-tools/merge/@graphql-tools/utils": ["@graphql-tools/utils@12.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^2.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-+mOuIX7u83/BHG0L9JviMzKid1j35cxOWhLoox47TXHAJ6Tnn30RgrmEQPmk1FhmaQbhJEcwYBDVyieUvZopJw=="],
+    "@envelop/core/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
 
-    "@graphql-tools/schema/@graphql-tools/utils": ["@graphql-tools/utils@12.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^2.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-+mOuIX7u83/BHG0L9JviMzKid1j35cxOWhLoox47TXHAJ6Tnn30RgrmEQPmk1FhmaQbhJEcwYBDVyieUvZopJw=="],
+    "@envelop/instrumentation/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
+
+    "@envelop/types/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
+
+    "@graphql-yoga/plugin-disable-introspection/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
 
     "@jridgewell/gen-mapping/@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
@@ -2160,7 +2164,15 @@
 
     "@vue/compiler-sfc/magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 
+    "@whatwg-node/node-fetch/@whatwg-node/disposablestack": ["@whatwg-node/disposablestack@0.0.6", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.0.0", "tslib": "^2.6.3" } }, "sha512-LOtTn+JgJvX8WfBVJtF08TGrdjuFzGJc4mkP8EdDI8ADbvO7kiexYep1o8dwnt0okb0jYclCDXF13xU7Ge4zSw=="],
+
+    "@whatwg-node/node-fetch/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
+
     "@whatwg-node/server/@envelop/instrumentation": ["@envelop/instrumentation@1.0.0", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.2.1", "tslib": "^2.5.0" } }, "sha512-cxgkB66RQB95H3X27jlnxCRNTmPuSTgmBAq6/4n2Dtv4hsk4yz8FadA1ggmd0uZzvKqWD6CR+WFgTjhDqg7eyw=="],
+
+    "@whatwg-node/server/@whatwg-node/disposablestack": ["@whatwg-node/disposablestack@0.0.6", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.0.0", "tslib": "^2.6.3" } }, "sha512-LOtTn+JgJvX8WfBVJtF08TGrdjuFzGJc4mkP8EdDI8ADbvO7kiexYep1o8dwnt0okb0jYclCDXF13xU7Ge4zSw=="],
+
+    "@whatwg-node/server/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
 
     "better-auth/zod": ["zod@4.5.4", "", {}, "sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA=="],
 
@@ -2198,9 +2210,7 @@
 
     "graphql-yoga/@envelop/core": ["@envelop/core@5.6.1", "", { "dependencies": { "@envelop/instrumentation": "^1.0.1", "@envelop/types": "^5.2.2", "@whatwg-node/promise-helpers": "^1.2.4", "tslib": "^2.5.0" } }, "sha512-KEbJ7yrAA+W7IY9MZzpZJ77w/72ndaV/16+hhPapd+0Ohjqffl0mmF3QWy62/m3nRP4qidD+1eiEjJhS/O38Tg=="],
 
-    "graphql-yoga/@graphql-tools/executor": ["@graphql-tools/executor@2.0.5", "", { "dependencies": { "@graphql-tools/utils": "^12.1.0", "@graphql-typed-document-node/core": "^3.2.0", "@repeaterjs/repeater": "^3.1.0", "@whatwg-node/disposablestack": "^0.1.0", "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-9pdJ4YPRKlBbLi19dqpvrQ9NAnJyD3Oj2hBGEnl07hLstq0tnFuKg6r30qCO4UmEfTPk5AVALHEzDcDhFzt/fg=="],
-
-    "graphql-yoga/@graphql-tools/utils": ["@graphql-tools/utils@12.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^2.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-+mOuIX7u83/BHG0L9JviMzKid1j35cxOWhLoox47TXHAJ6Tnn30RgrmEQPmk1FhmaQbhJEcwYBDVyieUvZopJw=="],
+    "graphql-yoga/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
 
     "hosted-git-info/lru-cache": ["lru-cache@11.5.2", "", {}, "sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g=="],
 
@@ -2566,10 +2576,6 @@
 
     "@cspotcode/source-map-support/@jridgewell/trace-mapping/@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
-    "@graphql-tools/merge/@graphql-tools/utils/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
-
-    "@graphql-tools/schema/@graphql-tools/utils/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
-
     "@scalar/icons/@types/node/undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
 
     "@semantic-release/npm/read-pkg/normalize-package-data": ["normalize-package-data@8.0.0", "", { "dependencies": { "hosted-git-info": "^9.0.0", "semver": "^7.3.5", "validate-npm-package-license": "^3.0.4" } }, "sha512-RWk+PI433eESQ7ounYxIp67CYuVsS1uYSonX3kA6ps/3LWfjVQa/ptEg6Y3T6uAMq1mWpX9PQ+qx+QaHpsc7gQ=="],
@@ -2637,12 +2643,6 @@
     "env-ci/execa/strip-final-newline": ["strip-final-newline@3.0.0", "", {}, "sha512-dOESqjYr96iWYylGObzd39EuNTa5VJxyvVAEm5Jnh7KGo75V43Hk1odPQkNDyXNmUR6k+gEiDVXnjB8HJ3crXw=="],
 
     "graphql-yoga/@envelop/core/@envelop/types": ["@envelop/types@5.2.2", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.0.0", "tslib": "^2.5.0" } }, "sha512-nl9cmUh8F+2/NNzpcLjzNqtaVn0m8XSzzxrPU2ByHhlz4Hqlc5QBfRsemZkoJMKrMviJXyJYdKZiUP1o70F3Kw=="],
-
-    "graphql-yoga/@graphql-tools/executor/@whatwg-node/disposablestack": ["@whatwg-node/disposablestack@0.1.0", "", { "dependencies": { "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.6.3" } }, "sha512-ok0A9+D+mdeb3w1GNCpVr+2gVVLRWKo9Ywm/whNsoWSNfNg3jNxS0/wUF6NSUYbfOtFGu2wZgJnLjasbaQEfvA=="],
-
-    "graphql-yoga/@graphql-tools/executor/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
-
-    "graphql-yoga/@graphql-tools/utils/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
 
     "micromark-extension-math/katex/commander": ["commander@8.3.0", "", {}, "sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww=="],
 
