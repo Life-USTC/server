@@ -1,4 +1,5 @@
 <script lang="ts">
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import type {
   TeacherDetailCopy,
   TeacherDetailTeacher,
@@ -13,16 +14,22 @@ export let teacher: TeacherDetailTeacher;
 </script>
 
 <section class="grid gap-4">
-  <TeacherDetailSectionsMobile
-    {copy}
-    {locale}
-    {notAvailable}
-    {teacher}
-  />
-  <TeacherDetailSectionsTable
-    {copy}
-    {locale}
-    {notAvailable}
-    {teacher}
-  />
+  <ResponsiveCollection>
+    {#snippet mobile()}
+      <TeacherDetailSectionsMobile
+        {copy}
+        {locale}
+        {notAvailable}
+        {teacher}
+      />
+    {/snippet}
+    {#snippet desktop()}
+      <TeacherDetailSectionsTable
+        {copy}
+        {locale}
+        {notAvailable}
+        {teacher}
+      />
+    {/snippet}
+  </ResponsiveCollection>
 </section>

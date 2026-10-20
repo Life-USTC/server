@@ -1,9 +1,10 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import CollectionListShell from "#lib/components/CollectionListShell.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
-import AdminListShell from "./AdminListShell.svelte";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,
@@ -22,12 +23,12 @@ export let versions: AdminBusVersion[];
 </script>
 
 {#if versions.length === 0}
-  <CompactEmpty class="xl:hidden" description={copy.noVersions} />
+  <CollectionEmpty variant="compact" description={copy.noVersions} />
 {:else}
-  <AdminListShell class="xl:hidden">
+  <CollectionListShell>
     <Item.Group class="gap-0" data-testid="admin-bus-mobile-list">
       {#each versions as version, index (version.id)}
-        <Item.Root class="items-start px-1 py-3" size="sm">
+        <MobileListCard  size="sm">
         <Item.Content class="min-w-0">
           <Item.Title title={version.title}>{version.title}</Item.Title>
           <Item.Description class="truncate font-mono" title={version.key}>{version.key}</Item.Description>
@@ -69,9 +70,9 @@ export let versions: AdminBusVersion[];
             </div>
           {/if}
         </Item.Footer>
-        </Item.Root>
+        </MobileListCard>
         {#if index < versions.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
     </Item.Group>
-  </AdminListShell>
+  </CollectionListShell>
 {/if}

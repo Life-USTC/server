@@ -2,6 +2,7 @@
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
@@ -160,7 +161,7 @@ function listStatus(event: YoungEventSummary) {
                 <Item.Group class="gap-0" role="list">
                   {#each group.events as event (event.youngId)}
                     <div role="listitem">
-                      <Item.Root size="sm">
+                      <MobileListCard size="sm">
                         {#snippet child({ props })}
                           <a href={youngDetailHref(event.youngId)} {...props}>
                             <Item.Content class="min-w-0 basis-full [overflow-wrap:anywhere]">
@@ -176,7 +177,7 @@ function listStatus(event: YoungEventSummary) {
                             </Item.Actions>
                           </a>
                         {/snippet}
-                      </Item.Root>
+                      </MobileListCard>
                     </div>
                   {/each}
                 </Item.Group>

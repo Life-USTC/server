@@ -19,7 +19,7 @@ let { children, class: className = "", label }: Props = $props();
     className,
   )}
   role={label ? "region" : undefined}
-  data-slot="admin-table-shell"
+  data-slot="collection-table-shell"
   tabindex={label ? 0 : undefined}
 >
   {@render children()}

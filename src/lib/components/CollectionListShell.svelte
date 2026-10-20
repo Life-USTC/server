@@ -10,6 +10,6 @@ type Props = {
 let { children, class: className = "" }: Props = $props();
 </script>
 
-<div class={cn("min-w-0 max-w-full border-y", className)} data-slot="admin-list-shell">
+<div class={cn("min-w-0 max-w-full border-y", className)} data-slot="collection-list-shell">
   {@render children()}
 </div>

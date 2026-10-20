@@ -2,6 +2,7 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -41,7 +42,7 @@ function courseName(section: SubscriptionSection) {
 <div class="min-w-0" data-testid="subscription-semester-cards">
   <Item.Group class="gap-0">
     {#each sections as section, index}
-      <Item.Root class="items-start gap-3 px-2 py-3">
+      <MobileListCard>
         <Item.Content class="min-w-0 gap-1">
           <Item.Title class="line-clamp-none flex w-full min-w-0 flex-wrap items-center gap-1.5">
             <a
@@ -91,7 +92,7 @@ function courseName(section: SubscriptionSection) {
             {/if}
           </TableIconButton>
         </Item.Actions>
-      </Item.Root>
+      </MobileListCard>
       {#if index < sections.length - 1}
         <Item.Separator class="my-0" />
       {/if}

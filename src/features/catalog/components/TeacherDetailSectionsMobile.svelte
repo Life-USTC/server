@@ -1,5 +1,6 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
@@ -17,13 +18,13 @@ export let teacher: TeacherDetailTeacher;
 </script>
 
 {#if teacher.sections.length === 0}
-  <div class="md:hidden">
-    <CompactEmpty description={copy.teacherDetail.noSections} />
+  <div class="min-w-0">
+    <CollectionEmpty variant="compact" description={copy.teacherDetail.noSections} />
   </div>
 {:else}
-  <Item.Group class="md:hidden">
+  <Item.Group class="min-w-0">
     {#each teacher.sections as section}
-      <Item.Root variant="outline" size="sm">
+      <MobileListCard variant="outline" size="sm">
         {#snippet child({ props })}
           <a href={`/catalog/sections/${section.jwId}`} {...props}>
             <Item.Content>
@@ -38,7 +39,7 @@ export let teacher: TeacherDetailTeacher;
             </Item.Footer>
           </a>
         {/snippet}
-      </Item.Root>
+      </MobileListCard>
     {/each}
   </Item.Group>
 {/if}

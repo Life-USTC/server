@@ -1,4 +1,5 @@
 <script lang="ts">
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
@@ -58,7 +59,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
           {#each data.data as course, index}
             {@const courseHref = `/catalog/courses/${course.jwId}`}
             <div role="listitem">
-              <Item.Root size="sm">
+              <MobileListCard size="sm">
                 {#snippet child({ props })}
                   <a href={courseHref} {...props}>
                     <Item.Content><Item.Title><CatalogEntityName item={course} locale={locale} /></Item.Title></Item.Content>
@@ -71,7 +72,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
                     </Item.Footer>
                   </a>
                 {/snippet}
-              </Item.Root>
+              </MobileListCard>
               {#if index < data.data.length - 1}
                 <Item.Separator />
               {/if}

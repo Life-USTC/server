@@ -1,8 +1,9 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import CollectionListShell from "#lib/components/CollectionListShell.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import AdminListShell from "./AdminListShell.svelte";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -19,10 +20,10 @@ export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<AdminListShell class="xl:hidden">
+<CollectionListShell>
   <Item.Group class="gap-0" data-testid="admin-moderation-mobile-list">
     {#each comments as comment, index (comment.id)}
-      <Item.Root class="items-start px-1 py-3">
+      <MobileListCard>
         <Item.Content class="min-w-0">
           <Item.Title class="line-clamp-3 whitespace-pre-wrap">{comment.body}</Item.Title>
           <Item.Description>{targetLabel(comment)}</Item.Description>
@@ -46,8 +47,8 @@ export let targetLabel: AdminModerationCommentFormatter;
             <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
           </Button>
         </Item.Actions>
-      </Item.Root>
+      </MobileListCard>
       {#if index < comments.length - 1}<Item.Separator class="my-0" />{/if}
     {/each}
   </Item.Group>
-</AdminListShell>
+</CollectionListShell>

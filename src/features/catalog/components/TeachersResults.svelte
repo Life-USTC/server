@@ -1,4 +1,5 @@
 <script lang="ts">
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
@@ -80,7 +81,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
             {@const sectionCount = teacher._count.sections}
             <div role="listitem" class="relative">
-              <Item.Root size="sm">
+              <MobileListCard size="sm">
                 {#snippet child({ props })}
                   <a href={teacherHref} {...props}>
                     <Item.Content><Item.Title><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
@@ -111,7 +112,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                     </Item.Footer>
                   </a>
                 {/snippet}
-              </Item.Root>
+              </MobileListCard>
               {#if sectionCount > 0}
                 <a
                   href={teacherSectionsHref(teacher)}

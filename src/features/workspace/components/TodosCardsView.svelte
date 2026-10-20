@@ -3,6 +3,7 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -36,7 +37,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
   {#if filteredTodos.length > 0}
     <Item.Group class="gap-0">
       {#each filteredTodos as todo, index (todo.id)}
-        <Item.Root class="items-start gap-3 px-2 py-3">
+        <MobileListCard>
           <Item.Content class="min-w-0 gap-1">
             <Item.Title class="line-clamp-none w-full min-w-0">
               <button
@@ -112,7 +113,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           </Item.Actions>
-        </Item.Root>
+        </MobileListCard>
         {#if index < filteredTodos.length - 1}
           <Item.Separator class="my-0" />
         {/if}

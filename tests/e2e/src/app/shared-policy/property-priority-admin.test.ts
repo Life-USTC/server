@@ -42,7 +42,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           page
             .locator(
               width < 1280
-                ? 'main [data-slot="admin-list-shell"] [data-slot="item"]'
+                ? 'main [data-slot="collection-list-shell"] [data-slot="item"]'
                 : "main table:visible tbody tr",
             )
             .filter({ hasText: title })
