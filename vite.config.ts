@@ -85,6 +85,26 @@ export default defineConfig(({ command }) => ({
   build: {
     assetsInlineLimit: assetInlineDecision,
   },
+  environments: {
+    client: {
+      build: {
+        rolldownOptions: {
+          output: {
+            codeSplitting: {
+              groups: [
+                {
+                  // Reusing thin collection wrappers must not add an initial
+                  // request per wrapper; their shared UI dependencies load together.
+                  name: "collection-primitives",
+                  test: /[\\/]src[\\/]lib[\\/]components[\\/](?:CollectionEmpty\.svelte|MobileListCard\.svelte|ResponsiveCollection\.svelte|collection-responsive-breakpoint\.ts)$/,
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
   plugins: [
     prismaWasmModulePlugin(command),
     katexModernFontsPlugin(),
