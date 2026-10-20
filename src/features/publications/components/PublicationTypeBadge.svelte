@@ -6,6 +6,6 @@ export let type: "news" | "notice";
 export let copy: Pick<PublicationPageCopy, "news" | "notice">;
 </script>
 
-<Badge variant={type === "news" ? "default" : "secondary"}>
+<Badge variant="outline">
   {type === "news" ? copy.news : copy.notice}
 </Badge>

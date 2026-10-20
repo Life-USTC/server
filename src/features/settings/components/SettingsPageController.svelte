@@ -14,6 +14,7 @@ import {
   createDeleteAccountAction,
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
+import { resolveSettingsPageHeading } from "@/features/settings/lib/settings-page-heading";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { goto } from "$app/navigation";
@@ -105,6 +106,7 @@ $: _unlinkAccount =
   data.accounts.find((account) => account.id === _unlinkAccountId) ?? null;
 $: _hasPendingAccountAction = Boolean(_pendingAccountAction);
 $: copy = data.copy;
+$: pageHeading = resolveSettingsPageHeading(copy, data.tab);
 
 const accountAction = createSettingsAccountAction({
   setPendingAccountAction: (value) => {
@@ -126,12 +128,12 @@ onMount(() => {
 });
 </script>
 
-<svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
+<svelte:head><title>{pageHeading.title} - Life@USTC</title></svelte:head>
 
 <CollectionPage
-  description={copy.settings.description}
+  description={pageHeading.description}
   panel={false}
-  title={copy.settings.title}
+  title={pageHeading.title}
   width="content"
 >
   <div

@@ -60,6 +60,19 @@ requirements:
     test:
       file: tests/e2e/src/app/search/test.ts
       name: search page supports keyboard navigation into results
+- id: search.empty-guidance
+  category: presentation
+  rule: An empty /search page offers type chips and example queries, and keeps the in-page search field
+    visually secondary to the top-bar global search control.
+  acceptance:
+    given: An anonymous browser opens /search with no query.
+    when: The empty state renders and the visitor activates an example chip.
+    then:
+    - Type chips and example queries are visible under the demoted page search field.
+    - Activating an example fills the page query and begins search.
+    test:
+      file: tests/e2e/src/app/search/test.ts
+      name: empty search page shows type chips and example queries
 capabilities:
   global-search:
     title: Global Search

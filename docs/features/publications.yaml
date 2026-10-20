@@ -143,6 +143,46 @@ requirements:
     test:
       file: tests/e2e/src/app/news/presentation.test.ts
       name: publications.markdown-presentation
+- id: publications.attribution-label-filter
+  category: presentation
+  rule: Detail attribution omits crawler site/栏目 placeholders, bare punctuation, and URL-only values so
+    source and date remain the primary metadata hierarchy.
+  acceptance:
+    given: Revision attribution strings that include useful labels and site/栏目 noise.
+    when: The shared attribution cleaner evaluates each value.
+    then:
+    - Useful labels are retained.
+    - Site, column, home, unknown, punctuation-only, and URL-only values are dropped.
+    test:
+      file: tests/unit/features/publications/publication-attribution.test.ts
+      name: publicationAttributionValue
+- id: publications.list-summary-url-truncate
+  category: presentation
+  rule: News list rows omit empty summaries and truncate long URL-like summaries so row height stays even
+    without repeating the source-directory destination already owned by the sidebar.
+  acceptance:
+    given: Titles with empty, duplicate, URL-only, and long embedded-URL summaries.
+    when: The shared list-summary helper evaluates each case.
+    then:
+    - Empty and URL-only summaries are omitted.
+    - Long embedded URLs are shortened and marked for a single-line clamp.
+    test:
+      file: tests/unit/features/publications/publication-summary.test.ts
+      name: publicationSummary
+- id: publications.source-directory-last-published
+  category: presentation
+  rule: The source directory never shows the empty-state never-published label when a source already has
+    readable content but no dated revision; empty sources may still show that label.
+  acceptance:
+    given: Sources with a dated revision, with content but a null lastPublishedAt, and with zero content.
+    when: The shared last-published label helper evaluates each case.
+    then:
+    - Dated revisions format to a date.
+    - Content without a date omits the never-published label.
+    - Empty sources keep the never-published label.
+    test:
+      file: tests/unit/features/publications/publication-source-last-published.test.ts
+      name: publicationSourceLastPublishedLabel
 - id: publications.publication-images
   category: presentation
   rule: Ingestion registers image identities as the SHA-256 of the exact source URL, and detail exposes

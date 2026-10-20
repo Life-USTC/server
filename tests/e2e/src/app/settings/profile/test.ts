@@ -246,7 +246,7 @@ test("页面契约", { tag: "@Account/Web" }, async ({
   await accountRun({ writes: [], audits: [] }, async () => {
     await expectSettingsPage(page, "/account/settings/profile");
     await expect(
-      page.getByRole("heading", { name: /编辑个人资料|Edit Profile/i }),
+      page.getByRole("heading", { name: /编辑资料|Edit Profile/i, level: 1 }),
     ).toBeVisible();
   });
 });

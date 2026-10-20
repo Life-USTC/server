@@ -23,6 +23,7 @@ import type {
   GlobalSearchResultGroupType,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
+import GlobalSearchEmptyHints from "./GlobalSearchEmptyHints.svelte";
 
 export let copy: LayoutCopy["globalSearch"];
 export let groups: GlobalSearchResultGroup[] = [];
@@ -30,9 +31,12 @@ export let activeItemId: string | null = null;
 export let isSearching = false;
 export let showHint = false;
 export let showInitialHint = false;
+export let signedIn = false;
+export let variant: "dialog" | "page" = "dialog";
 export let onSelect: (item: GlobalSearchResultItem) => void = () => {};
 export let onResultKeydown: (event: KeyboardEvent, itemIndex: number) => void =
   () => {};
+export let onPickExample: (query: string) => void = () => {};
 
 const groupIcons: Record<GlobalSearchResultGroupType, typeof BookOpenIcon> = {
   courses: BookOpenIcon,
@@ -56,7 +60,19 @@ $: showEmpty =
     <Spinner class="size-4 shrink-0" />
     <span>{copy.searching}</span>
   </div>
-{:else if showInitialHint || showHint}
+{:else if showInitialHint}
+  {#if variant === "page"}
+    <GlobalSearchEmptyHints
+      {copy}
+      {signedIn}
+      onPickExample={onPickExample}
+    />
+  {:else}
+    <p class="px-2 py-6 text-center text-muted-foreground text-sm">
+      {copy.hint}
+    </p>
+  {/if}
+{:else if showHint}
   <p class="px-2 py-6 text-center text-muted-foreground text-sm">
     {copy.hint}
   </p>

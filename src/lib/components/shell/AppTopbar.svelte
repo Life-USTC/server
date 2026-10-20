@@ -29,6 +29,8 @@ export let themeMode: ThemeMode;
 export let user: LayoutUserSummary;
 export let viewerLoading = false;
 export let signedIn = false;
+/** Hide the Sign in control when the visitor is already on the sign-in route. */
+export let hideSignIn = false;
 </script>
 
 <header
@@ -111,8 +113,8 @@ export let signedIn = false;
           class="h-8 w-20 rounded-md"
           data-testid="viewer-loading"
         />
-      {:else if !user}
-        <Button href="/account/sign-in">
+      {:else if !user && !hideSignIn}
+        <Button href="/account/sign-in" data-shell-sign-in>
           {copy.menu.signIn}
         </Button>
       {/if}

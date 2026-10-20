@@ -1,4 +1,5 @@
 <script lang="ts">
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
@@ -88,6 +89,9 @@ $: weeks = youngCalendarWeeks(days).map((week) => ({
 }));
 $: heading = youngCalendarHeading(view, anchorDate, locale);
 $: agenda = youngCalendarAgenda(days, anchorDate);
+$: rangeHasEvents = days.some(
+  (day) => (view === "day" ? day.events : day.startingEvents).length > 0,
+);
 
 function formatClock(event: YoungCalendarEvent) {
   const start =
@@ -162,8 +166,6 @@ function eventMeta(event: YoungCalendarEvent) {
             {#if visible.length > limit}
               <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
             {/if}
-          {:else}
-            <p class="py-1 text-sm text-muted-foreground">{labels.calendarEmpty}</p>
           {/if}
         </section>
       {/each}
@@ -215,15 +217,12 @@ function eventMeta(event: YoungCalendarEvent) {
                 <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
               </a>
             {/each}
-          {:else}
-            <p class="py-1 text-sm text-muted-foreground">{labels.calendarEmpty}</p>
           {/if}
         </div>
       {/if}
     {:else}
       <CalendarGrid
         density="lines"
-        emptyLabel={labels.calendarEmpty}
         eventLimit={view === "week" ? 6 : 3}
         moreLabel={(count) => labels.moreEvents.replace("{count}", String(count))}
         minWidth="760px"
@@ -238,6 +237,10 @@ function eventMeta(event: YoungCalendarEvent) {
       />
     {/if}
   </div>
+
+  {#if !rangeHasEvents}
+    <CollectionEmpty variant="quiet" description={labels.calendarEmpty} />
+  {/if}
 
   {#if unknownDateCount > 0}
     <p class="text-right text-xs text-muted-foreground" data-testid="young-calendar-unknown-dates">

@@ -89,6 +89,7 @@ test.describe("校车线路图", () => {
           const nodeBox = nodeCircle.getBoundingClientRect();
           return {
             label: label.textContent?.trim() ?? "",
+            fontSizePx: Number.parseFloat(getComputedStyle(label).fontSize),
             labelLeft: labelBox.left,
             labelRight: labelBox.right,
             nodeLeft: nodeBox.left,
@@ -129,11 +130,15 @@ test.describe("校车线路图", () => {
       );
       expect(geometry.campusLabelCount).toBeGreaterThan(0);
       expect(geometry.labelHeights).not.toHaveLength(0);
+      // #372: mobile labels must stay legible after viewBox compression.
       expect(Math.min(...geometry.labelHeights)).toBeGreaterThanOrEqual(10);
       expect(
         geometry.campusLabelGeometry.every(
           (label) => label.paintOrder === "stroke",
         ),
+      ).toBe(true);
+      expect(
+        geometry.campusLabelGeometry.every((label) => label.fontSizePx === 28),
       ).toBe(true);
       const highTechLabel = geometry.campusLabelGeometry.find(
         (label) => label.label === "高新",
@@ -158,6 +163,57 @@ test.describe("校车线路图", () => {
       );
 
       await expectNoPageHorizontalOverflow(page);
+    });
+  });
+
+  test("桌面端节点半径与标签字号约为历史值一半且不压过线路描边", {
+    tag: "@Bus/Web",
+  }, async ({ page, preferenceFlow }) => {
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await gotoAndWaitForReady(page, "/catalog/bus/map");
+      const svg = page.locator('main svg[role="img"][aria-label]').first();
+      await expect(svg).toBeVisible();
+
+      const metrics = await svg.evaluate((node) => {
+        const svgElement = node as SVGSVGElement;
+        const campusGroups = Array.from(
+          svgElement.querySelectorAll("g"),
+        ).filter(
+          (group) => group.querySelectorAll(":scope > circle").length >= 3,
+        );
+        const midRadii = campusGroups.map((group) => {
+          const circles = Array.from(group.querySelectorAll(":scope > circle"));
+          const mid = circles[1] ?? circles[0];
+          return Number.parseFloat(mid.getAttribute("r") ?? "0");
+        });
+        const primaryLabels = campusGroups
+          .map((group) => group.querySelector(":scope > text"))
+          .filter((label): label is SVGTextElement => label !== null);
+        const labelFontSizes = primaryLabels.map((label) =>
+          Number.parseFloat(getComputedStyle(label).fontSize),
+        );
+        const routeStrokes = Array.from(svgElement.querySelectorAll("path"))
+          .map((path) =>
+            Number.parseFloat(path.getAttribute("stroke-width") ?? "0"),
+          )
+          .filter((width) => width > 0 && width < 12);
+        return {
+          maxMidRadius: Math.max(...midRadii, 0),
+          maxRouteStroke: Math.max(...routeStrokes, 0),
+          minLabelFontSize: Math.min(...labelFontSizes),
+          maxLabelFontSize: Math.max(...labelFontSizes),
+        };
+      });
+
+      expect(metrics.maxMidRadius).toBe(14);
+      expect(metrics.minLabelFontSize).toBe(14);
+      expect(metrics.maxLabelFontSize).toBe(14);
+      // Mid-ring radius should stay in the same ballpark as colored route strokes
+      // (halo paths at 14 are excluded) so stations no longer dominate the graph.
+      expect(metrics.maxMidRadius).toBeLessThanOrEqual(
+        metrics.maxRouteStroke * 3.2,
+      );
     });
   });
 

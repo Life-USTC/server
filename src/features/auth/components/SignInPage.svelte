@@ -15,6 +15,7 @@ import * as Card from "#lib/components/ui/card/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { redirectWithExternalFallback } from "#lib/navigation/redirect.js";
 import { enhance, type SubmitFunction } from "$app/forms";
+import SignInProviderMark from "./SignInProviderMark.svelte";
 
 type PageData = {
   callbackUrl: string;
@@ -103,10 +104,6 @@ function signInAction(providerId: string): SubmitFunction {
     };
   };
 }
-
-function providerInitial(name: string) {
-  return name.trim().slice(0, 2).toUpperCase();
-}
 </script>
 
 {#snippet providerButton(provider: PageData["providers"][number])}
@@ -123,13 +120,13 @@ function providerInitial(name: string) {
       type="submit"
       variant="outline"
     >
-      <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-semibold text-primary text-xs">
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
         {#if pendingProviderId === provider.id}
           <Spinner data-icon="inline-start" />
         {:else if provider.debug}
           <CircleUserRound data-icon="inline-start" />
         {:else}
-          {providerInitial(provider.name)}
+          <SignInProviderMark label={provider.name} providerId={provider.id} />
         {/if}
       </span>
       <span class="min-w-0 flex-1 truncate">{provider.label}</span>
