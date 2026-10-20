@@ -103,11 +103,9 @@ describe("API 辅助函数", () => {
     ) => callback({ isTraced: false, setAttribute });
 
     await expectNoMeasuredBodySize(() =>
-      runWithCloudflareRuntimeEnv(
-        {},
-        () => jsonResponse({ label: "科" }),
-        { tracing: { enterSpan } },
-      ),
+      runWithCloudflareRuntimeEnv({}, () => jsonResponse({ label: "科" }), {
+        tracing: { enterSpan },
+      }),
     );
     expect(setAttribute).toHaveBeenCalledWith("response.format", "json");
     expect(setAttribute).not.toHaveBeenCalledWith(
