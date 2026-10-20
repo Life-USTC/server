@@ -75,14 +75,17 @@ for (const [domain, method] of [
                 ? page.getByRole("dialog", { name: "Sidebar", exact: true })
                 : page.getByTestId("app-sidebar");
             await expect(sidebar).toBeVisible();
-            const scheduleGroup = sidebar.getByRole("button", {
-              name: /^(日程|Schedule)$/,
-            });
-            if ((await scheduleGroup.getAttribute("data-state")) === "closed")
-              await scheduleGroup.click();
-            const todoLink = sidebar.getByRole("link", {
-              name: /^(Todos|待办)$/,
-            });
+            const todoLink = sidebar.locator('a[href="/workspace/todos"]');
+            const todoGroup = sidebar
+              .locator('[data-slot="sidebar-group"]')
+              .filter({
+                has: page.locator('a[href="/workspace/todos"]'),
+              });
+            const groupToggle = todoGroup.locator(
+              'button[data-slot="sidebar-group-label"]',
+            );
+            if ((await groupToggle.getAttribute("aria-expanded")) === "false")
+              await groupToggle.click();
             await expect(todoLink).toBeVisible();
             await todoLink.click();
             await expect(page.locator("#main-content")).toContainText(marker);
