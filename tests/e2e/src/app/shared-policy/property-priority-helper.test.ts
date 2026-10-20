@@ -85,8 +85,8 @@ test("priority fields reject transparent and hidden elements through their ances
           ).rejects.toMatchObject({
             ...(style === "opacity:0"
               ? {
-                  message: expect.stringContaining(
-                    "expected field must be visibly painted, including its ancestors",
+                  message: expect.stringMatching(
+                    /expected field must be visibly painted, including its ancestors[\s\S]*Received:[\s\S]*false/,
                   ),
                 }
               : {}),
