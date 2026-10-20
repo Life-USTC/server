@@ -1,27 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { adapterFactoryMock, findOneMock, prismaAdapterMock } = vi.hoisted(
-  () => {
-    const findOne = vi.fn();
-    const adapterFactory = vi.fn(() => ({
-      id: "prisma",
-      findOne,
-      transaction: vi.fn(
-        async (
-          callback: (tx: {
-            id: string;
-            findOne: typeof findOne;
-          }) => Promise<unknown>,
-        ) => callback({ id: "prisma", findOne }),
-      ),
-    }));
-    return {
-      adapterFactoryMock: adapterFactory,
-      findOneMock: findOne,
-      prismaAdapterMock: vi.fn(() => adapterFactory),
-    };
-  },
-);
+const {
+  adapterFactoryMock,
+  createMock,
+  updateMock,
+  findOneMock,
+  prismaAdapterMock,
+} = vi.hoisted(() => {
+  const findOne = vi.fn();
+  const create = vi.fn();
+  const update = vi.fn();
+  const adapterFactory = vi.fn(() => ({
+    id: "prisma",
+    findOne,
+    create,
+    update,
+    transaction: vi.fn(
+      async (
+        callback: (tx: {
+          id: string;
+          findOne: typeof findOne;
+        }) => Promise<unknown>,
+      ) => callback({ id: "prisma", findOne }),
+    ),
+  }));
+  return {
+    adapterFactoryMock: adapterFactory,
+    findOneMock: findOne,
+    createMock: create,
+    updateMock: update,
+    prismaAdapterMock: vi.fn(() => adapterFactory),
+  };
+});
 
 vi.mock("better-auth/adapters/prisma", () => ({
   prismaAdapter: prismaAdapterMock,
@@ -31,6 +41,8 @@ describe("createBetterAuthPrismaAdapter", () => {
   beforeEach(() => {
     adapterFactoryMock.mockClear();
     findOneMock.mockReset();
+    createMock.mockReset();
+    updateMock.mockReset();
     prismaAdapterMock.mockClear();
   });
 
@@ -91,6 +103,111 @@ describe("createBetterAuthPrismaAdapter", () => {
         where: [{ field: "token", value: "access" }],
       }),
     ).resolves.toBe(revokedAccess);
+  });
+
+  it.each([
+    {
+      clientDiscoveryId: "cimd",
+      dpopBoundAccessTokens: true,
+      grantTypes: ["authorization_code"],
+    },
+    {
+      clientDiscoveryId: "cimd",
+      grantTypes: ["urn:ietf:params:oauth:grant-type:device_code"],
+    },
+    { clientDiscoveryId: "cimd", grantTypes: ["client_credentials"] },
+  ])(
+    "rejects invalid CIMD admission before a transactional create: %j",
+    async (data) => {
+      const { createBetterAuthPrismaAdapter } = await import(
+        "@/lib/auth/better-auth-prisma-adapter"
+      );
+      const prisma = {
+        $transaction: async (callback: (client: object) => Promise<unknown>) =>
+          callback({}),
+      };
+      const adapter = createBetterAuthPrismaAdapter(prisma as never)(
+        {} as never,
+      );
+      await expect(
+        adapter.transaction((tx) => tx.create({ model: "OAuthClient", data })),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        body: { error: "invalid_client" },
+      });
+      expect(createMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an invalid CIMD refresh before updating the existing client", async () => {
+    const { createBetterAuthPrismaAdapter } = await import(
+      "@/lib/auth/better-auth-prisma-adapter"
+    );
+    const adapter = createBetterAuthPrismaAdapter({} as never)({} as never);
+    findOneMock.mockResolvedValue({
+      clientDiscoveryId: "cimd",
+      grantTypes: ["authorization_code"],
+    });
+    await expect(
+      adapter.update({
+        model: "OAuthClient",
+        where: [
+          { field: "clientId", value: "https://client.example/metadata.json" },
+        ],
+        update: { grantTypes: ["client_credentials"] },
+      }),
+    ).rejects.toMatchObject({
+      body: { error: "invalid_client" },
+    });
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves public device clients and valid CIMD registrations", async () => {
+    const { createBetterAuthPrismaAdapter } = await import(
+      "@/lib/auth/better-auth-prisma-adapter"
+    );
+    const adapter = createBetterAuthPrismaAdapter({} as never)({} as never);
+    for (const data of [
+      {
+        clientDiscoveryId: null,
+        grantTypes: ["urn:ietf:params:oauth:grant-type:device_code"],
+      },
+      {
+        clientDiscoveryId: "cimd",
+        grantTypes: ["authorization_code", "refresh_token"],
+      },
+    ]) {
+      await adapter.create({ model: "OAuthClient", data });
+      expect(createMock).toHaveBeenLastCalledWith({
+        model: "OAuthClient",
+        data,
+      });
+    }
+  });
+
+  it("persists only the application's supported CIMD grants", async () => {
+    const { createBetterAuthPrismaAdapter } = await import(
+      "@/lib/auth/better-auth-prisma-adapter"
+    );
+    const adapter = createBetterAuthPrismaAdapter({} as never)({} as never);
+    await adapter.create({
+      model: "OAuthClient",
+      data: {
+        clientDiscoveryId: "cimd",
+        grantTypes: [
+          "authorization_code",
+          "refresh_token",
+          "urn:ietf:params:oauth:grant-type:device_code",
+        ],
+      },
+    });
+    expect(createMock).toHaveBeenCalledWith({
+      model: "OAuthClient",
+      data: {
+        clientDiscoveryId: "cimd",
+        grantTypes: ["authorization_code", "refresh_token"],
+      },
+    });
   });
 });
 

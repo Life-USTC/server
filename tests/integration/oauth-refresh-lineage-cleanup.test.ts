@@ -648,7 +648,7 @@ describe("OAuth refresh lineage cleanup", () => {
         const identity = await createIdentity("provider-reuse");
         await prisma.oAuthClient.update({
           where: { clientId: identity.clientId },
-          data: { public: true },
+          data: { tokenEndpointAuthMethod: "none" },
         });
         const oldGrantId = crypto.randomUUID();
         const oldRawToken = `provider-old-${marker}`;
