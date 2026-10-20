@@ -441,9 +441,9 @@ test.describe("/catalog/courses 课程目录", () => {
         .first();
       await expect(clearLink).toBeVisible();
       await clearLink.click();
-      await expect(page).toHaveURL(
-        new RegExp(`search=${DEV_SEED.course.code}`),
-      );
+      await expect(page).toHaveURL(/\/catalog\/courses$/);
+      await expect(searchbox).toHaveValue("");
+      await expect(clearLink).toHaveCount(0);
     });
   });
 
