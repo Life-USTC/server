@@ -3,6 +3,10 @@ import type { HTMLAnchorAttributes } from "svelte/elements";
 import type { WithElementRef } from "#lib/utils.js";
 
 export type BadgeVariant =
+  | "status-active"
+  | "status-open"
+  | "status-overdue"
+  | "status-ended"
 	| "default"
 	| "secondary"
 	| "destructive"

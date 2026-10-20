@@ -94,7 +94,14 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               {#if homework.completionRequired === false}
                 <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
               {:else if !homework.completion}
-                <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
+                <Badge
+                  data-status-token={homeworkIsOverdue(homework.submissionDueAt)
+                    ? "overdue"
+                    : undefined}
+                  variant={homeworkIsOverdue(homework.submissionDueAt)
+                    ? "status-overdue"
+                    : "ghost"}
+                >
                   {homeworkEtaLabel(homework.submissionDueAt)}
                 </Badge>
               {/if}
