@@ -8,7 +8,7 @@
         "@better-auth/cimd": "1.7.7",
         "@better-auth/core": "1.7.7",
         "@better-auth/mcp": "1.7.7",
-        "@better-auth/oauth-provider": "1.7.7",
+        "@better-auth/oauth-provider": "1.7.10",
         "@better-auth/passkey": "1.7.7",
         "@escape.tech/graphql-armor": "3.2.0",
         "@graphql-tools/executor": "2.0.5",
