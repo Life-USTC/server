@@ -13,7 +13,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
@@ -23,38 +23,60 @@ import type {
   TeacherListRow,
 } from "./catalog-teacher-list-types";
 
-const appPage = legacyPageStore();
+interface Props {
+  commonLabels: TeacherListCommonLabels;
+  filters: TeacherListFilters;
+  page: number;
+  primaryName: (item: CatalogNamed | null | undefined) => string;
+  selectedDepartment: CatalogNamed | null | undefined;
+  teacherLabels: TeacherListLabels;
+  teachers: TeacherListRow[];
+  total: number;
+  totalPages: number;
+}
 
-export let commonLabels: TeacherListCommonLabels;
-export let filters: TeacherListFilters;
-export let page: number;
-export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let selectedDepartment: CatalogNamed | null | undefined;
-export let teacherLabels: TeacherListLabels;
-export let teachers: TeacherListRow[];
-export let total: number;
-export let totalPages: number;
-
-$: locale = $appPage.data.locale ?? "zh-cn";
-$: teacherSummaryBase = catalogShowingSummary(
-  total === 1 ? teacherLabels.showingOne : teacherLabels.showing,
-  teachers.length,
+let {
+  commonLabels,
+  filters,
+  page,
+  primaryName,
+  selectedDepartment,
+  teacherLabels,
+  teachers,
   total,
+  totalPages,
+}: Props = $props();
+
+let locale = $derived(routePage.data.locale ?? "zh-cn");
+let teacherSummaryBase = $derived(
+  catalogShowingSummary(
+    total === 1 ? teacherLabels.showingOne : teacherLabels.showing,
+    teachers.length,
+    total,
+  ),
 );
-$: teacherSearchSummary = optionalCatalogFilterSummary(
-  filters.search,
-  teacherLabels.searchFor,
-  "{query}",
+let teacherSearchSummary = $derived(
+  optionalCatalogFilterSummary(
+    filters.search,
+    teacherLabels.searchFor,
+    "{query}",
+  ),
 );
-$: teacherDepartmentSummary = selectedDepartment
-  ? teacherLabels.inDepartment.replace(
-      "{department}",
-      primaryName(selectedDepartment),
-    )
-  : "";
+let teacherDepartmentSummary = $derived(
+  selectedDepartment
+    ? teacherLabels.inDepartment.replace(
+        "{department}",
+        primaryName(selectedDepartment),
+      )
+    : "",
+);
 /** Hide columns that are entirely empty or unknown on the current page. */
-$: showTitleColumn = teachers.some((teacher) => Boolean(teacher.teacherTitle));
-$: showEmailColumn = teachers.some((teacher) => Boolean(teacher.email));
+let showTitleColumn = $derived(
+  teachers.some((teacher) => Boolean(teacher.teacherTitle)),
+);
+let showEmailColumn = $derived(
+  teachers.some((teacher) => Boolean(teacher.email)),
+);
 
 function teacherSectionsHref(teacher: TeacherListRow) {
   return `/catalog/teachers/${teacher.id}#sections`;

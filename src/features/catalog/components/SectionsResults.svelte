@@ -15,8 +15,8 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page as routePage } from "$app/state";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
@@ -27,35 +27,51 @@ import type {
   SectionListSemester,
 } from "./catalog-section-list-types";
 
-const appPage = legacyPageStore();
+interface Props {
+  data: SectionListResultData;
+  page: number;
+  primaryName: (item: CatalogNamed | null | undefined) => string;
+  sectionEmptyDescription: () => string;
+  sectionLabels: SectionListLabels;
+  selectedSemester: SectionListSemester | null | undefined;
+  totalPages: number;
+}
 
-export let data: SectionListResultData;
-export let page: number;
-export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let sectionEmptyDescription: () => string;
-export let sectionLabels: SectionListLabels;
-export let selectedSemester: SectionListSemester | null | undefined;
-export let totalPages: number;
+let {
+  data,
+  page,
+  primaryName,
+  sectionEmptyDescription,
+  sectionLabels,
+  selectedSemester,
+  totalPages,
+}: Props = $props();
 
-$: filters = data.filters as SectionListFilters;
-$: locale = $appPage.data.locale ?? "zh-cn";
-$: pagination = data.pagination as SectionListPagination;
-$: sectionSummaryBase = catalogShowingSummary(
-  pagination.total === 1 ? sectionLabels.showingOne : sectionLabels.showing,
-  data.data.length,
-  pagination.total,
+let filters = $derived(data.filters as SectionListFilters);
+let locale = $derived(routePage.data.locale ?? "zh-cn");
+let pagination = $derived(data.pagination as SectionListPagination);
+let sectionSummaryBase = $derived(
+  catalogShowingSummary(
+    pagination.total === 1 ? sectionLabels.showingOne : sectionLabels.showing,
+    data.data.length,
+    pagination.total,
+  ),
 );
-$: sectionSearchSummary = optionalCatalogFilterSummary(
-  filters.search,
-  sectionLabels.searchFor,
-  "{query}",
+let sectionSearchSummary = $derived(
+  optionalCatalogFilterSummary(
+    filters.search,
+    sectionLabels.searchFor,
+    "{query}",
+  ),
 );
-$: sectionSemesterSummary = selectedSemester
-  ? sectionLabels.inSemester.replace(
-      "{semester}",
-      formatSemesterName(locale, selectedSemester.nameCn),
-    )
-  : "";
+let sectionSemesterSummary = $derived(
+  selectedSemester
+    ? sectionLabels.inSemester.replace(
+        "{semester}",
+        formatSemesterName(locale, selectedSemester.nameCn),
+      )
+    : "",
+);
 </script>
 
 

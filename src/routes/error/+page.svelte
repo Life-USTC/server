@@ -3,18 +3,19 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Card from "#lib/components/ui/card/index.js";
 import { getOAuthCopy } from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 
-const page = legacyPageStore();
-
-$: copy = getOAuthCopy(($page.data.locale ?? "zh-cn") as AppLocale);
-$: errorCode = $page.url.searchParams.get("error");
-$: message =
+let copy = $derived(
+  getOAuthCopy((routePage.data.locale ?? "zh-cn") as AppLocale),
+);
+let errorCode = $derived(routePage.url.searchParams.get("error"));
+let message = $derived(
   errorCode === "consent_failed"
     ? copy.errorConsentFailed
     : errorCode === "recent_auth_required"
       ? copy.errorRecentAuthRequired
-      : copy.errorGeneric;
+      : copy.errorGeneric,
+);
 </script>
 
 <svelte:head><title>{copy.errorPageTitle} - Life@USTC</title></svelte:head>

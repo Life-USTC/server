@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount } from "svelte";
+import { onMount, untrack } from "svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import {
@@ -40,7 +40,7 @@ import {
 import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import { createWorkspacePageControllerActions } from "@/features/workspace/lib/workspace-page-controller-actions";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import SignedWorkspaceOverviewBranch from "./SignedWorkspaceOverviewBranch.svelte";
 import SignedWorkspacePublicTabs from "./SignedWorkspacePublicTabs.svelte";
 import SignedWorkspaceSubscriptionsBranch from "./SignedWorkspaceSubscriptionsBranch.svelte";
@@ -48,20 +48,21 @@ import SignedWorkspaceTaskTabs from "./SignedWorkspaceTaskTabs.svelte";
 import type { WorkspaceSubscriptionsTabProps } from "./subscription-tab-types";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
 
-const page = legacyPageStore();
-
 type PageData = WorkspacePageData;
 type ActionData = WorkspaceActionData;
 
-export let data: PageData;
-export let form: ActionData | undefined = undefined;
+interface Props {
+  data: PageData;
+  form?: ActionData | undefined;
+}
+
+let { data, form = undefined }: Props = $props();
 
 let {
   bulkImportError,
   bulkImportMessage,
   bulkImportSemesterId,
   bulkImportText,
-  calendarData,
   calendarDay,
   calendarMonth,
   calendarSemesterId,
@@ -74,18 +75,12 @@ let {
   createHomeworkSubmissionDueAt,
   createHomeworkSubmissionStartAt,
   createTodoError,
-  catalogLinkItems,
   editTodoError,
   editingTodo,
   examFilter,
-  examRows,
   examView,
-  filteredExamRows,
-  filteredTodos,
   homeworkActionError,
   homeworkFilter,
-  homeworkItems,
-  homeworkReferenceDate,
   homeworkSavingById,
   homeworkView,
   isBulkImportOpen,
@@ -100,15 +95,12 @@ let {
   linkSearchQuery,
   linkView,
   matchedSections,
-  overviewLinkItems,
   removingSectionId,
   selectedHomework,
   selectedImportSectionIds,
   selectedTodo,
   showCreateHomework,
   showCreateTodo,
-  signedData,
-  signedLinkGroups,
   subscriptionActionError,
   todoActionError,
   todoFilter,
@@ -116,27 +108,37 @@ let {
   todoView,
   unmatchedSectionCodes,
   updatingCatalogLinkSlug,
-} = createWorkspaceControllerDefaultState();
-let catalogLinkSourceItems: CatalogLinkItem[] = [];
-let overviewLinkSourceItems: CatalogLinkItem[] = [];
-let todoSourceItems: TodoItem[] = [];
-let linkSourceData: PageData | null = null;
-$: copy = data.copy;
-$: actionError = form?.error ?? "";
-$: commonCopy = copy.common;
-$: workspaceCopy = copy.workspace;
-$: busCopy = copy.bus;
-$: homeworksCopy = copy.homeworks;
-$: homeworkCopy = copy.myHomeworks;
-$: sectionCopy = copy.sectionDetail;
-$: subscriptionsCopy = copy.subscriptions;
-$: todosCopy = copy.todos;
-$: commentsCopy = copy.comments;
-$: pageTitle =
+} = $state(createWorkspaceControllerDefaultState());
+let catalogLinkSourceItems: CatalogLinkItem[] = $derived(
+  isSignedWorkspaceData(data) ? (data.links?.catalogLinks ?? []) : [],
+);
+let overviewLinkSourceItems: CatalogLinkItem[] = $derived(
+  isSignedWorkspaceData(data)
+    ? (data.overview?.overviewLinks.slice(0, 4) ?? [])
+    : [],
+);
+let todoSourceItems: TodoItem[] = $derived(
+  isSignedWorkspaceData(data) ? (data.todos ?? []) : [],
+);
+let copy = $derived(data.copy);
+let actionError = $derived(form?.error ?? "");
+let commonCopy = $derived(copy.common);
+let workspaceCopy = $derived(copy.workspace);
+let busCopy = $derived(copy.bus);
+let homeworksCopy = $derived(copy.homeworks);
+let homeworkCopy = $derived(copy.myHomeworks);
+let sectionCopy = $derived(copy.sectionDetail);
+let subscriptionsCopy = $derived(copy.subscriptions);
+let todosCopy = $derived(copy.todos);
+let commentsCopy = $derived(copy.comments);
+let pageTitle = $derived(
   data.signedIn && data.mainContentLabel
     ? data.mainContentLabel
-    : copy.metadata.home;
-$: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
+    : copy.metadata.home,
+);
+let todoPriorityOptions = $derived(
+  buildTodoPriorityOptions(todoPriorityOrder, todosCopy),
+);
 
 function calendarHomeworkChipFields(
   homework: Parameters<typeof buildCalendarHomeworkChipFields>[0],
@@ -146,16 +148,8 @@ function calendarHomeworkChipFields(
     homeworksCopy.noCompletionRequired,
   );
 }
-$: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
-$: catalogLinkGroupLabels = workspaceCopy.linkHub.groups;
-$: if (data !== linkSourceData) {
-  const signedPageData = isSignedWorkspaceData(data) ? data : null;
-  catalogLinkSourceItems = signedPageData?.links?.catalogLinks ?? [];
-  overviewLinkSourceItems =
-    signedPageData?.overview?.overviewLinks.slice(0, 4) ?? [];
-  todoSourceItems = signedPageData?.todos ?? [];
-  linkSourceData = data;
-}
+let calendarWeekdayLabels = $derived(buildCalendarWeekdayLabels(sectionCopy));
+let catalogLinkGroupLabels = $derived(workspaceCopy.linkHub.groups);
 
 const {
   applyHomeworkDueAtSemesterEnd,
@@ -365,37 +359,47 @@ const {
   },
 });
 
-$: derivedState = buildWorkspaceControllerDerivedState({
-  catalogLinkGroupLabels,
-  data,
-  dateFallback: sectionCopy.dateTBD,
-  examFilter,
-  linkSearchQuery,
-  notAvailable: workspaceCopy.notAvailable,
-  currentCatalogLinkItems: catalogLinkSourceItems,
-  currentOverviewLinkItems: overviewLinkSourceItems,
-  currentTodoItems: todoSourceItems,
-  todoFilter,
-});
-$: homeworkItems = derivedState.homeworkItems;
-$: signedData = applyLocalTodoItemsToSignedData(
-  applyLocalHomeworkItemsToSignedData(derivedState.signedData, homeworkItems),
-  todoSourceItems,
+let derivedState = $derived(
+  buildWorkspaceControllerDerivedState({
+    catalogLinkGroupLabels,
+    data,
+    dateFallback: sectionCopy.dateTBD,
+    examFilter,
+    linkSearchQuery,
+    notAvailable: workspaceCopy.notAvailable,
+    currentCatalogLinkItems: catalogLinkSourceItems,
+    currentOverviewLinkItems: overviewLinkSourceItems,
+    currentTodoItems: todoSourceItems,
+    todoFilter,
+  }),
 );
-$: homeworkReferenceDate = referenceDate(signedData?.referenceNow);
-$: filteredTodos = derivedState.filteredTodos;
-$: examRows = derivedState.examRows;
-$: filteredExamRows = derivedState.filteredExamRows;
-$: catalogLinkItems = derivedState.catalogLinkItems;
-$: overviewLinkItems = derivedState.overviewLinkItems;
-$: signedLinkGroups = derivedState.signedLinkGroups;
-$: calendarData = derivedState.calendarData;
-$: syncCalendarStateFromUrl(new URL($page.url.href), calendarData);
-$: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
-$: canMatchImportSections =
+let homeworkItems = $derived(derivedState.homeworkItems);
+let signedData = $derived(
+  applyLocalTodoItemsToSignedData(
+    applyLocalHomeworkItemsToSignedData(derivedState.signedData, homeworkItems),
+    todoSourceItems,
+  ),
+);
+let homeworkReferenceDate = $derived(referenceDate(signedData?.referenceNow));
+let filteredTodos = $derived(derivedState.filteredTodos);
+let examRows = $derived(derivedState.examRows);
+let filteredExamRows = $derived(derivedState.filteredExamRows);
+let catalogLinkItems = $derived(derivedState.catalogLinkItems);
+let overviewLinkItems = $derived(derivedState.overviewLinkItems);
+let signedLinkGroups = $derived(derivedState.signedLinkGroups);
+let calendarData = $derived(derivedState.calendarData);
+untrack(() =>
+  syncCalendarStateFromUrl(new URL(routePage.url.href), calendarData),
+);
+$effect.pre(() => {
+  syncCalendarStateFromUrl(new URL(routePage.url.href), calendarData);
+});
+let selectedImportSectionIdSet = $derived(new Set(selectedImportSectionIds));
+let canMatchImportSections = $derived(
   bulkImportSemesterId !== "" &&
-  bulkImportText.trim().length > 0 &&
-  !isMatchingSections;
+    bulkImportText.trim().length > 0 &&
+    !isMatchingSections,
+);
 
 onMount(mount);
 </script>
