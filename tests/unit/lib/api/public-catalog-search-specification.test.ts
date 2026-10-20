@@ -26,8 +26,12 @@ describe.each([
     ["above maximum", "a".repeat(201), false],
     ["padded minimum", "  ab  ", true],
     ["padded maximum", `  ${"a".repeat(200)}  `, true],
+    ["supplementary Unicode at minimum", "😀", true],
+    ["padded supplementary Unicode at minimum", "  😀  ", true],
     ["supplementary Unicode at maximum", "😀".repeat(100), true],
     ["supplementary Unicode above maximum", "😀".repeat(101), false],
+    ["mixed Unicode at maximum", `${"😀".repeat(99)}ab`, true],
+    ["mixed Unicode above maximum", `${"😀".repeat(100)}a`, false],
   ] as const)(
     "handles %s after trimming using UTF-16 length",
     (_label, search, valid) => {

@@ -14,6 +14,27 @@ describe("openapi generator", () => {
     expect(doc).toEqual(committedDocument);
   });
 
+  it.each(["courses", "sections", "teachers"])(
+    "documents %s search bounds in UTF-16 code units",
+    (catalog) => {
+      const search = doc.paths?.[
+        `/api/catalog/${catalog}`
+      ]?.get?.parameters?.find(
+        (parameter) => "name" in parameter && parameter.name === "search",
+      );
+      expect(search).toMatchObject({
+        schema: {
+          type: "string",
+          description:
+            "Search text, trimmed before validation; 2–200 UTF-16 code units.",
+        },
+      });
+      // JSON Schema length keywords count code points, so cannot express this bound.
+      expect(search).not.toHaveProperty("schema.minLength");
+      expect(search).not.toHaveProperty("schema.maxLength");
+    },
+  );
+
   it("openapi.security-schemes", () => {
     let bearerOperations = 0;
     for (const [path, methods] of Object.entries(doc.paths ?? {})) {

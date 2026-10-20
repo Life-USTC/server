@@ -30,12 +30,15 @@ const catalogPageSchema = integerStringRangeSchema({
 const catalogSearchSchema = z
   .string()
   .trim()
-  .min(CATALOG_SEARCH_MIN_LENGTH, {
-    message: `search must contain at least ${CATALOG_SEARCH_MIN_LENGTH} characters`,
+  .refine((value) => value.length >= CATALOG_SEARCH_MIN_LENGTH, {
+    message: `search must contain at least ${CATALOG_SEARCH_MIN_LENGTH} UTF-16 code units`,
   })
-  .max(CATALOG_SEARCH_MAX_LENGTH, {
-    message: `search must not exceed ${CATALOG_SEARCH_MAX_LENGTH} characters`,
-  });
+  .refine((value) => value.length <= CATALOG_SEARCH_MAX_LENGTH, {
+    message: `search must not exceed ${CATALOG_SEARCH_MAX_LENGTH} UTF-16 code units`,
+  })
+  .describe(
+    `Search text, trimmed before validation; ${CATALOG_SEARCH_MIN_LENGTH}–${CATALOG_SEARCH_MAX_LENGTH} UTF-16 code units.`,
+  );
 
 const catalogIdSchema = integerStringSchema
   .transform((value) => String(Number(value)))
