@@ -24,7 +24,7 @@
  */
 import { expect } from "@playwright/test";
 import {
-  expandWorkspaceSidebarGroup,
+  expandDaySidebarGroup,
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
 import { observeAction } from "../../../../../utils/observed-action";
@@ -123,7 +123,7 @@ test.describe("仪表盘教学班订阅", () => {
       const sidebar = page.getByTestId("app-sidebar");
       await expect(
         sidebar.getByRole("link", {
-          name: /教学班订阅|Section Subscriptions/i,
+          name: /我的教学班|My sections/i,
         }),
       ).toHaveAttribute("aria-current", "page");
       await expect(
@@ -942,7 +942,7 @@ for (const routePath of [
       expect(response?.ok()).toBe(true);
       await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
-      await expandWorkspaceSidebarGroup(page);
+      await expandDaySidebarGroup(page);
       await expect(
         sidebarNavigationLink(page, /^(总览|Overview)$/i),
       ).toBeVisible();

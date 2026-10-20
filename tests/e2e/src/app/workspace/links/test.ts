@@ -166,7 +166,7 @@ test.describe("仪表盘网站链接", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/workspace/overview");
-      await expandSidebarGroup(page, /^(校园生活|Campus life)$/i);
+      await expandSidebarGroup(page, /^(校园|Campus)$/i);
 
       const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
       await expect(linksTab).toBeVisible();

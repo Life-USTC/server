@@ -873,12 +873,12 @@ requirements:
 - id: ui.shell-feature-hub
   category: presentation
   topic: shell-layout
-  rule: The sidebar, mobile drawer and searchable /catalog/features hub share one destination model, grouped by schedule, subscriptions, catalog, campus life, account, clients and administration. The hub is linked from the sidebar and topbar at every shell width. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
+  rule: The sidebar, mobile drawer and searchable /catalog/features hub share one destination model, grouped by user intent as My day, Courses, Campus, Activities, Account, Apps and Admin. Courses combines private My sections with public Browse courses, Browse sections and Teachers. Activities combines public Young events, calendar and organizers with private activity reminders. Rooms belongs to Campus. The hub is linked from the sidebar and topbar at every shell width. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
   acceptance:
     given: Anonymous, ordinary and administrator viewers use Chinese and English on desktop and mobile.
     when: They open the feature hub, search, clear and use its links and the sidebar.
     then:
-    - Functional groups and accessible destinations agree between the hub and sidebar for the same viewer.
+    - Ordered intent groups and their accessible destinations agree between the hub and sidebar for the same viewer; Courses and Activities retain public discovery for anonymous visitors while excluding private entries.
     - Matching, empty and cleared searches render correctly; private and admin entries are visible only to their intended viewers.
     - Mobile and desktop landmarks contain at most one current link and never expose a bottom tab bar.
     test:
@@ -1529,11 +1529,10 @@ requirements:
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
-  rule: Functional sidebar groups expose distinct entries for the academic catalog, Young activities, and
-    news, each linking to its canonical destination.
+  rule: Courses, Activities and Campus groups expose distinct entries for Browse courses, Young activities and news, each linking to its canonical destination.
   acceptance:
     given: An anonymous visitor opens the desktop navigation or mobile navigation drawer.
-    when: The visitor separately activates Courses, Second Classroom, and News & Notices.
+    when: The visitor separately activates Browse courses, Second Classroom, and News & Notices.
     then:
     - Each entry occurs once and links to its distinct canonical route.
     - Each activation reaches that destination and exposes its main heading.

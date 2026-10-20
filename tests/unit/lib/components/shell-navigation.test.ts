@@ -43,17 +43,10 @@ describe("shared functional shell navigation", () => {
       const localized = buildLayoutCopy(locale);
       expect(
         buildShellFeatureGroups(localized, null).map((group) => group.id),
-      ).toEqual(["catalog", "campus", "clients"]);
+      ).toEqual(["courses", "campus", "activities", "apps"]);
       expect(
         buildShellFeatureGroups(localized, user).map((group) => group.id),
-      ).toEqual([
-        "schedule",
-        "subscriptions",
-        "catalog",
-        "campus",
-        "account",
-        "clients",
-      ]);
+      ).toEqual(["day", "courses", "campus", "activities", "account", "apps"]);
       expect(
         destinations(
           buildShellFeatureGroups(localized, {
@@ -76,6 +69,65 @@ describe("shared functional shell navigation", () => {
             .find((link) => link.href === "/catalog/sections")?.items,
         ).toBeUndefined();
       }
+    },
+  );
+
+  test.each(["en-us", "zh-cn"] as const)(
+    "combines manage and discover destinations in %s",
+    (locale) => {
+      const localized = buildLayoutCopy(locale);
+      for (const viewer of [null, user, admin]) {
+        const groups = buildShellFeatureGroups(localized, viewer);
+        expect(
+          groups
+            .find((group) => group.id === "courses")
+            ?.features.map((feature) => feature.href),
+        ).toEqual([
+          ...(viewer ? ["/workspace/subscriptions"] : []),
+          "/catalog/courses",
+          "/catalog/sections",
+          "/catalog/teachers",
+        ]);
+        const activities = groups.find((group) => group.id === "activities");
+        expect(activities).toBeDefined();
+        expect(activities?.features.map((feature) => feature.href)).toEqual([
+          "/catalog/young-events",
+          ...(viewer
+            ? ["/workspace/subscriptions/activities?view=notifications"]
+            : []),
+        ]);
+        expect(activities?.features[0].items?.map((item) => item.href)).toEqual(
+          [
+            "/catalog/young-events/calendar",
+            "/catalog/young-events/organizers",
+          ],
+        );
+        expect(
+          groups
+            .find((group) => group.id === "campus")
+            ?.features.map((feature) => feature.href),
+        ).toEqual([
+          "/catalog/bus",
+          "/catalog/weather",
+          "/news",
+          "/catalog/links",
+          "/catalog/rooms",
+        ]);
+        expect(
+          buildShellNavGroups(localized, viewer, context).map(
+            (group) => group.label,
+          ),
+        ).toEqual(groups.map((group) => group.label));
+      }
+      expect(
+        buildShellFeatureGroups(localized, user)
+          .find((group) => group.id === "courses")
+          ?.features.map((feature) => feature.label),
+      ).toEqual(
+        locale === "zh-cn"
+          ? ["我的教学班", "浏览课程", "浏览班级", "教师"]
+          : ["My sections", "Browse courses", "Browse sections", "Teachers"],
+      );
     },
   );
 
@@ -183,12 +235,12 @@ describe("shared functional shell navigation", () => {
     expect(
       destinations(filterShellFeatures(groups, "  HOMEWORK   progress ")),
     ).toEqual(["/workspace/homeworks"]);
-    expect(destinations(filterShellFeatures(groups, "campus life"))).toEqual([
+    expect(destinations(filterShellFeatures(groups, "Campus"))).toEqual([
       "/catalog/bus",
       "/catalog/weather",
-      "/catalog/young-events",
       "/news",
       "/catalog/links",
+      "/catalog/rooms",
     ]);
     expect(
       destinations(filterShellFeatures(groups, "/account/settings/security")),

@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../../utils/activity-fixture";
 import { openCommentComposer } from "../../../../../utils/comments";
 import {
-  expandWorkspaceSidebarGroup,
+  expandDaySidebarGroup,
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
 import { observeAction } from "../../../../../utils/observed-action";
@@ -29,7 +29,7 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
       },
     );
     expect(response?.ok()).toBe(true);
-    await expandWorkspaceSidebarGroup(page);
+    await expandDaySidebarGroup(page);
     await expect(
       sidebarNavigationLink(page, /^(总览|Overview)$/i),
     ).toBeVisible();
