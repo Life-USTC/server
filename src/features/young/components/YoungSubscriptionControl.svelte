@@ -184,8 +184,8 @@ async function save(next: boolean) {
     <Button
       class="shrink-0"
       disabled={!loaded || busy}
-      onclick={() => save(!subscribed)}
       variant="outline"
+      onclick={() => save(!subscribed)}
     >
       {subscribed && loaded ? copy.unsubscribe : copy.subscribe}
     </Button>

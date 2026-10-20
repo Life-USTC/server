@@ -64,10 +64,15 @@ test("young-event.display-known-values", { tag: "@Young/Web" }, async ({
           externalSponsor: "External sponsor fixture",
         },
         async () => {
-          // The detail page presents identity, badges and copy only; upstream
-          // registration fields stay out of the rendered page.
+          // The detail page presents identity, facts, signup CTA and subscribe;
+          // upstream registration fields stay out of the rendered page.
           const banner = page.getByTestId("young-event-banner");
           await expect(banner.getByRole("heading", { level: 1 })).toBeVisible();
+          await expect(
+            banner.getByRole("link", {
+              name: /前往官方平台|official site|View official/i,
+            }),
+          ).toBeVisible();
           await expect(
             banner.getByRole("button", {
               name: /^(订阅活动|Subscribe to event)$/,
@@ -180,9 +185,9 @@ test("young-event.partial-time-uncertainty", { tag: "@Young/Web" }, async ({
           events,
           { [endpoint]: new Date("2035-09-24T00:30:00Z") },
           async () => {
-            await expect(page.getByTestId("young-event-overview")).toHaveCount(
-              0,
-            );
+            await expect(
+              page.getByTestId("young-event-overview"),
+            ).toBeVisible();
             await expect(page.getByText("Invalid Date")).toHaveCount(0);
           },
         );

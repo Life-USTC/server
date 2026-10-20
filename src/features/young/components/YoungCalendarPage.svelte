@@ -140,7 +140,6 @@ const calendarLabels = $derived({
   previous: youngCopy.previous,
   sourceMissing: youngCopy.sourceMissing,
   today: youngCopy.today,
-  unknownDates: youngCopy.unknownDates,
   week: youngCopy.week,
   calendarEmpty: youngCopy.calendarEmpty,
 });
@@ -156,7 +155,16 @@ const calendarLabels = $derived({
   title={youngCopy.calendarTitle}
 >
     <div class="grid gap-3">
-    <ResultsSummary {summary} />
+    <ResultsSummary {summary}>
+      {#if unknownDateCount > 0}
+        <span data-testid="young-calendar-unknown-dates">
+          ·
+          <a class="underline underline-offset-4" href={unknownDatesHref()}>
+            {unknownDateCount} {youngCopy.unknownDates}
+          </a>
+        </span>
+      {/if}
+    </ResultsSummary>
     <YoungCalendar
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}
@@ -167,8 +175,6 @@ const calendarLabels = $derived({
       labels={calendarLabels}
       {locale}
       timeBasis={filters.timeBasis}
-      {unknownDateCount}
-      unknownDatesHref={unknownDatesHref()}
       {view}
     />
     {#if filters.timeBasis === "activity"}

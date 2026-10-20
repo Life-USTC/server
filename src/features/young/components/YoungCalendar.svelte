@@ -1,5 +1,5 @@
 <script lang="ts">
-import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
@@ -26,10 +26,8 @@ export let events: YoungCalendarEvent[] = [];
 export let locale = "zh-cn";
 export let timeBasis: YoungEventTimeBasis = "activity";
 export let view: YoungCalendarView = "month";
-export let unknownDateCount = 0;
 export let conflictIds = new Set<string>();
 export let conflictLabel = "";
-export let unknownDatesHref = "/catalog/young-events?dateUnknown=true";
 export let labels: {
   agenda: string;
   earlierDates: string;
@@ -37,7 +35,6 @@ export let labels: {
   next: string;
   previous: string;
   today: string;
-  unknownDates: string;
   week: string;
   day: string;
   moreEvents: string;
@@ -89,9 +86,6 @@ $: weeks = youngCalendarWeeks(days).map((week) => ({
 }));
 $: heading = youngCalendarHeading(view, anchorDate, locale);
 $: agenda = youngCalendarAgenda(days, anchorDate);
-$: rangeHasEvents = days.some(
-  (day) => (view === "day" ? day.events : day.startingEvents).length > 0,
-);
 
 function formatClock(event: YoungCalendarEvent) {
   const start =
@@ -186,6 +180,13 @@ function eventMeta(event: YoungCalendarEvent) {
     </nav>
   </div>
 
+  {#if events.length === 0}
+    <CompactEmpty
+      class="justify-self-stretch"
+      description={labels.calendarEmpty}
+    />
+  {/if}
+
   <div class="md:hidden" data-testid="young-calendar-agenda">
     <div aria-label={labels.agenda} class="grid gap-5" role="region">
       {@render agendaRows(agenda.current)}
@@ -209,20 +210,19 @@ function eventMeta(event: YoungCalendarEvent) {
               dateStyle: "full",
             }).format(day.date)}
           </div>
-          {#if day.events.length > 0}
-            {#each day.events as event (event.youngId)}
-              <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
-                <div class="font-medium">{event.name}</div>
-                <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
-                <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
-              </a>
-            {/each}
-          {/if}
+          {#each day.events as event (event.youngId)}
+            <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
+              <div class="font-medium">{event.name}</div>
+              <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
+              <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
+            </a>
+          {/each}
         </div>
       {/if}
     {:else}
       <CalendarGrid
         density="lines"
+        emptyLabel=""
         eventLimit={view === "week" ? 6 : 3}
         moreLabel={(count) => labels.moreEvents.replace("{count}", String(count))}
         minWidth="760px"
@@ -237,14 +237,4 @@ function eventMeta(event: YoungCalendarEvent) {
       />
     {/if}
   </div>
-
-  {#if !rangeHasEvents}
-    <CollectionEmpty variant="quiet" description={labels.calendarEmpty} />
-  {/if}
-
-  {#if unknownDateCount > 0}
-    <p class="text-right text-xs text-muted-foreground" data-testid="young-calendar-unknown-dates">
-      <a class="underline underline-offset-4" href={unknownDatesHref}>{unknownDateCount} {labels.unknownDates}</a>
-    </p>
-  {/if}
 </section>
