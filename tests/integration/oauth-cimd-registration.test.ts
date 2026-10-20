@@ -197,3 +197,42 @@ cimdTest(
     });
   },
 );
+
+for (const [scenario, changes] of [
+  ["DPoP", { dpop_bound_access_tokens: true }],
+  ["refresh-only", { grant_types: ["refresh_token"], response_types: [] }],
+] as const)
+  cimdTest(
+    `rejects ${scenario} CIMD metadata refresh without changing the registered client`,
+    { tags: ["@OAuth/OAuth"] },
+    async ({ isolatedDatabase: { owner }, oauthRuntime, cimd }) => {
+      await oauthRuntime.run(async () => {
+        const clientId = `https://client.example/refresh-${crypto.randomUUID()}.json`;
+        const accepted = {
+          client_id: clientId,
+          client_name: "Refresh admission client",
+          redirect_uris: ["https://client.example/callback"],
+          token_endpoint_auth_method: "none",
+          grant_types: ["authorization_code", "refresh_token"],
+          response_types: ["code"],
+        };
+        let metadata: Record<string, unknown> = accepted;
+        cimd.responsesByUrl.set(clientId, () =>
+          Response.json(metadata, { headers: { "cache-control": "no-store" } }),
+        );
+        expect((await cimd.authorizeRequest(clientId)).status).toBe(302);
+        const before = await owner.oAuthClient.findUniqueOrThrow({
+          where: { clientId },
+        });
+        metadata = { ...accepted, ...changes };
+        const response = await cimd.authorizeRequest(clientId);
+        expect(response.status).toBe(400);
+        expect(await response.json()).toMatchObject({
+          error: "invalid_client",
+        });
+        expect(
+          await owner.oAuthClient.findUnique({ where: { clientId } }),
+        ).toEqual(before);
+      });
+    },
+  );

@@ -1,5 +1,9 @@
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
+import {
+  getCimdClientGrantTypes,
+  getOAuthClientAdmissionError,
+} from "@/features/oauth/server/client-admission-policy";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { removeSignInMethod } from "./sign-in-methods";
 
@@ -37,10 +41,60 @@ export function createBetterAuthPrismaAdapter(prisma: PrismaClient) {
 }
 
 type AuthAdapter = ReturnType<ReturnType<typeof prismaAdapter>>;
-function wrapAuthAdapter<T extends Pick<AuthAdapter, "findOne" | "delete">>(
-  adapter: T,
-  client: Pick<Prisma.TransactionClient, "$queryRaw">,
-): T {
+function assertOAuthClientAdmission(client: Record<string, unknown>) {
+  const errorDescription = getOAuthClientAdmissionError(client);
+  if (errorDescription) {
+    throw new APIError("BAD_REQUEST", {
+      error:
+        client.clientDiscoveryId === "cimd"
+          ? "invalid_client"
+          : "invalid_client_metadata",
+      error_description: errorDescription,
+    });
+  }
+}
+
+function wrapAuthAdapter<
+  T extends Pick<AuthAdapter, "create" | "update" | "findOne" | "delete">,
+>(adapter: T, client: Pick<Prisma.TransactionClient, "$queryRaw">): T {
+  // CIMD lifecycle callbacks run after persistence. Enforce application
+  // admission before both initial writes and refreshed metadata writes,
+  // including the provider's transaction-scoped adapter.
+  const create: typeof adapter.create = async (input) => {
+    if (input.model.toLowerCase() === "oauthclient") {
+      assertOAuthClientAdmission(input.data);
+      if (input.data.clientDiscoveryId === "cimd") {
+        return adapter.create({
+          ...input,
+          data: {
+            ...input.data,
+            grantTypes: getCimdClientGrantTypes(input.data.grantTypes),
+          },
+        });
+      }
+    }
+    return adapter.create(input);
+  };
+  const update: typeof adapter.update = async (input) => {
+    if (input.model.toLowerCase() === "oauthclient") {
+      const current = await adapter.findOne<Record<string, unknown>>(input);
+      const changes = Object.fromEntries(
+        Object.entries(input.update).filter(([, value]) => value !== undefined),
+      );
+      const client = { ...current, ...changes };
+      assertOAuthClientAdmission(client);
+      if (client.clientDiscoveryId === "cimd" && "grantTypes" in changes) {
+        return adapter.update({
+          ...input,
+          update: {
+            ...input.update,
+            grantTypes: getCimdClientGrantTypes(client.grantTypes),
+          },
+        });
+      }
+    }
+    return adapter.update(input);
+  };
   const findOne: typeof adapter.findOne = async <T>(
     input: Parameters<typeof adapter.findOne>[0],
   ): Promise<T | null> => {
@@ -75,6 +129,8 @@ function wrapAuthAdapter<T extends Pick<AuthAdapter, "findOne" | "delete">>(
   };
   return {
     ...adapter,
+    create,
+    update,
     findOne,
     delete: remove,
   };

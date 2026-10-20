@@ -1,5 +1,6 @@
 import { validateCimdMetadata } from "@better-auth/cimd";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { getOAuthClientAdmissionError } from "@/features/oauth/server/client-admission-policy";
 
 const mcpMetadataOptions = { metadataProfile: "mcp-2026-07-28" } as const;
 
@@ -40,24 +41,15 @@ describe("Better Auth CIMD plugin", () => {
   });
 
   it("rejects CIMD clients that require DPoP on Bearer-only resources", () => {
-    const clientId = "https://client.example/dpop-oauth.json";
-
     expect(
-      validateCimdMetadata(
-        clientId,
-        {
-          client_id: clientId,
-          client_name: "DPoP-only Client",
-          dpop_bound_access_tokens: true,
-          redirect_uris: ["https://client.example/callback"],
-        },
-        mcpMetadataOptions,
-      ),
-    ).toEqual({
-      error:
-        "DPoP-bound access tokens are not supported by this Bearer-only resource server",
-      valid: false,
-    });
+      getOAuthClientAdmissionError({
+        clientDiscoveryId: "cimd",
+        dpopBoundAccessTokens: true,
+        grantTypes: ["authorization_code"],
+      }),
+    ).toBe(
+      "DPoP-bound access tokens are not supported by this Bearer-only resource server",
+    );
   });
 
   it("accepts VS Code grant metadata while requiring the code flow", () => {
@@ -82,20 +74,11 @@ describe("Better Auth CIMD plugin", () => {
     ).toMatchObject({ valid: true });
 
     expect(
-      validateCimdMetadata(
-        clientId,
-        {
-          client_id: clientId,
-          client_name: "Device-only client",
-          redirect_uris: ["http://127.0.0.1:33418"],
-          grant_types: ["urn:ietf:params:oauth:grant-type:device_code"],
-        },
-        mcpMetadataOptions,
-      ),
-    ).toMatchObject({
-      error: 'grant_types must include "authorization_code"',
-      valid: false,
-    });
+      getOAuthClientAdmissionError({
+        clientDiscoveryId: "cimd",
+        grantTypes: ["urn:ietf:params:oauth:grant-type:device_code"],
+      }),
+    ).toBe('grant_types must include "authorization_code"');
   });
 
   it("advertises CIMD while retaining DCR fallback", async () => {

@@ -5,6 +5,7 @@ import {
   OAUTH_PROVIDER_GRANT_TYPES,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
+import { getOAuthClientAdmissionError } from "./client-admission-policy";
 
 export const DEVICE_REGISTRATION_DELEGATED_REDIRECT_URI =
   "http://127.0.0.1/oauth/device-registration-callback";
@@ -52,12 +53,14 @@ export function prepareOAuthClientRegistrationDelegation(
     return { delegatedBody: null, deviceRegistration: null };
   }
 
-  if (bodyObject.dpop_bound_access_tokens === true) {
+  const admissionError = getOAuthClientAdmissionError({
+    dpopBoundAccessTokens: bodyObject.dpop_bound_access_tokens,
+  });
+  if (admissionError) {
     return {
       error: {
         error: "invalid_client_metadata",
-        errorDescription:
-          "DPoP-bound access tokens are not supported by this Bearer-only resource server",
+        errorDescription: admissionError,
       },
     };
   }
