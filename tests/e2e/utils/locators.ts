@@ -19,21 +19,9 @@ export async function expandSidebarGroup(
   }
 }
 
-/** Expand the Schedule group (Overview / Calendar / Homework / …). */
-export async function expandScheduleSidebarGroup(page: Page): Promise<void> {
-  await expandSidebarGroup(page, /^(日程|Schedule)$/i);
-}
-
-/** Expand the Subscriptions group (section subscriptions + activity alerts). */
-export async function expandSubscriptionsSidebarGroup(
-  page: Page,
-): Promise<void> {
-  await expandSidebarGroup(page, /^(订阅|Subscriptions)$/i);
-}
-
-/** @deprecated Prefer expandScheduleSidebarGroup — Workspace group was removed. */
-export async function expandWorkspaceSidebarGroup(page: Page): Promise<void> {
-  await expandScheduleSidebarGroup(page);
+/** Expand My day (Overview / Calendar / Homework / …). */
+export async function expandDaySidebarGroup(page: Page): Promise<void> {
+  await expandSidebarGroup(page, /^(日程|My day)$/i);
 }
 
 export function sidebarNavigationLink(page: Page, name: RegExp): Locator {

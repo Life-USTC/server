@@ -237,29 +237,32 @@ export async function prepareSemesterObservation(
           expect(session.expires.getTime()).toBeGreaterThan(
             related.sessions[0].expires.getTime(),
           );
-          expect(
-            await db.auditLog.findMany({
-              select: auditLogProjection,
-            }),
-          ).toEqual(
-            feedTokenCreated
-              ? [
-                  {
-                    action: "account_calendar_token_create",
-                    outcome: "success",
-                    channel: "system",
-                    userId,
-                    subjectUserId: userId,
-                    targetId: userId,
-                    targetType: "calendar_feed",
-                    oauthClientId: null,
-                    oauthGrantId: null,
-                    sessionId: null,
-                    metadata: null,
-                  },
-                ]
-              : [],
-          );
+          // Request completion guarantees enqueue; the real audit queue
+          // consumer persists the token audit independently.
+          await expect
+            .poll(() => db.auditLog.findMany({ select: auditLogProjection }), {
+              timeout: 15_000,
+              message: "Calendar token audit persists",
+            })
+            .toEqual(
+              feedTokenCreated
+                ? [
+                    {
+                      action: "account_calendar_token_create",
+                      outcome: "success",
+                      channel: "system",
+                      userId,
+                      subjectUserId: userId,
+                      targetId: userId,
+                      targetType: "calendar_feed",
+                      oauthClientId: null,
+                      oauthGrantId: null,
+                      sessionId: null,
+                      metadata: null,
+                    },
+                  ]
+                : [],
+            );
           expect(await db.oAuthClient.count()).toBe(0);
           expect(await db.oAuthConsent.count()).toBe(0);
           expect(await db.oAuthAccessToken.count()).toBe(0);

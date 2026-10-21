@@ -8,11 +8,13 @@ const labels = {
     search: "Search features",
     clear: "Clear search",
     empty: "No features match your search.",
-    schedule: "Schedule",
-    catalog: "Catalog",
-    campus: "Campus life",
+    day: "My day",
+    courses: "Courses",
+    activities: "Activities",
+    apps: "Apps",
+    campus: "Campus",
     account: "Account",
-    admin: "Admin tools",
+    admin: "Admin",
     homework: "Homework",
     query: "homework progress",
   },
@@ -21,11 +23,13 @@ const labels = {
     search: "搜索功能",
     clear: "清除搜索",
     empty: "没有匹配的功能。",
-    schedule: "日程",
-    catalog: "课程目录",
-    campus: "校园生活",
+    day: "日程",
+    courses: "课程",
+    activities: "第二课堂",
+    apps: "应用",
+    campus: "校园",
     account: "账户",
-    admin: "管理工具",
+    admin: "管理",
     homework: "作业",
     query: "作业 完成",
   },
@@ -122,7 +126,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           )
           .toEqual(expected);
         await expect(
-          hub.getByRole("heading", { name: copy.catalog, exact: true }),
+          hub.getByRole("heading", { name: copy.courses, exact: true }),
         ).toBeVisible();
         await expect(
           hub.getByRole("heading", { name: copy.campus, exact: true }),
@@ -143,6 +147,50 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             .locator("[data-shell-topbar]")
             .getByRole("link", { name: copy.title, exact: true }),
         ).toBeVisible();
+        const groupNames = [
+          ...(role === "anonymous" ? [] : [copy.day]),
+          copy.courses,
+          copy.campus,
+          copy.activities,
+          ...(role === "anonymous" ? [] : [copy.account]),
+          copy.apps,
+          ...(role === "admin" ? [copy.admin] : []),
+        ];
+        await expect(hub.locator("section > h2")).toHaveText(groupNames);
+        const courses = hub.getByRole("region", {
+          name: copy.courses,
+          exact: true,
+        });
+        await expect(courses.locator('[data-slot="card-title"] a')).toHaveText(
+          locale === "zh-cn"
+            ? [
+                ...(role === "anonymous" ? [] : ["我的教学班"]),
+                "浏览课程",
+                "浏览班级",
+                "教师",
+              ]
+            : [
+                ...(role === "anonymous" ? [] : ["My sections"]),
+                "Browse courses",
+                "Browse sections",
+                "Teachers",
+              ],
+        );
+        const activities = hub.getByRole("region", {
+          name: copy.activities,
+          exact: true,
+        });
+        await expect(
+          activities.locator('a[href="/catalog/young-events/calendar"]'),
+        ).toBeVisible();
+        await expect(
+          activities.locator('a[href="/catalog/young-events/organizers"]'),
+        ).toBeVisible();
+        await expect(
+          activities.locator(
+            'a[href="/workspace/subscriptions/activities?view=notifications"]',
+          ),
+        ).toHaveCount(role === "anonymous" ? 0 : 1);
         const allHubLinks = await hrefs(page, "[data-feature-hub] a");
         if (width < 768)
           await page
@@ -155,6 +203,44 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           "aria-label",
           locale === "zh-cn" ? "主导航" : "Primary navigation",
         );
+        await expect(
+          navigation.locator(
+            '[data-slot="sidebar-group-label"][aria-expanded]',
+          ),
+        ).toHaveText(groupNames);
+        for (const [label, expectedPaths] of [
+          [
+            copy.courses,
+            [
+              ...(role === "anonymous" ? [] : ["/workspace/subscriptions"]),
+              "/catalog/courses",
+              "/catalog/sections",
+              "/catalog/teachers",
+            ],
+          ],
+          [
+            copy.activities,
+            [
+              "/catalog/young-events",
+              ...(role === "anonymous"
+                ? []
+                : ["/workspace/subscriptions/activities?view=notifications"]),
+            ],
+          ],
+        ] as const) {
+          const group = navigation
+            .locator('[data-slot="sidebar-group"]')
+            .filter({
+              has: page.getByRole("button", { name: label, exact: true }),
+            });
+          expect(
+            await group
+              .locator('a[data-sidebar="menu-button"]')
+              .evaluateAll((nodes) =>
+                nodes.map((node) => node.getAttribute("href")),
+              ),
+          ).toEqual(expectedPaths);
+        }
         const collapsedGroups = navigation.locator(
           '[data-slot="sidebar-group-label"][aria-expanded="false"]',
         );

@@ -138,8 +138,8 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     for (const name of [
       /^(校车|Shuttle Bus)$/i,
       /^(网站|Websites)$/i,
-      /^(课程|Courses)$/i,
-      /^(班级|Sections)$/i,
+      /^(浏览课程|Browse courses)$/i,
+      /^(浏览班级|Browse sections)$/i,
       /^(教师|Teachers)$/i,
       /^(移动应用|Mobile App)$/i,
       /^(Presto 机器人|Presto Bot)$/i,
@@ -151,7 +151,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     for (const name of [
       /^(待办|Todos)$/i,
       /^(考试|Exams)$/i,
-      /^(教学班订阅|Section Subscriptions)$/i,
+      /^(我的教学班|My sections)$/i,
     ]) {
       await expect(sidebar.getByRole("link", { name })).toHaveCount(0);
     }
@@ -374,7 +374,7 @@ shellTest(
       const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
       await expect(sidebar).toBeVisible();
       await expect(
-        sidebar.getByRole("link", { name: /班级|Sections/i }),
+        sidebar.getByRole("link", { name: /^(浏览班级|Browse sections)$/i }),
       ).toBeVisible();
 
       const accountMenuButton = sidebar.getByRole("button", {
@@ -408,7 +408,7 @@ shellTest(
           /^(作业|Homework)$/i,
           /^(待办|Todos)$/i,
           /^(考试|Exams)$/i,
-          /^(教学班订阅|Section Subscriptions)$/i,
+          /^(我的教学班|My sections)$/i,
         ]) {
           await expect(navigation.getByRole("link", { name })).toBeVisible();
         }
@@ -427,11 +427,13 @@ shellTest(
         ).toHaveAttribute("aria-current", "page");
 
         const catalog = navigation.getByRole("button", {
-          name: /^(课程目录|Catalog)$/i,
+          name: /^(课程|Courses)$/i,
         });
         await expect(catalog).toHaveAttribute("aria-expanded", "true");
         await expect(
-          navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
+          navigation.getByRole("link", {
+            name: /^(浏览课程|Browse courses)$/i,
+          }),
         ).toBeVisible();
       },
       { calendarTokenCreated: true },
@@ -499,7 +501,7 @@ shellTest(
 
       const coursesLink = page
         .getByTestId("app-sidebar")
-        .getByRole("link", { name: /^(课程|Courses)$/i });
+        .getByRole("link", { name: /^(浏览课程|Browse courses)$/i });
       // The link stays in the accessibility tree while icon-collapsed (only its
       // label is visually truncated), so assert on the rendered width instead of
       // presence/absence.
@@ -556,12 +558,14 @@ shellTest(
             name: /主导航|Primary navigation/i,
           });
         const catalog = navigation.getByRole("button", {
-          name: /^(课程目录|Catalog)$/i,
+          name: /^(课程|Courses)$/i,
         });
 
         await expect(catalog).toHaveAttribute("aria-expanded", "true");
         await expect(
-          navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
+          navigation.getByRole("link", {
+            name: /^(浏览课程|Browse courses)$/i,
+          }),
         ).toBeVisible();
         await catalog.click();
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
@@ -572,6 +576,7 @@ shellTest(
           .click();
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
         await page
+          .locator("[data-shell-scroll-container]")
           .getByRole("link", { name: /浏览课程|Browse Courses/i })
           .click();
         await page.waitForURL("**/catalog/courses");
@@ -579,7 +584,9 @@ shellTest(
 
         await expect(catalog).toHaveAttribute("aria-expanded", "true");
         await expect(
-          navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
+          navigation.getByRole("link", {
+            name: /^(浏览课程|Browse courses)$/i,
+          }),
         ).toHaveAttribute("aria-current", "page");
         await expect(navigation.locator('[aria-current="page"]')).toHaveCount(
           1,
@@ -640,10 +647,10 @@ shellTest(
       const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
       await expect(sidebar).toBeVisible();
       await expect(
-        sidebar.getByRole("button", { name: /^(日程|Schedule)$/i }),
+        sidebar.getByRole("button", { name: /^(日程|My day)$/i }),
       ).toBeVisible();
       await expect(
-        sidebar.getByRole("button", { name: /^(管理工具|Admin tools)$/i }),
+        sidebar.getByRole("button", { name: /^(管理|Admin)$/i }),
       ).toBeVisible();
       await expect(
         sidebar.getByRole("button", { name: /语言|Language/i }),
@@ -787,7 +794,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", { tag: "@Site/Web" }, as
 
     await page
       .getByTestId("app-sidebar")
-      .getByRole("link", { name: /^(课程|Courses)$/i })
+      .getByRole("link", { name: /^(浏览课程|Browse courses)$/i })
       .click();
     await page.waitForURL("**/catalog/courses");
     await waitForUiSettled(page);
@@ -820,11 +827,11 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/W
 
     const sidebar = page.getByTestId("app-sidebar");
     const coursesLink = sidebar.getByRole("link", {
-      name: /^(课程|Courses)$/i,
+      name: /^(浏览课程|Browse courses)$/i,
     });
 
     const catalogGroup = sidebar.getByRole("button", {
-      name: /^(课程目录|Catalog)$/i,
+      name: /^(课程|Courses)$/i,
     });
     await expect(async () => {
       await catalogGroup.click();
@@ -878,16 +885,23 @@ shellTest(
           where: { userId: account.id },
         }),
       ).toEqual([]);
-      await expect(page.locator("#main-content")).toBeVisible();
+      const content = page.locator("[data-shell-scroll-container]");
+      await expect(content).toBeVisible();
 
       await expect(
-        page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+        content.getByRole("link", { name: /浏览班级|Browse Sections/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+        content.getByRole("link", { name: /浏览课程|Browse Courses/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
+        content.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+      ).toHaveAttribute("href", "/catalog/sections");
+      await expect(
+        content.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+      ).toHaveAttribute("href", "/catalog/courses");
+      await expect(
+        content.getByRole("link", { name: /按代码匹配|Match by Code/i }),
       ).toBeVisible();
     }, {});
   },

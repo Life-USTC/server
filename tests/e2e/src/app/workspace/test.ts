@@ -22,7 +22,7 @@ import { DEV_SEED } from "../../../utils/dev-seed";
 import { test } from "../../../utils/homework-fixture";
 import {
   appSidebar,
-  expandWorkspaceSidebarGroup,
+  expandDaySidebarGroup,
   sidebarNavigationLink,
 } from "../../../utils/locators";
 import { observeAction } from "../../../utils/observed-action";
@@ -55,7 +55,7 @@ test.describe("仪表盘", () => {
         await expect(page.locator("#app-user-menu")).toBeVisible();
 
         // Task-oriented workspace destinations are directly reachable.
-        await expandWorkspaceSidebarGroup(page);
+        await expandDaySidebarGroup(page);
         for (const label of [
           /^(总览|Overview)$/i,
           /^(日历|Calendar)$/i,
@@ -90,7 +90,7 @@ test.describe("仪表盘", () => {
     await homeworkRun(
       async () => {
         await gotoAndWaitForReady(page, "/");
-        await expandWorkspaceSidebarGroup(page);
+        await expandDaySidebarGroup(page);
 
         const homeworksTab = sidebarNavigationLink(page, /^(作业|Homework)$/i);
         await expect(homeworksTab).toBeVisible();
@@ -164,7 +164,7 @@ test.describe("仪表盘", () => {
           pendingTodosCount: 0,
           subscribedSectionCount: 1,
         });
-        await expandWorkspaceSidebarGroup(page);
+        await expandDaySidebarGroup(page);
 
         for (const [label, count] of [
           [/^(日历|Calendar)$/i, payload.navigation.calendarItemsCount],
@@ -172,7 +172,7 @@ test.describe("仪表盘", () => {
           [/^(待办|Todos?)$/i, payload.navigation.pendingTodosCount],
           [/^(考试|Exams?)$/i, payload.navigation.examsCount],
           [
-            /^(教学班订阅|Section Subscriptions)$/i,
+            /^(我的教学班|My sections)$/i,
             payload.navigation.subscribedSectionCount,
           ],
         ] as const) {
@@ -242,7 +242,7 @@ test.describe("仪表盘", () => {
         await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
         await expect(
           appSidebar(page).getByRole("link", {
-            name: /^(教学班订阅|Section Subscriptions)$/i,
+            name: /^(我的教学班|My sections)$/i,
           }),
         ).toBeVisible();
         await expect(

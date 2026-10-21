@@ -3071,13 +3071,13 @@
     "personalPage": "Personal page",
     "backToApp": "Back to app",
     "groups": {
-      "schedule": "Schedule",
-      "subscriptions": "Subscriptions",
-      "catalog": "Catalog",
-      "campus": "Campus life",
+      "day": "My day",
+      "courses": "Courses",
+      "campus": "Campus",
+      "activities": "Activities",
       "account": "Account",
-      "clients": "Apps & integrations",
-      "admin": "Admin tools"
+      "apps": "Apps",
+      "admin": "Admin"
     },
     "hub": {
       "title": "All features",
@@ -3115,6 +3115,11 @@
         "adminBus": "Import and publish shuttle timetable versions"
       },
       "clearSearch": "Clear search"
+    },
+    "destinations": {
+      "subscriptions": "My sections",
+      "courses": "Browse courses",
+      "sections": "Browse sections"
     }
   }
 }

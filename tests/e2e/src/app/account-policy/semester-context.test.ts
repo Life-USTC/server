@@ -129,14 +129,15 @@ for (const domain of ["Overview", "Subscription"] as const) {
             page,
             "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00",
           );
+          const content = page.locator("[data-shell-scroll-container]");
           await expect(
-            page.getByRole("link", {
+            content.getByRole("link", {
               name: /Browse Courses|浏览课程/,
               exact: true,
             }),
           ).toHaveAttribute("href", "/catalog/courses");
           await expect(
-            page.getByRole("link", {
+            content.getByRole("link", {
               name: /Browse Sections|浏览班级/,
               exact: true,
             }),
