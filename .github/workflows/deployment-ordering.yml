@@ -1,0 +1,46 @@
+name: Deployment Ordering
+
+# Cloudflare's Git integration owns production deployment and can publish an
+# older commit's build after a newer commit already reached production. This
+# workflow verifies the commit production actually serves after every build for
+# the observed main commits has finished, independently of source CI: it never
+# deploys, never reruns CI for the current head, and holds no deployment
+# credential.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deployment-ordering
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify delivered production commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >-
+      github.repository == 'Life-USTC/server' &&
+      (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main'))
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 20
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Verify delivered production commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_PUBLIC_ORIGIN: ${{ vars.APP_PUBLIC_ORIGIN || 'https://life-ustc.tiankaima.dev' }}
+        run: bun run scripts/deploy/verify-deployment-ordering.ts

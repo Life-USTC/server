@@ -26,6 +26,7 @@
     "tests/fixtures/static-import-coverage.ts",
     "tests/fixtures/static-loader-snapshot.ts",
     "tests/e2e/**/*.ts",
+    "scripts/deploy/**/*.ts",
     "scripts/specifications/**/*.ts"
   ],
   "exclude": ["node_modules"]
