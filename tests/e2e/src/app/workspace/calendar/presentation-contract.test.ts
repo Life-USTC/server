@@ -59,6 +59,16 @@ for (const locale of ["en-us", "zh-cn"]) {
     test(`calendar.day-navigation ${locale} ${width}`, {
       tag: "@Calendar/Web",
     }, async ({ page, calendar: fixture, calendarRun }) => {
+      const previousDay = locale === "en-us" ? "Previous day" : "前一天";
+      const nextDay = locale === "en-us" ? "Next day" : "后一天";
+      const previousDayName =
+        width >= 1280
+          ? `${locale === "en-us" ? "Previous" : "上一页"} · ${previousDay}`
+          : previousDay;
+      const nextDayName =
+        width >= 1280
+          ? `${locale === "en-us" ? "Next" : "下一页"} · ${nextDay}`
+          : nextDay;
       await calendarRun(
         async () => {
           await owner(page, fixture, 0);
@@ -123,7 +133,7 @@ for (const locale of ["en-us", "zh-cn"]) {
           ).toHaveCount(0);
 
           await page
-            .getByRole("button", { name: /^(Next day|后一天)$/ })
+            .getByRole("button", { name: nextDayName, exact: true })
             .click();
           await expect(page).toHaveURL(
             new RegExp(`calendarDay=${fixture.activityDate}`),
@@ -152,11 +162,11 @@ for (const locale of ["en-us", "zh-cn"]) {
             }),
           ).toBeVisible();
           await page
-            .getByRole("button", { name: /^(Previous day|前一天)$/ })
+            .getByRole("button", { name: previousDayName, exact: true })
             .click();
           await expect(agenda.locator(`#agenda-${fixture.date}`)).toBeVisible();
           await page
-            .getByRole("button", { name: /^(Next day|后一天)$/ })
+            .getByRole("button", { name: nextDayName, exact: true })
             .click();
           await page.getByRole("button", { name: /^(Today|今天)$/ }).click();
           await expect(agenda.locator("section")).toHaveCount(1);

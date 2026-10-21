@@ -40,7 +40,7 @@ export type RoomMapCopy = {
 };
 
 export function formatRoomMapCopy(template: string, code: string) {
-  return template.replaceAll("{code}", code);
+  return template.replaceAll("{code}", () => code);
 }
 
 export function splitRoomLabels(value: string | null | undefined) {

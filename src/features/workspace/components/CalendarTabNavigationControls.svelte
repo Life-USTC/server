@@ -26,31 +26,31 @@ export let setCalendarWeek: WorkspaceCalendarControlsProps["setCalendarWeek"];
 {#if calendarData}
   {#if calendarView === "day"}
     <ButtonGroup.Root>
-      <Button aria-label={workspaceCopy.calendarDay.prev} type="button" variant="outline" onclick={() => setCalendarDay(addDays(calendarDay, -1))}>{commonCopy.previous}</Button>
+      <Button type="button" variant="outline" onclick={() => setCalendarDay(addDays(calendarDay, -1))}>{commonCopy.previous}<span class="sr-only"> · {workspaceCopy.calendarDay.prev}</span></Button>
       <Button type="button" variant="outline" onclick={() => setCalendarDay(calendarData.todayDate)}>{workspaceCopy.todayAction}</Button>
-      <Button aria-label={workspaceCopy.calendarDay.next} type="button" variant="outline" onclick={() => setCalendarDay(addDays(calendarDay, 1))}>{commonCopy.next}</Button>
+      <Button type="button" variant="outline" onclick={() => setCalendarDay(addDays(calendarDay, 1))}>{commonCopy.next}<span class="sr-only"> · {workspaceCopy.calendarDay.next}</span></Button>
     </ButtonGroup.Root>
     <Input aria-label={workspaceCopy.calendarDay.label} type="date" value={calendarDay} class="w-auto" onchange={(event) => { if (event.currentTarget.value) setCalendarDay(event.currentTarget.value); }} />
   {:else if calendarView === "month"}
     <ButtonGroup.Root>
-      <Button aria-label={sectionCopy.previousMonth} type="button" variant="outline" onclick={() => setCalendarMonth(addMonths(calendarMonth, -1))}>
-        {commonCopy.previous}
+      <Button type="button" variant="outline" onclick={() => setCalendarMonth(addMonths(calendarMonth, -1))}>
+        {commonCopy.previous}<span class="sr-only"> · {sectionCopy.previousMonth}</span>
       </Button>
       <ButtonGroup.Text class="h-8">{calendarMonth}</ButtonGroup.Text>
-      <Button aria-label={sectionCopy.nextMonth} type="button" variant="outline" onclick={() => setCalendarMonth(addMonths(calendarMonth, 1))}>
-        {commonCopy.next}
+      <Button type="button" variant="outline" onclick={() => setCalendarMonth(addMonths(calendarMonth, 1))}>
+        {commonCopy.next}<span class="sr-only"> · {sectionCopy.nextMonth}</span>
       </Button>
     </ButtonGroup.Root>
   {:else if calendarView === "week"}
     <ButtonGroup.Root>
-      <Button aria-label={workspaceCopy.calendarWeek.prev} type="button" variant="outline" onclick={() => setCalendarWeek(addDays(calendarWeekStart, -7))}>
-        {commonCopy.previous}
+      <Button type="button" variant="outline" onclick={() => setCalendarWeek(addDays(calendarWeekStart, -7))}>
+        {commonCopy.previous}<span class="sr-only"> · {workspaceCopy.calendarWeek.prev}</span>
       </Button>
       <ButtonGroup.Text class="h-8">
         {formatMessage(workspaceCopy.calendarWeek.current, { date: calendarWeekStart })}
       </ButtonGroup.Text>
-      <Button aria-label={workspaceCopy.calendarWeek.next} type="button" variant="outline" onclick={() => setCalendarWeek(addDays(calendarWeekStart, 7))}>
-        {commonCopy.next}
+      <Button type="button" variant="outline" onclick={() => setCalendarWeek(addDays(calendarWeekStart, 7))}>
+        {commonCopy.next}<span class="sr-only"> · {workspaceCopy.calendarWeek.next}</span>
       </Button>
     </ButtonGroup.Root>
   {:else}

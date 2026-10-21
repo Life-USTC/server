@@ -56,17 +56,15 @@ export let welcomeCopy: WelcomeCopy;
     <h2 class="font-semibold leading-none tracking-tight">{welcomeCopy.nextStepsTitle}</h2>
     <p class="text-muted-foreground text-sm leading-6">
       {welcomeCopy.nextStepsDescriptionBefore}<a
-        aria-label={welcomeCopy.subscriptionsUndergraduatePortal}
         class="break-all font-medium text-foreground underline underline-offset-2"
         href={UNDERGRADUATE_ACADEMIC_PORTAL_URL}
         rel="noreferrer"
-        target="_blank">{UNDERGRADUATE_ACADEMIC_PORTAL_URL}</a
+        target="_blank"><span class="sr-only">{welcomeCopy.subscriptionsUndergraduatePortal} </span>{UNDERGRADUATE_ACADEMIC_PORTAL_URL}</a
       >{welcomeCopy.nextStepsDescriptionBetween}<a
-        aria-label={welcomeCopy.subscriptionsGraduatePortal}
         class="break-all font-medium text-foreground underline underline-offset-2"
         href={GRADUATE_ACADEMIC_PORTAL_URL}
         rel="noreferrer"
-        target="_blank">{GRADUATE_ACADEMIC_PORTAL_URL}</a
+        target="_blank"><span class="sr-only">{welcomeCopy.subscriptionsGraduatePortal} </span>{GRADUATE_ACADEMIC_PORTAL_URL}</a
       >{welcomeCopy.nextStepsDescriptionAfter}
     </p>
     <p class="text-muted-foreground text-sm leading-6">{welcomeCopy.nextStepsPasteHint}</p>
@@ -151,15 +149,13 @@ export let welcomeCopy: WelcomeCopy;
                   <Checkbox
                     id={checkboxId}
                     checked={selectedSectionIdSet.has(section.id)}
-                    aria-label={formatCopy(welcomeCopy.selectSection, {
-                      code: section.code,
-                    })}
                     onCheckedChange={(checked) => {
                       setSectionSelection(section.id, checked === true);
                     }}
                   />
                   <Field.Content>
                     <Field.Label class="cursor-pointer" for={checkboxId}>
+                      <span class="sr-only">{formatCopy(welcomeCopy.selectSection, { code: section.code })} · </span>
                       {displayName(section.course)}
                     </Field.Label>
                     <Field.Description>

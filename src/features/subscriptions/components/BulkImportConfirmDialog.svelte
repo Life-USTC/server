@@ -60,13 +60,13 @@ const titleId = "bulk-import-confirm-title";
                   <Checkbox
                     id={checkboxId}
                     checked={selectedSectionIdSet.has(section.id)}
-                    aria-label={formatMessage(copy.selectSection, { code: section.code })}
                     onCheckedChange={(checked) => {
                       setSectionSelection(section.id, checked === true);
                     }}
                   />
                   <Field.Content>
                     <Field.Label class="cursor-pointer" for={checkboxId}>
+                      <span class="sr-only">{formatMessage(copy.selectSection, { code: section.code })} · </span>
                       {section.courseName}
                       {#if section.courseSecondaryName}
                         <span class="text-muted-foreground">({section.courseSecondaryName})</span>

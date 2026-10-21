@@ -131,7 +131,7 @@ const activeFilters = $derived(
     .map((item) => ({
       href: removeYoungFilter(new URL(page.url.href), item.key),
       label: item.label,
-      removeLabel: labels.removeFilter.replace("{value}", item.label),
+      removeLabel: labels.removeFilter.replace("{value}", () => item.label),
     })),
 );
 </script>

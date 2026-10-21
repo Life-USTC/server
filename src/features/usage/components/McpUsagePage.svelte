@@ -115,7 +115,6 @@ function selectClient(value: string) {
 
 {#snippet copyField(key: string, label: string, value: string)}
   <Button
-    aria-label={`${data.copy.copyValueAction}: ${label}`}
     class="group h-auto min-w-0 justify-between rounded-xl p-3 text-left whitespace-normal"
     type="button"
     variant="outline"
@@ -130,10 +129,10 @@ function selectClient(value: string) {
     >
       {#if copiedKey === key}
         <CheckIcon data-icon="inline-end" />
-        <span class="hidden sm:inline">{data.copy.copiedValueAction}</span>
+        <span class="sr-only sm:not-sr-only">{data.copy.copiedValueAction}</span>
       {:else}
         <CopyIcon data-icon="inline-end" />
-        <span class="hidden sm:inline">{data.copy.copyValueAction}</span>
+        <span class="sr-only sm:not-sr-only">{data.copy.copyValueAction}</span>
       {/if}
     </span>
   </Button>
@@ -143,12 +142,12 @@ function selectClient(value: string) {
   <div class="grid gap-2">
     <h4 class="font-medium text-sm">{title}</h4>
     <Button
-      aria-label={`${data.copy.copyValueAction}: ${title}`}
       class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
       type="button"
       variant="outline"
       onclick={() => copyValue(key, value)}
     >
+      <span class="sr-only">{data.copy.copyValueAction}: {title}</span>
       <code class="min-w-0 flex-1 whitespace-pre-wrap break-all font-mono text-sm leading-6">{value}</code>
       {#if copiedKey === key}
         <CheckIcon class="mt-1 shrink-0" data-icon="inline-end" />

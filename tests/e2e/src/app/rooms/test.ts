@@ -150,6 +150,56 @@ test.describe("/catalog/rooms 教室地图", () => {
       await expect(trigger).toBeFocused();
     });
   });
+
+  for (const locale of ["en-us", "zh-cn"]) {
+    test(`room-map.literal-label ${locale}`, { tag: "@RoomMap/Web" }, async ({
+      page,
+      preferenceFlow,
+      isolatedWorker,
+      roomSchedule: _roomSchedule,
+    }) => {
+      const nameEn = "Room alpha $` beta $& gamma $' delta $$ omega";
+      const nameCn = "教室 alpha $` beta $& gamma $' delta $$ omega";
+      await preferenceFlow.prepare(() =>
+        isolatedWorker.database.owner.room.update({
+          where: { jwId: 1 },
+          data: { nameCn, nameEn },
+        }),
+      );
+      await preferenceFlow.run(async () => {
+        const requests = await mockRoomMap(page);
+        const label = locale === "en-us" ? nameEn : nameCn;
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
+        await gotoAndWaitForReady(page, `${SECTION_URL}#calendar`);
+        const trigger = page
+          .locator("#calendar")
+          .getByTestId("room-map-preview")
+          .getByRole("button")
+          .first();
+        await expect(trigger).toBeVisible();
+        await expect(trigger).toHaveText(label);
+        await expect(trigger).toHaveAccessibleName(
+          locale === "en-us"
+            ? `View the location map for ${label}`
+            : `查看 ${label} 的位置地图`,
+        );
+        await trigger.click();
+        const dialog = page.getByTestId("room-map-dialog");
+        await expect(dialog).toBeVisible();
+        await expect(dialog.getByRole("img")).toBeVisible();
+        expect(requests.map((url) => new URL(url).pathname)).toEqual([
+          `/api/catalog/rooms/${ROOM_CODE}/map`,
+        ]);
+        await page.keyboard.press("Escape");
+        await expect(dialog).toBeHidden();
+      });
+    });
+  }
+
   test("room-map.keyboard-map-access", { tag: "@RoomMap/Web" }, async ({
     page,
     preferenceFlow,

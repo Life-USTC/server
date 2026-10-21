@@ -56,6 +56,59 @@ function sharedContext(page: Page, expected: Record<string, string>) {
   );
 }
 
+for (const path of [root, `${root}/organizers`]) {
+  test(`young-event.search-filter-literal-label ${path}`, {
+    tag: "@Young/Web",
+  }, async ({ page, preferenceFlow, isolatedWorker }) => {
+    await preferenceFlow.run(async () => {
+      const search = "alpha $` beta $& gamma $' delta $$ omega";
+      for (const locale of ["en-us", "zh-cn"]) {
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
+        await gotoAndWaitForReady(page, path);
+        const searchbox = page.getByRole("searchbox", {
+          name: /^(搜索|Search)$/,
+        });
+        await searchbox.fill(search);
+        await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              search: url.searchParams.get("search"),
+            };
+          })
+          .toEqual({ pathname: path, search });
+        const filter = page
+          .locator('[data-slot="active-filters"]')
+          .getByRole("link")
+          .filter({ hasText: search });
+        await expect(filter).toBeVisible();
+        await expect(filter).toHaveText(search);
+        await expect(filter).toHaveAccessibleName(
+          locale === "en-us" ? `Remove ${search} filter` : `移除${search}筛选`,
+        );
+        await filter.click();
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              search: url.searchParams.get("search"),
+            };
+          })
+          .toEqual({ pathname: path, search: null });
+        await expect(searchbox).toHaveValue("");
+        await expect(filter).toHaveCount(0);
+      }
+    });
+  });
+}
+
 test("young-event.web-browse-context", { tag: "@Young/Web" }, async ({
   page,
   fixture,

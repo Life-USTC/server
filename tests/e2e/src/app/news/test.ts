@@ -7,6 +7,59 @@ import { test } from "../../../utils/publication-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/news 新闻与通知预览", () => {
+  test("publications.search-filter-literal-label", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, isolatedWorker }) => {
+    await browseRun(async () => {
+      const search = "alpha $` beta $& gamma $' delta $$ omega";
+      for (const locale of ["en-us", "zh-cn"]) {
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
+        await gotoAndWaitForReady(page, "/news");
+        const searchbox = page.getByRole("searchbox", {
+          name: /^(搜索|Search)$/,
+        });
+        await searchbox.fill(search);
+        await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              query: url.searchParams.get("query"),
+            };
+          })
+          .toEqual({ pathname: "/news", query: search });
+        const filter = page
+          .locator('[data-slot="active-filters"]')
+          .getByRole("link")
+          .filter({ hasText: search });
+        await expect(filter).toBeVisible();
+        await expect(filter).toHaveText(search);
+        await expect(filter).toHaveAccessibleName(
+          locale === "en-us"
+            ? `Remove filter: ${search}`
+            : `移除筛选：${search}`,
+        );
+        await filter.click();
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              query: url.searchParams.get("query"),
+            };
+          })
+          .toEqual({ pathname: "/news", query: null });
+        await expect(searchbox).toHaveValue("");
+        await expect(filter).toHaveCount(0);
+      }
+    });
+  });
+
   test("页面契约", { tag: "@Publication/Web" }, async ({ browseRun, page }) => {
     await browseRun(async () => {
       await assertPageContract(page, { routePath: "/news" });

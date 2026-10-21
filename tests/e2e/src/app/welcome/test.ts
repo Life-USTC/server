@@ -324,12 +324,12 @@ test("user.welcome-subscription-guidance", { tag: "@Account/Web" }, async ({
     await expect(page.getByText(/COMP3001\.01/)).toBeVisible();
     await expect(
       page.getByRole("link", {
-        name: /^(本科生教务|Undergraduate academic system)$/i,
+        name: /^(本科生教务|Undergraduate academic system) https:\/\/jw\.ustc\.edu\.cn\/$/i,
       }),
     ).toHaveAttribute("href", "https://jw.ustc.edu.cn/");
     await expect(
       page.getByRole("link", {
-        name: /^(研究生教务|Graduate academic system)$/i,
+        name: /^(研究生教务|Graduate academic system) https:\/\/yjs1\.ustc\.edu\.cn\/$/i,
       }),
     ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn/");
 

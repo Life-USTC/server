@@ -15,12 +15,12 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
 
 {#if variant === "desktop"}
   <Button
-    aria-label={copy.openSearch}
     class="h-8 w-full max-w-sm justify-start gap-2 px-3 text-muted-foreground lg:max-w-md"
     onclick={onOpen}
     type="button"
     variant="outline"
   >
+    <span class="sr-only">{copy.openSearch}</span>
     <SearchIcon data-icon="inline-start" class="shrink-0" />
     <span class="truncate">{placeholder}</span>
     <span class="ml-auto hidden items-center gap-1 sm:inline-flex">

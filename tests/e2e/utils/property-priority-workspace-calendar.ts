@@ -262,14 +262,15 @@ export async function checkWorkspaceCalendarPriorityViews(
       .locator('[data-slot="field"]')
       .filter({ hasText: courseName });
     const matchTitle = match.locator("label");
+    const matchDetails = match.locator('[data-slot="field-description"]');
     await assertPriorityView({
       scope: confirm,
       identity: matchTitle,
       primary: { "section.course.namePrimary": field(matchTitle, courseName) },
       secondary: {
-        "section.code": text(match, section.code),
-        "semester.nameCn": text(match, semester),
-        "section.teachers.namePrimary": text(match, teacherName),
+        "section.code": text(matchDetails, section.code),
+        "semester.nameCn": text(matchDetails, semester),
+        "section.teachers.namePrimary": text(matchDetails, teacherName),
         "unmatched.code": text(confirm, unmatched),
       },
       tertiary: {},
