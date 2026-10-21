@@ -106,13 +106,20 @@ export async function showWeatherFixture(
       },
     });
   });
-  if ((page.viewportSize()?.width ?? 1280) < 768) {
+  // Scope the click to the shell navigation. The anonymous landing page links
+  // to /catalog/weather from its own campus-weather card too, and on mobile the
+  // open sidebar sheet covers that in-page link, so a document-wide `.first()`
+  // can match an element that never becomes clickable. On mobile the sidebar
+  // renders as a Sheet dialog; `app-sidebar` is a DOM node only on desktop.
+  const mobile = (page.viewportSize()?.width ?? 1280) < 768;
+  const navigation = mobile
+    ? page.getByRole("dialog", { name: "Sidebar", exact: true })
+    : appSidebar(page);
+  if (mobile) {
     await page.locator('[data-slot="sidebar-trigger"]').click();
+    await expect(navigation).toBeVisible();
   }
-  // Scope to the sidebar: the anonymous landing page links to /catalog/weather
-  // from its own campus-weather card, and on mobile the open sidebar sheet
-  // covers that in-page link so a document-wide `.first()` never settles.
-  await appSidebar(page).locator('a[href="/catalog/weather"]').first().click();
+  await navigation.locator('a[href="/catalog/weather"]').first().click();
   await expect(
     page.locator('[data-testid="weather-hourly-chart"]:visible'),
   ).toHaveCount((page.viewportSize()?.width ?? 1280) < 768 ? 1 : 2);
