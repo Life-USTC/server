@@ -71,7 +71,7 @@ $: groups = filterShellFeatures(
               {#if feature.items?.some((item) => item.href !== feature.href)}
                 <Card.Footer class="flex flex-wrap gap-x-3 px-4">
                   {#each feature.items.filter((item) => item.href !== feature.href) as item}
-                    <Button href={item.href} variant="link" class="h-auto min-h-11 whitespace-normal p-0 text-left">{item.label}</Button>
+                    <Button href={item.href} variant="link" class="h-auto min-h-11 whitespace-normal p-0 text-left md:min-h-6">{item.label}</Button>
                   {/each}
                 </Card.Footer>
               {/if}
