@@ -114,7 +114,7 @@ const summary = $derived(
               {
                 href: removeYoungFilter(new URL(appPage.url.href), "search"),
                 label: search,
-                removeLabel: youngCopy.removeFilter.replace("{value}", search),
+                removeLabel: youngCopy.removeFilter.replace("{value}", () => search),
               },
             ]
           : []}

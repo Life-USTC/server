@@ -115,7 +115,10 @@ test("ui.shell-layout-5", { tag: "@Site/Web" }, async ({
             : page.getByTestId("app-sidebar");
         const profile = shell
           .locator('[data-slot="sidebar-footer"]')
-          .getByRole("button", { name: "Profile menu", exact: true });
+          .getByRole("button", {
+            name: `Profile menu S Shell policy user @${shellUser.username}`,
+            exact: true,
+          });
         await expect(profile).toBeVisible();
         await profile.focus();
         await page.keyboard.press("Enter");

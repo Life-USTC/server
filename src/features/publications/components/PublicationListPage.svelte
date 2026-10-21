@@ -151,7 +151,7 @@ function changeType(value: string) {
             {/await}
           {/snippet}
         </FilterToolbar>
-        <ActiveFilters items={activeFilters.map((filter) => ({ ...filter, removeLabel: copy.removeFilter.replace("{filter}", filter.label) }))} ariaLabel={copy.activeFilters} clearHref="/news" clearLabel={copy.clearFilters} />
+        <ActiveFilters items={activeFilters.map((filter) => ({ ...filter, removeLabel: copy.removeFilter.replace("{filter}", () => filter.label) }))} ariaLabel={copy.activeFilters} clearHref="/news" clearLabel={copy.clearFilters} />
       </div>
   {/snippet}
 
