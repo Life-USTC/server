@@ -21,7 +21,7 @@
     "ip-address": "10.7.4",
     "nanoid": "5.1.16",
     "playwright-core": "1.62.1",
-    "postcss": "8.5.23"
+    "postcss": "8.5.29"
   },
   "scripts": {
     "dev": "vite dev --host 127.0.0.1 --port 3000 --strictPort",
