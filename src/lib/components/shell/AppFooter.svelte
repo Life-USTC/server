@@ -88,7 +88,7 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
     >
       {#each footerLinks as link}
         <a
-          class="text-foreground/90 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          class="py-1 text-foreground/90 underline-offset-4 transition-colors hover:text-foreground hover:underline"
           href={link.href}
           rel={link.rel}
           target={link.target}
@@ -97,6 +97,6 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
         </a>
       {/each}
     </nav>
-    <p class="shrink-0 text-foreground/80 text-xs">Life@USTC</p>
+    <p class="sr-only shrink-0 text-foreground/80 text-xs sm:not-sr-only">Life@USTC</p>
   </div>
 </footer>
