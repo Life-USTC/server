@@ -2,16 +2,19 @@
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import AppShell from "#lib/components/shell/AppShell.svelte";
 import { Toaster } from "#lib/components/ui/sonner/index.js";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import "./svelte.css";
 import type { LayoutData } from "./$types";
 
-const page = legacyPageStore();
+interface Props {
+  data: LayoutData;
+  children?: import("svelte").Snippet;
+}
 
-export let data: LayoutData;
+let { data, children }: Props = $props();
 
-$: socialMetadata = $page.data.socialMetadata;
-$: documentTitle = socialMetadata?.title ?? "Life@USTC";
+let socialMetadata = $derived(routePage.data.socialMetadata);
+let documentTitle = $derived(socialMetadata?.title ?? "Life@USTC");
 </script>
 
 
@@ -60,6 +63,6 @@ $: documentTitle = socialMetadata?.title ?? "Life@USTC";
   <meta name="twitter:image:alt" content={socialMetadata.image.alt} />
 </svelte:head>
 
-<AppShell data={data}><slot></slot></AppShell>
+<AppShell data={data}>{@render children?.()}</AppShell>
 
 <Toaster mobileOffset={{ left: "1rem", right: "1rem" }} position="bottom-right" />

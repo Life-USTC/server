@@ -7,7 +7,7 @@ import {
   buildCourseFilterOptions,
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import CatalogFilters from "./CatalogFilters.svelte";
 import CoursesFilters from "./CoursesFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
@@ -18,8 +18,6 @@ import type {
   CourseListLabels,
   CourseListRow,
 } from "./catalog-course-list-types";
-
-const page = legacyPageStore();
 
 type PageData = {
   data: CourseListRow[];
@@ -36,60 +34,16 @@ type PageData = {
   pagination: { page: number; total: number; totalPages: number };
 };
 
-export let data: PageData;
+interface Props {
+  data: PageData;
+}
 
-let courseSearch = data.filters.search ?? "";
+let { data }: Props = $props();
 
-$: totalPages = data.pagination.totalPages;
-$: courseSearch = data.filters.search ?? "";
-$: commonLabels = data.labels.common;
-$: courseLabels = data.labels.courses;
-$: ({ categoryOptions, classTypeOptions, educationLevelOptions } =
-  buildCourseFilterOptions({
-    commonLabels,
-    filterOptions: data.filterOptions,
-  }));
-$: courseResultsData = {
-  data: data.data,
-  filters: { search: data.filters.search },
-  pagination: { total: data.pagination.total },
-};
-$: courseActiveFilters = [
-  data.filters.search
-    ? {
-        href: courseFilterHref({ search: "" }),
-        label: `${commonLabels.search}: ${data.filters.search}`,
-      }
-    : null,
-  data.filters.educationLevelId
-    ? {
-        href: courseFilterHref({ educationLevelId: "" }),
-        label: `${courseLabels.educationLevel}: ${optionLabel(educationLevelOptions, data.filters.educationLevelId)}`,
-      }
-    : null,
-  data.filters.categoryId
-    ? {
-        href: courseFilterHref({ categoryId: "" }),
-        label: `${courseLabels.category}: ${optionLabel(categoryOptions, data.filters.categoryId)}`,
-      }
-    : null,
-  data.filters.classTypeId
-    ? {
-        href: courseFilterHref({ classTypeId: "" }),
-        label: `${courseLabels.classType}: ${optionLabel(classTypeOptions, data.filters.classTypeId)}`,
-      }
-    : null,
-].filter(
-  (filter): filter is { href: string; label: string } => filter !== null,
-);
-$: courseHiddenFilters = [
-  { name: "educationLevelId", value: data.filters.educationLevelId ?? "" },
-  { name: "categoryId", value: data.filters.categoryId ?? "" },
-  { name: "classTypeId", value: data.filters.classTypeId ?? "" },
-].filter((filter) => Boolean(filter.value));
+let courseSearch = $derived(data.filters.search ?? "");
 
 function pageHref(targetPage: number) {
-  return catalogListPageHref(new URL($page.url.href), targetPage);
+  return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
 
 function courseFilterHref(overrides: Partial<CourseListFilters>) {
@@ -114,6 +68,57 @@ function courseEmptyDescription() {
     ? courseLabels.searchFor.replace("{query}", data.filters.search)
     : courseLabels.subtitle;
 }
+let totalPages = $derived(data.pagination.totalPages);
+let commonLabels = $derived(data.labels.common);
+let courseLabels = $derived(data.labels.courses);
+let { categoryOptions, classTypeOptions, educationLevelOptions } = $derived(
+  buildCourseFilterOptions({
+    commonLabels,
+    filterOptions: data.filterOptions,
+  }),
+);
+let courseResultsData = $derived({
+  data: data.data,
+  filters: { search: data.filters.search },
+  pagination: { total: data.pagination.total },
+});
+let courseActiveFilters = $derived(
+  [
+    data.filters.search
+      ? {
+          href: courseFilterHref({ search: "" }),
+          label: `${commonLabels.search}: ${data.filters.search}`,
+        }
+      : null,
+    data.filters.educationLevelId
+      ? {
+          href: courseFilterHref({ educationLevelId: "" }),
+          label: `${courseLabels.educationLevel}: ${optionLabel(educationLevelOptions, data.filters.educationLevelId)}`,
+        }
+      : null,
+    data.filters.categoryId
+      ? {
+          href: courseFilterHref({ categoryId: "" }),
+          label: `${courseLabels.category}: ${optionLabel(categoryOptions, data.filters.categoryId)}`,
+        }
+      : null,
+    data.filters.classTypeId
+      ? {
+          href: courseFilterHref({ classTypeId: "" }),
+          label: `${courseLabels.classType}: ${optionLabel(classTypeOptions, data.filters.classTypeId)}`,
+        }
+      : null,
+  ].filter(
+    (filter): filter is { href: string; label: string } => filter !== null,
+  ),
+);
+let courseHiddenFilters = $derived(
+  [
+    { name: "educationLevelId", value: data.filters.educationLevelId ?? "" },
+    { name: "categoryId", value: data.filters.categoryId ?? "" },
+    { name: "classTypeId", value: data.filters.classTypeId ?? "" },
+  ].filter((filter) => Boolean(filter.value)),
+);
 </script>
 
 

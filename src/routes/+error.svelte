@@ -1,8 +1,6 @@
 <script lang="ts">
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import RouteErrorCard from "./_components/RouteErrorCard.svelte";
-
-const _page = legacyPageStore();
 
 function contextualBackHref(pathname: string) {
   if (/^\/catalog\/courses\/[^/]+/.test(pathname)) return "/catalog/courses";
@@ -14,7 +12,7 @@ function contextualBackHref(pathname: string) {
   return "/";
 }
 
-$: backHref = contextualBackHref($_page.url.pathname);
+let backHref = $derived(contextualBackHref(routePage.url.pathname));
 </script>
 
 <RouteErrorCard backHref={backHref} />
