@@ -315,7 +315,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               .getByRole("button", { name: "订阅教学班", exact: true })
               .click();
             await expect(
-              bar.getByRole("button", { name: "取消订阅", exact: true }),
+              bar.getByRole("button", { name: "取消订阅教学班", exact: true }),
             ).toBeVisible();
             await expect
               .poll(() =>
@@ -330,7 +330,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               )
               .toBe(1);
             await bar
-              .getByRole("button", { name: "取消订阅", exact: true })
+              .getByRole("button", { name: "取消订阅教学班", exact: true })
               .click();
             await expect(
               bar.getByRole("button", { name: "订阅教学班", exact: true }),

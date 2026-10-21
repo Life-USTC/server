@@ -484,7 +484,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             if (!item.bilingualHeading) {
               await expect(
                 hero.getByText(
-                  locale === "zh-cn" ? "授课班级" : "Teaching section",
+                  locale === "zh-cn" ? "授课教学班" : "Teaching section",
                   { exact: true },
                 ),
               ).toBeVisible();
@@ -746,7 +746,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         for (const [route, code, singular, plural, chinese] of [
           ["courses", "COURSE", "course", "courses", "门课程"],
           ["teachers", "TEACHER", "teacher", "teachers", "位教师"],
-          ["sections", "SECTION", "section", "sections", "个班级"],
+          ["sections", "SECTION", "section", "sections", "个教学班"],
         ] as const) {
           if (route !== `${domain.toLowerCase()}s`) continue;
           for (const count of [0, 1, 2]) {

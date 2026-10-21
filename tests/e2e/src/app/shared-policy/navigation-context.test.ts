@@ -211,7 +211,7 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
         await expect(publicNotices).toBeVisible();
         await expect(reminders).toBeVisible();
         await expect(publicNotices).toHaveAccessibleName("News & Notices");
-        await expect(reminders).toHaveAccessibleName("Activity reminders");
+        await expect(reminders).toHaveAccessibleName("Activity subscriptions");
         const badge = reminders
           .locator("..")
           .locator('[data-slot="sidebar-menu-badge"]');

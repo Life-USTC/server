@@ -256,7 +256,7 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
       ).toBeVisible();
       return;
     }
@@ -270,7 +270,7 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
       ).toBeVisible();
       return;
     }

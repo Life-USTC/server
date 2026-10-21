@@ -21,6 +21,10 @@ import type { PageData } from "../../../routes/workspace/subscriptions/activitie
 let { data }: { data: PageData } = $props();
 const copy = $derived(data.copy.youngEvents.workspace);
 const result = $derived(data.events ?? data.organizers ?? data.notifications);
+/**
+ * All three `?view=` states share this route, so the heading has to name the
+ * view the sidebar sent the reader to rather than the route as a whole.
+ */
 const viewLabel = $derived(
   data.events
     ? copy.events
@@ -115,7 +119,7 @@ function pageHref(number: number) {
 <CollectionPage
   description={description}
   footer={result && result.pagination.totalPages > 1 ? paginationFooter : undefined}
-  title={copy.manage}
+  title={viewLabel}
   toolbar={data.events || data.notifications ? filtersHeader : undefined}
 >
   {#snippet actions()}

@@ -187,7 +187,7 @@
     "detailsDescription": "Subscription details and available actions for section {code}.",
     "closeDetails": "Close",
     "openCourse": "Go to Course",
-    "unsubscribe": "Unsubscribe",
+    "unsubscribe": "Unsubscribe from section",
     "unsubscribeTitle": "Unsubscribe from this section?",
     "unsubscribeDescription": "After unsubscribing from “{name}”, its schedule, exams, and homework will no longer appear on your workspace.",
     "cancelUnsubscribe": "Keep Subscription",
@@ -195,7 +195,7 @@
     "calendarTitle": "Calendar ({count})",
     "calendarEmpty": "No schedule or exam events in this selection",
     "quickAdd": {
-      "title": "Add Subscription",
+      "title": "Add Section Subscription",
       "description": "Search by course or section code, course name, or teacher.",
       "codeLabel": "Search courses or teachers",
       "placeholder": "Enter a course code, name, section code, or teacher",
@@ -208,12 +208,12 @@
       "alreadySubscribed": "Subscribed",
       "emptyTitle": "No sections found",
       "emptyDescription": "Try another course code, name, section code, teacher, or semester.",
-      "subscribeSelected": "Subscribe selected ({count})",
+      "subscribeSelected": "Subscribe to selected sections ({count})",
       "subscribing": "Subscribing...",
       "cancel": "Cancel"
     },
     "bulkImport": {
-      "title": "Bulk Add Subscriptions",
+      "title": "Bulk Add Section Subscriptions",
       "descriptionPrefix": "Visit the",
       "undergraduateSystem": "Undergraduate Academic Affairs System",
       "descriptionConjunction": "or the",
@@ -240,17 +240,17 @@
       "subscribeSelected": "Subscribe to {count} sections",
       "subscribeSelectedOne": "Subscribe to {count} section",
       "successDescription": "Added {count} new section{plural} to Life@USTC",
-      "importFailed": "Add failed"
+      "importFailed": "Section subscription failed"
     },
     "kindBadge": {
       "teaching_assistant": "TA",
       "auditor": "Auditor"
     },
     "kindEditor": {
-      "title": "Subscription role",
+      "title": "Section subscription role",
       "save": "Save",
       "cancel": "Cancel",
-      "failed": "Failed to save subscription role",
+      "failed": "Failed to save section subscription role",
       "regular": "Regular",
       "auditor": "Auditor",
       "teaching_assistant": "Teaching assistant"
@@ -335,7 +335,7 @@
     "appIconAlt": "Life@USTC app icon",
     "publicWorkspace": {
       "title": "Courses, schedules, and campus life — in one place",
-      "description": "Browse the public catalog, sections, teachers, shuttle bus, and campus links anytime. Sign in to sync your schedule, homework, subscriptions, and workspace.",
+      "description": "Browse the public catalog, sections, teachers, shuttle bus, and campus links anytime. Sign in to sync your schedule, homework, section subscriptions, and workspace.",
       "exploreLabel": "Keep exploring",
       "cards": {
         "signIn": {
@@ -839,7 +839,7 @@
         "description": "Manage your personal to-do tasks"
       },
       "activityNotifications": {
-        "title": "Activity reminders"
+        "title": "Activity subscriptions"
       }
     },
     "viewAll": "View all",
@@ -1204,27 +1204,27 @@
     "noOrganizersFound": "No organizers found",
     "workspace": {
       "subscribe": "Subscribe to event",
-      "unsubscribe": "Unsubscribe",
+      "unsubscribe": "Unsubscribe from activity",
       "follow": "Follow organizer",
       "unfollow": "Unfollow",
-      "manage": "Activity subscriptions and reminders",
+      "manage": "Activity subscriptions",
       "events": "Subscribed activities",
       "organizers": "Followed organizers",
-      "notifications": "Activity notifications",
+      "notifications": "Activity reminders",
       "signupReminder": "Remind when registration opens",
       "deadlineReminder": "Remind 24 hours before registration closes",
       "startReminder": "Remind 1 hour before the event",
       "save": "Save reminders",
       "saved": "Saved",
       "failed": "Could not complete the request. Please retry.",
-      "signin": "Sign in to subscribe",
+      "signin": "Sign in to subscribe to activities",
       "loading": "Loading…",
       "empty": "Nothing here yet",
       "read": "Mark read",
       "unread": "Unread",
       "hint": "Subscribed activities appear in your calendar. This does not register attendance.",
       "followHint": "Receive a daily digest of new activities, without adding them to your calendar.",
-      "back": "Back to course subscriptions",
+      "back": "Back to section subscriptions",
       "retry": "Retry",
       "calendar": "Personal calendar",
       "sourceMissing": "Source unavailable",
@@ -1537,7 +1537,7 @@
       "calendarTokenDescription": "Rotate the private calendar link if it may have been shared. Existing calendar subscriptions will stop updating.",
       "calendarTokenRotate": "Rotate private calendar link",
       "calendarTokenRotated": "Calendar link rotated",
-      "calendarTokenRotatedDescription": "The previous private calendar link no longer works. Copy the new link from your subscriptions page.",
+      "calendarTokenRotatedDescription": "The previous private calendar link no longer works. Copy the new link from your section subscriptions page.",
       "calendarTokenError": "The private calendar link could not be rotated.",
       "emptyTitle": "No security activity yet",
       "emptyDescription": "New sign-in, credential, and authorization actions will appear here.",
@@ -1858,7 +1858,7 @@
     "calendarUrlDescription": "Lectures, exams, and homework for this section.",
     "subscriptionUrlLabel": "All your subscriptions",
     "subscriptionUrlDescription": "Every section you subscribe to in Life@USTC, plus todos and other personal schedule items. Updates automatically.",
-    "subscriptionMissing": "Open subscriptions to securely view your personal feed",
+    "subscriptionMissing": "Open section subscriptions to securely view your personal calendar feed",
     "subscriptionHintLabel": "This URL includes all sections you subscribe to in Life@USTC and auto-syncs. It does not change official USTC course enrollment.",
     "subscriptionPrivacyNote": "Treat this link like a private credential. Do not share it publicly.",
     "subscribeLabel": "Subscribe to section",
@@ -1904,7 +1904,7 @@
       "calendar": "Calendar"
     },
     "loginRequiredDescription": "Sign in to subscribe to this section in Life@USTC and sync it to your workspace and calendar. This does not count as official USTC course enrollment.",
-    "loginToSubscribe": "Sign in to subscribe",
+    "loginToSubscribe": "Sign in to subscribe to this section",
     "subscriptionDisclaimer": "Subscribing to a section here only affects your Life@USTC workspace and calendar. It is not official USTC course enrollment.",
     "calendar": "Calendar ({count})",
     "calendarEmpty": "No schedule or exam events available for this section",
@@ -2732,7 +2732,7 @@
     "noMatchingSections": "No matching sections were found.",
     "selectSection": "Select {code}",
     "importing": "Importing...",
-    "subscribeSelected": "Subscribe selected ({count})",
+    "subscribeSelected": "Subscribe to selected sections ({count})",
     "importedSummary": "Added {count} new section{plural}."
   },
   "oauth": {
@@ -2855,7 +2855,7 @@
     "scopeFeature_workspace.link-pin": "Pinned websites",
     "scopeFeature_workspace.overview": "Overview",
     "scopeFeature_workspace.schedule": "Schedule",
-    "scopeFeature_workspace.subscription": "Subscriptions",
+    "scopeFeature_workspace.subscription": "Section subscriptions",
     "scopeFeature_workspace.todo": "Todos",
     "scopeFeature_workspace.upload": "Uploads",
     "scopeFeature_admin": "Admin backend",
@@ -3119,7 +3119,7 @@
       "searchLabel": "Search features",
       "searchPlaceholder": "Search by feature name or description",
       "empty": "No features match your search.",
-      "signInPrompt": "Sign in to use your schedule, homework, todos, and subscriptions.",
+      "signInPrompt": "Sign in to use your schedule, homework, todos, and section subscriptions.",
       "descriptions": {
         "overview": "Today's classes, deadlines, and the week ahead",
         "calendar": "Classes, homework deadlines, and exams on one calendar",
@@ -3151,7 +3151,7 @@
       "clearSearch": "Clear search"
     },
     "destinations": {
-      "subscriptions": "My sections",
+      "subscriptions": "Section subscriptions",
       "courses": "Browse courses",
       "sections": "Browse sections"
     }

@@ -166,13 +166,13 @@ for (const domain of ["Overview", "Subscription"] as const) {
           ).toHaveAttribute("href", "/catalog/courses");
           await expect(
             content.getByRole("link", {
-              name: /Browse Sections|浏览班级/,
+              name: /Browse Sections|浏览教学班/,
               exact: true,
             }),
           ).toHaveAttribute("href", "/catalog/sections");
           await page
             .getByRole("link", {
-              name: /View Past Sections|查看往期班级/,
+              name: /View Past Sections|查看往期教学班/,
               exact: true,
             })
             .click();
@@ -193,7 +193,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
           ).toBeVisible();
           await page
             .getByRole("button", {
-              name: /Bulk Add Subscriptions|批量添加订阅/,
+              name: /Bulk Add Section Subscriptions|批量添加教学班订阅/,
             })
             .click();
           await expect(page.locator("#bulk-import-semester")).toHaveValue("");

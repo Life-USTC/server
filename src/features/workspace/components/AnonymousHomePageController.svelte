@@ -80,13 +80,23 @@ const bus = $derived(data.information.bus);
 const notices = $derived(data.information.notices);
 const activities = $derived(data.information.activities);
 
+/**
+ * A student arrives looking for the teaching section they actually attend, not
+ * the abstract course or the teacher who happens to run it, so the section
+ * catalog leads the rail and is the only entry drawn at full contrast. Course
+ * and teacher stay reachable but move behind the campus links they rank below.
+ */
 const destinations = $derived([
-  { href: "/catalog/courses", label: pub.cards.courses.title },
-  { href: "/catalog/sections", label: pub.cards.sections.title },
-  { href: "/catalog/teachers", label: pub.cards.teachers.title },
-  { href: "/catalog/links", label: pub.cards.links.title },
-  { href: "/catalog/bus", label: pub.cards.bus.title },
-  { href: "/usage/mobile", label: pub.cards.mobileApp.title },
+  { href: "/catalog/sections", label: pub.cards.sections.title, primary: true },
+  { href: "/catalog/links", label: pub.cards.links.title, primary: false },
+  { href: "/catalog/bus", label: pub.cards.bus.title, primary: false },
+  { href: "/usage/mobile", label: pub.cards.mobileApp.title, primary: false },
+  { href: "/catalog/courses", label: pub.cards.courses.title, primary: false },
+  {
+    href: "/catalog/teachers",
+    label: pub.cards.teachers.title,
+    primary: false,
+  },
 ]);
 
 /**
@@ -350,7 +360,9 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       >
         {#each destinations as destination (destination.href)}
           <Button
-            class="h-auto min-h-6 px-0 xl:min-h-8 xl:justify-start"
+            class={destination.primary
+              ? "h-auto min-h-6 px-0 font-medium xl:min-h-8 xl:justify-start"
+              : "h-auto min-h-6 px-0 text-muted-foreground xl:min-h-8 xl:justify-start"}
             href={destination.href}
             size="sm"
             variant="link"

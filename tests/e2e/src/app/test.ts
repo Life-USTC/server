@@ -139,7 +139,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
       /^(校车|Shuttle Bus)$/i,
       /^(网站|Websites)$/i,
       /^(浏览课程|Browse courses)$/i,
-      /^(浏览班级|Browse sections)$/i,
+      /^(浏览教学班|Browse sections)$/i,
       /^(教师|Teachers)$/i,
       /^(移动应用|Mobile App)$/i,
       /^(Presto 机器人|Presto Bot)$/i,
@@ -151,7 +151,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     for (const name of [
       /^(待办|Todos)$/i,
       /^(考试|Exams)$/i,
-      /^(我的教学班|My sections)$/i,
+      /^(教学班订阅|Section subscriptions)$/i,
     ]) {
       await expect(sidebar.getByRole("link", { name })).toHaveCount(0);
     }
@@ -374,7 +374,7 @@ shellTest(
       const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
       await expect(sidebar).toBeVisible();
       await expect(
-        sidebar.getByRole("link", { name: /^(浏览班级|Browse sections)$/i }),
+        sidebar.getByRole("link", { name: /^(浏览教学班|Browse sections)$/i }),
       ).toBeVisible();
 
       const accountMenuButton = sidebar.getByRole("button", {
@@ -408,7 +408,7 @@ shellTest(
           /^(作业|Homework)$/i,
           /^(待办|Todos)$/i,
           /^(考试|Exams)$/i,
-          /^(我的教学班|My sections)$/i,
+          /^(教学班订阅|Section subscriptions)$/i,
         ]) {
           await expect(navigation.getByRole("link", { name })).toBeVisible();
         }
@@ -889,13 +889,13 @@ shellTest(
       await expect(content).toBeVisible();
 
       await expect(
-        content.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+        content.getByRole("link", { name: /浏览教学班|Browse Sections/i }),
       ).toBeVisible();
       await expect(
         content.getByRole("link", { name: /浏览课程|Browse Courses/i }),
       ).toBeVisible();
       await expect(
-        content.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+        content.getByRole("link", { name: /浏览教学班|Browse Sections/i }),
       ).toHaveAttribute("href", "/catalog/sections");
       await expect(
         content.getByRole("link", { name: /浏览课程|Browse Courses/i }),
@@ -938,7 +938,9 @@ shellTest(
           `/workspace/calendar?calendarSemester=${historical.semesterId}`,
         );
         await expect(
-          page.getByRole("link", { name: /查看往期班级|View Past Sections/i }),
+          page.getByRole("link", {
+            name: /查看往期教学班|View Past Sections/i,
+          }),
         ).toBeVisible();
 
         const response = await page.request.get("/api/workspace/homeworks");
