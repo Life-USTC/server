@@ -162,7 +162,7 @@ function rows(page: Page, name: string, width: number) {
     return page.locator('main [role="list"]:visible > [role="listitem"]');
   if (name === "links") return page.locator('main a[data-slot="item"]:visible');
   return page.locator(
-    'main [data-slot="admin-list-shell"]:visible [data-slot="item"]',
+    'main [data-slot="collection-list-shell"]:visible [data-slot="item"]',
   );
 }
 async function precedes(first: Locator, second: Locator) {
@@ -183,8 +183,6 @@ function summary(page: Page, name: string) {
     return page.locator(
       'main [data-slot="page-section-body"] > div[aria-label]',
     );
-  if (["users", "descriptions", "oauth"].includes(name))
-    return page.locator('main section > div > [data-slot="badge"]').first();
   return page.locator('main [data-slot="results-summary"]').first();
 }
 

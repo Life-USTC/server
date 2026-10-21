@@ -1,5 +1,6 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import {
@@ -20,16 +21,16 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
 </script>
 
 {#if course.sections.length === 0}
-  <div class="md:hidden">
-    <CompactEmpty
+  <div class="min-w-0">
+    <CollectionEmpty variant="compact"
       title={copy.courseDetail.noSections}
       description={copy.courseDetail.emptySectionsDescription}
     />
   </div>
 {:else}
-  <Item.Group class="md:hidden">
+  <Item.Group class="min-w-0">
     {#each course.sections as section}
-      <Item.Root variant="outline" size="sm">
+      <MobileListCard variant="outline" size="sm">
         {#snippet child({ props })}
           <a href={`/catalog/sections/${section.jwId}`} {...props}>
             <Item.Content>
@@ -47,7 +48,7 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
             </Item.Footer>
           </a>
         {/snippet}
-      </Item.Root>
+      </MobileListCard>
     {/each}
   </Item.Group>
 {/if}

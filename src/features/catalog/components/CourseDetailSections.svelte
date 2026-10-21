@@ -1,4 +1,5 @@
 <script lang="ts">
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import CourseDetailSectionsMobile from "./CourseDetailSectionsMobile.svelte";
 import CourseDetailSectionsTable from "./CourseDetailSectionsTable.svelte";
@@ -15,18 +16,24 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
 </script>
 
 <section class="grid gap-4">
-  <CourseDetailSectionsMobile
-    {copy}
-    {course}
-    {locale}
-    {notAvailable}
-    {primaryName}
-  />
-  <CourseDetailSectionsTable
-    {copy}
-    {course}
-    {locale}
-    {notAvailable}
-    {primaryName}
-  />
+  <ResponsiveCollection>
+    {#snippet mobile()}
+      <CourseDetailSectionsMobile
+        {copy}
+        {course}
+        {locale}
+        {notAvailable}
+        {primaryName}
+      />
+    {/snippet}
+    {#snippet desktop()}
+      <CourseDetailSectionsTable
+        {copy}
+        {course}
+        {locale}
+        {notAvailable}
+        {primaryName}
+      />
+    {/snippet}
+  </ResponsiveCollection>
 </section>

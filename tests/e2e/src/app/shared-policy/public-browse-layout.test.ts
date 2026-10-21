@@ -203,9 +203,7 @@ for (const [domain, names] of [
         }
         await pagination.locator('[data-value="2"]').focus();
         await page.keyboard.press("Enter");
-        await expect(page).toHaveURL(
-          (url) => url.searchParams.get("page") === "2",
-        );
+        await expect(page).toHaveURL(/[?&]page=2(?:&|$)/);
         await expect(
           page.locator('[data-slot="list-pagination"] [aria-current="page"]'),
         ).toHaveText("2");

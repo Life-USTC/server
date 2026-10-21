@@ -87,6 +87,19 @@ requirements:
     test:
       file: tests/unit/lib/components/page-width-ownership.test.ts
       name: ui.page-frame-ownership
+- id: ui.collection-primitive-ownership
+  category: presentation
+  topic: list-table
+  rule: Collection list/table swaps use ResponsiveCollection or WorkspaceCollection at xl. Administrative lists share CollectionListShell and CollectionTableShell; catalog, Young, workspace and embedded mobile rows compose MobileListCard with the default catalog density. Features supply data and actions instead of defining per-page visibility pairs or a column schema.
+  acceptance:
+    given: Administrative users, moderation, OAuth and bus versions, embedded course/teacher/section lists, and catalog, Young and workspace mobile rows.
+    when: Compiler ASTs follow actually rendered components and inspect feature class attributes outside calendar grids and responsive action chrome.
+    then:
+    - Owners render the shared collection and card primitives; administrative owners also render shared shells.
+    - Feature components contain no ad-hoc md/xl list/table visibility pairs.
+    test:
+      file: tests/unit/lib/components/layout-primitive-ownership.test.ts
+      name: ui.collection-primitive-ownership
 - id: ui.feature-interaction-ownership
   category: presentation
   topic: layout-principles
@@ -150,7 +163,7 @@ requirements:
   rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts. A heading and its summary may share a row in reading order.
   acceptance:
     given: Isolated records populate workspace homework/exam/todo/subscription collections, course/teacher offering history, organizer activity history and section homework/calendar/exam collections.
-    when: A browser opens all ten collections at 390 and 1280 pixels and measures their DOM and visual order.
+    when: A browser opens all ten collections at 390, 1024 and 1280 pixels and measures their DOM and visual order.
     then:
     - Headings precede applicable filters and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
     test:
@@ -1605,13 +1618,13 @@ requirements:
   topic: chrome-tokens
   rule: Shared theme tokens separate primary CTA fill (at most one solid primary action per view) and secondary
     outline actions from status-* colors for 进行中, 报名中, 逾期 and 已结束. Collection empty surfaces reuse
-    filter-clear, browse, setup and quiet variants instead of per-feature chrome.
+    filter-clear, browse, compact, setup and quiet variants instead of per-feature chrome.
   acceptance:
     given: The action/status token module, empty variant exports and theme CSS custom properties.
     when: Unit tests import the token and empty exports and read svelte.css.
     then:
     - Status-active, status-open, status-overdue and status-ended classes and CSS variables are present.
-    - Empty variants filter-clear, browse, setup and quiet are exported with CollectionEmpty ownership.
+    - Empty variants filter-clear, browse, compact, setup and quiet are exported with CollectionEmpty ownership.
     test:
       file: tests/unit/lib/ui/action-status-tokens.test.ts
       name: action-status-tokens

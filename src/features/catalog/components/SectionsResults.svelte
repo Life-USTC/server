@@ -1,4 +1,5 @@
 <script lang="ts">
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
@@ -77,7 +78,7 @@ $: sectionSemesterSummary = selectedSemester
             {#each data.data as section, index}
               {@const sectionHref = `/catalog/sections/${section.jwId}`}
               <div role="listitem">
-                <Item.Root size="sm">
+                <MobileListCard size="sm">
                   {#snippet child({ props })}
                     <a href={sectionHref} {...props}>
                       <Item.Content>
@@ -97,7 +98,7 @@ $: sectionSemesterSummary = selectedSemester
                       </Item.Footer>
                     </a>
                   {/snippet}
-                </Item.Root>
+                </MobileListCard>
               </div>
               {#if index < data.data.length - 1}
                 <Item.Separator aria-hidden="true" />

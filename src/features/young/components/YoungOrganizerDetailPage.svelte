@@ -2,6 +2,7 @@
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "#lib/components/DetailDefinitionList.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import Panel from "#lib/components/Panel.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
@@ -74,7 +75,7 @@ function pageHref(page: number) {
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}
               <div role="listitem">
-                <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
+                <MobileListCard size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
                   {#snippet child({ props })}
                     <a href={youngDetailHref(event.youngId)} {...props}>
                       <Item.Content>
@@ -91,7 +92,7 @@ function pageHref(page: number) {
                       </Item.Content>
                     </a>
                   {/snippet}
-                </Item.Root>
+                </MobileListCard>
                 {#if index < events.data.length - 1}
                   <Item.Separator />
                 {/if}

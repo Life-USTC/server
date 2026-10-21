@@ -1,6 +1,7 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
-import { Badge } from "#lib/components/ui/badge/index.js";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
 import AdminUsersMobileList from "./AdminUsersMobileList.svelte";
 import type {
@@ -30,34 +31,37 @@ export let users: AdminUserRow[];
 </script>
 
 <section class="grid min-w-0 gap-3">
-  <div class="flex justify-end">
-    <Badge variant="ghost">
-      {formatMessage(pagination.total === 1 ? copy.showingOne : copy.showing, {
+  <ResultsSummary
+    summary={formatMessage(pagination.total === 1 ? copy.showingOne : copy.showing, {
         count: String(users.length),
         total: String(pagination.total),
       })}
-    </Badge>
-  </div>
+  />
 
   {#if users.length === 0}
-    <CompactEmpty description={copy.noResults} />
+    <CollectionEmpty variant="compact" description={copy.noResults} />
   {:else}
-    <AdminUsersMobileList
-      {copy}
-      {displayName}
-      {formatDate}
-      {onSelect}
-      {suspensionLabel}
-      {users}
-    />
-
-    <AdminUsersDesktopTable
-      {copy}
-      {displayName}
-      {formatDate}
-      {onSelect}
-      {suspensionLabel}
-      {users}
-    />
+    <ResponsiveCollection>
+      {#snippet mobile()}
+        <AdminUsersMobileList
+          {copy}
+          {displayName}
+          {formatDate}
+          {onSelect}
+          {suspensionLabel}
+          {users}
+        />
+      {/snippet}
+      {#snippet desktop()}
+        <AdminUsersDesktopTable
+          {copy}
+          {displayName}
+          {formatDate}
+          {onSelect}
+          {suspensionLabel}
+          {users}
+        />
+      {/snippet}
+    </ResponsiveCollection>
   {/if}
 </section>

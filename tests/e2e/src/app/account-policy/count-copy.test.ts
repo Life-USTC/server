@@ -156,7 +156,7 @@ for (const count of [0, 1, 2]) {
             if (item.domain !== consumer) continue;
             await gotoAndWaitForReady(page, item.path);
             await check(
-              page.locator('main section > div > [data-slot="badge"]').first(),
+              page.locator('main [data-slot="results-summary"] > p').first(),
               item.expected,
               item.name,
             );

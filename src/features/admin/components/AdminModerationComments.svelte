@@ -1,5 +1,6 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import AdminModerationCommentsMobile from "./AdminModerationCommentsMobile.svelte";
 import AdminModerationCommentsTable from "./AdminModerationCommentsTable.svelte";
 import type {
@@ -21,26 +22,32 @@ export let targetLabel: AdminModerationCommentFormatter;
 
 <section class="grid grid-cols-[minmax(0,1fr)] gap-3">
   {#if comments.length > 0}
-    <AdminModerationCommentsMobile
-      {commentAuthorLabel}
-      {comments}
-      {formatDate}
-      manageLabel={copy.manageComment}
-      {onManage}
-      {statusLabel}
-      {targetLabel}
-    />
-    <AdminModerationCommentsTable
-      {commentAuthorLabel}
-      {comments}
-      {copy}
-      {formatDate}
-      {onManage}
-      {statusLabel}
-      {targetHref}
-      {targetLabel}
-    />
+    <ResponsiveCollection>
+      {#snippet mobile()}
+        <AdminModerationCommentsMobile
+          {commentAuthorLabel}
+          {comments}
+          {formatDate}
+          manageLabel={copy.manageComment}
+          {onManage}
+          {statusLabel}
+          {targetLabel}
+        />
+      {/snippet}
+      {#snippet desktop()}
+        <AdminModerationCommentsTable
+          {commentAuthorLabel}
+          {comments}
+          {copy}
+          {formatDate}
+          {onManage}
+          {statusLabel}
+          {targetHref}
+          {targetLabel}
+        />
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
-    <CompactEmpty description={copy.noComments} />
+    <CollectionEmpty variant="compact" description={copy.noComments} />
   {/if}
 </section>

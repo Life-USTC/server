@@ -48,7 +48,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       summary: '#sections [data-slot="results-summary"]',
       pagination: true,
       records:
-        width < 768
+        width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? '#sections [data-slot="item"]:visible'
           : "#sections table:visible tbody tr",
     })),
@@ -69,7 +69,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       summary: "",
       pagination: false,
       records:
-        width < 768
+        width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? '#homework [data-slot="item"]:visible'
           : "#homework table:visible tbody tr",
     },
@@ -131,7 +131,7 @@ for (const [domain, names] of [
         (await isolatedWorker.createSession(fixture.admin.id)).cookie,
         { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
       ]);
-    for (const width of [390, 1280]) {
+    for (const width of [390, 1024, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       for (const item of cases(width, fixture)) {
         if (!names.some((name) => name === item.name)) continue;
