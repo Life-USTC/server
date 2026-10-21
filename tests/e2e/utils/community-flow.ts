@@ -270,7 +270,12 @@ export async function withCommunityFlow(
     } else throw new Error("Unexpected community browser write: " + path);
   }
   async function readProducer() {
-    const response = await observer.get(probePath, { headers: secret });
+    // This probe only observes settled effects. Recover one stale pooled
+    // connection; HTTP failures and a second connection reset still fail.
+    const response = await observer.get(probePath, {
+      headers: secret,
+      maxRetries: 1,
+    });
     expect(response.status()).toBe(200);
     const producer = await response.json();
     return producer;
