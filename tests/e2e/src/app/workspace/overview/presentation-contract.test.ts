@@ -29,7 +29,8 @@ test("overview.decision-page", { tag: "@Overview/Web" }, async ({
         await page.goto("/");
 
         // The anonymous landing page leads with public campus information;
-        // the catalog destinations sit in the sign-in prompt below it.
+        // the catalog destinations sit in the sign-in prompt, which is a rail
+        // beside that information on desktop and a band under it when stacked.
         for (const section of [
           "home-campus-now",
           "home-notices",
@@ -39,6 +40,25 @@ test("overview.decision-page", { tag: "@Overview/Web" }, async ({
           await expect(
             page.locator(`#main-content [data-testid="${section}"]`),
           ).toBeVisible();
+        }
+
+        // Desktop puts the sign-in prompt in a rail beside the information
+        // columns instead of the full-width band it used to be under them, so
+        // the lists keep that width; the stacked layout still has it below.
+        // Every section and every destination stays present either way.
+        const noticesBox = await page.getByTestId("home-notices").boundingBox();
+        const signInBox = await page.getByTestId("home-sign-in").boundingBox();
+        if (!noticesBox || !signInBox)
+          throw new Error("Missing anonymous home section geometry");
+        if (width === 1280) {
+          expect(signInBox.x).toBeGreaterThanOrEqual(
+            noticesBox.x + noticesBox.width,
+          );
+          expect(signInBox.y).toBeLessThanOrEqual(noticesBox.y);
+        } else {
+          expect(signInBox.y).toBeGreaterThanOrEqual(
+            noticesBox.y + noticesBox.height,
+          );
         }
 
         const destinations = page.locator(

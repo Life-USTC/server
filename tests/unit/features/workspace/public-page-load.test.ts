@@ -124,9 +124,23 @@ describe("public page loaders", () => {
     const result = await loadAnonymousHomePage(event);
 
     expect(result).toMatchObject({ locale: "en-us", signedIn: false });
+    // A snapshot without a forecast still produces a usable tile; the wide
+    // layout simply has no range or trend to reveal.
     expect(result.information.weather).toEqual([
-      { condition: "Clear", locationKey: "ustc-main", temperature: "18°" },
-      { condition: "Clear", locationKey: "ustc-gaoxin", temperature: "18°" },
+      {
+        condition: "Clear",
+        hourly: [],
+        locationKey: "ustc-main",
+        rangeLabel: null,
+        temperature: "18°",
+      },
+      {
+        condition: "Clear",
+        hourly: [],
+        locationKey: "ustc-gaoxin",
+        rangeLabel: null,
+        temperature: "18°",
+      },
     ]);
     expect(result.information.bus?.departures).toEqual([
       {
@@ -152,6 +166,47 @@ describe("public page loaders", () => {
     // signed-in workspace tab payloads.
     expect(getBusTabDataMock).not.toHaveBeenCalled();
     expect(getPublicCatalogLinksDataMock).not.toHaveBeenCalled();
+  });
+
+  it("carries today's range and the next hours when the snapshot has a forecast", async () => {
+    // Frozen so "the next hours" is a fixed set rather than whatever the
+    // suite's wall clock makes it.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-29T04:30:00Z"));
+    try {
+      readWeatherCacheMock.mockResolvedValue({
+        current: { condition: { text: "Clear" }, temperature: 18.4 },
+        daily: [
+          { date: "2026-04-28", temperatureHigh: 9, temperatureLow: 1 },
+          { date: "2026-04-29", temperatureHigh: 23.4, temperatureLow: 11.6 },
+        ],
+        hourly: [
+          { at: "2026-04-29T04:00:00Z", temperature: 17 },
+          { at: "2026-04-29T05:00:00Z", temperature: 19.4 },
+          { at: "2026-04-29T06:00:00Z", temperature: 21 },
+          { at: "2026-04-29T07:00:00Z", temperature: 22 },
+          { at: "2026-04-29T08:00:00Z", temperature: 20 },
+        ],
+      });
+
+      const result = await loadAnonymousHomePage(event);
+
+      // The day that matches the Shanghai date wins over the first entry, and
+      // only hours still ahead of the request clock are shipped.
+      expect(result.information.weather?.[0]).toEqual({
+        condition: "Clear",
+        hourly: [
+          { key: "2026-04-29T05:00:00Z", label: "13:00", temperature: "19°" },
+          { key: "2026-04-29T06:00:00Z", label: "14:00", temperature: "21°" },
+          { key: "2026-04-29T07:00:00Z", label: "15:00", temperature: "22°" },
+        ],
+        locationKey: "ustc-main",
+        rangeLabel: "Today 23° / 12°",
+        temperature: "18°",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("degrades one failing section without blanking the anonymous home page", async () => {

@@ -5,6 +5,11 @@ import {
   WEATHER_LOCATIONS,
   type WeatherLocationKey,
 } from "@/features/weather/server/weather-types";
+import {
+  HOME_BUS_DEPARTURE_LIMIT,
+  HOME_LIST_LIMIT,
+  HOME_WEATHER_HOURLY_LIMIT,
+} from "@/features/workspace/lib/anonymous-home-layout";
 import { formatMessage } from "@/features/workspace/lib/overview-formatters";
 import { listYoungEvents } from "@/features/young/server/young-event-service";
 import type { AppLocale } from "@/i18n/config";
@@ -37,14 +42,30 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
  */
 const SECTION_BUDGET_MS = 1_500;
 
-const NOTICE_LIMIT = 3;
-const ACTIVITY_LIMIT = 3;
-const BUS_DEPARTURE_LIMIT = 3;
+/**
+ * Desktop reads these sections on a canvas twice the width of a phone, so the
+ * page fetches the longer list and the component's breakpoint decides how much
+ * of it is shown (`src/features/workspace/lib/anonymous-home-layout.ts`). The
+ * extra rows cost one larger `take` on queries that already run; they add no
+ * round trip to the landing path.
+ */
+const NOTICE_LIMIT = HOME_LIST_LIMIT;
+const ACTIVITY_LIMIT = HOME_LIST_LIMIT;
+const BUS_DEPARTURE_LIMIT = HOME_BUS_DEPARTURE_LIMIT;
+
+export type HomeWeatherHour = {
+  key: string;
+  label: string;
+  temperature: string;
+};
 
 export type HomeWeatherTile = {
   locationKey: WeatherLocationKey;
   temperature: string | null;
   condition: string;
+  /** Today's high/low, already formatted; `null` when the day is missing. */
+  rangeLabel: string | null;
+  hourly: HomeWeatherHour[];
 };
 
 export type HomeBusDeparture = {
@@ -112,16 +133,52 @@ async function readSection<T>(
   }
 }
 
-async function readWeather(): Promise<HomeWeatherTile[]> {
+function formatDegrees(value: number | null | undefined): string | null {
+  return value == null ? null : `${Math.round(value)}°`;
+}
+
+/**
+ * The cached snapshot already carries today's range and the hourly trend, so
+ * the wide layout gets more weather out of the same KV read rather than a
+ * second one.
+ */
+async function readWeather(
+  copy: ReturnType<typeof getAnonymousHomePageCopy>,
+): Promise<HomeWeatherTile[]> {
+  const campusNow = copy.homepage.information.campusNow;
+  const now = shanghaiDayjs();
+  const todayKey = now.format("YYYY-MM-DD");
   const tiles = await Promise.all(
     WEATHER_LOCATIONS.map(async (location) => {
       const snapshot = await readWeatherCache(location.key);
       if (!snapshot) return null;
-      const temperature = snapshot.current.temperature;
+      const daily = snapshot.daily ?? [];
+      const today =
+        daily.find((day) => day.date.slice(0, 10) === todayKey) ?? daily.at(0);
+      const high = formatDegrees(today?.temperatureHigh);
+      const low = formatDegrees(today?.temperatureLow);
       return {
         condition: snapshot.current.condition.text,
+        hourly: (snapshot.hourly ?? [])
+          .filter((hour) => shanghaiDayjs(hour.at).isAfter(now))
+          .slice(0, HOME_WEATHER_HOURLY_LIMIT)
+          .flatMap((hour) => {
+            const temperature = formatDegrees(hour.temperature);
+            if (!temperature) return [];
+            return [
+              {
+                key: hour.at,
+                label: shanghaiDayjs(hour.at).format("HH:mm"),
+                temperature,
+              },
+            ];
+          }),
         locationKey: location.key,
-        temperature: temperature == null ? null : `${Math.round(temperature)}°`,
+        rangeLabel:
+          high && low
+            ? formatMessage(campusNow.weatherRange, { high, low })
+            : null,
+        temperature: formatDegrees(snapshot.current.temperature),
       } satisfies HomeWeatherTile;
     }),
   );
@@ -215,7 +272,7 @@ export async function loadAnonymousHomeInformation(input: {
 }): Promise<AnonymousHomeInformation> {
   const { copy, locale, requestId } = input;
   const [weather, bus, notices, activities] = await Promise.all([
-    readSection("weather", requestId, readWeather),
+    readSection("weather", requestId, () => readWeather(copy)),
     readSection("bus", requestId, () => readBus(locale, copy)),
     readSection("notices", requestId, () => readNotices(locale)),
     readSection("activities", requestId, () => readActivities(locale)),
