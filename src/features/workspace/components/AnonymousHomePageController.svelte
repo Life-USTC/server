@@ -178,9 +178,9 @@ function overflowClass(index: number, shown: string, hidden: string): string {
   width back to the lists.
 -->
 <div
-  class="grid min-w-0 gap-6 pb-2 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(15rem,18rem)] xl:gap-x-6"
+  class="grid min-w-0 gap-6 pb-2 lg:gap-y-8 xl:grid-cols-[minmax(0,1fr)_minmax(15rem,18rem)] xl:items-start xl:gap-x-6"
 >
-  <header class="grid min-w-0 gap-1 lg:col-span-2 xl:col-span-3">
+  <header class="grid min-w-0 gap-1 xl:col-span-2">
     <h1 class="text-pretty font-semibold text-xl tracking-tight sm:text-2xl">
       {pub.title}
     </h1>
@@ -194,131 +194,138 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     </p>
   </header>
 
-  <section class="grid min-w-0 gap-3 lg:col-span-2" data-testid="home-campus-now">
-    <h2 class="sr-only">{campusNow.title}</h2>
-    <!--
-      `items-start` so an unavailable or short card keeps its own height. Equal
-      rows turned the weather card into a tall empty box whenever the shuttle
-      board beside it had more rows than the weather had readings.
-    -->
-    <div class="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-      <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
-        {@render heading(
-          "h3",
-          CloudSunIcon,
-          data.copy.weather.title,
-          "/catalog/weather",
-          campusNow.weatherViewAll,
-        )}
-        {#if weather === null || weather.length === 0}
-          {@render note(campusNow.weatherUnavailable)}
-        {:else}
-          <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
-            {#each weather as tile (tile.locationKey)}
-              <div class="min-w-0">
-                <dt class="truncate text-muted-foreground text-sm">
-                  {data.copy.weather.locationNames[tile.locationKey] ?? tile.locationKey}
-                </dt>
-                <dd class="grid min-w-0 gap-1">
-                  <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                    {#if tile.temperature}
-                      <span class="font-semibold text-2xl tabular-nums tracking-tight">
-                        {tile.temperature}
+  <!--
+    The information sections keep their own grid, so the rail beside them never
+    takes part in sizing their rows: a row stretched to match the rail is how an
+    empty section turns back into the tall empty box this layout removes.
+  -->
+  <div class="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8">
+    <section class="grid min-w-0 gap-3 lg:col-span-2" data-testid="home-campus-now">
+      <h2 class="sr-only">{campusNow.title}</h2>
+      <!--
+        `items-start` so an unavailable or short card keeps its own height. Equal
+        rows turned the weather card into a tall empty box whenever the shuttle
+        board beside it had more rows than the weather had readings.
+      -->
+      <div class="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+        <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
+          {@render heading(
+            "h3",
+            CloudSunIcon,
+            data.copy.weather.title,
+            "/catalog/weather",
+            campusNow.weatherViewAll,
+          )}
+          {#if weather === null || weather.length === 0}
+            {@render note(campusNow.weatherUnavailable)}
+          {:else}
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
+              {#each weather as tile (tile.locationKey)}
+                <div class="min-w-0">
+                  <dt class="truncate text-muted-foreground text-sm">
+                    {data.copy.weather.locationNames[tile.locationKey] ?? tile.locationKey}
+                  </dt>
+                  <dd class="grid min-w-0 gap-1">
+                    <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                      {#if tile.temperature}
+                        <span class="font-semibold text-2xl tabular-nums tracking-tight">
+                          {tile.temperature}
+                        </span>
+                      {/if}
+                      <span class="min-w-0 truncate text-muted-foreground text-sm">
+                        {tile.condition}
+                      </span>
+                    </span>
+                    {#if tile.rangeLabel}
+                      <span class="hidden text-muted-foreground text-sm tabular-nums lg:block">
+                        {tile.rangeLabel}
                       </span>
                     {/if}
-                    <span class="min-w-0 truncate text-muted-foreground text-sm">
-                      {tile.condition}
-                    </span>
-                  </span>
-                  {#if tile.rangeLabel}
-                    <span class="hidden text-muted-foreground text-sm tabular-nums lg:block">
-                      {tile.rangeLabel}
-                    </span>
-                  {/if}
-                  {#if tile.hourly.length > 0}
-                    <span class="hidden min-w-0 flex-wrap gap-x-3 gap-y-1 lg:flex">
-                      <span class="sr-only">{campusNow.weatherHourly}</span>
-                      {#each tile.hourly as hour (hour.key)}
-                        <span class="grid shrink-0 justify-items-start">
-                          <span class="text-muted-foreground text-xs tabular-nums">
-                            {hour.label}
+                    {#if tile.hourly.length > 0}
+                      <span class="hidden min-w-0 flex-wrap gap-x-3 gap-y-1 lg:flex">
+                        <span class="sr-only">{campusNow.weatherHourly}</span>
+                        {#each tile.hourly as hour (hour.key)}
+                          <span class="grid shrink-0 justify-items-start">
+                            <span class="text-muted-foreground text-xs tabular-nums">
+                              {hour.label}
+                            </span>
+                            <span class="text-sm tabular-nums">{hour.temperature}</span>
                           </span>
-                          <span class="text-sm tabular-nums">{hour.temperature}</span>
-                        </span>
-                      {/each}
+                        {/each}
+                      </span>
+                    {/if}
+                  </dd>
+                </div>
+              {/each}
+            </dl>
+          {/if}
+        </div>
+
+        <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
+          {@render heading(
+            "h3",
+            BusFrontIcon,
+            pub.cards.bus.title,
+            "/catalog/bus",
+            campusNow.busViewAll,
+          )}
+          {#if bus === null}
+            {@render note(campusNow.busUnavailable)}
+          {:else if bus.departures.length === 0}
+            {@render note(bus.emptyNote)}
+          {:else}
+            {@render note(bus.originNote)}
+            <ul class="grid gap-1.5">
+              {#each bus.departures as departure, index (departure.key)}
+                <li
+                  class={overflowClass(
+                    index,
+                    "flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
+                    "hidden min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 lg:flex",
+                  )}
+                >
+                  <span class="min-w-0 truncate">{departure.destination}</span>
+                  <span class="flex shrink-0 items-baseline gap-2">
+                    <span class="tabular-nums">{departure.departureTime}</span>
+                    <span class="text-muted-foreground text-sm">
+                      {departure.relativeLabel}
                     </span>
-                  {/if}
-                </dd>
-              </div>
-            {/each}
-          </dl>
-        {/if}
-      </div>
-
-      <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
-        {@render heading(
-          "h3",
-          BusFrontIcon,
-          pub.cards.bus.title,
-          "/catalog/bus",
-          campusNow.busViewAll,
-        )}
-        {#if bus === null}
-          {@render note(campusNow.busUnavailable)}
-        {:else if bus.departures.length === 0}
-          {@render note(bus.emptyNote)}
-        {:else}
-          {@render note(bus.originNote)}
-          <ul class="grid gap-1.5">
-            {#each bus.departures as departure, index (departure.key)}
-              <li
-                class={overflowClass(
-                  index,
-                  "flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
-                  "hidden min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 lg:flex",
-                )}
-              >
-                <span class="min-w-0 truncate">{departure.destination}</span>
-                <span class="flex shrink-0 items-baseline gap-2">
-                  <span class="tabular-nums">{departure.departureTime}</span>
-                  <span class="text-muted-foreground text-sm">
-                    {departure.relativeLabel}
                   </span>
-                </span>
-              </li>
-            {/each}
-          </ul>
-        {/if}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="grid min-w-0 content-start gap-2" data-testid="home-notices">
-    {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
-    {#if notices === null}
-      {@render note(info.notices.unavailable)}
-    {:else}
-      {@render itemList(notices, info.notices.empty)}
-    {/if}
-  </section>
+    <section class="grid min-w-0 content-start gap-2" data-testid="home-notices">
+      {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
+      {#if notices === null}
+        {@render note(info.notices.unavailable)}
+      {:else}
+        {@render itemList(notices, info.notices.empty)}
+      {/if}
+    </section>
 
-  <section class="grid min-w-0 content-start gap-2" data-testid="home-activities">
-    {@render heading(
-      "h2",
-      SparklesIcon,
-      info.activities.title,
-      "/catalog/young-events",
-      info.activities.viewAll,
-    )}
-    {#if activities === null}
-      {@render note(info.activities.unavailable)}
-    {:else}
-      {@render itemList(activities, info.activities.empty)}
-    {/if}
-  </section>
+    <section class="grid min-w-0 content-start gap-2" data-testid="home-activities">
+      {@render heading(
+        "h2",
+        SparklesIcon,
+        info.activities.title,
+        "/catalog/young-events",
+        info.activities.viewAll,
+      )}
+      {#if activities === null}
+        {@render note(info.activities.unavailable)}
+      {:else}
+        {@render itemList(activities, info.activities.empty)}
+      {/if}
+    </section>
+  </div>
 
   <section
-    class="grid min-w-0 content-start gap-3 rounded-lg border bg-muted/40 p-4 lg:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-span-2 xl:row-start-2 xl:self-start"
+    class="grid min-w-0 content-start gap-3 rounded-lg border bg-muted/40 p-4 xl:self-start"
     data-testid="home-sign-in"
   >
     <div class="grid gap-1">
