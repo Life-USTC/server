@@ -34,12 +34,12 @@ function closeAccountNavigation() {
           {#snippet child({ props })}
             <Sidebar.MenuButton
               {...props}
-              aria-label={copy.shell.profileMenu}
               class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               isActive={currentPathname === profileHref}
               size="lg"
               tooltipContent={user.name ?? copy.shell.profileMenu}
             >
+              <span class="sr-only">{copy.shell.profileMenu}</span>
               <Avatar.Root class="size-8 rounded-lg">
                 {#if user.image}
                   <Avatar.Image

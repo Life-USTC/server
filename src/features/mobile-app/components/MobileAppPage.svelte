@@ -275,7 +275,7 @@ let frontIndex = 0;
         <div class="mt-4 flex justify-center gap-1" aria-label={pageCopy.galleryTitle}>
           {#each heroShots as shot, index (shot.src)}
             <Button
-              aria-label={shot.copy.title}
+              aria-label={`${index + 1}: ${shot.copy.title}`}
               aria-pressed={frontIndex === index}
               size="icon-sm"
               type="button"

@@ -283,12 +283,12 @@ async function copyInstallCommand() {
       >
         <h2 class="font-semibold text-lg">{data.copy.installTitle}</h2>
         <Button
-          aria-label={data.copy.copyInstallAction}
           class="group h-auto min-w-0 w-full justify-between rounded-xl bg-muted px-4 py-3 text-left whitespace-normal hover:bg-muted/80"
           type="button"
           variant="ghost"
           onclick={copyInstallCommand}
         >
+          <span class="sr-only">{data.copy.copyInstallAction}</span>
           <code class="min-w-0 flex-1 overflow-x-auto font-mono text-sm"
             >{data.copy.installCommand}</code
           >
