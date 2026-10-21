@@ -313,7 +313,9 @@
     "description": "Interactive API reference generated from the project OpenAPI schema.",
     "browseNavigation": "Browse API endpoints",
     "navigationLabel": "API navigation",
-    "rawSpecLink": "Open raw OpenAPI JSON"
+    "rawSpecLink": "Open raw OpenAPI JSON",
+    "loadErrorTitle": "Couldn't load the API documentation",
+    "loadErrorDescription": "The OpenAPI schema could not be fetched. Your connection may have dropped, or the service may be temporarily unavailable. Check your network and try again."
   },
   "homepage": {
     "badge": "🎓 Your Campus Companion",

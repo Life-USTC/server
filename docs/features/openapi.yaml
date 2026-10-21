@@ -525,6 +525,7 @@ capabilities:
       - Request/response schemas where annotated
       - Auth/security schemes for protected operations and token-backed calendar feeds
       - Try-it-out interface
+      - A single compact retryable notice, without navigation or reference panels, when the schema cannot be loaded
   openapi-spec:
     title: OpenAPI Spec
     auth: anon
