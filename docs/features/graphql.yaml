@@ -15,6 +15,18 @@ access:
     scopes. MCP agents authenticate with an MCP-resource bearer, then run arbitrary documents or registered
     operations through the shared schema and resolver-level feature scopes.
 requirements:
+- id: graphql.weather-observation-provenance
+  category: behavior
+  rule: Catalog weather exposes current.source and nullable current.observedAt from the shared weather
+    snapshot, preserving the distinction between an Amap observation and modeled Open-Meteo conditions.
+  acceptance:
+    given: A campus snapshot includes source and an actual observation timestamp.
+    when: An anonymous GraphQL caller selects current source and observedAt.
+    then:
+    - The selected fields match the shared snapshot without substituting fetchedAt.
+    test:
+      file: tests/integration/mcp/catalog/weather.test.ts
+      name: weather.current-observation-provenance / GraphQL
 - id: graphql.scoped-mutations
   category: authorization
   rule: Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer

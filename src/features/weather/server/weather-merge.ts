@@ -22,6 +22,8 @@ export function mergeWeatherSnapshots(
   const openMeteoCurrent = openMeteo.ok ? openMeteo.data.current : undefined;
   const current: WeatherCurrent = amapCurrent
     ? {
+        source: "amap",
+        observedAt: amapCurrent.observedAt,
         temperature: amapCurrent.temperature,
         feelsLike: amapCurrent.feelsLike,
         humidity: amapCurrent.humidity,
@@ -36,6 +38,7 @@ export function mergeWeatherSnapshots(
       }
     : openMeteoCurrent
       ? {
+          source: "open-meteo",
           temperature: openMeteoCurrent.temperature_2m,
           humidity: openMeteoCurrent.relative_humidity_2m,
           condition: normalizeOpenMeteoCondition(
