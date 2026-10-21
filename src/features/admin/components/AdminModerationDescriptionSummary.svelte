@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Badge } from "#lib/components/ui/badge/index.js";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import type { AdminModerationDescriptionCopy } from "./admin-moderation-description-types";
 
 export let copy: AdminModerationDescriptionCopy;
@@ -10,10 +10,8 @@ export let formatMessage: (
 ) => string;
 </script>
 
-<div class="flex justify-end">
-  <Badge variant="ghost">
-    {formatMessage(count === 1 ? copy.showingResultsOne : copy.showingResults, {
+<ResultsSummary
+  summary={formatMessage(count === 1 ? copy.showingResultsOne : copy.showingResults, {
       count: String(count),
     })}
-  </Badge>
-</div>
+/>

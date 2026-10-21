@@ -5,17 +5,12 @@ import {
   addDays,
   calendarEventsForDay,
 } from "@/features/workspace/lib/calendar";
-import { calendarExamDetail } from "@/features/workspace/lib/calendar-display";
 import {
-  fmtTime,
-  formatMessage,
   homeworksOverdueForOverview,
   pendingTodosForOverview,
-  todosDueSoonForOverview,
-  todosDueTodayForOverview,
   todosOverdueForOverview,
 } from "@/features/workspace/lib/overview";
-import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
+import { buildOverviewStack } from "@/features/workspace/lib/overview-stack";
 import {
   buildWorkspaceAgendaDays,
   currentWorkspaceTimedEventKey,
@@ -25,15 +20,10 @@ import {
 } from "@/features/workspace/lib/workspace-agenda";
 import type {
   WorkspaceCalendarPreviewData,
-  WorkspaceCommonCopy,
   WorkspaceCopy,
   WorkspaceLinkPinSubmit,
   WorkspaceOverviewLinkItem,
-  WorkspaceRootCopy,
-  WorkspaceSectionCopy,
   WorkspaceSubscriptionsCopy,
-  WorkspaceTodoItem,
-  WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import {
@@ -42,38 +32,21 @@ import {
   personalItemsForDay,
 } from "@/features/young/lib/personal-calendar-client";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { toCampusDateKey } from "@/lib/time/campus-date";
 import { browser } from "$app/env";
 import OverviewFocusCard from "./OverviewFocusCard.svelte";
 import OverviewLinksGrid from "./OverviewLinksGrid.svelte";
-import OverviewSummaryCards from "./OverviewSummaryCards.svelte";
 import OverviewTermSelectionCard from "./OverviewTermSelectionCard.svelte";
-import OverviewTodayOverdueCards from "./OverviewTodayOverdueCards.svelte";
-import OverviewWeekCard from "./OverviewWeekCard.svelte";
+import OverviewTimelineSection from "./OverviewTimelineSection.svelte";
 import type {
   OverviewCalendarTimelineItemsForDay,
   OverviewSignedData,
 } from "./overview-tab-types";
-import {
-  overviewCalendarWeekDays as buildOverviewCalendarWeekDays,
-  overviewUpcomingExams as buildOverviewUpcomingExams,
-  workspaceOverviewWeekStart as buildWorkspaceOverviewWeekStart,
-  formatOverviewDate,
-  formatOverviewHomeworkEta,
-  overviewSessionHref,
-  overviewTodoStatus,
-} from "./overview-tab-view-model";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
-import type {
-  WorkspaceCalendarSession,
-  WorkspaceCalendarTabHref,
-} from "./workspace-calendar-component-types";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let copy: WorkspaceRootCopy;
-export let commonCopy: WorkspaceCommonCopy;
 export let workspaceCopy: WorkspaceCopy;
-export let sectionCopy: WorkspaceSectionCopy;
 export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
-export let todosCopy: WorkspaceTodosCopy;
 export let signedData: OverviewSignedData;
 export let locale: string;
 
@@ -95,15 +68,8 @@ $: ownerId = signedData.navStats.user.id;
 $: visibleYoungItems = youngOwnerId === ownerId ? youngItems : [];
 $: activityCopy = getWorkspacePageCopy(locale === "en-us" ? "en-us" : "zh-cn");
 $: overviewStart = signedData.overview?.calendar?.todayDate ?? "";
-$: overviewWeekStart = buildWorkspaceOverviewWeekStart(signedData);
-$: rangeStart =
-  overviewStart && overviewWeekStart
-    ? [overviewStart, overviewWeekStart].sort()[0]
-    : "";
-$: rangeEnd =
-  overviewStart && overviewWeekStart
-    ? [addDays(overviewStart, 6), addDays(overviewWeekStart, 6)].sort()[1]
-    : "";
+$: rangeStart = overviewStart;
+$: rangeEnd = overviewStart ? addDays(overviewStart, 6) : "";
 $: if (
   browser &&
   rangeStart &&
@@ -143,44 +109,6 @@ async function loadYoung(requestOwnerId: string, from: string, to: string) {
   }
 }
 onDestroy(() => youngController?.abort());
-
-function fmtDate(value: Date | string | null | undefined) {
-  return formatOverviewDate(value, sectionCopy, signedData, locale);
-}
-
-function homeworkEtaLabel(value: Date | string | null | undefined) {
-  return formatOverviewHomeworkEta(value, sectionCopy, signedData, locale);
-}
-
-function todoStatus(todo: WorkspaceTodoItem) {
-  return overviewTodoStatus(todo, workspaceCopy);
-}
-
-function workspaceOverviewWeekStart() {
-  return buildWorkspaceOverviewWeekStart(signedData);
-}
-
-function overviewUpcomingExams(overviewCalendar: WorkspaceCalendarPreviewData) {
-  return buildOverviewUpcomingExams(overviewCalendar, signedData);
-}
-
-function sessionHref(session: Pick<WorkspaceCalendarSession, "sectionJwId">) {
-  return overviewSessionHref(session, workspaceTabHref);
-}
-
-function overviewCalendarWeekDays(
-  overviewCalendar: WorkspaceCalendarPreviewData,
-  overviewWeekStart: string,
-  activities: PersonalCalendarItem[],
-) {
-  return buildOverviewCalendarWeekDays(
-    overviewCalendar,
-    overviewWeekStart,
-    calendarTimelineItemsForDay,
-    locale,
-    activities,
-  );
-}
 
 function overviewAgendaDays(
   overviewCalendar: WorkspaceCalendarPreviewData,
@@ -240,6 +168,42 @@ function overviewFocus(
     todayKey: overviewCalendar.todayDate,
   });
 }
+function overviewStack(
+  days: WorkspaceAgendaDay[],
+  focusKey: string | undefined,
+) {
+  const homeworks = homeworksOverdueForOverview(signedData);
+  const todos = todosOverdueForOverview(
+    pendingTodosForOverview(signedData),
+    signedData,
+  );
+  const overdueItems = calendarTimelineItemsForDay({
+    sessions: [],
+    exams: [],
+    homeworks,
+    todos,
+  });
+  const dueDates = new Map<string, Date | string | null | undefined>([
+    ...homeworks.map(
+      (item) => [`homework-${item.id}`, item.submissionDueAt] as const,
+    ),
+    ...todos.map((item) => [`todo-${item.id}`, item.dueAt] as const),
+  ]);
+  return buildOverviewStack({
+    days,
+    focusKey,
+    todayKey: overviewStart,
+    currentTime: workspaceReferenceTime(
+      overviewReference(signedData.referenceNow) ??
+        overviewReference(signedData.overview?.calendar?.referenceDate),
+    ),
+    locale,
+    overdue: overdueItems.map((item) => ({
+      ...item,
+      dateKey: toCampusDateKey(dueDates.get(item.key)) ?? "",
+    })),
+  });
+}
 </script>
 
 {#if !hasWorkspaceSubscriptions(signedData)}
@@ -254,31 +218,16 @@ function overviewFocus(
   />
 {/if}
 
-{#if signedData.overview}
-  {@const overviewPendingTodos = pendingTodosForOverview(signedData)}
-  {@const overviewTodosDueToday = todosDueTodayForOverview(overviewPendingTodos, signedData)}
-  {@const overviewTodosDueSoon = todosDueSoonForOverview(overviewPendingTodos, signedData)}
-  {@const overviewOverdueHomeworks = homeworksOverdueForOverview(signedData)}
-  {@const overviewOverdueTodos = todosOverdueForOverview(overviewPendingTodos, signedData)}
-  {@const overviewOverdueHomeworkIds = new Set(overviewOverdueHomeworks.map((homework) => homework.id))}
-  {@const overviewOverdueTodoIds = new Set(overviewOverdueTodos.map((todo) => todo.id))}
-  {@const overviewSummaryHomeworks = (signedData.overview?.pendingHomeworks ?? []).filter(
-    (homework) => !overviewOverdueHomeworkIds.has(homework.id),
-  )}
-  {@const overviewSummaryTodos = overviewPendingTodos.filter(
-    (todo) => !overviewOverdueTodoIds.has(todo.id),
-  )}
-
-  {#if signedData.overview?.calendar}
+{#if signedData.overview?.calendar}
     {@const overviewCalendar = signedData.overview.calendar}
-    {@const overviewWeekStart = workspaceOverviewWeekStart()}
-    {@const upcomingOverviewExams = overviewUpcomingExams(overviewCalendar)}
     {@const agendaDays = overviewAgendaDays(overviewCalendar, visibleYoungItems)}
+    {@const focus = overviewFocus(overviewCalendar, agendaDays, visibleYoungItems)}
+    {@const stack = overviewStack(agendaDays, focus?.key)}
     <div class="grid min-w-0 gap-8 lg:gap-10" data-overview-sections>
       <OverviewFocusCard
         copy={workspaceCopy.focus}
         loadingLabel={youngLoading ? activityCopy.youngEvents.workspace.loading : null}
-        focus={overviewFocus(overviewCalendar, agendaDays, visibleYoungItems)}
+        {focus}
       />
 
       {#if youngFailed}
@@ -288,56 +237,33 @@ function overviewFocus(
         </div>
       {/if}
 
-      <OverviewTodayOverdueCards
-        copy={copy}
-        commonCopy={commonCopy}
-        workspaceCopy={workspaceCopy}
-        workspaceTabHref={workspaceTabHref}
-        dueTodayHomeworks={signedData.overview.dueToday}
-        dueTodayTodos={overviewTodosDueToday}
-        fmtDate={fmtDate}
-        fmtTime={fmtTime}
-        homeworkEtaLabel={homeworkEtaLabel}
-        overdueHomeworks={overviewOverdueHomeworks}
-        overdueTodos={overviewOverdueTodos}
-        previewLimit={WORKSPACE_OVERVIEW_PREVIEW_LIMIT}
-        sessionHref={sessionHref}
-        todaySessions={signedData.overview.todaySessions}
-        todosCopy={todosCopy}
-        todoStatus={todoStatus}
-        viewAllLabel={workspaceCopy.viewAll as string}
-      />
-
-      <div class="min-w-0">
-        <OverviewWeekCard
-          workspaceCopy={workspaceCopy}
-          workspaceTabHref={workspaceTabHref}
-          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart, visibleYoungItems)}
-          formatMessage={formatMessage}
+      {#if stack.urgency.length > 0}
+        <OverviewTimelineSection
+          testId="workspace-overview-urgency"
+          title={workspaceCopy.stack.urgency}
+          items={stack.urgency}
+          destinations={[
+            { href: workspaceTabHref("homeworks"), label: workspaceCopy.nav.homeworks.title },
+            { href: workspaceTabHref("todos"), label: workspaceCopy.nav.todos.title },
+          ]}
+          viewAllLabel={workspaceCopy.viewAll as string}
         />
-      </div>
+      {/if}
 
-      <OverviewSummaryCards
-        calendarExamDetail={calendarExamDetail}
-        commonCopy={commonCopy}
-        workspaceCopy={workspaceCopy}
-        workspaceTabHref={workspaceTabHref}
-        examsCount={signedData.navStats.examsCount}
-        fmtDate={fmtDate}
-        formatMessage={formatMessage}
-        homeworkCopy={copy.homeworks}
-        homeworkEtaLabel={homeworkEtaLabel}
-        pendingHomeworks={overviewSummaryHomeworks}
-        pendingTodos={overviewSummaryTodos}
-        previewLimit={WORKSPACE_OVERVIEW_PREVIEW_LIMIT}
-        sectionCopy={sectionCopy}
-        todosCopy={todosCopy}
-        todosDueSoon={overviewTodosDueSoon}
-        todosDueToday={overviewTodosDueToday}
-        todoStatus={todoStatus}
-        upcomingExams={upcomingOverviewExams}
-        viewAllLabel={workspaceCopy.viewAll as string}
-      />
+      {#if stack.upcoming.length > 0}
+        <OverviewTimelineSection
+          testId="workspace-overview-upcoming"
+          title={workspaceCopy.stack.upcoming}
+          items={stack.upcoming}
+          destinations={[
+            { href: workspaceTabHref("calendar"), label: workspaceCopy.nav.calendar.title },
+            { href: workspaceTabHref("homeworks"), label: workspaceCopy.nav.homeworks.title },
+            { href: workspaceTabHref("todos"), label: workspaceCopy.nav.todos.title },
+            { href: workspaceTabHref("exams"), label: workspaceCopy.nav.exams.title },
+          ]}
+          viewAllLabel={workspaceCopy.viewAll as string}
+        />
+      {/if}
 
       {#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasWorkspaceSubscriptions(signedData)}
         <OverviewTermSelectionCard
@@ -351,6 +277,7 @@ function overviewFocus(
         />
       {/if}
 
+      {#if overviewLinkItems.length > 0}
       <OverviewLinksGrid
         workspaceCopy={workspaceCopy}
         workspaceTabHref={workspaceTabHref}
@@ -359,6 +286,6 @@ function overviewFocus(
         submitWorkspaceLinkPin={submitWorkspaceLinkPin}
         updatingCatalogLinkSlug={updatingCatalogLinkSlug}
       />
+      {/if}
     </div>
-  {/if}
 {/if}

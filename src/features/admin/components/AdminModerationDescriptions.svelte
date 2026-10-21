@@ -1,5 +1,6 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import AdminModerationDescriptionCards from "./AdminModerationDescriptionCards.svelte";
 import AdminModerationDescriptionSummary from "./AdminModerationDescriptionSummary.svelte";
 import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.svelte";
@@ -30,24 +31,30 @@ export let targetLabel: (description: AdminModerationDescription) => string;
   />
 
   {#if descriptions.length > 0}
-    <AdminModerationDescriptionCards
-      {copy}
-      {descriptions}
-      {formatDate}
-      {formatMessage}
-      manageLabel={copy.manageDescription}
-      {onManage}
-      {targetLabel}
-    />
-    <AdminModerationDescriptionTable
-      {copy}
-      {descriptionTargetHref}
-      {descriptions}
-      {formatDate}
-      {onManage}
-      {targetLabel}
-    />
+    <ResponsiveCollection>
+      {#snippet mobile()}
+        <AdminModerationDescriptionCards
+          {copy}
+          {descriptions}
+          {formatDate}
+          {formatMessage}
+          manageLabel={copy.manageDescription}
+          {onManage}
+          {targetLabel}
+        />
+      {/snippet}
+      {#snippet desktop()}
+        <AdminModerationDescriptionTable
+          {copy}
+          {descriptionTargetHref}
+          {descriptions}
+          {formatDate}
+          {onManage}
+          {targetLabel}
+        />
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
-    <CompactEmpty description={copy.noDescriptions} />
+    <CollectionEmpty variant="compact" description={copy.noDescriptions} />
   {/if}
 </section>

@@ -1,15 +1,13 @@
 <script lang="ts">
 import * as Card from "#lib/components/ui/card/index.js";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 
-const page = legacyPageStore();
-
-$: callbackPayload = {
-  code: $page.url.searchParams.get("code"),
-  state: $page.url.searchParams.get("state"),
-  error: $page.url.searchParams.get("error"),
-};
-$: callbackJson = JSON.stringify(callbackPayload, null, 2);
+let callbackPayload = $derived({
+  code: routePage.url.searchParams.get("code"),
+  state: routePage.url.searchParams.get("state"),
+  error: routePage.url.searchParams.get("error"),
+});
+let callbackJson = $derived(JSON.stringify(callbackPayload, null, 2));
 </script>
 
 <svelte:head><title>OAuth E2E Callback - Life@USTC</title></svelte:head>

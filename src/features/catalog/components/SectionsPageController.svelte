@@ -6,8 +6,8 @@ import {
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page as routePage } from "$app/state";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   SectionListCommonLabels,
@@ -20,8 +20,6 @@ import type {
 } from "./catalog-section-list-types";
 import SectionsFilters from "./SectionsFilters.svelte";
 import SectionsResults from "./SectionsResults.svelte";
-
-const page = legacyPageStore();
 
 type SemesterOption = SectionListSemester & SectionListOptionSource;
 type PageData = {
@@ -47,103 +45,17 @@ type PageData = {
   pagination: { page: number; total: number; totalPages: number };
 };
 
-export let data: PageData;
+interface Props {
+  data: PageData;
+}
 
-let isSectionFilterOpen = false;
-let sectionSearch = data.filters.search ?? "";
+let { data }: Props = $props();
 
-$: totalPages = data.pagination.totalPages;
-$: locale = $page.data.locale ?? "zh-cn";
-$: sectionSearch = data.filters.search ?? "";
-$: commonLabels = data.labels.common;
-$: sectionLabels = data.labels.sections;
-$: selectedSemester =
-  data.filterOptions.semesters.find(
-    (semester) => data.filters.semesterId === String(semester.id),
-  ) ?? null;
-$: semesterOptions = [
-  { value: "", label: commonLabels.allSemesters },
-  ...data.filterOptions.semesters.map((semester) => ({
-    value: String(semester.id),
-    label: formatSemesterName(locale, semester.nameCn),
-  })),
-];
-$: campusOptions = namedOptions(
-  data.filterOptions.campuses,
-  `${sectionLabels.filters.any} · ${sectionLabels.campus}`,
-);
-$: departmentOptions = namedOptions(
-  data.filterOptions.departments,
-  `${sectionLabels.filters.any} · ${sectionLabels.department}`,
-);
-$: categoryOptions = namedOptions(
-  data.filterOptions.categories,
-  `${sectionLabels.filters.any} · ${sectionLabels.category}`,
-);
-$: educationLevelOptions = namedOptions(
-  data.filterOptions.educationLevels,
-  `${sectionLabels.filters.any} · ${sectionLabels.educationLevel}`,
-);
-$: classTypeOptions = namedOptions(
-  data.filterOptions.classTypes,
-  `${sectionLabels.filters.any} · ${sectionLabels.classType}`,
-);
-$: sectionResultsData = {
-  data: data.data,
-  filters: data.filters,
-  pagination: { total: data.pagination.total },
-};
-$: sectionActiveFilters = [
-  data.filters.search
-    ? {
-        href: sectionFilterHref({ search: "" }),
-        label: `${commonLabels.search}: ${data.filters.search}`,
-      }
-    : null,
-  data.filters.semesterId
-    ? {
-        href: sectionFilterHref({ semesterId: "" }),
-        label: `${sectionLabels.semester}: ${selectedSemester ? formatSemesterName(locale, selectedSemester.nameCn) : data.filters.semesterId}`,
-      }
-    : null,
-  textFilter("teacher", sectionLabels.teachers),
-  textFilter("courseCode", sectionLabels.courseCode),
-  textFilter("sectionCode", sectionLabels.sectionCode),
-  optionFilter("campusId", sectionLabels.campus, campusOptions),
-  textFilter("credits", sectionLabels.credits),
-  optionFilter("departmentId", sectionLabels.department, departmentOptions),
-  optionFilter("categoryId", sectionLabels.category, categoryOptions),
-  optionFilter(
-    "educationLevelId",
-    sectionLabels.educationLevel,
-    educationLevelOptions,
-  ),
-  optionFilter("classTypeId", sectionLabels.classType, classTypeOptions),
-  data.filters.sort
-    ? {
-        href: sectionFilterHref({ order: null, sort: "" }),
-        label: `${sectionLabels.filters.sortBy}: ${sortLabel(data.filters.sort)} · ${
-          data.filters.order === "desc"
-            ? sectionLabels.filters.orderDesc
-            : sectionLabels.filters.orderAsc
-        }`,
-      }
-    : null,
-].filter(
-  (filter): filter is { href: string; label: string } => filter !== null,
-);
-
-$: sectionHiddenFilters = Object.entries(
-  sectionFilterParams({ ...data.filters, search: null }),
-)
-  .filter(
-    (entry): entry is [string, string] =>
-      entry[0] !== "search" && Boolean(entry[1]),
-  )
-  .map(([name, value]) => ({ name, value }));
+let isSectionFilterOpen = $state(false);
+let sectionSearch = $derived(data.filters.search ?? "");
 
 function pageHref(targetPage: number) {
-  return catalogListPageHref(new URL($page.url.href), targetPage);
+  return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
 
 function sectionFilterHref(overrides: Partial<SectionListFilters>) {
@@ -245,6 +157,106 @@ function sectionEmptyDescription() {
   }
   return sectionLabels.subtitle;
 }
+let totalPages = $derived(data.pagination.totalPages);
+let locale = $derived(routePage.data.locale ?? "zh-cn");
+let commonLabels = $derived(data.labels.common);
+let sectionLabels = $derived(data.labels.sections);
+let selectedSemester = $derived(
+  data.filterOptions.semesters.find(
+    (semester) => data.filters.semesterId === String(semester.id),
+  ) ?? null,
+);
+let semesterOptions = $derived([
+  { value: "", label: commonLabels.allSemesters },
+  ...data.filterOptions.semesters.map((semester) => ({
+    value: String(semester.id),
+    label: formatSemesterName(locale, semester.nameCn),
+  })),
+]);
+let campusOptions = $derived(
+  namedOptions(
+    data.filterOptions.campuses,
+    `${sectionLabels.filters.any} · ${sectionLabels.campus}`,
+  ),
+);
+let departmentOptions = $derived(
+  namedOptions(
+    data.filterOptions.departments,
+    `${sectionLabels.filters.any} · ${sectionLabels.department}`,
+  ),
+);
+let categoryOptions = $derived(
+  namedOptions(
+    data.filterOptions.categories,
+    `${sectionLabels.filters.any} · ${sectionLabels.category}`,
+  ),
+);
+let educationLevelOptions = $derived(
+  namedOptions(
+    data.filterOptions.educationLevels,
+    `${sectionLabels.filters.any} · ${sectionLabels.educationLevel}`,
+  ),
+);
+let classTypeOptions = $derived(
+  namedOptions(
+    data.filterOptions.classTypes,
+    `${sectionLabels.filters.any} · ${sectionLabels.classType}`,
+  ),
+);
+let sectionResultsData = $derived({
+  data: data.data,
+  filters: data.filters,
+  pagination: { total: data.pagination.total },
+});
+let sectionActiveFilters = $derived(
+  [
+    data.filters.search
+      ? {
+          href: sectionFilterHref({ search: "" }),
+          label: `${commonLabels.search}: ${data.filters.search}`,
+        }
+      : null,
+    data.filters.semesterId
+      ? {
+          href: sectionFilterHref({ semesterId: "" }),
+          label: `${sectionLabels.semester}: ${selectedSemester ? formatSemesterName(locale, selectedSemester.nameCn) : data.filters.semesterId}`,
+        }
+      : null,
+    textFilter("teacher", sectionLabels.teachers),
+    textFilter("courseCode", sectionLabels.courseCode),
+    textFilter("sectionCode", sectionLabels.sectionCode),
+    optionFilter("campusId", sectionLabels.campus, campusOptions),
+    textFilter("credits", sectionLabels.credits),
+    optionFilter("departmentId", sectionLabels.department, departmentOptions),
+    optionFilter("categoryId", sectionLabels.category, categoryOptions),
+    optionFilter(
+      "educationLevelId",
+      sectionLabels.educationLevel,
+      educationLevelOptions,
+    ),
+    optionFilter("classTypeId", sectionLabels.classType, classTypeOptions),
+    data.filters.sort
+      ? {
+          href: sectionFilterHref({ order: null, sort: "" }),
+          label: `${sectionLabels.filters.sortBy}: ${sortLabel(data.filters.sort)} · ${
+            data.filters.order === "desc"
+              ? sectionLabels.filters.orderDesc
+              : sectionLabels.filters.orderAsc
+          }`,
+        }
+      : null,
+  ].filter(
+    (filter): filter is { href: string; label: string } => filter !== null,
+  ),
+);
+let sectionHiddenFilters = $derived(
+  Object.entries(sectionFilterParams({ ...data.filters, search: null }))
+    .filter(
+      (entry): entry is [string, string] =>
+        entry[0] !== "search" && Boolean(entry[1]),
+    )
+    .map(([name, value]) => ({ name, value })),
+);
 </script>
 
 

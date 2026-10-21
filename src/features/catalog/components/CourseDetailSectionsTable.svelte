@@ -1,5 +1,5 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
@@ -21,9 +21,9 @@ export let notAvailable: string;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
 </script>
 
-<div class="hidden md:block">
+<div class="min-w-0">
   {#if course.sections.length === 0}
-    <CompactEmpty
+    <CollectionEmpty variant="compact"
       title={copy.courseDetail.noSections}
       description={copy.courseDetail.emptySectionsDescription}
     />

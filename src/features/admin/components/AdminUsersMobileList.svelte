@@ -1,9 +1,10 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import CollectionListShell from "#lib/components/CollectionListShell.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import AdminListShell from "./AdminListShell.svelte";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -18,10 +19,10 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<AdminListShell class="xl:hidden">
+<CollectionListShell>
   <Item.Group class="gap-0" data-testid="admin-users-mobile-list">
     {#each users as user, index (user.id)}
-      <Item.Root class="items-start px-1 py-3" size="sm">
+      <MobileListCard  size="sm">
         <Item.Content class="min-w-0">
           <Item.Title>{displayName(user)}</Item.Title>
           <Item.Description>
@@ -73,8 +74,8 @@ export let users: AdminUserRow[];
             <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
           </Button>
         </Item.Actions>
-      </Item.Root>
+      </MobileListCard>
       {#if index < users.length - 1}<Item.Separator class="my-0" />{/if}
     {/each}
   </Item.Group>
-</AdminListShell>
+</CollectionListShell>

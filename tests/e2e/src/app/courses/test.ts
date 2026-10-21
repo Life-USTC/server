@@ -430,14 +430,20 @@ test.describe("/catalog/courses 课程目录", () => {
       await searchButton.click();
 
       await expect(page).toHaveURL(/search=/);
+      await page.goBack();
+      await expect(page).toHaveURL(/\/catalog\/courses$/);
+      await expect(searchbox).toHaveValue("");
+      await page.goForward();
+      await expect(page).toHaveURL(/search=/);
+      await expect(searchbox).toHaveValue(DEV_SEED.course.code);
       const clearLink = page
         .getByRole("link", { name: /^(清除|Clear)$/i })
         .first();
       await expect(clearLink).toBeVisible();
       await clearLink.click();
-      await expect(page).toHaveURL(
-        new RegExp(`search=${DEV_SEED.course.code}`),
-      );
+      await expect(page).toHaveURL(/\/catalog\/courses$/);
+      await expect(searchbox).toHaveValue("");
+      await expect(clearLink).toHaveCount(0);
     });
   });
 

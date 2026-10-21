@@ -3,6 +3,7 @@ import ActiveFilters from "#lib/components/ActiveFilters.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
@@ -140,7 +141,7 @@ const summary = $derived(
           <Item.Group class="gap-0" role="list">
             {#each data as organizer, index (organizer.id)}
               <div role="listitem">
-                <Item.Root size="sm">
+                <MobileListCard size="sm">
                   {#snippet child({ props })}
                     <a href={organizerHref(organizer.id)} {...props}>
                       <Item.Content>
@@ -156,7 +157,7 @@ const summary = $derived(
                         </Item.Actions>
                     </a>
                   {/snippet}
-                </Item.Root>
+                </MobileListCard>
                 {#if index < data.length - 1}
                   <Item.Separator />
                 {/if}

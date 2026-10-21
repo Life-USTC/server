@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
+import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import type { EmptyVariant } from "#lib/components/empty-variants.js";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import SoftEmptyMessage from "#lib/components/SoftEmptyMessage.svelte";
@@ -27,6 +28,8 @@ let {
 
 {#if variant === "quiet"}
   <SoftEmptyMessage class={className} message={description || title} />
+{:else if variant === "compact"}
+  <CompactEmpty class={className} {description} title={title || undefined} />
 {:else}
   <div class={cn(variant === "filter-clear" ? "py-6" : "py-10", className)} data-empty-variant={variant}>
     <ResultsEmpty {description} {title}>

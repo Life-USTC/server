@@ -9,9 +9,8 @@ test("overview.card-order", { tag: "@Overview/Web" }, async ({
 }) => {
   const items = [
     "workspace-overview-focus",
-    "workspace-overview-today-overdue",
-    "workspace-overview-week",
-    "workspace-overview-summaries",
+    "workspace-overview-urgency",
+    "workspace-overview-upcoming",
     "workspace-overview-links",
   ];
   const overviewUrl =
@@ -122,32 +121,22 @@ test("overview.card-order", { tag: "@Overview/Web" }, async ({
       });
       expect(response.status()).toBe(200);
       await gotoAndWaitForReady(page, overviewUrl);
-      await expect(
-        page.getByTestId("workspace-overview-summaries"),
-      ).toContainText(
-        locale === "zh-cn"
-          ? "未来 3 天（不含今天）"
-          : "Next 3 days, excluding today:",
-      );
       const courseName =
         locale === "zh-cn" ? "总览布局课程" : "Overview layout course";
       await expect(page.getByTestId("workspace-overview-focus")).toContainText(
         courseName,
       );
       await expect(
-        page.getByTestId("workspace-overview-today-overdue"),
+        page.getByTestId("workspace-overview-urgency"),
       ).toContainText("Overview overdue task");
       await expect(
-        page.getByTestId("workspace-overview-today-overdue"),
+        page.getByTestId("workspace-overview-urgency"),
       ).toContainText("Overview today task");
-      await expect(page.getByTestId("workspace-overview-week")).toContainText(
-        courseName,
-      );
       await expect(
-        page.getByTestId("workspace-overview-summaries"),
+        page.getByTestId("workspace-overview-urgency"),
       ).toContainText("Overview assignment");
       await expect(
-        page.getByTestId("workspace-overview-summaries"),
+        page.getByTestId("workspace-overview-upcoming"),
       ).toContainText("Overview future task");
       await expect(
         page
@@ -171,6 +160,35 @@ test("overview.card-order", { tag: "@Overview/Web" }, async ({
             ),
           );
         expect(observed).toEqual(items);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+          ),
+        ).toBe(true);
+        for (const title of [
+          "Overview assignment",
+          "Overview overdue task",
+          "Overview today task",
+          "Overview future task",
+        ]) {
+          await expect(
+            page
+              .locator("[data-overview-sections] [data-slot='item-title']")
+              .filter({ hasText: title }),
+          ).toHaveCount(1);
+        }
+        await expect(
+          page
+            .getByTestId("workspace-overview-upcoming")
+            .locator('a[href="/catalog/sections/1"]'),
+        ).toHaveCount(0);
+        for (const tab of ["calendar", "homeworks", "todos", "exams"]) {
+          await expect(
+            page
+              .getByTestId("workspace-overview-upcoming")
+              .locator(`nav a[href="/workspace/${tab}"]`),
+          ).toBeVisible();
+        }
         let previousBottom = 0;
         for (const id of items) {
           const section = page.getByTestId(id);
@@ -180,6 +198,62 @@ test("overview.card-order", { tag: "@Overview/Web" }, async ({
           expect(box.y).toBeGreaterThanOrEqual(previousBottom);
           previousBottom = box.y + box.height;
         }
+      }
+    }
+  });
+});
+
+test("overview.omit-empty-bands", { tag: "@Overview/Web" }, async ({
+  page,
+  isolatedWorker,
+  preferenceFlow,
+}) => {
+  await preferenceFlow.prepare(async () => {
+    const actor = await isolatedWorker.createActor();
+    await page.context().addCookies([actor.cookie]);
+  });
+  await preferenceFlow.run(async () => {
+    for (const locale of ["zh-cn", "en-us"]) {
+      const response = await page.request.post("/api/account/preferences", {
+        data: { locale },
+      });
+      expect(response.status()).toBe(200);
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await gotoAndWaitForReady(
+          page,
+          "/workspace/overview?snapshotAt=2026-09-28T09%3A30%3A00%2B08%3A00",
+        );
+        const focus = page.getByTestId("workspace-overview-focus");
+        await expect(focus.getByRole("status")).toHaveCount(0);
+        await expect(focus.locator("p")).toHaveText(
+          locale === "en-us"
+            ? "Nothing is due or scheduled in the next 7 days."
+            : "未来 7 天没有待完成或已安排的事项。",
+        );
+        await expect(focus.getByRole("link")).toHaveCount(0);
+        expect((await focus.boundingBox())?.height).toBeLessThan(100);
+        for (const band of [
+          "urgency",
+          "upcoming",
+          "week",
+          "summaries",
+          "today-overdue",
+        ]) {
+          await expect(
+            page.getByTestId(`workspace-overview-${band}`),
+          ).toHaveCount(0);
+        }
+        const links = page.getByTestId("workspace-overview-links");
+        if (await links.count())
+          expect((await links.boundingBox())?.y).toBeGreaterThan(
+            (await focus.boundingBox())?.y ?? 0,
+          );
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+          ),
+        ).toBe(true);
       }
     }
   });

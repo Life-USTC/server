@@ -56,6 +56,7 @@ export type ShellNavViewer = {
 } | null;
 
 type FeatureDefinition = Omit<ShellFeature, "description" | "label"> & {
+  audience?: "user";
   label: (copy: LayoutCopy["nav"]) => string;
 };
 
@@ -79,7 +80,7 @@ const GROUPS: ReadonlyArray<{
 }> = [
   {
     audience: "user",
-    id: "schedule",
+    id: "day",
     features: [
       {
         href: "/workspace/overview",
@@ -114,27 +115,16 @@ const GROUPS: ReadonlyArray<{
     ],
   },
   {
-    audience: "user",
-    id: "subscriptions",
+    audience: "public",
+    id: "courses",
     features: [
       {
+        audience: "user",
         href: "/workspace/subscriptions",
         icon: BookmarkCheckIcon,
         id: "subscriptions",
         label: (nav) => nav.subscriptions,
       },
-      {
-        href: `${ACTIVITY_ROOT}?view=notifications`,
-        icon: BellIcon,
-        id: "activityNotifications",
-        label: (nav) => nav.activityNotifications,
-      },
-    ],
-  },
-  {
-    audience: "public",
-    id: "catalog",
-    features: [
       {
         href: "/catalog/courses",
         icon: BookOpenIcon,
@@ -152,12 +142,6 @@ const GROUPS: ReadonlyArray<{
         icon: UsersIcon,
         id: "teachers",
         label: (nav) => nav.teachers,
-      },
-      {
-        href: "/catalog/rooms",
-        icon: MapPinnedIcon,
-        id: "rooms",
-        label: (nav) => nav.rooms,
       },
     ],
   },
@@ -178,12 +162,6 @@ const GROUPS: ReadonlyArray<{
         label: (nav) => nav.weather,
       },
       {
-        href: "/catalog/young-events",
-        icon: SparklesIcon,
-        id: "youngEvents",
-        label: (nav) => nav.youngEvents,
-      },
-      {
         href: "/news",
         icon: ScrollTextIcon,
         id: "news",
@@ -194,6 +172,31 @@ const GROUPS: ReadonlyArray<{
         icon: LinkIcon,
         id: "links",
         label: (nav) => nav.links,
+      },
+      {
+        href: "/catalog/rooms",
+        icon: MapPinnedIcon,
+        id: "rooms",
+        label: (nav) => nav.rooms,
+      },
+    ],
+  },
+  {
+    audience: "public",
+    id: "activities",
+    features: [
+      {
+        href: "/catalog/young-events",
+        icon: SparklesIcon,
+        id: "youngEvents",
+        label: (nav) => nav.youngEvents,
+      },
+      {
+        audience: "user",
+        href: `${ACTIVITY_ROOT}?view=notifications`,
+        icon: BellIcon,
+        id: "activityNotifications",
+        label: (nav) => nav.activityNotifications,
       },
     ],
   },
@@ -217,7 +220,7 @@ const GROUPS: ReadonlyArray<{
   },
   {
     audience: "public",
-    id: "clients",
+    id: "apps",
     features: [
       {
         href: "/usage/mobile",
@@ -299,26 +302,28 @@ export function buildShellFeatureGroups(
     (group) => ({
       id: group.id,
       label: copy.nav.groups[group.id],
-      features: group.features.map(({ label, ...feature }) => {
-        const badgeKey = BADGES[feature.id];
-        const text = label(copy.nav);
-        const entry = {
-          ...feature,
-          ...(badgeKey
-            ? { ariaLabel: text, badge: navigation?.[badgeKey] }
-            : {}),
-          description: copy.nav.hub.descriptions[feature.id],
-          label: text,
-        };
-        return {
-          ...entry,
-          items: sidebarItems(entry, copy, {
-            navigation,
-            pageData: {},
-            pathname: "",
-          }),
-        };
-      }),
+      features: group.features
+        .filter((feature) => canSee(feature.audience ?? group.audience, viewer))
+        .map(({ label, audience: _audience, ...feature }) => {
+          const badgeKey = BADGES[feature.id];
+          const text = label(copy.nav);
+          const entry = {
+            ...feature,
+            ...(badgeKey
+              ? { ariaLabel: text, badge: navigation?.[badgeKey] }
+              : {}),
+            description: copy.nav.hub.descriptions[feature.id],
+            label: text,
+          };
+          return {
+            ...entry,
+            items: sidebarItems(entry, copy, {
+              navigation,
+              pageData: {},
+              pathname: "",
+            }),
+          };
+        }),
     }),
   );
 }
@@ -416,7 +421,7 @@ export function buildShellNavGroups(
   return buildShellFeatureGroups(copy, viewer, context.navigation).map(
     (group) => ({
       defaultOpen:
-        group.id === "clients" ? !viewer?.signedIn : group.id !== "admin",
+        group.id === "apps" ? !viewer?.signedIn : group.id !== "admin",
       label: group.label,
       links: group.features.map((feature) =>
         toSidebarLink(feature, copy, context),

@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -38,7 +39,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {@const detailHref = exam.section.jwId
       ? `/catalog/sections/${exam.section.jwId}`
       : workspaceTabHref("subscriptions")}
-    <Item.Root class="items-start gap-3 px-2 py-3">
+    <MobileListCard>
       <Item.Content class="min-w-0 gap-1">
         <Item.Title class="line-clamp-none w-full min-w-0">
           <a
@@ -90,7 +91,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           <ArrowUpRight data-icon="inline-start" />
         </TableIconButton>
       </Item.Actions>
-    </Item.Root>
+    </MobileListCard>
     {#if index < exams.length - 1}
       <Item.Separator class="my-0" />
     {/if}

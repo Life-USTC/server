@@ -174,6 +174,9 @@ test.describe("仪表盘日历", () => {
         await weekTab.click();
         await expect(page).toHaveURL(/calendarView=week/);
         await expect(weekTab).toHaveAttribute("aria-checked", "true");
+        await page.reload();
+        await expect(page).toHaveURL(/calendarView=week/);
+        await expect(weekTab).toHaveAttribute("aria-checked", "true");
       },
       { calendarMessages: [], calendarTokenCreated: true },
     );

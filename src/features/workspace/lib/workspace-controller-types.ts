@@ -80,6 +80,7 @@ export type WorkspaceRootCopy = WorkspaceRecord & {
 };
 
 export type WorkspaceCopy = WorkspaceRecord & {
+  stack: { urgency: string; upcoming: string };
   roomMap: RoomMapCopy;
   linkHub: {
     colActions: string;

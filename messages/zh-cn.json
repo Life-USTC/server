@@ -733,6 +733,7 @@
     "tags": "标签"
   },
   "workspace": {
+    "stack": { "urgency": "需要关注", "upcoming": "即将到来" },
     "title": "工作区",
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}",
@@ -3067,13 +3068,13 @@
     "personalPage": "个人主页",
     "backToApp": "返回应用",
     "groups": {
-      "schedule": "日程",
-      "subscriptions": "订阅",
-      "catalog": "课程目录",
-      "campus": "校园生活",
+      "day": "日程",
+      "courses": "课程",
+      "campus": "校园",
+      "activities": "第二课堂",
       "account": "账户",
-      "clients": "客户端",
-      "admin": "管理工具"
+      "apps": "应用",
+      "admin": "管理"
     },
     "hub": {
       "title": "全部功能",
@@ -3111,6 +3112,11 @@
         "adminBus": "导入与发布校车时刻表版本"
       },
       "clearSearch": "清除搜索"
+    },
+    "destinations": {
+      "subscriptions": "我的教学班",
+      "courses": "浏览课程",
+      "sections": "浏览班级"
     }
   }
 }

@@ -202,6 +202,9 @@ it("ui.feature-interaction-ownership", async () => {
     "ResultsSummary",
     "ResultsEmpty",
     "CollectionEmpty",
+    "CollectionListShell",
+    "CollectionTableShell",
+    "MobileListCard",
     "ListPagination",
   ].map((name) => `src/lib/components/${name}.svelte`);
   for (const name of await readdir("src/lib/components/ui/field"))
@@ -235,6 +238,79 @@ it("ui.feature-interaction-ownership", async () => {
         expect(literal, filename).not.toMatch(
           /^\/(?:api|catalog|workspace|account|admin|news)(?:\/|\?|$)/,
         );
+    });
+  }
+});
+
+it("ui.collection-primitive-ownership", async () => {
+  for (const root of [
+    "admin/components/AdminUsersTableCard",
+    "admin/components/AdminModerationComments",
+    "admin/components/AdminModerationDescriptions",
+    "admin/components/AdminModerationHomeworks",
+    "admin/components/AdminModerationSuspensions",
+    "admin/components/AdminOAuthClients",
+    "admin/components/AdminBusVersions",
+    "catalog/components/CourseDetailSections",
+    "catalog/components/TeacherDetailSections",
+    "section-detail/components/SectionHomeworkListView",
+  ]) {
+    const graph = await renderedPrimitives(`src/features/${root}.svelte`);
+    for (const name of ["ResponsiveCollection", "MobileListCard"])
+      expect(graph, root).toContain(`src/lib/components/${name}.svelte`);
+    if (root.startsWith("admin/"))
+      for (const name of ["CollectionListShell", "CollectionTableShell"])
+        expect(graph, root).toContain(`src/lib/components/${name}.svelte`);
+  }
+  for (const root of [
+    "catalog/components/CoursesResults",
+    "catalog/components/TeachersResults",
+    "catalog/components/SectionsResults",
+    "young/components/YoungEventsPage",
+    "young/components/YoungOrganizersPage",
+    "workspace/components/HomeworksCardsView",
+    "workspace/components/TodosCardsView",
+    "workspace/components/ExamsCardsView",
+    "workspace/components/SubscriptionsCardsView",
+  ])
+    expect(
+      await renderedPrimitives(`src/features/${root}.svelte`),
+      root,
+    ).toContain("src/lib/components/MobileListCard.svelte");
+
+  // Calendar grids and responsive actions are different roles from list/table
+  // swaps. Every other feature delegates that choice to the collection shell.
+  const nonCollectionVisibility = new Set([
+    "young/components/YoungCalendar.svelte",
+    "young/components/PersonalActivityCalendar.svelte",
+    "workspace/components/CalendarTab.svelte",
+    "workspace/components/CalendarTabToolbar.svelte",
+    "workspace/components/WorkspaceTaskToolbar.svelte",
+    "section-detail/components/SectionDetailHeader.svelte",
+    "section-detail/components/SectionDetailMainContent.svelte",
+  ]);
+  for (const relative of await readdir("src/features", { recursive: true })) {
+    if (!relative.endsWith(".svelte") || nonCollectionVisibility.has(relative))
+      continue;
+    const filename = `src/features/${relative}`;
+    const ast = parse(await readFile(filename, "utf8"), {
+      filename,
+      modern: true,
+    });
+    walk(ast, (node) => {
+      if (node.type !== "Attribute" || node.name !== "class") return;
+      walk(node.value, (part) => {
+        const value =
+          part.type === "Text"
+            ? part.data
+            : part.type === "Literal"
+              ? part.value
+              : undefined;
+        if (typeof value === "string")
+          expect(value, filename).not.toMatch(
+            /\b(?:md|xl):hidden\b|\bhidden\b.*\b(?:md|xl):(?:block|flex|grid)\b/,
+          );
+      });
     });
   }
 });

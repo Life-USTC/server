@@ -1,5 +1,4 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
 import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
@@ -43,7 +42,6 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
   viewAllLabel={workspaceCopy.viewAll as string}
   viewAllVisible={links.length > previewLimit}
 >
-  {#if previewLinks.length > 0}
     <div class="grid min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {#each previewLinks as link}
         <div class="group relative min-w-0">
@@ -82,7 +80,4 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
         </div>
       {/each}
     </div>
-  {:else}
-    <CompactEmpty description={workspaceCopy.linkHub.empty} />
-  {/if}
 </OverviewSection>

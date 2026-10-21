@@ -1,7 +1,7 @@
 <script lang="ts">
+import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import AdminModerationCommentTableRow from "./AdminModerationCommentTableRow.svelte";
-import AdminTableShell from "./AdminTableShell.svelte";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -19,8 +19,8 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<div class="hidden min-w-0 xl:block">
-  <AdminTableShell label={copy.content}>
+<div class="min-w-0">
+  <CollectionTableShell label={copy.content}>
     <Table.Root class="w-full min-w-[64rem]">
       <Table.Header>
         <Table.Row>
@@ -49,5 +49,5 @@ export let targetLabel: AdminModerationCommentFormatter;
         {/each}
       </Table.Body>
     </Table.Root>
-  </AdminTableShell>
+  </CollectionTableShell>
 </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount, setContext } from "svelte";
+import { onMount, setContext, untrack } from "svelte";
 import { writable } from "svelte/store";
 import { shouldRedirectIncompleteProfileToWelcome } from "#lib/auth/auth-routing.js";
 import {
@@ -47,11 +47,8 @@ import {
   type ShellViewerState,
 } from "#lib/shell/shell-viewer.js";
 import { cn } from "#lib/utils.js";
-import {
-  legacyNavigatingStore,
-  legacyPageStore,
-} from "@/lib/navigation/legacy-page-stores";
 import { afterNavigate, goto } from "$app/navigation";
+import { navigating, page as routePage } from "$app/state";
 import {
   buildAdminNavGroups,
   buildSettingsNavGroups,
@@ -60,9 +57,6 @@ import {
   isShellLinkActive,
 } from "./navigation";
 import type { ShellLink } from "./types";
-
-const navigating = legacyNavigatingStore();
-const page = legacyPageStore();
 
 if (typeof window !== "undefined") {
   const originalFetch = window.fetch.bind(window);
@@ -101,127 +95,45 @@ type AppShellData = {
   user: LayoutUserSummary;
 };
 
-export let data: AppShellData;
+interface Props {
+  data: AppShellData;
+  children?: import("svelte").Snippet;
+}
 
-let themeMode: ThemeMode = "system";
-let sidebarOpen = true;
-let globalSearchOpen = false;
+let { data, children }: Props = $props();
+
+let themeMode: ThemeMode = $state("system");
+let sidebarOpen = $state(true);
+let globalSearchOpen = $state(false);
 let GlobalSearchDialog:
   | typeof import("@/features/search/components/GlobalSearchDialog.svelte").default
-  | null = null;
-let userMenuOpen = false;
-let localeMenuOpen = false;
-let themeMenuOpen = false;
-let contentScrollContainer: HTMLElement | undefined;
-let viewerLoading = data.resolveViewerOnClient && !data.user;
-let viewerUser = data.user;
-let viewerFailed = false;
-const shellViewer = writable<ShellViewerState>({
-  viewer: viewerUser,
-  status: viewerLoading ? "loading" : "ready",
-});
+  | null = $state(null);
+let userMenuOpen = $state(false);
+let localeMenuOpen = $state(false);
+let themeMenuOpen = $state(false);
+let contentScrollContainer: HTMLElement | undefined = $state();
+let viewerLoading = $state(
+  untrack(() => data.resolveViewerOnClient && !data.user),
+);
+let viewerUser = $state.raw(untrack(() => data.user));
+let viewerFailed = $state(false);
+const shellViewer = writable<ShellViewerState>(
+  untrack(() => ({
+    viewer: viewerUser,
+    status: viewerLoading ? "loading" : "ready",
+  })),
+);
 setContext(SHELL_VIEWER_CONTEXT, shellViewer);
-$: shellViewer.set({
-  viewer: viewerUser,
-  status: viewerLoading ? "loading" : viewerFailed ? "error" : "ready",
-});
-let workspaceNavigation: WorkspaceNavigationSummary | null = null;
+let workspaceNavigation: WorkspaceNavigationSummary | null = $state.raw(
+  untrack(() =>
+    workspaceNavigationFromPageData(routePage.data, viewerUser?.id),
+  ),
+);
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
-let shellResolved = false;
+let shellResolved = $state(false);
 
-$: if (!data.resolveViewerOnClient || data.user) {
-  if (viewerUser?.id !== data.user?.id) {
-    cancelShellBootstrap();
-    shellResolved = false;
-    workspaceNavigation = null;
-  }
-  viewerUser = data.user;
-  viewerLoading = false;
-  viewerFailed = false;
-}
-$: pageWorkspaceNavigation = workspaceNavigationFromPageData(
-  $page.data,
-  viewerUser?.id,
-);
-$: if (pageWorkspaceNavigation) {
-  workspaceNavigation = pageWorkspaceNavigation;
-}
-$: if (
-  workspaceNavigation &&
-  viewerUser?.id &&
-  $page.data.userId === viewerUser.id &&
-  Number.isSafeInteger($page.data.unreadActivityNotificationsCount) &&
-  $page.data.unreadActivityNotificationsCount >= 0 &&
-  workspaceNavigation.unreadActivityNotificationsCount !==
-    $page.data.unreadActivityNotificationsCount
-) {
-  workspaceNavigation = {
-    ...workspaceNavigation,
-    unreadActivityNotificationsCount:
-      $page.data.unreadActivityNotificationsCount,
-  };
-}
-$: profileHref = resolveProfileHref(viewerUser);
-$: avatarFallback = resolveAvatarFallback(viewerUser);
-$: settingsSidebar = isSettingsPath($page.url.pathname);
-$: youngSidebar = isYoungPath($page.url.pathname);
-$: adminRoute =
-  $page.url.pathname === "/admin" || $page.url.pathname.startsWith("/admin/");
-$: navViewer = viewerUser
-  ? { signedIn: true, isAdmin: viewerUser.isAdmin }
-  : null;
-$: navContext = {
-  pathname: $page.url.pathname,
-  pageData: $page.data,
-  navigation: workspaceNavigation,
-};
-$: navGroups = settingsSidebar
-  ? buildSettingsNavGroups(data.copy)
-  : youngSidebar
-    ? buildYoungNavGroups(data.copy, $page.url.pathname, $page.data)
-    : adminRoute
-      ? buildAdminNavGroups(data.copy, navViewer, navContext)
-      : buildShellNavGroups(data.copy, navViewer, navContext);
-$: sectionSidebar = settingsSidebar
-  ? ({
-      backHref: "/",
-      backLabel: data.copy.shell.backToHome,
-      backTestId: "settings-sidebar-back",
-      level: "settings",
-      navLabel: data.copy.nav.settings,
-      testId: "settings-sidebar",
-    } satisfies SectionSidebar)
-  : youngSidebar
-    ? ({
-        backHref: "/",
-        backLabel: data.copy.shell.backToHome,
-        backTestId: "young-sidebar-back",
-        level: "young",
-        navLabel: data.copy.nav.youngEvents,
-        testId: "young-sidebar",
-      } satisfies SectionSidebar)
-    : adminRoute
-      ? ({
-          backHref: "/",
-          backLabel: data.copy.shell.backToApp,
-          backTestId: "admin-sidebar-back",
-          level: "admin",
-          navLabel: data.copy.nav.admin.title,
-          testId: "admin-sidebar",
-        } satisfies SectionSidebar)
-      : null;
-$: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
-$: youngEventBanner = isYoungEventDetailPath($page.url.pathname);
-$: focusedShell = shouldUseFocusedShell($page.url.pathname);
-$: hideSignIn = isSignInPath($page.url.pathname);
-$: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(viewerUser));
-$: mainContentLabel = resolveMainContentLabel($page.data);
-const footerLinks = buildFooterLinks(data.copy.footer);
-
-$: globalSearchShortcutLabel = isApplePlatform()
-  ? data.copy.globalSearch.shortcutMac
-  : data.copy.globalSearch.shortcut;
+let footerLinks = $derived(buildFooterLinks(data.copy.footer));
 
 async function ensureGlobalSearchDialog() {
   GlobalSearchDialog ??= (
@@ -235,7 +147,7 @@ async function openGlobalSearch() {
 }
 
 async function handleGlobalSearchKeydown(event: KeyboardEvent) {
-  if (shouldUseFocusedShell($page.url.pathname)) return;
+  if (shouldUseFocusedShell(routePage.url.pathname)) return;
   if (!isGlobalSearchShortcut(event)) return;
   event.preventDefault();
   await openGlobalSearch();
@@ -261,7 +173,7 @@ function isYoungPath(pathname: string) {
 }
 
 function isActiveLink(link: ShellLink) {
-  return isShellLinkActive(link, $page.url);
+  return isShellLinkActive(link, routePage.url);
 }
 
 function setThemeMode(nextThemeMode: ThemeMode) {
@@ -316,7 +228,7 @@ async function resolveClientShell(
   navigationType: ClientShellNavigationType = "mount",
 ) {
   const serverNavigation = workspaceNavigationFromPageData(
-    $page.data,
+    routePage.data,
     viewerUser?.id,
   );
   if (serverNavigation) workspaceNavigation = serverNavigation;
@@ -355,13 +267,13 @@ async function resolveClientShell(
     viewerFailed = false;
     if (
       shouldRedirectIncompleteProfileToWelcome({
-        pathname: $page.url.pathname,
-        url: new URL($page.url.href),
+        pathname: routePage.url.pathname,
+        url: new URL(routePage.url.href),
         hasUser: Boolean(viewerUser?.id),
         hasCompleteProfile: Boolean(viewerUser?.name && viewerUser.username),
       })
     ) {
-      const returnTo = `${$page.url.pathname}${$page.url.search}`;
+      const returnTo = `${routePage.url.pathname}${routePage.url.search}`;
       await goto(
         `/account/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
       );
@@ -435,6 +347,118 @@ afterNavigate(({ from, to, type, shallow }) => {
   }
   resetContentScroll();
 });
+$effect.pre(() => {
+  if (!data.resolveViewerOnClient || data.user) {
+    if (viewerUser?.id !== data.user?.id) {
+      cancelShellBootstrap();
+      shellResolved = false;
+      workspaceNavigation = null;
+    }
+    viewerUser = data.user;
+    viewerLoading = false;
+    viewerFailed = false;
+  }
+});
+$effect.pre(() => {
+  const snapshot: ShellViewerState = {
+    viewer: viewerUser,
+    status: viewerLoading ? "loading" : viewerFailed ? "error" : "ready",
+  };
+  untrack(() => shellViewer.set(snapshot));
+});
+let pageWorkspaceNavigation = $derived(
+  workspaceNavigationFromPageData(routePage.data, viewerUser?.id),
+);
+$effect.pre(() => {
+  if (pageWorkspaceNavigation) {
+    workspaceNavigation = pageWorkspaceNavigation;
+  }
+});
+$effect.pre(() => {
+  if (
+    workspaceNavigation &&
+    viewerUser?.id &&
+    routePage.data.userId === viewerUser.id &&
+    Number.isSafeInteger(routePage.data.unreadActivityNotificationsCount) &&
+    routePage.data.unreadActivityNotificationsCount >= 0 &&
+    workspaceNavigation.unreadActivityNotificationsCount !==
+      routePage.data.unreadActivityNotificationsCount
+  ) {
+    workspaceNavigation = {
+      ...workspaceNavigation,
+      unreadActivityNotificationsCount:
+        routePage.data.unreadActivityNotificationsCount,
+    };
+  }
+});
+let profileHref = $derived(resolveProfileHref(viewerUser));
+let avatarFallback = $derived(resolveAvatarFallback(viewerUser));
+let settingsSidebar = $derived(isSettingsPath(routePage.url.pathname));
+let youngSidebar = $derived(isYoungPath(routePage.url.pathname));
+let adminRoute = $derived(
+  routePage.url.pathname === "/admin" ||
+    routePage.url.pathname.startsWith("/admin/"),
+);
+let navViewer = $derived(
+  viewerUser ? { signedIn: true, isAdmin: viewerUser.isAdmin } : null,
+);
+let navContext = $derived({
+  pathname: routePage.url.pathname,
+  pageData: routePage.data,
+  navigation: workspaceNavigation,
+});
+let navGroups = $derived(
+  settingsSidebar
+    ? buildSettingsNavGroups(data.copy)
+    : youngSidebar
+      ? buildYoungNavGroups(data.copy, routePage.url.pathname, routePage.data)
+      : adminRoute
+        ? buildAdminNavGroups(data.copy, navViewer, navContext)
+        : buildShellNavGroups(data.copy, navViewer, navContext),
+);
+let sectionSidebar = $derived(
+  settingsSidebar
+    ? ({
+        backHref: "/",
+        backLabel: data.copy.shell.backToHome,
+        backTestId: "settings-sidebar-back",
+        level: "settings",
+        navLabel: data.copy.nav.settings,
+        testId: "settings-sidebar",
+      } satisfies SectionSidebar)
+    : youngSidebar
+      ? ({
+          backHref: "/",
+          backLabel: data.copy.shell.backToHome,
+          backTestId: "young-sidebar-back",
+          level: "young",
+          navLabel: data.copy.nav.youngEvents,
+          testId: "young-sidebar",
+        } satisfies SectionSidebar)
+      : adminRoute
+        ? ({
+            backHref: "/",
+            backLabel: data.copy.shell.backToApp,
+            backTestId: "admin-sidebar-back",
+            level: "admin",
+            navLabel: data.copy.nav.admin.title,
+            testId: "admin-sidebar",
+          } satisfies SectionSidebar)
+        : null,
+);
+let detailWorkspace = $derived(isDetailWorkspacePath(routePage.url.pathname));
+let youngEventBanner = $derived(isYoungEventDetailPath(routePage.url.pathname));
+let focusedShell = $derived(shouldUseFocusedShell(routePage.url.pathname));
+let hideSignIn = $derived(isSignInPath(routePage.url.pathname));
+let showFooter = $derived(
+  shouldShowAppFooter(routePage.url.pathname, Boolean(viewerUser)),
+);
+let mainContentLabel = $derived(resolveMainContentLabel(routePage.data));
+let globalSearchShortcutLabel = $derived(
+  isApplePlatform()
+    ? data.copy.globalSearch.shortcutMac
+    : data.copy.globalSearch.shortcut,
+);
 </script>
 
 
@@ -445,7 +469,7 @@ afterNavigate(({ from, to, type, shallow }) => {
   {data.copy.shell.skipToMainContent}
 </a>
 
-{#if $navigating}
+{#if navigating.to}
   <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
 {/if}
 
@@ -471,7 +495,7 @@ afterNavigate(({ from, to, type, shallow }) => {
       viewerLoading={viewerLoading}
     />
 
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip-link target -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip_link target -->
     <main
       aria-label={mainContentLabel}
       bind:this={contentScrollContainer}
@@ -479,7 +503,7 @@ afterNavigate(({ from, to, type, shallow }) => {
       data-shell-scroll-container
       id="main-content"
       tabindex={-1}
-    ><slot></slot></main>
+    >{@render children?.()}</main>
   </div>
 {:else}
   <Sidebar.Provider
@@ -491,7 +515,7 @@ afterNavigate(({ from, to, type, shallow }) => {
         avatarFallback={avatarFallback}
         closeMenus={closeMenus}
         copy={data.copy}
-        currentPathname={$page.url.pathname}
+        currentPathname={routePage.url.pathname}
         dockAboveFooter={showFooter}
         footerLinks={detailWorkspace ? footerLinks : []}
         sectionSidebar={sectionSidebar}
@@ -530,7 +554,7 @@ afterNavigate(({ from, to, type, shallow }) => {
           viewerLoading={viewerLoading}
         />
 
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard-scrollable viewport -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard_scrollable viewport -->
         <div
           bind:this={contentScrollContainer}
           aria-label={data.copy.shell.scrollRegion}
@@ -553,7 +577,7 @@ afterNavigate(({ from, to, type, shallow }) => {
                 ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
                 : "px-4 py-4 sm:px-5 lg:px-6",
               !showFooter && !detailWorkspace && "pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-4")}
-          ><slot></slot></div>
+          >{@render children?.()}</div>
         </div>
       </Sidebar.Inset>
     </div>
@@ -563,7 +587,7 @@ afterNavigate(({ from, to, type, shallow }) => {
         avatarFallback={avatarFallback}
         closeMenus={closeMenus}
         copy={data.copy}
-        currentPathname={$page.url.pathname}
+        currentPathname={routePage.url.pathname}
         footerLinks={footerLinks}
         profileHref={profileHref}
         setUserMenuOpen={setUserMenuOpen}
@@ -574,8 +598,7 @@ afterNavigate(({ from, to, type, shallow }) => {
     {/if}
 
     {#if GlobalSearchDialog}
-      <svelte:component
-        this={GlobalSearchDialog}
+      <GlobalSearchDialog
         copy={data.copy.globalSearch}
         locale={data.locale}
         bind:open={globalSearchOpen}

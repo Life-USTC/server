@@ -43,10 +43,11 @@ describe("action-status-tokens", () => {
 });
 
 describe("empty-variants", () => {
-  it("exports filter-clear, browse, setup, and quiet variants", () => {
+  it("exports filter-clear, browse, compact, setup, and quiet variants", () => {
     expect([...EMPTY_VARIANTS]).toEqual([
       "filter-clear",
       "browse",
+      "compact",
       "setup",
       "quiet",
     ]);

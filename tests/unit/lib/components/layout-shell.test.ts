@@ -185,9 +185,9 @@ describe("settings redirect success feedback", () => {
 
     expect(controller).toContain('import { goto } from "$app/navigation";');
     expect(controller).toContain(
-      'import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";',
+      'import { page as routePage } from "$app/state";',
     );
-    expect(controller).toContain('$page.url.searchParams.get("message")');
+    expect(controller).toContain('routePage.url.searchParams.get("message")');
     expect(controller).toContain("_isMounted &&");
     expect(controller).toContain("const mountTimer = setTimeout(() => {");
     expect(controller).toContain("return () => clearTimeout(mountTimer);");

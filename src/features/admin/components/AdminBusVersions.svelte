@@ -1,4 +1,5 @@
 <script lang="ts">
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import AdminBusVersionsMobileList from "@/features/admin/components/AdminBusVersionsMobileList.svelte";
 import AdminBusVersionsTable from "@/features/admin/components/AdminBusVersionsTable.svelte";
 import type {
@@ -19,25 +20,30 @@ export let versions: AdminBusVersion[];
 </script>
 
 <section class="grid min-w-0 gap-3">
-  <AdminBusVersionsMobileList
-    {copy}
-    {enhancedAction}
-    {formatEffectiveRange}
-    {formatImportedAt}
-    {isPending}
-    {onDelete}
-    {pendingAction}
-    {versions}
-  />
-
-  <AdminBusVersionsTable
-    {copy}
-    {enhancedAction}
-    {formatEffectiveRange}
-    {formatImportedAt}
-    {isPending}
-    {onDelete}
-    {pendingAction}
-    {versions}
-  />
+  <ResponsiveCollection>
+    {#snippet mobile()}
+      <AdminBusVersionsMobileList
+        {copy}
+        {enhancedAction}
+        {formatEffectiveRange}
+        {formatImportedAt}
+        {isPending}
+        {onDelete}
+        {pendingAction}
+        {versions}
+      />
+    {/snippet}
+    {#snippet desktop()}
+      <AdminBusVersionsTable
+        {copy}
+        {enhancedAction}
+        {formatEffectiveRange}
+        {formatImportedAt}
+        {isPending}
+        {onDelete}
+        {pendingAction}
+        {versions}
+      />
+    {/snippet}
+  </ResponsiveCollection>
 </section>

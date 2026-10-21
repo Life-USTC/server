@@ -24,7 +24,7 @@
  */
 import { expect } from "@playwright/test";
 import {
-  expandWorkspaceSidebarGroup,
+  expandDaySidebarGroup,
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
 import { observeAction } from "../../../../../utils/observed-action";
@@ -123,7 +123,7 @@ test.describe("仪表盘教学班订阅", () => {
       const sidebar = page.getByTestId("app-sidebar");
       await expect(
         sidebar.getByRole("link", {
-          name: /教学班订阅|Section Subscriptions/i,
+          name: /我的教学班|My sections/i,
         }),
       ).toHaveAttribute("aria-current", "page");
       await expect(
@@ -242,20 +242,15 @@ test.describe("仪表盘教学班订阅", () => {
           })
           .first(),
       ).toBeVisible();
-      await expect(
-        page
-          .getByRole("link", {
-            name: /浏览班级|Browse Sections/i,
-          })
-          .first(),
-      ).toBeVisible();
-      await expect(
-        page
-          .getByRole("link", {
-            name: /浏览课程|Browse Courses/i,
-          })
-          .first(),
-      ).toBeVisible();
+      const content = page.locator("[data-shell-scroll-container]");
+      for (const [name, href] of [
+        [/浏览班级|Browse Sections/i, "/catalog/sections"],
+        [/浏览课程|Browse Courses/i, "/catalog/courses"],
+      ] as const) {
+        const link = content.getByRole("link", { name });
+        await expect(link).toBeVisible();
+        await expect(link).toHaveAttribute("href", href);
+      }
     });
   });
   test("移动端订阅列表与操作区不产生页面级横向滚动", {
@@ -942,7 +937,7 @@ for (const routePath of [
       expect(response?.ok()).toBe(true);
       await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
-      await expandWorkspaceSidebarGroup(page);
+      await expandDaySidebarGroup(page);
       await expect(
         sidebarNavigationLink(page, /^(总览|Overview)$/i),
       ).toBeVisible();

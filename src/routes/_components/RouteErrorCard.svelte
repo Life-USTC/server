@@ -1,9 +1,7 @@
 <script lang="ts">
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Card from "#lib/components/ui/card/index.js";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
-
-const page = legacyPageStore();
+import { page as routePage } from "$app/state";
 
 type ErrorCopy = {
   backHome: string;
@@ -23,25 +21,36 @@ const fallbackErrorCopy: ErrorCopy = {
   tryAgain: "Try again",
 };
 
-export let backHref = "/";
+interface Props {
+  backHref?: string;
+}
 
-$: isNotFound = $page.status === 404;
-$: errorCopy = ($page.data?.copy?.errorPage ?? fallbackErrorCopy) as ErrorCopy;
-$: title = isNotFound ? errorCopy.notFoundTitle : errorCopy.somethingWentWrong;
-$: description = isNotFound
-  ? errorCopy.notFoundDescription
-  : ($page.error?.message ?? errorCopy.error);
+let { backHref = "/" }: Props = $props();
 
-$: backLabel =
+let isNotFound = $derived(routePage.status === 404);
+let errorCopy = $derived(
+  (routePage.data?.copy?.errorPage ?? fallbackErrorCopy) as ErrorCopy,
+);
+let title = $derived(
+  isNotFound ? errorCopy.notFoundTitle : errorCopy.somethingWentWrong,
+);
+let description = $derived(
+  isNotFound
+    ? errorCopy.notFoundDescription
+    : (routePage.error?.message ?? errorCopy.error),
+);
+
+let backLabel = $derived(
   backHref === "/catalog/courses"
-    ? ($page.data?.copy?.nav?.courses ?? errorCopy.backHome)
+    ? (routePage.data?.copy?.nav?.courses ?? errorCopy.backHome)
     : backHref === "/catalog/sections"
-      ? ($page.data?.copy?.nav?.sections ?? errorCopy.backHome)
+      ? (routePage.data?.copy?.nav?.sections ?? errorCopy.backHome)
       : backHref === "/catalog/teachers"
-        ? ($page.data?.copy?.nav?.teachers ?? errorCopy.backHome)
+        ? (routePage.data?.copy?.nav?.teachers ?? errorCopy.backHome)
         : backHref.startsWith("/account/settings")
-          ? ($page.data?.copy?.menu?.settings ?? errorCopy.backHome)
-          : errorCopy.backHome;
+          ? (routePage.data?.copy?.menu?.settings ?? errorCopy.backHome)
+          : errorCopy.backHome,
+);
 </script>
 
 <svelte:head><title>{isNotFound ? errorCopy.notFoundTitle : errorCopy.error} - Life@USTC</title></svelte:head>
@@ -49,7 +58,7 @@ $: backLabel =
 <section class="grid min-h-[calc(100dvh-8rem)] place-items-center">
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
-      <h1 class="font-semibold text-5xl">{$page.status}</h1>
+      <h1 class="font-semibold text-5xl">{routePage.status}</h1>
       <Card.Title>
         <h2>{title}</h2>
       </Card.Title>

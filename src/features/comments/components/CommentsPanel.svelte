@@ -42,27 +42,40 @@ import {
 import { getCommentsCopy } from "@/features/comments/lib/comments-copy";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { AppLocale } from "@/i18n/config";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { page as routePage } from "$app/state";
 import CommentDeleteDialog from "./CommentDeleteDialog.svelte";
 import CommentsComposerSection from "./CommentsComposerSection.svelte";
 import CommentsHiddenNotice from "./CommentsHiddenNotice.svelte";
 import CommentsPanelSuspensionAlert from "./CommentsPanelSuspensionAlert.svelte";
 import CommentsThreadSection from "./CommentsThreadSection.svelte";
 
-const page = legacyPageStore();
+interface Props {
+  targetType: TargetType;
+  targetId?: number | string | null;
+  sectionId?: number | null;
+  showAllTargets?: boolean;
+  initialData?: CommentsInitialData | null;
+  permalinkBaseHref?: string | null;
+  targets?: CommentTargetOption[];
+  teacherId?: number | null;
+  youngId?: string | null;
+  /** When set, composer primary action sits on the same row as this heading. */
+  heading?: string | null;
+}
 
-export let targetType: TargetType;
-export let targetId: number | string | null = null;
-export let sectionId: number | null = null;
-export let showAllTargets = false;
-export let initialData: CommentsInitialData | null = null;
-export let permalinkBaseHref: string | null = null;
-export let targets: CommentTargetOption[] = [];
-export let teacherId: number | null = null;
-export let youngId: string | null = null;
-/** When set, composer primary action sits on the same row as this heading. */
-export let heading: string | null = null;
+let {
+  targetType,
+  targetId = null,
+  sectionId = null,
+  showAllTargets = false,
+  initialData = null,
+  permalinkBaseHref = null,
+  targets = [],
+  teacherId = null,
+  youngId = null,
+  heading = null,
+}: Props = $props();
 
 const reactionOptions = COMMENT_REACTION_OPTIONS;
 let {
@@ -103,7 +116,7 @@ let {
   _uploadPending,
   _viewer,
   _visibility,
-} = createCommentPanelDefaultState();
+} = $state(createCommentPanelDefaultState());
 let _loadCommentForHash: (commentId: string) => Promise<void> = async () => {};
 const _commentHashScroller = createCommentHashScroller({
   loadMissingComment: (commentId) => _loadCommentForHash(commentId),
@@ -114,38 +127,51 @@ const _commentHashScroller = createCommentHashScroller({
 });
 const _scrollToHashComment = _commentHashScroller.scrollToHashComment;
 
-$: _copy = getCommentsCopy(($page.data.locale ?? "zh-cn") as AppLocale);
-$: _commentCopy = _copy.comments;
-$: _uploadCopy = _copy.uploads;
-$: _dateTimeFormatter = createShanghaiDateTimeFormatter(
-  ($page.data.locale ?? "zh-cn") as AppLocale,
-  {
-    dateStyle: "medium",
-    timeStyle: "short",
-  },
+let _copy = $derived(
+  getCommentsCopy((routePage.data.locale ?? "zh-cn") as AppLocale),
 );
-$: _signInHref = commentPanelSignInHref($page.url.pathname, $page.url.search);
-$: _resolvedTargets = resolveCommentTargets({
-  copy: _commentCopy,
-  permalinkBaseHref,
-  sectionId,
-  targetId,
-  targets,
-  targetType,
-  teacherId,
-  youngId,
-});
-$: if (
-  _resolvedTargets[0] &&
-  (!_postTargetKey ||
-    !_resolvedTargets.some((target) => target.key === _postTargetKey))
-) {
-  _postTargetKey = _resolvedTargets[0].key;
+let _commentCopy = $derived(_copy.comments);
+let _uploadCopy = $derived(_copy.uploads);
+let _dateTimeFormatter = $derived(
+  createShanghaiDateTimeFormatter(
+    (routePage.data.locale ?? "zh-cn") as AppLocale,
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  ),
+);
+let _signInHref = $derived(
+  commentPanelSignInHref(routePage.url.pathname, routePage.url.search),
+);
+let _resolvedTargets = $derived(
+  resolveCommentTargets({
+    copy: _commentCopy,
+    permalinkBaseHref,
+    sectionId,
+    targetId,
+    targets,
+    targetType,
+    teacherId,
+    youngId,
+  }),
+);
+function syncPostTarget() {
+  if (
+    _resolvedTargets[0] &&
+    (!_postTargetKey ||
+      !_resolvedTargets.some((target) => target.key === _postTargetKey))
+  ) {
+    _postTargetKey = _resolvedTargets[0].key;
+  }
 }
-$: _postTargetOptions = commentPostTargetOptions(_resolvedTargets);
-$: _visibilityOptions = buildCommentVisibilityOptions(_commentCopy);
-$: _viewerResolved =
-  _appliedInitialData || _targetLoadStates.some((state) => state.loaded);
+syncPostTarget();
+$effect.pre(syncPostTarget);
+let _postTargetOptions = $derived(commentPostTargetOptions(_resolvedTargets));
+let _visibilityOptions = $derived(buildCommentVisibilityOptions(_commentCopy));
+let _viewerResolved = $derived(
+  _appliedInitialData || _targetLoadStates.some((state) => state.loaded),
+);
 
 const { applyInitialData: _applyInitialData } =
   createCommentPanelInitialDataActions({
@@ -168,10 +194,14 @@ const { applyInitialData: _applyInitialData } =
     },
   });
 
-$: if (initialData && !_appliedInitialData && _resolvedTargets.length > 0) {
-  _applyInitialData(initialData);
-  _appliedInitialData = true;
+function applyInitialComments() {
+  if (initialData && !_appliedInitialData && _resolvedTargets.length > 0) {
+    _applyInitialData(initialData);
+    _appliedInitialData = true;
+  }
 }
+applyInitialComments();
+$effect.pre(applyInitialComments);
 
 onMount(() => {
   return mountCommentPanel({
@@ -486,9 +516,15 @@ const {
   },
 });
 
-$: _newUploading = commentUploadPendingForMode(_uploadPending, "new");
-$: _replyUploading = commentUploadPendingForMode(_uploadPending, "reply");
-$: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
+let _newUploading = $derived(
+  commentUploadPendingForMode(_uploadPending, "new"),
+);
+let _replyUploading = $derived(
+  commentUploadPendingForMode(_uploadPending, "reply"),
+);
+let _editUploading = $derived(
+  commentUploadPendingForMode(_uploadPending, "edit"),
+);
 </script>
 
 

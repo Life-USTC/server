@@ -18,7 +18,7 @@
 import { expect } from "@playwright/test";
 import { test as privateTest } from "../../../../utils/account-fixture";
 import {
-  expandWorkspaceSidebarGroup,
+  expandDaySidebarGroup,
   sidebarNavigationLink,
 } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -81,7 +81,7 @@ test.describe("仪表盘无效标签（comments）", () => {
         await expect(page.locator("#app-user-menu")).toBeVisible();
 
         // Overview is the fallback — should show the overview sidebar entry as active
-        await expandWorkspaceSidebarGroup(page);
+        await expandDaySidebarGroup(page);
         await expect(
           sidebarNavigationLink(page, /^(总览|Overview)$/i),
         ).toHaveAttribute("aria-current", "page");
