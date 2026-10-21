@@ -12,14 +12,27 @@ import type {
   AdminBusVersionFormatter,
 } from "./admin-bus-types";
 
-export let copy: AdminBusCopy;
-export let enhancedAction: AdminBusEnhancedAction;
-export let formatEffectiveRange: AdminBusVersionFormatter;
-export let formatImportedAt: (value: string | Date) => string;
-export let isPending: (actionKey: string) => boolean;
-export let onDelete: (version: AdminBusVersion) => void;
-export let pendingAction: string | null;
-export let versions: AdminBusVersion[];
+interface Props {
+  copy: AdminBusCopy;
+  enhancedAction: AdminBusEnhancedAction;
+  formatEffectiveRange: AdminBusVersionFormatter;
+  formatImportedAt: (value: string | Date) => string;
+  isPending: (actionKey: string) => boolean;
+  onDelete: (version: AdminBusVersion) => void;
+  pendingAction: string | null;
+  versions: AdminBusVersion[];
+}
+
+let {
+  copy,
+  enhancedAction,
+  formatEffectiveRange,
+  formatImportedAt,
+  isPending,
+  onDelete,
+  pendingAction,
+  versions,
+}: Props = $props();
 </script>
 
 {#if versions.length === 0}

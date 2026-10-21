@@ -7,14 +7,27 @@ import type {
   AdminBusVersion,
 } from "./admin-bus-types";
 
-export let closeDeleteDialog: () => void;
-export let closeImportDialog: () => void;
-export let copy: AdminBusCopy;
-export let enhancedAction: AdminBusEnhancedAction;
-export let isImportDialogOpen: boolean;
-export let isPending: (actionKey: string) => boolean;
-export let pendingAction: string | null;
-export let pendingDeleteVersion: AdminBusVersion | null;
+interface Props {
+  closeDeleteDialog: () => void;
+  closeImportDialog: () => void;
+  copy: AdminBusCopy;
+  enhancedAction: AdminBusEnhancedAction;
+  isImportDialogOpen: boolean;
+  isPending: (actionKey: string) => boolean;
+  pendingAction: string | null;
+  pendingDeleteVersion: AdminBusVersion | null;
+}
+
+let {
+  closeDeleteDialog,
+  closeImportDialog,
+  copy,
+  enhancedAction,
+  isImportDialogOpen,
+  isPending,
+  pendingAction,
+  pendingDeleteVersion,
+}: Props = $props();
 </script>
 
 {#if isImportDialogOpen}

@@ -13,15 +13,27 @@ import type {
   AdminBusVersion,
 } from "./admin-bus-types";
 
-export let copy: AdminBusCopy;
-export let compact = false;
-export let enhancedAction: AdminBusEnhancedAction;
-export let isPending: (actionKey: string) => boolean;
-export let onDelete: (version: AdminBusVersion) => void;
-export let pendingAction: string | null;
-export let version: AdminBusVersion;
+interface Props {
+  copy: AdminBusCopy;
+  compact?: boolean;
+  enhancedAction: AdminBusEnhancedAction;
+  isPending: (actionKey: string) => boolean;
+  onDelete: (version: AdminBusVersion) => void;
+  pendingAction: string | null;
+  version: AdminBusVersion;
+}
 
-let activateDialogOpen = false;
+let {
+  copy,
+  compact = false,
+  enhancedAction,
+  isPending,
+  onDelete,
+  pendingAction,
+  version,
+}: Props = $props();
+
+let activateDialogOpen = $state(false);
 </script>
 
 {#if !version.isEnabled}

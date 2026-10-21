@@ -9,12 +9,17 @@ import type {
   AdminBusVersion,
 } from "./admin-bus-types";
 
-export let close: () => void;
-export let copy: AdminBusCopy;
-export let enhancedAction: AdminBusEnhancedAction;
-export let isPending: (actionKey: string) => boolean;
-export let pendingAction: string | null;
-export let version: AdminBusVersion;
+interface Props {
+  close: () => void;
+  copy: AdminBusCopy;
+  enhancedAction: AdminBusEnhancedAction;
+  isPending: (actionKey: string) => boolean;
+  pendingAction: string | null;
+  version: AdminBusVersion;
+}
+
+let { close, copy, enhancedAction, isPending, pendingAction, version }: Props =
+  $props();
 </script>
 
 <AlertDialog.Root

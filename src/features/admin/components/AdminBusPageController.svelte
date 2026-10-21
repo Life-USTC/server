@@ -32,18 +32,25 @@ type ActionData =
   | null
   | undefined;
 
-export let data: PageData;
-export let form: ActionData;
+interface Props {
+  data: PageData;
+  form: ActionData;
+}
 
-let { isImportDialogOpen, pendingAction, pendingDeleteVersion } =
-  createAdminBusControllerDefaultState();
+let { data, form }: Props = $props();
 
-$: copy = data.copy.adminBus;
-$: adminCopy = data.copy.admin;
-$: dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+let { isImportDialogOpen, pendingAction, pendingDeleteVersion } = $state(
+  createAdminBusControllerDefaultState(),
+);
+
+let copy = $derived(data.copy.adminBus);
+let adminCopy = $derived(data.copy.admin);
+let dateTimeFormatter = $derived(
+  createShanghaiDateTimeFormatter(data.locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }),
+);
 function formatEffectiveRange(version: AdminBusVersion) {
   return formatBusVersionEffectiveRange(version);
 }
