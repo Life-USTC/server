@@ -1,14 +1,15 @@
 <script lang="ts">
+import CloudAlertIcon from "@lucide/svelte/icons/cloud-alert";
 import MenuIcon from "@lucide/svelte/icons/menu";
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
-import { onMount } from "svelte";
+import { onMount, tick } from "svelte";
 import { OPENAPI_SPEC_API_PATH } from "#lib/openapi/spec.js";
 import { afterNavigate } from "$app/navigation";
 import "@scalar/api-reference/style.css";
 import "./api-docs-scalar.css";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
+import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Sheet from "#lib/components/ui/sheet/index.js";
 import {
   type ApiDocsSelection,
@@ -21,14 +22,14 @@ type PageData = {
     apiDocs: {
       browseNavigation: string;
       description: string;
+      loadErrorDescription: string;
+      loadErrorTitle: string;
       navigationLabel: string;
       rawSpecLink: string;
       title: string;
     };
     common: {
-      error: string;
       loading: string;
-      somethingWentWrong: string;
       tryAgain: string;
     };
     metadata: { apiDocs: string };
@@ -120,6 +121,9 @@ async function renderReference() {
     currentPath || window.location.pathname,
   );
 
+  // The reference container only exists once the success branch is rendered;
+  // after a retry it is still queued when this runs.
+  await tick();
   const container = document.getElementById("api-reference");
   if (!container) return;
   container.replaceChildren();
@@ -210,8 +214,6 @@ function scheduleReferenceRouteRestore() {
         </ul>
       </section>
     {/each}
-  {:else if loadError}
-    <p class="text-destructive text-sm">{data.copy.common.error}</p>
   {:else}
     <p>{data.copy.common.loading}</p>
   {/if}
@@ -224,67 +226,72 @@ function scheduleReferenceRouteRestore() {
       <Button class="w-full sm:w-auto" href={specPath} variant="outline">{data.copy.apiDocs.rawSpecLink}</Button>
   {/snippet}
 
-  <div class="api-docs-shell">
-    <div class="api-docs-mobile-navigation">
-      <Sheet.Root bind:open={mobileNavigationOpen}>
-        <Sheet.Trigger>
-          {#snippet child({ props })}
-            <Button
-              class="w-full justify-between"
-              data-testid="api-docs-mobile-navigation-trigger"
-              type="button"
-              variant="outline"
-              {...props}
-            >
-              <span>{data.copy.apiDocs.browseNavigation}</span>
-              <MenuIcon data-icon="inline-end" aria-hidden="true" />
-            </Button>
-          {/snippet}
-        </Sheet.Trigger>
-        <Sheet.Content
-          class="w-[min(22rem,calc(100%-1rem))] overflow-y-auto p-0"
-          data-testid="api-docs-mobile-navigation-panel"
-          side="left"
-        >
-          <Sheet.Header class="border-b pr-12">
-            <Sheet.Title>{data.copy.apiDocs.navigationLabel}</Sheet.Title>
-            <Sheet.Description class="sr-only">
-              {data.copy.apiDocs.browseNavigation}
-            </Sheet.Description>
-          </Sheet.Header>
-          <nav class="api-docs-navigation p-4" aria-label={data.copy.apiDocs.navigationLabel}>
-            {@render apiNavigation(true)}
-          </nav>
-        </Sheet.Content>
-      </Sheet.Root>
-    </div>
-
-    <aside
-      class="api-docs-navigation api-docs-sidebar"
-      aria-label={data.copy.apiDocs.navigationLabel}
-      data-testid="api-docs-desktop-navigation"
-    >
-      {@render apiNavigation()}
-    </aside>
-
-    <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-lg border border-border bg-background">
-      {#if loadError}
-        <div class="p-6">
-          <Alert.Root variant="destructive">
-            <Alert.Title>{data.copy.common.somethingWentWrong}</Alert.Title>
-            <Alert.Description class="flex flex-col items-start gap-3">
-              <span>{data.copy.common.error}</span>
-              <Button type="button" variant="outline" onclick={() => void loadSpec()}>
-                {data.copy.common.tryAgain}
+  {#if loadError}
+    <Empty.Root class="border border-border border-solid bg-card" data-testid="api-docs-load-error">
+      <Empty.Header>
+        <Empty.Media class="bg-destructive/10 text-destructive" variant="icon">
+          <CloudAlertIcon aria-hidden="true" />
+        </Empty.Media>
+        <Empty.Title>{data.copy.apiDocs.loadErrorTitle}</Empty.Title>
+        <Empty.Description>{data.copy.apiDocs.loadErrorDescription}</Empty.Description>
+      </Empty.Header>
+      <Empty.Content>
+        <Button class="w-full sm:w-auto" type="button" onclick={() => void loadSpec()}>
+          {data.copy.common.tryAgain}
+        </Button>
+      </Empty.Content>
+    </Empty.Root>
+  {:else}
+    <div class="api-docs-shell">
+      <div class="api-docs-mobile-navigation">
+        <Sheet.Root bind:open={mobileNavigationOpen}>
+          <Sheet.Trigger>
+            {#snippet child({ props })}
+              <Button
+                class="w-full justify-between"
+                data-testid="api-docs-mobile-navigation-trigger"
+                type="button"
+                variant="outline"
+                {...props}
+              >
+                <span>{data.copy.apiDocs.browseNavigation}</span>
+                <MenuIcon data-icon="inline-end" aria-hidden="true" />
               </Button>
-            </Alert.Description>
-          </Alert.Root>
-        </div>
-      {:else if loading}
-        <div class="p-6">
-          <p class="text-muted-foreground text-sm">{data.copy.common.loading}</p>
-        </div>
-      {/if}
+            {/snippet}
+          </Sheet.Trigger>
+          <Sheet.Content
+            class="w-[min(22rem,calc(100%-1rem))] overflow-y-auto p-0"
+            data-testid="api-docs-mobile-navigation-panel"
+            side="left"
+          >
+            <Sheet.Header class="border-b pr-12">
+              <Sheet.Title>{data.copy.apiDocs.navigationLabel}</Sheet.Title>
+              <Sheet.Description class="sr-only">
+                {data.copy.apiDocs.browseNavigation}
+              </Sheet.Description>
+            </Sheet.Header>
+            <nav class="api-docs-navigation p-4" aria-label={data.copy.apiDocs.navigationLabel}>
+              {@render apiNavigation(true)}
+            </nav>
+          </Sheet.Content>
+        </Sheet.Root>
+      </div>
+
+      <aside
+        class="api-docs-navigation api-docs-sidebar"
+        aria-label={data.copy.apiDocs.navigationLabel}
+        data-testid="api-docs-desktop-navigation"
+      >
+        {@render apiNavigation()}
+      </aside>
+
+      <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-lg border border-border bg-background">
+        {#if loading}
+          <div class="p-6">
+            <p class="text-muted-foreground text-sm">{data.copy.common.loading}</p>
+          </div>
+        {/if}
+      </div>
     </div>
-  </div>
+  {/if}
 </CollectionPage>

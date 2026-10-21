@@ -313,7 +313,9 @@
     "description": "基于项目 OpenAPI 规范生成的交互式接口文档。",
     "browseNavigation": "浏览 API 接口",
     "navigationLabel": "API 导航",
-    "rawSpecLink": "打开 OpenAPI 原始 JSON"
+    "rawSpecLink": "打开 OpenAPI 原始 JSON",
+    "loadErrorTitle": "无法加载 API 文档",
+    "loadErrorDescription": "未能获取 OpenAPI 规范，可能是网络连接中断或服务暂时不可用。请检查网络后重试。"
   },
   "homepage": {
     "badge": "🎓 您的校园伙伴",
