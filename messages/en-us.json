@@ -373,6 +373,8 @@
         "title": "Campus right now",
         "weatherUnavailable": "Weather is unavailable right now",
         "weatherViewAll": "Weather details",
+        "weatherRange": "Today {high} / {low}",
+        "weatherHourly": "Next hours",
         "busUnavailable": "Shuttle departures are unavailable right now",
         "busEmpty": "No more departures from {campus} today",
         "busOriginNote": "Departing {campus}",

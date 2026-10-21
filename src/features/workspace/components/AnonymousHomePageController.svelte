@@ -7,6 +7,7 @@ import SparklesIcon from "@lucide/svelte/icons/sparkles";
 import type { Component } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
+import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home-layout";
 import type {
   AnonymousHomeInformation,
   HomeListItem,
@@ -36,6 +37,8 @@ type AnonymousHomePageData = {
           busUnavailable: string;
           busViewAll: string;
           title: string;
+          weatherHourly: string;
+          weatherRange: string;
           weatherUnavailable: string;
           weatherViewAll: string;
         };
@@ -85,6 +88,15 @@ const destinations = $derived([
   { href: "/catalog/bus", label: pub.cards.bus.title },
   { href: "/usage/mobile", label: pub.cards.mobileApp.title },
 ]);
+
+/**
+ * Rows past the compact count are shipped to every viewport and revealed by the
+ * breakpoint, so a phone keeps the list it had while a wide canvas fills the
+ * column it already owns.
+ */
+function overflowClass(index: number, shown: string, hidden: string): string {
+  return index < HOME_COMPACT_ITEM_COUNT ? shown : hidden;
+}
 </script>
 
 {#snippet heading(
@@ -124,10 +136,17 @@ const destinations = $derived([
     {@render note(emptyMessage)}
   {:else}
     <Item.Group class="min-w-0 gap-0">
-      {#each items as item (item.key)}
-        <Item.Root class="min-w-0" size="sm">
+      {#each items as item, index (item.key)}
+        <Item.Root
+          class={overflowClass(
+            index,
+            "min-h-12 min-w-0",
+            "hidden min-h-12 min-w-0 lg:flex",
+          )}
+          size="sm"
+        >
           {#snippet child({ props })}
-            <a class="min-h-12" href={item.href} {...props}>
+            <a href={item.href} {...props}>
               <Item.Content class="min-w-0 gap-0.5">
                 <Item.Title class="break-words">{item.title}</Item.Title>
                 {#if item.meta || item.dateLabel}
@@ -151,8 +170,17 @@ const destinations = $derived([
   <title>{data.copy.metadata.home} - Life@USTC</title>
 </svelte:head>
 
-<div class="grid min-w-0 gap-6 pb-2 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8">
-  <header class="grid min-w-0 gap-1 lg:col-span-2">
+<!--
+  Phone and tablet keep the single/two-column stack rebuilt in #1300. From `xl`
+  the page becomes two information columns plus a narrow rail: the sign-in
+  prompt carries the least information on the page, so it stops being a
+  full-width band under the content and becomes the rail, which hands its former
+  width back to the lists.
+-->
+<div
+  class="grid min-w-0 gap-6 pb-2 lg:gap-y-8 xl:grid-cols-[minmax(0,1fr)_minmax(15rem,18rem)] xl:items-start xl:gap-x-6"
+>
+  <header class="grid min-w-0 gap-1 xl:col-span-2">
     <h1 class="text-pretty font-semibold text-xl tracking-tight sm:text-2xl">
       {pub.title}
     </h1>
@@ -166,100 +194,138 @@ const destinations = $derived([
     </p>
   </header>
 
-  <section class="grid min-w-0 gap-3 lg:col-span-2" data-testid="home-campus-now">
-    <h2 class="sr-only">{campusNow.title}</h2>
-    <div class="grid min-w-0 gap-3 sm:grid-cols-2">
-      <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
-        {@render heading(
-          "h3",
-          CloudSunIcon,
-          data.copy.weather.title,
-          "/catalog/weather",
-          campusNow.weatherViewAll,
-        )}
-        {#if weather === null || weather.length === 0}
-          {@render note(campusNow.weatherUnavailable)}
-        {:else}
-          <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
-            {#each weather as tile (tile.locationKey)}
-              <div class="min-w-0">
-                <dt class="truncate text-muted-foreground text-sm">
-                  {data.copy.weather.locationNames[tile.locationKey] ?? tile.locationKey}
-                </dt>
-                <dd class="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                  {#if tile.temperature}
-                    <span class="font-semibold text-2xl tabular-nums tracking-tight">
-                      {tile.temperature}
+  <!--
+    The information sections keep their own grid, so the rail beside them never
+    takes part in sizing their rows: a row stretched to match the rail is how an
+    empty section turns back into the tall empty box this layout removes.
+  -->
+  <div class="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8">
+    <section class="grid min-w-0 gap-3 lg:col-span-2" data-testid="home-campus-now">
+      <h2 class="sr-only">{campusNow.title}</h2>
+      <!--
+        `items-start` so an unavailable or short card keeps its own height. Equal
+        rows turned the weather card into a tall empty box whenever the shuttle
+        board beside it had more rows than the weather had readings.
+      -->
+      <div class="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+        <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
+          {@render heading(
+            "h3",
+            CloudSunIcon,
+            data.copy.weather.title,
+            "/catalog/weather",
+            campusNow.weatherViewAll,
+          )}
+          {#if weather === null || weather.length === 0}
+            {@render note(campusNow.weatherUnavailable)}
+          {:else}
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
+              {#each weather as tile (tile.locationKey)}
+                <div class="min-w-0">
+                  <dt class="truncate text-muted-foreground text-sm">
+                    {data.copy.weather.locationNames[tile.locationKey] ?? tile.locationKey}
+                  </dt>
+                  <dd class="grid min-w-0 gap-1">
+                    <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                      {#if tile.temperature}
+                        <span class="font-semibold text-2xl tabular-nums tracking-tight">
+                          {tile.temperature}
+                        </span>
+                      {/if}
+                      <span class="min-w-0 truncate text-muted-foreground text-sm">
+                        {tile.condition}
+                      </span>
                     </span>
-                  {/if}
-                  <span class="min-w-0 truncate text-muted-foreground text-sm">
-                    {tile.condition}
+                    {#if tile.rangeLabel}
+                      <span class="hidden text-muted-foreground text-sm tabular-nums lg:block">
+                        {tile.rangeLabel}
+                      </span>
+                    {/if}
+                    {#if tile.hourly.length > 0}
+                      <span class="hidden min-w-0 flex-wrap gap-x-3 gap-y-1 lg:flex">
+                        <span class="sr-only">{campusNow.weatherHourly}</span>
+                        {#each tile.hourly as hour (hour.key)}
+                          <span class="grid shrink-0 justify-items-start">
+                            <span class="text-muted-foreground text-xs tabular-nums">
+                              {hour.label}
+                            </span>
+                            <span class="text-sm tabular-nums">{hour.temperature}</span>
+                          </span>
+                        {/each}
+                      </span>
+                    {/if}
+                  </dd>
+                </div>
+              {/each}
+            </dl>
+          {/if}
+        </div>
+
+        <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
+          {@render heading(
+            "h3",
+            BusFrontIcon,
+            pub.cards.bus.title,
+            "/catalog/bus",
+            campusNow.busViewAll,
+          )}
+          {#if bus === null}
+            {@render note(campusNow.busUnavailable)}
+          {:else if bus.departures.length === 0}
+            {@render note(bus.emptyNote)}
+          {:else}
+            {@render note(bus.originNote)}
+            <ul class="grid gap-1.5">
+              {#each bus.departures as departure, index (departure.key)}
+                <li
+                  class={overflowClass(
+                    index,
+                    "flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
+                    "hidden min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 lg:flex",
+                  )}
+                >
+                  <span class="min-w-0 truncate">{departure.destination}</span>
+                  <span class="flex shrink-0 items-baseline gap-2">
+                    <span class="tabular-nums">{departure.departureTime}</span>
+                    <span class="text-muted-foreground text-sm">
+                      {departure.relativeLabel}
+                    </span>
                   </span>
-                </dd>
-              </div>
-            {/each}
-          </dl>
-        {/if}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
       </div>
+    </section>
 
-      <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
-        {@render heading(
-          "h3",
-          BusFrontIcon,
-          pub.cards.bus.title,
-          "/catalog/bus",
-          campusNow.busViewAll,
-        )}
-        {#if bus === null}
-          {@render note(campusNow.busUnavailable)}
-        {:else if bus.departures.length === 0}
-          {@render note(bus.emptyNote)}
-        {:else}
-          {@render note(bus.originNote)}
-          <ul class="grid gap-1.5">
-            {#each bus.departures as departure (departure.key)}
-              <li class="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                <span class="min-w-0 truncate">{departure.destination}</span>
-                <span class="flex shrink-0 items-baseline gap-2">
-                  <span class="tabular-nums">{departure.departureTime}</span>
-                  <span class="text-muted-foreground text-sm">
-                    {departure.relativeLabel}
-                  </span>
-                </span>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      </div>
-    </div>
-  </section>
+    <section class="grid min-w-0 content-start gap-2" data-testid="home-notices">
+      {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
+      {#if notices === null}
+        {@render note(info.notices.unavailable)}
+      {:else}
+        {@render itemList(notices, info.notices.empty)}
+      {/if}
+    </section>
 
-  <section class="grid min-w-0 content-start gap-2" data-testid="home-notices">
-    {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
-    {#if notices === null}
-      {@render note(info.notices.unavailable)}
-    {:else}
-      {@render itemList(notices, info.notices.empty)}
-    {/if}
-  </section>
-
-  <section class="grid min-w-0 content-start gap-2" data-testid="home-activities">
-    {@render heading(
-      "h2",
-      SparklesIcon,
-      info.activities.title,
-      "/catalog/young-events",
-      info.activities.viewAll,
-    )}
-    {#if activities === null}
-      {@render note(info.activities.unavailable)}
-    {:else}
-      {@render itemList(activities, info.activities.empty)}
-    {/if}
-  </section>
+    <section class="grid min-w-0 content-start gap-2" data-testid="home-activities">
+      {@render heading(
+        "h2",
+        SparklesIcon,
+        info.activities.title,
+        "/catalog/young-events",
+        info.activities.viewAll,
+      )}
+      {#if activities === null}
+        {@render note(info.activities.unavailable)}
+      {:else}
+        {@render itemList(activities, info.activities.empty)}
+      {/if}
+    </section>
+  </div>
 
   <section
-    class="grid min-w-0 gap-3 rounded-lg border bg-muted/40 p-4 lg:col-span-2"
+    class="grid min-w-0 content-start gap-3 rounded-lg border bg-muted/40 p-4 xl:self-start"
     data-testid="home-sign-in"
   >
     <div class="grid gap-1">
@@ -269,16 +335,22 @@ const destinations = $derived([
       </p>
     </div>
     <div>
-      <Button class="h-10 min-w-28" href="/account/sign-in">
+      <Button class="h-10 min-w-28 xl:w-full" href="/account/sign-in">
         {home.actions.signIn}
       </Button>
     </div>
     <nav aria-label={pub.exploreLabel} class="grid gap-1">
       <span class="text-muted-foreground text-sm">{pub.exploreLabel}</span>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <!--
+        A row of links on the stacked layouts; one link per line in the rail,
+        where the column is too narrow to wrap them readably.
+      -->
+      <div
+        class="flex flex-wrap items-center gap-x-4 gap-y-1 xl:flex-col xl:items-stretch xl:gap-y-0"
+      >
         {#each destinations as destination (destination.href)}
           <Button
-            class="h-auto min-h-6 px-0"
+            class="h-auto min-h-6 px-0 xl:min-h-8 xl:justify-start"
             href={destination.href}
             size="sm"
             variant="link"

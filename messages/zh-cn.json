@@ -373,6 +373,8 @@
         "title": "此刻的校园",
         "weatherUnavailable": "天气数据暂不可用",
         "weatherViewAll": "天气详情",
+        "weatherRange": "今日 {high} / {low}",
+        "weatherHourly": "未来几小时",
         "busUnavailable": "校车班次暂不可用",
         "busEmpty": "今天从{campus}出发的班次已结束",
         "busOriginNote": "从{campus}出发",
