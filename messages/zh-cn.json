@@ -366,6 +366,35 @@
         }
       }
     },
+    "information": {
+      "campusNow": {
+        "title": "此刻的校园",
+        "weatherUnavailable": "天气数据暂不可用",
+        "weatherViewAll": "天气详情",
+        "busUnavailable": "校车班次暂不可用",
+        "busEmpty": "今天从{campus}出发的班次已结束",
+        "busOriginNote": "从{campus}出发",
+        "busMinutes": "{minutes} 分钟后",
+        "busDepartingNow": "即将发车",
+        "busViewAll": "全部班次"
+      },
+      "notices": {
+        "title": "最新通知",
+        "viewAll": "全部新闻与通知",
+        "unavailable": "通知暂不可用",
+        "empty": "暂无通知"
+      },
+      "activities": {
+        "title": "近期活动",
+        "viewAll": "全部第二课堂活动",
+        "unavailable": "活动暂不可用",
+        "empty": "暂无近期活动"
+      },
+      "signInPrompt": {
+        "title": "登录以同步课表与作业",
+        "description": "以上信息无需登录即可查看。登录后可同步个人课表、作业、考试与教学班订阅。"
+      }
+    },
     "quickAccess": {
       "title": "快速访问",
       "openWorkspace": {

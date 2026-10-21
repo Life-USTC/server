@@ -2,14 +2,22 @@ import { getAnonymousHomePageCopy } from "@/features/workspace/server/workspace-
 import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { loadAnonymousHomeInformation } from "./anonymous-home-sections";
 
 export async function loadAnonymousHomePage({
   locals,
 }: WorkspacePageLoadEvent) {
   const startMs = monotonicNowMs();
   const locale = locals.locale;
+  const copy = getAnonymousHomePageCopy(locale);
+  const information = await loadAnonymousHomeInformation({
+    copy,
+    locale,
+    requestId: locals.requestId,
+  });
   const data = {
-    copy: getAnonymousHomePageCopy(locale),
+    copy,
+    information,
     locale,
     signedIn: false as const,
   };

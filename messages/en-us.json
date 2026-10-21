@@ -366,6 +366,35 @@
         }
       }
     },
+    "information": {
+      "campusNow": {
+        "title": "Campus right now",
+        "weatherUnavailable": "Weather is unavailable right now",
+        "weatherViewAll": "Weather details",
+        "busUnavailable": "Shuttle departures are unavailable right now",
+        "busEmpty": "No more departures from {campus} today",
+        "busOriginNote": "Departing {campus}",
+        "busMinutes": "in {minutes} min",
+        "busDepartingNow": "Departing now",
+        "busViewAll": "All departures"
+      },
+      "notices": {
+        "title": "Latest notices",
+        "viewAll": "All news and notices",
+        "unavailable": "Notices are unavailable right now",
+        "empty": "No notices yet"
+      },
+      "activities": {
+        "title": "Upcoming activities",
+        "viewAll": "All second-classroom activities",
+        "unavailable": "Activities are unavailable right now",
+        "empty": "No upcoming activities"
+      },
+      "signInPrompt": {
+        "title": "Sign in to sync your schedule and homework",
+        "description": "Everything above is public. Sign in to sync your personal schedule, homework, exams, and section subscriptions."
+      }
+    },
     "quickAccess": {
       "title": "Quick Access",
       "openWorkspace": {

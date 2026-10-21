@@ -9,6 +9,7 @@ export {
 } from "./bus-preferences";
 export {
   getNextBusDepartures,
+  getNextDeparturesFromHubCampus,
   searchBusRoutes,
 } from "./bus-query-service";
 export {

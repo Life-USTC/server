@@ -1,11 +1,45 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getBusTabDataMock, getPublicCatalogLinksDataMock, logAppEventMock } =
-  vi.hoisted(() => ({
-    getBusTabDataMock: vi.fn(),
-    getPublicCatalogLinksDataMock: vi.fn(),
-    logAppEventMock: vi.fn(),
-  }));
+const {
+  getBusTabDataMock,
+  getNextDeparturesFromHubCampusMock,
+  getPublicCatalogLinksDataMock,
+  getWeatherSnapshotMock,
+  listPublicationsMock,
+  listYoungEventsMock,
+  logAppEventMock,
+  readWeatherCacheMock,
+} = vi.hoisted(() => ({
+  getBusTabDataMock: vi.fn(),
+  getNextDeparturesFromHubCampusMock: vi.fn(),
+  getPublicCatalogLinksDataMock: vi.fn(),
+  getWeatherSnapshotMock: vi.fn(),
+  listPublicationsMock: vi.fn(),
+  listYoungEventsMock: vi.fn(),
+  logAppEventMock: vi.fn(),
+  readWeatherCacheMock: vi.fn(),
+}));
+
+vi.mock("@/features/bus/server/bus-service", () => ({
+  getNextDeparturesFromHubCampus: getNextDeparturesFromHubCampusMock,
+}));
+
+vi.mock("@/features/weather/server/weather-cache", () => ({
+  readWeatherCache: readWeatherCacheMock,
+}));
+
+vi.mock("@/features/weather/server/weather-service", () => ({
+  getWeatherSnapshot: getWeatherSnapshotMock,
+}));
+
+vi.mock(
+  "@/features/publications/server/publication-public-read-service",
+  () => ({ listPublications: listPublicationsMock }),
+);
+
+vi.mock("@/features/young/server/young-event-service", () => ({
+  listYoungEvents: listYoungEventsMock,
+}));
 
 vi.mock("@/features/workspace/server/workspace-tab-data", () => ({
   getBusTabData: getBusTabDataMock,
@@ -36,21 +70,114 @@ const event = {
 describe("public page loaders", () => {
   beforeEach(() => {
     getBusTabDataMock.mockReset();
+    getNextDeparturesFromHubCampusMock.mockReset();
     getPublicCatalogLinksDataMock.mockReset();
+    getWeatherSnapshotMock.mockReset();
+    listPublicationsMock.mockReset();
+    listYoungEventsMock.mockReset();
     logAppEventMock.mockReset();
+    readWeatherCacheMock.mockReset();
+
+    readWeatherCacheMock.mockResolvedValue(null);
+    getWeatherSnapshotMock.mockResolvedValue(null);
+    getNextDeparturesFromHubCampusMock.mockResolvedValue(null);
+    listPublicationsMock.mockResolvedValue({ data: [] });
+    listYoungEventsMock.mockResolvedValue({ data: [] });
   });
 
-  it("keeps the anonymous home loader query-free", async () => {
+  it("loads the public information sections for the anonymous home page", async () => {
+    readWeatherCacheMock.mockResolvedValue({
+      current: { condition: { text: "Clear" }, temperature: 18.4 },
+    });
+    getNextDeparturesFromHubCampusMock.mockResolvedValue({
+      departures: [
+        {
+          departureTime: "18:40",
+          destinationCampus: { id: 2, namePrimary: "West" },
+          minutesUntilDeparture: 12,
+          tripId: 7,
+        },
+      ],
+      originCampus: { id: 1, namePrimary: "East" },
+    });
+    listPublicationsMock.mockResolvedValue({
+      data: [
+        {
+          id: "pub-1",
+          revision: { publishedAt: null, title: "Midterm schedule" },
+          source: { name: "Academic Affairs" },
+        },
+      ],
+    });
+    listYoungEventsMock.mockResolvedValue({
+      data: [
+        {
+          location: "Auditorium",
+          name: "Quantum lecture",
+          organizer: null,
+          startAt: null,
+          youngId: "young-1",
+        },
+      ],
+    });
+
     const result = await loadAnonymousHomePage(event);
 
-    expect(result).toMatchObject({
-      locale: "en-us",
-      signedIn: false,
-    });
-    expect(result).not.toHaveProperty("bus");
-    expect(result).not.toHaveProperty("publicLinks");
+    expect(result).toMatchObject({ locale: "en-us", signedIn: false });
+    expect(result.information.weather).toEqual([
+      { condition: "Clear", locationKey: "ustc-main", temperature: "18°" },
+      { condition: "Clear", locationKey: "ustc-gaoxin", temperature: "18°" },
+    ]);
+    expect(result.information.bus?.departures).toEqual([
+      {
+        departureTime: "18:40",
+        destination: "West",
+        key: "7-2",
+        relativeLabel: "in 12 min",
+      },
+    ]);
+    expect(result.information.notices).toEqual([
+      {
+        dateLabel: null,
+        href: "/news/pub-1",
+        key: "pub-1",
+        meta: "Academic Affairs",
+        title: "Midterm schedule",
+      },
+    ]);
+    expect(result.information.activities?.[0]?.href).toBe(
+      "/catalog/young-events/young-1",
+    );
+    // The landing page reads its own lean sections, never the heavy
+    // signed-in workspace tab payloads.
     expect(getBusTabDataMock).not.toHaveBeenCalled();
     expect(getPublicCatalogLinksDataMock).not.toHaveBeenCalled();
+  });
+
+  it("degrades one failing section without blanking the anonymous home page", async () => {
+    readWeatherCacheMock.mockRejectedValue(new Error("weather upstream down"));
+    getWeatherSnapshotMock.mockRejectedValue(
+      new Error("weather upstream down"),
+    );
+    listPublicationsMock.mockResolvedValue({
+      data: [
+        {
+          id: "pub-1",
+          revision: { publishedAt: null, title: "Midterm schedule" },
+          source: { name: "Academic Affairs" },
+        },
+      ],
+    });
+
+    const result = await loadAnonymousHomePage(event);
+
+    expect(result.information.weather).toBeNull();
+    expect(result.information.notices).toHaveLength(1);
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "home.section.degraded",
+      expect.objectContaining({ section: "weather" }),
+    );
   });
 
   it("loads only bus data for the public bus page", async () => {
