@@ -50,7 +50,7 @@ onMount(() => {
     <Sheet.Root bind:open>
       <Sheet.Trigger>
         {#snippet child({ props })}
-          <Button {...props} type="button" variant="outline" class="{toolbarControlClass} order-2 md:order-4" aria-label={activeCount ? `${filterTitle} (${activeCount})` : filterTitle}>
+          <Button {...props} type="button" variant="outline" class="{toolbarControlClass} order-2 md:order-4">
             <SlidersHorizontalIcon data-icon="inline-start" aria-hidden="true" />
             <span class="max-md:sr-only">{filterTitle}</span>
             {#if activeCount}<Badge variant="secondary">{activeCount}</Badge>{/if}
