@@ -232,7 +232,9 @@ requirements:
     given: An authenticated viewer opens the overview on desktop or mobile.
     when: The real overview renders its focus, urgency, upcoming and links sections.
     then:
-    - The rendered document and vertical position follow the declared section order at 390 and 1280 pixels in both locales without horizontal page overflow.
+    - The rendered document order follows the declared section order at 390 and 1280 pixels in both locales without horizontal page overflow.
+    - Mobile stacks every section as one full-width column in that order.
+    - Desktop keeps focus at full content width above the lists, pairs urgency and upcoming as the left and right halves of one row with the first row of each visible without scrolling, and places the full-width shortcuts below both.
     - A focus item is omitted from urgency and upcoming; each remaining task appears only once, and full calendar, homework, todo and exam destinations remain linked.
     test:
       file: tests/e2e/src/app/workspace/overview-order.test.ts
