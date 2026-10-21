@@ -13,6 +13,13 @@ Shared UI primitives and layout components.
 - Feature-specific UI stays under `src/features/<feature>/components`.
 - Prefer the local UI wrapper components here over direct primitive-library
   usage in feature code.
+- `ui/` holds stock shadcn-svelte primitives, added and updated through the
+  registry in `components.json`. Keep them stock: never fork a primitive, add a
+  local variant to one, or hand-extend its markup in place. A forked primitive
+  stops tracking upstream, so every upstream fix has to be rediscovered by hand
+  and the bugs upstream already fixed come back. Composition goes outside the
+  primitive - a wrapper in this directory, or the feature component that uses
+  it.
 - Content pages copy `CollectionPage`. List pages fill title, actions, an
   optional note, toolbar, results, and pagination. Set `panel={false}` when
   the body is several `Panel` sections. Set `layout="detail"` and fill `aside`
