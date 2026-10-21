@@ -82,7 +82,19 @@ test("priority fields reject transparent and hidden elements through their ances
           // real-page assertions retain their normal readiness timeout.
           await expect(
             assertPriorityView(check(), { timeout: 100 }),
-          ).rejects.toThrow();
+          ).rejects.toMatchObject({
+            ...(style === "opacity:0"
+              ? {
+                  message: expect.stringMatching(
+                    /expected field must be visibly painted, including its ancestors[\s\S]*Received:[\s\S]*false/,
+                  ),
+                }
+              : {}),
+            matcherResult: {
+              name: style === "opacity:0" ? "toBe" : "toBeVisible",
+              ...(style === "visibility:hidden" ? { actual: "hidden" } : {}),
+            },
+          });
         });
       }
     }
