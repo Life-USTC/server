@@ -11,6 +11,7 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "#lib/shell/layout-server-data.js";
+import { cn } from "#lib/utils.js";
 import AppUserMenu from "./AppUserMenu.svelte";
 import { FEATURE_HUB_PATH } from "./navigation";
 import SettingsGlyph from "./SettingsGlyph.svelte";
@@ -236,9 +237,11 @@ function closeMobileSidebar(): void {
                         <Sidebar.MenuAction
                           aria-expanded={submenuOpen}
                           aria-label={link.label}
-                          class={link.badge != null && link.badge > 0
-                            ? "right-8"
-                            : undefined}
+                          class={cn(
+                            // WCAG 2.2 SC 2.5.8 needs 24x24; the chevron stays 16px.
+                            "top-1 w-6 peer-data-[size=default]/menu-button:top-1",
+                            link.badge != null && link.badge > 0 && "right-8",
+                          )}
                           onclick={(event) => {
                             event.preventDefault();
                             setSubmenuOpen(
@@ -381,7 +384,7 @@ function closeMobileSidebar(): void {
         >
           {#each footerLinks as link}
             <a
-              class="transition-colors hover:text-foreground"
+              class="py-1.5 transition-colors hover:text-foreground"
               href={link.href}
               rel={link.rel}
               target={link.target}

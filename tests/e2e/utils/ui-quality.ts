@@ -210,10 +210,10 @@ export async function auditAccessibility(
   type AxePage = ConstructorParameters<typeof AxeBuilder>[0]["page"];
   const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    // Contrast, link-color, and target-size fixes intentionally change the
-    // visual system. Keep this PR's no-visual-change contract structural and
-    // track those visual accessibility checks separately.
-    .disableRules(["color-contrast", "link-in-text-block", "target-size"])
+    // Contrast and link-color fixes intentionally change the visual system and
+    // are tracked separately. `target-size` (WCAG 2.2 SC 2.5.8) is enforced:
+    // every shell control clears 24x24.
+    .disableRules(["color-contrast", "link-in-text-block"])
     .analyze();
 
   return results.violations
