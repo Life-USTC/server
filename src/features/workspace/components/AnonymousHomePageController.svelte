@@ -156,7 +156,12 @@ const destinations = $derived([
     <h1 class="text-pretty font-semibold text-xl tracking-tight sm:text-2xl">
       {pub.title}
     </h1>
-    <p class="hidden max-w-2xl text-pretty text-muted-foreground text-sm sm:block">
+    <!--
+      Kept visible at every width: ui.model-property-priority-discovery-views
+      asserts the landing identity as primary and this description as its
+      secondary property at both 1280 and 390.
+    -->
+    <p class="max-w-2xl text-pretty text-muted-foreground text-sm">
       {pub.description}
     </p>
   </header>

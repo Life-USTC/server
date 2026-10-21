@@ -5,6 +5,7 @@ import { WEATHER_LOCATIONS } from "@/features/weather/server/weather-types";
 import { buildSocialMetadata } from "@/lib/social-metadata";
 import enUsMessages from "../../../messages/en-us.json" with { type: "json" };
 import zhCnMessages from "../../../messages/zh-cn.json" with { type: "json" };
+import { appSidebar } from "./locators";
 import { gotoAndWaitForReady } from "./page-ready";
 
 export async function showWeatherFixture(
@@ -108,7 +109,10 @@ export async function showWeatherFixture(
   if ((page.viewportSize()?.width ?? 1280) < 768) {
     await page.locator('[data-slot="sidebar-trigger"]').click();
   }
-  await page.locator('a[href="/catalog/weather"]').first().click();
+  // Scope to the sidebar: the anonymous landing page links to /catalog/weather
+  // from its own campus-weather card, and on mobile the open sidebar sheet
+  // covers that in-page link so a document-wide `.first()` never settles.
+  await appSidebar(page).locator('a[href="/catalog/weather"]').first().click();
   await expect(
     page.locator('[data-testid="weather-hourly-chart"]:visible'),
   ).toHaveCount((page.viewportSize()?.width ?? 1280) < 768 ? 1 : 2);

@@ -1,7 +1,6 @@
 import { getNextDeparturesFromHubCampus } from "@/features/bus/server/bus-service";
 import { listPublications } from "@/features/publications/server/publication-public-read-service";
 import { readWeatherCache } from "@/features/weather/server/weather-cache";
-import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
   WEATHER_LOCATIONS,
   type WeatherLocationKey,
@@ -23,18 +22,20 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
  * it is why these reads must stay cheap: each one is on the critical path of a
  * cold landing request.
  *
- * The sections are read in parallel and each is isolated behind a budget. A
+ * The sections are read in parallel and each is isolated behind the budget. A
  * read that throws or overruns resolves to `null`, that section renders its
  * "unavailable" copy, and the rest of the page is unaffected — so no single
  * upstream can blank or stall the landing page.
  *
- * Bus, notices and activities only touch PostgreSQL and the process caches, so
- * they get the short budget. Weather is the one section that can reach the
- * public internet, and only when its KV entry is entirely cold; it gets a
- * longer one so a cold start still resolves instead of showing an empty card.
+ * Every section here reads PostgreSQL, KV or a process cache and nothing else.
+ * In particular weather is deliberately cache-only: `getWeatherSnapshot` would
+ * fall through to AMap/Open-Meteo on a stale entry and then write back to the
+ * cache and the history table, which is cron work, not landing-page work. The
+ * 20- and 30-minute weather crons keep the entry warm within its one-hour
+ * expiry; a genuinely cold entry degrades to the unavailable card instead of
+ * putting a provider round trip in front of every anonymous visitor.
  */
 const SECTION_BUDGET_MS = 1_500;
-const WEATHER_BUDGET_MS = 4_000;
 
 const NOTICE_LIMIT = 3;
 const ACTIVITY_LIMIT = 3;
@@ -114,13 +115,7 @@ async function readSection<T>(
 async function readWeather(): Promise<HomeWeatherTile[]> {
   const tiles = await Promise.all(
     WEATHER_LOCATIONS.map(async (location) => {
-      // Prefer whatever the weather crons last stored. A temperature a few
-      // minutes old beats an empty card, and it keeps the providers off this
-      // page's critical path; only a completely cold entry falls through to
-      // the refreshing reader, which the section budget still bounds.
-      const snapshot =
-        (await readWeatherCache(location.key)) ??
-        (await getWeatherSnapshot(location.key));
+      const snapshot = await readWeatherCache(location.key);
       if (!snapshot) return null;
       const temperature = snapshot.current.temperature;
       return {
@@ -220,7 +215,7 @@ export async function loadAnonymousHomeInformation(input: {
 }): Promise<AnonymousHomeInformation> {
   const { copy, locale, requestId } = input;
   const [weather, bus, notices, activities] = await Promise.all([
-    readSection("weather", requestId, readWeather, WEATHER_BUDGET_MS),
+    readSection("weather", requestId, readWeather),
     readSection("bus", requestId, () => readBus(locale, copy)),
     readSection("notices", requestId, () => readNotices(locale)),
     readSection("activities", requestId, () => readActivities(locale)),
