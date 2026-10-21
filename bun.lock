@@ -11,7 +11,7 @@
         "@better-auth/oauth-provider": "1.7.10",
         "@better-auth/passkey": "1.7.10",
         "@escape.tech/graphql-armor": "3.2.0",
-        "@graphql-tools/executor": "2.0.5",
+        "@graphql-tools/executor": "2.1.0",
         "@graphql-yoga/plugin-disable-introspection": "2.25.6",
         "@internationalized/date": "^3.12.4",
         "@lucide/svelte": "^1.59.0",
@@ -353,7 +353,7 @@
 
     "@floating-ui/vue": ["@floating-ui/vue@1.1.9", "", { "dependencies": { "@floating-ui/dom": "^1.7.4", "@floating-ui/utils": "^0.2.10", "vue-demi": ">=0.13.0" } }, "sha512-BfNqNW6KA83Nexspgb9DZuz578R7HT8MZw1CfK9I6Ah4QReNWEJsXWHN+SdmOVLNGmTPDi+fDT535Df5PzMLbQ=="],
 
-    "@graphql-tools/executor": ["@graphql-tools/executor@2.0.5", "", { "dependencies": { "@graphql-tools/utils": "^12.1.0", "@graphql-typed-document-node/core": "^3.2.0", "@repeaterjs/repeater": "^3.1.0", "@whatwg-node/disposablestack": "^0.1.0", "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-9pdJ4YPRKlBbLi19dqpvrQ9NAnJyD3Oj2hBGEnl07hLstq0tnFuKg6r30qCO4UmEfTPk5AVALHEzDcDhFzt/fg=="],
+    "@graphql-tools/executor": ["@graphql-tools/executor@2.1.0", "", { "dependencies": { "@graphql-tools/utils": "^12.1.0", "@graphql-typed-document-node/core": "^3.2.0", "@repeaterjs/repeater": "^3.1.0", "@whatwg-node/disposablestack": "^0.1.0", "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-RR41E8r1FKrHhZS5YhdcUg04GZ5VP6VGaO2MQKkmEEazXx6qY4kuzZYLs4kq+DBzPdNmsRdVsf7K/uTfi5fhAA=="],
 
     "@graphql-tools/merge": ["@graphql-tools/merge@9.2.8", "", { "dependencies": { "@graphql-tools/utils": "^12.1.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-OsCEmJ9RIMT4LB/1jBbyKHe7pMIlfGhLAQ0FVNaZqteydDUC+rTI9wZ+yaKqxQpPOFFycD+UtMhovg19lPq92Q=="],
 
