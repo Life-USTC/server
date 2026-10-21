@@ -102,7 +102,7 @@ function handleCellKeydown(event: KeyboardEvent, index: number) {
               aria-rowindex={rowIndex + 1}
               aria-selected={selectedCellLabel === label}
               bind:this={cellElements[cellIndex]}
-              class="flex size-6 items-center justify-center rounded-sm p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:size-4"
+              class="flex size-6 items-center justify-center rounded-sm p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               data-count={day.count}
               data-date={day.date}
               data-profile-contribution-cell
@@ -122,7 +122,7 @@ function handleCellKeydown(event: KeyboardEvent, index: number) {
               <span
                 aria-hidden="true"
                 class={cn(
-                  "size-4 rounded-[2px] sm:size-3",
+                  "size-4 rounded-[2px]",
                   heatmapClass(day.count),
                 )}
               ></span>
@@ -149,12 +149,9 @@ function handleCellKeydown(event: KeyboardEvent, index: number) {
 
 <style>
   .profile-heatmap {
+    /* One cell size at every width: WCAG 2.2 SC 2.5.8 needs 24 CSS px, and the
+       grid scrolls horizontally at every width anyway, so shrinking the cells
+       on wider viewports bought no extra visible weeks. */
     --heatmap-column-size: 1.5rem;
-  }
-
-  @media (min-width: 640px) {
-    .profile-heatmap {
-      --heatmap-column-size: 1rem;
-    }
   }
 </style>
