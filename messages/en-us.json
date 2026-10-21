@@ -733,6 +733,7 @@
     "tags": "Tags"
   },
   "workspace": {
+    "stack": { "urgency": "Needs attention", "upcoming": "Coming up" },
     "title": "Workspace",
     "description": "Hi {name}, this workspace brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi, {name}",

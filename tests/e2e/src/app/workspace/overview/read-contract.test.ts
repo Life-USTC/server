@@ -368,7 +368,7 @@ for (const method of ["Web", "MCP"] as const) {
             /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
           );
 
-          const summaries = page.getByTestId("workspace-overview-summaries");
+          const summaries = page.locator("[data-overview-sections]");
           await expect(summaries).not.toContainText(
             /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
           );

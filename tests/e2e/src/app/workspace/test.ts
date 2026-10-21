@@ -290,9 +290,9 @@ test.describe("仪表盘", () => {
     );
   });
 
-  test("中文总览周视图使用本地化星期标签", { tag: "@Site/Web" }, async ({
+  test("中文总览按需显示纵向内容", { tag: "@Site/Web" }, async ({
     page,
-    account: _account,
+    homeworkStates: _homeworkStates,
     homeworkRun,
   }) => {
     await homeworkRun(
@@ -309,10 +309,17 @@ test.describe("仪表盘", () => {
         await gotoAndWaitForReady(page, "/workspace/overview");
         await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
 
-        const weekCard = page.getByTestId("workspace-overview-week");
-        await expect(weekCard).toBeVisible();
-        await expect(weekCard.getByText("周日", { exact: true })).toBeVisible();
-        await expect(weekCard.getByText("Sun", { exact: true })).toHaveCount(0);
+        await expect(page.getByTestId("workspace-overview-week")).toHaveCount(
+          0,
+        );
+        await expect(
+          page.getByTestId("workspace-overview-urgency"),
+        ).toBeVisible();
+        await expect(
+          page
+            .getByTestId("workspace-overview-urgency")
+            .getByRole("heading", { name: "需要关注" }),
+        ).toBeVisible();
       },
       { calendarMessages: [], calendarTokenCreated: false },
     );
