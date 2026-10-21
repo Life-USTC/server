@@ -7,6 +7,7 @@
 | GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
 | Release | successful CI on main | Tags and GitHub release notes; no main-branch commits |
+| Deployment ordering | push main / manual | Verify the commit production serves against the newest built main commit |
 | Copilot Setup Steps | manual / setup changes | Copilot bootstrap validation |
 
 Scheduled maintenance workflows may also exist for static sync. Treat their
@@ -17,7 +18,10 @@ docs.
 
 - Align Bun with `.bun-version`; no Node setup steps.
 - App-exercising workflows provision their own Postgres + `DATABASE_URL`.
-- Production deploy is Cloudflare Git integration only.
+- Production deploy is Cloudflare Git integration only. Deployment-ordering
+  verification observes the delivered commit after every observed build has
+  finished and fails loudly; it never deploys, holds no deployment credential,
+  and stays out of `ci.yml` so advancing main cannot rerun current-head CI.
 - Docker is local infra, CI services, and the static loader image only.
 - Declare each CI responsibility directly in `ci.yml`. Shared composite actions only
   install dependencies or prepare test database roles; keep test commands in jobs.

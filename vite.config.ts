@@ -81,6 +81,22 @@ export function assetInlineDecision(filePath: string) {
   return FONT_ASSET_PATTERN.test(filePath) ? false : undefined;
 }
 
+// Cloudflare Workers Builds exposes the commit it is building. Naming the app
+// version after that commit makes the version SvelteKit already publishes at
+// `/_app/version.json` state which main commit the live deployment was built
+// from, which is what deployment-ordering verification compares against the
+// newest successfully built main commit. Builds without the variable keep
+// SvelteKit's build-time default.
+const BUILD_COMMIT_ENV = "WORKERS_CI_COMMIT_SHA";
+
+export function resolveAppVersionName(
+  environment: Record<string, string | undefined>,
+  fallback: () => string = () => Date.now().toString(),
+) {
+  const commit = environment[BUILD_COMMIT_ENV]?.trim();
+  return commit && /^[0-9a-f]{40}$/.test(commit) ? commit : fallback();
+}
+
 export default defineConfig(({ command }) => ({
   build: {
     assetsInlineLimit: assetInlineDecision,
@@ -131,6 +147,7 @@ export default defineConfig(({ command }) => ({
         "@/*": "./src/*",
       },
       files: { assets: "public" },
+      version: { name: resolveAppVersionName(process.env) },
     }),
   ],
   ssr: {
