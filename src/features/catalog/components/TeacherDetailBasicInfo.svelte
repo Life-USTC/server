@@ -18,7 +18,7 @@ export let teacher: TeacherDetailTeacher;
     <dt class={detailDefinitionTermClass}>{copy.teacherDetail.email}</dt>
     <dd class="m-0 min-w-0 break-all font-medium">
       <Button
-        class="h-auto justify-start whitespace-normal break-all p-0 text-left"
+        class="h-auto min-h-11 justify-start whitespace-normal break-all p-0 text-left md:min-h-6"
         href={`mailto:${teacher.email}`}
         variant="link"
       >
