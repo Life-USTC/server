@@ -2,8 +2,12 @@
 import { Badge } from "#lib/components/ui/badge/index.js";
 import type { AdminBusCopy, AdminBusVersion } from "./admin-bus-types";
 
-export let copy: AdminBusCopy;
-export let version: AdminBusVersion;
+interface Props {
+  copy: AdminBusCopy;
+  version: AdminBusVersion;
+}
+
+let { copy, version }: Props = $props();
 </script>
 
 {#if version.isEnabled}

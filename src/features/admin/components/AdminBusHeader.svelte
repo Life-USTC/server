@@ -4,10 +4,14 @@ import PageHeader from "#lib/components/PageHeader.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import type { AdminBusCopy, AdminBusHeaderAdminCopy } from "./admin-bus-types";
 
-export let adminCopy: AdminBusHeaderAdminCopy;
-export let copy: AdminBusCopy;
-export let disabled = false;
-export let onImport: () => void;
+interface Props {
+  adminCopy: AdminBusHeaderAdminCopy;
+  copy: AdminBusCopy;
+  disabled?: boolean;
+  onImport: () => void;
+}
+
+let { adminCopy, copy, disabled = false, onImport }: Props = $props();
 </script>
 
 <PageHeader title={copy.title} description={copy.subtitle} eyebrow={adminCopy.title}>

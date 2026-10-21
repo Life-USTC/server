@@ -1,10 +1,14 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
 
-export let form:
-  | { message?: string; variant?: "destructive" | "default" }
-  | null
-  | undefined;
+interface Props {
+  form:
+    | { message?: string; variant?: "destructive" | "default" }
+    | null
+    | undefined;
+}
+
+let { form }: Props = $props();
 </script>
 
 {#if form?.message && form.variant === "destructive"}

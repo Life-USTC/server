@@ -7,11 +7,15 @@ import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
 import type { AdminBusCopy, AdminBusEnhancedAction } from "./admin-bus-types";
 
-export let close: () => void;
-export let copy: AdminBusCopy;
-export let enhancedAction: AdminBusEnhancedAction;
-export let isPending: (actionKey: string) => boolean;
-export let pendingAction: string | null;
+interface Props {
+  close: () => void;
+  copy: AdminBusCopy;
+  enhancedAction: AdminBusEnhancedAction;
+  isPending: (actionKey: string) => boolean;
+  pendingAction: string | null;
+}
+
+let { close, copy, enhancedAction, isPending, pendingAction }: Props = $props();
 </script>
 
 <Dialog.Root
