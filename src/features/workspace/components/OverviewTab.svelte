@@ -10,6 +10,10 @@ import {
   pendingTodosForOverview,
   todosOverdueForOverview,
 } from "@/features/workspace/lib/overview";
+import {
+  OVERVIEW_FULL_WIDTH_CLASS,
+  overviewListPlacement,
+} from "@/features/workspace/lib/overview-layout";
 import { buildOverviewStack } from "@/features/workspace/lib/overview-stack";
 import {
   buildWorkspaceAgendaDays,
@@ -223,15 +227,23 @@ function overviewStack(
     {@const agendaDays = overviewAgendaDays(overviewCalendar, visibleYoungItems)}
     {@const focus = overviewFocus(overviewCalendar, agendaDays, visibleYoungItems)}
     {@const stack = overviewStack(agendaDays, focus?.key)}
-    <div class="grid min-w-0 gap-8 lg:gap-10" data-overview-sections>
+    {@const listPlacement = overviewListPlacement({
+      upcoming: stack.upcoming.length,
+      urgency: stack.urgency.length,
+    }).list}
+    <div
+      class="grid min-w-0 gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-10"
+      data-overview-sections
+    >
       <OverviewFocusCard
+        class={OVERVIEW_FULL_WIDTH_CLASS}
         copy={workspaceCopy.focus}
         loadingLabel={youngLoading ? activityCopy.youngEvents.workspace.loading : null}
         {focus}
       />
 
       {#if youngFailed}
-        <div class="grid gap-2">
+        <div class={`grid gap-2 ${OVERVIEW_FULL_WIDTH_CLASS}`}>
           <p role="alert">{activityCopy.youngEvents.workspace.failed}</p>
           <Button class="justify-self-start" variant="outline" onclick={() => requestedRange = ""}>{activityCopy.youngEvents.workspace.retry}</Button>
         </div>
@@ -239,6 +251,8 @@ function overviewStack(
 
       {#if stack.urgency.length > 0}
         <OverviewTimelineSection
+          class={listPlacement.class}
+          wide={listPlacement.wide}
           testId="workspace-overview-urgency"
           title={workspaceCopy.stack.urgency}
           items={stack.urgency}
@@ -252,6 +266,8 @@ function overviewStack(
 
       {#if stack.upcoming.length > 0}
         <OverviewTimelineSection
+          class={listPlacement.class}
+          wide={listPlacement.wide}
           testId="workspace-overview-upcoming"
           title={workspaceCopy.stack.upcoming}
           items={stack.upcoming}
@@ -267,6 +283,7 @@ function overviewStack(
 
       {#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasWorkspaceSubscriptions(signedData)}
         <OverviewTermSelectionCard
+          class={OVERVIEW_FULL_WIDTH_CLASS}
           workspaceCopy={workspaceCopy}
           workspaceTabHref={workspaceTabHref}
           description={signedData.overview.currentTermName
@@ -279,6 +296,7 @@ function overviewStack(
 
       {#if overviewLinkItems.length > 0}
       <OverviewLinksGrid
+        class={OVERVIEW_FULL_WIDTH_CLASS}
         workspaceCopy={workspaceCopy}
         workspaceTabHref={workspaceTabHref}
         linkIconLabel={linkIconLabel}

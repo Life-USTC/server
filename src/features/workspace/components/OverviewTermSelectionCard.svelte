@@ -13,9 +13,12 @@ export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let description: string;
 export let historyCalendarSemesterId: number | null = null;
 export let showHistoryActions = false;
+let className = "";
+
+export { className as class };
 </script>
 
-<OverviewSection testId="workspace-overview-term-context" title={workspaceCopy.termSelection.title}>
+<OverviewSection class={className} testId="workspace-overview-term-context" title={workspaceCopy.termSelection.title}>
   <SoftEmptyMessage message={description} />
   <div class="mt-1 flex flex-wrap gap-2">
     <Button href={workspaceTabHref("subscriptions")}>

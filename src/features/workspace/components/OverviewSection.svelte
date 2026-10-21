@@ -1,10 +1,12 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
+import { cn } from "#lib/utils.js";
 
 type Props = {
   action?: Snippet;
   children: Snippet;
+  class?: string;
   href?: string | null;
   testId?: string;
   title: string;
@@ -16,6 +18,7 @@ type Props = {
 let {
   action,
   children,
+  class: className = "",
   href = null,
   testId,
   title,
@@ -25,11 +28,12 @@ let {
 }: Props = $props();
 </script>
 
-<section class="grid gap-3" data-testid={testId}>
+<section class={cn("grid min-w-0 content-start gap-3", className)} data-testid={testId}>
   <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
     <h2 class="text-base font-semibold tracking-tight">
       {#if href}
-        <a class="hover:underline" href={href}>{title}</a>
+        <!-- WCAG 2.2 SC 2.5.8: the heading link keeps a 24px target. -->
+        <a class="inline-flex min-h-6 items-center hover:underline" href={href}>{title}</a>
       {:else}
         {title}
       {/if}

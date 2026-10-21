@@ -12,6 +12,9 @@ export let copy: {
 };
 export let focus: WorkspaceFocusItem | null;
 export let loadingLabel: string | null;
+let className = "";
+
+export { className as class };
 
 function statusLabel(status: WorkspaceFocusItem["status"]) {
   if (status === "now") return copy.now;
@@ -20,14 +23,14 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
 }
 </script>
 
-<OverviewSection testId="workspace-overview-focus" title={copy.title}>
+<OverviewSection class={className} testId="workspace-overview-focus" title={copy.title}>
   {#if focus}
     <a
-      class="grid gap-2 rounded-lg py-1 transition-colors hover:bg-muted/40 -mx-2 px-2"
+      class="-mx-2 grid gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-muted/40 lg:mx-0 lg:gap-1.5 lg:rounded-xl lg:border lg:bg-muted/25 lg:px-5 lg:py-4 lg:hover:bg-muted/50"
       href={focus.href}
     >
-      <div class="grid gap-2">
-        <div data-testid="overview-focus-title" class="font-medium text-lg tracking-tight">{focus.title}</div>
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <div data-testid="overview-focus-title" class="min-w-0 break-words font-medium text-lg tracking-tight lg:text-xl">{focus.title}</div>
         <div class="flex flex-wrap items-center gap-2 text-sm">
           <Badge data-testid="overview-focus-status" variant={focus.status === "urgent" ? "destructive" : "secondary"}>
             {statusLabel(focus.status)}
@@ -38,12 +41,12 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
           {/if}
         </div>
       </div>
-      <div class="grid gap-1 text-muted-foreground text-sm">
-        <div class="text-xs">
+      <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-muted-foreground text-sm">
+        <span class="text-xs">
           <span data-testid="overview-focus-weekday">{focus.weekdayLabel}</span> · <span data-testid="overview-focus-date">{focus.dateLabel}</span>
-        </div>
+        </span>
         {#if focus.detail}
-          <p data-testid="overview-focus-detail">{focus.detail}</p>
+          <p class="min-w-0 break-words" data-testid="overview-focus-detail">{focus.detail}</p>
         {/if}
       </div>
     </a>

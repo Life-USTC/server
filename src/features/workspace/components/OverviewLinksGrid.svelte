@@ -19,6 +19,9 @@ export let submitWorkspaceLinkPin: (
   action: "pin" | "unpin",
 ) => void;
 export let updatingCatalogLinkSlug: string | null;
+let className = "";
+
+export { className as class };
 
 const previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 $: previewLinks = links.slice(0, previewLimit);
@@ -35,6 +38,7 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
 </script>
 
 <OverviewSection
+  class={className}
   href="/catalog/links"
   testId="workspace-overview-links"
   title={workspaceCopy.linkHub.title}
@@ -42,7 +46,7 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
   viewAllLabel={workspaceCopy.viewAll as string}
   viewAllVisible={links.length > previewLimit}
 >
-    <div class="grid min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div class="grid min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-4">
       {#each previewLinks as link}
         <div class="group relative min-w-0">
           <a

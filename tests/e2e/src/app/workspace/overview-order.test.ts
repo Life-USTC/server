@@ -2,6 +2,10 @@ import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 
+type Bounds = { x: number; y: number; width: number; height: number };
+/** The overview pairs its two lists from the shared `lg` breakpoint. */
+const DESKTOP_COLUMN_WIDTH = 1024;
+
 test("overview.card-order", { tag: "@Overview/Web" }, async ({
   page,
   isolatedWorker,
@@ -189,14 +193,62 @@ test("overview.card-order", { tag: "@Overview/Web" }, async ({
               .locator(`nav a[href="/workspace/${tab}"]`),
           ).toBeVisible();
         }
-        let previousBottom = 0;
+        const bounds: Record<string, Bounds> = {};
         for (const id of items) {
           const section = page.getByTestId(id);
           await expect(section).toBeVisible();
           const box = await section.boundingBox();
           if (!box) throw new Error(`Missing section bounds: ${id}`);
-          expect(box.y).toBeGreaterThanOrEqual(previousBottom);
-          previousBottom = box.y + box.height;
+          bounds[id] = box;
+        }
+        const frame = await page
+          .locator("[data-overview-sections]")
+          .boundingBox();
+        if (!frame) throw new Error("Missing overview frame bounds");
+        const focus = bounds["workspace-overview-focus"];
+        const urgency = bounds["workspace-overview-urgency"];
+        const upcoming = bounds["workspace-overview-upcoming"];
+        const links = bounds["workspace-overview-links"];
+        // Focus keeps the full content width above every list at both widths.
+        expect(focus.width).toBeGreaterThanOrEqual(frame.width - 1);
+        for (const band of [urgency, upcoming, links])
+          expect(band.y).toBeGreaterThanOrEqual(focus.y + focus.height);
+        if (width >= DESKTOP_COLUMN_WIDTH) {
+          // Desktop pairs the two lists in one row: urgency owns the left
+          // half, upcoming the right half, and neither may claim the width
+          // the other needs.
+          expect(Math.abs(urgency.y - upcoming.y)).toBeLessThanOrEqual(1);
+          expect(urgency.x).toBeLessThanOrEqual(frame.x + 1);
+          expect(urgency.x + urgency.width).toBeLessThanOrEqual(upcoming.x);
+          expect(upcoming.x + upcoming.width).toBeGreaterThanOrEqual(
+            frame.x + frame.width - 1,
+          );
+          for (const list of [urgency, upcoming])
+            expect(list.width).toBeLessThan(frame.width * 0.55);
+          // Shortcuts span the full width under both lists.
+          expect(links.width).toBeGreaterThanOrEqual(frame.width - 1);
+          expect(links.y).toBeGreaterThanOrEqual(
+            Math.max(urgency.y + urgency.height, upcoming.y + upcoming.height),
+          );
+          // The paired row is the point of the desktop layout: the first row
+          // of both lists is readable without scrolling.
+          for (const id of [
+            "workspace-overview-urgency",
+            "workspace-overview-upcoming",
+          ])
+            await expect(
+              page.getByTestId(id).locator("a[data-overview-item]").first(),
+            ).toBeInViewport();
+        } else {
+          // Mobile keeps one strictly stacked column.
+          let previousBottom = 0;
+          for (const id of items) {
+            const box = bounds[id];
+            expect(box.x).toBeLessThanOrEqual(frame.x + 1);
+            expect(box.width).toBeGreaterThanOrEqual(frame.width - 1);
+            expect(box.y).toBeGreaterThanOrEqual(previousBottom);
+            previousBottom = box.y + box.height;
+          }
         }
       }
     }
