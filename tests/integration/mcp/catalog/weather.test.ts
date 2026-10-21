@@ -42,7 +42,7 @@ const contractTest = anonymousMcpTest.extend(
           extensions: {},
         };
       }
-      async function graphql(locationKey: string) {
+      async function graphql(locationKey: string, fields = "temperature") {
         const response = await protocolRuntime.request(() =>
           createGraphqlYoga(false).fetch(
             "https://example.test/api/graphql",
@@ -50,8 +50,7 @@ const contractTest = anonymousMcpTest.extend(
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
-                query:
-                  "query($key: String!) { catalog { weather(locationKey: $key) { location { key } current { temperature } } } }",
+                query: `query($key: String!) { catalog { weather(locationKey: $key) { location { key } current { ${fields} } } } }`,
                 variables: { key: locationKey },
               }),
             },
@@ -259,6 +258,59 @@ for (const method of ["REST", "MCP"] as const) {
               expect(compact).not.toHaveProperty("extensions");
               expect(compact).toMatchObject({ current: { temperature: 22 } });
             }
+          }
+        }),
+      ),
+  );
+}
+
+for (const method of ["REST", "GraphQL", "MCP"] as const) {
+  contractTest(
+    `weather.current-observation-provenance / ${method}`,
+    { tags: [`@Weather/${method}`] },
+    async ({ protocolRuntime, state, expect }) =>
+      protocolRuntime.run(() =>
+        weatherContext.run(state.mocks, async () => {
+          const { mocks, snapshot, graphql, client, request } = state;
+          const observedAt = "2026-10-20T13:33:49.000Z";
+          for (const source of ["amap", "open-meteo"] as const) {
+            mocks.readCache = async (key) => ({
+              ...snapshot(key),
+              current: {
+                temperature: 16,
+                condition: { text: "小雨", icon: "unknown" },
+                source,
+                ...(source === "amap" ? { observedAt } : {}),
+              },
+            });
+            let current: { source?: string; observedAt?: string | null };
+            if (method === "REST") {
+              const response = await request(() =>
+                getWeatherRoute(
+                  new Request(
+                    "https://example.test/api/catalog/weather?locationKey=ustc-main",
+                  ),
+                ),
+              );
+              expect(response.status).toBe(200);
+              const result = await response.json();
+              expect(
+                weatherSnapshotResponseSchema.safeParse(result).success,
+              ).toBe(true);
+              current = result.current;
+            } else if (method === "GraphQL") {
+              const result = await graphql("ustc-main", "source observedAt");
+              expect(result.errors).toBeUndefined();
+              current = result.data.catalog.weather.current;
+            } else {
+              const result = (await client.callTool("catalog_weather_get", {
+                locationKey: "ustc-main",
+              })) as { current: typeof current };
+              current = result.current;
+            }
+            expect(current.source).toBe(source);
+            if (source === "amap") expect(current.observedAt).toBe(observedAt);
+            else expect(current.observedAt ?? null).toBeNull();
           }
         }),
       ),

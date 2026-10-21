@@ -5,8 +5,10 @@ export type WorkspaceTaskCompletionFilter = "incomplete" | "completed" | "all";
 <script lang="ts">
 import Plus from "@lucide/svelte/icons/plus";
 import { onMount } from "svelte";
+import { toolbarControlClass, toolbarFieldClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
+import { cn } from "#lib/utils.js";
 
 export let ariaLabel: string;
 export let filter: WorkspaceTaskCompletionFilter;
@@ -48,19 +50,19 @@ onMount(() => {
       }
     >
       <ToggleGroup.Item
-        class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm"
+        class={cn(toolbarFieldClass, "min-w-0 flex-1 text-xs md:flex-none md:text-sm")}
         value="incomplete"
       >
         {filterIncompleteLabel}
       </ToggleGroup.Item>
       <ToggleGroup.Item
-        class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm"
+        class={cn(toolbarFieldClass, "min-w-0 flex-1 text-xs md:flex-none md:text-sm")}
         value="completed"
       >
         {filterCompletedLabel}
       </ToggleGroup.Item>
       <ToggleGroup.Item
-        class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm"
+        class={cn(toolbarFieldClass, "min-w-0 flex-1 text-xs md:flex-none md:text-sm")}
         value="all"
       >
         {filterAllLabel}
@@ -71,7 +73,7 @@ onMount(() => {
     <div class="flex items-center gap-2 md:justify-end">
       <Button
         aria-label={addButtonLabel}
-        class="size-11 md:h-8 md:w-auto md:min-w-28"
+        class={cn(toolbarControlClass, "w-11 md:w-auto md:min-w-28")}
         data-testid={addTestId}
         type="button"
         disabled={!ready}

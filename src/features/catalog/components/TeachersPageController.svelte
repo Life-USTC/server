@@ -7,7 +7,7 @@ import {
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   TeacherListCommonLabels,
@@ -17,8 +17,6 @@ import type {
 } from "./catalog-teacher-list-types";
 import TeachersFilters from "./TeachersFilters.svelte";
 import TeachersResults from "./TeachersResults.svelte";
-
-const page = legacyPageStore();
 
 type DepartmentOption = CatalogNamed & {
   id: number | string;
@@ -43,47 +41,16 @@ type PageData = {
   pagination: { page: number; total: number; totalPages: number };
 };
 
-export let data: PageData;
+interface Props {
+  data: PageData;
+}
 
-let teacherSearch = data.filters.search ?? "";
+let { data }: Props = $props();
 
-$: totalPages = data.pagination.totalPages;
-$: teacherSearch = data.filters.search ?? "";
-$: commonLabels = data.labels.common;
-$: teacherLabels = data.labels.teachers;
-$: selectedDepartment =
-  data.filterOptions.departments.find(
-    (department) => data.filters.departmentId === String(department.id),
-  ) ?? null;
-$: departmentOptions = [
-  { value: "", label: teacherLabels.allDepartments },
-  ...data.filterOptions.departments.map((department) => ({
-    value: String(department.id),
-    label: primaryName(department),
-  })),
-];
-$: teacherActiveFilters = [
-  data.filters.search
-    ? {
-        href: teacherFilterHref({ search: "" }),
-        label: `${teacherLabels.searchLabel}: ${data.filters.search}`,
-      }
-    : null,
-  data.filters.departmentId
-    ? {
-        href: teacherFilterHref({ departmentId: "" }),
-        label: `${teacherLabels.department}: ${selectedDepartment ? primaryName(selectedDepartment) : data.filters.departmentId}`,
-      }
-    : null,
-].filter(
-  (filter): filter is { href: string; label: string } => filter !== null,
-);
-$: teacherHiddenFilters = [
-  { name: "departmentId", value: data.filters.departmentId ?? "" },
-].filter((filter) => Boolean(filter.value));
+let teacherSearch = $derived(data.filters.search ?? "");
 
 function pageHref(targetPage: number) {
-  return catalogListPageHref(new URL($page.url.href), targetPage);
+  return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
 
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
@@ -94,6 +61,44 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
   const { search, departmentId } = filters;
   return catalogHref("/catalog/teachers", { search, departmentId });
 }
+let totalPages = $derived(data.pagination.totalPages);
+let commonLabels = $derived(data.labels.common);
+let teacherLabels = $derived(data.labels.teachers);
+let selectedDepartment = $derived(
+  data.filterOptions.departments.find(
+    (department) => data.filters.departmentId === String(department.id),
+  ) ?? null,
+);
+let departmentOptions = $derived([
+  { value: "", label: teacherLabels.allDepartments },
+  ...data.filterOptions.departments.map((department) => ({
+    value: String(department.id),
+    label: primaryName(department),
+  })),
+]);
+let teacherActiveFilters = $derived(
+  [
+    data.filters.search
+      ? {
+          href: teacherFilterHref({ search: "" }),
+          label: `${teacherLabels.searchLabel}: ${data.filters.search}`,
+        }
+      : null,
+    data.filters.departmentId
+      ? {
+          href: teacherFilterHref({ departmentId: "" }),
+          label: `${teacherLabels.department}: ${selectedDepartment ? primaryName(selectedDepartment) : data.filters.departmentId}`,
+        }
+      : null,
+  ].filter(
+    (filter): filter is { href: string; label: string } => filter !== null,
+  ),
+);
+let teacherHiddenFilters = $derived(
+  [{ name: "departmentId", value: data.filters.departmentId ?? "" }].filter(
+    (filter) => Boolean(filter.value),
+  ),
+);
 </script>
 
 

@@ -370,7 +370,7 @@ test("subscribed-sections.sidebar-summary-only", {
           'a[href="/workspace/subscriptions"]',
         );
         await expect(destination).toHaveCount(1);
-        await expect(destination).toContainText("教学班订阅");
+        await expect(destination).toContainText("我的教学班");
         await expect(destination).toHaveAttribute("aria-current", "page");
         await expect(
           sidebar.locator('a[href^="/catalog/sections/"]'),

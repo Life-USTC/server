@@ -9,10 +9,11 @@ requirements:
     Independently available todos, subscribed activities, and past-term learning records remain accessible.
   acceptance:
     given: An isolated user has a pending todo, a subscribed activity, and historical section homework; no semester date range covers the explicit 2030 snapshot.
-    when: The user opens the overview in Chinese and English and follows its todo and past-homework links, then opens activity subscriptions.
+    when: The user opens the overview at desktop and mobile widths in Chinese and English, follows the workspace navigation to Todos and the overview past-homework link, then opens activity subscriptions.
     then:
     - The overview explicitly reports that the current semester is unavailable without calling an inferred past or future term current.
     - The todo, historical homework, and subscribed activity remain reachable in their real workspace pages and the activity API retains the subscription.
+    - An undated todo does not create an empty urgency or upcoming band; its full inventory stays reachable through workspace navigation.
     test:
       file: tests/e2e/src/app/account-policy/semester-context.test.ts
       name: cases.semester.no-current-semester-1

@@ -1,6 +1,6 @@
 <script lang="ts">
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page as routePage } from "$app/state";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
@@ -8,14 +8,17 @@ import type {
   SectionTeachersLabel,
 } from "./section-basic-info-types";
 
-const page = legacyPageStore();
+interface Props {
+  notAvailable: string;
+  section: SectionBasicInfo;
+  sectionCopy: SectionBasicInfoCopy;
+  sectionTeachersLabel: SectionTeachersLabel;
+}
 
-export let notAvailable: string;
-export let section: SectionBasicInfo;
-export let sectionCopy: SectionBasicInfoCopy;
-export let sectionTeachersLabel: SectionTeachersLabel;
+let { notAvailable, section, sectionCopy, sectionTeachersLabel }: Props =
+  $props();
 
-$: locale = $page.data.locale ?? "zh-cn";
+let locale = $derived(routePage.data.locale ?? "zh-cn");
 
 function semesterLabel(related: SectionRelatedSummary) {
   return related.semester?.nameCn

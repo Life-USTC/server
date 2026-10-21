@@ -3,8 +3,8 @@ import {
   detailDefinitionListClass,
   detailDefinitionTermClass,
 } from "#lib/components/detail-definition-list.js";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page as routePage } from "$app/state";
 import SectionTeachersCard from "./SectionTeachersCard.svelte";
 import type {
   SectionBasicInfo,
@@ -15,15 +15,24 @@ import type {
   SectionTeacherSummary,
 } from "./section-basic-info-types";
 
-const page = legacyPageStore();
+interface Props {
+  notAvailable: string;
+  primaryName: SectionPrimaryName;
+  section: SectionBasicInfo;
+  sectionCopy: SectionBasicInfoCopy & SectionTeacherCopy;
+  teacherName: SectionTeacherName;
+  teachers: SectionTeacherSummary[];
+}
 
-export let notAvailable: string;
-export let primaryName: SectionPrimaryName;
-export let section: SectionBasicInfo;
-export let sectionCopy: SectionBasicInfoCopy & SectionTeacherCopy;
-export let teacherName: SectionTeacherName;
-export let teachers: SectionTeacherSummary[];
-$: locale = $page.data.locale ?? "zh-cn";
+let {
+  notAvailable,
+  primaryName,
+  section,
+  sectionCopy,
+  teacherName,
+  teachers,
+}: Props = $props();
+let locale = $derived(routePage.data.locale ?? "zh-cn");
 </script>
 
 

@@ -17,44 +17,58 @@ import type {
   WorkspaceSectionCopy,
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import SubscriptionKindDialog from "./SubscriptionKindDialog.svelte";
 import SubscriptionsCardsView from "./SubscriptionsCardsView.svelte";
 import type { FormatMessage } from "./subscription-tab-types";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
 
-const page = legacyPageStore();
-
 type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
-export let workspaceCopy: WorkspaceCopy;
-export let formatMessage: FormatMessage;
-export let removeSubscribedSection: (
-  sectionId: SubscriptionSection["id"],
-) => boolean | Promise<boolean>;
-export let removingSectionId: SubscriptionSection["id"] | null;
-export let sectionCopy: WorkspaceSectionCopy;
-export let subscriptions: SubscriptionListData;
-export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
-export let openBulkImportDialog: () => void;
-export let openQuickAddDialog: () => void;
+interface Props {
+  workspaceCopy: WorkspaceCopy;
+  formatMessage: FormatMessage;
+  removeSubscribedSection: (
+    sectionId: SubscriptionSection["id"],
+  ) => boolean | Promise<boolean>;
+  removingSectionId: SubscriptionSection["id"] | null;
+  sectionCopy: WorkspaceSectionCopy;
+  subscriptions: SubscriptionListData;
+  subscriptionsCopy: WorkspaceSubscriptionsCopy;
+  openBulkImportDialog: () => void;
+  openQuickAddDialog: () => void;
+}
 
-let editingSection: SubscriptionSection | null = null;
+let {
+  workspaceCopy,
+  formatMessage,
+  removeSubscribedSection,
+  removingSectionId,
+  sectionCopy,
+  subscriptions,
+  subscriptionsCopy,
+  openBulkImportDialog,
+  openQuickAddDialog,
+}: Props = $props();
+
+let editingSection: SubscriptionSection | null = $state(null);
 
 function requestEditKind(section: SubscriptionSection) {
   editingSection = section;
 }
 
-let pendingRemoveSection: SubscriptionSection | null = null;
-let removeDialogOpen = false;
+let pendingRemoveSection: SubscriptionSection | null = $state(null);
+let removeDialogOpen = $state(false);
 
-$: locale = $page.data.locale ?? "zh-cn";
-$: sectionGroups = subscriptions.flatMap((subscription) =>
-  groupSubscribedSectionsBySemester(
-    subscription.sections,
-    workspaceCopy.notAvailable,
-    locale,
+let locale = $derived(routePage.data.locale ?? "zh-cn");
+let sectionGroups = $derived(
+  subscriptions.flatMap((subscription) =>
+    groupSubscribedSectionsBySemester(
+      subscription.sections,
+      workspaceCopy.notAvailable,
+      locale,
+    ),
   ),
 );
 

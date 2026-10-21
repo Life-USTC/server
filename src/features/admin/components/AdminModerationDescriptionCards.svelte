@@ -1,8 +1,9 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import CollectionListShell from "#lib/components/CollectionListShell.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import AdminListShell from "./AdminListShell.svelte";
 import {
   adminModerationDescriptionEditedAt,
   adminModerationDescriptionLastEditor,
@@ -24,10 +25,10 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<AdminListShell class="xl:hidden">
+<CollectionListShell>
   <Item.Group class="gap-0">
     {#each descriptions as description, index (description.id)}
-      <Item.Root class="items-start px-1 py-3">
+      <MobileListCard>
       <Item.Content class="min-w-0 gap-2">
         <Item.Title class="line-clamp-4 whitespace-pre-wrap">{description.content || copy.emptyDescription}</Item.Title>
         <Item.Description>{targetLabel(description)}</Item.Description>
@@ -52,8 +53,8 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
         </Button>
       </Item.Actions>
-      </Item.Root>
+      </MobileListCard>
       {#if index < descriptions.length - 1}<Item.Separator class="my-0" />{/if}
     {/each}
   </Item.Group>
-</AdminListShell>
+</CollectionListShell>

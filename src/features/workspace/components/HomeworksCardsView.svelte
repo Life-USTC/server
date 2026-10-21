@@ -2,6 +2,7 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -59,8 +60,8 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
   {#if filteredHomeworkItems.length > 0}
     <Item.Group class="gap-0">
       {#each filteredHomeworkItems as homework, index (homework.id)}
-        <Item.Root
-          class="items-start gap-3 px-2 py-3"
+        <MobileListCard
+
           id={`homework-${homework.id}`}
         >
           <Item.Content class="min-w-0 gap-1">
@@ -142,7 +143,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               <ArrowUpRight data-icon="inline-start" />
             </TableIconButton>
           </Item.Actions>
-        </Item.Root>
+        </MobileListCard>
         {#if index < filteredHomeworkItems.length - 1}
           <Item.Separator class="my-0" />
         {/if}

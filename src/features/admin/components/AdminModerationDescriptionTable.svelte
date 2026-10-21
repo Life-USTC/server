@@ -1,10 +1,10 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
+import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
-import AdminTableShell from "./AdminTableShell.svelte";
 import {
   adminModerationDescriptionEditedAt,
   adminModerationDescriptionLastEditor,
@@ -24,8 +24,8 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<div class="hidden min-w-0 xl:block">
-  <AdminTableShell label={copy.descriptionPreview}>
+<div class="min-w-0">
+  <CollectionTableShell label={copy.descriptionPreview}>
     <Table.Root class="w-full min-w-[54rem]">
       <Table.Header>
         <Table.Row>
@@ -83,5 +83,5 @@ export let targetLabel: (description: AdminModerationDescription) => string;
         {/each}
       </Table.Body>
     </Table.Root>
-  </AdminTableShell>
+  </CollectionTableShell>
 </div>

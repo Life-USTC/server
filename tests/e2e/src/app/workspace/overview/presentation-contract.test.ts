@@ -212,9 +212,8 @@ test("overview.personal-next-action-page", { tag: "@Overview/Web" }, async ({
         await expect(status).toHaveText("Happening now");
         const focusBox = await focus.boundingBox();
         for (const id of [
-          "workspace-overview-today-overdue",
-          "workspace-overview-week",
-          "workspace-overview-summaries",
+          "workspace-overview-urgency",
+          "workspace-overview-upcoming",
           "workspace-overview-links",
         ]) {
           const box = await page.getByTestId(id).boundingBox();
@@ -343,22 +342,25 @@ test("overview.workspace-card-disambiguation", {
           await expect(focus).toContainText(String(campus.nameEn));
 
           await expect(focus).toContainText(String(section.code));
-          const today = page.getByTestId("workspace-overview-today-overdue");
-          for (const [item, place] of [
-            [fixture.section, extra.campuses[0]],
-            [extra.section, extra.campuses[1]],
-          ] as const) {
-            const row = today.locator(
-              `a[data-slot="item"][href="/catalog/sections/${item.jwId}"]`,
+          // The focused class is not repeated. The next class keeps its
+          // distinguishing section/campus context in the unified upcoming list.
+          const upcoming = page.getByTestId("workspace-overview-upcoming");
+          const currentHref = `/catalog/sections/${section.jwId}`;
+          await expect(
+            page.locator(`[data-overview-item][href="${currentHref}"]`),
+          ).toHaveCount(0);
+          if (time === "09:30") {
+            const row = upcoming.locator(
+              `a[data-slot="item"][href="/catalog/sections/${extra.section.jwId}"]`,
             );
-            await expect(row).toContainText(String(item.code));
-            await expect(row).toContainText(String(place.nameEn));
+            await expect(row).toContainText(extra.section.code);
+            await expect(row).toContainText(String(extra.campuses[1].nameEn));
             await expect(row.locator('[data-slot="item-title"]')).toHaveText(
               String(fixture.course.nameEn),
             );
           }
           const todos = page
-            .getByTestId("workspace-overview-summaries")
+            .getByTestId("workspace-overview-urgency")
             .locator('a[data-slot="item"][href="/workspace/todos"]')
             .filter({ hasText: fixture.todo.title });
           await expect(todos).toHaveCount(2);

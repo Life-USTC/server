@@ -26,40 +26,12 @@ export async function checkWorkspaceOverviewPriorityViews(
   const main = page.locator("#main-content");
   const focus = main.getByTestId("workspace-overview-focus");
   const identity = focus.getByTestId("overview-focus-title");
-  const today = main
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", {
-        name: locale === "en-us" ? "Today" : "今天",
-        exact: true,
-      }),
-    })
-    .last();
-  const week = main.getByTestId("workspace-overview-week");
+  const urgency = main.getByTestId("workspace-overview-urgency");
+  const upcoming = main.getByTestId("workspace-overview-upcoming");
   const courseName =
     locale === "en-us"
       ? (catalog.courses[0].nameEn ?? catalog.courses[0].nameCn)
       : catalog.courses[0].nameCn;
-  const dueHomeworks = main
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", {
-        name: /未完成作业|Incomplete homework/i,
-      }),
-    })
-    .last();
-  const dueTodos = main
-    .locator("section")
-    .filter({ has: page.getByRole("heading", { name: /待办事项|Todos/i }) })
-    .last();
-  const upcomingExams = main
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", {
-        name: /考试与截止雷达|Exam and deadline radar/i,
-      }),
-    })
-    .last();
   const date = new Date(`${data.today}T08:00:00Z`);
   const dateLabel = new Intl.DateTimeFormat(
     locale === "en-us" ? "en-US" : "zh-CN",
@@ -97,51 +69,34 @@ export async function checkWorkspaceOverviewPriorityViews(
         focus.getByTestId("overview-focus-detail"),
         todo.content ?? "",
       ),
-      "todaySessions.startTime": text(today, "08:00"),
-      "todaySessions.section.course.namePrimary": text(today, courseName),
-      "dueTodayHomeworks.title": text(today, homework.title),
-      "dueTodayTodos.title": text(today, todo.title),
-      "days.label": text(week, new RegExp(String(Number(data.today.slice(8))))),
-      "days.events.title": text(week, todo.title),
-      "pendingHomeworks.title": text(dueHomeworks, homework.title),
-      "pendingHomeworks.submissionDueAt": text(dueHomeworks, "12:30"),
-      "pendingTodos.title": text(dueTodos, todo.title),
-      "pendingTodos.dueAt": text(dueTodos, "11:45"),
-      "upcomingExams.section.course.namePrimary": text(
-        upcomingExams,
-        courseName,
-      ),
-      "upcomingExams.examDate": text(
-        upcomingExams,
-        new RegExp(`${Number(data.tomorrow.slice(8))}|明天|Tomorrow`),
+      "urgency.title": text(urgency, homework.title),
+      "urgency.time": text(urgency, "12:30"),
+      "upcoming.title": text(upcoming, courseName),
+      "upcoming.dateLabel": text(
+        upcoming,
+        new RegExp(`${Number(data.tomorrow.slice(8))}`),
       ),
     },
     tertiary: { "focus.key": { value: `todo-${todo.id}` } },
   });
-  // The same real week-strip cards scroll into view at both widths.
   for (const item of [
     {
+      scope: upcoming,
       title: data.activity.name,
       time: "17:00",
       meta: data.activity.location ?? "",
     },
     {
-      title: courseName,
-      time: "08:00",
-      meta: "09:35",
-    },
-    {
-      title: todo.title,
-      time: "11:45",
-      meta: todo.content ?? "",
-    },
-    {
+      scope: urgency,
       title: homework.title,
       time: "12:30",
       meta: `Instructions ${catalog.marker}`,
     },
   ]) {
-    const card = week.getByRole("link").filter({ hasText: item.title }).first();
+    const card = item.scope
+      .locator("a[data-overview-item]")
+      .filter({ hasText: item.title })
+      .first();
     const cardTitle = card.locator('[data-slot="item-title"]');
     const metadata = (expected: string) =>
       field(
@@ -154,10 +109,10 @@ export async function checkWorkspaceOverviewPriorityViews(
     await assertPriorityView({
       scope: card,
       identity: cardTitle,
-      primary: { "days.events.title": field(cardTitle, item.title) },
+      primary: { "items.title": field(cardTitle, item.title) },
       secondary: {
-        "days.events.time": metadata(item.time),
-        "days.events.meta": metadata(item.meta),
+        "items.time": metadata(item.time),
+        "items.detail": metadata(item.meta),
       },
       tertiary: {},
     });

@@ -243,7 +243,7 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           ["Calendar", "/workspace/calendar"],
           ["Homework", "/workspace/homeworks"],
           ["Todos", "/workspace/todos"],
-          ["Courses", "/catalog/courses"],
+          ["Browse courses", "/catalog/courses"],
         ];
         for (const [label, href] of destinations) {
           await page
@@ -328,7 +328,7 @@ test("ui.navigation-landmarks-5", { tag: "@Site/Web" }, async ({ page }) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const [href, name] of [
-      ["/catalog/courses", /^(Courses|课程)$/],
+      ["/catalog/courses", /^(Browse courses|浏览课程)$/],
       ["/catalog/young-events", /^(Second Classroom|第二课堂)$/],
       ["/news", /^(News & Notices|新闻公告)$/],
     ] as const) {
@@ -364,9 +364,11 @@ test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
       `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
     );
     const campusGroup = navigation.getByRole("button", {
-      name: /^(Catalog|课程目录)$/i,
+      name: /^(Courses|课程)$/i,
     });
-    const courses = navigation.getByRole("link", { name: /^(Courses|课程)$/ });
+    const courses = navigation.getByRole("link", {
+      name: /^(Browse courses|浏览课程)$/,
+    });
     await expect(campusGroup).toHaveAttribute("aria-expanded", "true");
     expect(await campusGroup.getAttribute("href")).toBeNull();
     await campusGroup.focus();

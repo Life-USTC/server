@@ -1,10 +1,10 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
-import AdminTableShell from "./AdminTableShell.svelte";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,
@@ -22,8 +22,8 @@ export let pendingAction: string | null;
 export let versions: AdminBusVersion[];
 </script>
 
-<div class="hidden min-w-0 xl:block">
-  <AdminTableShell label={copy.colTitle}>
+<div class="min-w-0">
+  <CollectionTableShell label={copy.colTitle}>
     <Table.Root class="w-full min-w-[68rem]">
       <Table.Header>
         <Table.Row>
@@ -81,11 +81,11 @@ export let versions: AdminBusVersion[];
         {:else}
           <Table.Row>
             <Table.Cell class="p-0" colspan={7}>
-              <CompactEmpty class="rounded-none" description={copy.noVersions} />
+              <CollectionEmpty variant="compact" class="rounded-none" description={copy.noVersions} />
             </Table.Cell>
           </Table.Row>
         {/each}
       </Table.Body>
     </Table.Root>
-  </AdminTableShell>
+  </CollectionTableShell>
 </div>

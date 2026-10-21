@@ -1,5 +1,5 @@
 <script lang="ts">
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
@@ -83,5 +83,5 @@ export let sectionCopy: SectionExamCopy;
     </Table.Root>
   </div>
 {:else}
-  <CompactEmpty description={sectionCopy.calendarEmpty} />
+  <CollectionEmpty variant="compact" description={sectionCopy.calendarEmpty} />
 {/if}

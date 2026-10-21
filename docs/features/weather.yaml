@@ -14,6 +14,24 @@ access:
   admin: Can query weather for USTC campus locations.
   agent: Can read weather snapshots for USTC campus locations.
 requirements:
+- id: weather.current-observation-provenance
+  category: behavior
+  rule: Current weather identifies its selected source. Amap observedAt is its valid reporttime interpreted
+    in Asia/Shanghai, not fetchedAt. Missing or malformed report times remain absent; modeled Open-Meteo
+    current data never receives an observedAt. REST, GraphQL and MCP retain this provenance.
+  rationale: Amap reports update several times per hour without a guaranteed interval; consumers must use
+    the reported observation time to reject stale data. Hourly precipitation and Open-Meteo current data
+    are forecasts or model output and do not establish observed rain transitions.
+  acceptance:
+    given: Amap supplies a valid, missing or malformed reporttime, or only Open-Meteo supplies current weather.
+    when: The provider adapter normalizes the snapshot and public weather transports read it.
+    then:
+    - Valid Amap timestamps retain the exact instant independently of fetchedAt.
+    - Absent or invalid times and modeled current weather do not claim an actual observation timestamp.
+    - All machine transports preserve the selected source and available observation time.
+    test:
+      file: tests/integration/mcp/catalog/weather.test.ts
+      name: weather.current-observation-provenance / REST
 - id: weather.public-no-signin
   category: authorization
   rule: REST and GraphQL weather reads are anonymous; the MCP weather tool is viewer-independent under

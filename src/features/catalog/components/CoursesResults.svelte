@@ -1,4 +1,5 @@
 <script lang="ts">
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
@@ -14,7 +15,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
+import { page as routePage } from "$app/state";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
@@ -22,25 +23,40 @@ import type {
   CourseListResultData,
 } from "./catalog-course-list-types";
 
-const appPage = legacyPageStore();
+interface Props {
+  courseEmptyDescription: () => string;
+  courseLabels: CourseListLabels;
+  data: CourseListResultData;
+  page: number;
+  primaryName: (item: CatalogNamed | null | undefined) => string;
+  totalPages: number;
+}
 
-export let courseEmptyDescription: () => string;
-export let courseLabels: CourseListLabels;
-export let data: CourseListResultData;
-export let page: number;
-export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let totalPages: number;
+let {
+  courseEmptyDescription,
+  courseLabels,
+  data,
+  page,
+  primaryName,
+  totalPages,
+}: Props = $props();
 
-$: locale = $appPage.data.locale ?? "zh-cn";
-$: courseSummaryBase = catalogShowingSummary(
-  data.pagination.total === 1 ? courseLabels.showingOne : courseLabels.showing,
-  data.data.length,
-  data.pagination.total,
+let locale = $derived(routePage.data.locale ?? "zh-cn");
+let courseSummaryBase = $derived(
+  catalogShowingSummary(
+    data.pagination.total === 1
+      ? courseLabels.showingOne
+      : courseLabels.showing,
+    data.data.length,
+    data.pagination.total,
+  ),
 );
-$: courseSearchSummary = optionalCatalogFilterSummary(
-  data.filters.search,
-  courseLabels.searchFor,
-  "{query}",
+let courseSearchSummary = $derived(
+  optionalCatalogFilterSummary(
+    data.filters.search,
+    courseLabels.searchFor,
+    "{query}",
+  ),
 );
 </script>
 
@@ -58,7 +74,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
           {#each data.data as course, index}
             {@const courseHref = `/catalog/courses/${course.jwId}`}
             <div role="listitem">
-              <Item.Root size="sm">
+              <MobileListCard size="sm">
                 {#snippet child({ props })}
                   <a href={courseHref} {...props}>
                     <Item.Content><Item.Title><CatalogEntityName item={course} locale={locale} /></Item.Title></Item.Content>
@@ -71,7 +87,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
                     </Item.Footer>
                   </a>
                 {/snippet}
-              </Item.Root>
+              </MobileListCard>
               {#if index < data.data.length - 1}
                 <Item.Separator />
               {/if}

@@ -112,7 +112,7 @@ test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
               `/workspace/overview?snapshotAt=2026-04-29T14%3A30%3A00%2B08%3A00&overviewWeek=2026-04-27`,
             );
             await expect(
-              page.getByTestId("workspace-overview-summaries"),
+              page.locator("[data-overview-sections]"),
             ).toContainText(fixture.todo.title);
           }
         }

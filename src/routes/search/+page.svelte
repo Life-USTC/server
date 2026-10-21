@@ -18,18 +18,20 @@ import {
   GLOBAL_SEARCH_LISTBOX_ID,
   globalSearchItemDomId,
 } from "@/features/search/lib/global-search-keyboard";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { afterNavigate, goto } from "$app/navigation";
+import { page as routePage } from "$app/state";
 import type { PageData } from "./$types";
 
-const page = legacyPageStore();
+interface Props {
+  data: PageData;
+}
 
-export let data: PageData;
+let { data }: Props = $props();
 
-let inputElement: HTMLInputElement | null = null;
+let inputElement: HTMLInputElement | null = $state(null);
 const shellViewer = getShellViewer();
-let viewerId: string | null = null;
+let viewerId: string | null = $state(null);
 
 const search = createGlobalSearchController({
   getRequestContext: () => ({
@@ -38,7 +40,7 @@ const search = createGlobalSearchController({
   }),
   limit: GLOBAL_SEARCH_PAGE_LIMIT,
   urlSync: {
-    getPageUrl: () => new URL($page.url.href),
+    getPageUrl: () => new URL(routePage.url.href),
     goto,
   },
 });
@@ -79,10 +81,10 @@ onMount(() => {
     search.applyQueryFromUrl(currentQuery, true);
   });
   urlSyncMount = mountGlobalSearchUrlSync(search, {
-    getPageUrl: () => new URL($page.url.href),
+    getPageUrl: () => new URL(routePage.url.href),
   });
   // Keep the top-bar Ctrl-K control primary: only autofocus when a query is already present.
-  if (new URL($page.url.href).searchParams.get("q")?.trim()) {
+  if (new URL(routePage.url.href).searchParams.get("q")?.trim()) {
     queueMicrotask(() => inputElement?.focus());
   }
   return () => {

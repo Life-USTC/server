@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount } from "svelte";
+import { onMount, untrack } from "svelte";
 import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
@@ -16,8 +16,8 @@ import {
 } from "@/features/settings/lib/settings-page-actions";
 import { resolveSettingsPageHeading } from "@/features/settings/lib/settings-page-heading";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
-import { legacyPageStore } from "@/lib/navigation/legacy-page-stores";
 import { goto } from "$app/navigation";
+import { page as routePage } from "$app/state";
 import type {
   SettingsAccount,
   SettingsCopy,
@@ -25,8 +25,6 @@ import type {
   SettingsSecurityActivity,
   SettingsUser,
 } from "./settings-component-types";
-
-const page = legacyPageStore();
 
 type PageData = {
   accounts: SettingsAccount[];
@@ -43,8 +41,12 @@ type ActionData = {
   message?: string;
 } | null;
 
-export let data: PageData;
-export let form: ActionData;
+interface Props {
+  data: PageData;
+  form: ActionData;
+}
+
+let { data, form }: Props = $props();
 
 let {
   deleteConfirmValue: _deleteConfirmValue,
@@ -54,59 +56,14 @@ let {
   pendingAccountAction: _pendingAccountAction,
   selectedImage,
   unlinkAccountId: _unlinkAccountId,
-} = createSettingsControllerDefaultState({
-  userImage: data.user.image,
-});
-let consumedStatusKey = "";
-$: avatarOptions =
-  data.user.profilePictures.length > 0 ? data.user.profilePictures : [];
-$: currentImage = data.user.image ?? "";
-$: previewImage = selectedImage || currentImage || "/images/icon.png";
-$: statusMessage = form?.message ?? data.message;
-$: redirectStatus = $page.url.searchParams.get("message");
-$: if (!redirectStatus) {
-  consumedStatusKey = "";
-}
-$: if (
-  _isMounted &&
-  redirectStatus &&
-  [
-    "CalendarTokenRotated",
-    "AuthorizationRevoked",
-    "AccountDisconnected",
-    "Success",
-  ].includes(redirectStatus)
-) {
-  const statusKey = `${$page.url.pathname}:${redirectStatus}`;
-  if (statusKey !== consumedStatusKey) {
-    consumedStatusKey = statusKey;
-    const message =
-      redirectStatus === "CalendarTokenRotated"
-        ? copy.settings.security.calendarTokenRotated
-        : redirectStatus === "AuthorizationRevoked"
-          ? copy.settings.authorizations.revokeSuccess
-          : redirectStatus === "AccountDisconnected"
-            ? copy.profile.disconnectSuccess
-            : copy.profile.updateSuccess;
-    toast.success(message);
-    const nextUrl = new URL($page.url.href);
-    nextUrl.searchParams.delete("message");
-    goto(nextUrl, { shallow: true, replace: true });
-  }
-}
-$: if (
-  _unlinkAccountId &&
-  !data.accounts.some(
-    (account) => account.id === _unlinkAccountId && account.linked,
-  )
-) {
-  _unlinkAccountId = null;
-}
-$: _unlinkAccount =
-  data.accounts.find((account) => account.id === _unlinkAccountId) ?? null;
-$: _hasPendingAccountAction = Boolean(_pendingAccountAction);
-$: copy = data.copy;
-$: pageHeading = resolveSettingsPageHeading(copy, data.tab);
+} = $state(
+  untrack(() =>
+    createSettingsControllerDefaultState({
+      userImage: data.user.image,
+    }),
+  ),
+);
+let consumedStatusKey = $state("");
 
 const accountAction = createSettingsAccountAction({
   setPendingAccountAction: (value) => {
@@ -126,6 +83,65 @@ onMount(() => {
   }, 0);
   return () => clearTimeout(mountTimer);
 });
+let avatarOptions = $derived(
+  data.user.profilePictures.length > 0 ? data.user.profilePictures : [],
+);
+let currentImage = $derived(data.user.image ?? "");
+let previewImage = $derived(
+  selectedImage || currentImage || "/images/icon.png",
+);
+let statusMessage = $derived(form?.message ?? data.message);
+let redirectStatus = $derived(routePage.url.searchParams.get("message"));
+$effect.pre(() => {
+  if (!redirectStatus) {
+    consumedStatusKey = "";
+  }
+});
+let copy = $derived(data.copy);
+$effect.pre(() => {
+  if (
+    _isMounted &&
+    redirectStatus &&
+    [
+      "CalendarTokenRotated",
+      "AuthorizationRevoked",
+      "AccountDisconnected",
+      "Success",
+    ].includes(redirectStatus)
+  ) {
+    const statusKey = `${routePage.url.pathname}:${redirectStatus}`;
+    if (statusKey !== consumedStatusKey) {
+      consumedStatusKey = statusKey;
+      const message =
+        redirectStatus === "CalendarTokenRotated"
+          ? copy.settings.security.calendarTokenRotated
+          : redirectStatus === "AuthorizationRevoked"
+            ? copy.settings.authorizations.revokeSuccess
+            : redirectStatus === "AccountDisconnected"
+              ? copy.profile.disconnectSuccess
+              : copy.profile.updateSuccess;
+      toast.success(message);
+      const nextUrl = new URL(routePage.url.href);
+      nextUrl.searchParams.delete("message");
+      goto(nextUrl, { shallow: true, replace: true });
+    }
+  }
+});
+$effect.pre(() => {
+  if (
+    _unlinkAccountId &&
+    !data.accounts.some(
+      (account) => account.id === _unlinkAccountId && account.linked,
+    )
+  ) {
+    _unlinkAccountId = null;
+  }
+});
+let _unlinkAccount = $derived(
+  data.accounts.find((account) => account.id === _unlinkAccountId) ?? null,
+);
+let _hasPendingAccountAction = $derived(Boolean(_pendingAccountAction));
+let pageHeading = $derived(resolveSettingsPageHeading(copy, data.tab));
 </script>
 
 <svelte:head><title>{pageHeading.title} - Life@USTC</title></svelte:head>

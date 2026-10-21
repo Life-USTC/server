@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
-  expandWorkspaceSidebarGroup,
+  expandDaySidebarGroup,
   sidebarNavigationLink,
   visibleText,
 } from "../../../utils/locators";
@@ -154,7 +154,7 @@ export async function assertPageContract(
   ) {
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
-    await expandWorkspaceSidebarGroup(page);
+    await expandDaySidebarGroup(page);
     await expect(sidebarNavigationLink(page, /^(总览|Overview)$/i)).toBeVisible(
       {
         timeout: 10_000,

@@ -1,11 +1,11 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
+import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import AdminTableShell from "./AdminTableShell.svelte";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -20,8 +20,8 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<div class="hidden min-w-0 xl:block">
-  <AdminTableShell label={copy.title}>
+<div class="min-w-0">
+  <CollectionTableShell label={copy.title}>
     <Table.Root class="w-full min-w-[56rem]">
       <Table.Caption class="sr-only">{copy.title}</Table.Caption>
       <Table.Header>
@@ -93,5 +93,5 @@ export let users: AdminUserRow[];
         {/each}
       </Table.Body>
     </Table.Root>
-  </AdminTableShell>
+  </CollectionTableShell>
 </div>
