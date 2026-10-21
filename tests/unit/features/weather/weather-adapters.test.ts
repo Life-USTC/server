@@ -122,3 +122,30 @@ describe("weather adapters", () => {
     }
   });
 });
+
+it.each([
+  ["2026-10-20 21:33:49", "2026-10-20T13:33:49.000Z"],
+  [undefined, undefined],
+  ["", undefined],
+  ["2026-02-30 12:00:00", undefined],
+  ["2026-10-20", undefined],
+  ["not a timestamp", undefined],
+])(
+  "preserves only a valid Amap observation timestamp: %s",
+  async (reporttime, expected) => {
+    vi.stubEnv("AMAP_API_KEY", "test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          lives: [{ temperature: "16", weather: "小雨", reporttime }],
+          forecasts: [],
+        }),
+      ),
+    );
+    const result = await fetchAmapWeather(getWeatherLocation("ustc-main"));
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw result.error;
+    expect(result.data.current?.observedAt).toBe(expected);
+  },
+);

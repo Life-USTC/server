@@ -35,6 +35,8 @@ export async function showWeatherFixture(
       fetchedAt: new Date().toISOString(),
       providers: ["amap", "open-meteo"],
       current: {
+        source: "amap",
+        observedAt: new Date().toISOString(),
         temperature: currentTemperature,
         humidity: 63,
         windDirection: "东北",
