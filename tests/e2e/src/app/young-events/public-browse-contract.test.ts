@@ -74,10 +74,15 @@ for (const path of [root, `${root}/organizers`]) {
         });
         await searchbox.fill(search);
         await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-        await expect(page).toHaveURL(
-          (url) =>
-            url.pathname === path && url.searchParams.get("search") === search,
-        );
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              search: url.searchParams.get("search"),
+            };
+          })
+          .toEqual({ pathname: path, search });
         const filter = page
           .locator('[data-slot="active-filters"]')
           .getByRole("link")
@@ -88,9 +93,15 @@ for (const path of [root, `${root}/organizers`]) {
           locale === "en-us" ? `Remove ${search} filter` : `移除${search}筛选`,
         );
         await filter.click();
-        await expect(page).toHaveURL(
-          (url) => url.pathname === path && !url.searchParams.has("search"),
-        );
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              search: url.searchParams.get("search"),
+            };
+          })
+          .toEqual({ pathname: path, search: null });
         await expect(searchbox).toHaveValue("");
         await expect(filter).toHaveCount(0);
       }

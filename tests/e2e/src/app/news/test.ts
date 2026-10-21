@@ -24,11 +24,15 @@ test.describe("/news 新闻与通知预览", () => {
         });
         await searchbox.fill(search);
         await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-        await expect(page).toHaveURL(
-          (url) =>
-            url.pathname === "/news" &&
-            url.searchParams.get("query") === search,
-        );
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              query: url.searchParams.get("query"),
+            };
+          })
+          .toEqual({ pathname: "/news", query: search });
         const filter = page
           .locator('[data-slot="active-filters"]')
           .getByRole("link")
@@ -41,9 +45,15 @@ test.describe("/news 新闻与通知预览", () => {
             : `移除筛选：${search}`,
         );
         await filter.click();
-        await expect(page).toHaveURL(
-          (url) => url.pathname === "/news" && !url.searchParams.has("query"),
-        );
+        await expect
+          .poll(() => {
+            const url = new URL(page.url());
+            return {
+              pathname: url.pathname,
+              query: url.searchParams.get("query"),
+            };
+          })
+          .toEqual({ pathname: "/news", query: null });
         await expect(searchbox).toHaveValue("");
         await expect(filter).toHaveCount(0);
       }
