@@ -27,10 +27,25 @@ test("overview.decision-page", { tag: "@Overview/Web" }, async ({
         await page.setViewportSize({ width, height: 1000 });
         await page.context().clearCookies();
         await page.goto("/");
-        const entries = page.locator('#main-content a[data-slot="item"]');
-        await expect(entries).toHaveCount(6);
+
+        // The anonymous landing page leads with public campus information;
+        // the catalog destinations sit in the sign-in prompt below it.
+        for (const section of [
+          "home-campus-now",
+          "home-notices",
+          "home-activities",
+          "home-sign-in",
+        ]) {
+          await expect(
+            page.locator(`#main-content [data-testid="${section}"]`),
+          ).toBeVisible();
+        }
+
+        const destinations = page.locator(
+          '#main-content [data-testid="home-sign-in"] nav a',
+        );
         expect(
-          await entries.evaluateAll((nodes) =>
+          await destinations.evaluateAll((nodes) =>
             nodes.slice(0, 3).map((node) => node.getAttribute("href")),
           ),
         ).toEqual([
@@ -40,7 +55,7 @@ test("overview.decision-page", { tag: "@Overview/Web" }, async ({
         ]);
         for (const path of ["courses", "sections", "teachers"]) {
           const link = page.locator(
-            `#main-content a[data-slot="item"][href="/catalog/${path}"]`,
+            `#main-content [data-testid="home-sign-in"] a[href="/catalog/${path}"]`,
           );
           await expect(link).toBeVisible();
           await link.click();

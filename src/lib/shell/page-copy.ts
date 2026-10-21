@@ -41,12 +41,17 @@ export function getAnonymousHomePageCopy(locale: AppLocale) {
     homepage: {
       actions: copy.homepage.actions,
       appIconAlt: copy.homepage.appIconAlt,
+      information: copy.homepage.information,
       publicWorkspace: copy.homepage.publicWorkspace,
       subtitle: copy.homepage.subtitle,
       title: copy.homepage.title,
     },
     metadata: {
       home: copy.metadata.pages.home,
+    },
+    weather: {
+      locationNames: copy.weather.locationNames,
+      title: copy.weather.title,
     },
   };
 }
