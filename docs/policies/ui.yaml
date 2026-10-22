@@ -440,6 +440,36 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
       name: ui.data-table-cells-6
+- id: ui.data-table-cells-7
+  category: consistency
+  topic: data-table-cells
+  rule: A table column's header and its body cells declare the same horizontal alignment, whichever vocabulary
+    each side uses, whether a Tailwind text-align class, an inline text-align style, or a prop such as
+    CatalogTableLink's numeric that expands to an alignment class inside that component.
+  rationale: "Alignment is declared twice per column, in two vocabularies, with nothing tying them together.
+    The header says text-right as a class and the body says the same thing by passing numeric, so adding one
+    side and forgetting the other misaligns the column while each side stays individually well-formed. The
+    browser gates measure computed geometry this guard cannot see, but only on the routes they visit and the
+    columns their fixtures fill, which leaves a new table, a new column on an uncovered route, or a column
+    whose fixture is empty ungated. Reading the sources covers a table the moment it is written."
+  acceptance:
+    given: Every table under src/features and src/routes, the ui/table barrel's own primitives, and every
+      component whose class expression lets a prop switch an alignment on.
+    when: Walk the feature and route trees, resolve each table's element roles through the barrel, pair column N
+      of the single header row with column N of each body row, following an extracted row component through its
+      import, and compare the alignment each side declares.
+    then:
+    - No column's header and body cells disagree, once logical start and end are normalised onto the physical
+      directions the repo writes.
+    - Every body row is paired with its header positionally or spans columns with colspan, and a row that is
+      neither is itself a failure, so no table silently leaves the guard's coverage.
+    - Each pinned row-header table still carries no header row, and a new table without one is a failure rather
+      than a line of configuration.
+    - The element roles, the alignment an undeclared column inherits, and the prop-driven vocabulary are derived
+      from source rather than enumerated.
+    test:
+      file: tests/unit/lib/components/table-column-alignment.test.ts
+      name: ui.table-column-alignment
 - id: ui.detail-hero-2
   category: presentation
   topic: detail-hero
