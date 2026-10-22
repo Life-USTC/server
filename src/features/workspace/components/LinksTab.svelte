@@ -1,6 +1,7 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
+import { linkGroupColumnsClass } from "@/features/workspace/lib/link-table-layout";
 import type {
   SignedLinkGroup,
   WorkspaceCopy,
@@ -27,22 +28,24 @@ export let signedLinkGroups: SignedLinkGroup[];
     bind:linkSearchQuery
   />
 
-  {#each signedLinkGroups as entry}
-    <LinksTabGroup
-      {workspaceCopy}
-      {entry}
-      {linkIconLabel}
-      {linkReturnTo}
-      {submitWorkspaceLinkPin}
-      {updatingCatalogLinkSlug}
-    />
-  {:else}
-    <WorkspaceEmptyState
-      className="items-start text-left"
-      headerClassName="items-start text-left"
-      title={workspaceCopy.linkHub.empty}
-    />
-  {/each}
+  <div class={linkGroupColumnsClass}>
+    {#each signedLinkGroups as entry}
+      <LinksTabGroup
+        {workspaceCopy}
+        {entry}
+        {linkIconLabel}
+        {linkReturnTo}
+        {submitWorkspaceLinkPin}
+        {updatingCatalogLinkSlug}
+      />
+    {:else}
+      <WorkspaceEmptyState
+        className="items-start text-left"
+        headerClassName="items-start text-left"
+        title={workspaceCopy.linkHub.empty}
+      />
+    {/each}
+  </div>
 
   {#if linkActionError}
     <Alert.Root variant="destructive">

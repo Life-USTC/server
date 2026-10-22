@@ -10,9 +10,13 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
-import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
+import type {
+  RoomMapBuilding,
+  RoomMapCopy,
+} from "@/features/rooms/lib/room-map-types";
 
 export let copy: RoomMapCopy;
+export let buildings: RoomMapBuilding[] = [];
 export let initialRoom = "";
 
 let input = initialRoom;
@@ -30,6 +34,16 @@ function selectSample(code: string) {
   input = code;
   selectedRoom = code;
   searchRevision += 1;
+}
+
+function roomCountLabel(roomCount: number) {
+  return roomCount === 1
+    ? copy.roomCountOne
+    : copy.roomCount.replace("{count}", String(roomCount));
+}
+
+function floorLabel(floor: string) {
+  return copy.floorName.replace("{floor}", floor);
 }
 </script>
 
@@ -103,5 +117,48 @@ function selectSample(code: string) {
         </div>
       {/if}
     </CollectionEmpty>
+
+    {#if buildings.length > 0}
+      <section class="grid gap-3" data-testid="room-map-building-index">
+        <div class="grid gap-1">
+          <h2 class="font-medium text-sm">{copy.browseTitle}</h2>
+          <p class="text-muted-foreground text-sm">{copy.browseGuidance}</p>
+        </div>
+        <div class="grid gap-3 md:block md:columns-2 md:gap-3 xl:columns-3">
+          {#each buildings as entry (entry.building)}
+            <section
+              class="grid break-inside-avoid content-start gap-2 rounded-md border border-border p-3 md:mb-3"
+              data-testid="room-map-building"
+            >
+              <div class="flex flex-wrap items-baseline justify-between gap-x-2">
+                <h3 class="font-medium text-sm">{entry.building}</h3>
+                <span class="text-muted-foreground text-xs">
+                  {roomCountLabel(entry.roomCount)}
+                </span>
+              </div>
+              {#each entry.floors as floor (floor.floor)}
+                <div class="grid gap-1.5">
+                  <p class="text-muted-foreground text-xs">{floorLabel(floor.floor)}</p>
+                  <div class="flex flex-wrap gap-1.5">
+                    {#each floor.codes as code (code)}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="font-mono"
+                        data-testid="room-map-building-room"
+                        onclick={() => selectSample(code)}
+                      >
+                        {code}
+                      </Button>
+                    {/each}
+                  </div>
+                </div>
+              {/each}
+            </section>
+          {/each}
+        </div>
+      </section>
+    {/if}
   {/if}
 </CollectionPage>
