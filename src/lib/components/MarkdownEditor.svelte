@@ -128,8 +128,8 @@ function setActiveTab(value: string) {
       class="gap-3"
     >
       <Tabs.List aria-label={modeLabel || undefined}>
-        <Tabs.Trigger value="write">{tabWriteLabel}</Tabs.Trigger>
-        <Tabs.Trigger value="preview">{tabPreviewLabel}</Tabs.Trigger>
+        <Tabs.Trigger class="text-foreground/70" value="write">{tabWriteLabel}</Tabs.Trigger>
+        <Tabs.Trigger class="text-foreground/70" value="preview">{tabPreviewLabel}</Tabs.Trigger>
       </Tabs.List>
 
       <Tabs.Content value="write" class="m-0">

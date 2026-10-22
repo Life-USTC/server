@@ -59,7 +59,7 @@ function formatTemplate(template: string, values: Record<string, string>) {
         <Tabs.Trigger
           value={locationKey}
           data-weather-tab={locationKey}
-          class="text-sm"
+          class="text-foreground/70 text-sm"
         >
           {weatherCopy.locationTabNames[locationKey]}
         </Tabs.Trigger>
