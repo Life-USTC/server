@@ -6,7 +6,10 @@ const HOUR_SECONDS = 3_600;
 export const PUBLIC_CATALOG_CACHE_CONTROL =
   "public, max-age=0, stale-while-revalidate=300";
 
-export const PUBLIC_CATALOG_CDN_CACHE_CONTROL = `public, max-age=${24 * HOUR_SECONDS}, stale-while-revalidate=300`;
+/** Shared lifetime advertised for public catalog responses, in seconds. */
+export const PUBLIC_CATALOG_CDN_MAX_AGE_SECONDS = 24 * HOUR_SECONDS;
+
+export const PUBLIC_CATALOG_CDN_CACHE_CONTROL = `public, max-age=${PUBLIC_CATALOG_CDN_MAX_AGE_SECONDS}, stale-while-revalidate=300`;
 
 export const PUBLIC_CATALOG_HEADERS = {
   "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL,

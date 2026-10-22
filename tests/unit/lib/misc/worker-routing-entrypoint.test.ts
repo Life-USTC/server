@@ -81,6 +81,7 @@ vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
 }));
 
+import { PUBLIC_CATALOG_API_STORED_CACHE_CONTROL } from "@/lib/cloudflare/public-api-gateway";
 import {
   PUBLIC_SSR_CACHE_PURGE_PATH,
   PUBLIC_SSR_CACHE_PURGE_SECRET_ENV,
@@ -90,6 +91,7 @@ import {
   INTERNAL_REQUEST_ID_HEADER,
   normalizePublicSsrObservedRoute,
 } from "@/lib/log/worker-entrypoint-observability";
+import { PUBLIC_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import worker, { PublicSsr } from "@/worker";
 
 const PURGE_SECRET = "edge-cache-purge-secret-value";
@@ -486,7 +488,7 @@ describe("Worker routing entrypoint", () => {
   it("attributes dynamic API requests to a finite route family", async () => {
     const response = await worker.fetch(
       new Request(
-        "https://life-ustc.test/api/catalog/courses/123?token=private-value",
+        "https://life-ustc.test/api/catalog/weather?token=private-value",
       ),
       {},
       { waitUntil: backgroundTasks.waitUntil },
@@ -549,6 +551,230 @@ describe("Worker routing entrypoint", () => {
       expect(request.headers.get("x-life-public-ssr")).toBe("1");
     }
     expect(appFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rendering-and-cache.cacheable-public-api-3", async () => {
+    const dispatched: Array<{ key: string; request: Request }> = [];
+    const publicSsrFetchMock = vi.fn(
+      async (request: Request, options: { cf: { cacheKey: string } }) => {
+        dispatched.push({ key: options.cf.cacheKey, request });
+        return new Response(JSON.stringify({ semesters: [] }), {
+          headers: {
+            ...PUBLIC_CATALOG_HEADERS,
+            "Cache-Control": PUBLIC_CATALOG_API_STORED_CACHE_CONTROL,
+            "cf-cache-status": "HIT",
+            "content-type": "application/json; charset=utf-8",
+            Vary: "Origin",
+          },
+        });
+      },
+    );
+    const context = {
+      exports: {
+        PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
+      },
+      waitUntil: backgroundTasks.waitUntil,
+    };
+
+    for (const [path, expectedKey] of [
+      ["/api/catalog/metadata", "/api/catalog/metadata?__life_mode=api"],
+      [
+        "/api/catalog/metadata?locale=en-us",
+        "/api/catalog/metadata?locale=en-us&__life_mode=api",
+      ],
+      [
+        "/api/catalog/metadata?locale=zh-cn",
+        "/api/catalog/metadata?locale=zh-cn&__life_mode=api",
+      ],
+      // Equivalent client orderings share one entry; the two reserved cache
+      // parameters cannot be supplied by the caller.
+      [
+        "/api/catalog/sections?page=2&locale=en-us",
+        "/api/catalog/sections?locale=en-us&page=2&__life_mode=api",
+      ],
+      [
+        "/api/catalog/sections?locale=en-us&page=2",
+        "/api/catalog/sections?locale=en-us&page=2&__life_mode=api",
+      ],
+      [
+        "/api/catalog/sections?locale=en-us&__life_mode=page&__life_locale=zh-cn&page=2",
+        "/api/catalog/sections?locale=en-us&page=2&__life_mode=api",
+      ],
+    ] as const) {
+      const response = await worker.fetch(
+        new Request(`https://life-ustc.test${path}`, {
+          headers: {
+            "accept-language": "zh-CN,zh;q=0.9",
+            cookie: "NEXT_LOCALE=zh-cn; better-auth.session_token=private",
+          },
+        }),
+        {},
+        context,
+      );
+
+      expect(response.status, path).toBe(200);
+      // The delivered JSON keeps the route's own public policy: the payload is
+      // the same for every viewer of this URL, so there is nothing to privatize.
+      expect(response.headers.get("Cache-Control"), path).toBe(
+        PUBLIC_CATALOG_HEADERS["Cache-Control"],
+      );
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control"), path).toBe(
+        PUBLIC_CATALOG_HEADERS["Cloudflare-CDN-Cache-Control"],
+      );
+      expect(response.headers.get("Cache-Tag"), path).toBe(
+        PUBLIC_CATALOG_HEADERS["Cache-Tag"],
+      );
+      expect(response.headers.get("x-request-id"), path).toMatch(
+        /^[0-9a-f-]{36}$/i,
+      );
+
+      const last = dispatched.at(-1);
+      expect(last?.key, path).toBe(expectedKey);
+      // Nothing viewer-specific or language-negotiated reaches the render, so
+      // the stored body cannot depend on anything outside the cache key.
+      expect(last?.request.headers.get("cookie"), path).toBeNull();
+      expect(last?.request.headers.get("authorization"), path).toBeNull();
+      expect(last?.request.headers.get("accept-language"), path).toBeNull();
+      expect(last?.request.headers.get("x-life-public-ssr-mode"), path).toBe(
+        "api",
+      );
+    }
+
+    const keys = new Set(dispatched.map(({ key }) => key));
+    expect(keys.size).toBe(4);
+    expect(appFetchMock).not.toHaveBeenCalled();
+    // The query is now a cache key; it must still stay out of observability.
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain("locale=");
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        cacheOutcome: "hit",
+        requestClass: "public-api-cache",
+        route: "/api/catalog",
+      }),
+    );
+  });
+
+  it("rendering-and-cache.cacheable-public-api-2", async () => {
+    const apiRequest = () =>
+      new Request("https://life-ustc.test/api/catalog/metadata?locale=en-us", {
+        headers: { "x-life-public-ssr-mode": "api" },
+      });
+
+    appFetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ campuses: [] }), {
+        headers: {
+          ...PUBLIC_CATALOG_HEADERS,
+          "content-type": "application/json; charset=utf-8",
+          [INTERNAL_REQUEST_ID_HEADER]: "stale-internal-id",
+          Vary: "Origin",
+          "x-request-id": "stale-public-id",
+        },
+      }),
+    );
+    const stored = await new PublicSsr().fetch(apiRequest());
+    expect(stored.headers.get("Cache-Control")).toBe(
+      PUBLIC_CATALOG_API_STORED_CACHE_CONTROL,
+    );
+    // A positive shared lifetime is what makes the entrypoint store it at all,
+    // and the tag is what a catalog import purges.
+    expect(stored.headers.get("Cache-Control")).toMatch(/\bs-maxage=86400\b/);
+    expect(stored.headers.get("Cache-Tag")).toBe(
+      PUBLIC_CATALOG_HEADERS["Cache-Tag"],
+    );
+    expect(stored.headers.get("Vary")).toBe("Origin");
+    expect(stored.headers.get("x-request-id")).toBeNull();
+    expect(stored.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBeNull();
+
+    // Anything the handler did not mark as shared public catalog JSON keeps a
+    // zero shared lifetime, so the entrypoint cache cannot store it.
+    for (const [label, response] of [
+      [
+        "session cookie refresh",
+        new Response("{}", {
+          headers: {
+            ...PUBLIC_CATALOG_HEADERS,
+            "content-type": "application/json",
+            "set-cookie": "better-auth.session_token=renewed; Path=/",
+          },
+        }),
+      ],
+      [
+        "private header set",
+        new Response("{}", {
+          headers: {
+            "Cache-Control": "private, no-store",
+            "Cloudflare-CDN-Cache-Control": "no-store",
+            "content-type": "application/json",
+            Vary: "Accept-Language, Cookie",
+          },
+        }),
+      ],
+      [
+        "viewer-varying response",
+        new Response("{}", {
+          headers: {
+            ...PUBLIC_CATALOG_HEADERS,
+            "content-type": "application/json",
+            Vary: "Cookie",
+          },
+        }),
+      ],
+      [
+        "validation error",
+        new Response("{}", {
+          headers: {
+            ...PUBLIC_CATALOG_HEADERS,
+            "content-type": "application/json",
+          },
+          status: 400,
+        }),
+      ],
+    ] as const) {
+      appFetchMock.mockResolvedValueOnce(response);
+      const rejected = await new PublicSsr().fetch(apiRequest());
+      expect(rejected.headers.get("Cache-Control"), label).not.toContain(
+        "s-maxage",
+      );
+      expect(rejected.headers.get("set-cookie"), label).toBe(
+        response.headers.get("set-cookie"),
+      );
+    }
+  });
+
+  it("keeps time-sensitive and credentialed catalog API requests dynamic", async () => {
+    const publicSsrFetchMock = vi.fn();
+    const context = {
+      exports: {
+        PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
+      },
+      waitUntil: backgroundTasks.waitUntil,
+    };
+    for (const [path, headers] of [
+      ["/api/catalog/weather?campus=ustc-main", {}],
+      ["/api/catalog/bus/next", {}],
+      ["/api/catalog/bus/routes", {}],
+      ["/api/catalog/semesters/current", {}],
+      ["/api/catalog/young-events", {}],
+      ["/api/catalog/links/resolve?url=https%3A%2F%2Fexample.test", {}],
+      ["/api/catalog/metadata", { authorization: "Bearer access-token" }],
+      ["/api/account/profile", { cookie: "better-auth.session_token=private" }],
+    ] as const) {
+      appFetchMock.mockResolvedValueOnce(
+        new Response("{}", {
+          headers: { "content-type": "application/json" },
+        }),
+      );
+      const response = await worker.fetch(
+        new Request(`https://life-ustc.test${path}`, { headers }),
+        {},
+        context,
+      );
+      expect(response.status, path).toBe(200);
+    }
+    expect(publicSsrFetchMock).not.toHaveBeenCalled();
+    expect(appFetchMock).toHaveBeenCalledTimes(8);
   });
 
   it("does not cache a calendar page whose render crossed Shanghai midnight", async () => {

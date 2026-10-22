@@ -246,6 +246,59 @@ requirements:
     test:
       file: tests/e2e/src/app/cache-policy/public-navigation-admission.test.ts
       name: browser caches only attested successful public navigation responses
+- id: rendering-and-cache.cacheable-public-api-1
+  category: consistency
+  topic: cacheable-public-api
+  rule: Public catalog JSON cache admission covers the viewer-independent course, section, schedule, teacher,
+    semester, metadata and campus-link read routes, for anonymous and session visitors alike. Request-time
+    and bespoke-lifetime catalog API routes — shuttle bus, weather, current semester, room maps, second-classroom
+    reads and the link-visit recorder — stay dynamic, as do non-GET requests and any request carrying Authorization.
+  acceptance:
+    given: Every route file under the catalog JSON API tree, plus a bearer-credentialed and a POST request.
+    when: The public catalog API admission resolver evaluates each one.
+    then:
+    - Viewer-independent catalog read routes are admitted for anonymous and cookie-bearing requests.
+    - Request-time, bespoke-lifetime, non-JSON, non-GET and Authorization-bearing requests are not admitted.
+    test:
+      file: tests/unit/features/catalog/public-api-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-api-1
+- id: rendering-and-cache.cacheable-public-api-2
+  category: privacy
+  topic: cacheable-public-api
+  rule: A JSON response enters shared storage only when its handler chose the public catalog header set, it
+    is a 200 JSON body, it sets no cookie, and it varies on nothing but Origin. The cached subrequest carries
+    no cookie, no Authorization and no Accept-Language, so a stored body cannot depend on the viewer or on
+    language negotiation. No admitted route resolves a session or a cookie locale.
+  acceptance:
+    given: Rendered catalog JSON responses carrying each public and private cache header set the handlers can
+      choose, a session cookie refresh, a viewer-varying response, a validation error and a non-JSON body;
+      and the inventory of admitted catalog API route handlers.
+    when: The storage admission predicate evaluates each response and the entrypoint builds the cached subrequest.
+    then:
+    - Only the public catalog header set with no cookie and no viewer Vary is stored.
+    - The cached subrequest drops cookie, Authorization and Accept-Language.
+    - No admitted route handler resolves a session user, an auth user or a cookie locale.
+    test:
+      file: tests/unit/features/catalog/public-api-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-api-2
+- id: rendering-and-cache.cacheable-public-api-3
+  category: consistency
+  topic: cacheable-public-api
+  rule: The stored public catalog JSON representation uses max-age=0, a positive shared s-maxage equal to the
+    advertised catalog lifetime, and the catalog Cache-Tag, so one tag purge invalidates the HTML and the JSON
+    together. Its cache key is the path with the client's query canonicalized, so `?locale=` selects a separate
+    representation. The delivered response keeps the route's own public policy and a fresh request id.
+  acceptance:
+    given: Catalog JSON requests differing only in locale or in query parameter order, each sent with a session
+      cookie and a negotiated language.
+    when: The production Worker dispatches them through the shared entrypoint and finalizes each response.
+    then:
+    - Each locale resolves to its own cache key and equivalent query orderings share one key.
+    - The stored representation carries max-age=0, a positive s-maxage and the catalog Cache-Tag.
+    - The delivered response keeps the route's public cache policy and carries a fresh request id.
+    test:
+      file: tests/unit/lib/misc/worker-routing-entrypoint.test.ts
+      name: rendering-and-cache.cacheable-public-api-3
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
@@ -1504,6 +1557,8 @@ topics:
   title: Web rendering and cache
 - id: cacheable-public-pages
   title: Cacheable public pages
+- id: cacheable-public-api
+  title: Cacheable public catalog API
 - id: personal-overlays
   title: Personal overlays
   requirement_refs:

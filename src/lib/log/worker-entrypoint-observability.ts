@@ -16,6 +16,7 @@ export type EdgeRequestClass =
   | "catalog-redirect"
   | "dynamic"
   | "legacy-redirect"
+  | "public-api-cache"
   | "public-not-found"
   | "public-ssr-cache";
 

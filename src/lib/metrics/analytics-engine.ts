@@ -342,6 +342,7 @@ const WORKER_REQUEST_CLASSES = new Set([
   "catalog-redirect",
   "dynamic",
   "legacy-redirect",
+  "public-api-cache",
   "public-not-found",
   "public-ssr-cache",
 ]);

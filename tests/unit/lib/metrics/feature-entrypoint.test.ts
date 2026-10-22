@@ -67,12 +67,49 @@ afterEach(() => {
 
 it("records a dynamic REST request once across actual Worker and application hooks", async () => {
   appFetch.mockImplementation(appHandle);
-  const request = new Request("https://example.com/api/catalog/courses");
+  // Search stays dynamic; the catalog list routes now resolve through the
+  // shared JSON cache entrypoint, which the next case covers.
+  const request = new Request("https://example.com/api/search?q=algebra");
   const response = await worker.fetch(request, env, { waitUntil });
   expect(response.status).toBe(200);
   expect(await response.text()).toBe("payload");
   expect(appFetch).toHaveBeenCalledTimes(1);
   await flushObservability();
+  expect(featureEvents()).toHaveLength(1);
+  expect(featureEvents()[0]).toMatchObject({
+    feature: "catalog.search",
+    operation: "search",
+    protocol: "rest",
+    surface: "unknown",
+    authMode: "anonymous",
+    outcome: "success",
+    errorClass: "none",
+  });
+});
+
+it("records a cached REST request once across actual Worker and application hooks", async () => {
+  appFetch.mockImplementation(appHandle);
+  const cachedFetch = vi.fn(
+    (request: Request, _options: { cf: { cacheKey: string } }) =>
+      appFetch(request),
+  );
+  const response = await worker.fetch(
+    new Request("https://example.com/api/catalog/courses"),
+    env,
+    {
+      exports: { PublicSsr: () => ({ fetch: cachedFetch }) },
+      waitUntil,
+    },
+  );
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("payload");
+  expect(cachedFetch).toHaveBeenCalledTimes(1);
+  expect(cachedFetch.mock.calls[0][1]).toEqual({
+    cf: { cacheKey: "/api/catalog/courses?__life_mode=api" },
+  });
+  await flushObservability();
+  // A cache miss renders through the application hooks as well. The trusted
+  // request id the entrypoint forwards is what keeps that from counting twice.
   expect(featureEvents()).toHaveLength(1);
   expect(featureEvents()[0]).toMatchObject({
     feature: "catalog.course",

@@ -27,6 +27,14 @@ import {
 import { handleAuditLogWriteBatch } from "./lib/audit/audit-log-queue";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
+  cacheablePublicCatalogApiResponse,
+  isStoredPublicCatalogApiRepresentation,
+  PUBLIC_CATALOG_API_CACHE_MODE,
+  PUBLIC_CATALOG_API_STORED_CACHE_CONTROL,
+  PUBLIC_CATALOG_API_STRIPPED_REQUEST_HEADERS,
+  resolvePublicCatalogApiCacheMode,
+} from "./lib/cloudflare/public-api-gateway";
+import {
   handlePublicSsrCachePurgeRequest,
   isPublicSsrCachePurgeRequest,
   PUBLIC_SSR_CACHE_PURGE_PATH,
@@ -78,6 +86,7 @@ import {
   setTrustedRequestIdHeader,
 } from "./lib/log/worker-entrypoint-observability";
 import { observeHttpFeature } from "./lib/metrics/feature-http-operation";
+import { PUBLIC_CATALOG_CACHE_CONTROL } from "./lib/public-cache-control";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 
@@ -111,6 +120,52 @@ function prepareCachedRepresentation(response, pathname, renderStartedAt) {
   headers.delete("Content-Length");
   headers.delete("x-request-id");
   headers.delete(INTERNAL_REQUEST_ID_HEADER);
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
+}
+
+/**
+ * Build the stored representation of an admitted public catalog JSON response.
+ *
+ * Only the shared freshness directive changes. The route already supplies the
+ * `Cache-Tag` the purge endpoint invalidates, and `Vary: Origin` is kept so a
+ * stored body cannot be replayed under a different origin's CORS answer.
+ */
+function prepareCachedApiRepresentation(response) {
+  if (!cacheablePublicCatalogApiResponse(response)) return response;
+
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", PUBLIC_CATALOG_API_STORED_CACHE_CONTROL);
+  headers.delete("Content-Length");
+  headers.delete("x-request-id");
+  headers.delete(INTERNAL_REQUEST_ID_HEADER);
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
+}
+
+/**
+ * Build the delivered representation of a public catalog JSON response.
+ *
+ * Unlike HTML, the body holds nothing per-request to rewrite, so the delivered
+ * response keeps the route's own public policy instead of being restamped
+ * `private, no-store`: the payload really is the same for every viewer of this
+ * URL and locale. Only the correlation headers are per-request.
+ */
+function personalizeCachedApiResponse(response, requestId) {
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+  headers.delete("Server-Timing");
+  headers.delete(INTERNAL_REQUEST_ID_HEADER);
+  headers.set("x-request-id", requestId);
+  if (isStoredPublicCatalogApiRepresentation(response)) {
+    headers.set("Cache-Control", PUBLIC_CATALOG_CACHE_CONTROL);
+  }
   return new Response(response.body, {
     headers,
     status: response.status,
@@ -236,6 +291,49 @@ function publicSsrRequest(request, mode, locale, requestId) {
   });
 }
 
+/**
+ * Build the cached subrequest for a public catalog JSON route.
+ *
+ * The query is canonicalized by sorting keys and values so that equivalent
+ * client orderings share one entry, and the two reserved cache parameters are
+ * dropped first so a caller cannot inject or spoof them. Every parameter the
+ * client did send is preserved: `?locale=` therefore participates in the cache
+ * key, and no filter can be silently discarded.
+ */
+function publicCatalogApiCacheRequest(request, requestId) {
+  const url = new URL(request.url);
+  const canonicalQuery = new URLSearchParams();
+  for (const key of Array.from(new Set(url.searchParams.keys())).sort()) {
+    if (
+      key === PUBLIC_SSR_LOCALE_CACHE_PARAM ||
+      key === PUBLIC_SSR_MODE_CACHE_PARAM
+    ) {
+      continue;
+    }
+    for (const value of url.searchParams.getAll(key).sort()) {
+      canonicalQuery.append(key, value);
+    }
+  }
+  url.search = canonicalQuery.toString();
+  url.searchParams.set(
+    PUBLIC_SSR_MODE_CACHE_PARAM,
+    PUBLIC_CATALOG_API_CACHE_MODE,
+  );
+  const headers = new Headers(request.headers);
+  for (const name of PUBLIC_CATALOG_API_STRIPPED_REQUEST_HEADERS) {
+    headers.delete(name);
+  }
+  removePublicSsrHeaders(headers);
+  headers.set(PUBLIC_SSR_HEADER, "1");
+  headers.set(PUBLIC_SSR_MODE_HEADER, PUBLIC_CATALOG_API_CACHE_MODE);
+  setTrustedRequestIdHeader(headers, requestId);
+  return new Request(url, {
+    headers,
+    method: request.method,
+    redirect: "manual",
+  });
+}
+
 function svelteKitPublicSsrRequest(request) {
   const url = new URL(request.url);
   url.searchParams.delete(PUBLIC_SSR_LOCALE_CACHE_PARAM);
@@ -251,6 +349,14 @@ export class PublicSsr extends WorkerEntrypoint {
       this.env,
       this.ctx,
     );
+    // JSON and HTML share this entrypoint so that one `Cache-Tag` purge
+    // invalidates both; the mode header says which representation to store.
+    if (
+      request.headers.get(PUBLIC_SSR_MODE_HEADER) ===
+      PUBLIC_CATALOG_API_CACHE_MODE
+    ) {
+      return prepareCachedApiRepresentation(response);
+    }
     return prepareCachedRepresentation(
       response,
       new URL(request.url).pathname,
@@ -459,6 +565,29 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       "/catalog/teachers/:id",
     );
   }
+  const publicApiMode = resolvePublicCatalogApiCacheMode(request);
+  if (publicApiMode) {
+    const apiRoute = normalizeWorkerObservedRoute(
+      new URL(request.url).pathname,
+    );
+    const cachedApiRequest = publicCatalogApiCacheRequest(request, requestId);
+    const apiCacheUrl = new URL(cachedApiRequest.url);
+    edgeObservation.cacheOutcome = "unknown";
+    edgeObservation.requestClass = "public-api-cache";
+    edgeObservation.route = apiRoute;
+    const apiResponse = await context.exports
+      .PublicSsr({ props: { mode: publicApiMode } })
+      .fetch(cachedApiRequest, {
+        cf: { cacheKey: apiCacheUrl.pathname + apiCacheUrl.search },
+      });
+    return finish(
+      personalizeCachedApiResponse(apiResponse, requestId),
+      "public-api-cache",
+      apiRoute,
+      resolveEdgeCacheOutcome(apiResponse),
+    );
+  }
+
   const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
   if (!shouldRoutePublicSsrCache(request, mode)) {
     const route = normalizeWorkerObservedRoute(new URL(request.url).pathname);
