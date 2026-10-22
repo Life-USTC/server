@@ -13,7 +13,7 @@ let { ariaLabel, items }: { ariaLabel: string; items: PageSectionNavItem[] } = $
 </script>
 <nav aria-label={ariaLabel} class="flex min-w-0 flex-wrap gap-2" data-slot="page-section-nav">
   {#each items as item (item.href)}
-    <Button href={item.href} variant={item.current ? "secondary" : "ghost"} class="min-h-11 sm:min-h-9" aria-current={item.current ? "page" : undefined}>
+    <Button href={item.href} variant={item.current ? "secondary" : "ghost"} class="min-h-11 sm:min-h-9 md:min-h-9" aria-current={item.current ? "page" : undefined}>
       {item.label}{#if item.meta != null}<Badge variant="secondary">{item.meta}</Badge>{/if}
     </Button>
   {/each}

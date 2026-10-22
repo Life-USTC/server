@@ -82,14 +82,14 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     />
   </div>
   <div class="flex flex-wrap items-center gap-2 md:justify-end">
-    <Button class="min-w-28" href={activitiesManageHref} variant="outline">
+    <Button class="min-w-28 md:min-w-28" href={activitiesManageHref} variant="outline">
       {activitiesManageLabel}
     </Button>
     {#if signedData.calendarSubscriptionUrl}
       <PersonalCalendarLinkButton
         bind:this={personalCalendarLink}
         buttonLabel={subscriptionsCopy.iCalLink}
-        className="min-w-28"
+        className="min-w-28 md:min-w-28"
         failureMessage={subscriptionsCopy.optOutRetry}
         {sectionCopy}
         showSubscriptionsLink={true}

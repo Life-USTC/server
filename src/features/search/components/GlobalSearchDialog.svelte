@@ -107,7 +107,7 @@ $: if (open) {
           <Field.Label class="sr-only" for="global-search-dialog-input">
             {copy.title}
           </Field.Label>
-          <InputGroup.Root class="h-9 min-w-0 rounded-none border-0">
+          <InputGroup.Root class="h-9 min-w-0 rounded-none border-0 md:h-9">
             <InputGroup.Addon class="px-0">
               <SearchIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
             </InputGroup.Addon>
