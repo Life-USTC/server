@@ -36,7 +36,7 @@ test("/api/catalog/sections/[jwId] 返回 teacherAssignments 与 exams", {
   });
 });
 
-test("班级详情包含全部 SectionDetail 字段", { tag: "@Section/REST" }, async ({
+test("教学班详情包含全部 SectionDetail 字段", { tag: "@Section/REST" }, async ({
   run,
   request,
 }) => {

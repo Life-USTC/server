@@ -113,7 +113,7 @@ test("young-event.subscription-write-gate", { tag: "@Young/Web" }, async ({
       const endpoint = `/api/workspace/young-${kind}-subscriptions/${id}`;
       const routePattern = `**${endpoint}`;
       const action = page.getByRole("button", {
-        name: kind === "event" ? "Unsubscribe" : "Unfollow",
+        name: kind === "event" ? "Unsubscribe from activity" : "Unfollow",
         exact: true,
       });
       const { promise: entered, resolve: enterRead } = createDeferred();

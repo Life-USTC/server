@@ -3,6 +3,8 @@ import {
   isSettingsTab,
   normalizeSettingsTab,
   SETTINGS_TABS,
+  settingsCompanionTabs,
+  settingsRenderedTabs,
   settingsTabCompatibilityRedirectHref,
   settingsTabFromPathname,
 } from "@/features/settings/lib/settings-tabs";
@@ -75,5 +77,29 @@ describe("settings tabs", () => {
         new URL("https://example.test/account/settings/profile?tab=accounts"),
       ),
     ).toBeNull();
+  });
+
+  it("renders the short account groups together, active group first", () => {
+    expect(settingsRenderedTabs("preferences")).toEqual([
+      "preferences",
+      "profile",
+      "accounts",
+    ]);
+    expect(settingsRenderedTabs("accounts")).toEqual([
+      "accounts",
+      "profile",
+      "preferences",
+    ]);
+    expect(settingsCompanionTabs("profile")).toEqual([
+      "preferences",
+      "accounts",
+    ]);
+  });
+
+  it("keeps list-driven and destructive sections single-group", () => {
+    for (const tab of ["security", "authorizations", "danger"] as const) {
+      expect(settingsRenderedTabs(tab)).toEqual([tab]);
+      expect(settingsCompanionTabs(tab)).toEqual([]);
+    }
   });
 });

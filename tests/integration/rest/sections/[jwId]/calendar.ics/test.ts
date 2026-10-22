@@ -13,7 +13,7 @@ test("/api/catalog/sections/[jwId]/calendar.ics 契约", {
   });
 });
 
-test("/api/catalog/sections/[jwId]/calendar.ics 包含 seed 班级代码", {
+test("/api/catalog/sections/[jwId]/calendar.ics 包含 seed 教学班代码", {
   tag: "@Calendar/ICS",
 }, async ({ run, request }) => {
   return run(async () => {

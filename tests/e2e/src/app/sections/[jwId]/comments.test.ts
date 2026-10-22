@@ -194,7 +194,7 @@ async function expectKnownThread(
   }
 }
 
-test.describe("/catalog/sections/[jwId] 班级详情页", () => {
+test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
   test.describe.configure({ mode: "parallel" });
 
   test("已登录用户可发布评论并立即看到自己的评论卡片", {

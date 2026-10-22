@@ -314,7 +314,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await navigateToSeedTeacher(page);
           await jumpToTeacherSection(
             page,
-            /授课班级|Teaching Sections/i,
+            /授课教学班|Teaching Sections/i,
             "#sections",
           );
 
@@ -370,7 +370,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
       await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
       ).toBeVisible();
       await expect(
         page.getByRole("heading", { name: /评论|Comments/i }),

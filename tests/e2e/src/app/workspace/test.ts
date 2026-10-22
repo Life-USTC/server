@@ -172,7 +172,7 @@ test.describe("仪表盘", () => {
           [/^(待办|Todos?)$/i, payload.navigation.pendingTodosCount],
           [/^(考试|Exams?)$/i, payload.navigation.examsCount],
           [
-            /^(我的教学班|My sections)$/i,
+            /^(教学班订阅|Section subscriptions)$/i,
             payload.navigation.subscribedSectionCount,
           ],
         ] as const) {
@@ -242,7 +242,7 @@ test.describe("仪表盘", () => {
         await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
         await expect(
           appSidebar(page).getByRole("link", {
-            name: /^(我的教学班|My sections)$/i,
+            name: /^(教学班订阅|Section subscriptions)$/i,
           }),
         ).toBeVisible();
         await expect(

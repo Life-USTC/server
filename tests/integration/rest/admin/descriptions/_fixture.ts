@@ -16,7 +16,10 @@ async function prepareDescriptions(worker: IsolatedWorker) {
   });
   const [section, course, teacher, assignment, empty] = await db.$transaction(
     [
-      { sectionId: catalog.sections[0].id, content: "课程建议：独立班级简介" },
+      {
+        sectionId: catalog.sections[0].id,
+        content: "课程建议：独立教学班简介",
+      },
       { courseId: catalog.courses[0].id, content: "Known course description" },
       {
         teacherId: catalog.teachers[0].id,

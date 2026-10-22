@@ -61,7 +61,7 @@ for (const count of [1, 2]) {
         await expect(page.getByTestId("welcome-import-included")).toHaveText(
           en
             ? `${count} ${count === 1 ? "section" : "sections"} included`
-            : `包含 ${count} 个班级`,
+            : `包含 ${count} 个教学班`,
         );
 
         return observation.checks({

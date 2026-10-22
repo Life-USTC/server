@@ -25,7 +25,7 @@ export let startEdit: () => void;
        edit, matching `updateHomework`. Only the creator may delete; moderation belongs to the admin surface. -->
   {#if canWrite && editing}
     <Button
-      class="min-h-11 sm:min-h-9"
+      class="min-h-11 sm:min-h-9 md:min-h-9"
       variant="outline"
       type="button"
       onclick={() => {
@@ -42,7 +42,7 @@ export let startEdit: () => void;
           <Button
             {...props}
             aria-label={homeworkCopy.moreDetails}
-            class="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9"
+            class="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 md:min-h-9 md:min-w-9"
             size="icon"
             type="button"
             variant="outline"

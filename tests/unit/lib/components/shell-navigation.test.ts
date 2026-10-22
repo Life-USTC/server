@@ -125,8 +125,13 @@ describe("shared functional shell navigation", () => {
           ?.features.map((feature) => feature.label),
       ).toEqual(
         locale === "zh-cn"
-          ? ["我的教学班", "浏览课程", "浏览班级", "教师"]
-          : ["My sections", "Browse courses", "Browse sections", "Teachers"],
+          ? ["教学班订阅", "浏览课程", "浏览教学班", "教师"]
+          : [
+              "Section subscriptions",
+              "Browse courses",
+              "Browse sections",
+              "Teachers",
+            ],
       );
     },
   );

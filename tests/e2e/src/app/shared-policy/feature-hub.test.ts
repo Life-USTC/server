@@ -166,13 +166,13 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         ).toHaveText(
           locale === "zh-cn"
             ? [
-                ...(role === "anonymous" ? [] : ["我的教学班"]),
+                ...(role === "anonymous" ? [] : ["教学班订阅"]),
                 "浏览课程",
-                "浏览班级",
+                "浏览教学班",
                 "教师",
               ]
             : [
-                ...(role === "anonymous" ? [] : ["My sections"]),
+                ...(role === "anonymous" ? [] : ["Section subscriptions"]),
                 "Browse courses",
                 "Browse sections",
                 "Teachers",

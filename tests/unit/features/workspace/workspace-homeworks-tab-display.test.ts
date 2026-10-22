@@ -55,7 +55,7 @@ describe("仪表盘作业逾期展示", () => {
   });
 });
 
-describe("作业班级选择标签", () => {
+describe("作业教学班选择标签", () => {
   it("展示课程、教师和学期以区分同名课程", () => {
     expect(
       buildActions().homeworkSectionLabel({
