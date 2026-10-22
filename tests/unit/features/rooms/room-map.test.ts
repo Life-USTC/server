@@ -83,6 +83,47 @@ describe("room map lookup", () => {
       }).success,
     ).toBe(false);
   });
+  it("indexes manifest buildings by room count and floor", async () => {
+    vi.resetModules();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.endsWith("building_img_rules.json"))
+          return Response.json(assets.rules);
+        return Response.json({
+          rooms: [
+            { ...assets.manifest.rooms[0], code: "5102", floor: "10" },
+            { ...assets.manifest.rooms[0], code: "5101", floor: "10" },
+            { ...assets.manifest.rooms[0], code: "5100", floor: "2" },
+            {
+              ...assets.manifest.rooms[0],
+              code: "1101",
+              building: "一教",
+              floor: "1",
+            },
+          ],
+        });
+      }),
+    );
+    const { listRoomMapBuildings } = await import(
+      "@/features/rooms/server/room-map-service"
+    );
+    expect(await listRoomMapBuildings()).toEqual([
+      {
+        building: "第三教学楼",
+        roomCount: 3,
+        floors: [
+          { floor: "2", codes: ["5100"] },
+          { floor: "10", codes: ["5101", "5102"] },
+        ],
+      },
+      {
+        building: "一教",
+        roomCount: 1,
+        floors: [{ floor: "1", codes: ["1101"] }],
+      },
+    ]);
+  });
   it("retries a missing manifest instead of retaining missing highlights", async () => {
     vi.resetModules();
     let requests = 0;

@@ -9,7 +9,20 @@ export type RoomMapResult = {
   status: RoomMapStatus;
 };
 
+export type RoomMapFloor = {
+  codes: string[];
+  floor: string;
+};
+
+export type RoomMapBuilding = {
+  building: string;
+  floors: RoomMapFloor[];
+  roomCount: number;
+};
+
 export type RoomMapCopy = {
+  browseGuidance: string;
+  browseTitle: string;
   building: string;
   close: string;
   dialogDescription: string;
@@ -18,6 +31,7 @@ export type RoomMapCopy = {
   emptyTitle: string;
   fetchError: string;
   floor: string;
+  floorName: string;
   highlighted: string;
   loading: string;
   mapAlt: string;
@@ -25,6 +39,8 @@ export type RoomMapCopy = {
   overview: string;
   placeholder: string;
   resetZoom: string;
+  roomCount: string;
+  roomCountOne: string;
   sampleGuidance: string;
   sampleRooms: string[];
   searchLabel: string;
