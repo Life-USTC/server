@@ -28,15 +28,15 @@ import {
  * cache never stores, so every `include` edge is an uncached round trip on
  * every request. The DTO readers below project the section through
  * `subscribedScheduleEntrySchema`, `subscribedExamDtoSchema` or the MCP
- * calendar compactor; none of those carry the catalog lookup relations
- * (`Course.category/classify/classType/educationLevel/gradation/type`,
- * `Section.openDepartment/examMode/teachLanguage`), so they are not loaded.
- * `campus` stays because the MCP calendar compactor emits it.
+ * calendar compactor. None of those carry `Section.examMode`,
+ * `Section.teachLanguage` or the six `Course` lookup relations, so those are
+ * not loaded. `campus` and `openDepartment` stay: `compactSection` emits both.
  */
 const subscribedSectionContextInclude = {
   course: true,
   semester: true,
   campus: true,
+  openDepartment: true,
 } satisfies Prisma.SectionInclude;
 
 const subscribedScheduleInclude = {
@@ -59,7 +59,7 @@ const subscribedScheduleInclude = {
 } satisfies Prisma.ScheduleInclude;
 
 /**
- * GraphQL resolves `Section.campus/openDepartment/examMode/teachLanguage` and
+ * GraphQL resolves `Section.examMode/teachLanguage` and
  * `Course.category/classify/classType/educationLevel/gradation/type` from the
  * parent payload with the default field resolver (`src/lib/graphql/schema.ts`
  * declares them and no `Section`/`Course` resolver overrides them), so the

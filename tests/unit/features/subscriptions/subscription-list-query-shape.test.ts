@@ -46,11 +46,7 @@ vi.mock("@/lib/db/prisma", () => ({
  * publish. Every other viewer-scoped consumer projects through a strict DTO
  * schema or the MCP calendar compactor, none of which carry them.
  */
-const CATALOG_LOOKUP_RELATIONS = [
-  "openDepartment",
-  "examMode",
-  "teachLanguage",
-] as const;
+const CATALOG_LOOKUP_RELATIONS = ["examMode", "teachLanguage"] as const;
 const COURSE_LOOKUP_RELATIONS = [
   "category",
   "classify",
@@ -73,6 +69,7 @@ function expectNarrowSectionInclude(sectionInclude: Record<string, unknown>) {
     course: true,
     semester: true,
     campus: true,
+    openDepartment: true,
   });
   for (const relation of CATALOG_LOOKUP_RELATIONS) {
     expect(sectionInclude).not.toHaveProperty(relation);
