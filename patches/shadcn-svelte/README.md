@@ -53,6 +53,27 @@ Nothing fails if a registry refresh reverts this while `color-contrast` stays
 disabled in `tests/e2e/utils/ui-quality.ts`; enabling that rule puts the key
 hint in the shell's search trigger back under the page-inventory audit.
 
+### `button.patch`, `badge.patch`
+
+Both replace the `link` variant's `text-primary` with `text-primary-text`.
+
+`--primary` is the brand teal, calibrated as a *surface* against
+`--primary-foreground`. The `link` variant is the one variant that is never a
+filled surface, so upstream's `text-primary` always lands on the page
+background: `#00c3d0` on white is 2.16:1, far below the 4.5:1 WCAG AA minimum,
+and no font size rescues it. `--primary-text` is the same hue at L 0.5 (5.3:1
+on white, 4.6:1 on the lightest surface in the ramp) and aliases `--primary`
+again in dark mode, where the teal already reaches 11.2:1. Fixing it in the
+variant rather than at the call sites keeps the next `variant="link"` correct
+by default.
+
+Both files already carried local divergence that predates this change — the
+first-party `status-*` badge variants, the `[a]:hover` scoping, and the
+minimum touch target in the button base — so these patches record that too.
+
+Covered by `color-contrast` in `tests/e2e/utils/ui-quality.ts`, which fails on
+every `variant="link"` in the page inventory if a registry refresh reverts it.
+
 ## input
 
 `input.patch` — the file-type branch must not `bind:value`: a file input only

@@ -41,7 +41,7 @@ function diffSegments(
 
 function diffSegmentClass(segment: DiffSegment) {
   if (segment.added) {
-    return "rounded-sm bg-primary/10 text-primary";
+    return "rounded-sm bg-primary/10 text-primary-text";
   }
   if (segment.removed) {
     return "rounded-sm bg-destructive/10 text-destructive";

@@ -51,7 +51,7 @@ $: groups = filterShellFeatures(
     {#if $shellViewer.status === "ready" && !viewer}
       <p class="text-muted-foreground text-sm">
         {copy.signInPrompt}
-        <Button href="/account/sign-in?callbackUrl=%2Fcatalog%2Ffeatures" variant="link" class="h-auto min-h-6 p-0 align-baseline md:min-h-6">{data.copy.menu.signIn}</Button>
+        <Button href="/account/sign-in?callbackUrl=%2Fcatalog%2Ffeatures" variant="link" class="h-auto min-h-6 p-0 align-baseline underline md:min-h-6">{data.copy.menu.signIn}</Button>
       </p>
     {/if}
     {#each groups as group (group.id)}

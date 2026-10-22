@@ -8,10 +8,10 @@ export let status: ModerationCommentLike["status"];
 
 <Badge
   class={status === "active"
-    ? "border-success/40 bg-success/10 text-success"
+    ? "border-success/40 bg-success/10 text-success-text"
     : status === "deleted"
       ? "border-destructive/40 bg-destructive/10 text-destructive"
-      : "border-warning/40 bg-warning/10 text-warning"}
+      : "border-warning/40 bg-warning/10 text-warning-text"}
 >
   {label}
 </Badge>
