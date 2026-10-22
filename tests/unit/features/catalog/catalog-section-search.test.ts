@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildSectionOrderBy } from "@/features/catalog/server/section-search-order";
 import { parseSectionSearchQuery } from "@/features/catalog/server/section-search-parser";
 import { buildSectionSearchWhere } from "@/features/catalog/server/section-search-where";
+import { SEARCH_TERM_LIMIT } from "@/lib/query-filter-helpers";
 
 function contains(value: string) {
   return { contains: value, mode: "insensitive" as const };
@@ -310,5 +311,28 @@ describe("课段搜索条件构造器", () => {
     const result = buildSectionSearchWhere("sort:unknown");
 
     expect(result.orderBy).toBeUndefined();
+  });
+
+  // Each term adds its own five-way `ILIKE '%…%'` group, and terms are ANDed,
+  // so a 200-character query could stack about eighty sequential scans into one
+  // statement. The tail is dropped rather than rejected, which only widens the
+  // result set.
+  it("通用搜索词数量有上限,超出的词被丢弃", () => {
+    const terms = Array.from(
+      { length: SEARCH_TERM_LIMIT + 4 },
+      (_value, index) => `词${index}`,
+    );
+
+    const result = buildSectionSearchWhere(terms.join(" "));
+
+    expect(result.where).toEqual({
+      AND: terms.slice(0, SEARCH_TERM_LIMIT).map(general),
+    });
+  });
+
+  it("通用搜索词先去重再计入上限", () => {
+    const result = buildSectionSearchWhere("数学 数学 物理");
+
+    expect(result.where).toEqual({ AND: [general("数学"), general("物理")] });
   });
 });
