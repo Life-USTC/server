@@ -269,7 +269,7 @@ function selectClient(value: string) {
         class="grid w-full grid-cols-3 gap-1 rounded-xl bg-muted p-1"
       >
         <Tabs.Trigger
-          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
+          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-foreground/70 text-sm transition hover:bg-background/70 sm:px-4"
           value="chatgpt"
         >
           <span class="truncate">{data.copy.clientTabs.chatgpt}</span>
@@ -278,7 +278,7 @@ function selectClient(value: string) {
           </Badge>
         </Tabs.Trigger>
         <Tabs.Trigger
-          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
+          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-foreground/70 text-sm transition hover:bg-background/70 sm:px-4"
           value="claude"
         >
           <span class="truncate">{data.copy.clientTabs.claude}</span>
@@ -287,7 +287,7 @@ function selectClient(value: string) {
           </Badge>
         </Tabs.Trigger>
         <Tabs.Trigger
-          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
+          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-foreground/70 text-sm transition hover:bg-background/70 sm:px-4"
           value="other"
         >
           <span class="truncate">{data.copy.clientTabs.other}</span>

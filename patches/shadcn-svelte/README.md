@@ -38,6 +38,21 @@ control a visible focus state.
 Covered by the tablet keyboard tests in `tests/e2e/src/app/test.ts`, which
 should fail if a registry refresh reverts this.
 
+### `kbd.patch`
+
+Replaces `text-muted-foreground` with `text-foreground/70`.
+
+Upstream pairs the key cap's own `bg-muted` with `text-muted-foreground`, a
+foreground calibrated against `--background` rather than `--muted`. On our zinc
+ramp that is `#71717a` on `#f4f4f5` = 4.39:1 at 12px, under the 4.5:1 WCAG AA
+minimum; `text-foreground/70` gives 5.34:1 and stays visibly lighter than body
+text. Both classes are primitive defaults, so a call site cannot override the
+pair without restating it everywhere `Kbd.Root` is used.
+
+Nothing fails if a registry refresh reverts this while `color-contrast` stays
+disabled in `tests/e2e/utils/ui-quality.ts`; enabling that rule puts the key
+hint in the shell's search trigger back under the page-inventory audit.
+
 ## input
 
 `input.patch` — the file-type branch must not `bind:value`: a file input only

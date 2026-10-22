@@ -29,10 +29,10 @@ function handlePanelTabChange(value: string) {
 {#if showHistoryTabs}
   <Tabs.Root value={activePanelTab} onValueChange={handlePanelTabChange}>
     <Tabs.List class="w-full" aria-label={copy.title}>
-      <Tabs.Trigger class="flex-1" value="description">
+      <Tabs.Trigger class="flex-1 text-foreground/70" value="description">
         {copy.title}
       </Tabs.Trigger>
-      <Tabs.Trigger class="flex-1" value="history">
+      <Tabs.Trigger class="flex-1 text-foreground/70" value="history">
         {formatDescriptionCopy(copy.historyTitle, { count: String(history.length) })}
       </Tabs.Trigger>
     </Tabs.List>
