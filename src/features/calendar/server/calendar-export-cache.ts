@@ -187,6 +187,18 @@ async function persistStoredCalendar(
   }
 }
 
+// ical-generator stamps every VEVENT with the moment it was built, so two
+// rebuilds of unchanged data differ in their DTSTAMP lines — and therefore in
+// their etag — while describing the same calendar. Ignore those lines when
+// deciding whether a rebuild produced anything new.
+function exportContentKey(calendar: UserCalendarExport) {
+  return [
+    calendar.cacheControl,
+    calendar.filename,
+    calendar.text.replace(/^DTSTAMP:.*$/gm, "DTSTAMP:"),
+  ].join("\u0000");
+}
+
 /**
  * Persist a built ICS export to isolate memory + KV (queue rebuild / sync miss).
  */
@@ -195,6 +207,22 @@ export async function storeBuiltUserCalendarExport(
   calendar: UserCalendarExport,
   options: UserCalendarExportCacheOptions = {},
 ) {
+  const previous = userCalendarExportCache.get(userId)?.calendar;
+  // Rebuilds are enqueued far more often than a timetable changes, and every
+  // put is a billed KV write of an entry the clients already hold. Keep the
+  // stored export when this rebuild reproduces it, and keep its etag so
+  // conditional requests still match. Rewrite it once it is no longer fresh:
+  // that renews both the freshness window the read path uses and the KV
+  // expiration, so skipping can never strand or expire a served entry.
+  if (
+    previous &&
+    Date.now() - previous.generatedAtMs <= USER_CALENDAR_EXPORT_FRESH_TTL_MS &&
+    exportContentKey(previous) === exportContentKey(calendar)
+  ) {
+    recordCalendarFeedCacheStatus("refresh_success");
+    return previous;
+  }
+
   const stored: StoredUserCalendarExport = {
     ...calendar,
     etag: await createCalendarEtag(calendar.text),
