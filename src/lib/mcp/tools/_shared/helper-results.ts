@@ -20,7 +20,9 @@ export function jsonToolResult(
   const mode = resolveMcpMode(options?.mode);
   const payload = mode === "full" ? value : compactMcpPayload(value);
   const serializedPayload = toStructuredContent(serializeDatesDeep(payload));
-  const text = JSON.stringify(serializedPayload, null, 2);
+  // Minified: indentation is a third of the text block and of the tokens every
+  // MCP client spends on it, and the JSON carries the same data either way.
+  const text = JSON.stringify(serializedPayload);
   const structuredContent = JSON.parse(text) as Record<string, unknown>;
   return {
     structuredContent,
