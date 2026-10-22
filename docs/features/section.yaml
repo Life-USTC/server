@@ -490,6 +490,19 @@ requirements:
     test:
       file: tests/e2e/src/app/sections/[jwId]/schedule-schema.test.ts
       name: section.schedule-response-schema
+- id: section.catalog-id-list-bound
+  category: validation
+  rule: The Section list ids and jwIds filters accept at most 100 identifiers on every transport.
+  rationale: One ceiling for all transports keeps the generated IN list bounded; left unbounded, the MCP
+    tool accepted roughly 8,000 identifiers inside its 64 KiB body.
+  acceptance:
+    given: The registered MCP catalog_section_search input schema and the GraphQL SectionFilter bound.
+    when: Both declared bounds are read.
+    then:
+    - The MCP tool publishes the same maximum item count the GraphQL filter enforces.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: section.catalog-id-list-bound
 capabilities:
   section-list:
     title: Section List & Filter

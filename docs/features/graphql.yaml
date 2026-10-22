@@ -684,6 +684,21 @@ requirements:
     test:
       file: tests/unit/lib/graphql/graphql-server.test.ts
       name: graphql.request-cost
+- id: graphql.client-activity-cost
+  category: consistency
+  rule: Account.clientActivity is priced like every other paginated field, by the rows its page returns
+    — the limit the selection states, or the schema's declared limit default when it states none.
+  rationale: The field is cursor-paginated with a limit argument rather than PageInput, so it priced at
+    multiplier 1 and a full 50-row page scored the same as a single scalar.
+  acceptance:
+    given: The production cost model and the Account.clientActivity selection.
+    when: The operation omits limit, states the schema default, and states the maximum.
+    then:
+    - An omitted limit prices identically to the declared default.
+    - The stated maximum prices proportionally to its row count.
+    test:
+      file: tests/unit/lib/graphql/graphql-operation-analysis.test.ts
+      name: graphql.client-activity-cost
 - id: graphql.request-timeout
   category: validation
   rule: GraphQL HTTP execution stops waiting after a five-second request deadline and reports REQUEST_TIMEOUT.

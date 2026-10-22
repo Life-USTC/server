@@ -11,12 +11,22 @@ import {
   routeValidationResponse,
 } from "./route-validation-parsing";
 
+/**
+ * Body budget every REST JSON route gets unless it opts up.
+ *
+ * The Workers isolate memory ceiling is reached while the body buffers, long
+ * before any schema limit can reject it, so the budget has to be the default
+ * rather than something each route remembers to ask for. Every declared
+ * request schema fits inside it with room to spare: the widest non-bulk
+ * payload is 500 section codes of 64 characters, about 34 KiB raw and about
+ * 192 KiB if a client escapes every character as `\uXXXX`.
+ */
+export const ROUTE_JSON_BODY_DEFAULT_MAX_BYTES = 256 * 1024;
+
 export type ParseRouteJsonBodyOptions = ParseRouteOptions & {
   /**
-   * Refuse bodies above this many bytes with 413 instead of buffering them.
-   * Routes that accept bulk payloads must set it: the Workers isolate memory
-   * ceiling is reached while `request.json()` buffers, long before any schema
-   * limit can reject the payload.
+   * Raise or lower the body budget for a route whose payload is legitimately
+   * bulk. Bodies above it are refused with 413 instead of being buffered.
    */
   maxBytes?: number;
 };
@@ -39,10 +49,10 @@ export async function parseRouteJsonBody<TSchema extends z.ZodTypeAny>(
   let body: unknown = {};
 
   try {
-    body =
-      options?.maxBytes === undefined
-        ? await request.json()
-        : await readJsonBodyWithinLimit(request, options.maxBytes);
+    body = await readJsonBodyWithinLimit(
+      request,
+      options?.maxBytes ?? ROUTE_JSON_BODY_DEFAULT_MAX_BYTES,
+    );
   } catch (error) {
     if (error instanceof RouteBodyTooLargeError) {
       return payloadTooLarge(error.message);

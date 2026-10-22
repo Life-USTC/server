@@ -12,6 +12,7 @@ export {
   parseResourceIdParam,
   parseRouteJsonBody,
   parseRouteParams,
+  ROUTE_JSON_BODY_DEFAULT_MAX_BYTES,
 } from "./route-request-parsing";
 export {
   type ParseRouteOptions,

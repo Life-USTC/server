@@ -9,7 +9,7 @@ import { maxTopLevelFieldsRule } from "@/lib/graphql/security";
 import { graphqlOperationValidationSchema } from "@/lib/graphql/validation-schema";
 
 describe("GraphQL operation analysis", () => {
-  it("classifies every PageInput field by schema coordinate", () => {
+  it("classifies every paginated field by schema coordinate", () => {
     const actual = Object.values(
       graphqlOperationValidationSchema.getTypeMap(),
     ).flatMap((type) =>
@@ -17,8 +17,10 @@ describe("GraphQL operation analysis", () => {
         ? Object.values(type.getFields()).flatMap((field) =>
             field.args.some(
               (argument) =>
-                argument.name === "page" &&
-                argument.type.toString().replace(/!/g, "") === "PageInput",
+                (argument.name === "page" &&
+                  argument.type.toString().replace(/!/g, "") === "PageInput") ||
+                (argument.name === "limit" &&
+                  argument.type.toString().replace(/!/g, "") === "Int"),
             )
               ? [`${type.name}.${field.name}`]
               : [],
@@ -68,6 +70,39 @@ describe("GraphQL operation analysis", () => {
       operationType: "query",
       topLevelFieldCount: 1,
     });
+  });
+
+  it("graphql.client-activity-cost", () => {
+    const cost = (limit: string) =>
+      analyzeGraphqlOperation({
+        document: parse(/* GraphQL */ `
+          query ClientActivity {
+            account {
+              clientActivity${limit} {
+                items {
+                  id
+                  action
+                  occurredAt
+                }
+                pageInfo {
+                  total
+                }
+              }
+            }
+          }
+        `),
+        operationName: "ClientActivity",
+        variables: {},
+      }).estimatedCost;
+
+    // A cursor page is priced by the rows it returns, like every PageInput
+    // field: the schema's declared `limit` default when the caller omits it,
+    // and the stated value otherwise. The selection below prices at 8 per
+    // row, so an unweighted multiplier of 1 would score the whole operation
+    // at 10 however many rows it asks for.
+    expect(cost("")).toBe(2 + 30 * 8);
+    expect(cost("(limit: 30)")).toBe(2 + 30 * 8);
+    expect(cost("(limit: 50)")).toBe(2 + 50 * 8);
   });
 
   it("reports anonymous and unselected operations without using raw input names", () => {

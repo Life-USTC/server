@@ -1,4 +1,6 @@
 export const CATALOG_MAX_PAGE = 100;
+/** Shared bound for the `ids` / `jwIds` catalog filters across transports. */
+export const CATALOG_ID_LIST_MAX_ITEMS = 100;
 export const CATALOG_MAX_ID = 2_147_483_647;
 export const CATALOG_SEARCH_MIN_LENGTH = 2;
 export const CATALOG_SEARCH_MAX_LENGTH = 200;
