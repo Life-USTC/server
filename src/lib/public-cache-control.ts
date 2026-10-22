@@ -37,14 +37,15 @@ export const PUBLIC_SEARCH_CACHE_HEADERS = {
 
 // Bus schedule responses are purged with the catalog revision tag. Keep the
 // edge TTL shorter than the catalog TTL so an effective-version date boundary
-// cannot leave the previous schedule cached for a full day.
+// cannot leave the previous schedule cached for a full day. Declaring a shared
+// TTL also means declaring no `Vary`: Cloudflare stores a response only when
+// its `Vary` is absent or `Accept-Encoding`.
 export const PUBLIC_BUS_CACHE_HEADERS = {
   "Cache-Control":
     "public, max-age=0, s-maxage=3600, stale-while-revalidate=300",
   "Cache-Tag": CATALOG_EDGE_CACHE_TAG,
   "Cloudflare-CDN-Cache-Control":
     "public, max-age=3600, stale-while-revalidate=300",
-  Vary: "Accept-Language, Cookie",
 } as const;
 
 export const TIME_SENSITIVE_PRIVATE_HEADERS = {

@@ -16,6 +16,7 @@ import {
   searchCoursesForGlobal,
   searchSectionsForGlobal,
 } from "@/features/search/server/global-search-catalog-queries";
+import { SEARCH_TERM_LIMIT } from "@/lib/query-filter-helpers";
 
 function contains(value: string) {
   return { contains: value, mode: "insensitive" as const };
@@ -89,6 +90,26 @@ describe("global catalog search queries", () => {
         where: {
           retiredAt: null,
           AND: [sectionTerm("数学分析"), sectionTerm("程艺")],
+        },
+      }),
+    );
+  });
+
+  // The topbar search box reaches this builder anonymously, and every term adds
+  // its own group of leading-wildcard `ILIKE`s, so the term count is capped.
+  it("caps the number of section terms", async () => {
+    const terms = Array.from(
+      { length: SEARCH_TERM_LIMIT + 3 },
+      (_value, index) => `词${index}`,
+    );
+
+    await searchSectionsForGlobal(terms.join(" "), "zh-cn", 5);
+
+    expect(sectionFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          retiredAt: null,
+          AND: terms.slice(0, SEARCH_TERM_LIMIT).map(sectionTerm),
         },
       }),
     );

@@ -278,6 +278,24 @@ requirements:
     test:
       file: tests/unit/features/bus/bus-route-cache.test.ts
       name: bus.cache-boundaries
+- id: bus.public-route-search-url-determined
+  category: consistency
+  rule: The public bus route-search response is determined by its URL alone. Its locale comes from the query
+    parameter and never from a request cookie or `Accept-Language`, and it declares no `Vary`.
+  rationale: The response declares a shared-cache TTL, and Cloudflare stores a response only when its `Vary`
+    is absent or `Accept-Encoding`, so the previous `Accept-Language, Cookie` value discarded every copy.
+    Every payload builder behind the route discards the locale, so keying on request headers could only lose
+    the cache entry while leaving the body byte-identical.
+  acceptance:
+    given: The actual route-search handler and a stubbed search service.
+    when: The same URL is requested with no headers, a locale cookie, an `Accept-Language`, both, and then
+      with an explicit `locale` query parameter.
+    then:
+    - Every response carries the public bus cache headers, the catalog cache tag and no `Vary`.
+    - All bodies are identical, and only the query parameter changes the locale the service receives.
+    test:
+      file: tests/unit/features/bus/bus-route-cache.test.ts
+      name: bus.public-route-search-url-determined
 - id: bus.preference-hydration-write-gate
   category: privacy
   rule: Web preference writes remain disabled until the private preference read succeeds. Authentication

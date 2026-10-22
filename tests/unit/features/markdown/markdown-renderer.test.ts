@@ -81,6 +81,36 @@ describe("markdown 渲染器", () => {
     expect(description.renderedHtml).not.toContain("<script>");
   });
 
+  it("renders identically however many bodies share one processor", () => {
+    const bodies = [
+      // `\gdef` is the classic cross-render leak: KaTeX keeps global macros on
+      // the `macros` option object whenever a caller supplies one.
+      String.raw`$\gdef\leaky{LEAKED}$`,
+      String.raw`$\leaky$`,
+      "a ==mark== b ++ins++ c ~sub~ d ^sup^",
+      "section#123 and teacher#456",
+      "# Heading\n\n:::tip\nCallout\n:::",
+      '<script>alert("xss")</script>',
+    ];
+    // A distinct plugin-list identity per render, so each body also goes
+    // through a processor that has rendered nothing else.
+    const isolated = bodies.map((body) =>
+      renderEmbeddedMarkdown(body, {
+        remarkPlugins: [...campusReferenceMarkdownPlugins],
+      }),
+    );
+    // One shared processor for the whole list, twice over.
+    const options = { remarkPlugins: campusReferenceMarkdownPlugins };
+    const shared = bodies.map((body) => renderEmbeddedMarkdown(body, options));
+    const sharedAgain = bodies.map((body) =>
+      renderEmbeddedMarkdown(body, options),
+    );
+
+    expect(shared).toEqual(isolated);
+    expect(sharedAgain).toEqual(isolated);
+    expect(shared[1]).not.toContain("LEAKED");
+  });
+
   it("uses the embedded heading policy in serialized descriptions", () => {
     const description = serializeDescriptionRecord({
       id: "description-1",

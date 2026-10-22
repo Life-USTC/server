@@ -30,12 +30,20 @@ requirements:
       name: calendar.activity-owner-transition
 - id: calendar.personal-feed-http-cache
   category: privacy
-  rule: Personal calendar HTTP responses and revoked-credential errors use private, no-store.
+  rule: Personal calendar feed responses use `private, max-age=0, must-revalidate` with CDN `no-store`, so
+    a stored copy can never be served without an origin round trip that re-authorizes the credential.
+    Revoked-credential errors use private, no-store.
+  rationale: '`no-store` stops a client sending `If-None-Match` at all, so every poll of an unchanged feed
+    transferred the whole ICS even though the route already answers 304. `max-age=0, must-revalidate` lets
+    the condition through without ever letting a client reuse a body on its own.'
   acceptance:
     given: A persisted owner has a personal calendar with one dated item.
-    when: The actual feed handler returns a cold 200, authorized ETag 304 and wrong-credential 410.
+    when: The actual feed handler returns a cold 200, authorized ETag 304 and wrong-credential 410, and the
+      shared private-response hook that every transport applies runs over each one.
     then:
-    - All three responses use private, no-store.
+    - The 200 and the 304 survive the hook as `private, max-age=0, must-revalidate` with CDN `no-store`, and
+      the 304 has an empty body while the 200 carries the ICS.
+    - The revoked-credential 410 uses private, no-store.
     test:
       file: tests/integration/calendar-feed-contract.test.ts
       name: calendar.personal-feed-http-cache

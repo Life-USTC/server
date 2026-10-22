@@ -100,10 +100,16 @@ export function attachHomeworkCompletionsForViewer<T extends { id: string }>(
 
 export async function withHomeworkCompletionRequiredForViewer<
   T extends { sectionId: number },
->(homeworks: T[], viewerUserId?: string | null) {
-  const subscriptionKinds = viewerUserId
-    ? await getUserSubscriptionKinds(viewerUserId)
-    : new Map<number, string>();
+>(
+  homeworks: T[],
+  viewerUserId?: string | null,
+  precomputedSubscriptionKinds?: ReadonlyMap<number, string>,
+) {
+  const subscriptionKinds =
+    precomputedSubscriptionKinds ??
+    (viewerUserId
+      ? await getUserSubscriptionKinds(viewerUserId)
+      : new Map<number, string>());
   return attachHomeworkCompletionRequired(homeworks, subscriptionKinds);
 }
 

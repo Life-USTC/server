@@ -74,6 +74,7 @@ export async function localizeSubscribedHomeworkWorkspaceItems(
   snapshot: Pick<SubscribedHomeworkRlsSnapshot, "completions" | "homeworkIds">,
   locale: string,
   userId: string,
+  precomputedSubscriptionKinds?: ReadonlyMap<number, string>,
 ): Promise<HomeworkWithSection[]> {
   const { homeworkIds, completions } = snapshot;
   if (homeworkIds.length === 0) return [];
@@ -88,7 +89,11 @@ export async function localizeSubscribedHomeworkWorkspaceItems(
     completions,
   );
   return orderHomeworksById(
-    await withHomeworkCompletionRequiredForViewer(withCompletions, userId),
+    await withHomeworkCompletionRequiredForViewer(
+      withCompletions,
+      userId,
+      precomputedSubscriptionKinds,
+    ),
     homeworkIds,
   );
 }

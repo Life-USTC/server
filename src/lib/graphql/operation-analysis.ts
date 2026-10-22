@@ -2,7 +2,9 @@ import {
   type DocumentNode,
   type FieldNode,
   type FragmentDefinitionNode,
+  type GraphQLArgument,
   type GraphQLCompositeType,
+  type GraphQLField,
   getNamedType,
   getOperationAST,
   isCompositeType,
@@ -37,6 +39,7 @@ const UNKNOWN_ANALYSIS: GraphqlOperationAnalysis = {
 };
 
 export const PAGINATED_FIELD_COORDINATES = new Set([
+  "Account.clientActivity",
   "Catalog.busRoutes",
   "Catalog.busTimetable",
   "Catalog.courses",
@@ -127,13 +130,42 @@ function variableInteger(value: ValueNode, variables: Record<string, unknown>) {
     : undefined;
 }
 
+/**
+ * Rows a cursor-paginated selection can return. Those fields size their page
+ * with a plain `limit` instead of a `PageInput`, so an omitted argument falls
+ * back to the limit default the schema itself declares.
+ */
+function cursorLimitMultiplier(
+  node: FieldNode,
+  variables: Record<string, unknown>,
+  limitArgument: GraphQLArgument,
+) {
+  const selected = node.arguments?.find(
+    (argument) => argument.name.value === "limit",
+  );
+  const limit = selected
+    ? variableInteger(selected.value, variables)
+    : limitArgument.defaultValue;
+  return typeof limit === "number" && Number.isInteger(limit)
+    ? Math.max(limit, 1)
+    : GRAPHQL_LIMITS.defaultPageSize;
+}
+
 function paginatedFieldMultiplier(
   node: FieldNode,
   variables: Record<string, unknown>,
   parentType: GraphQLCompositeType,
+  field: GraphQLField<unknown, unknown> | undefined,
 ) {
   if (!PAGINATED_FIELD_COORDINATES.has(`${parentType.name}.${node.name.value}`))
     return 1;
+
+  const limitArgument = field?.args.find(
+    (argument) => argument.name === "limit",
+  );
+  if (limitArgument) {
+    return cursorLimitMultiplier(node, variables, limitArgument);
+  }
 
   const pageArgument = node.arguments?.find(
     (argument) => argument.name.value === "page",
@@ -198,7 +230,8 @@ function selectionCost({
           });
       }
       cost +=
-        fieldCost * paginatedFieldMultiplier(selection, variables, parentType);
+        fieldCost *
+        paginatedFieldMultiplier(selection, variables, parentType, field);
       continue;
     }
 

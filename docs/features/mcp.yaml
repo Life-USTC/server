@@ -46,8 +46,12 @@ requirements:
 - id: mcp.text-formatted-json
   category: presentation
   rule: The canonical MCP tool-result serializer returns an object containing a boolean success field.
-    Its text JSON and structuredContent are identical. Scalar and array payloads are nested under result;
-    explicit success=false is preserved.
+    Its text JSON and structuredContent are identical, and the text block is minified JSON without
+    indentation or line breaks. Scalar and array payloads are nested under result; explicit success=false
+    is preserved.
+  rationale: Indentation is about a third of the text block that clients pay for in tokens and carries
+    no data, while structuredContent stays duplicated because the spec recommends the text form for
+    backwards compatibility and offers no client capability to detect that it can be dropped.
   acceptance:
     given: Domain results include object success/error, array, scalar and null payloads.
     when: The canonical serializer produces MCP text and structured output.
@@ -56,6 +60,7 @@ requirements:
     - Object payload fields and explicit false are retained.
     - Nonobjects are nested under result.
     - Text JSON and structuredContent equal the independent expected projection.
+    - The text block equals the minified JSON encoding of that projection, including for nested payloads.
     test:
       file: tests/unit/lib/mcp/mcp-tool-helpers.test.ts
       name: mcp.text-formatted-json

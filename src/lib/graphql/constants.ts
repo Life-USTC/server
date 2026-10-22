@@ -1,5 +1,6 @@
 import { BUS_VERSION_KEY_MAX_LENGTH } from "@/features/bus/lib/bus-version-key";
 import {
+  CATALOG_ID_LIST_MAX_ITEMS,
   CATALOG_MAX_PAGE,
   CATALOG_SEARCH_MAX_LENGTH,
   CATALOG_SEARCH_MIN_LENGTH,
@@ -18,7 +19,7 @@ export const GRAPHQL_LIMITS = {
   defaultPageSize: 20,
   depth: 8,
   directives: 10,
-  idList: 100,
+  idList: CATALOG_ID_LIST_MAX_ITEMS,
   page: CATALOG_MAX_PAGE,
   pageSize: 100,
   requestBatch: 1,

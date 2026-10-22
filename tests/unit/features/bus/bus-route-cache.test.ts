@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_LOCALE, LOCALE_COOKIE } from "@/i18n/config";
 
 const {
   getBusTimetableDataMock,
@@ -74,7 +75,7 @@ describe("bus REST cache boundaries", () => {
     }
   });
 
-  it("publicly edge-caches viewer-independent route search", async () => {
+  it("bus.public-route-search-url-determined", async () => {
     searchBusRoutesMock.mockResolvedValue({
       originCampus: campus,
       destinationCampus: null,
@@ -83,14 +84,47 @@ describe("bus REST cache boundaries", () => {
     });
     const { getBusRoutesSearchRoute } = await import("@/lib/api/routes/bus");
 
-    const response = await getBusRoutesSearchRoute(
-      new Request("https://life.example/api/catalog/bus/routes"),
-    );
+    const url = "https://life.example/api/catalog/bus/routes";
+    const bodies: string[] = [];
+    const headerCases: Record<string, string>[] = [
+      {},
+      { cookie: `${LOCALE_COOKIE}=en-us` },
+      { "accept-language": "en-US,en;q=0.9" },
+      { cookie: `${LOCALE_COOKIE}=en-us`, "accept-language": "en-US,en;q=0.9" },
+    ];
+    for (const headers of headerCases) {
+      const response = await getBusRoutesSearchRoute(
+        new Request(url, { headers }),
+      );
 
-    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
-      "public, max-age=3600, stale-while-revalidate=300",
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Cache-Control")).toBe(
+        "public, max-age=0, s-maxage=3600, stale-while-revalidate=300",
+      );
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "public, max-age=3600, stale-while-revalidate=300",
+      );
+      expect(response.headers.get("Cache-Tag")).toBe("catalog");
+      // Cloudflare stores a response only when its `Vary` is absent or
+      // `Accept-Encoding`; any other value discards every copy, so a declared
+      // shared TTL must come with none.
+      expect(response.headers.get("Vary")).toBeNull();
+      bodies.push(await response.text());
+    }
+
+    expect(new Set(bodies).size).toBe(1);
+    for (const call of searchBusRoutesMock.mock.calls) {
+      expect(call[0].locale).toBe(DEFAULT_LOCALE);
+    }
+
+    // The query parameter stays the only locale the route reads.
+    const explicit = await getBusRoutesSearchRoute(
+      new Request(`${url}?locale=en-us`, {
+        headers: { cookie: `${LOCALE_COOKIE}=zh-cn` },
+      }),
     );
-    expect(response.headers.get("Cache-Tag")).toBe("catalog");
+    expect(await explicit.text()).toBe(bodies[0]);
+    expect(searchBusRoutesMock.mock.calls.at(-1)?.[0].locale).toBe("en-us");
   });
 
   it("bus.next-departures-uncached", async () => {

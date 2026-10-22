@@ -2,6 +2,8 @@ import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { beforeAll, expect, it } from "vitest";
 import { z } from "zod";
+import { CATALOG_ID_LIST_MAX_ITEMS } from "@/features/catalog/lib/catalog-list-query";
+import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
   assertRegisteredMcpToolMetadata,
@@ -99,6 +101,20 @@ it("mcp.openai-compatible-descriptors", () => {
     destructiveHint: true,
     openWorldHint: true,
   });
+});
+
+it("section.catalog-id-list-bound", () => {
+  const properties = tools.find(
+    (tool) => tool.name === "catalog_section_search",
+  )?.inputSchema.properties as Record<string, { maxItems?: number }>;
+
+  // Unbounded, these arrays are capped only by the 64 KiB body: roughly 8,000
+  // values in one IN list. The same filter caps at GRAPHQL_LIMITS.idList on
+  // the GraphQL surface, so all transports have to agree on one ceiling.
+  for (const name of ["ids", "jwIds"]) {
+    expect(properties[name].maxItems, name).toBe(GRAPHQL_LIMITS.idList);
+  }
+  expect(GRAPHQL_LIMITS.idList).toBe(CATALOG_ID_LIST_MAX_ITEMS);
 });
 
 it("mcp.tool-registry-completeness", async () => {

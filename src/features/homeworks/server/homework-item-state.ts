@@ -15,32 +15,55 @@ export type HomeworkItemWithState<T extends HomeworkWithOptionalCompletions> =
     commentCount: number;
   };
 
-export async function withHomeworkItemState<
-  T extends HomeworkWithOptionalCompletions,
->(
-  homeworks: T[],
+export type HomeworkCommentCounts = ReadonlyMap<string, number>;
+
+/**
+ * Visible comment counts for a homework list, as a value a caller can hoist
+ * into an RLS transaction it already holds open.
+ */
+export async function getHomeworkCommentCounts(
+  homeworkIds: readonly string[],
   viewerUserId: string | null = null,
-): Promise<Array<HomeworkItemWithState<T>>> {
-  if (homeworks.length === 0) {
-    return [];
+): Promise<HomeworkCommentCounts> {
+  if (homeworkIds.length === 0) {
+    return new Map();
   }
 
   const commentCountRows = await withCommentDbContext(viewerUserId, (client) =>
     client.comment.groupBy({
       by: ["homeworkId"],
       where: {
-        homeworkId: { in: homeworks.map((homework) => homework.id) },
+        homeworkId: { in: [...homeworkIds] },
         status: { not: "deleted" },
       },
       _count: { _all: true },
     }),
   );
 
-  const commentCounts = new Map(
+  return new Map(
     commentCountRows.flatMap((row: (typeof commentCountRows)[number]) =>
       row.homeworkId ? [[row.homeworkId, row._count._all] as const] : [],
     ),
   );
+}
+
+export async function withHomeworkItemState<
+  T extends HomeworkWithOptionalCompletions,
+>(
+  homeworks: T[],
+  viewerUserId: string | null = null,
+  precomputedCommentCounts?: HomeworkCommentCounts,
+): Promise<Array<HomeworkItemWithState<T>>> {
+  if (homeworks.length === 0) {
+    return [];
+  }
+
+  const commentCounts =
+    precomputedCommentCounts ??
+    (await getHomeworkCommentCounts(
+      homeworks.map((homework) => homework.id),
+      viewerUserId,
+    ));
 
   return homeworks.map((homework) => {
     const { homeworkCompletions, ...rest } = homework;

@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
+import * as z from "zod";
 import {
   RouteBodyTooLargeError,
   readJsonBodyWithinLimit,
 } from "@/lib/api/route-body-limit";
+import {
+  parseRouteJsonBody,
+  ROUTE_JSON_BODY_DEFAULT_MAX_BYTES,
+} from "@/lib/api/route-request-parsing";
+import { matchSectionCodesRequestSchema } from "@/lib/api/schemas/request-schemas";
 
 function jsonRequest(body: string, headers: Record<string, string> = {}) {
   return new Request("https://life.example/api/probe", {
@@ -86,5 +92,60 @@ describe("readJsonBodyWithinLimit", () => {
     await expect(
       readJsonBodyWithinLimit(jsonRequest("{not json"), 1_024),
     ).rejects.toBeInstanceOf(SyntaxError);
+  });
+});
+
+describe("openapi.json-body-limit", () => {
+  const schema = z.object({ codes: z.array(z.string()) });
+  const bodyOf = (bytes: number) => {
+    const envelope = '{"codes":[""]}'.length;
+    return `{"codes":["${"a".repeat(bytes - envelope)}"]}`;
+  };
+
+  it("parses a body at the default budget", async () => {
+    const body = bodyOf(ROUTE_JSON_BODY_DEFAULT_MAX_BYTES);
+    expect(new TextEncoder().encode(body).byteLength).toBe(
+      ROUTE_JSON_BODY_DEFAULT_MAX_BYTES,
+    );
+
+    await expect(
+      parseRouteJsonBody(jsonRequest(body), schema, "Invalid payload"),
+    ).resolves.toMatchObject({ codes: [expect.any(String)] });
+  });
+
+  it("refuses an oversized body with 413 without a route opting in", async () => {
+    // The schema would reject this payload too, but only after the whole body
+    // is buffered and parsed. The budget has to decide first.
+    const response = await parseRouteJsonBody(
+      jsonRequest(bodyOf(ROUTE_JSON_BODY_DEFAULT_MAX_BYTES + 1)),
+      schema,
+      "Invalid payload",
+    );
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(413);
+  });
+
+  it("stops an endless anonymous body instead of exhausting the isolate", async () => {
+    const { enqueuedBytes, request } = endlessRequest(64 * 1_024);
+
+    const response = await parseRouteJsonBody(
+      request,
+      matchSectionCodesRequestSchema,
+      "Invalid match-codes payload",
+    );
+
+    expect((response as Response).status).toBe(413);
+    expect(enqueuedBytes()).toBeLessThan(ROUTE_JSON_BODY_DEFAULT_MAX_BYTES * 2);
+  });
+
+  it("lets a bulk route raise its own budget", async () => {
+    const body = bodyOf(ROUTE_JSON_BODY_DEFAULT_MAX_BYTES + 1);
+
+    await expect(
+      parseRouteJsonBody(jsonRequest(body), schema, "Invalid payload", {
+        maxBytes: ROUTE_JSON_BODY_DEFAULT_MAX_BYTES * 2,
+      }),
+    ).resolves.toMatchObject({ codes: [expect.any(String)] });
   });
 });
