@@ -210,8 +210,10 @@ export async function auditAccessibility(
   type AxePage = ConstructorParameters<typeof AxeBuilder>[0]["page"];
   const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    // target-size fixes also change the visual system and are tracked apart.
-    .disableRules(["target-size"])
+    // Every WCAG rule in the tag set above is enforced. `color-contrast` was
+    // the last exemption; the role text tokens cleared it, and this change
+    // clears `target-size` (SC 2.5.8). Adding a rule back to a disable list
+    // means a visual regression went unfixed, so prefer fixing the nodes.
     .analyze();
 
   return results.violations

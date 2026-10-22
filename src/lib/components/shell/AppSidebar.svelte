@@ -11,6 +11,7 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "#lib/shell/layout-server-data.js";
+import { cn } from "#lib/utils.js";
 import AppUserMenu from "./AppUserMenu.svelte";
 import { FEATURE_HUB_PATH } from "./navigation";
 import SettingsGlyph from "./SettingsGlyph.svelte";
@@ -33,6 +34,7 @@ let {
   dockAboveFooter = false,
   footerLinks = [],
   isActiveLink,
+  isAncestorLink,
   navGroups,
   profileHref,
   sectionSidebar = null,
@@ -50,6 +52,7 @@ let {
   /** Legal/help links for catalog detail chrome (public footer omitted there). */
   footerLinks?: ShellLink[];
   isActiveLink: (link: ShellLink) => boolean;
+  isAncestorLink: (link: ShellLink) => boolean;
   navGroups: ShellNavGroup[];
   profileHref: string;
   sectionSidebar?: SectionSidebar | null;
@@ -173,26 +176,41 @@ function closeMobileSidebar(): void {
         {@const isCollapsed = !mobile && sidebar.state === "collapsed"}
         {@const groupKey = `${mobile ? "mobile" : "desktop"}-${index}`}
         {@const groupActive = group.links.some(
-          (link) => isActiveLink(link) || hasActiveChild(link),
+          (link) =>
+            isActiveLink(link) || hasActiveChild(link) || isAncestorLink(link),
         )}
         {@const isOpen =
           isCollapsed ||
           groupActive ||
           (groupOpen[groupKey] ?? Boolean(group.defaultOpen))}
         <Collapsible.Root
-          open={isOpen}
-          onOpenChange={(value) => {
-            if (!isCollapsed) setGroupOpen(groupKey, value);
+          bind:open={() => isOpen,
+          (value) => {
+            // Icon-collapsed groups render open so their destinations stay
+            // reachable, so the trigger reads as a request to expand the
+            // sidebar and show this group rather than to close it.
+            if (isCollapsed) {
+              setGroupOpen(groupKey, true);
+              sidebar.setOpen(true);
+              return;
+            }
+            setGroupOpen(groupKey, value);
           }}
           class="group/collapsible"
         >
           <Sidebar.Group>
-            <Sidebar.GroupLabel>
+            <Sidebar.GroupLabel
+              class="gap-2 overflow-hidden text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100"
+            >
               {#snippet child({ props })}
-                <Collapsible.Trigger {...props} disabled={isCollapsed}>
-                  {group.label}
+                <Collapsible.Trigger {...props}>
+                  {#if group.icon}
+                    {@const GroupIcon = group.icon}
+                    <GroupIcon />
+                  {/if}
+                  <span class="truncate">{group.label}</span>
                   <ChevronDownIcon
-                    class="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                    class="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden"
                   />
                 </Collapsible.Trigger>
               {/snippet}
@@ -205,6 +223,9 @@ function closeMobileSidebar(): void {
                       {@const childActive = hasActiveChild(link)}
                       {@const ownActive = isActiveLink(link) && !childActive}
                       {@const active = showActiveState(ownActive)}
+                      {@const onPath = showActiveState(
+                        isAncestorLink(link) && !childActive,
+                      )}
                       {@const submenuOpen = submenuIsOpen(
                         link.href,
                         ownActive || childActive,
@@ -213,6 +234,10 @@ function closeMobileSidebar(): void {
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
+                          class={onPath
+                            ? "bg-sidebar-accent/50 font-medium"
+                            : undefined}
+                          data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
                           {#snippet child({ props })}
@@ -220,7 +245,11 @@ function closeMobileSidebar(): void {
                               {...props}
                               href={link.href}
                               aria-label={link.ariaLabel}
-                              aria-current={active ? "page" : undefined}
+                              aria-current={active
+                                ? "page"
+                                : onPath
+                                  ? "location"
+                                  : undefined}
                               onclick={closeMobileSidebar}
                             >
                               {#if link.glyph}
@@ -236,9 +265,11 @@ function closeMobileSidebar(): void {
                         <Sidebar.MenuAction
                           aria-expanded={submenuOpen}
                           aria-label={link.label}
-                          class={link.badge != null && link.badge > 0
-                            ? "right-8"
-                            : undefined}
+                          class={cn(
+                            // WCAG 2.2 SC 2.5.8 needs 24x24; the chevron stays 16px.
+                            "top-1 w-6 peer-data-[size=default]/menu-button:top-1",
+                            link.badge != null && link.badge > 0 && "right-8",
+                          )}
                           onclick={(event) => {
                             event.preventDefault();
                             setSubmenuOpen(
@@ -318,9 +349,14 @@ function closeMobileSidebar(): void {
                       </Sidebar.MenuItem>
                     {:else}
                       {@const active = showActiveState(isActiveLink(link))}
+                      {@const onPath = showActiveState(isAncestorLink(link))}
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
+                          class={onPath
+                            ? "bg-sidebar-accent/50 font-medium"
+                            : undefined}
+                          data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
                           {#snippet child({ props })}
@@ -328,7 +364,11 @@ function closeMobileSidebar(): void {
                               {...props}
                               href={link.href}
                               aria-label={link.ariaLabel}
-                              aria-current={active ? "page" : undefined}
+                              aria-current={active
+                                ? "page"
+                                : onPath
+                                  ? "location"
+                                  : undefined}
                               onclick={closeMobileSidebar}
                             >
                               {#if link.glyph}
@@ -368,7 +408,7 @@ function closeMobileSidebar(): void {
     {@render navigation(navGroups, true)}
   {:else}
     {@render navigation(navGroups, false)}
-    <Sidebar.Rail />
+    <Sidebar.Rail label={copy.shell.toggleSidebar} />
   {/if}
 
   {#if showAccountFooter || sidebar.isMobile}
@@ -381,7 +421,7 @@ function closeMobileSidebar(): void {
         >
           {#each footerLinks as link}
             <a
-              class="transition-colors hover:text-foreground"
+              class="py-1.5 transition-colors hover:text-foreground"
               href={link.href}
               rel={link.rel}
               target={link.target}

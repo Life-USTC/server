@@ -1,3 +1,4 @@
+import AppWindowIcon from "@lucide/svelte/icons/app-window";
 import BellIcon from "@lucide/svelte/icons/bell";
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import BookmarkCheckIcon from "@lucide/svelte/icons/bookmark-check";
@@ -5,25 +6,32 @@ import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import CircleUserIcon from "@lucide/svelte/icons/circle-user";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import FilesIcon from "@lucide/svelte/icons/files";
 import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
+import LandmarkIcon from "@lucide/svelte/icons/landmark";
+import LibraryBigIcon from "@lucide/svelte/icons/library-big";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
+import PartyPopperIcon from "@lucide/svelte/icons/party-popper";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SettingsIcon from "@lucide/svelte/icons/settings";
 import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import SparklesIcon from "@lucide/svelte/icons/sparkles";
+import SunriseIcon from "@lucide/svelte/icons/sunrise";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UserCogIcon from "@lucide/svelte/icons/user-cog";
 import UsersIcon from "@lucide/svelte/icons/users";
+import WrenchIcon from "@lucide/svelte/icons/wrench";
+import type { Component } from "svelte";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import type { WorkspaceNavigationSummary } from "#lib/shell/shell-bootstrap.js";
 import {
@@ -72,6 +80,20 @@ const BADGES: Partial<
 };
 
 const ACTIVITY_ROOT = "/workspace/subscriptions/activities";
+
+/**
+ * First-level groups carry their own icon so the group row reads like the
+ * destination rows it opens, instead of a label that happens to be clickable.
+ */
+const GROUP_ICONS: Record<ShellNavGroupId, Component> = {
+  account: CircleUserIcon,
+  activities: PartyPopperIcon,
+  admin: WrenchIcon,
+  apps: AppWindowIcon,
+  campus: LandmarkIcon,
+  courses: LibraryBigIcon,
+  day: SunriseIcon,
+};
 
 const GROUPS: ReadonlyArray<{
   audience: "public" | "user" | "admin";
@@ -422,6 +444,7 @@ export function buildShellNavGroups(
     (group) => ({
       defaultOpen:
         group.id === "apps" ? !viewer?.signedIn : group.id !== "admin",
+      icon: GROUP_ICONS[group.id],
       label: group.label,
       links: group.features.map((feature) =>
         toSidebarLink(feature, copy, context),
@@ -442,6 +465,7 @@ export function buildAdminNavGroups(
   return [
     {
       defaultOpen: true,
+      icon: GROUP_ICONS.admin,
       label: admin.label,
       links: admin.features.map((feature) =>
         toSidebarLink(feature, copy, context),
@@ -475,6 +499,7 @@ export function buildYoungNavGroups(
   return [
     {
       defaultOpen: true,
+      icon: PartyPopperIcon,
       label: copy.nav.youngEvents,
       links: [
         {
@@ -502,6 +527,7 @@ export function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
   return [
     {
       defaultOpen: true,
+      icon: SettingsIcon,
       label: copy.nav.settings,
       links: [
         {
@@ -583,9 +609,6 @@ export function isShellLinkActive(link: ShellLink, current: NavigationUrl) {
   if (target.pathname === "/news") {
     return pathname === "/news" || pathname.startsWith("/news/");
   }
-  if (target.pathname === "/workspace/subscriptions/activities") {
-    return pathname === target.pathname;
-  }
   if (target.pathname.startsWith("/workspace/")) {
     return pathname === target.pathname;
   }
@@ -635,4 +658,21 @@ export function isShellLinkActive(link: ShellLink, current: NavigationUrl) {
     );
   }
   return pathname === target.pathname;
+}
+
+/**
+ * True when the current page sits below `link` in the URL hierarchy without
+ * being the link's own destination, as `/workspace/subscriptions/activities`
+ * sits below `/workspace/subscriptions`. Workspace and settings destinations
+ * match exactly, so without this a URL child leaves its parent looking
+ * unrelated to the page the viewer is on. Only ever one of
+ * `isShellLinkActive` and `isShellLinkAncestor` holds for a link, which keeps
+ * the single current destination of the sidebar intact.
+ */
+export function isShellLinkAncestor(link: ShellLink, current: NavigationUrl) {
+  if (!link.href.startsWith("/")) return false;
+  const target = new URL(link.href, current.origin);
+  if (target.searchParams.size > 0) return false;
+  if (isShellLinkActive(link, current)) return false;
+  return current.pathname.startsWith(`${target.pathname}/`);
 }

@@ -539,7 +539,78 @@ shellTest(
       await expect(rail).toBeFocused();
       await page.keyboard.press("Enter");
       await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
+
+      // An icon-collapsed group keeps its own disclosure: the row stays
+      // visible, operable and large enough to hit, and activating it expands
+      // the sidebar onto that group instead of doing nothing.
+      await menuTrigger.focus();
+      await page.keyboard.press("Enter");
+      await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
+      const coursesGroup = page
+        .getByTestId("app-sidebar")
+        .locator('[data-slot="sidebar-group-label"][aria-expanded]')
+        .filter({ hasText: /课程|Courses/ })
+        .first();
+      await expect(coursesGroup).toBeVisible();
+      await expect(coursesGroup).not.toBeDisabled();
+      const collapsedGroupBox = await coursesGroup.boundingBox();
+      expect(collapsedGroupBox?.width ?? 0).toBeGreaterThanOrEqual(24);
+      expect(collapsedGroupBox?.height ?? 0).toBeGreaterThanOrEqual(24);
+      await coursesGroup.focus();
+      await page.keyboard.press("Enter");
+      await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
+      await expect(coursesGroup).toHaveAttribute("aria-expanded", "true");
     }, {});
+  },
+);
+
+shellTest(
+  "/ shell 订阅子路由把父级标为所在路径",
+  { tag: "@Site/Web" },
+  async ({ communityFlow, page, account: _account }) => {
+    await communityFlow.run(
+      async () => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await gotoAndWaitForReady(
+          page,
+          "/workspace/subscriptions/activities?view=events",
+        );
+
+        const navigation = page
+          .getByTestId("app-sidebar")
+          .getByRole("navigation", { name: /主导航|Primary navigation/i });
+
+        // The URL child still owns the single current destination.
+        await expect(navigation.locator('[aria-current="page"]')).toHaveCount(
+          1,
+        );
+        await expect(
+          navigation.locator(
+            'a[href="/workspace/subscriptions/activities?view=events"]',
+          ),
+        ).toHaveAttribute("aria-current", "page");
+
+        // Its URL parent lives in another group, so without a trail position it
+        // reads as unrelated to the page the viewer is on.
+        const parent = navigation.locator('a[href="/workspace/subscriptions"]');
+        await expect(parent).toHaveAttribute("data-shell-ancestor", "true");
+        await expect(parent).toHaveAttribute("aria-current", "location");
+        await expect(
+          navigation.getByRole("button", { name: /^(课程|Courses)$/i }),
+        ).toHaveAttribute("aria-expanded", "true");
+
+        // On the parent's own page the trail position gives way to the page.
+        await parent.click();
+        await page.waitForURL("**/workspace/subscriptions");
+        await waitForUiSettled(page);
+        await expect(parent).toHaveAttribute("aria-current", "page");
+        await expect(parent).not.toHaveAttribute("data-shell-ancestor", "true");
+        await expect(navigation.locator('[aria-current="page"]')).toHaveCount(
+          1,
+        );
+      },
+      { calendarTokenCreated: true },
+    );
   },
 );
 
@@ -843,7 +914,11 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/W
     await expect(
       page.locator('[data-slot="sidebar"][data-state="collapsed"]'),
     ).toBeVisible();
-    await expect(catalogGroup).toBeDisabled();
+    // The icon-collapsed group keeps its disclosure rather than going inert:
+    // it stays operable and reports its destinations as open, which is what
+    // keeps the icon links below reachable without expanding the sidebar.
+    await expect(catalogGroup).toBeEnabled();
+    await expect(catalogGroup).toHaveAttribute("aria-expanded", "true");
     await expect(coursesLink).toBeVisible();
     await expect(coursesLink).toHaveAttribute("href", "/catalog/courses");
     // Icon-mode labels animate margin/opacity for 200ms; clicking before that

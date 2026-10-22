@@ -21,6 +21,7 @@ export type ShellLink = {
 
 export type ShellNavGroup = {
   defaultOpen?: boolean;
+  icon?: Component;
   label: string;
   links: ShellLink[];
 };

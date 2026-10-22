@@ -7,8 +7,12 @@
 		ref = $bindable(null),
 		class: className,
 		children,
+		label,
 		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLButtonElement>, HTMLButtonElement> = $props();
+	}: WithElementRef<HTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & {
+		/** Localized accessible name; this component has no user-facing copy of its own. */
+		label: string;
+	} = $props();
 
 	const sidebar = useSidebar();
 </script>
@@ -17,11 +21,11 @@
 	bind:this={ref}
 	data-sidebar="rail"
 	data-slot="sidebar-rail"
-	aria-label="Toggle Sidebar"
+	aria-label={label}
 	onclick={sidebar.toggle}
-	title="Toggle Sidebar"
+	title={label}
 	class={cn(
-		"hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
+		"hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-6 transition-all ease-linear group-data-[side=left]:-right-5 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 group-data-[side=left]:after:start-1 after:w-[2px] sm:flex group-data-[side=right]:ltr:-translate-x-1/2 group-data-[side=right]:rtl:-translate-x-1/2",
 		"in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
 		"[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
 		"group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",

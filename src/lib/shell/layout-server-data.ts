@@ -136,6 +136,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       scrollRegion: messages.shell.scrollRegion,
       skipToMainContent: messages.accessibility.skipToMainContent,
       theme: messages.shell.theme,
+      toggleSidebar: messages.shell.toggleSidebar,
     },
     errorPage: {
       backHome: messages.common.backToHome,
