@@ -48,24 +48,27 @@ export async function listUserCalendarEvents(
     dateToInclusive,
     dateToIsDateOnly,
   });
-  const { exams, homeworkItems, schedules, todos } =
-    await loadCalendarEventSources({
-      calendarDateEnd,
-      calendarDateStart,
-      includeWindowEnd,
-      locale,
-      sectionIds,
-      userId,
-      windowEnd,
-      windowStart,
-    });
-
-  const youngEvents = await listSubscribedYoungCalendarEvents(
-    userId,
-    windowStart,
-    windowEnd,
-    includeWindowEnd,
-  );
+  // Young events share no input with the other sources, so they load beside
+  // them rather than after them.
+  const [{ exams, homeworkItems, schedules, todos }, youngEvents] =
+    await Promise.all([
+      loadCalendarEventSources({
+        calendarDateEnd,
+        calendarDateStart,
+        includeWindowEnd,
+        locale,
+        sectionIds,
+        userId,
+        windowEnd,
+        windowStart,
+      }),
+      listSubscribedYoungCalendarEvents(
+        userId,
+        windowStart,
+        windowEnd,
+        includeWindowEnd,
+      ),
+    ]);
   const events = [
     ...youngEvents,
     ...schedules.map(mapScheduleCalendarEvent),

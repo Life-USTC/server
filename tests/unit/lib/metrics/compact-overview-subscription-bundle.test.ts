@@ -9,24 +9,52 @@ const TOMORROW_START = new Date(TODAY_START.getTime() + 24 * 60 * 60 * 1000);
 const HOMEWORK_WINDOW_END = new Date("2026-05-06T08:00:00+08:00");
 
 const {
+  commentGroupByMock,
   fetchSubscribedHomeworkRlsSnapshotMock,
   homeworkCountMock,
   listTodaySubscribedSchedulesWithCountMock,
   listUpcomingSubscribedExamsWithCountMock,
   localizeSubscribedHomeworkWorkspaceItemsMock,
+  subscriptionFindManyMock,
+  transactionMock,
   withHomeworkItemStateMock,
   withUserDbContextMock,
 } = vi.hoisted(() => {
+  const commentGroupBy = vi.fn();
   const homeworkCount = vi.fn();
-  const tx = { homework: { count: homeworkCount } };
+  const subscriptionFindMany = vi.fn();
+  const tx = {
+    $queryRaw: vi.fn(async () => []),
+    comment: { groupBy: commentGroupBy },
+    homework: { count: homeworkCount },
+    userSectionSubscription: { findMany: subscriptionFindMany },
+  };
+  // Every `withUserDbContext` is a real interactive transaction, so a nested
+  // viewer read only stays free while it reuses the one already open. Driving
+  // the production RLS context over a counting starter makes that visible.
+  const transaction = vi.fn(
+    async (action: (client: typeof tx) => Promise<unknown>) => action(tx),
+  );
   return {
+    commentGroupByMock: commentGroupBy,
     fetchSubscribedHomeworkRlsSnapshotMock: vi.fn(),
     homeworkCountMock: homeworkCount,
     listTodaySubscribedSchedulesWithCountMock: vi.fn(),
     listUpcomingSubscribedExamsWithCountMock: vi.fn(),
     localizeSubscribedHomeworkWorkspaceItemsMock: vi.fn(),
+    subscriptionFindManyMock: subscriptionFindMany,
+    transactionMock: transaction,
     withHomeworkItemStateMock: vi.fn(async (items: unknown[]) => items),
-    withUserDbContextMock: vi.fn(async (_userId, action) => action(tx)),
+    withUserDbContextMock: vi.fn(
+      async (userId: string, action: (client: typeof tx) => Promise<unknown>) =>
+        (await import("@/lib/db/rls-context")).runWithUserRlsContext(
+          { $transaction: transaction } as unknown as Parameters<
+            typeof import("@/lib/db/rls-context").runWithUserRlsContext
+          >[0],
+          userId,
+          action as never,
+        ),
+    ),
   };
 });
 
@@ -42,10 +70,14 @@ const runStage = <T>(stage: WorkspaceOverviewStage, work: () => Promise<T>) => {
 };
 
 vi.mock("@/lib/db/prisma", () => ({
+  prisma: {},
   withUserDbContext: withUserDbContextMock,
 }));
 
-vi.mock("@/features/homeworks/server/homework-item-state", () => ({
+vi.mock("@/features/homeworks/server/homework-item-state", async () => ({
+  ...(await vi.importActual<
+    typeof import("@/features/homeworks/server/homework-item-state")
+  >("@/features/homeworks/server/homework-item-state")),
   withHomeworkItemState: withHomeworkItemStateMock,
 }));
 
@@ -86,6 +118,12 @@ const loadReads = async (
 describe("compact overview subscription bundle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    commentGroupByMock.mockResolvedValue([
+      { homeworkId: "homework-1", _count: { _all: 7 } },
+    ]);
+    subscriptionFindManyMock.mockResolvedValue([
+      { sectionId: 11, kind: "teaching_assistant" },
+    ]);
     homeworkCountMock.mockResolvedValue(4);
     fetchSubscribedHomeworkRlsSnapshotMock.mockResolvedValue({
       total: 2,
@@ -132,7 +170,7 @@ describe("compact overview subscription bundle", () => {
   it("loads subscribed overview reads with paired count+list helpers and a single homework fetch", async () => {
     const result = await loadReads([11]);
 
-    expect(withUserDbContextMock).toHaveBeenCalledOnce();
+    expect(transactionMock).toHaveBeenCalledOnce();
     expect(fetchSubscribedHomeworkRlsSnapshotMock).toHaveBeenCalledOnce();
     expect(fetchSubscribedHomeworkRlsSnapshotMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -221,6 +259,10 @@ describe("compact overview subscription bundle", () => {
           homeworkIds: string[];
           completions: [];
         };
+        viewerState: {
+          commentCounts: ReadonlyMap<string, number>;
+          subscriptionKinds: ReadonlyMap<number, string>;
+        };
       }>();
     withUserDbContextMock.mockImplementationOnce(() => homeworkRlsDeferred);
 
@@ -233,12 +275,54 @@ describe("compact overview subscription bundle", () => {
     resolveHomeworkRls({
       pendingHomeworksCount: 4,
       dueSoonRls: { total: 2, homeworkIds: ["homework-1"], completions: [] },
+      viewerState: {
+        commentCounts: new Map([["homework-1", 7]]),
+        subscriptionKinds: new Map([[11, "teaching_assistant"]]),
+      },
     });
     await readsPromise;
     expect(withHomeworkItemStateMock).toHaveBeenCalledWith(
       [{ id: "homework-1" }],
       "user-1",
+      new Map([["homework-1", 7]]),
     );
+  });
+
+  it("prefetches subscription kinds and comment counts inside the homework transaction", async () => {
+    await loadReads([11]);
+
+    // Subscription kinds and comment counts depend only on values the
+    // homework transaction already holds, so they belong inside it. Issued
+    // from the serial tail instead, each opens its own transaction and pays
+    // BEGIN, set_config and COMMIT on top of its one real query.
+    expect(transactionMock).toHaveBeenCalledOnce();
+    expect(subscriptionFindManyMock).toHaveBeenCalledOnce();
+    expect(commentGroupByMock).toHaveBeenCalledOnce();
+    expect(localizeSubscribedHomeworkWorkspaceItemsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      "zh-cn",
+      "user-1",
+      new Map([[11, "teaching_assistant"]]),
+    );
+    expect(withHomeworkItemStateMock).toHaveBeenCalledWith(
+      [{ id: "homework-1" }],
+      "user-1",
+      new Map([["homework-1", 7]]),
+    );
+  });
+
+  it("skips the viewer-state reads when no homework sample is due", async () => {
+    fetchSubscribedHomeworkRlsSnapshotMock.mockResolvedValue({
+      total: 0,
+      homeworkIds: [],
+      completions: [],
+    });
+
+    await loadReads([11]);
+
+    expect(transactionMock).toHaveBeenCalledOnce();
+    expect(subscriptionFindManyMock).not.toHaveBeenCalled();
+    expect(commentGroupByMock).not.toHaveBeenCalled();
   });
 
   it("rethrows a failed item_state stage", async () => {
