@@ -37,8 +37,47 @@ const CLEARED: ReadonlySet<string> = new Set([
 ]);
 
 const CLASS_ATTRIBUTE = /(?<![\w-])class="([^"]*)"/;
-const ELEMENT =
-  /<([A-Z][\w.]*)((?:[^<>'"]|'[^']*'|"[^"]*"|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*?)\/?>/g;
+const COMPONENT_TAG = /[A-Z][\w.]*/y;
+
+/**
+ * Scan for component tags rather than matching one. Attribute values nest both
+ * quotes and braces, and a single pattern that allows both backtracks
+ * exponentially on repeated `{{}}` (CodeQL alert 18); this walk is linear.
+ */
+function* componentTags(
+  text: string,
+): Generator<{ attributes: string; index: number; tag: string }> {
+  for (
+    let start = text.indexOf("<");
+    start >= 0;
+    start = text.indexOf("<", start + 1)
+  ) {
+    COMPONENT_TAG.lastIndex = start + 1;
+    const tag = COMPONENT_TAG.exec(text)?.[0];
+    if (!tag) continue;
+    const attributesStart = start + 1 + tag.length;
+    let cursor = attributesStart;
+    let depth = 0;
+    let quote = "";
+    for (; cursor < text.length; cursor += 1) {
+      const char = text[cursor];
+      if (quote) {
+        if (char === quote) quote = "";
+      } else if (char === '"' || char === "'") quote = char;
+      else if (char === "{") depth += 1;
+      else if (char === "}") depth = Math.max(0, depth - 1);
+      else if (depth === 0 && (char === ">" || char === "<")) break;
+    }
+    // A `<` before the closing `>`, or an unterminated tag, is not an element.
+    if (text[cursor] !== ">") continue;
+    const attributesEnd = text[cursor - 1] === "/" ? cursor - 1 : cursor;
+    yield {
+      attributes: text.slice(attributesStart, attributesEnd),
+      index: start,
+      tag,
+    };
+  }
+}
 
 function tokensOf(classValue: string): string[] {
   return classValue.split(/\s+/).filter(Boolean);
@@ -100,18 +139,17 @@ it("call sites declare the breakpoint a shared base neutralizes", async () => {
   const offenders: string[] = [];
   for (const file of await svelteFiles("src")) {
     const text = await readFile(file, "utf8");
-    for (const match of text.matchAll(ELEMENT)) {
-      const tag = match[1];
-      const neutralized = bases.get(tag);
+    for (const element of componentTags(text)) {
+      const neutralized = bases.get(element.tag);
       if (!neutralized) continue;
-      const classValue = CLASS_ATTRIBUTE.exec(match[2])?.[1];
+      const classValue = CLASS_ATTRIBUTE.exec(element.attributes)?.[1];
       if (classValue === undefined) continue;
       const parsed = tokensOf(classValue)
         .map(parseToken)
         .filter((token) => token !== undefined);
 
       for (const [group, base] of neutralized) {
-        if (CLEARED.has(`${file}:${tag}:${group}`)) continue;
+        if (CLEARED.has(`${file}:${element.tag}:${group}`)) continue;
         const floor = BREAKPOINTS.indexOf(base.breakpoint);
         const sameGroup = parsed.filter((token) => token.group === group);
         // Declared below the neutralizing breakpoint, with a different value:
@@ -130,7 +168,7 @@ it("call sites declare the breakpoint a shared base neutralizes", async () => {
             BREAKPOINTS.indexOf(token.breakpoint) >= floor,
         );
         if (restated) continue;
-        const line = text.slice(0, match.index).split("\n").length;
+        const line = text.slice(0, element.index).split("\n").length;
         const declared = lost
           .map(
             (token) =>
@@ -138,7 +176,7 @@ it("call sites declare the breakpoint a shared base neutralizes", async () => {
           )
           .join(", ");
         offenders.push(
-          `${file}:${line} <${tag}> declares ${declared} but no ` +
+          `${file}:${line} <${element.tag}> declares ${declared} but no ` +
             `\`${base.breakpoint}:${group}-*\`, so the shared base's ` +
             `\`${base.breakpoint}:${group}-${base.value}\` discards it above ${base.breakpoint}`,
         );
