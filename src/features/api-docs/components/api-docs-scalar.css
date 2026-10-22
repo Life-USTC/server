@@ -68,7 +68,7 @@
 
 .api-docs-nav-tag.active,
 .api-docs-nav-operation.active {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .api-docs-method {
@@ -106,15 +106,24 @@
 .api-reference {
   --scalar-font: inherit;
   --scalar-radius: 0.5rem;
-  --scalar-color-accent: var(--color-primary);
+  --scalar-color-accent: var(--color-primary-text);
   --scalar-background-1: var(--color-background);
   --scalar-background-2: var(--color-muted);
   --scalar-background-3: var(--color-border);
   --scalar-color-1: var(--color-foreground);
-  --scalar-color-2: var(--color-muted-foreground);
+  /* Scalar paints its secondary and tertiary text on background-1 and
+     background-2. `--muted-foreground` is calibrated against `--background`
+     alone, so it is 4.40:1 on `--muted`, and the previous tertiary mix fell to
+     2.85:1. Both tiers now step down from `--foreground` instead: 5.58:1 and
+     4.76:1 on background-1, 5.33:1 and 4.58:1 on background-2. */
+  --scalar-color-2: color-mix(
+    in oklch,
+    var(--color-foreground) 70%,
+    transparent
+  );
   --scalar-color-3: color-mix(
     in oklch,
-    var(--color-muted-foreground) 72%,
+    var(--color-foreground) 65%,
     transparent
   );
   --scalar-border-color: var(--color-border);

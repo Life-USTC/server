@@ -256,8 +256,19 @@ export async function expectRenderedUiQuality(
     )
     .toEqual([]);
 
-  expect(
-    unexpectedUiQualityIssues(await auditAccessibility(page), allowlist),
-    "Expected no serious or critical WCAG A/AA violations",
-  ).toEqual([]);
+  // Entrance animations fade content in from `opacity: 0`, and a colour
+  // measured mid-fade is not the colour that ships: auditing /usage/cli 200ms
+  // after load reports 13 contrast failures that are all gone once the
+  // animation settles. Poll like the structural audit above so a transient
+  // frame cannot fail the gate while a real violation still does.
+  await expect
+    .poll(
+      async () =>
+        unexpectedUiQualityIssues(await auditAccessibility(page), allowlist),
+      {
+        message: "Expected no serious or critical WCAG A/AA violations",
+        timeout: 10_000,
+      },
+    )
+    .toEqual([]);
 }
