@@ -55,6 +55,7 @@ import {
   buildShellNavGroups,
   buildYoungNavGroups,
   isShellLinkActive,
+  isShellLinkAncestor,
 } from "./navigation";
 import type { ShellLink } from "./types";
 
@@ -174,6 +175,10 @@ function isYoungPath(pathname: string) {
 
 function isActiveLink(link: ShellLink) {
   return isShellLinkActive(link, routePage.url);
+}
+
+function isAncestorLink(link: ShellLink) {
+  return isShellLinkAncestor(link, routePage.url);
 }
 
 function setThemeMode(nextThemeMode: ThemeMode) {
@@ -520,6 +525,7 @@ let globalSearchShortcutLabel = $derived(
         footerLinks={detailWorkspace ? footerLinks : []}
         sectionSidebar={sectionSidebar}
         isActiveLink={isActiveLink}
+        isAncestorLink={isAncestorLink}
         navGroups={navGroups}
         profileHref={profileHref}
         setUserMenuOpen={setUserMenuOpen}

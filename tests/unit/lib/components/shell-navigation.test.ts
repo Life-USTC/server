@@ -7,6 +7,7 @@ import {
   buildShellNavGroups,
   buildYoungNavGroups,
   isShellLinkActive,
+  isShellLinkAncestor,
 } from "@/lib/components/shell/navigation";
 import type { ShellLink } from "@/lib/components/shell/types";
 import { buildLayoutCopy } from "@/lib/shell/layout-server-data";
@@ -191,6 +192,66 @@ describe("shared functional shell navigation", () => {
     );
   });
 
+  test.each([
+    "/workspace/subscriptions/activities",
+    "/workspace/subscriptions/activities?view=events",
+    "/workspace/subscriptions/activities?view=organizers",
+    "/workspace/subscriptions/activities?view=notifications",
+  ])("keeps the subscriptions parent on the path for %s", (path) => {
+    const current = new URL(path, "https://life.example");
+    const links = buildShellNavGroups(copy, user, {
+      ...context,
+      pathname: current.pathname,
+    }).flatMap((group) => group.links);
+    expect(
+      links
+        .filter((link) => isShellLinkAncestor(link, current))
+        .map((link) => link.href),
+    ).toEqual(["/workspace/subscriptions"]);
+    // The URL child keeps the only current destination; the parent is a trail
+    // position, so the sidebar never claims two current pages.
+    expect(activeLinks(links, path)).toHaveLength(1);
+  });
+
+  test("marks a parent only below its own destination", () => {
+    const links = buildShellNavGroups(copy, admin, context).flatMap(
+      (group) => group.links,
+    );
+    for (const path of [
+      "/workspace/subscriptions",
+      "/workspace/overview",
+      "/catalog/courses/12",
+      "/news/sources",
+      "/admin/moderation?tab=comments",
+    ]) {
+      const current = new URL(path, "https://life.example");
+      for (const link of links)
+        expect(
+          isShellLinkActive(link, current) &&
+            isShellLinkAncestor(link, current),
+        ).toBe(false);
+      expect(
+        links.some(
+          (link) =>
+            link.href === "/workspace/subscriptions" &&
+            isShellLinkAncestor(link, current),
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("gives every navigation group an icon of its own", () => {
+    for (const viewer of [null, user, admin])
+      for (const group of buildShellNavGroups(copy, viewer, context))
+        expect(group.icon).toBeDefined();
+    for (const group of [
+      buildAdminNavGroups(copy, admin, context)[0],
+      buildSettingsNavGroups(copy)[0],
+      buildYoungNavGroups(copy, "", {})[0],
+    ])
+      expect(group.icon).toBeDefined();
+  });
+
   test("admin and contextual sidebars preserve unique current links", () => {
     expect(buildAdminNavGroups(copy, user, context)).toEqual([]);
     const links = buildAdminNavGroups(copy, admin, context).flatMap(
@@ -259,6 +320,7 @@ describe("shared functional shell navigation", () => {
 });
 
 // Icon rendering is covered by browser tests; the Node suite checks navigation data.
+vi.mock("@lucide/svelte/icons/app-window", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/bell", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/book-open", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/bookmark-check", () => ({ default: () => null }));
@@ -266,6 +328,7 @@ vi.mock("@lucide/svelte/icons/bot", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/bus-front", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/cable", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/calendar-days", () => ({ default: () => null }));
+vi.mock("@lucide/svelte/icons/circle-user", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/clipboard-check", () => ({
   default: () => null,
 }));
@@ -274,16 +337,23 @@ vi.mock("@lucide/svelte/icons/files", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/gavel", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/graduation-cap", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/house", () => ({ default: () => null }));
+vi.mock("@lucide/svelte/icons/landmark", () => ({ default: () => null }));
+vi.mock("@lucide/svelte/icons/library-big", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/link", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/list-todo", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/map", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/map-pinned", () => ({ default: () => null }));
+vi.mock("@lucide/svelte/icons/party-popper", () => ({
+  default: () => null,
+}));
 vi.mock("@lucide/svelte/icons/route", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/scroll-text", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/settings", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/shield-check", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/smartphone", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/sparkles", () => ({ default: () => null }));
+vi.mock("@lucide/svelte/icons/sunrise", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/terminal", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/user-cog", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/users", () => ({ default: () => null }));
+vi.mock("@lucide/svelte/icons/wrench", () => ({ default: () => null }));
