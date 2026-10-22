@@ -112,6 +112,33 @@ requirements:
     test:
       file: tests/unit/lib/components/layout-primitive-ownership.test.ts
       name: ui.feature-interaction-ownership
+- id: ui.empty-state-vocabulary
+  category: presentation
+  topic: empty-states
+  rule: An empty state is stated by naming one of the shared CollectionEmpty variants. A page does not declare
+    the padding, minimum height, alignment, border or radius of its own empty state, because those belong to the
+    variant. Empty states that still carry their own box utilities are pinned with the exact class they declare;
+    a pin may be removed by converging the page, never added.
+  rationale: "\"Nothing here\" is one object a student meets on the catalog, in the workspace, inside dialogs and
+    on admin tables, so it has to be the same object every time. empty-variants.ts already declares that object
+    as a closed set of named shapes. A page that passes its own box utilities instead adds a shape without
+    naming it, and no page-versus-spec requirement can see it: every such page is individually correct. Pinning
+    the exact class keeps the backlog honest, because editing a pinned empty state fails until it is either
+    converged or consciously re-pinned."
+  acceptance:
+    given: The CollectionEmpty composer, the wrappers it renders, the Empty.Root primitive behind them, and
+      every empty state rendered under src/features and src/routes.
+    when: Discover the variant system by following what the composer renders, read the guarded utility groups
+      out of those files' own class declarations, and compare each page's empty-state root against them.
+    then:
+    - No page outside the pinned list declares a utility in a group the variant system owns; a group is matched
+      exactly, so a different property such as justify-self is not a finding and a bare Empty.Root is not one
+      either.
+    - Each pinned empty state still renders exactly one root with exactly the class the pin records.
+    - The variant names, the system's files and the page list are derived from source rather than enumerated.
+    test:
+      file: tests/unit/lib/components/empty-state-vocabulary.test.ts
+      name: ui.empty-state-vocabulary
 - id: ui.layout-principles-5
   category: presentation
   topic: layout-principles
@@ -1718,6 +1745,8 @@ requirements:
 topics:
 - id: layout-principles
   title: Layout Principles
+- id: empty-states
+  title: Empty States
 - id: list-table
   title: List Table
 - id: data-table-cells
