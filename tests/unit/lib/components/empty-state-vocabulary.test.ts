@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { EMPTY_VARIANTS } from "@/lib/components/empty-variants";
+import { componentTags } from "./svelte-component-tags";
 
 /**
  * ui.empty-state-vocabulary
@@ -107,8 +108,6 @@ const UNCONVERGED: readonly { file: string; tag: string; class: string }[] = [
   },
 ];
 
-const ELEMENT =
-  /<([A-Z][\w.]*)((?:[^<>'"]|'[^']*'|"[^"]*"|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*?)\/?>/g;
 const CLASS_LITERAL = /(?<![\w-])class="([^"]*)"/;
 const CLASS_EXPRESSION = /(?<![\w-])class=(\{(?:[^{}]|\{[^{}]*\})*\})/;
 const CN_CALL = /\bcn\(((?:[^()]|\([^()]*\))*)\)/g;
@@ -203,7 +202,7 @@ async function discoverSystem() {
     files.add(filename);
     const source = await readFile(filename, "utf8");
     const imports = importsOf(filename, source);
-    for (const [, tag] of source.matchAll(ELEMENT)) {
+    for (const { tag } of componentTags(source)) {
       const target = imports.get(tag.split(".")[0]);
       if (!target) continue;
       if (target.endsWith(".svelte")) pending.push(target);
@@ -264,14 +263,14 @@ async function emptyStateCallSites(): Promise<CallSite[]> {
     for (const file of await svelteFiles(root)) {
       const source = await readFile(file, "utf8");
       const imports = importsOf(file, source);
-      for (const match of source.matchAll(ELEMENT)) {
-        const tag = match[1];
+      for (const element of componentTags(source)) {
+        const tag = element.tag;
         const target = imports.get(tag.split(".")[0]);
         if (!target) continue;
         const isEmptyRoot =
           target.endsWith("/ui/empty/index.ts") && tag.endsWith(".Root");
         if (!isEmptyRoot && !systemModules.has(target)) continue;
-        const attributes = match[2];
+        const attributes = element.attributes;
         const literal = CLASS_LITERAL.exec(attributes)?.[1];
         const expression = CLASS_EXPRESSION.exec(attributes)?.[1];
         const declared = literal
@@ -291,7 +290,7 @@ async function emptyStateCallSites(): Promise<CallSite[]> {
           }
         sites.push({
           file,
-          line: source.slice(0, match.index).split("\n").length,
+          line: source.slice(0, element.index).split("\n").length,
           tag,
           class: declared.join(" "),
           declarations,

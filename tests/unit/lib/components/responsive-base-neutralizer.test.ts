@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
+import { componentTags } from "./svelte-component-tags";
 
 /**
  * Shared component bases drop their mobile-only floor at a breakpoint, e.g.
@@ -37,48 +38,6 @@ const CLEARED: ReadonlySet<string> = new Set([
 ]);
 
 const CLASS_ATTRIBUTE = /(?<![\w-])class="([^"]*)"/;
-const COMPONENT_TAG = /[A-Z][\w.]*/y;
-
-/**
- * Scan for component tags rather than matching one. Attribute values nest both
- * quotes and braces, and a single pattern that allows both backtracks
- * exponentially on repeated `{{}}` (CodeQL alert 18); this walk is linear.
- */
-function* componentTags(
-  text: string,
-): Generator<{ attributes: string; index: number; tag: string }> {
-  for (
-    let start = text.indexOf("<");
-    start >= 0;
-    start = text.indexOf("<", start + 1)
-  ) {
-    COMPONENT_TAG.lastIndex = start + 1;
-    const tag = COMPONENT_TAG.exec(text)?.[0];
-    if (!tag) continue;
-    const attributesStart = start + 1 + tag.length;
-    let cursor = attributesStart;
-    let depth = 0;
-    let quote = "";
-    for (; cursor < text.length; cursor += 1) {
-      const char = text[cursor];
-      if (quote) {
-        if (char === quote) quote = "";
-      } else if (char === '"' || char === "'") quote = char;
-      else if (char === "{") depth += 1;
-      else if (char === "}") depth = Math.max(0, depth - 1);
-      else if (depth === 0 && (char === ">" || char === "<")) break;
-    }
-    // A `<` before the closing `>`, or an unterminated tag, is not an element.
-    if (text[cursor] !== ">") continue;
-    const attributesEnd = text[cursor - 1] === "/" ? cursor - 1 : cursor;
-    yield {
-      attributes: text.slice(attributesStart, attributesEnd),
-      index: start,
-      tag,
-    };
-  }
-}
-
 function tokensOf(classValue: string): string[] {
   return classValue.split(/\s+/).filter(Boolean);
 }
