@@ -121,7 +121,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         await expect
           .poll(async () =>
             (
-              await hrefs(page, '[data-feature-hub] [data-slot="card-title"] a')
+              await hrefs(page, "[data-feature-hub] [data-feature-entry] > a")
             ).sort(),
           )
           .toEqual(expected);
@@ -161,7 +161,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           name: copy.courses,
           exact: true,
         });
-        await expect(courses.locator('[data-slot="card-title"] a')).toHaveText(
+        await expect(
+          courses.locator('[data-feature-entry] [data-slot="item-title"]'),
+        ).toHaveText(
           locale === "zh-cn"
             ? [
                 ...(role === "anonymous" ? [] : ["我的教学班"]),
@@ -274,27 +276,31 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         const search = main.getByRole("searchbox", { name: copy.search });
         if (role !== "anonymous") {
           await search.fill(copy.query);
-          await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(
-            1,
-          );
+          await expect(hub.locator("[data-feature-entry] > a")).toHaveCount(1);
+          // The row is the link, so its accessible name carries the
+          // description too; the name is asserted on the row title.
           await expect(
-            hub.getByRole("link", { name: copy.homework, exact: true }),
-          ).toHaveAttribute("href", "/workspace/homeworks");
+            hub.locator('[data-feature-entry] [data-slot="item-title"]'),
+          ).toHaveText(copy.homework);
+          await expect(hub.locator("[data-feature-entry] > a")).toHaveAttribute(
+            "href",
+            "/workspace/homeworks",
+          );
           await main
             .getByRole("button", { name: copy.clear, exact: true })
             .click();
         }
         await search.fill("/catalog/bus/map");
-        await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(1);
+        await expect(hub.locator("[data-feature-entry] > a")).toHaveCount(1);
         await expect(hub.locator('a[href="/catalog/bus/map"]')).toBeVisible();
         await search.fill("no-such-feature-1215");
         await expect(hub.getByRole("status")).toContainText(copy.empty);
-        await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(0);
+        await expect(hub.locator("[data-feature-entry] > a")).toHaveCount(0);
         await hub
           .getByRole("button", { name: copy.clear, exact: true })
           .click();
         await expect(search).toHaveValue("");
-        await expect(hub.locator('[data-slot="card-title"] a')).toHaveCount(
+        await expect(hub.locator("[data-feature-entry] > a")).toHaveCount(
           expected.length,
         );
         expect(

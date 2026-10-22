@@ -45,7 +45,7 @@ export let variant: "week" | "month" = "week";
     {#each day.events.slice(0, eventLimit) as event}
       {#if density === "lines"}
         <a
-          class="block truncate rounded-sm px-1 text-xs leading-5 hover:bg-muted"
+          class="block min-h-6 truncate rounded-sm px-1 text-xs leading-6 hover:bg-muted"
           href={event.href}
           title={event.title || event.label}
         >
@@ -72,7 +72,7 @@ export let variant: "week" | "month" = "week";
     {/each}
     {#if day.events.length > eventLimit}
       {#if day.moreHref}
-        <a class="text-muted-foreground text-xs underline" href={day.moreHref}>{moreLabel(day.events.length - eventLimit)}</a>
+        <a class="block min-h-6 text-muted-foreground text-xs leading-6 underline" href={day.moreHref}>{moreLabel(day.events.length - eventLimit)}</a>
       {:else}
         <span class="text-muted-foreground text-xs">{moreLabel(day.events.length - eventLimit)}</span>
       {/if}

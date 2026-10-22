@@ -7,7 +7,10 @@ import AdminBusVersions from "@/features/admin/components/AdminBusVersions.svelt
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import { createAdminBusControllerDefaultState } from "@/features/admin/lib/admin-bus-controller-default-state";
 import { formatBusVersionEffectiveRange } from "@/features/admin/lib/admin-bus-formatters";
-import { createPendingEnhancedAction } from "@/features/admin/lib/admin-enhanced-action";
+import {
+  createPendingEnhancedAction,
+  serverOutcomeMessage,
+} from "@/features/admin/lib/admin-enhanced-action";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import type {
   AdminBusCopy,
@@ -86,14 +89,17 @@ const baseEnhancedAction = createPendingEnhancedAction({
 });
 
 function enhancedAction(actionKey: string, onSuccess?: () => void) {
-  return baseEnhancedAction(actionKey, () => {
+  return baseEnhancedAction(actionKey, (data) => {
     onSuccess?.();
+    // The import outcome names the campuses, routes and trips that landed; only
+    // fall back to the generic phrase when the action reported no message.
     toast.success(
-      actionKey === "import"
-        ? copy.importSuccess
-        : actionKey.startsWith("activate-")
-          ? copy.activated
-          : copy.deleted,
+      serverOutcomeMessage(data) ??
+        (actionKey === "import"
+          ? copy.importSuccess
+          : actionKey.startsWith("activate-")
+            ? copy.activated
+            : copy.deleted),
     );
   });
 }

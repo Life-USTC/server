@@ -169,7 +169,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
                   <Table.Cell>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                       <a
-                        class="block min-w-0 max-w-full overflow-hidden font-medium hover:underline"
+                        class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium hover:underline"
                         href={`/catalog/sections/${section.jwId}`}
                         data-testid="subscription-course-link"
                     >

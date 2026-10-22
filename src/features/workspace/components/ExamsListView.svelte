@@ -62,13 +62,13 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         <Table.Row class="group">
           <Table.Cell>
             <a
-              class="block min-w-0 max-w-full overflow-hidden font-medium underline-offset-4 hover:underline"
+              class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium underline-offset-4 hover:underline"
               href={detailHref}
             >
               <TruncatedText text={exam.courseName} />
             </a>
             <details class="mt-1 text-xs text-muted-foreground">
-              <summary class="cursor-pointer">{sectionCopy.moreDetails}</summary>
+              <summary class="cursor-pointer py-1">{sectionCopy.moreDetails}</summary>
               <ul class="mt-1 grid gap-1">
                 {#each examMetadataLabels(exam) as label}<li>{label}</li>{/each}
               </ul>

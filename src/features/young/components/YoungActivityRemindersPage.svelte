@@ -77,6 +77,8 @@ function pageHref(number: number) {
 }
 </script>
 
+<svelte:head><title>{viewLabel} - Life@USTC</title></svelte:head>
+
 {#snippet paginationFooter()}
   {#if result}
     <ListPagination
