@@ -170,7 +170,7 @@ const levelIndex = $derived(filteredGroups);
                     {groupSummary(group.sourceCount, group.publicationCount)}
                   </span>
                   <a
-                    class="text-sm text-primary hover:underline"
+                    class="text-sm text-primary-text underline underline-offset-4"
                     href={levelHref(group.organizationLevel)}
                   >
                     {copy.viewSourceArticles}

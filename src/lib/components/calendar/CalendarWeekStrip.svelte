@@ -46,7 +46,7 @@ export let moreLabel: (count: number) => string = (count) => `+${count}`;
           <div
             class={cn(
               "font-medium text-xs",
-              day.isToday ? "text-primary" : "text-foreground",
+              day.isToday ? "text-primary-text" : "text-foreground",
             )}
           >
             {day.label}

@@ -115,13 +115,14 @@
   padding: 0.125rem 0.25rem;
 }
 
+/* Inside a text block the link cannot rely on colour alone: the text-safe
+   brand teal is 2.82:1 against body text in light and 1.57:1 in dark, both
+   under the 3:1 the non-colour-cue exemption needs, so the underline is
+   permanent rather than hover-only. */
 .markdown-preview a {
-  color: var(--color-primary);
-  text-underline-offset: 4px;
-}
-
-.markdown-preview a:hover {
+  color: var(--color-primary-text);
   text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .markdown-preview table {
@@ -197,5 +198,8 @@
 }
 
 .markdown-preview mark {
+  /* Without an explicit colour the UA keeps `MarkText` (black) over the amber
+     tint, which is 1.54:1 on a dark surface. */
   background: color-mix(in srgb, var(--color-warning) 25%, transparent);
+  color: var(--color-foreground);
 }

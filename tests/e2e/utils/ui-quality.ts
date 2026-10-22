@@ -210,16 +210,8 @@ export async function auditAccessibility(
   type AxePage = ConstructorParameters<typeof AxeBuilder>[0]["page"];
   const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    // color-contrast still fails on `text-primary` used as text on a light
-    // surface: the brand cyan `--primary` (#00c3d0) reaches only 2.05-2.16:1
-    // against white, far below 4.5:1, and no font size rescues it. Enabling
-    // the rule needs a new darker text-only brand token plus sign-off that the
-    // darker cyan is acceptable on brand surfaces, so the decision is open.
-    // Open at desktop width over the page inventory: 23 nodes on 9 pages for
-    // `text-primary`, plus 6 nodes on /admin/moderation where `text-success`
-    // on `bg-success/10` reaches 3.29:1 and needs the same kind of decision.
     // target-size fixes also change the visual system and are tracked apart.
-    .disableRules(["color-contrast", "target-size"])
+    .disableRules(["target-size"])
     .analyze();
 
   return results.violations
@@ -264,8 +256,19 @@ export async function expectRenderedUiQuality(
     )
     .toEqual([]);
 
-  expect(
-    unexpectedUiQualityIssues(await auditAccessibility(page), allowlist),
-    "Expected no serious or critical WCAG A/AA violations",
-  ).toEqual([]);
+  // Entrance animations fade content in from `opacity: 0`, and a colour
+  // measured mid-fade is not the colour that ships: auditing /usage/cli 200ms
+  // after load reports 13 contrast failures that are all gone once the
+  // animation settles. Poll like the structural audit above so a transient
+  // frame cannot fail the gate while a real violation still does.
+  await expect
+    .poll(
+      async () =>
+        unexpectedUiQualityIssues(await auditAccessibility(page), allowlist),
+      {
+        message: "Expected no serious or critical WCAG A/AA violations",
+        timeout: 10_000,
+      },
+    )
+    .toEqual([]);
 }

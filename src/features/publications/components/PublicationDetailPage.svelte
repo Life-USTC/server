@@ -128,7 +128,7 @@ const articleInformation = $derived(
         <ul class="grid min-w-0 gap-3">
           {#each attachments as object, index (`${object.kind}:${object.sha256}`)}
             <li class="min-w-0">
-                <a class="inline-flex max-w-full min-w-0 flex-wrap items-center gap-2 text-primary hover:underline" href={object.url} download={object.filename ?? true}>
+                <a class="inline-flex max-w-full min-w-0 flex-wrap items-center gap-2 text-primary-text hover:underline" href={object.url} download={object.filename ?? true}>
                 <span class="min-w-0 [overflow-wrap:anywhere]">{object.filename || object.altText || copy.attachmentNumber.replace("{number}", String(index + 1))}</span>
                   <span class="text-xs text-muted-foreground [overflow-wrap:anywhere]">{object.contentType} · {Math.ceil(object.size / 1024)} KB</span>
                 {@render externalLink("size-4 shrink-0")}
@@ -155,7 +155,7 @@ const articleInformation = $derived(
         <h2 class="text-base font-semibold">{copy.alsoPublishedIn}</h2>
         <ul class="grid min-w-0 gap-2">
           {#each publication.alsoPublishedIn as sibling (sibling.id)}
-              <li class="min-w-0"><a class="text-sm text-primary hover:underline [overflow-wrap:anywhere]" href={publicationDetailHref(sibling.id, returnHref)}>{sibling.source.name}</a></li>
+              <li class="min-w-0"><a class="text-sm text-primary-text hover:underline [overflow-wrap:anywhere]" href={publicationDetailHref(sibling.id, returnHref)}>{sibling.source.name}</a></li>
           {/each}
         </ul>
       </section>
