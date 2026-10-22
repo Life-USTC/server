@@ -1,7 +1,7 @@
 import { describe } from "vitest";
 import { catalogMcpTest as toolTest } from "../_harness/catalog-fixture";
 
-describe("课程与班级查找", () => {
+describe("课程与教学班查找", () => {
   toolTest(
     "interface-hierarchy.catalog-mcp-relationship-projections",
     { tags: ["@Search/MCP"] },
@@ -539,9 +539,9 @@ type GetCourseResult = {
   } | null;
 };
 
-describe("班级搜索工具 catalog_section_search", () => {
+describe("教学班搜索工具 catalog_section_search", () => {
   toolTest(
-    "按教师工号过滤班级",
+    "按教师工号过滤教学班",
     { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
@@ -566,7 +566,7 @@ describe("班级搜索工具 catalog_section_search", () => {
   );
 
   toolTest(
-    "按 jwIds 精确查询班级",
+    "按 jwIds 精确查询教学班",
     { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
@@ -669,9 +669,9 @@ describe("课程详情工具 catalog_course_get", () => {
 
 // --- formerly mcp-15-section-match ---
 
-describe("catalog_section_match_preview — 班级代码匹配", () => {
+describe("catalog_section_match_preview — 教学班代码匹配", () => {
   toolTest(
-    "在当前学期匹配单个班级代码",
+    "在当前学期匹配单个教学班代码",
     { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog, expect }) =>
       mcpWorkflow.run(async () => {
@@ -729,7 +729,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
   );
 
   toolTest(
-    "可按 semesterId 查询历史学期班级代码",
+    "可按 semesterId 查询历史学期教学班代码",
     { tags: ["@Search/MCP"] },
     async ({
       mcpWorkflow,
@@ -809,7 +809,7 @@ describe("catalog_section_match_preview — 班级代码匹配", () => {
   );
 
   toolTest(
-    "拒绝非法格式班级代码",
+    "拒绝非法格式教学班代码",
     { tags: ["@Search/MCP"] },
     async ({ mcpWorkflow, mcpActor: context, mcpCatalog: _catalog, expect }) =>
       mcpWorkflow.run(async () => {

@@ -168,7 +168,7 @@ describe("订阅导入客户端", () => {
     vi.unstubAllGlobals();
   });
 
-  it("提取并去重符合 schema 的班级代码片段", () => {
+  it("提取并去重符合 schema 的教学班代码片段", () => {
     expect(
       extractSubscriptionSectionCodes(
         "MATH101 MATH.01 math.01 CS_A-2.03 cs-a_2 MATH.01",
@@ -176,7 +176,7 @@ describe("订阅导入客户端", () => {
     ).toEqual(["MATH101", "MATH.01", "math.01", "CS_A-2.03", "cs-a_2"]);
   });
 
-  it("忽略被共享班级代码 schema 拒绝的片段", () => {
+  it("忽略被共享教学班代码 schema 拒绝的片段", () => {
     const tooLong = "A".repeat(65);
 
     expect(
@@ -197,7 +197,7 @@ describe("订阅导入客户端", () => {
     ).toEqual(["MATH101", "001013.01", "math_01", "cs-a_2", "DEV-CS201.01"]);
   });
 
-  it("去除粘贴班级代码片段中的句尾分隔符", () => {
+  it("去除粘贴教学班代码片段中的句尾分隔符", () => {
     expect(
       extractSubscriptionSectionCodes(
         "Use COMP3001.01. Numeric example: 001013.01.",
@@ -272,7 +272,7 @@ describe("订阅导入客户端", () => {
     ).rejects.toThrow("fetch failed");
   });
 
-  it("以已校验请求移除订阅班级 ID", async () => {
+  it("以已校验请求移除订阅教学班 ID", async () => {
     const fetchMock = vi.fn(async () => jsonResponse(removePayload([3])));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -290,7 +290,7 @@ describe("订阅导入客户端", () => {
     });
   });
 
-  it("未选择班级 ID 时不调用移除路由", async () => {
+  it("未选择教学班 ID 时不调用移除路由", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -302,7 +302,7 @@ describe("订阅导入客户端", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("通过服务端追加路由添加所选班级 ID", async () => {
+  it("通过服务端追加路由添加所选教学班 ID", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse(appendPayload([1, 2, 3], 2)),
     );
@@ -325,7 +325,7 @@ describe("订阅导入客户端", () => {
     });
   });
 
-  it("未选择班级 ID 时不调用追加路由", async () => {
+  it("未选择教学班 ID 时不调用追加路由", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 

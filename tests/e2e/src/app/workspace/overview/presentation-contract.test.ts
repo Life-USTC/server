@@ -64,13 +64,20 @@ test("overview.decision-page", { tag: "@Overview/Web" }, async ({
         const destinations = page.locator(
           '#main-content [data-testid="home-sign-in"] nav a',
         );
+        // A student arrives looking for the teaching section they attend, so
+        // the section catalog leads and course and teacher rank behind the
+        // campus links. Asserting the whole order, not just the first few,
+        // keeps a reshuffle from passing unnoticed.
         expect(
           await destinations.evaluateAll((nodes) =>
-            nodes.slice(0, 3).map((node) => node.getAttribute("href")),
+            nodes.map((node) => node.getAttribute("href")),
           ),
         ).toEqual([
-          "/catalog/courses",
           "/catalog/sections",
+          "/catalog/links",
+          "/catalog/bus",
+          "/usage/mobile",
+          "/catalog/courses",
           "/catalog/teachers",
         ]);
         for (const path of ["courses", "sections", "teachers"]) {

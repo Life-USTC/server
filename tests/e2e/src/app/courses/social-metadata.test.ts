@@ -244,8 +244,8 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             },
             {
               canonicalPath: "/catalog/sections",
-              description: "浏览和筛选所有可用的课程班级",
-              title: "班级 - Life@USTC",
+              description: "浏览和筛选所有可用的教学班",
+              title: "教学班 - Life@USTC",
             },
             {
               canonicalPath: "/catalog/teachers",
@@ -382,7 +382,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
                 path: `/catalog/courses/${fixture.course.jwId}`,
                 title: `${courseName} (${fixture.course.code}) - Life@USTC`,
                 description: cn
-                  ? `在 Life@USTC 查看${courseName}（${fixture.course.code}）的班级、简介与讨论。`
+                  ? `在 Life@USTC 查看${courseName}（${fixture.course.code}）的教学班、简介与讨论。`
                   : `View ${courseName} (${fixture.course.code}), teaching sections, descriptions, and discussions on Life@USTC.`,
               },
               {
@@ -400,7 +400,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
                   ? `教师：${teacherName} - Life@USTC`
                   : `Teacher: ${teacherName} - Life@USTC`,
                 description: cn
-                  ? `在 Life@USTC 查看${teacherName}的教师资料、授课班级、简介与讨论。`
+                  ? `在 Life@USTC 查看${teacherName}的教师资料、授课教学班、简介与讨论。`
                   : `View ${teacherName}'s profile, teaching sections, descriptions, and discussions on Life@USTC.`,
               },
             ];

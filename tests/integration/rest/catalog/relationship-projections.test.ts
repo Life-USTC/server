@@ -221,7 +221,7 @@ for (const domain of ["Course", "Teacher", "Section"] as const) {
             return teacher;
           });
 
-        await test.step("详情路由返回带班级的 seed 教师", async () => {
+        await test.step("详情路由返回带教学班的 seed 教师", async () => {
           const cacheBust = `teacher-detail-${Date.now()}`;
           const teacherListResponse = await request.get(
             `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&pageSize=5&cacheBust=${cacheBust}`,
@@ -297,7 +297,7 @@ for (const domain of ["Course", "Teacher", "Section"] as const) {
       }
       if (domain === "Section") {
         const sectionList =
-          await test.step("班级列表项包含所有必需的 SectionSummary 字段", async () => {
+          await test.step("教学班列表项包含所有必需的 SectionSummary 字段", async () => {
             const response = await request.get(
               `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&pageSize=20`,
             );
@@ -339,7 +339,7 @@ for (const domain of ["Course", "Teacher", "Section"] as const) {
             return section;
           });
 
-        await test.step("班级列表项包含教师数组", async () => {
+        await test.step("教学班列表项包含教师数组", async () => {
           const response = await request.get(
             `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&pageSize=20`,
           );

@@ -5,15 +5,15 @@
     "description": "中国科学技术大学课程与日程管理系统",
     "social": {
       "imageAlt": "Life@USTC 课程与日程工作台分享卡片",
-      "courseDescription": "在 Life@USTC 查看{name}（{code}）的班级、简介与讨论。",
+      "courseDescription": "在 Life@USTC 查看{name}（{code}）的教学班、简介与讨论。",
       "sectionDescription": "在 Life@USTC 查看{name}（{code}）的课表、作业、考试、教师与讨论。",
-      "teacherDescription": "在 Life@USTC 查看{name}的教师资料、授课班级、简介与讨论。"
+      "teacherDescription": "在 Life@USTC 查看{name}的教师资料、授课教学班、简介与讨论。"
     },
     "pages": {
       "home": "首页",
       "courses": "课程",
       "courseDetail": "课程：{name}",
-      "sections": "班级",
+      "sections": "教学班",
       "sectionDetail": "{name}({code})",
       "teachers": "教师",
       "teacherDetail": "教师：{name}",
@@ -40,7 +40,7 @@
   "common": {
     "home": "首页",
     "courses": "课程",
-    "sections": "班级",
+    "sections": "教学班",
     "teachers": "教师",
     "subscriptions": "教学班订阅",
     "me": "我的",
@@ -87,8 +87,8 @@
     "title": "搜索",
     "pageTitle": "搜索",
     "pageDescription": "也可在此继续搜索；优先使用顶部栏或 Ctrl K。",
-    "placeholder": "搜索班级、教师、课程…",
-    "placeholderSignedIn": "搜索班级、教师、课程、作业、待办…",
+    "placeholder": "搜索教学班、教师、课程…",
+    "placeholderSignedIn": "搜索教学班、教师、课程、作业、待办…",
     "shortcut": "Ctrl K",
     "shortcutMac": "⌘ K",
     "noResults": "未找到相关结果",
@@ -108,7 +108,7 @@
     },
     "groups": {
       "courses": "课程",
-      "sections": "班级",
+      "sections": "教学班",
       "teachers": "教师",
       "links": "链接",
       "homeworks": "作业",
@@ -164,11 +164,11 @@
     "subscribedSections": "已订阅教学班",
     "semesterGroup": "学期：{name}",
     "removing": "移除中...",
-    "browseSections": "浏览班级",
+    "browseSections": "浏览教学班",
     "browseCourses": "浏览课程",
     "subscriptionTitle": "教学班订阅 #{id}",
-    "sectionIncluded": "包含 {count} 个班级",
-    "sectionsIncluded": "包含 {count} 个班级",
+    "sectionIncluded": "包含 {count} 个教学班",
+    "sectionsIncluded": "包含 {count} 个教学班",
     "rowActions": "行操作",
     "iCalLink": "复制日历链接",
     "linkCopied": "已复制链接",
@@ -180,40 +180,40 @@
     "optOutRetry": "请稍后重试",
     "courseCode": "课程代码",
     "courseName": "课程名称",
-    "section": "班级",
+    "section": "教学班",
     "semester": "学期",
     "credits": "学分",
-    "openDetails": "查看班级 {code} 的详细信息",
+    "openDetails": "查看教学班 {code} 的详细信息",
     "detailsDescription": "教学班 {code} 的订阅信息与可用操作。",
     "closeDetails": "关闭",
     "openCourse": "前往课程主页",
-    "unsubscribe": "取消订阅",
-    "unsubscribeTitle": "确认取消订阅？",
+    "unsubscribe": "取消订阅教学班",
+    "unsubscribeTitle": "确认取消教学班订阅？",
     "unsubscribeDescription": "取消订阅「{name}」后，其课程表、考试与作业将不再出现在你的工作区中。",
     "cancelUnsubscribe": "保留订阅",
     "confirmUnsubscribe": "确认取消订阅",
     "calendarTitle": "日历（{count}）",
     "calendarEmpty": "当前订阅的教学班里暂无课程或考试安排",
     "quickAdd": {
-      "title": "添加订阅",
+      "title": "添加教学班订阅",
       "description": "按课程号、教学班号、课程名称或教师搜索。",
       "codeLabel": "搜索课程或教师",
-      "placeholder": "输入课程号、课程名称、班级号或教师姓名",
+      "placeholder": "输入课程号、课程名称、教学班号或教师姓名",
       "searchButton": "搜索",
       "searching": "搜索中...",
       "resultsLabel": "找到 {count} 个教学班",
       "resultsLabelOne": "找到 {count} 个教学班",
       "resultsDescription": "最多显示 20 个教学班，请增加限定条件",
-      "selectSection": "选择班级 {code}",
+      "selectSection": "选择教学班 {code}",
       "alreadySubscribed": "已订阅",
       "emptyTitle": "没有找到教学班",
-      "emptyDescription": "请尝试其他课程号、课程名称、班级号或教师姓名，或者切换学期。",
-      "subscribeSelected": "订阅所选（{count}）",
+      "emptyDescription": "请尝试其他课程号、课程名称、教学班号或教师姓名，或者切换学期。",
+      "subscribeSelected": "订阅所选教学班（{count}）",
       "subscribing": "订阅中...",
       "cancel": "取消"
     },
     "bulkImport": {
-      "title": "批量添加订阅",
+      "title": "批量添加教学班订阅",
       "descriptionPrefix": "请访问",
       "undergraduateSystem": "本科生教务系统",
       "descriptionConjunction": "或",
@@ -221,15 +221,15 @@
       "description": "，获取包含教学班代码（如 MATH1001.01）的选课结果。选择对应学期，将包含这些代码的文本复制粘贴到下方，即可批量导入你的选课结果。",
       "semesterLabel": "学期",
       "semesterPlaceholder": "选择学期",
-      "sectionCodesLabel": "班级或课程代码",
-      "placeholder": "粘贴任意包含班级代码或课程代码的文本，例如：001013.01, COMP3001.01, COMP3001。",
+      "sectionCodesLabel": "教学班或课程代码",
+      "placeholder": "粘贴任意包含教学班代码或课程代码的文本，例如：001013.01, COMP3001.01, COMP3001。",
       "matchButton": "识别并匹配课程",
       "matching": "正在匹配...",
       "matchedSummary": "匹配 {matched} 个，未匹配 {unmatched} 个。",
-      "noMatches": "没有找到匹配的班级。",
+      "noMatches": "没有找到匹配的教学班。",
       "selectSection": "选择 {code}",
       "importing": "导入中...",
-      "noValidCodes": "未找到有效的班级或课程代码",
+      "noValidCodes": "未找到有效的教学班或课程代码",
       "checkFormat": "请检查输入的文本格式",
       "fetchFailed": "获取课程信息失败",
       "pleaseRetry": "请稍后重试",
@@ -240,17 +240,17 @@
       "subscribeSelected": "订阅已选的 {count} 个教学班",
       "subscribeSelectedOne": "订阅已选的 {count} 个教学班",
       "successDescription": "已新增 {count} 个教学班订阅",
-      "importFailed": "订阅失败"
+      "importFailed": "教学班订阅失败"
     },
     "kindBadge": {
       "teaching_assistant": "助教",
       "auditor": "旁听"
     },
     "kindEditor": {
-      "title": "订阅身份",
+      "title": "教学班订阅身份",
       "save": "保存",
       "cancel": "取消",
-      "failed": "保存订阅身份失败",
+      "failed": "保存教学班订阅身份失败",
       "regular": "普通",
       "auditor": "旁听",
       "teaching_assistant": "助教"
@@ -335,7 +335,7 @@
     "appIconAlt": "Life@USTC 应用图标",
     "publicWorkspace": {
       "title": "课程、课表与校园生活，一站搞定",
-      "description": "公开浏览课程目录、班级、教师、校车与常用网站；登录后同步个人课表、作业、订阅和工作区。",
+      "description": "公开浏览课程目录、教学班、教师、校车与常用网站；登录后同步个人课表、作业、教学班订阅和工作区。",
       "exploreLabel": "继续浏览",
       "cards": {
         "signIn": {
@@ -347,16 +347,16 @@
           "description": "打开 App Store 页面，并查看 iPhone 端的应用介绍。"
         },
         "sections": {
-          "title": "班级",
+          "title": "教学班",
           "description": "查看上课时间、教室、教师与日历订阅信息。"
         },
         "courses": {
           "title": "课程",
-          "description": "搜索课程目录，并继续查看各个班级详情。"
+          "description": "搜索课程目录，并继续查看各个教学班详情。"
         },
         "teachers": {
           "title": "教师",
-          "description": "查看教师资料以及他们当前授课的班级。"
+          "description": "查看教师资料以及他们当前授课的教学班。"
         },
         "links": {
           "title": "网站",
@@ -410,8 +410,8 @@
         "description": "探索可用课程，为您的课表找到完美的课程"
       },
       "viewSections": {
-        "title": "查看班级",
-        "description": "查看班级时间表、教师和可用性"
+        "title": "查看教学班",
+        "description": "查看教学班时间表、教师和可用性"
       },
       "mySubscriptions": {
         "title": "教学班订阅",
@@ -423,7 +423,7 @@
       },
       "browseTeachers": {
         "title": "浏览教师",
-        "description": "查看教师信息及其授课班级"
+        "description": "查看教师信息及其授课教学班"
       },
       "admin": {
         "title": "管理入口",
@@ -755,11 +755,11 @@
     "noSubscriptionsDescription": "订阅教学班后即可在此查看作业。",
     "emptyTitle": "暂无作业",
     "emptyDescription": "你订阅的教学班还没有发布作业。",
-    "filterEmptyDescription": "切换筛选条件，或前往班级页查看其他作业。",
+    "filterEmptyDescription": "切换筛选条件，或前往教学班页查看其他作业。",
     "listTitle": "作业（{count}）",
     "listDescription": "按截止时间排序。",
     "course": "课程",
-    "section": "班级",
+    "section": "教学班",
     "homework": "作业",
     "due": "截止时间",
     "published": "发布时间",
@@ -835,7 +835,7 @@
         "description": "管理个人待办任务"
       },
       "activityNotifications": {
-        "title": "活动提醒"
+        "title": "活动订阅"
       }
     },
     "viewAll": "查看全部",
@@ -925,8 +925,8 @@
       "historyAvailable": "往期教学班、作业、课表和考试仍然保留，你可以继续查看。",
       "viewPastHomeworks": "查看往期作业",
       "viewPastSchedule": "查看往期课表",
-      "viewPastSections": "查看往期班级",
-      "browseSections": "浏览班级",
+      "viewPastSections": "查看往期教学班",
+      "browseSections": "浏览教学班",
       "browseCourses": "浏览课程",
       "matchByCode": "按代码匹配"
     },
@@ -1174,7 +1174,7 @@
       "calendarTokenDescription": "如果私人日历链接可能已被分享，请轮换它。现有日历订阅将停止更新。",
       "calendarTokenRotate": "轮换私人日历链接",
       "calendarTokenRotated": "日历链接已轮换",
-      "calendarTokenRotatedDescription": "旧的私人日历链接已失效，请前往订阅页面复制新链接。",
+      "calendarTokenRotatedDescription": "旧的私人日历链接已失效，请前往教学班订阅页面复制新链接。",
       "calendarTokenError": "无法轮换私人日历链接。",
       "emptyTitle": "暂无安全活动",
       "emptyDescription": "新的登录、凭据和授权操作会显示在这里。",
@@ -1286,17 +1286,17 @@
   "courseDetail": {
     "basicInfo": "基本信息",
     "basicInfoDescription": "已导入的课程元数据。",
-    "noSections": "此课程暂无可用班级",
+    "noSections": "此课程暂无可用教学班",
     "emptySectionsDescription": "开课后将在此显示历史教学班。",
     "notAvailable": "暂无",
     "semester": "学期",
-    "sectionCode": "班级代码",
+    "sectionCode": "教学班代码",
     "teachers": "教师",
     "campus": "校区",
     "capacity": "容量",
     "classType": "课程类型",
     "courseType": "课程归类",
-    "summarySections": "班级",
+    "summarySections": "教学班",
     "summarySectionsMeta": "近期开课记录",
     "summaryComments": "评论",
     "summaryCommentsMeta": "可见讨论",
@@ -1304,21 +1304,21 @@
     "summaryLevelMeta": "课程培养层次",
     "summaryCategory": "类别",
     "summaryCategoryMeta": "课程目录类别",
-    "teachingSections": "授课班级",
+    "teachingSections": "授课教学班",
     "teachingSectionsDescription": "按学期由近到远排列的历史教学班。",
     "semesterSections": "{semester} ({count})",
     "tabs": {
       "description": "简介",
       "comments": "评论",
-      "sections": "班级"
+      "sections": "教学班"
     },
-    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役班级）",
+    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役）",
     "sectionHistoryPagination": "历史教学班分页"
   },
   "sections": {
-    "title": "所有班级",
-    "subtitle": "浏览和筛选所有可用的课程班级",
-    "searchPlaceholder": "搜索课程名称、课程代码或班级代码",
+    "title": "所有教学班",
+    "subtitle": "浏览和筛选所有可用的教学班",
+    "searchPlaceholder": "搜索课程名称、课程代码或教学班代码",
     "searchHelp": "?",
     "searchHelpTitle": "高级搜索语法",
     "searchHelpDescription": "上方筛选适用于日常搜索。可在搜索框中组合多个条件，值包含空格时请用引号括起。",
@@ -1335,8 +1335,8 @@
         "example": "coursecode:CS101"
       },
       {
-        "syntax": "sectioncode:班级代码",
-        "description": "按班级代码搜索",
+        "syntax": "sectioncode:教学班代码",
+        "description": "按教学班代码搜索",
         "example": "sectioncode:01"
       },
       {
@@ -1385,13 +1385,13 @@
         "example": "order:desc"
       }
     ],
-    "showing": "显示 {total} 个班级中的 {count} 个",
-    "showingOne": "显示 {total} 个班级中的 {count} 个",
+    "showing": "显示 {total} 个教学班中的 {count} 个",
+    "showingOne": "显示 {total} 个教学班中的 {count} 个",
     "searchFor": "关于 \"{query}\"",
     "inSemester": "在 {semester}",
-    "noSectionsFound": "未找到班级",
+    "noSectionsFound": "未找到教学班",
     "courseName": "课程名称",
-    "sectionCode": "班级代码",
+    "sectionCode": "教学班代码",
     "semester": "学期",
     "teachers": "教师",
     "campus": "校区",
@@ -1403,11 +1403,11 @@
     "credits": "学分",
     "capacity": "容量",
     "noSemester": "无学期",
-    "filterDescription": "组合班级、课程属性和排序条件；留空表示不限，点击“应用筛选”后生效。",
+    "filterDescription": "组合教学班、课程属性和排序条件；留空表示不限，点击“应用筛选”后生效。",
     "filters": {
       "any": "不限",
       "apply": "应用筛选",
-      "sectionTitle": "班级条件",
+      "sectionTitle": "教学班条件",
       "sectionDescription": "按开课信息精确缩小结果。",
       "courseTitle": "课程属性",
       "courseDescription": "按课程元数据进一步筛选。",
@@ -1420,7 +1420,7 @@
       "sortCapacity": "当前人数",
       "sortSemester": "学期",
       "sortCourse": "课程名称",
-      "sortCode": "班级代码",
+      "sortCode": "教学班代码",
       "sortTeacherCount": "教师数量",
       "sortCampus": "校区",
       "order": "排序方向",
@@ -1429,7 +1429,7 @@
     },
     "summary": {
       "matches": "匹配",
-      "matchesMeta": "当前查询中的班级",
+      "matchesMeta": "当前查询中的教学班",
       "showing": "显示",
       "showingMeta": "第 {page} 页 / 共 {totalPages} 页",
       "filters": "筛选",
@@ -1438,12 +1438,12 @@
     }
   },
   "sectionDetail": {
-    "basicInfo": "班级信息",
-    "basicInfoDescription": "已导入的班级元数据。",
+    "basicInfo": "教学班信息",
+    "basicInfoDescription": "已导入的教学班元数据。",
     "courseCode": "课程代码",
-    "sectionCode": "班级代码",
-    "teachingSection": "授课班级",
-    "historicalSectionLabel": "历史班级",
+    "sectionCode": "教学班代码",
+    "teachingSection": "授课教学班",
+    "historicalSectionLabel": "历史教学班",
     "historicalSectionDescription": "该教学班已不在最新教务快照中，保留此页面用于查看历史信息；不能新增订阅。",
     "semester": "学期",
     "campus": "校区",
@@ -1451,7 +1451,7 @@
     "capacity": "容量",
     "department": "开课院系",
     "teachers": "教师",
-    "otherSections": "其他班级",
+    "otherSections": "其他教学班",
     "period": "学时",
     "roomType": "教室类型",
     "periodsPerWeek": "周学时",
@@ -1475,12 +1475,12 @@
     "no": "否",
     "noTeacher": "无教师",
     "noTeachersListed": "暂无教师。",
-    "teachersDescription": "与此班级关联的教师。",
+    "teachersDescription": "与此教学班关联的教师。",
     "sameSemesterOtherTeachers": "同学期其他教师",
     "sameTeacherOtherSemesters": "同教师其他学期",
-    "viewAllCourseSections": "查看全部班级",
+    "viewAllCourseSections": "查看全部教学班",
     "addToCalendar": "添加到日历",
-    "calendarDescription": "此班级的上课与考试安排。",
+    "calendarDescription": "此教学班的上课与考试安排。",
     "calendarMiniDescription": "快速查看上课与考试日期。",
     "classLegend": "上课",
     "examLegend": "考试",
@@ -1491,15 +1491,15 @@
     "classEventTitle": "上课事件",
     "calendarSheetTitle": "添加到日历",
     "calendarSheetDescription": "复制下方链接，在日历应用中通过「订阅日历」添加。",
-    "calendarUrlLabel": "仅此班级",
-    "calendarUrlDescription": "只包含本班级的上课、考试与作业。",
+    "calendarUrlLabel": "仅此教学班",
+    "calendarUrlDescription": "只包含本教学班的上课、考试与作业。",
     "subscriptionUrlLabel": "我的全部订阅",
-    "subscriptionUrlDescription": "包含你在 Life@USTC 中订阅的所有班级，以及待办等个人日程，会自动同步。",
-    "subscriptionMissing": "前往订阅页面安全查看你的个人订阅链接",
+    "subscriptionUrlDescription": "包含你在 Life@USTC 中订阅的所有教学班，以及待办等个人日程，会自动同步。",
+    "subscriptionMissing": "前往教学班订阅页面安全查看你的个人日历订阅链接",
     "subscriptionHintLabel": "此链接包含您在 Life@USTC 中订阅的所有教学班，会自动同步更新，不代表学校官方选课结果。",
     "subscriptionPrivacyNote": "此链接相当于你的私人凭证，请勿公开分享。",
     "subscribeLabel": "订阅教学班",
-    "unsubscribeLabel": "取消订阅",
+    "unsubscribeLabel": "取消订阅教学班",
     "copyToClipboard": "复制",
     "close": "关闭",
     "learnMoreAboutICalendar": "如何用链接订阅日历（Apple 支持）",
@@ -1521,7 +1521,7 @@
     "summaryCalendarMeta": "上课与考试",
     "summaryCampusMeta": "主要校区",
     "summaryCapacityMeta": "学生数 / 容量",
-    "homeworkDescription": "此班级收集的作业。",
+    "homeworkDescription": "此教学班收集的作业。",
     "homeworkView": "作业视图",
     "cardsView": "卡片",
     "listView": "列表",
@@ -1529,9 +1529,9 @@
     "due": "截止",
     "flags": "标记",
     "noHomework": "暂无作业。",
-    "commentsSummary": "班级评论：{section}；课程评论：{course}；教师评论：{teachers}",
-    "commentTargets": "班级评论目标",
-    "sectionComments": "班级",
+    "commentsSummary": "教学班评论：{section}；课程评论：{course}；教师评论：{teachers}",
+    "commentTargets": "教学班评论目标",
+    "sectionComments": "教学班",
     "courseComments": "课程",
     "tabs": {
       "description": "简介",
@@ -1541,10 +1541,10 @@
       "calendar": "日历"
     },
     "loginRequiredDescription": "登录后即可在 Life@USTC 中订阅教学班，并在不同设备间同步你的工作区与日历。这不等同于学校官方选课。",
-    "loginToSubscribe": "登录后订阅",
+    "loginToSubscribe": "登录后订阅教学班",
     "subscriptionDisclaimer": "这里的“教学班订阅”只会影响 Life@USTC 中的工作区与日历，不代表中国科大官方选课。",
     "calendar": "日历 ({count})",
-    "calendarEmpty": "此班级暂无课程或考试安排",
+    "calendarEmpty": "此教学班暂无课程或考试安排",
     "classEvent": "上课",
     "examEvent": "考试",
     "lecture": "课次",
@@ -1558,7 +1558,7 @@
     "weekLabel": "周次",
     "weekNumber": "第 {week} 周",
     "schedule": "课程表 ({count})",
-    "noSchedule": "此班级暂无课程表信息",
+    "noSchedule": "此教学班暂无课程表信息",
     "date": "日期",
     "weekday": "星期",
     "time": "时间",
@@ -1575,7 +1575,7 @@
     "examTypeFinal": "期末考试",
     "examMode": "方式",
     "examCount": "人数",
-    "viewAllSections": "查看这门课全部开课班级",
+    "viewAllSections": "查看这门课全部开课教学班",
     "viewMySubscriptions": "查看我的教学班订阅",
     "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
     "weekdays": {
@@ -1619,7 +1619,7 @@
     "viewSourceOnGithub": "在 GitHub 上查看源码",
     "avatarOption": "头像选项",
     "subscriptionCalendarUrl": "教学班订阅日历链接",
-    "singleSectionCalendarUrl": "单个班级日历链接",
+    "singleSectionCalendarUrl": "单个教学班日历链接",
     "skipToMainContent": "跳转到主要内容"
   },
   "profile": {
@@ -1716,7 +1716,7 @@
   "course": {
     "details": "课程详情",
     "basicInfo": "课程信息",
-    "sections": "课程班级",
+    "sections": "教学班",
     "credits": "学分",
     "hours": "学时",
     "code": "代码",
@@ -1727,7 +1727,7 @@
     "description": "课程简介"
   },
   "section": {
-    "details": "班级详情",
+    "details": "教学班详情",
     "teacher": "主讲教师",
     "room": "教室",
     "time": "时间",
@@ -1771,8 +1771,8 @@
     "department": "院系",
     "title_label": "职称",
     "email": "邮箱",
-    "sectionCount": "授课班级数",
-    "sections": "授课班级",
+    "sectionCount": "授课教学班数",
+    "sections": "授课教学班",
     "filterTitle": "筛选教师",
     "filterDescription": "搜索教师姓名或工号，并按院系缩小范围；选择院系后会立即应用。",
     "currentDepartment": "当前院系",
@@ -1797,8 +1797,8 @@
     "mobile": "手机",
     "address": "地址",
     "basicInfo": "基本信息",
-    "noSections": "暂无授课班级",
-    "viewAllSections": "查看此教师的所有授课班级",
+    "noSections": "暂无授课教学班",
+    "viewAllSections": "查看此教师的所有授课教学班",
     "allDepartments": "所有院系"
   },
   "teacherDetail": {
@@ -1813,12 +1813,12 @@
     "basicInfo": "基本信息",
     "basicInfoDescription": "已导入的教师元数据。",
     "contact": "联系方式",
-    "teachingSectionsTitle": "授课班级",
+    "teachingSectionsTitle": "授课教学班",
     "teachingSectionsDescription": "按学期由近到远排列的历史教学班。",
-    "noSections": "暂无授课班级",
+    "noSections": "暂无授课教学班",
     "noDepartment": "无院系",
     "notAvailable": "暂无",
-    "summarySections": "班级",
+    "summarySections": "教学班",
     "summarySectionsMeta": "近期授课记录",
     "summaryComments": "评论",
     "summaryCommentsMeta": "可见讨论",
@@ -1828,9 +1828,9 @@
     "summaryTitleMeta": "教师职称",
     "semester": "学期",
     "courseName": "课程名称",
-    "sectionCode": "班级代码",
+    "sectionCode": "教学班代码",
     "credits": "学分",
-    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役班级）",
+    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役）",
     "sectionHistoryPagination": "历史教学班分页"
   },
   "descriptions": {
@@ -1869,7 +1869,7 @@
   },
   "homeworks": {
     "title": "作业",
-    "subtitle": "记录与追踪本班级作业信息",
+    "subtitle": "记录与追踪本教学班作业信息",
     "loggedIn": "已登录",
     "guest": "访客",
     "suspended": "你的账号已被封禁，无法创建或编辑作业。",
@@ -1960,7 +1960,7 @@
     "errorSubmissionRange": "提交开始时间必须早于截止时间。",
     "errorUnauthorized": "请登录后继续。",
     "errorSuspended": "账号已被封禁，无法更新作业。",
-    "errorSectionNotFound": "未找到对应班级。",
+    "errorSectionNotFound": "未找到对应教学班。",
     "errorNotFound": "未找到作业。",
     "errorHomeworkDeleted": "该作业已删除。",
     "errorNoChanges": "没有可保存的改动。",
@@ -1984,9 +1984,9 @@
     "filterEmptyDescription": "切换筛选条件，或稍后再试。",
     "clearFilter": "清除筛选",
     "addButton": "添加作业",
-    "sectionLabel": "班级",
-    "sectionPlaceholder": "选择班级",
-    "sectionRequired": "请选择班级。"
+    "sectionLabel": "教学班",
+    "sectionPlaceholder": "选择教学班",
+    "sectionRequired": "请选择教学班。"
   },
   "comments": {
     "ancestryPlaceholder": "该讨论串中的部分上级评论当前不可见。",
@@ -1994,7 +1994,7 @@
     "commentNotFound": "未找到评论。",
     "commentTargetNotFound": "未找到评论目标。",
     "subtitle": "分享对课程的体验与建议",
-    "tabSection": "这个班级",
+    "tabSection": "这个教学班",
     "tabCourse": "这门课程",
     "tabTeacher": "这个老师",
     "tabSectionTeacher": "这个老师教的这门课",
@@ -2027,7 +2027,7 @@
     "commentTargetCurrent": "你的评论将在 {label} 下可见",
     "changeTarget": "需要修改？",
     "changeTargetTitle": "修改评论目标",
-    "changeTargetDescription": "请选择你要评论的对象，确保你的评论在正确的上下文（课程、班级或教师）中可见。",
+    "changeTargetDescription": "请选择你要评论的对象，确保你的评论在正确的上下文（课程、教学班或教师）中可见。",
     "tabWrite": "编辑",
     "tabPreview": "预览",
     "commentTargetPlaceholder": "评论对象",
@@ -2080,7 +2080,7 @@
     "loginRequiredDescription": "登录后才能添加表情或点赞。",
     "reactionMenu": "表情",
     "linkTeacher": "教师 #{id}",
-    "linkSection": "班级 #{id}",
+    "linkSection": "教学班 #{id}",
     "linkHost": "Life@USTC",
     "reactionFailed": "表情操作失败",
     "reaction": {
@@ -2097,7 +2097,7 @@
     "threadSubtitle": "在上下文中继续对话。",
     "threadDescription": "查看完整讨论并回复此评论。",
     "threadMetadata": "评论 {id}",
-    "viewSection": "查看班级",
+    "viewSection": "查看教学班",
     "viewCourse": "查看课程",
     "viewTeacher": "查看教师",
     "viewHomework": "查看作业",
@@ -2138,7 +2138,7 @@
     "filterQueue": "筛选队列",
     "filterQueueDescription": "按状态、内容、作者或目标缩小当前审核视图。",
     "filterAction": "筛选",
-    "searchAllPlaceholder": "搜索内容、课程、班级、教师、作业",
+    "searchAllPlaceholder": "搜索内容、课程、教学班、教师、作业",
     "tabsLabel": "审核分区",
     "loading": "加载中...",
     "openTarget": "打开目标",
@@ -2198,7 +2198,7 @@
     "editedAtLabel": "编辑时间",
     "actions": "操作",
     "homeworkTitle": "标题",
-    "homeworkSection": "班级",
+    "homeworkSection": "教学班",
     "homeworkDue": "截止",
     "homeworkStatusActive": "正常",
     "homeworkStatusDeleted": "已删除",
@@ -2212,7 +2212,7 @@
     "descriptionPreview": "预览",
     "descriptionTargetAll": "全部目标",
     "descriptionTargetCourse": "课程",
-    "descriptionTargetSection": "班级",
+    "descriptionTargetSection": "教学班",
     "descriptionTargetTeacher": "教师",
     "descriptionTargetHomework": "作业",
     "descriptionContentWith": "有内容",
@@ -2363,13 +2363,13 @@
     "guideProfileDescription": "如果你是助教的话也可以当成课程主页来使用",
     "guideAppsTitle": "通过其他应用使用 Life @ USTC",
     "guideAppsDescription": "可以尝试导出 CalDAV 链接、接入 MCP 等在其他平台使用 Life @ USTC",
-    "sectionCodesLabel": "班级代码",
+    "sectionCodesLabel": "教学班代码",
     "confirmImportTitle": "确认添加教学班订阅",
     "matchedSummary": "已匹配 {matched} 个，未匹配 {unmatched} 个。",
-    "noMatchingSections": "未找到匹配的班级。",
+    "noMatchingSections": "未找到匹配的教学班。",
     "selectSection": "选择 {code}",
     "importing": "导入中...",
-    "subscribeSelected": "订阅已选（{count}）",
+    "subscribeSelected": "订阅已选教学班（{count}）",
     "importedSummary": "已新增 {count} 个教学班订阅。"
   },
   "oauth": {
@@ -2478,11 +2478,11 @@
     "scopeFeature_catalog.exam": "考试",
     "scopeFeature_catalog.link": "网站",
     "scopeFeature_catalog.schedule": "课表",
-    "scopeFeature_catalog.section": "班级",
+    "scopeFeature_catalog.section": "教学班",
     "scopeFeature_catalog.teacher": "教师",
     "scopeFeature_community.comment": "评论",
     "scopeFeature_community.description": "简介",
-    "scopeFeature_community.section-homework": "班级作业",
+    "scopeFeature_community.section-homework": "教学班作业",
     "scopeFeature_community.user": "用户主页",
     "scopeFeature_workspace.bus-preferences": "校车偏好",
     "scopeFeature_workspace.calendar": "日历",
@@ -2492,7 +2492,7 @@
     "scopeFeature_workspace.link-pin": "置顶网站",
     "scopeFeature_workspace.overview": "总览",
     "scopeFeature_workspace.schedule": "课表",
-    "scopeFeature_workspace.subscription": "订阅",
+    "scopeFeature_workspace.subscription": "教学班订阅",
     "scopeFeature_workspace.todo": "待办",
     "scopeFeature_workspace.upload": "上传",
     "scopeFeature_admin": "管理后台",
@@ -2635,7 +2635,7 @@
         {
           "title": "2. 信息的使用方式",
           "items": [
-            "用于提供核心功能，例如登录、课程与班级信息展示、评论与上传。",
+            "用于提供核心功能，例如登录、课程与教学班信息展示、评论与上传。",
             "用于安全与防滥用，例如检测异常行为和防止恶意请求。",
             "用于产品改进，例如分析常见问题与优化体验。",
             "通过 Google Analytics 分析汇总使用模式，帮助我们了解哪些功能最常被使用以及应在何处重点改进。"
@@ -2685,7 +2685,7 @@
         {
           "title": "1. 服务说明",
           "items": [
-            "Life@USTC 提供课程、班级、评论与相关学习信息服务。",
+            "Life@USTC 提供课程、教学班、评论与相关学习信息服务。",
             "我们会持续改进功能，可能会调整、暂停或终止部分服务。",
             "部分功能可能需要登录后使用。",
             "我们使用 Google Analytics 收集使用统计数据。使用本服务即表示你同意我们在隐私政策中所述的数据收集方式。"
@@ -2719,7 +2719,7 @@
           "title": "5. 免责声明",
           "items": [
             "服务按“现状”提供，不保证持续可用或绝对无误。",
-            "课程与班级等信息可能存在延迟或更新误差，请以官方来源为准。",
+            "课程与教学班等信息可能存在延迟或更新误差，请以官方来源为准。",
             "在法律允许范围内，我们不对间接损失承担责任。"
           ]
         },
@@ -2864,25 +2864,25 @@
     "noOrganizersFound": "未找到主办方",
     "workspace": {
       "subscribe": "订阅活动",
-      "unsubscribe": "取消订阅",
+      "unsubscribe": "取消订阅活动",
       "follow": "关注主办方",
       "unfollow": "取消关注",
-      "manage": "活动订阅与提醒",
+      "manage": "活动订阅",
       "events": "已订阅活动",
       "organizers": "已关注主办方",
-      "notifications": "活动通知",
+      "notifications": "活动提醒",
       "signupReminder": "报名开始时提醒",
       "deadlineReminder": "报名截止前 24 小时提醒",
       "startReminder": "活动开始前 1 小时提醒",
       "save": "保存提醒设置",
       "saved": "已保存",
       "failed": "操作失败，请重试",
-      "signin": "登录后订阅",
+      "signin": "登录后订阅活动",
       "loading": "正在加载…",
       "empty": "暂无内容",
       "read": "标记已读",
       "unread": "未读",
-      "hint": "订阅会加入个人日历，不代表已在校方报名。",
+      "hint": "订阅的活动会加入个人日历，不代表已在校方报名。",
       "followHint": "关注后按天汇总新活动；不会自动加入个人日历。",
       "back": "返回教学班订阅",
       "retry": "重试",
@@ -3115,13 +3115,13 @@
       "searchLabel": "搜索功能",
       "searchPlaceholder": "搜索功能名称或说明",
       "empty": "没有匹配的功能。",
-      "signInPrompt": "登录后可使用日程、作业、待办与订阅等个人功能。",
+      "signInPrompt": "登录后可使用日程、作业、待办与教学班订阅等个人功能。",
       "descriptions": {
         "overview": "今天的课程、截止事项与本周安排",
         "calendar": "在一个日历中查看课表、作业截止与考试",
-        "homeworks": "订阅班级的作业及你的完成状态",
-        "todos": "与班级无关的个人待办",
-        "exams": "订阅班级的考试安排",
+        "homeworks": "订阅教学班的作业及你的完成状态",
+        "todos": "与教学班无关的个人待办",
+        "exams": "订阅教学班的考试安排",
         "subscriptions": "添加和管理教学班订阅",
         "activityNotifications": "第二课堂活动与组织者的订阅提醒",
         "courses": "按学期、院系与类别查找课程",
@@ -3147,9 +3147,9 @@
       "clearSearch": "清除搜索"
     },
     "destinations": {
-      "subscriptions": "我的教学班",
+      "subscriptions": "教学班订阅",
       "courses": "浏览课程",
-      "sections": "浏览班级"
+      "sections": "浏览教学班"
     }
   }
 }

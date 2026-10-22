@@ -91,7 +91,7 @@ for (const locale of ["en-us", "zh-cn"]) {
             await expect(
               page
                 .getByRole("menuitem")
-                .filter({ hasText: /活动订阅与提醒|Activity subscriptions/i }),
+                .filter({ hasText: /活动订阅|Activity subscriptions/i }),
             ).toHaveAttribute("href", "/workspace/subscriptions/activities");
             await page.keyboard.press("Escape");
           } else {

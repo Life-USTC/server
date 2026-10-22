@@ -176,7 +176,7 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("作业详情链接到班级页面且不打开第二层详情", {
+  test("作业详情链接到教学班页面且不打开第二层详情", {
     tag: "@Homework/Web",
   }, async ({ page, academic, homeworks, homeworkRun }) => {
     await homeworkRun(

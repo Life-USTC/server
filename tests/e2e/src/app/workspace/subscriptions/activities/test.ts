@@ -144,7 +144,9 @@ for (const viewport of [
               .getByRole("button", { name: /^(订阅活动|Subscribe to event)$/ })
               .click();
             await expect(
-              page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
+              page.getByRole("button", {
+                name: /^(取消订阅活动|Unsubscribe from activity)$/,
+              }),
             ).toBeVisible();
             await expect(
               page.getByRole("button", {
@@ -201,7 +203,7 @@ for (const viewport of [
           exact: true,
         });
         const remove = page.getByRole("button", {
-          name: /^(取消订阅|Unsubscribe)$/,
+          name: /^(取消订阅活动|Unsubscribe from activity)$/,
         });
         if (action === "remove") {
           await gotoAndWaitForReady(
@@ -463,7 +465,7 @@ test("reading the last unread reminder on page two returns to the remaining remi
     ).toBeVisible();
     const reminderNavigation = page
       .locator('[data-shell-navigation="desktop"]')
-      .getByRole("link", { name: /^(活动通知|Activity notifications)$/ });
+      .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
     await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
     const reminderBadge = page
       .locator(
@@ -471,7 +473,7 @@ test("reading the last unread reminder on page two returns to the remaining remi
       )
       .filter({
         has: page.getByRole("link", {
-          name: /^(活动提醒|Activity reminders)$/,
+          name: /^(活动订阅|Activity subscriptions)$/,
         }),
       })
       .locator('[data-slot="sidebar-menu-badge"]');

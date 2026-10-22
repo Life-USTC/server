@@ -28,7 +28,7 @@ import {
   selectHomeworkAction,
 } from "./_helpers";
 
-test.describe("/catalog/sections/[jwId] 班级详情页", () => {
+test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
   test("homework.section-style-guide", { tag: "@Homework/Web" }, async ({
     sectionRun,
     page,
@@ -134,7 +134,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("移动端班级作业长标题和说明保持对话框可用", {
+  test("移动端教学班作业长标题和说明保持对话框可用", {
     tag: "@Homework/Web",
   }, async ({ sectionRun, page, section, account, isolatedWorker }) => {
     await sectionRun(async () => {
@@ -143,7 +143,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       const titlePrefix = `e2e-section-hw-mobile-${Date.now()}`;
       const title = `${titlePrefix}-${"长标题".repeat(32)}`;
-      const description = `${"这是用于验证班级作业详情滚动区域的长说明。 ".repeat(24)}\n\nsection-mobile-content-marker`;
+      const description = `${"这是用于验证教学班作业详情滚动区域的长说明。 ".repeat(24)}\n\nsection-mobile-content-marker`;
 
       const db = isolatedWorker.database.owner;
       await db.homework.create({
@@ -224,7 +224,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("班级作业区块默认以列表展示", { tag: "@Homework/Web" }, async ({
+  test("教学班作业区块默认以列表展示", { tag: "@Homework/Web" }, async ({
     sectionRun,
     page,
     section,
@@ -547,7 +547,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("可编辑班级作业的截止日期、说明、重要和组队标记", {
+  test("可编辑教学班作业的截止日期、说明、重要和组队标记", {
     tag: "@Homework/Web",
   }, async ({ sectionRun, page, section, account, isolatedWorker }) => {
     await sectionRun(

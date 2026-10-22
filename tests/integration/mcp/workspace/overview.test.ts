@@ -731,7 +731,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
   );
 
   workspaceTest(
-    "当前学期无关注班级时仍可按学期回溯往期数据",
+    "当前学期无关注教学班时仍可按学期回溯往期数据",
     { tags: ["@Overview/MCP"] },
     async ({ mcpWorkflow, isolated, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {

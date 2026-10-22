@@ -16,7 +16,7 @@ import { jumpToSection } from "./_helpers";
 
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
-test.describe("/catalog/sections/[jwId] 班级详情页", () => {
+test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
   test("schedule.schedule-as-context", { tag: "@Calendar/Web" }, async ({
     page,
     preferenceFlow,
@@ -101,7 +101,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("日历区块以课表表格展示班级日程", { tag: "@Calendar/Web" }, async ({
+  test("日历区块以课表表格展示教学班日程", { tag: "@Calendar/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -232,7 +232,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         // recent-authenticated subscriptions workspace, never a public section.
         const subscriptionValue = await subscriptionUrl.inputValue();
         expect(subscriptionValue).toMatch(
-          /前往订阅页|Open subscriptions to securely view your personal feed/i,
+          /前往教学班订阅页面|Open section subscriptions to securely view your personal calendar feed/i,
         );
         await expect(subscriptionUrl).toBeDisabled();
         expect(subscriptionValue).not.toContain("/api/calendar-feeds/");
