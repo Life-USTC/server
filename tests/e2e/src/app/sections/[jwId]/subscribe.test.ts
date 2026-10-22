@@ -51,7 +51,7 @@ test("section.retired-detail-presentation", {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoAndWaitForReady(page, `${section.path}?subscribe=1`);
     await expect(
-      page.getByText(/历史班级|Historical section/i).first(),
+      page.getByText(/历史教学班|Historical section/i).first(),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: subscribeName })).toHaveCount(
       0,
@@ -99,7 +99,7 @@ test("已订阅用户仍可取消订阅已退役教学班", {
       await expect(page).toHaveURL(new RegExp(`${section.path}$`));
       await waitForUiSettled(page);
       await expect(
-        page.getByText(/历史班级|Historical section/i).first(),
+        page.getByText(/历史教学班|Historical section/i).first(),
       ).toBeVisible();
       const unsubscribe = page.getByRole("button", { name: unsubscribeName });
       await expect(unsubscribe.first()).toBeVisible();

@@ -518,7 +518,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
 describe("个人日历订阅 — 读取与批量订阅", () => {
   toolTest(
-    "workspace_calendar_feed_get 返回订阅班级但不泄露个人 iCal 凭据",
+    "workspace_calendar_feed_get 返回订阅教学班但不泄露个人 iCal 凭据",
     { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
@@ -614,7 +614,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
   );
 
   toolTest(
-    "workspace_subscription_list 列出当前订阅班级",
+    "workspace_subscription_list 列出当前订阅教学班",
     { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
@@ -725,7 +725,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
   );
 
   toolTest(
-    "workspace_subscription_import 批量匹配并订阅班级",
+    "workspace_subscription_import 批量匹配并订阅教学班",
     { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {
@@ -771,7 +771,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
   );
 
   toolTest(
-    "workspace_subscription_import 跳过已订阅班级",
+    "workspace_subscription_import 跳过已订阅教学班",
     { tags: ["@Subscription/MCP"] },
     async ({ mcpWorkflow, context, isolatedDatabase, expect }) =>
       mcpWorkflow.run(async () => {

@@ -148,7 +148,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
       await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
       ).toBeVisible();
       await expect(
         page.getByRole("heading", { name: /评论|Comments/i }),

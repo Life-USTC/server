@@ -4,10 +4,12 @@ const {
   authAccountFindManyMock,
   baseUserFindUniqueMock,
   getSessionFromHeadersMock,
+  ustcIdentityFindManyMock,
 } = vi.hoisted(() => ({
   authAccountFindManyMock: vi.fn(),
   baseUserFindUniqueMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
+  ustcIdentityFindManyMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/core", () => ({
@@ -22,6 +24,14 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { findUnique: baseUserFindUniqueMock },
   },
+  // The profile group shares its canvas with linked accounts, so the page also
+  // reads USTC identities through the user's RLS context.
+  withUserDbContext: (
+    _userId: string,
+    action: (tx: {
+      userUstcIdentity: { findMany: typeof ustcIdentityFindManyMock };
+    }) => unknown,
+  ) => action({ userUstcIdentity: { findMany: ustcIdentityFindManyMock } }),
 }));
 
 vi.mock("@/lib/db/auth-prisma", () => ({
@@ -37,6 +47,7 @@ describe("settings page RLS context", () => {
       user: { id: "user-1" },
     });
     authAccountFindManyMock.mockReset().mockResolvedValue([]);
+    ustcIdentityFindManyMock.mockReset().mockResolvedValue([]);
     baseUserFindUniqueMock.mockReset().mockResolvedValue({
       id: "user-1",
       name: "User One",

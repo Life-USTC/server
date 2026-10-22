@@ -9,9 +9,11 @@ async function openKindDialog(page: Page, jwId: number, width: number) {
     .filter({ has: page.locator(`a[href="/catalog/sections/${jwId}"]`) })
     .filter({ visible: true })
     .first();
-  await row.getByRole("button", { name: /订阅身份|Subscription role/ }).click();
+  await row
+    .getByRole("button", { name: /教学班订阅身份|Section subscription role/ })
+    .click();
   const dialog = page.getByRole("dialog", {
-    name: /订阅身份|Subscription role/,
+    name: /教学班订阅身份|Section subscription role/,
   });
   await expect(dialog).toBeVisible();
   return dialog;

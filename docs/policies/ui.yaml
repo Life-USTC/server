@@ -884,7 +884,7 @@ requirements:
     when: The browser inspects the visible primary navigation, its group disclosures, and its current-page link.
     then:
     - My day exposes Overview, Calendar, Homework, Todos and Exams as direct destinations, and Courses exposes
-      My sections beside public course discovery.
+      Section subscriptions beside public course discovery.
     - No Workspace destination and no separate toggle control render; group disclosures carry the group name.
     - The Courses group is expanded on arrival, and Admin appears only for an authorized administrator.
     - Exactly one navigation link is marked as the current page, and it is the open destination.
@@ -922,7 +922,7 @@ requirements:
 - id: ui.shell-feature-hub
   category: presentation
   topic: shell-layout
-  rule: The sidebar, mobile drawer and searchable /catalog/features hub share one destination model, grouped by user intent as My day, Courses, Campus, Activities, Account, Apps and Admin. Courses combines private My sections with public Browse courses, Browse sections and Teachers. Activities combines public Young events, calendar and organizers with private activity reminders. Rooms belongs to Campus. The hub is linked from the sidebar and topbar at every shell width. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
+  rule: The sidebar, mobile drawer and searchable /catalog/features hub share one destination model, grouped by user intent as My day, Courses, Campus, Activities, Account, Apps and Admin. Courses combines private Section subscriptions with public Browse courses, Browse sections and Teachers. Activities combines public Young events, calendar and organizers with private Activity subscriptions. Rooms belongs to Campus. The hub is linked from the sidebar and topbar at every shell width. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
   acceptance:
     given: Anonymous, ordinary and administrator viewers use Chinese and English on desktop and mobile.
     when: They open the feature hub, search, clear and use its links and the sidebar.
@@ -1222,6 +1222,25 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/page-identity.test.ts
       name: ui.settings-navigation-7
+- id: ui.settings-navigation-8
+  category: presentation
+  topic: settings-navigation
+  rule: A settings destination whose group is short and bounded co-displays the other short bounded
+    groups once the canvas fits a second column, keeping the requested group in the leading column.
+    A narrow canvas renders the requested group alone. Destinations whose group is a history list,
+    and the destructive destination, stay single-group at every width.
+  acceptance:
+    given: A signed-in user opens preferences and danger settings at a canvas wide enough for two
+      columns, then reopens preferences on a phone.
+    when: The browser inspects the rendered groups and their columns at each width.
+    then:
+    - The wide preferences canvas renders the profile and linked-account groups beside the requested
+      preferences group, and the requested group keeps the leading column.
+    - The wide danger canvas renders no companion group.
+    - The narrow preferences canvas renders no companion group and no companion form at all.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-8
 - id: ui.contribution-heatmap-1
   category: presentation
   topic: contribution-heatmap
@@ -1462,7 +1481,7 @@ requirements:
   rationale: The linked count=1 case is representative; count=0 and count=2 cases complete the matrix, each in both languages.
   acceptance:
     given: Independent fixtures provide zero, one and two sections matching a semester and course code.
-    when: English and Chinese users open Add Subscription, select the semester, search by code and cancel.
+    when: English and Chinese users open Add Section Subscription, select the semester, search by code and cancel.
     then:
     - Nonempty search legends use actual counts and natural localized grammar; zero results show the localized no-sections-found state.
     test:
@@ -1591,16 +1610,16 @@ requirements:
 - id: ui.navigation-landmarks-6
   category: presentation
   topic: navigation-landmarks
-  rule: Public notices and private activity reminders are separate navigation destinations. A user's reminder
+  rule: Public notices and private Activity subscriptions are separate navigation destinations. A user's reminder
     badge counts only unread, unexpired notifications belonging to that user. Marking a notice read refreshes
     the page only after consuming a valid JSON acknowledgement with the requested ID and success true;
     HTTP failure or an invalid acknowledgement shows a localized error and allows retry.
   acceptance:
     given: Two isolated users, with and without academic subscriptions, have different unread, read and expired activity notices.
-    when: Each signed-in browser opens desktop/mobile navigation, visits activity reminders and marks one owned notice read.
+    when: Each signed-in browser opens desktop/mobile navigation, visits Activity subscriptions and marks one owned notice read.
       Localized reminder flows also encounter failed or invalid acknowledgements before retrying the action.
     then:
-    - Public News & Notices and Activity reminders have distinct links; only private reminders display the exact owner count.
+    - Public News & Notices and Activity subscriptions have distinct links; only private reminders display the exact owner count.
     - Reminder lists exclude expired and foreign-owner notices while retaining the owner's read history.
     - A complete acknowledgement for the requested notice updates the badge and removes the badge at zero.
     - HTTP failure, malformed JSON, a different notice ID or success false leaves the current reminder visible,

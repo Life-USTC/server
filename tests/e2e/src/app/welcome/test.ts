@@ -335,7 +335,7 @@ test("user.welcome-subscription-guidance", { tag: "@Account/Web" }, async ({
 
     await expect(
       page.getByRole("textbox", {
-        name: /^(班级代码|Section codes)$/i,
+        name: /^(教学班代码|Section codes)$/i,
       }),
     ).toBeVisible();
 

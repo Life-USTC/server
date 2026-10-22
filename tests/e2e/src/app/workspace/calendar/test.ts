@@ -29,7 +29,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 test.describe("仪表盘日历", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("登录后显示日历，包含班级事件链接和星期标签", {
+  test("登录后显示日历，包含教学班事件链接和星期标签", {
     tag: "@Calendar/Web",
   }, async ({ page, calendarUrl, homeworkRun }) => {
     await homeworkRun(
@@ -75,7 +75,7 @@ test.describe("仪表盘日历", () => {
     );
   });
 
-  test("班级事件链接导航到班级详情", { tag: "@Calendar/Web" }, async ({
+  test("教学班事件链接导航到教学班详情", { tag: "@Calendar/Web" }, async ({
     page,
     calendarUrl,
     homeworkRun,

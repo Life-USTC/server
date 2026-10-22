@@ -5,6 +5,7 @@ import * as Table from "#lib/components/ui/table/index.js";
 import {
   LINK_TABLE_CLASS,
   LINK_TABLE_NAME_COL,
+  linkGroupSectionClass,
 } from "@/features/workspace/lib/link-table-layout";
 import type { AnonymousLinkGroup } from "@/features/workspace/lib/workspace-controller-helpers";
 import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
@@ -16,7 +17,7 @@ export let entry: AnonymousLinkGroup;
 export let linkIconLabel: (icon: string) => string;
 </script>
 
-<section class="grid gap-2">
+<section class={linkGroupSectionClass}>
   <h3 class="font-medium text-muted-foreground text-sm">
     {entry.label}
   </h3>

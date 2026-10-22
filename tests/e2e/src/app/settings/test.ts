@@ -160,6 +160,66 @@ test.describe("/account/settings 设置中心", () => {
     });
   });
 
+  test("ui.settings-navigation-8", {
+    tag: "@Account/Web",
+  }, async ({ accountRun, page, account: _account }) => {
+    await accountRun({ writes: [], audits: [] }, async () => {
+      const preferences = page.getByRole("region", {
+        name: /偏好设置|Preferences/i,
+      });
+      const profileGroup = page.getByRole("heading", {
+        level: 2,
+        name: /个人资料|Profile/i,
+      });
+      const accountsGroup = page.getByRole("heading", {
+        level: 2,
+        name: /关联账户|Linked accounts/i,
+      });
+
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await gotoAndWaitForReady(page, "/account/settings/preferences");
+
+      await expect(preferences).toBeVisible();
+      await expect(profileGroup).toBeVisible();
+      await expect(accountsGroup).toBeVisible();
+      // The requested group keeps the leading column; companions sit beside it.
+      const activeBox = await page
+        .locator("[data-settings-active-group]")
+        .boundingBox();
+      const companionBox = await page
+        .locator("[data-settings-companion-panel]")
+        .boundingBox();
+      expect(activeBox?.x).toBeLessThan(companionBox?.x ?? 0);
+      await expect(page.locator("[data-settings-danger-region]")).toHaveCount(
+        0,
+      );
+
+      // Destructive settings never share a canvas with a routine group.
+      await gotoAndWaitForReady(page, "/account/settings/danger");
+      await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
+      await expect(page.locator("[data-settings-companion-panel]")).toHaveCount(
+        0,
+      );
+      await expect(preferences).toHaveCount(0);
+      await expect(profileGroup).toHaveCount(0);
+
+      // A narrow canvas renders the requested group alone: companions are not
+      // merely hidden, they never reach the phone at all.
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(page, "/account/settings/preferences");
+
+      await expect(preferences).toBeVisible();
+      await expect(page.locator("[data-settings-companion-panel]")).toHaveCount(
+        0,
+      );
+      await expect(profileGroup).toHaveCount(0);
+      await expect(accountsGroup).toHaveCount(0);
+      await expect(page.locator('form[action="?/updateProfile"]')).toHaveCount(
+        0,
+      );
+    });
+  });
+
   test("设置语义路径渲染对应分区", { tag: "@Account/Web" }, async ({
     accountRun,
     page,

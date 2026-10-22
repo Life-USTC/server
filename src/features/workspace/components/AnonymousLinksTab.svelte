@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Button } from "#lib/components/ui/button/index.js";
+import { linkGroupColumnsClass } from "@/features/workspace/lib/link-table-layout";
 import type {
   AnonymousLinkGroup,
   WorkspaceCopy,
@@ -21,20 +22,22 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
     bind:linkSearchQuery
   />
 
-  {#each anonymousLinkGroups as entry}
-    <AnonymousLinksGroup
-      colDescription={workspaceCopy.linkHub.colDescription}
-      colName={workspaceCopy.linkHub.colName}
-      {entry}
-      {linkIconLabel}
-    />
-  {:else}
-    <WorkspaceEmptyState
-      className="items-start text-left"
-      headerClassName="items-start text-left"
-      title={workspaceCopy.linkHub.empty}
-    />
-  {/each}
+  <div class={linkGroupColumnsClass}>
+    {#each anonymousLinkGroups as entry}
+      <AnonymousLinksGroup
+        colDescription={workspaceCopy.linkHub.colDescription}
+        colName={workspaceCopy.linkHub.colName}
+        {entry}
+        {linkIconLabel}
+      />
+    {:else}
+      <WorkspaceEmptyState
+        className="items-start text-left"
+        headerClassName="items-start text-left"
+        title={workspaceCopy.linkHub.empty}
+      />
+    {/each}
+  </div>
 
   <p class="text-muted-foreground text-xs">
     {workspaceCopy.linkHub.credit}

@@ -1,5 +1,6 @@
 <script lang="ts">
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
+import { linkGroupSectionClass } from "@/features/workspace/lib/link-table-layout";
 import type {
   SignedLinkGroup,
   WorkspaceCopy,
@@ -28,7 +29,7 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
 }
 </script>
 
-<section class="grid gap-2">
+<section class={linkGroupSectionClass}>
   <h3 class="font-medium text-muted-foreground text-sm">
     {entry.label}
   </h3>

@@ -46,7 +46,7 @@ function seedHomework(
   });
 }
 
-describe("班级作业写入工具 — community_section_homework_create", () => {
+describe("教学班作业写入工具 — community_section_homework_create", () => {
   toolTest(
     "community_section_homework_list 对 default/full 都使用 summary 契约",
     { tags: ["@Homework/MCP"] },
@@ -215,7 +215,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
   );
 
   toolTest(
-    "community_section_homework_create 对不存在的班级返回恢复提示",
+    "community_section_homework_create 对不存在的教学班返回恢复提示",
     { tags: ["@Homework/MCP"] },
     async ({
       mcpWorkflow,
@@ -364,7 +364,7 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
   );
 });
 
-describe("班级作业更新工具 — community_section_homework_update", () => {
+describe("教学班作业更新工具 — community_section_homework_update", () => {
   toolTest(
     "community_section_homework_update 更新标题、描述、标志与日期并返回完整实体",
     { tags: ["@Homework/MCP"] },
@@ -860,7 +860,7 @@ describe("作业完成状态工具 — workspace_homework_completion_set", () =>
   );
 });
 
-describe("班级作业删除工具 — community_section_homework_delete", () => {
+describe("教学班作业删除工具 — community_section_homework_delete", () => {
   toolTest(
     "community_section_homework_delete 删除创建者拥有的作业并记录审计",
     { tags: ["@Homework/MCP"] },
