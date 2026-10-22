@@ -563,6 +563,23 @@ requirements:
     test:
       file: tests/unit/static-loader/post-import-cache-purge.test.ts
       name: rendering-and-cache.cache-layers-and-invalidation-12
+- id: rendering-and-cache.cache-layers-and-invalidation-13
+  category: behavior
+  topic: cache-layers-and-invalidation
+  rule: Public page renders dispatched through the public SSR entrypoint can defer background work. That
+    entrypoint is a separate invocation and the SvelteKit adapter exposes no platform execution context,
+    so it establishes its own runtime context from its own execution context. Without it every deferred
+    public runtime cache write is dropped and the shared detail caches never populate.
+  acceptance:
+    given: The public SSR entrypoint holds an execution context, while the adapter calls the request hook
+      with no platform and no parent runtime context.
+    when: The entrypoint renders a public catalog detail request.
+    then:
+    - The render observes a task scheduler rather than undefined.
+    - Work the render schedules reaches the entrypoint's own waitUntil.
+    test:
+      file: tests/unit/lib/misc/public-ssr-runtime-context.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-13
 - id: rendering-and-cache.cache-origin-recovery
   category: consistency
   topic: cache-layers-and-invalidation
