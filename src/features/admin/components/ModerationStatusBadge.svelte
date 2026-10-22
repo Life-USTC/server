@@ -10,7 +10,7 @@ export let status: ModerationCommentLike["status"];
   class={status === "active"
     ? "border-success/40 bg-success/10 text-success-text"
     : status === "deleted"
-      ? "border-destructive/40 bg-destructive/10 text-destructive"
+      ? "border-destructive/40 bg-destructive/10 text-destructive-text"
       : "border-warning/40 bg-warning/10 text-warning-text"}
 >
   {label}

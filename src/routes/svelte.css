@@ -20,10 +20,12 @@
   --primary-foreground: #07353a;
   /* Role colours double as surfaces, so each is calibrated against its own
      foreground rather than against a light page. As text on one they reach only
-     2.16:1 (primary), 3.30:1 (success on bg-success/10) and 2.17:1 (warning on
-     bg-warning/10). The `-text` counterparts keep the role hue at L 0.5, which
-     clears 4.5:1 on every light surface in this ramp. Use them where the role
-     colour is the text, never where it is the fill. */
+     2.16:1 (primary), 3.30:1 (success on bg-success/10), 2.17:1 (warning on
+     bg-warning/10) and, for destructive, 4.14:1 on bg-destructive/10 and
+     4.32:1 at 90% opacity on white. The `-text` counterparts keep the role hue
+     at L 0.5, which clears 4.5:1 on every light surface in this ramp. Use them
+     where the role colour is the text, never where it is the fill;
+     `color-contrast` in the page-inventory audit enforces which is which. */
   --primary-text: oklch(0.5 0.13 203.3);
   --secondary: #eef2f1;
   --secondary-foreground: #27272a;
@@ -34,6 +36,7 @@
   --accent-foreground: #174044;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
+  --destructive-text: oklch(0.5 0.19 27.33);
   --border: #d4d4d8;
   --input: #d4d4d8;
   --ring: rgb(0 195 208);
@@ -103,6 +106,7 @@ html {
   --accent-foreground: oklch(0.92 0.012 185);
   --destructive: oklch(0.68 0.16 28);
   --destructive-foreground: oklch(0.98 0.01 28);
+  --destructive-text: var(--destructive);
   --border: oklch(0.27 0.014 210);
   --input: oklch(0.3 0.014 210);
   --ring: rgb(0 210 224);
@@ -160,6 +164,7 @@ html {
     --accent-foreground: oklch(0.92 0.012 185);
     --destructive: oklch(0.68 0.16 28);
     --destructive-foreground: oklch(0.98 0.01 28);
+    --destructive-text: var(--destructive);
     --border: oklch(0.27 0.014 210);
     --input: oklch(0.3 0.014 210);
     --ring: rgb(0 210 224);
@@ -217,6 +222,7 @@ html {
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-text: var(--destructive-text);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

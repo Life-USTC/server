@@ -44,7 +44,7 @@ function diffSegmentClass(segment: DiffSegment) {
     return "rounded-sm bg-primary/10 text-primary-text";
   }
   if (segment.removed) {
-    return "rounded-sm bg-destructive/10 text-destructive";
+    return "rounded-sm bg-destructive/10 text-destructive-text";
   }
   return "";
 }

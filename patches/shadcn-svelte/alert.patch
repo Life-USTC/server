@@ -1,0 +1,39 @@
+--- a/alert.svelte (shadcn-svelte registry, style: nova)
++++ b/alert.svelte (local)
+@@ -6,7 +6,7 @@
+ 		variants: {
+ 			variant: {
+ 				default: "bg-card text-card-foreground",
+-				destructive: "text-destructive bg-card *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
++				destructive: "text-destructive-text bg-card *:data-[slot=alert-description]:text-destructive-text/90 *:[svg]:text-current",
+ 			},
+ 		},
+ 		defaultVariants: {
+@@ -18,13 +18,14 @@
+ </script>
+ 
+ <script lang="ts">
+-	import { cn, type WithElementRef } from "$UTILS$.js";
+ 	import type { HTMLAttributes } from "svelte/elements";
++	import { cn, type WithElementRef } from "#lib/utils.js";
+ 
+ 	let {
+ 		ref = $bindable(null),
+ 		class: className,
+ 		variant = "default",
++		role = "alert",
+ 		children,
+ 		...restProps
+ 	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+@@ -35,10 +36,9 @@
+ <div
+ 	bind:this={ref}
+ 	data-slot="alert"
+-	role="alert"
++	{role}
+ 	class={cn(alertVariants({ variant }), className)}
+ 	{...restProps}
+ >
+ 	{@render children?.()}
+ </div>
+-

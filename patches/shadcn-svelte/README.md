@@ -53,9 +53,11 @@ Nothing fails if a registry refresh reverts this while `color-contrast` stays
 disabled in `tests/e2e/utils/ui-quality.ts`; enabling that rule puts the key
 hint in the shell's search trigger back under the page-inventory audit.
 
-### `button.patch`, `badge.patch`
+### `button.patch`, `badge.patch`, `alert.patch`
 
-Both replace the `link` variant's `text-primary` with `text-primary-text`.
+All three swap a role colour used as text for its `-text` counterpart: the
+`link` variant's `text-primary`, and the `destructive` variant's
+`text-destructive`.
 
 `--primary` is the brand teal, calibrated as a *surface* against
 `--primary-foreground`. The `link` variant is the one variant that is never a
@@ -67,12 +69,21 @@ again in dark mode, where the teal already reaches 11.2:1. Fixing it in the
 variant rather than at the call sites keeps the next `variant="link"` correct
 by default.
 
-Both files already carried local divergence that predates this change — the
-first-party `status-*` badge variants, the `[a]:hover` scoping, and the
-minimum touch target in the button base — so these patches record that too.
+The `destructive` variants are the stock soft-destructive pairing, red text on
+a 10% tint of itself: `#dc2626` on `#fce9e9` is 4.14:1, and the alert's
+`text-destructive/90` on the card is 4.32:1. `--destructive-text` is the same
+hue at L 0.5, giving 5.67:1 and 5.72:1, and aliases `--destructive` in dark
+mode, where the tint is `/20` on a dark surface and already clears AA.
+`text-destructive` stays stock wherever it sits on a plain card — 4.83:1 —
+so `field-error` and `dropdown-menu-item` need no divergence.
+
+The button and badge files already carried local divergence that predates this
+change — the first-party `status-*` badge variants, the `[a]:hover` scoping,
+and the minimum touch target in the button base — so these patches record that
+too.
 
 Covered by `color-contrast` in `tests/e2e/utils/ui-quality.ts`, which fails on
-every `variant="link"` in the page inventory if a registry refresh reverts it.
+these variants across the page inventory if a registry refresh reverts them.
 
 ## input
 
