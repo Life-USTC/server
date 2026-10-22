@@ -45,7 +45,7 @@ const FRAME_EXEMPT: Record<string, string> = {
   "/usage/mcp": "Marketing page with a deliberate full-bleed hero.",
   "/usage/mobile": "Marketing page with a deliberate full-bleed hero.",
   "/api/docs/[...path]":
-    "Third-party OpenAPI renderer owns its own sidebar grid and media queries.",
+    "Two-pane reference shell: a navigation sidebar beside the embedded OpenAPI renderer, sized by api-docs-scalar.css rather than by a reading frame.",
   "/catalog/bus/map":
     "Transit map fills the viewport; a reading frame would crop it.",
   "/community/users/[identifier]":
