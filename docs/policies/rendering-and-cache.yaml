@@ -252,13 +252,16 @@ requirements:
   rule: Public catalog JSON cache admission covers the viewer-independent course, section, schedule, teacher,
     semester, metadata and campus-link read routes, for anonymous and session visitors alike. Request-time
     and bespoke-lifetime catalog API routes — shuttle bus, weather, current semester, room maps, second-classroom
-    reads and the link-visit recorder — stay dynamic, as do non-GET requests and any request carrying Authorization.
+    reads and the link-visit recorder — stay dynamic, as does any request that is not a GET or that carries
+    Authorization.
   acceptance:
-    given: Every route file under the catalog JSON API tree, plus a bearer-credentialed and a POST request.
+    given: Every route file under the catalog JSON API tree, plus a bearer-credentialed request and HEAD,
+      POST, PUT and DELETE requests.
     when: The public catalog API admission resolver evaluates each one.
     then:
     - Viewer-independent catalog read routes are admitted for anonymous and cookie-bearing requests.
-    - Request-time, bespoke-lifetime, non-JSON, non-GET and Authorization-bearing requests are not admitted.
+    - Request-time, bespoke-lifetime and non-JSON routes are not admitted.
+    - Requests that are not a GET, and requests carrying Authorization, are not admitted.
     test:
       file: tests/unit/features/catalog/public-api-cache-policy-acceptance.test.ts
       name: rendering-and-cache.cacheable-public-api-1

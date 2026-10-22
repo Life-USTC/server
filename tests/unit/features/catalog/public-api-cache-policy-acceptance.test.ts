@@ -161,13 +161,16 @@ describe("public catalog API cache policy acceptance", () => {
         authorization: "Bearer access-token",
       }),
     ).toBeNull();
-    expect(
-      resolvePublicCatalogApiCacheMode(
-        new Request("https://life.example.edu/api/catalog/sections", {
-          method: "POST",
-        }),
-      ),
-    ).toBeNull();
+    for (const method of ["HEAD", "POST", "PUT", "DELETE"]) {
+      expect(
+        resolvePublicCatalogApiCacheMode(
+          new Request("https://life.example.edu/api/catalog/sections", {
+            method,
+          }),
+        ),
+        method,
+      ).toBeNull();
+    }
   });
 
   test("rendering-and-cache.cacheable-public-api-2", () => {

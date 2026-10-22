@@ -99,11 +99,16 @@ export function isViewerIndependentPublicCatalogApiPath(pathname: string) {
  * A bearer token never shares a representation, mirroring
  * `shouldRoutePublicSsrCache`. A session cookie does, because the cached
  * subrequest drops it and these routes resolve nothing from it.
+ *
+ * `HEAD` stays dynamic even though it is safe and idempotent. The cache key is
+ * built from the path and query alone, so admitting `HEAD` would let a
+ * body-less response and a `GET` contend for one entry; keeping it out removes
+ * that question entirely for negligible traffic.
  */
 export function resolvePublicCatalogApiCacheMode(
   request: Request,
 ): PublicCatalogApiCacheMode | null {
-  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  if (request.method !== "GET") return null;
   if (request.headers.has("authorization")) return null;
   return isViewerIndependentPublicCatalogApiPath(new URL(request.url).pathname)
     ? PUBLIC_CATALOG_API_CACHE_MODE
