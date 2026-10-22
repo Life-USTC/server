@@ -159,7 +159,6 @@ model AdminClass {
 
   sections Section[] @relation("SectionAdminClasses")
 
-  @@index([jwId])
   @@index([code])
   @@index([nameCn])
 }
@@ -178,7 +177,6 @@ model Building {
 
   rooms Room[]
 
-  @@index([jwId])
   @@index([nameCn])
   @@index([nameEn])
   @@index([campusId])
@@ -195,7 +193,6 @@ model Campus {
   buildings Building[]
   sections  Section[]
 
-  @@index([jwId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
@@ -209,7 +206,6 @@ model ClassType {
 
   courses Course[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -240,7 +236,6 @@ model Course {
   description Description?
   aliases     CourseAlias[]
 
-  @@index([jwId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
@@ -274,7 +269,6 @@ model CourseCategory {
 
   courses Course[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -286,7 +280,6 @@ model CourseClassify {
 
   courses Course[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -298,7 +291,6 @@ model CourseGradation {
 
   courses Course[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -310,7 +302,6 @@ model CourseType {
 
   courses Course[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -339,7 +330,6 @@ model EducationLevel {
 
   courses Course[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -351,7 +341,6 @@ model ExamMode {
 
   sections Section[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -376,7 +365,6 @@ model Room {
 
   schedules Schedule[]
 
-  @@index([jwId])
   @@index([buildingId, code])
   @@index([nameCn])
   @@index([nameEn])
@@ -393,7 +381,6 @@ model RoomType {
   rooms    Room[]
   sections Section[]
 
-  @@index([jwId])
   @@index([nameCn])
   @@index([nameEn])
 }
@@ -460,7 +447,6 @@ model ScheduleGroup {
 
   schedules Schedule[]
 
-  @@index([jwId])
   @@index([sectionId])
 }
 
@@ -528,7 +514,6 @@ model Section {
   description          Description?
   homeworks            Homework[]
 
-  @@index([jwId])
   @@index([code])
   @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Section_code_trgm_idx")
   @@index([bizTypeId])
@@ -577,7 +562,6 @@ model Exam {
 
   examRooms ExamRoom[]
 
-  @@index([jwId])
   @@index([examType])
   @@index([examDate])
   @@index([examBatchId])
@@ -621,7 +605,6 @@ model Semester {
 
   sections Section[]
 
-  @@index([jwId])
 }
 
 model Teacher {
@@ -655,7 +638,6 @@ model Teacher {
   comments           Comment[]
   description        Description?
 
-  @@index([jwId])
   @@index([personId])
   @@index([code])
   @@index([nameCn])
@@ -692,7 +674,6 @@ model Description {
   edits DescriptionEdit[]
 
   @@index([lastEditedById])
-  @@index([homeworkId])
 }
 
 model Homework {
@@ -878,7 +859,6 @@ model TeachLanguage {
 
   sections Section[]
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -894,7 +874,6 @@ model TeacherTitle {
   teachers           Teacher[]
   teacherAssignments TeacherAssignment[]
 
-  @@index([jwId])
   @@index([nameCn])
 }
 
@@ -910,7 +889,6 @@ model TeacherLessonType {
 
   teacherAssignments TeacherAssignment[]
 
-  @@index([jwId])
   @@index([nameCn])
 }
 
@@ -1137,7 +1115,6 @@ model Publication {
   @@index([publicationType, publishedAt])
   @@index([sourceId, lastSeenAt])
   @@index([deletedAt])
-  @@index([currentRevisionId])
   @@index([normalizedTitle, publishedDateShanghai])
   @@index([canonicalUrl(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_canonicalUrl_trgm_idx")
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_title_trgm_idx")
@@ -1392,6 +1369,8 @@ model CommentAttachment {
 
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   upload  Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
 }
 
 model CommentReaction {
@@ -1634,7 +1613,6 @@ model BusCampus {
   preferredByOriginUsers      BusUserPreference[] @relation("BusPreferenceOrigin")
   preferredByDestinationUsers BusUserPreference[] @relation("BusPreferenceDestination")
 
-  @@index([nameCn])
   @@index([nameEn])
 }
 
@@ -1800,8 +1778,6 @@ model DeviceCode {
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
 
-  @@index([deviceCode])
-  @@index([userCode])
   @@index([clientId])
   @@index([userId])
   @@index([expiresAt])
@@ -2006,7 +1982,6 @@ model WeatherObservation {
   createdAt      DateTime @default(now())
 
   @@unique([locationKey, observedAt])
-  @@index([locationKey, observedAt])
 }
 
 model YoungEvent {
