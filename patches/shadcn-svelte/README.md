@@ -53,6 +53,18 @@ Nothing fails if a registry refresh reverts this while `color-contrast` stays
 disabled in `tests/e2e/utils/ui-quality.ts`; enabling that rule puts the key
 hint in the shell's search trigger back under the page-inventory audit.
 
+### `avatar-fallback.patch`
+
+Replaces `text-muted-foreground` with `text-foreground/70`, for the same reason
+as `kbd.patch`: upstream pairs the fallback's own `bg-muted` with a foreground
+calibrated against `--background`, giving `#71717a` on `#f4f4f5` = 4.40:1 at
+`text-sm` and `text-xs`. `text-foreground/70` gives 5.33:1. The initials show
+whenever a member has no avatar, and while any avatar image is still loading,
+so a call site cannot opt out of the pair.
+
+Covered by `color-contrast` in `tests/e2e/utils/ui-quality.ts` through the
+comment thread page contract.
+
 ### `button.patch`, `badge.patch`, `alert.patch`
 
 All three swap a role colour used as text for its `-text` counterpart: the
