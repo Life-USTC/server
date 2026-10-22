@@ -111,7 +111,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
       page.on("pageerror", (error) => errors.push(error.message));
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 844 });
-        await gotoAndWaitForReady(page, "/catalog/features");
+        await gotoAndWaitForReady(page, "/");
         const main = page.locator("#main-content");
         const hub = page.locator("[data-feature-hub]");
         await expect(main.getByRole("heading", { level: 1 })).toHaveText(
@@ -324,7 +324,7 @@ test("feature hub and brand stay reachable through the tablet range", {
 }, async ({ page }) => {
   for (const width of [768, 900, 1023]) {
     await page.setViewportSize({ width, height: 900 });
-    await gotoAndWaitForReady(page, "/catalog/features");
+    await gotoAndWaitForReady(page, "/");
     const topbar = page.locator("[data-shell-topbar]");
     await expect(topbar.locator("[data-shell-brand]")).toBeVisible();
     const menu = topbar.locator('[data-sidebar="trigger"]');
@@ -351,7 +351,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
       ]);
     for (const width of [280, 320, 390]) {
       await page.setViewportSize({ width, height: 844 });
-      await gotoAndWaitForReady(page, "/catalog/features", {
+      await gotoAndWaitForReady(page, "/", {
         expectNoHorizontalOverflow: true,
       });
       const topbar = page.locator("[data-shell-topbar]");

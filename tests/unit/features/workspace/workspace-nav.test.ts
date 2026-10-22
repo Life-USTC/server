@@ -3,7 +3,6 @@ import {
   homeTabCompatibilityRedirectHref,
   isWorkspaceTab,
   WORKSPACE_SUBSCRIPTIONS_PATH,
-  workspaceRedirectHrefFromHome,
   workspaceTabCompatibilityRedirectHref,
   workspaceTabHref,
 } from "@/features/workspace/lib/workspace-nav";
@@ -17,51 +16,21 @@ describe("workspace dynamic tab allowlist", () => {
   });
 });
 
-describe("workspaceRedirectHrefFromHome", () => {
-  it("preserves supported workspace state and drops unrelated query values", () => {
-    const url = new URL(
-      "https://example.test/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
-    );
-
-    expect(workspaceRedirectHrefFromHome(url)).toBe(
-      "/workspace/calendar?calendarView=week&calendarSemester=42",
-    );
-  });
-
-  it("maps legacy subscriptions tab queries to the static subscriptions route", () => {
-    const url = new URL("https://example.test/?tab=subscriptions");
-
-    expect(workspaceRedirectHrefFromHome(url)).toBe(
-      WORKSPACE_SUBSCRIPTIONS_PATH,
-    );
-  });
-
-  it("drops unsupported tab values while preserving supported view state", () => {
-    const url = new URL(
-      "https://example.test/?tab=unknown&homeworkView=completed&removed=3",
-    );
-
-    expect(workspaceRedirectHrefFromHome(url)).toBe(
-      "/workspace/overview?homeworkView=completed",
-    );
-  });
-});
-
 describe("homeTabCompatibilityRedirectHref", () => {
   it("maps anonymous public tabs to semantic public routes", () => {
     const url = new URL(
       "https://example.test/?tab=links&linkView=list&utm_source=bookmark",
     );
 
-    expect(homeTabCompatibilityRedirectHref(url, false)).toBe(
+    expect(homeTabCompatibilityRedirectHref(url)).toBe(
       "/catalog/links?linkView=list&utm_source=bookmark",
     );
   });
 
-  it("maps signed-in public tabs to their workspace routes", () => {
+  it("maps public tabs to semantic public routes for every visitor alike", () => {
     const url = new URL("https://example.test/?tab=bus");
 
-    expect(homeTabCompatibilityRedirectHref(url, true)).toBe("/catalog/bus");
+    expect(homeTabCompatibilityRedirectHref(url)).toBe("/catalog/bus");
   });
 
   it("maps authenticated-only tabs to their protected semantic routes", () => {
@@ -69,7 +38,7 @@ describe("homeTabCompatibilityRedirectHref", () => {
       "https://example.test/?tab=homeworks&homeworkView=list",
     );
 
-    expect(homeTabCompatibilityRedirectHref(url, false)).toBe(
+    expect(homeTabCompatibilityRedirectHref(url)).toBe(
       "/workspace/homeworks?homeworkView=list",
     );
   });
@@ -79,7 +48,7 @@ describe("homeTabCompatibilityRedirectHref", () => {
       "https://example.test/?tab=subscriptions&semester=2026-spring",
     );
 
-    expect(homeTabCompatibilityRedirectHref(url, false)).toBe(
+    expect(homeTabCompatibilityRedirectHref(url)).toBe(
       `${WORKSPACE_SUBSCRIPTIONS_PATH}?semester=2026-spring`,
     );
   });
@@ -87,7 +56,7 @@ describe("homeTabCompatibilityRedirectHref", () => {
   it("ignores unknown tab values", () => {
     const url = new URL("https://example.test/?tab=unknown");
 
-    expect(homeTabCompatibilityRedirectHref(url, false)).toBeNull();
+    expect(homeTabCompatibilityRedirectHref(url)).toBeNull();
   });
 });
 

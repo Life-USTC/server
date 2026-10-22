@@ -42,6 +42,7 @@ export function getAnonymousHomePageCopy(locale: AppLocale) {
       actions: copy.homepage.actions,
       appIconAlt: copy.homepage.appIconAlt,
       information: copy.homepage.information,
+      personal: copy.homepage.personal,
       publicWorkspace: copy.homepage.publicWorkspace,
       subtitle: copy.homepage.subtitle,
       title: copy.homepage.title,

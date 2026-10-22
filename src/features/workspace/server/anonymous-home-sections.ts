@@ -19,13 +19,18 @@ import { formatCampusDateTime } from "@/lib/time/campus-date";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 /**
- * `/` is the anonymous landing page and is excluded from shared HTML caching
- * (`DIRECT_REQUEST_PATHS` in `src/lib/cloudflare/public-ssr-gateway.ts`), so
- * every visit renders against the request clock. That is what lets the shuttle
- * board show real minutes-until-departure, as
- * `rendering-and-cache.cacheable-public-pages-11` requires of bus surfaces, and
- * it is why these reads must stay cheap: each one is on the critical path of a
- * cold landing request.
+ * `/` is the one home for every visitor and is admitted to shared HTML caching
+ * (`STATIC_PUBLIC_PATHS` in `src/lib/cloudflare/public-ssr-gateway.ts`). The
+ * server render must therefore depend on neither the viewer nor the clock, so
+ * only the editorial sections live here: notices, and the activities for the
+ * current Shanghai day. The shuttle board and weather change by the minute and
+ * are read by the client from `HOME_CAMPUS_NOW_PATH` instead, which is what
+ * lets the board keep the real minutes-until-departure that
+ * `rendering-and-cache.cacheable-public-pages-11` requires of bus surfaces
+ * while the rest of the page is served from cache.
+ *
+ * These reads are still on the critical path of a cache miss, so they must
+ * stay cheap.
  *
  * The sections are read in parallel and each is isolated behind the budget. A
  * read that throws or overruns resolves to `null`, that section renders its
@@ -96,8 +101,12 @@ export type HomeListItem = {
  */
 export type AnonymousHomeInformation = {
   activities: HomeListItem[] | null;
-  bus: HomeBusBoard | null;
   notices: HomeListItem[] | null;
+};
+
+/** Clock-driven half of the home page, read by the client on every visit. */
+export type HomeCampusNow = {
+  bus: HomeBusBoard | null;
   weather: HomeWeatherTile[] | null;
 };
 
@@ -244,9 +253,11 @@ async function readNotices(locale: AppLocale): Promise<HomeListItem[]> {
 async function readActivities(locale: AppLocale): Promise<HomeListItem[]> {
   const { data } = await listYoungEvents({
     active: true,
-    // From "now" rather than the start of today, so an activity that already
-    // finished this morning does not sit at the top of "upcoming".
-    dateFrom: shanghaiDayjs().toDate(),
+    // The start of the Shanghai day rather than "now": `/` is cached until the
+    // next midnight, so selecting from the request instant would freeze one
+    // visitor's "upcoming" into every later visitor's page. Activities that
+    // already finished earlier today stay in the list for the rest of the day.
+    dateFrom: shanghaiDayjs().startOf("day").toDate(),
     page: 1,
     pageSize: ACTIVITY_LIMIT,
     timeBasis: "activity",
@@ -266,17 +277,28 @@ async function readActivities(locale: AppLocale): Promise<HomeListItem[]> {
 }
 
 export async function loadAnonymousHomeInformation(input: {
-  copy: ReturnType<typeof getAnonymousHomePageCopy>;
   locale: AppLocale;
   requestId: string | undefined;
 }): Promise<AnonymousHomeInformation> {
-  const { copy, locale, requestId } = input;
-  const [weather, bus, notices, activities] = await Promise.all([
-    readSection("weather", requestId, () => readWeather(copy)),
-    readSection("bus", requestId, () => readBus(locale, copy)),
+  const { locale, requestId } = input;
+  const [notices, activities] = await Promise.all([
     readSection("notices", requestId, () => readNotices(locale)),
     readSection("activities", requestId, () => readActivities(locale)),
   ]);
 
-  return { activities, bus, notices, weather };
+  return { activities, notices };
+}
+
+export async function loadHomeCampusNow(input: {
+  copy: ReturnType<typeof getAnonymousHomePageCopy>;
+  locale: AppLocale;
+  requestId: string | undefined;
+}): Promise<HomeCampusNow> {
+  const { copy, locale, requestId } = input;
+  const [weather, bus] = await Promise.all([
+    readSection("weather", requestId, () => readWeather(copy)),
+    readSection("bus", requestId, () => readBus(locale, copy)),
+  ]);
+
+  return { bus, weather };
 }

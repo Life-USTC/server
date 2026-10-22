@@ -12,22 +12,26 @@ policy_refs:
 - cases.mcp-assistant-workflows
 - cases.semester
 access:
-  anon: The home page is a lightweight public catalog entry; bus and frequent links are independent pages
-    at /catalog/bus and /catalog/links.
-  user: Accessing the home page redirects to the personal workspace at /workspace.
-  admin: Accessing the home page redirects to the personal workspace at /workspace, with the same workspace
-    behavior as regular users.
+  anon: The home page is the one landing surface and carries the campus information and the product
+    directory; bus and frequent links are independent pages at /catalog/bus and /catalog/links.
+  user: The home page is the same page for a signed-in viewer, with their own overview hydrated on the
+    client above the campus information. It no longer redirects into the workspace.
+  admin: The home page behaves as it does for regular users, with the admin destinations added to the
+    directory once the client resolves the viewer.
   agent: Can read overview results with the same semantics as the authenticated workspace; REST and MCP
     should return consistent overview information.
 requirements:
 - id: overview.decision-page
   category: presentation
-  rule: The anonymous home page prioritizes public course, section and teacher discovery.
+  rule: The home page leads with time-sensitive campus information and the teaching-section search, and
+    places the product directory below them. The directory is reference material and must not displace the
+    section search that the destination rail leads with.
   acceptance:
     given: An anonymous visitor opens the homepage at desktop and mobile widths.
-    when: The visitor reads the public discovery entries and follows course, section and teacher links.
+    when: The visitor reads the campus information, the destination rail and the directory below them.
     then:
-    - The first three discovery entries are courses, sections and teachers, and each opens its working public search page.
+    - The campus information, notices and activities precede the directory, and the rail still leads with the teaching-section catalog.
+    - Each rail destination opens its working public search page.
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
       name: overview.decision-page
@@ -148,12 +152,13 @@ requirements:
 - id: overview.public-html-viewer-independent
   category: privacy
   rule: Public homepage HTML and page data contain no viewer identity, personal counts or private workspace
-    state. Authenticated homepage requests redirect to their workspace instead of embedding private state in public discovery.
+    state. The homepage load never reads the authenticated viewer, so a signed-in request renders the same
+    public page and resolves its own overview on the client instead of embedding private state in public discovery.
   acceptance:
     given: Two isolated session owners have different task and subscription state.
     when: Their homepage requests are followed by anonymous Chinese and English HTML and decoded page-data requests with no browser JavaScript.
     then:
-    - Signed-in requests redirect without including viewer identity in the response body.
+    - Signed-in requests render the public homepage without either owner's task titles or counts in the response body.
     - Anonymous homepage HTML and page-data expose neither owner's identity or task titles and contain no personal navigation projection.
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts

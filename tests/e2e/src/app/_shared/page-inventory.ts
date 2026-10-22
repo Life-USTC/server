@@ -32,14 +32,6 @@ export const WORKSPACE_TAB_DOMAINS = {
 } as const satisfies Record<(typeof workspaceNavTabIds)[number], string>;
 export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   {
-    routeId: "/catalog/features",
-    domain: "Site",
-    samplePath: "/catalog/features",
-    kind: "page",
-    auth: "public",
-    mobileChecks: ["public", "authed"],
-  },
-  {
     routeId: "/",
     domain: "Site",
     samplePath: "/",

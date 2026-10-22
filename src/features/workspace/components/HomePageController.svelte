@@ -1,12 +1,15 @@
 <script lang="ts">
 import BellIcon from "@lucide/svelte/icons/bell";
-import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import SparklesIcon from "@lucide/svelte/icons/sparkles";
 import type { Component } from "svelte";
+import FeatureDirectory from "#lib/components/shell/FeatureDirectory.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
+import { getShellViewer } from "#lib/shell/shell-viewer.js";
+import HomeCampusNow from "@/features/workspace/components/HomeCampusNow.svelte";
+import HomePersonalOverview from "@/features/workspace/components/HomePersonalOverview.svelte";
 import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home-layout";
 import type {
   AnonymousHomeInformation,
@@ -22,8 +25,10 @@ type SectionCopy = {
   viewAll: string;
 };
 
-type AnonymousHomePageData = {
-  copy: {
+type HomePageData = {
+  /** Root-layout copy; the product directory is built from it. */
+  copy: LayoutCopy;
+  homeCopy: {
     homepage: {
       actions: { mobileApp: string; signIn: string };
       appIconAlt: string;
@@ -44,6 +49,18 @@ type AnonymousHomePageData = {
         };
         notices: SectionCopy;
         signInPrompt: { description: string; title: string };
+      };
+      personal: {
+        counts: {
+          pendingHomeworks: string;
+          pendingTodos: string;
+          todaySchedules: string;
+          upcomingExams: string;
+        };
+        failed: string;
+        retry: string;
+        title: string;
+        viewAll: string;
       };
       publicWorkspace: {
         cards: {
@@ -66,17 +83,18 @@ type AnonymousHomePageData = {
     weather: { locationNames: Record<string, string>; title: string };
   };
   information: AnonymousHomeInformation;
-  signedIn: false;
 };
 
-let { data }: { data: AnonymousHomePageData } = $props();
+let {
+  data,
+  snapshotAt = null,
+}: { data: HomePageData; snapshotAt?: string | null } = $props();
 
-const home = $derived(data.copy.homepage);
+const shellViewer = getShellViewer();
+const home = $derived(data.homeCopy.homepage);
 const info = $derived(home.information);
 const campusNow = $derived(info.campusNow);
 const pub = $derived(home.publicWorkspace);
-const weather = $derived(data.information.weather);
-const bus = $derived(data.information.bus);
 const notices = $derived(data.information.notices);
 const activities = $derived(data.information.activities);
 
@@ -177,7 +195,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
 {/snippet}
 
 <svelte:head>
-  <title>{data.copy.metadata.home} - Life@USTC</title>
+  <title>{data.homeCopy.metadata.home} - Life@USTC</title>
 </svelte:head>
 
 <!--
@@ -205,109 +223,27 @@ function overflowClass(index: number, shown: string, hidden: string): string {
   </header>
 
   <!--
+    The viewer's own state outranks both the campus information and the
+    directory for someone signed in, so it leads. It renders nothing at all for
+    an anonymous visitor, which is why the stacking order below is the same one
+    for everybody rather than two different pages.
+  -->
+  <div class="min-w-0 xl:col-span-2">
+    <HomePersonalOverview copy={home.personal} {snapshotAt} />
+  </div>
+
+  <!--
     The information sections keep their own grid, so the rail beside them never
     takes part in sizing their rows: a row stretched to match the rail is how an
     empty section turns back into the tall empty box this layout removes.
   -->
   <div class="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8">
-    <section class="grid min-w-0 gap-3 lg:col-span-2" data-testid="home-campus-now">
-      <h2 class="sr-only">{campusNow.title}</h2>
-      <!--
-        `items-start` so an unavailable or short card keeps its own height. Equal
-        rows turned the weather card into a tall empty box whenever the shuttle
-        board beside it had more rows than the weather had readings.
-      -->
-      <div class="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-        <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
-          {@render heading(
-            "h3",
-            CloudSunIcon,
-            data.copy.weather.title,
-            "/catalog/weather",
-            campusNow.weatherViewAll,
-          )}
-          {#if weather === null || weather.length === 0}
-            {@render note(campusNow.weatherUnavailable)}
-          {:else}
-            <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
-              {#each weather as tile (tile.locationKey)}
-                <div class="min-w-0">
-                  <dt class="truncate text-muted-foreground text-sm">
-                    {data.copy.weather.locationNames[tile.locationKey] ?? tile.locationKey}
-                  </dt>
-                  <dd class="grid min-w-0 gap-1">
-                    <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                      {#if tile.temperature}
-                        <span class="font-semibold text-2xl tabular-nums tracking-tight">
-                          {tile.temperature}
-                        </span>
-                      {/if}
-                      <span class="min-w-0 truncate text-muted-foreground text-sm">
-                        {tile.condition}
-                      </span>
-                    </span>
-                    {#if tile.rangeLabel}
-                      <span class="hidden text-muted-foreground text-sm tabular-nums lg:block">
-                        {tile.rangeLabel}
-                      </span>
-                    {/if}
-                    {#if tile.hourly.length > 0}
-                      <span class="hidden min-w-0 flex-wrap gap-x-3 gap-y-1 lg:flex">
-                        <span class="sr-only">{campusNow.weatherHourly}</span>
-                        {#each tile.hourly as hour (hour.key)}
-                          <span class="grid shrink-0 justify-items-start">
-                            <span class="text-muted-foreground text-xs tabular-nums">
-                              {hour.label}
-                            </span>
-                            <span class="text-sm tabular-nums">{hour.temperature}</span>
-                          </span>
-                        {/each}
-                      </span>
-                    {/if}
-                  </dd>
-                </div>
-              {/each}
-            </dl>
-          {/if}
-        </div>
-
-        <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
-          {@render heading(
-            "h3",
-            BusFrontIcon,
-            pub.cards.bus.title,
-            "/catalog/bus",
-            campusNow.busViewAll,
-          )}
-          {#if bus === null}
-            {@render note(campusNow.busUnavailable)}
-          {:else if bus.departures.length === 0}
-            {@render note(bus.emptyNote)}
-          {:else}
-            {@render note(bus.originNote)}
-            <ul class="grid gap-1.5">
-              {#each bus.departures as departure, index (departure.key)}
-                <li
-                  class={overflowClass(
-                    index,
-                    "flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
-                    "hidden min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 lg:flex",
-                  )}
-                >
-                  <span class="min-w-0 truncate">{departure.destination}</span>
-                  <span class="flex shrink-0 items-baseline gap-2">
-                    <span class="tabular-nums">{departure.departureTime}</span>
-                    <span class="text-muted-foreground text-sm">
-                      {departure.relativeLabel}
-                    </span>
-                  </span>
-                </li>
-              {/each}
-            </ul>
-          {/if}
-        </div>
-      </div>
-    </section>
+    <HomeCampusNow
+      busTitle={pub.cards.bus.title}
+      campusNow={campusNow}
+      weatherLocationNames={data.homeCopy.weather.locationNames}
+      weatherTitle={data.homeCopy.weather.title}
+    />
 
     <section class="grid min-w-0 content-start gap-2" data-testid="home-notices">
       {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
@@ -334,6 +270,13 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     </section>
   </div>
 
+  <!--
+    `/` is cached and viewer-independent, so this prompt is always in the
+    server-rendered HTML and is removed once the client resolves a signed-in
+    viewer. It stays put while the viewer is still unknown, so the anonymous
+    page — the common case — never flashes it in.
+  -->
+  {#if !$shellViewer.viewer}
   <section
     class="grid min-w-0 content-start gap-3 rounded-lg border bg-muted/40 p-4 xl:self-start"
     data-testid="home-sign-in"
@@ -372,5 +315,31 @@ function overflowClass(index: number, shown: string, hidden: string): string {
         {/each}
       </div>
     </nav>
+  </section>
+  {/if}
+
+  <!--
+    The directory is the "what exists" surface and is reference material, so it
+    sits below the time-sensitive campus information rather than above it.
+    Leading with it would bury the teaching-section search that
+    `overview.decision-page` exists to protect.
+  -->
+  <section
+    aria-labelledby="home-directory-heading"
+    class="grid min-w-0 content-start gap-3 border-t pt-6 xl:col-span-2"
+    data-testid="home-directory"
+  >
+    <div class="grid min-w-0 gap-1">
+      <h2
+        class="font-semibold text-base tracking-tight"
+        id="home-directory-heading"
+      >
+        {data.copy.nav.hub.title}
+      </h2>
+      <p class="max-w-2xl text-pretty text-muted-foreground text-sm">
+        {data.copy.nav.hub.description}
+      </p>
+    </div>
+    <FeatureDirectory copy={data.copy} searchId="home-feature-search" />
   </section>
 </div>

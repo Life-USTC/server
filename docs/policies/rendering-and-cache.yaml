@@ -203,15 +203,17 @@ requirements:
 - id: rendering-and-cache.cacheable-public-pages-14
   category: consistency
   topic: cacheable-public-pages
-  rule: A signed-in visitor to / continues to the canonical workspace or required onboarding flow; the public
-    landing cache never replaces this redirect.
+  rule: / is the one home for every visitor and no longer forwards a signed-in visitor into the workspace.
+    A signed-in visitor with an incomplete profile still continues to the required onboarding flow, and the
+    public landing cache never replaces that redirect, because a request carrying a session renders rather
+    than being answered from the stored anonymous copy.
   acceptance:
     given: An anonymous landing request and isolated session users with complete profiles, a missing name,
       or a missing username.
     when: Warm anonymous HTML, request the same root HTML and page-data URL with each session, follow each
       redirect in a browser, and request anonymously again for Chinese and English.
     then:
-    - Complete profiles receive a private no-store 303 to workspace overview; either incomplete profile
+    - A complete profile receives the home page itself rather than a redirect; either incomplete profile
       receives a private no-store 303 to welcome with the original root callback.
     - Page-data preserves SvelteKit's JSON redirect shape with private browser/CDN no-store headers.
     - Browser navigation reaches the intended page, and anonymous landing HTML remains successful without
@@ -246,6 +248,24 @@ requirements:
     test:
       file: tests/e2e/src/app/cache-policy/public-navigation-admission.test.ts
       name: browser caches only attested successful public navigation responses
+- id: rendering-and-cache.cacheable-public-pages-16
+  category: consistency
+  topic: cacheable-public-pages
+  rule: / is admitted to the shared public HTML cache. Its server render contains neither viewer identity nor
+    anything that depends on the clock beyond the current Asia/Shanghai date, so its stored lifetime is capped
+    at the next Shanghai midnight. The viewer's own overview and the minute-by-minute shuttle board and weather
+    are read by the client from /api/workspace/overview and /_internal/home/campus-now, neither of which is
+    stored. A query-bearing root request stays dynamic so the legacy tab redirects keep working, and
+    /catalog/features answers 301 to / rather than rendering a second directory.
+  acceptance:
+    given: Anonymous, query-bearing and session-bearing root requests, plus the home campus-now endpoint.
+    when: The public SSR admission resolver and the cache-header builder evaluate each one.
+    then:
+    - The anonymous root HTML is admitted and its CDN lifetime ends at the next Shanghai midnight.
+    - Query-bearing and session-bearing root requests stay dynamic, and the campus-now endpoint is never admitted.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-16
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
