@@ -6,7 +6,7 @@ import type {
   SectionSearchOverrides,
 } from "@/features/catalog/server/section-search-types";
 import type { Prisma } from "@/generated/prisma/client";
-import { ilike } from "@/lib/query-filter-helpers";
+import { ilike, searchTerms } from "@/lib/query-filter-helpers";
 
 function localizedNameCondition(value: string) {
   return {
@@ -132,9 +132,7 @@ export function buildSectionSearchWhere(
   });
 
   if (parsed.general) {
-    conditions.push(
-      ...[...new Set(parsed.general.split(/\s+/u))].map(generalSearchCondition),
-    );
+    conditions.push(...searchTerms(parsed.general).map(generalSearchCondition));
   }
 
   return {

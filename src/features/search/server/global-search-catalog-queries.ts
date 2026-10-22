@@ -2,11 +2,7 @@ import { SECTION_SUMMARY_DEFAULT_ORDER_BY } from "@/features/catalog/server/sect
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
-import { ilike } from "@/lib/query-filter-helpers";
-
-function searchTerms(query: string) {
-  return [...new Set(query.trim().split(/\s+/u).filter(Boolean))];
-}
+import { ilike, searchTerms } from "@/lib/query-filter-helpers";
 
 function buildGlobalCourseSearchWhere(
   query: string,

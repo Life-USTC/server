@@ -31,6 +31,23 @@ requirements:
     test:
       file: tests/integration/rest/search/test.ts
       name: accepts the catalog search bound and rejects longer queries
+- id: search.term-count-bound
+  category: validation
+  rule: Free-text catalog and global search honour at most six distinct whitespace-separated terms; any
+    further terms are dropped rather than rejected, which only widens the result set.
+  rationale: Each term becomes its own group of leading-wildcard ILIKE conditions, and the groups are
+    ANDed, so the work multiplies per term. A pattern shorter than three characters cannot use the
+    trigram indexes, so those groups are sequential scans; the 200-character bound alone would admit
+    roughly eighty of them in one anonymous request.
+  acceptance:
+    given: A free-text query carrying more distinct terms than the bound.
+    when: The catalog section builder and the global section builder each build their filter.
+    then:
+    - Both keep the first six distinct terms in order and drop the rest.
+    - Duplicate terms collapse before the bound applies.
+    test:
+      file: tests/unit/features/catalog/catalog-section-search.test.ts
+      name: 通用搜索词数量有上限,超出的词被丢弃
 - id: search.personal-viewer-overlay
   category: authorization
   rule: The public search page resolves personal scope from the shell viewer. Anonymous searches never
