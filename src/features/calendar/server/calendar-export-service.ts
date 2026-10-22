@@ -1,5 +1,6 @@
 import { createUserCalendar } from "@/features/calendar/server/ical";
 import type { CalendarTodo } from "@/features/calendar/server/ical-event-builders";
+import { REVALIDATED_PRIVATE_CACHE_CONTROL } from "@/lib/http-cache-control";
 import {
   getIncompleteHomeworkCalendarItems,
   type getUserCalendarRecord,
@@ -82,7 +83,7 @@ export async function buildUserCalendarExport(
   });
 
   return {
-    cacheControl: "private, no-store",
+    cacheControl: REVALIDATED_PRIVATE_CACHE_CONTROL,
     filename: "life-ustc-subscriptions.ics",
     text: calendar.toString(),
   };

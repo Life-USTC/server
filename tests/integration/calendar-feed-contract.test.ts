@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import { invalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-cache";
 import { getUserCalendarRoute } from "@/lib/api/routes/calendars";
+import { setPrivateCacheDefaults } from "@/lib/http-cache-control";
 import { nodeProtocolTest } from "../shared/node-protocol-fixture";
 
 vi.mock("@/features/calendar/server/ical-event-utils", async (original) => ({
@@ -149,10 +150,27 @@ it("calendar.personal-feed-http-cache", { tags: ["@Calendar/ICS"] }, async ({
     expect(conditional.status).toBe(304);
     const denied = await read("wrong-token", etag);
     expect(denied.status).toBe(410);
-    for (const response of [first, conditional, denied]) {
-      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-      await response.text();
+
+    // `no-store` would stop a calendar client sending the condition at all, so
+    // every poll would resend an ICS the client already holds. Apply the same
+    // response hook the edge and the SvelteKit handler apply, because its
+    // private-response normalization is what would strip `must-revalidate`.
+    for (const response of [first, conditional]) {
+      setPrivateCacheDefaults(response.headers);
+      expect(response.headers.get("Cache-Control")).toBe(
+        "private, max-age=0, must-revalidate",
+      );
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
     }
+    setPrivateCacheDefaults(denied.headers);
+    expect(denied.headers.get("Cache-Control")).toBe("private, no-store");
+
+    const body = await first.text();
+    expect(body.length).toBeGreaterThan(0);
+    expect((await conditional.text()).length).toBe(0);
+    await denied.text();
   });
 });
 
