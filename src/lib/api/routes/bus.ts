@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import {
   badRequest,
   handleRouteError,
@@ -71,9 +72,14 @@ export async function getBusRoutesSearchRoute(request: Request) {
     const { searchBusRoutes } = await import(
       "@/features/bus/server/bus-service"
     );
+    // This payload is served `public` with a shared-cache TTL, so it must be
+    // determined by the URL alone, like `resolvePublicCatalogLocale`. Every
+    // builder behind `searchBusRoutes` discards the locale, so negotiating it
+    // from the cookie or `Accept-Language` made a byte-identical body depend on
+    // request headers a shared cache cannot key on.
     const result = await searchBusRoutes({
       destinationCampusId: parsedQuery.destinationCampusId,
-      locale: parsedQuery.locale ?? getRequestLocale(request),
+      locale: parsedQuery.locale ?? DEFAULT_LOCALE,
       originCampusId: parsedQuery.originCampusId,
       versionKey: parsedQuery.versionKey ?? null,
     });

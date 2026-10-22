@@ -131,7 +131,15 @@ for (const mode of ["session", "path token", "query token"] as const) {
             );
       expect(response.status()).toBe(200);
       expect(response.headers()["content-type"]).toContain("text/calendar");
-      expect(response.headers()["cache-control"]).toBe("private, no-store");
+      // A conforming client stores this and revalidates, so the feed's ETag can
+      // answer 304; `no-store` would suppress the condition entirely. The real
+      // Worker is the only place that proves both response hooks preserve it.
+      expect(response.headers()["cache-control"]).toBe(
+        "private, max-age=0, must-revalidate",
+      );
+      expect(response.headers()["cloudflare-cdn-cache-control"]).toBe(
+        "no-store",
+      );
       const text = (await response.text()).replace(/\r?\n[ \t]/g, "");
       expect(text).toContain("BEGIN:VCALENDAR");
       expect(text).toContain("END:VCALENDAR");
