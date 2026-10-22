@@ -155,7 +155,10 @@ async function deleteAccount(page: Page) {
 async function renameAccount(page: Page, newUsername: string) {
   await gotoAndWaitForReady(page, "/account/settings/profile");
   await page.locator("input#username").fill(newUsername);
-  await page.getByRole("button", { name: /保存|Save/i }).click();
+  await page
+    .locator('form[action="?/updateProfile"]')
+    .getByRole("button", { name: /保存|Save/i })
+    .click();
   await expect(
     page
       .locator("[data-sonner-toast]")
@@ -547,7 +550,12 @@ test("cases.account.oauth-connection-error-2", { tag: "@Account/Web" }, async ({
           },
         ));
         await gotoAndWaitForReady(page, "/account/settings/accounts");
-        const github = page.getByRole("listitem").filter({ hasText: "GitHub" });
+        // The linked-accounts group also renders beside profile and preferences
+        // on a wide canvas, so pin provider rows to the requested group.
+        const github = page
+          .locator("[data-settings-active-group]")
+          .getByRole("listitem")
+          .filter({ hasText: "GitHub" });
         await expect(
           github.getByRole("button", { name: /断开连接|Disconnect/i }),
         ).toBeDisabled();

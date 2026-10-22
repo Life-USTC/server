@@ -1195,6 +1195,25 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/page-identity.test.ts
       name: ui.settings-navigation-7
+- id: ui.settings-navigation-8
+  category: presentation
+  topic: settings-navigation
+  rule: A settings destination whose group is short and bounded co-displays the other short bounded
+    groups once the canvas fits a second column, keeping the requested group in the leading column.
+    A narrow canvas renders the requested group alone. Destinations whose group is a history list,
+    and the destructive destination, stay single-group at every width.
+  acceptance:
+    given: A signed-in user opens preferences and danger settings at a canvas wide enough for two
+      columns, then reopens preferences on a phone.
+    when: The browser inspects the rendered groups and their columns at each width.
+    then:
+    - The wide preferences canvas renders the profile and linked-account groups beside the requested
+      preferences group, and the requested group keeps the leading column.
+    - The wide danger canvas renders no companion group.
+    - The narrow preferences canvas renders no companion group and no companion form at all.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-8
 - id: ui.contribution-heatmap-1
   category: presentation
   topic: contribution-heatmap

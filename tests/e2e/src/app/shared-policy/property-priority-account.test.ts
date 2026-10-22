@@ -181,7 +181,10 @@ for (const locale of ["en-us", "zh-cn"] as const)
             await checkProfile(page, fixture);
             await gotoAndWaitForReady(page, "/account/settings/accounts");
             const main = page.locator("#main-content");
+            // Scope provider rows to the requested group: the linked-accounts
+            // group also renders beside profile and preferences on a wide canvas.
             const account = main
+              .locator("[data-settings-active-group]")
               .getByRole("listitem")
               .filter({ has: page.getByText("GitHub", { exact: true }) });
             const passkey = main.locator('[data-slot="item"]').filter({

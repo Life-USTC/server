@@ -98,7 +98,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         await gotoAndWaitForReady(page, "/account/settings/profile");
 
         const nameInput = page.locator("input#name");
-        const saveButton = page.getByRole("button", { name: /保存|Save/i });
+        const saveButton = page
+          .locator('form[action="?/updateProfile"]')
+          .getByRole("button", { name: /保存|Save/i });
         const successToast = page
           .locator("[data-sonner-toast]")
           .filter({ hasText: /成功|Success|updated successfully/i });
@@ -169,7 +171,10 @@ test.describe("/account/settings/profile 个人资料设置", () => {
 
       const usernameInput = page.locator("input#username");
       await usernameInput.fill("");
-      await page.getByRole("button", { name: /保存|Save/i }).click();
+      await page
+        .locator('form[action="?/updateProfile"]')
+        .getByRole("button", { name: /保存|Save/i })
+        .click();
 
       await expect(usernameInput).toBeFocused();
       expect(
