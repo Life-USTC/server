@@ -12,13 +12,15 @@ export const SETTINGS_TABS = [
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 /**
- * Tabs whose groups are short enough to share one desktop canvas. Each of these
- * routes renders the whole set from `lg:` up — its own group first, the others
- * beside it — so a wide viewport reads more than one group without navigating,
- * while a phone still gets one group per screen.
+ * Tabs whose groups are short and bounded enough to share one canvas. Each of
+ * these routes renders the whole set once the viewport is wide enough for a
+ * second column — its own group in the leading column, the others beside it —
+ * so a wide viewport reads more than one group without navigating, while a
+ * narrow one still gets exactly one group per screen.
  *
- * `security` and `authorizations` stay single-group: their lists already fill
- * the canvas. `danger` stays single-group because ui.settings-navigation-7 keeps
+ * `security` and `authorizations` stay single-group: both render a list whose
+ * height grows with the user's own history, so the canvas they need is their
+ * own. `danger` stays single-group because ui.settings-navigation-7 keeps
  * destructive controls out of routine destinations.
  */
 const SETTINGS_DESKTOP_GROUP = [
@@ -39,7 +41,7 @@ export function settingsRenderedTabs(tab: SettingsTab): SettingsTab[] {
     : [tab];
 }
 
-/** Groups shown beside the active one from `lg:` up; empty for single-group routes. */
+/** Groups shown beside the active one on a wide canvas; empty for single-group routes. */
 export function settingsCompanionTabs(
   tab: SettingsTab,
 ): SettingsDesktopGroupTab[] {

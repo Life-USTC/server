@@ -160,7 +160,7 @@ test.describe("/account/settings 设置中心", () => {
     });
   });
 
-  test("桌面画布并排渲染相邻分区，手机仍为单分区", {
+  test("ui.settings-navigation-8", {
     tag: "@Account/Web",
   }, async ({ accountRun, page, account: _account }) => {
     await accountRun({ writes: [], audits: [] }, async () => {
@@ -183,8 +183,12 @@ test.describe("/account/settings 设置中心", () => {
       await expect(profileGroup).toBeVisible();
       await expect(accountsGroup).toBeVisible();
       // The requested group keeps the leading column; companions sit beside it.
-      const activeBox = await preferences.boundingBox();
-      const companionBox = await profileGroup.boundingBox();
+      const activeBox = await page
+        .locator("[data-settings-active-group]")
+        .boundingBox();
+      const companionBox = await page
+        .locator("[data-settings-companion-panel]")
+        .boundingBox();
       expect(activeBox?.x).toBeLessThan(companionBox?.x ?? 0);
       await expect(page.locator("[data-settings-danger-region]")).toHaveCount(
         0,
@@ -193,15 +197,26 @@ test.describe("/account/settings 设置中心", () => {
       // Destructive settings never share a canvas with a routine group.
       await gotoAndWaitForReady(page, "/account/settings/danger");
       await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
+      await expect(page.locator("[data-settings-companion-panel]")).toHaveCount(
+        0,
+      );
       await expect(preferences).toHaveCount(0);
       await expect(profileGroup).toHaveCount(0);
 
+      // A narrow canvas renders the requested group alone: companions are not
+      // merely hidden, they never reach the phone at all.
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/account/settings/preferences");
 
       await expect(preferences).toBeVisible();
-      await expect(profileGroup).toBeHidden();
-      await expect(accountsGroup).toBeHidden();
+      await expect(page.locator("[data-settings-companion-panel]")).toHaveCount(
+        0,
+      );
+      await expect(profileGroup).toHaveCount(0);
+      await expect(accountsGroup).toHaveCount(0);
+      await expect(page.locator('form[action="?/updateProfile"]')).toHaveCount(
+        0,
+      );
     });
   });
 
