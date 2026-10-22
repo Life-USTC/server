@@ -89,6 +89,22 @@ requirements:
     test:
       file: tests/integration/mcp/catalog/schedule-public-contract.test.ts
       name: schedule.teacher-participation-output
+- id: schedule.viewer-scoped-section-projection
+  category: consistency
+  rule: Viewer-scoped schedule and exam reads load only the section context their payload publishes.
+    The DTO and MCP readers load course, semester and campus; the paginated readers that back workspace
+    GraphQL keep the catalog lookup relations the GraphQL Section and Course types expose.
+  acceptance:
+    given: A user subscribes to a section whose course and section carry every catalog lookup relation.
+    when: The actual read models serve the DTO schedule/exam lists and the paginated GraphQL schedule/exam
+      pages.
+    then:
+    - The DTO reads request course, semester and campus and omit openDepartment, examMode, teachLanguage
+      and the six course lookup relations.
+    - The paginated GraphQL reads still request every catalog lookup relation.
+    test:
+      file: tests/unit/features/subscriptions/subscription-list-query-shape.test.ts
+      name: schedule.viewer-scoped-section-projection
 - id: schedule.graphql-teacher-participation-output
   category: behavior
   rule: Authorized workspace GraphQL schedules expose teacher identities and independent participation

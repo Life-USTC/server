@@ -23,6 +23,22 @@ import {
   withSubscribedSections,
 } from "./subscription-read-model-shared";
 
+/**
+ * Viewer-scoped reads run inside RLS transactions, which Hyperdrive's query
+ * cache never stores, so every `include` edge is an uncached round trip on
+ * every request. The DTO readers below project the section through
+ * `subscribedScheduleEntrySchema`, `subscribedExamDtoSchema` or the MCP
+ * calendar compactor; none of those carry the catalog lookup relations
+ * (`Course.category/classify/classType/educationLevel/gradation/type`,
+ * `Section.openDepartment/examMode/teachLanguage`), so they are not loaded.
+ * `campus` stays because the MCP calendar compactor emits it.
+ */
+const subscribedSectionContextInclude = {
+  course: true,
+  semester: true,
+  campus: true,
+} satisfies Prisma.SectionInclude;
+
 const subscribedScheduleInclude = {
   room: {
     include: {
@@ -38,8 +54,21 @@ const subscribedScheduleInclude = {
     },
     orderBy: { teacherId: "asc" },
   },
-  section: { include: sectionCatalogInclude },
+  section: { include: subscribedSectionContextInclude },
   scheduleGroup: true,
+} satisfies Prisma.ScheduleInclude;
+
+/**
+ * GraphQL resolves `Section.campus/openDepartment/examMode/teachLanguage` and
+ * `Course.category/classify/classType/educationLevel/gradation/type` from the
+ * parent payload with the default field resolver (`src/lib/graphql/schema.ts`
+ * declares them and no `Section`/`Course` resolver overrides them), so the
+ * paginated readers that back `Workspace.schedules`/`Workspace.exams` keep the
+ * full catalog include.
+ */
+const subscribedSchedulePageInclude = {
+  ...subscribedScheduleInclude,
+  section: { include: sectionCatalogInclude },
 } satisfies Prisma.ScheduleInclude;
 
 export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
@@ -82,6 +111,11 @@ export function toSubscribedScheduleEntryDto(
 const subscribedExamInclude = {
   examBatch: true,
   examRooms: true,
+  section: { include: subscribedSectionContextInclude },
+} satisfies Prisma.ExamInclude;
+
+const subscribedExamPageInclude = {
+  ...subscribedExamInclude,
   section: { include: sectionCatalogInclude },
 } satisfies Prisma.ExamInclude;
 
@@ -245,7 +279,7 @@ export async function listSubscribedSchedulePage(
     (skip, take) =>
       localizedPrisma.schedule.findMany({
         where,
-        include: subscribedScheduleInclude,
+        include: subscribedSchedulePageInclude,
         orderBy: subscribedScheduleOrderBy,
         skip,
         take,
@@ -439,7 +473,7 @@ export async function listSubscribedExamPage(
     (skip, take) =>
       localizedPrisma.exam.findMany({
         where,
-        include: subscribedExamInclude,
+        include: subscribedExamPageInclude,
         orderBy: subscribedExamOrderBy,
         skip,
         take,
