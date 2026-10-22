@@ -134,7 +134,7 @@ test.describe("仪表盘考试", () => {
     );
   });
 
-  test("考试列表链接到班级详情页", { tag: "@Exam/Web" }, async ({
+  test("考试列表链接到教学班详情页", { tag: "@Exam/Web" }, async ({
     page,
     pastExam: _pastExam,
     homeworkRun,

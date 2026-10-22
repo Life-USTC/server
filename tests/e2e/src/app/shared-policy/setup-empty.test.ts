@@ -45,7 +45,7 @@ for (const [locale, width] of [
               await expect(action).toBeVisible();
               await expect(action).toHaveAccessibleName(
                 destination === "sections"
-                  ? /教学班|班级|Sections/i
+                  ? /教学班|Sections/i
                   : /课程|Courses/i,
               );
               await action.click();

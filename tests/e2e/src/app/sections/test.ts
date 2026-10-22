@@ -40,7 +40,7 @@ async function useChineseLocale(page: Page) {
   expect(response.status()).toBe(200);
 }
 
-test.describe("/catalog/sections 班级搜索页", () => {
+test.describe("/catalog/sections 教学班搜索页", () => {
   test("页面契约", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
@@ -53,7 +53,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("无匹配班级时显示明确空状态且不渲染结果链接", {
+  test("无匹配教学班时显示明确空状态且不渲染结果链接", {
     tag: "@Section/Web",
   }, async ({ page, preferenceFlow, searchSection: _searchSection }) => {
     await preferenceFlow.run(async () => {
@@ -198,7 +198,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
-  test("英文界面本地化班级列表名称", { tag: "@Section/Web" }, async ({
+  test("英文界面本地化教学班列表名称", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,

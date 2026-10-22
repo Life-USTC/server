@@ -31,7 +31,7 @@ import { getDetailViewport, jumpToSection } from "./_helpers";
 
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
-test.describe("/catalog/sections/[jwId] 班级详情页", () => {
+test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
   test("页面契约", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
@@ -65,7 +65,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
   });
 
-  test("显示课程名称为 h1 与班级代码", { tag: "@Section/Web" }, async ({
+  test("显示课程名称为 h1 与教学班代码", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -543,7 +543,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   });
 
   communityTest(
-    "已登录用户可编辑班级简介",
+    "已登录用户可编辑教学班简介",
     { tag: "@Description/Web" },
     async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(

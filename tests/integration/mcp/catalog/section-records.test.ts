@@ -6,7 +6,7 @@ const throughDay = "2026-05-05";
 
 describe("catalog_section_schedule_list — 日期范围筛选", () => {
   toolTest(
-    "无日期筛选时返回该班级所有课程安排",
+    "无日期筛选时返回该教学班所有课程安排",
     { tags: ["@Schedule/MCP"] },
     async ({
       mcpWorkflow,

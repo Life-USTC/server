@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as legacySubscriptionsRoute from "@/routes/workspace/subscriptions/sections/+page.server";
 
 const canonicalPath = "/workspace/subscriptions";
-describe("旧版订阅班级路由", () => {
+describe("旧版订阅教学班路由", () => {
   it("将 GET 请求重定向到标准订阅页面", async () => {
     await expect(
       legacySubscriptionsRoute.load({

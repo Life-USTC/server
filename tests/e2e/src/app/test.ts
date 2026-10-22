@@ -873,7 +873,7 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/W
 });
 
 shellTest(
-  "/ 登录用户在空状态总览页可看到班级发现入口",
+  "/ 登录用户在空状态总览页可看到教学班发现入口",
   { tag: "@Site/Web" },
   async ({ communityFlow, page, account, isolatedWorker }) => {
     await communityFlow.run(async () => {
