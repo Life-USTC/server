@@ -246,15 +246,27 @@ function svelteKitPublicSsrRequest(request) {
 export class PublicSsr extends WorkerEntrypoint {
   async fetch(request) {
     const renderStartedAt = new Date();
-    const response = await app.fetch(
-      svelteKitPublicSsrRequest(request),
+    // This entrypoint is a separate invocation: the default entrypoint's
+    // runtime context does not reach it, and the SvelteKit adapter drops the
+    // execution context passed to `app.fetch` instead of exposing it as
+    // `event.platform.ctx`. Establish the context here, exactly as the default
+    // entrypoint does, so renders can defer work with `waitUntil` — without it
+    // every deferred public cache write is dropped as `scheduler_unavailable`.
+    return await runWithCloudflareRuntimeEnv(
       this.env,
+      async () => {
+        const response = await app.fetch(
+          svelteKitPublicSsrRequest(request),
+          this.env,
+          this.ctx,
+        );
+        return prepareCachedRepresentation(
+          response,
+          new URL(request.url).pathname,
+          renderStartedAt,
+        );
+      },
       this.ctx,
-    );
-    return prepareCachedRepresentation(
-      response,
-      new URL(request.url).pathname,
-      renderStartedAt,
     );
   }
 
