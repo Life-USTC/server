@@ -505,6 +505,23 @@ requirements:
     test:
       file: tests/unit/lib/api/api-schemas.test.ts
       name: openapi.public-catalog-pagination-bounds
+- id: openapi.json-body-limit
+  category: validation
+  rule: Every REST JSON request body has a 256 KiB budget unless the route declares a larger one. An
+    oversized body returns 413 before it is buffered or schema-validated, including for anonymous routes.
+  rationale: The Workers isolate memory ceiling is reached while the body buffers, so a per-route opt-in
+    leaves every route that forgets it fail-open; only the bulk ingestion route needs more than the default.
+  acceptance:
+    given: The production REST body parser and a request schema whose own item limit would also reject
+      the payload.
+    when: Bodies at the budget, one byte over, an endless anonymous stream, and a route-raised budget
+      are parsed.
+    then:
+    - The exact boundary parses and the oversized body returns413 without being fully read.
+    - A route that declares a larger budget still accepts its own bulk payload.
+    test:
+      file: tests/unit/lib/api/route-body-limit.test.ts
+      name: openapi.json-body-limit
 capabilities:
   api-docs-page:
     title: API Docs Page

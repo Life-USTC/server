@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 import {
+  CATALOG_ID_LIST_MAX_ITEMS,
   CATALOG_MAX_PAGE,
   CATALOG_SEARCH_MAX_LENGTH,
   CATALOG_SEARCH_MIN_LENGTH,
@@ -86,8 +87,14 @@ export function registerCourseSearchTools(server: McpServer) {
         departmentId: z.number().int().positive().optional(),
         teacherId: z.number().int().positive().optional(),
         teacherCode: z.string().trim().min(1).optional(),
-        ids: z.array(z.number().int().positive()).optional(),
-        jwIds: z.array(z.number().int().positive()).optional(),
+        ids: z
+          .array(z.number().int().positive())
+          .max(CATALOG_ID_LIST_MAX_ITEMS)
+          .optional(),
+        jwIds: z
+          .array(z.number().int().positive())
+          .max(CATALOG_ID_LIST_MAX_ITEMS)
+          .optional(),
         search: z
           .string()
           .trim()
