@@ -126,7 +126,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       <span class="min-w-0 truncate">{title}</span>
     </svelte:element>
     <Button
-      class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground"
+      class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
       href={viewAllHref}
       size="sm"
       variant="link"
@@ -345,7 +345,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       </p>
     </div>
     <div>
-      <Button class="h-10 min-w-28 xl:w-full" href="/account/sign-in">
+      <Button class="h-10 min-w-28 md:min-w-28 xl:w-full" href="/account/sign-in">
         {home.actions.signIn}
       </Button>
     </div>
