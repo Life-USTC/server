@@ -155,7 +155,10 @@ async function deleteAccount(page: Page) {
 async function renameAccount(page: Page, newUsername: string) {
   await gotoAndWaitForReady(page, "/account/settings/profile");
   await page.locator("input#username").fill(newUsername);
-  await page.getByRole("button", { name: /保存|Save/i }).click();
+  await page
+    .locator('form[action="?/updateProfile"]')
+    .getByRole("button", { name: /保存|Save/i })
+    .click();
   await expect(
     page
       .locator("[data-sonner-toast]")

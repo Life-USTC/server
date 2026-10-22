@@ -15,7 +15,10 @@ import {
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
 import { resolveSettingsPageHeading } from "@/features/settings/lib/settings-page-heading";
-import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
+import {
+  type SettingsTab,
+  settingsCompanionTabs,
+} from "@/features/settings/lib/settings-tabs";
 import { goto } from "$app/navigation";
 import { page as routePage } from "$app/state";
 import type {
@@ -142,9 +145,59 @@ let _unlinkAccount = $derived(
 );
 let _hasPendingAccountAction = $derived(Boolean(_pendingAccountAction));
 let pageHeading = $derived(resolveSettingsPageHeading(copy, data.tab));
+let companionTabs = $derived(settingsCompanionTabs(data.tab));
 </script>
 
 <svelte:head><title>{pageHeading.title} - Life@USTC</title></svelte:head>
+
+{#snippet settingsGroup(tab: SettingsTab)}
+  {#if tab === "profile"}
+    <SettingsProfileTab
+      avatarOptions={avatarOptions}
+      copy={copy}
+      currentImage={currentImage}
+      isMounted={_isMounted}
+      previewImage={previewImage}
+      bind:selectedImage
+      user={data.user}
+    />
+  {:else if tab === "preferences"}
+    <SettingsPreferencesTab copy={copy} locale={data.locale} />
+  {:else if tab === "accounts"}
+    <SettingsAccountsTab
+      accountAction={accountAction}
+      accounts={data.accounts}
+      copy={copy}
+      locale={data.locale}
+      hasPendingAccountAction={_hasPendingAccountAction}
+      isMounted={_isMounted}
+      pendingAccountAction={_pendingAccountAction}
+      unlinkAccount={_unlinkAccount}
+      bind:unlinkAccountId={_unlinkAccountId}
+    />
+  {:else if tab === "authorizations"}
+    <SettingsAuthorizationsTab
+      authorizations={data.authorizations}
+      copy={copy}
+      locale={data.locale}
+    />
+  {:else if tab === "security"}
+    <SettingsSecurityTab
+      activity={data.securityActivity}
+      copy={copy}
+      locale={data.locale}
+    />
+  {:else}
+    <SettingsDangerTab
+      copy={copy}
+      deleteAccountAction={deleteAccountAction}
+      bind:deleteConfirmValue={_deleteConfirmValue}
+      bind:isDeleteAccountOpen={_isDeleteAccountOpen}
+      isDeletingAccount={_isDeletingAccount}
+      isMounted={_isMounted}
+    />
+  {/if}
+{/snippet}
 
 <CollectionPage
   description={pageHeading.description}
@@ -158,51 +211,26 @@ let pageHeading = $derived(resolveSettingsPageHeading(copy, data.tab));
   >
     <SettingsStatusAlert copy={copy} statusMessage={statusMessage} />
 
-    {#if data.tab === "profile"}
-      <SettingsProfileTab
-        avatarOptions={avatarOptions}
-        copy={copy}
-        currentImage={currentImage}
-        isMounted={_isMounted}
-        previewImage={previewImage}
-        bind:selectedImage
-        user={data.user}
-      />
-    {:else if data.tab === "preferences"}
-      <SettingsPreferencesTab copy={copy} locale={data.locale} />
-    {:else if data.tab === "accounts"}
-      <SettingsAccountsTab
-        accountAction={accountAction}
-        accounts={data.accounts}
-        copy={copy}
-        locale={data.locale}
-        hasPendingAccountAction={_hasPendingAccountAction}
-        isMounted={_isMounted}
-        pendingAccountAction={_pendingAccountAction}
-        unlinkAccount={_unlinkAccount}
-        bind:unlinkAccountId={_unlinkAccountId}
-      />
-    {:else if data.tab === "authorizations"}
-      <SettingsAuthorizationsTab
-        authorizations={data.authorizations}
-        copy={copy}
-        locale={data.locale}
-      />
-    {:else if data.tab === "security"}
-      <SettingsSecurityTab
-        activity={data.securityActivity}
-        copy={copy}
-        locale={data.locale}
-      />
+    {#if companionTabs.length > 0}
+      <div class="grid min-w-0 items-start gap-6 lg:grid-cols-2 lg:gap-x-10">
+        <div class="grid min-w-0 gap-4">
+          {@render settingsGroup(data.tab)}
+        </div>
+        <!-- Companion groups fill the desktop canvas; a phone keeps one group per screen. -->
+        <div class="hidden min-w-0 gap-8 lg:grid lg:content-start" data-settings-companion-panel>
+          {#each companionTabs as companion (companion)}
+            <div class="grid min-w-0 gap-4">
+              <div class="grid gap-1">
+                <h2 class="text-lg font-semibold">{copy.settings.nav[companion].title}</h2>
+                <p class="text-muted-foreground text-sm">{copy.settings.nav[companion].description}</p>
+              </div>
+              {@render settingsGroup(companion)}
+            </div>
+          {/each}
+        </div>
+      </div>
     {:else}
-      <SettingsDangerTab
-        copy={copy}
-        deleteAccountAction={deleteAccountAction}
-        bind:deleteConfirmValue={_deleteConfirmValue}
-        bind:isDeleteAccountOpen={_isDeleteAccountOpen}
-        isDeletingAccount={_isDeletingAccount}
-        isMounted={_isMounted}
-      />
+      {@render settingsGroup(data.tab)}
     {/if}
   </div>
 </CollectionPage>
