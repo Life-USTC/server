@@ -180,7 +180,7 @@ describe("课程与开课查询辅助函数", () => {
     expect(result.orderBy).toEqual({ campus: { nameCn: "desc" } });
   });
 
-  it("将结构化班级筛选与文本搜索按 AND 合并", () => {
+  it("将结构化教学班筛选与文本搜索按 AND 合并", () => {
     const result = buildSectionListQuery({
       search: `teacher:"旧 教师" campus:"East Campus" 普通词`,
       teacher: "New Teacher",

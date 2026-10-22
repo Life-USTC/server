@@ -89,7 +89,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
                   >
                     {#each authPatterns as option}
                       <ToggleGroup.Item
-                        class="h-auto min-h-10 w-full whitespace-normal px-3 py-2"
+                        class="h-auto min-h-10 w-full whitespace-normal px-3 py-2 md:min-h-10"
                         value={option.value}
                     >
                       {oauthCopy(option.titleKey)}

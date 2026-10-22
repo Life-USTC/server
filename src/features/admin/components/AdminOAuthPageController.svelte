@@ -190,7 +190,6 @@ onMount(() => {
   {#snippet feedback()}
     <AdminOAuthStatusAlerts
       copyMessage={isCredentialsDialogOpen ? "" : copyMessage}
-      {copyMessageVariant}
       {form}
     />
   {/snippet}

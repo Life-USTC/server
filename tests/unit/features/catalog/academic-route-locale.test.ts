@@ -263,7 +263,7 @@ describe("academic REST 语言适配器", () => {
     expect(response.headers.get("Vary")).toBeNull();
   });
 
-  it("将显式语言传递给班级详情读取", async () => {
+  it("将显式语言传递给教学班详情读取", async () => {
     const { getSectionDetailRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
@@ -283,7 +283,7 @@ describe("academic REST 语言适配器", () => {
     expect(response.headers.get("Vary")).toBeNull();
   });
 
-  it("将部分查询标志传递给班级详情读取", async () => {
+  it("将部分查询标志传递给教学班详情读取", async () => {
     const { getSectionDetailRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
@@ -320,7 +320,7 @@ describe("academic REST 语言适配器", () => {
     expect(response.headers.get("Vary")).toBeNull();
   });
 
-  it("将请求语言传递给班级代码匹配", async () => {
+  it("将请求语言传递给教学班代码匹配", async () => {
     const { postSectionMatchCodesRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
@@ -339,7 +339,7 @@ describe("academic REST 语言适配器", () => {
     );
   });
 
-  it("班级列表使用显式语言的共享班级摘要", async () => {
+  it("教学班列表使用显式语言的共享教学班摘要", async () => {
     const { getSectionsRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
@@ -414,7 +414,7 @@ describe("academic REST 语言适配器", () => {
     );
   });
 
-  it("将显式语言传递给班级课表读取", async () => {
+  it("将显式语言传递给教学班课表读取", async () => {
     const { getSectionSchedulesRoute, getSectionScheduleGroupsRoute } =
       await import("@/lib/api/routes/academic-section-routes");
 

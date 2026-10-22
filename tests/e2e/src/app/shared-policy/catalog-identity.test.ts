@@ -353,7 +353,7 @@ test("ui.global-search-results-2", { tag: "@Search/Web" }, async ({
         await gotoAndWaitForReady(page, `/search?q=${fixture.course.code}`);
         const result = page
           .getByRole("group", {
-            name: locale === "zh-cn" ? "班级" : "Sections",
+            name: locale === "zh-cn" ? "教学班" : "Sections",
             exact: true,
           })
           .getByRole("option")
@@ -914,7 +914,7 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
       for (const region of ["#calendar", "#exams"]) {
         await expect(page.locator(region)).toContainText(
           locale === "zh-cn"
-            ? "此班级暂无课程或考试安排"
+            ? "此教学班暂无课程或考试安排"
             : "No schedule or exam events available for this section",
         );
       }
@@ -1467,7 +1467,7 @@ subscriptionTest(
           await gotoAndWaitForReady(page, "/workspace/subscriptions");
           await page
             .getByRole("button", {
-              name: /批量添加订阅|Bulk Add Subscriptions/i,
+              name: /批量添加教学班订阅|Bulk Add Section Subscriptions/i,
             })
             .first()
             .click();

@@ -12,7 +12,7 @@ test("/api/catalog/sections", { tag: "@Section/REST" }, async ({
   });
 });
 
-test("pageSize 参数控制班级列表页大小", { tag: "@Section/REST" }, async ({
+test("pageSize 参数控制教学班列表页大小", { tag: "@Section/REST" }, async ({
   run,
   request,
 }) => {
@@ -28,7 +28,7 @@ test("pageSize 参数控制班级列表页大小", { tag: "@Section/REST" }, asy
   });
 });
 
-test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", {
+test("/api/catalog/sections 可按 teacherId 过滤到 seed 教学班", {
   tag: "@Section/REST",
 }, async ({ run, request }) => {
   return run(async () => {
@@ -55,7 +55,7 @@ test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", {
   });
 });
 
-test("/api/catalog/sections 可按高级 search 语法检索 seed 班级", {
+test("/api/catalog/sections 可按高级 search 语法检索 seed 教学班", {
   tag: "@Section/REST",
 }, async ({ run, request }) => {
   return run(async () => {

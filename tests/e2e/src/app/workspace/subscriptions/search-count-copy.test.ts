@@ -35,7 +35,7 @@ for (const count of [0, 1, 2]) {
         await gotoAndWaitForReady(page, "/workspace/subscriptions");
         await page
           .getByRole("button", {
-            name: en ? "Add Subscription" : "添加订阅",
+            name: en ? "Add Section Subscription" : "添加教学班订阅",
             exact: true,
           })
           .first()

@@ -189,6 +189,24 @@ requirements:
     test:
       file: tests/unit/features/calendar/calendar-export-cache.test.ts
       name: calendar.feed-refresh-visible
+- id: calendar.feed-unchanged-rebuild-write
+  category: consistency
+  rule: A rebuild that reproduces the stored personal export does not rewrite the shared cache entry, and
+    keeps its existing ETag. The export is written again once the stored copy leaves its freshness window,
+    renewing the shared-cache expiration.
+  rationale: Clients poll subscribed feeds on their own schedule, so rebuilds run far more often than a
+    timetable changes. The build timestamp each export carries makes two otherwise identical rebuilds differ
+    byte for byte, so the comparison ignores it.
+  acceptance:
+    given: A stored personal export exists.
+    when: Rebuilds reproduce it, change it, and reproduce it again after its freshness window.
+    then:
+    - The reproducing rebuild inside the freshness window writes nothing and keeps the stored ETag.
+    - A changed rebuild is written with a new ETag.
+    - The reproducing rebuild after the freshness window is written again with a renewed expiration.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-unchanged-rebuild-write
 - id: calendar.feed-auth-before-cache
   category: privacy
   rule: The personal feed route authorizes its current credential before reading any export cache. Authorized

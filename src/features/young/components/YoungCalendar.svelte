@@ -199,7 +199,7 @@ function eventMeta(event: YoungCalendarEvent) {
     </div>
   </div>
 
-  <div class="hidden md:block" data-testid="young-calendar-grid">
+  <div class="hidden min-w-0 md:block" data-testid="young-calendar-grid">
     {#if view === "day"}
       {@const day = days[0]}
       {#if day}

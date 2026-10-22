@@ -64,7 +64,10 @@ test("young-event.private-client-overlays", { tag: "@Young/Web" }, async ({
           : "**/api/workspace/calendar/events?*";
       const ready = () =>
         surface === "detail"
-          ? page.getByRole("button", { name: "Unsubscribe", exact: true })
+          ? page.getByRole("button", {
+              name: "Unsubscribe from activity",
+              exact: true,
+            })
           : page.getByTestId("young-calendar-conflict-status");
       const signIn = () =>
         surface === "detail"
@@ -163,7 +166,10 @@ test("young-event.overlay-shared-viewer-state", { tag: "@Young/Web" }, async ({
           ).toContainText("Conflicts use");
         else
           await expect(
-            page.getByRole("button", { name: "Unsubscribe", exact: true }),
+            page.getByRole("button", {
+              name: "Unsubscribe from activity",
+              exact: true,
+            }),
           ).toBeEnabled();
         expect(bootstrap).toBe(1);
         await expect.poll(() => viewerId).toBe(fixture.users[0].id);

@@ -28,7 +28,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
 );
 </script>
 
-<svelte:head><title>{copy.title}</title></svelte:head>
+<svelte:head><title>{copy.title} - Life@USTC</title></svelte:head>
 
 {#snippet actions(upload: Upload)}
   <div class="flex flex-wrap gap-2">

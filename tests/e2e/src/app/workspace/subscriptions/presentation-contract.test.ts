@@ -52,7 +52,10 @@ test("subscription.subscription-language", {
         await expect(
           page
             .getByRole("button", {
-              name: locale === "zh-cn" ? "取消订阅" : "Unsubscribe",
+              name:
+                locale === "zh-cn"
+                  ? "取消订阅教学班"
+                  : "Unsubscribe from section",
               exact: true,
             })
             .first(),
@@ -65,7 +68,7 @@ test("subscription.subscription-language", {
         await first.click();
         await page.waitForURL(`**/catalog/sections/${sections[0].jwId}`);
         const unsubscribe = page.getByRole("button", {
-          name: /^(取消订阅|Unsubscribe from section)$/,
+          name: /^(取消订阅教学班|Unsubscribe from section)$/,
         });
         await expect(unsubscribe).toBeVisible();
         await unsubscribe.click();
@@ -143,7 +146,9 @@ test("subscription.quick-add-result-bound", {
         for (const width of widths) {
           await open(page, width);
           await page
-            .getByRole("button", { name: /^(添加订阅|Add subscription)$/i })
+            .getByRole("button", {
+              name: /^(添加教学班订阅|Add Section Subscription)$/i,
+            })
             .click();
           const dialog = page.getByRole("dialog");
           await dialog
@@ -208,10 +213,12 @@ test("subscription.kind-web-editor-location", {
               'xpath=ancestor::*[self::tr or @data-slot="item"][1]',
             );
             await row
-              .getByRole("button", { name: /^(订阅身份|Subscription role)$/ })
+              .getByRole("button", {
+                name: /^(教学班订阅身份|Section subscription role)$/,
+              })
               .click();
             const dialog = page.getByRole("dialog", {
-              name: /^(订阅身份|Subscription role)$/,
+              name: /^(教学班订阅身份|Section subscription role)$/,
             });
             await dialog.getByRole("radio", { name: label }).click();
             await dialog.getByRole("button", { name: /^(保存|Save)$/ }).click();
@@ -227,7 +234,9 @@ test("subscription.kind-web-editor-location", {
               }),
             ).toMatchObject({ kind });
             await row
-              .getByRole("button", { name: /^(订阅身份|Subscription role)$/ })
+              .getByRole("button", {
+                name: /^(教学班订阅身份|Section subscription role)$/,
+              })
               .click();
             await expect(
               dialog.getByRole("radio", { name: label }),
@@ -276,7 +285,7 @@ test("subscribed-sections.grouped-by-semester", {
               .getByTestId("subscription-course-link")
               .filter({ visible: true }),
           ).toHaveCount(expected.length);
-          await expect(group).toContainText(`${expected.length} 个班级`);
+          await expect(group).toContainText(`${expected.length} 个教学班`);
           for (const section of expected)
             await expect(
               group
@@ -370,7 +379,7 @@ test("subscribed-sections.sidebar-summary-only", {
           'a[href="/workspace/subscriptions"]',
         );
         await expect(destination).toHaveCount(1);
-        await expect(destination).toContainText("我的教学班");
+        await expect(destination).toContainText("教学班订阅");
         await expect(destination).toHaveAttribute("aria-current", "page");
         await expect(
           sidebar.locator('a[href^="/catalog/sections/"]'),

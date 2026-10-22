@@ -180,8 +180,8 @@ for (const domain of [
           if (domain === "Subscription") {
             await gotoAndWaitForReady(page, "/workspace/subscriptions");
             for (const action of locale === "en-us"
-              ? ["Add Subscription", "Bulk Add Subscriptions"]
-              : ["添加订阅", "批量添加订阅"]) {
+              ? ["Add Section Subscription", "Bulk Add Section Subscriptions"]
+              : ["添加教学班订阅", "批量添加教学班订阅"]) {
               await page
                 .getByRole("button", { name: action, exact: true })
                 .click();

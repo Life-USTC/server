@@ -277,7 +277,7 @@ describe("评论读取工具 — 隔离目录夹具", () => {
   const ownershipTest = readerTest;
 
   ownershipTest(
-    "community_comment_list 将未关联的班级-教师对报告为缺失目标",
+    "community_comment_list 将未关联的教学班-教师对报告为缺失目标",
     { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,
@@ -458,7 +458,7 @@ describe("评论读取工具 — 隔离目录夹具", () => {
   }
 
   ownershipTest(
-    "community_comment_list 保留 active/retired 班级-教师目标合同",
+    "community_comment_list 保留 active/retired 教学班-教师目标合同",
     { tags: ["@Comment/MCP"] },
     async ({
       mcpWorkflow,

@@ -293,7 +293,7 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings routes replace the primary sidebar with a settings sidebar whose top control returns home. Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list. Admin routes replace the primary sidebar with admin tools and a back-to-app link, without a duplicate bottom bar. The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings routes replace the primary sidebar with a settings sidebar whose top control returns home. Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list. Admin routes replace the primary sidebar with admin tools and a back-to-app link. The home page keeps the primary sidebar.
   rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
@@ -843,15 +843,24 @@ requirements:
 - id: ui.shell-layout-2
   category: presentation
   topic: shell-layout
-  rule: Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
-    use distinct expandable groups, and admin entries are visible only to an authorized administrator.
+  rule: Signed-in desktop navigation presents the shared destination model as intent groups a student can name
+    from their own week - My day, Courses, Campus, Activities, Account, Apps and Admin - and nothing else. There
+    is no Workspace or Explore container - a personal task destination belongs to My day, and a discovery
+    destination belongs to the subject it is about. Each group is a disclosure labelled by the group name, with
+    no separate toggle control beside it. Groups a student uses daily are expanded on arrival; Apps and Admin
+    start collapsed for a signed-in viewer, and any group holding the open page is expanded. Admin is present
+    only for an authorized administrator. Exactly one destination is marked as the current page.
+  rationale: Destinations are grouped by what a student is trying to do, not by which part of the product owns
+    the route. The ordered group set and its parity with the feature hub are owned by ui.shell-feature-hub.
   acceptance:
     given: A signed-in user opens the workspace calendar at a 1440-by-900 viewport.
-    when: The browser inspects the visible primary navigation, its current-page link, and the expanded campus-services
-      group.
+    when: The browser inspects the visible primary navigation, its group disclosures, and its current-page link.
     then:
-    - Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
-      use distinct expandable groups, and admin entries are visible only to an authorized administrator.
+    - My day exposes Overview, Calendar, Homework, Todos and Exams as direct destinations, and Courses exposes
+      Section subscriptions beside public course discovery.
+    - No Workspace destination and no separate toggle control render; group disclosures carry the group name.
+    - The Courses group is expanded on arrival, and Admin appears only for an authorized administrator.
+    - Exactly one navigation link is marked as the current page, and it is the open destination.
     test:
       file: tests/e2e/src/app/test.ts
       name: ui.shell-layout-2
@@ -886,7 +895,7 @@ requirements:
 - id: ui.shell-feature-hub
   category: presentation
   topic: shell-layout
-  rule: The sidebar, mobile drawer and searchable /catalog/features hub share one destination model, grouped by user intent as My day, Courses, Campus, Activities, Account, Apps and Admin. Courses combines private My sections with public Browse courses, Browse sections and Teachers. Activities combines public Young events, calendar and organizers with private activity reminders. Rooms belongs to Campus. The hub is linked from the sidebar and topbar at every shell width. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
+  rule: The sidebar, mobile drawer and searchable /catalog/features hub share one destination model, grouped by user intent as My day, Courses, Campus, Activities, Account, Apps and Admin. Courses combines private Section subscriptions with public Browse courses, Browse sections and Teachers. Activities combines public Young events, calendar and organizers with private Activity subscriptions. Rooms belongs to Campus. The hub is linked from the sidebar and topbar at every shell width. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
   acceptance:
     given: Anonymous, ordinary and administrator viewers use Chinese and English on desktop and mobile.
     when: They open the feature hub, search, clear and use its links and the sidebar.
@@ -1186,6 +1195,25 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/page-identity.test.ts
       name: ui.settings-navigation-7
+- id: ui.settings-navigation-8
+  category: presentation
+  topic: settings-navigation
+  rule: A settings destination whose group is short and bounded co-displays the other short bounded
+    groups once the canvas fits a second column, keeping the requested group in the leading column.
+    A narrow canvas renders the requested group alone. Destinations whose group is a history list,
+    and the destructive destination, stay single-group at every width.
+  acceptance:
+    given: A signed-in user opens preferences and danger settings at a canvas wide enough for two
+      columns, then reopens preferences on a phone.
+    when: The browser inspects the rendered groups and their columns at each width.
+    then:
+    - The wide preferences canvas renders the profile and linked-account groups beside the requested
+      preferences group, and the requested group keeps the leading column.
+    - The wide danger canvas renders no companion group.
+    - The narrow preferences canvas renders no companion group and no companion form at all.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-8
 - id: ui.contribution-heatmap-1
   category: presentation
   topic: contribution-heatmap
@@ -1426,7 +1454,7 @@ requirements:
   rationale: The linked count=1 case is representative; count=0 and count=2 cases complete the matrix, each in both languages.
   acceptance:
     given: Independent fixtures provide zero, one and two sections matching a semester and course code.
-    when: English and Chinese users open Add Subscription, select the semester, search by code and cancel.
+    when: English and Chinese users open Add Section Subscription, select the semester, search by code and cancel.
     then:
     - Nonempty search legends use actual counts and natural localized grammar; zero results show the localized no-sections-found state.
     test:
@@ -1555,16 +1583,16 @@ requirements:
 - id: ui.navigation-landmarks-6
   category: presentation
   topic: navigation-landmarks
-  rule: Public notices and private activity reminders are separate navigation destinations. A user's reminder
+  rule: Public notices and private Activity subscriptions are separate navigation destinations. A user's reminder
     badge counts only unread, unexpired notifications belonging to that user. Marking a notice read refreshes
     the page only after consuming a valid JSON acknowledgement with the requested ID and success true;
     HTTP failure or an invalid acknowledgement shows a localized error and allows retry.
   acceptance:
     given: Two isolated users, with and without academic subscriptions, have different unread, read and expired activity notices.
-    when: Each signed-in browser opens desktop/mobile navigation, visits activity reminders and marks one owned notice read.
+    when: Each signed-in browser opens desktop/mobile navigation, visits Activity subscriptions and marks one owned notice read.
       Localized reminder flows also encounter failed or invalid acknowledgements before retrying the action.
     then:
-    - Public News & Notices and Activity reminders have distinct links; only private reminders display the exact owner count.
+    - Public News & Notices and Activity subscriptions have distinct links; only private reminders display the exact owner count.
     - Reminder lists exclude expired and foreign-owner notices while retaining the owner's read history.
     - A complete acknowledgement for the requested notice updates the badge and removes the badge at zero.
     - HTTP failure, malformed JSON, a different notice ID or success false leaves the current reminder visible,
@@ -1627,6 +1655,28 @@ requirements:
     test:
       file: tests/unit/lib/ui/action-status-tokens.test.ts
       name: action-status-tokens
+- id: ui.action-feedback
+  category: presentation
+  topic: action-feedback
+  rule: A completed action tells the user it completed. Every mutation a user confirms - an administrative
+    action, a workspace edit, a settings change, a copy-to-clipboard - reports its completion in the shared
+    bottom-right toast region, named after what was done. Where the server reports detail the client cannot
+    reconstruct, such as an imported record count, the confirmation carries that detail instead of a generic
+    phrase. An inline alert on the surface carries a failure, a validation problem, or an intermediate state
+    the user still has to act on - never a second copy of a completion the toast already reported, and a
+    failure never raises a toast claiming success.
+  rationale: One confirmation region means an action is never silent and never confirmed twice. ui.action-status-tokens
+    owns the status colours an alert or badge may use; it says nothing about confirming completion.
+  acceptance:
+    given: A signed-in administrator can complete a moderation action and can submit one that the server rejects.
+    when: The browser completes each action and observes the toast region and the surface's inline alert.
+    then:
+    - The completed action raises one bottom-right toast naming the completed action, and the surface renders
+      no inline success alert.
+    - The rejected action renders its message in the surface's inline alert and raises no success toast.
+    test:
+      file: tests/e2e/src/app/admin/moderation/test.ts
+      name: admin.high-risk-feedback
 - id: ui.theme-system-response
   category: presentation
   topic: shell-layout
@@ -1751,6 +1801,10 @@ topics:
   title: Action Status and Empty Chrome Tokens
   requirement_refs:
   - ui.action-status-tokens
+- id: action-feedback
+  title: Action Completion Feedback
+  requirement_refs:
+  - ui.action-feedback
 - id: workspace-footer-policy
   title: Workspace Footer Policy
 - id: workspace-filters-and-empty-states
@@ -1811,6 +1865,8 @@ rationale:
   agendas and calendar.views for the declared desktop grids; those feature requirements own their acceptance.
 - The former ui.model-property-priority-primary-3 duplicates section.student-identity-teachers, which retains
   course name plus teachers as primary identity and section code as secondary across student-facing views.
+- The absence of a student or admin bottom tab bar is owned by ui.shell-layout-4 for every shell width;
+  ui.list-table-9 keeps only sidebar-versus-in-page navigation ownership.
 - Settings destination separation for linked sign-in identities versus delegated application grants is
   owned by user.sign-in-identities-separate; ui.settings-navigation-5 independently owns explicit
   confirmation of the selected application's revocation.

@@ -86,7 +86,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
   );
 
   toolTest(
-    "community_description_get 报告缺失的公开班级目标",
+    "community_description_get 报告缺失的公开教学班目标",
     { tags: ["@Description/MCP"] },
     async ({ mcpWorkflow, mcpActor: isolated, expect }) =>
       mcpWorkflow.run(async () => {

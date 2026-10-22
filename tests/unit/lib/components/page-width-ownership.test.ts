@@ -40,15 +40,12 @@ const FRAME_EXEMPT: Record<string, string> = {
   "/oauth/authorize": "Centered consent card sized to the consent decision.",
   "/oauth/device": "Centered device card with a two-column identity panel.",
   "/error": "Centered error card; no page content to frame.",
-  "/privacy": "Long-form legal prose uses its own reading measure.",
-  "/terms": "Long-form legal prose uses its own reading measure.",
   "/usage/bot": "Marketing page with a deliberate full-bleed hero.",
   "/usage/cli": "Marketing page with a deliberate full-bleed hero.",
   "/usage/mcp": "Marketing page with a deliberate full-bleed hero.",
   "/usage/mobile": "Marketing page with a deliberate full-bleed hero.",
-  "/": "Anonymous landing page with a deliberate full-bleed hero.",
   "/api/docs/[...path]":
-    "Third-party OpenAPI renderer owns its own sidebar grid and media queries.",
+    "Two-pane reference shell: a navigation sidebar beside the embedded OpenAPI renderer, sized by api-docs-scalar.css rather than by a reading frame.",
   "/catalog/bus/map":
     "Transit map fills the viewport; a reading frame would crop it.",
   "/community/users/[identifier]":
