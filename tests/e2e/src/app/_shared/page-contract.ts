@@ -39,6 +39,14 @@ const API_REFERENCE_UI_QUALITY_EXCEPTIONS = {
         "Scalar renders operation toggles as anchors without hrefs inside its generated API reference DOM.",
     },
   ],
+  accessibility: [
+    {
+      match:
+        /\bendpoint-method\b.*: color-contrast \(serious\): .*style="color: var\(--scalar-color-[a-z]+\);"/,
+      reason:
+        "Scalar paints the HTTP method label from its own palette, which `api-docs-scalar.css` does not map. `--scalar-color-blue` is 4.45:1 on the reference's secondary surface, 0.05 short, and darkening it here would need a per-theme override of a third-party palette.",
+    },
+  ],
 } satisfies UiQualityAllowlist;
 
 const YOUNG_EVENT_DETAIL_UI_QUALITY_EXCEPTIONS = {

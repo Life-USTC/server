@@ -8,6 +8,6 @@ export let message: string;
 <Alert.Root variant="destructive">
   <Alert.Description>{message}</Alert.Description>
   {#if hint}
-    <Alert.Description class="text-destructive/90">{hint}</Alert.Description>
+    <Alert.Description class="text-destructive-text/90">{hint}</Alert.Description>
   {/if}
 </Alert.Root>

@@ -48,5 +48,5 @@ const markClass = "size-5";
     />
   </svg>
 {:else}
-  <span class="font-semibold text-primary text-xs">{label.trim().slice(0, 2).toUpperCase()}</span>
+  <span class="font-semibold text-primary-text text-xs">{label.trim().slice(0, 2).toUpperCase()}</span>
 {/if}

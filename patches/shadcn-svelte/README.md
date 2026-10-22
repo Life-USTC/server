@@ -86,6 +86,50 @@ Nothing fails if a registry refresh reverts this while `color-contrast` stays
 disabled in `tests/e2e/utils/ui-quality.ts`; enabling that rule puts the key
 hint in the shell's search trigger back under the page-inventory audit.
 
+### `avatar-fallback.patch`
+
+Replaces `text-muted-foreground` with `text-foreground/70`, for the same reason
+as `kbd.patch`: upstream pairs the fallback's own `bg-muted` with a foreground
+calibrated against `--background`, giving `#71717a` on `#f4f4f5` = 4.40:1 at
+`text-sm` and `text-xs`. `text-foreground/70` gives 5.33:1. The initials show
+whenever a member has no avatar, and while any avatar image is still loading,
+so a call site cannot opt out of the pair.
+
+Covered by `color-contrast` in `tests/e2e/utils/ui-quality.ts` through the
+comment thread page contract.
+
+### `button.patch`, `badge.patch`, `alert.patch`
+
+All three swap a role colour used as text for its `-text` counterpart: the
+`link` variant's `text-primary`, and the `destructive` variant's
+`text-destructive`.
+
+`--primary` is the brand teal, calibrated as a *surface* against
+`--primary-foreground`. The `link` variant is the one variant that is never a
+filled surface, so upstream's `text-primary` always lands on the page
+background: `#00c3d0` on white is 2.16:1, far below the 4.5:1 WCAG AA minimum,
+and no font size rescues it. `--primary-text` is the same hue at L 0.5 (5.3:1
+on white, 4.6:1 on the lightest surface in the ramp) and aliases `--primary`
+again in dark mode, where the teal already reaches 11.2:1. Fixing it in the
+variant rather than at the call sites keeps the next `variant="link"` correct
+by default.
+
+The `destructive` variants are the stock soft-destructive pairing, red text on
+a 10% tint of itself: `#dc2626` on `#fce9e9` is 4.14:1, and the alert's
+`text-destructive/90` on the card is 4.32:1. `--destructive-text` is the same
+hue at L 0.5, giving 5.67:1 and 5.72:1, and aliases `--destructive` in dark
+mode, where the tint is `/20` on a dark surface and already clears AA.
+`text-destructive` stays stock wherever it sits on a plain card — 4.83:1 —
+so `field-error` and `dropdown-menu-item` need no divergence.
+
+The button and badge files already carried local divergence that predates this
+change — the first-party `status-*` badge variants, the `[a]:hover` scoping,
+and the minimum touch target in the button base — so these patches record that
+too.
+
+Covered by `color-contrast` in `tests/e2e/utils/ui-quality.ts`, which fails on
+these variants across the page inventory if a registry refresh reverts them.
+
 ## input
 
 `input.patch` — the file-type branch must not `bind:value`: a file input only

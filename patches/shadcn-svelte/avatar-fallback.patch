@@ -1,0 +1,21 @@
+--- a/avatar-fallback.svelte (shadcn-svelte registry, style: nova)
++++ b/avatar-fallback.svelte (local)
+@@ -1,6 +1,6 @@
+ <script lang="ts">
+ 	import { Avatar as AvatarPrimitive } from "bits-ui";
+-	import { cn } from "$UTILS$.js";
++	import { cn } from "#lib/utils.js";
+ 
+ 	let {
+ 		ref = $bindable(null),
+@@ -13,9 +13,8 @@
+ 	bind:ref
+ 	data-slot="avatar-fallback"
+ 	class={cn(
+-		"bg-muted text-muted-foreground rounded-full flex size-full items-center justify-center text-sm group-data-[size=sm]/avatar:text-xs",
++		"bg-muted text-foreground/70 rounded-full flex size-full items-center justify-center text-sm group-data-[size=sm]/avatar:text-xs",
+ 		className
+ 	)}
+ 	{...restProps}
+ />
+-

@@ -224,7 +224,7 @@ function signInAction(providerId: string): SubmitFunction {
         </div>
 
         <p class="min-w-0 break-words text-center text-muted-foreground text-xs leading-5">
-          {data.copy.termsNotice.beforeTerms}<a class="text-primary underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}
+          {data.copy.termsNotice.beforeTerms}<a class="text-primary-text underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary-text underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}
         </p>
       </Card.Content>
     </Card.Root>

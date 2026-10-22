@@ -52,7 +52,7 @@ const titleId = "calendar-subscription-title";
         {copy.calendarSheetDescription}
         {" "}
         <a
-          class="text-primary underline-offset-4 hover:underline"
+          class="text-primary-text underline underline-offset-4"
           href={ICAL_SUBSCRIBE_GUIDE_HREF}
           rel="noopener noreferrer"
           target="_blank"
