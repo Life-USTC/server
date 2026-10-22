@@ -196,6 +196,15 @@ it("mcp.text-formatted-json", () => {
       const result = jsonToolResult(input, { mode });
       expect(result.structuredContent).toEqual(expected);
       expect(parseToolText(result)).toEqual(expected);
+      // Minified: no indentation, so the text block costs the client only the
+      // JSON itself.
+      expect(result.content[0]?.text).toBe(JSON.stringify(expected));
     }
   }
+
+  const nested = jsonToolResult(
+    { sections: [{ id: 1, course: { code: "MATH1008" } }] },
+    { mode: "full" },
+  );
+  expect(nested.content[0]?.text).not.toMatch(/\n/);
 });
