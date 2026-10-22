@@ -371,7 +371,7 @@ function closeMobileSidebar(): void {
     {@render navigation(navGroups, true)}
   {:else}
     {@render navigation(navGroups, false)}
-    <Sidebar.Rail />
+    <Sidebar.Rail label={copy.shell.toggleSidebar} />
   {/if}
 
   {#if showAccountFooter || sidebar.isMobile}

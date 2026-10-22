@@ -3100,6 +3100,7 @@
   "shell": {
     "menu": "Menu",
     "scrollRegion": "Main content scroll region",
+    "toggleSidebar": "Toggle sidebar",
     "theme": "Theme",
     "locale": "Locale",
     "personalPage": "Personal page",
