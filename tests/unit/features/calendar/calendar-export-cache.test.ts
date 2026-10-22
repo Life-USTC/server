@@ -188,6 +188,68 @@ describe("用户 iCal 导出缓存", () => {
     }
   });
 
+  it("calendar.feed-unchanged-rebuild-write", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    // ical-generator stamps each VEVENT with its build time, so an unchanged
+    // timetable still produces different bytes on every rebuild.
+    const buildAt = (stamp: string, summary = "待办截止：报告") => ({
+      ...calendarExport,
+      text: [
+        "BEGIN:VCALENDAR",
+        "BEGIN:VEVENT",
+        "UID:https://example.test/todo/todo-1",
+        `DTSTAMP:${stamp}`,
+        `SUMMARY:${summary}`,
+        "END:VEVENT",
+        "END:VCALENDAR",
+      ].join("\r\n"),
+    });
+
+    const first = await storeBuiltUserCalendarExport(
+      "user-1",
+      buildAt("20260607T000000Z"),
+    );
+    expect(namespace.put).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(60_000);
+    const unchanged = await storeBuiltUserCalendarExport(
+      "user-1",
+      buildAt("20260607T000100Z"),
+    );
+
+    expect(namespace.put).toHaveBeenCalledTimes(1);
+    expect(unchanged.etag).toBe(first.etag);
+    expect(unchanged.text).toBe(first.text);
+    expect(unchanged.generatedAtMs).toBe(first.generatedAtMs);
+
+    const changed = await storeBuiltUserCalendarExport(
+      "user-1",
+      buildAt("20260607T000100Z", "待办截止：改期后的报告"),
+    );
+
+    expect(namespace.put).toHaveBeenCalledTimes(2);
+    expect(changed.etag).not.toBe(first.etag);
+
+    // Past the freshness window the unchanged export is written again, which
+    // renews the shared-cache expiration instead of letting it age out.
+    vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
+    const renewed = await storeBuiltUserCalendarExport(
+      "user-1",
+      buildAt("20260607T003200Z", "待办截止：改期后的报告"),
+    );
+
+    expect(namespace.put).toHaveBeenCalledTimes(3);
+    expect(namespace.put).toHaveBeenLastCalledWith(
+      "user-calendar:v2:user-1",
+      expect.any(String),
+      { expirationTtl: 86_400 },
+    );
+    expect(renewed.generatedAtMs).toBe(Date.now());
+  });
+
   it("calendar.feed-refresh-coalescing", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
