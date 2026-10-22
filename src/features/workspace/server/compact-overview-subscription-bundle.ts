@@ -1,4 +1,5 @@
 import {
+  getHomeworkCommentCounts,
   type HomeworkItemWithState,
   withHomeworkItemState,
 } from "@/features/homeworks/server/homework-item-state";
@@ -7,6 +8,7 @@ import {
   localizeSubscribedHomeworkWorkspaceItems,
 } from "@/features/subscriptions/server/subscription-homework-list";
 import { buildSubscribedHomeworkQuery } from "@/features/subscriptions/server/subscription-homework-read-helpers";
+import { getUserSubscriptionKinds } from "@/features/subscriptions/server/subscription-kind";
 import {
   listTodaySubscribedSchedulesWithCount,
   listUpcomingSubscribedExamsWithCount,
@@ -64,6 +66,19 @@ function countPendingOverviewHomeworksInTransaction(
   });
 }
 
+function loadOverviewHomeworkViewerState(
+  userId: string,
+  homeworkIds: readonly string[],
+) {
+  return Promise.all([
+    getUserSubscriptionKinds(userId),
+    getHomeworkCommentCounts(homeworkIds, userId),
+  ]).then(([subscriptionKinds, commentCounts]) => ({
+    commentCounts,
+    subscriptionKinds,
+  }));
+}
+
 async function loadOverviewHomeworkRlsReads(input: {
   atTime: Date;
   homeworkWindowEnd: Date;
@@ -99,7 +114,17 @@ async function loadOverviewHomeworkRlsReads(input: {
         input.includeSamples,
       ),
     ]);
-    return { pendingHomeworksCount, dueSoonRls };
+    // Nested viewer-scoped reads reuse this RLS transaction. Left to the
+    // serial tail that localizes the samples, the same two queries each open
+    // their own transaction and pay BEGIN, set_config and COMMIT for it.
+    const viewerState =
+      dueSoonRls.homeworkIds.length === 0
+        ? undefined
+        : await loadOverviewHomeworkViewerState(
+            input.userId,
+            dueSoonRls.homeworkIds,
+          );
+    return { dueSoonRls, pendingHomeworksCount, viewerState };
   });
 }
 
@@ -195,11 +220,21 @@ export async function loadOverviewSubscriptionReads(input: {
         homeworkRls.dueSoonRls,
         locale,
         input.userId,
+        homeworkRls.viewerState?.subscriptionKinds,
       ),
     );
   });
-  const dueSoonHomeworksPromise = dueSoonHomeworksRawPromise.then((raw) =>
-    runStage("item_state", () => withHomeworkItemState(raw, userId)),
+  const dueSoonHomeworksPromise = Promise.all([
+    dueSoonHomeworksRawPromise,
+    homeworkRlsPromise,
+  ]).then(([raw, homeworkRls]) =>
+    runStage("item_state", () =>
+      withHomeworkItemState(
+        raw,
+        userId,
+        homeworkRls.viewerState?.commentCounts,
+      ),
+    ),
   );
 
   const [

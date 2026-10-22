@@ -19,11 +19,14 @@ export async function loadAssistantWorkspaceSnapshotData(input: {
   now: Date;
   userId: string;
 }) {
-  const currentSemester = await getCurrentSemester(input.now);
   const localizedPrisma = getPrisma(input.locale);
   const sectionIdsPromise = getSubscribedSectionIds(input.userId);
+  // Nothing below the section listing depends on the semester, so awaiting it
+  // first only serialized the whole snapshot behind one public read.
+  const currentSemesterPromise = getCurrentSemester(input.now);
 
   const [
+    currentSemester,
     user,
     sectionIds,
     currentSemesterSections,
@@ -32,6 +35,7 @@ export async function loadAssistantWorkspaceSnapshotData(input: {
     incompleteTodoCount,
     bus,
   ] = await Promise.all([
+    currentSemesterPromise,
     prisma.user.findUnique({
       where: { id: input.userId },
       select: {
@@ -42,12 +46,13 @@ export async function loadAssistantWorkspaceSnapshotData(input: {
       },
     }),
     sectionIdsPromise,
-    sectionIdsPromise.then((sectionIds) =>
-      listAssistantCurrentSemesterSections({
-        currentSemesterId: currentSemester?.id ?? null,
-        localizedPrisma,
-        sectionIds,
-      }),
+    Promise.all([sectionIdsPromise, currentSemesterPromise]).then(
+      ([sectionIds, currentSemester]) =>
+        listAssistantCurrentSemesterSections({
+          currentSemesterId: currentSemester?.id ?? null,
+          localizedPrisma,
+          sectionIds,
+        }),
     ),
     sectionIdsPromise.then((sectionIds) =>
       listUserCalendarEvents(input.userId, {
