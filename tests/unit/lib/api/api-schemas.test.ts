@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SECTION_SCHEDULE_MAX_LIMIT } from "@/features/catalog/lib/catalog-list-query";
 import {
   commentMcpTargetMutationInputSchema,
   commentMcpTargetReadInputSchema,
@@ -594,6 +595,9 @@ describe("其他请求 schema", () => {
 
     expect(sectionSchedulesQuerySchema.parse({ limit: "25" })).toMatchObject({
       limit: 25,
+    });
+    expect(sectionSchedulesQuerySchema.parse({})).toMatchObject({
+      limit: SECTION_SCHEDULE_MAX_LIMIT,
     });
     expect(
       sectionDetailQuerySchema.parse({

@@ -1,4 +1,5 @@
 import type { SectionPublicContextDto } from "@/features/catalog/lib/academic-section-list-response-schemas";
+import { SECTION_SCHEDULE_MAX_LIMIT } from "@/features/catalog/lib/catalog-list-query";
 import {
   buildScheduleDateWhere,
   buildScheduleListWhere,
@@ -390,7 +391,9 @@ export async function getSectionSchedulesByJwId(input: {
           ? sectionScheduleListInclude
           : sectionScheduleInclude,
         orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
-        ...(input.limit !== undefined && { take: input.limit }),
+        // An omitted limit is bounded by the documented maximum instead
+        // of returning every meeting of the section.
+        take: input.limit ?? SECTION_SCHEDULE_MAX_LIMIT,
       },
     },
   });
@@ -423,9 +426,13 @@ export async function getSectionScheduleGroupsByJwId(input: {
     input.locale ?? DEFAULT_LOCALE,
   ).section.findUnique({
     where: { jwId: input.sectionJwId },
-    include: {
+    // `scheduleGroupsResponseSchema` carries groups and their meetings only;
+    // an `include` would also ship every Section scalar, JSON blobs included.
+    select: {
       scheduleGroups: {
-        include: { schedules: true },
+        include: {
+          schedules: { take: SECTION_SCHEDULE_MAX_LIMIT },
+        },
         orderBy: [{ isDefault: "desc" }, { no: "asc" }],
       },
     },

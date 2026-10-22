@@ -105,6 +105,21 @@ requirements:
     test:
       file: tests/unit/features/subscriptions/subscription-list-query-shape.test.ts
       name: schedule.viewer-scoped-section-projection
+- id: schedule.section-schedule-default-bound
+  category: validation
+  rule: A section schedule read without an explicit limit returns at most the documented maximum of 200
+    meetings, and the schedule-groups read publishes groups with their meetings without the surrounding
+    section record.
+  acceptance:
+    given: A section has more meetings than the documented section schedule maximum.
+    when: The actual read models serve a section schedule request that omits limit and a schedule-groups
+      request.
+    then:
+    - The schedule query is bounded by the documented maximum instead of returning every meeting.
+    - The schedule-groups query selects groups only and bounds their meetings by the same maximum.
+    test:
+      file: tests/unit/features/catalog/catalog-child-query-count.test.ts
+      name: schedule.section-schedule-default-bound
 - id: schedule.graphql-teacher-participation-output
   category: behavior
   rule: Authorized workspace GraphQL schedules expose teacher identities and independent participation
@@ -273,11 +288,15 @@ capabilities:
         - Returns a simplified variant of ScheduleEntry[] for the section.
         - Accepts optional dateFrom/dateTo and limit query parameters to narrow results to the same window
           supported by catalog_section_schedule_list.
+        - limit accepts 1-200 and defaults to 200; an omitted limit never returns more than the documented
+          maximum.
         - REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale
           input.
       - path: /api/catalog/sections/[jwId]/schedule-groups
         notes:
         - Returns schedule groups with schedules, not separate aggregated period summaries.
+        - Carries no section record of its own, and bounds each group's schedules by the same 200-meeting
+          maximum.
         - REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale
           input.
     mcp:
