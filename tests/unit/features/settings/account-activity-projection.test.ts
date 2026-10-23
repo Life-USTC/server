@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { summarizeAuditUserAgent } from "@/features/settings/lib/security-device-label";
 import {
   decodeAccountActivityCursor,
   encodeAccountActivityCursor,
   InvalidAccountActivityCursorError,
   maskAuditIpAddress,
-  summarizeAuditUserAgent,
 } from "@/features/settings/server/account-activity";
 
 describe("account activity privacy projection", () => {
