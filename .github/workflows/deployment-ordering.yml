@@ -1,19 +1,17 @@
 name: Deployment Ordering
 
-# Observe the currently configured production owner. Cloudflare Git builds are
-# observed until the dedicated promotion owner is activated; then its separate
-# read-only status credential supplies readiness and pending-write evidence.
-# This workflow never deploys or reruns source CI and holds no write credential.
+# Cloudflare's Git integration owns production deployment and can publish an
+# older commit's build after a newer commit already reached production. This
+# workflow verifies the commit production actually serves after every build for
+# the observed main commits has finished, independently of source CI: it never
+# deploys, never reruns CI for the current head, and holds no deployment
+# credential.
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
 
 concurrency:
   group: deployment-ordering
@@ -28,11 +26,7 @@ jobs:
       github.repository == 'Life-USTC/server' &&
       (github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_run' &&
-      vars.PROMOTION_OBSERVER_ORIGIN != '' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_repository.full_name == github.repository))
+      github.ref == 'refs/heads/main'))
     permissions:
       contents: read
       checks: read
@@ -49,6 +43,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APP_PUBLIC_ORIGIN: ${{ vars.APP_PUBLIC_ORIGIN || 'https://life-ustc.tiankaima.dev' }}
-          PROMOTION_OBSERVER_ORIGIN: ${{ vars.PROMOTION_OBSERVER_ORIGIN }}
-          PROMOTION_OBSERVER_TOKEN: ${{ secrets.PROMOTION_OBSERVER_TOKEN }}
         run: bun run scripts/deploy/verify-deployment-ordering.ts
