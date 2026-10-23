@@ -26,6 +26,7 @@ export async function listUserCalendarEvents(
     eventWindowMode = "overlap",
     sectionIds,
     sectionContext = "full",
+    atTime,
   }: {
     locale?: string;
     dateFrom?: Date | null;
@@ -36,6 +37,7 @@ export async function listUserCalendarEvents(
     eventWindowMode?: "overlap" | "start";
     sectionIds?: readonly number[];
     sectionContext?: SubscribedSectionContext;
+    atTime?: Date;
   } = {},
 ) {
   const {
@@ -60,6 +62,7 @@ export async function listUserCalendarEvents(
         calendarDateStart,
         includeWindowEnd,
         locale,
+        now: atTime,
         sectionIds,
         sectionContext,
         userId,

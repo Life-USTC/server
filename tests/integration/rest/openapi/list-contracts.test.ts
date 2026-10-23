@@ -2,7 +2,12 @@ import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
 
-type Schema = { $ref?: string; properties?: Record<string, Schema> };
+type Schema = {
+  $ref?: string;
+  properties?: Record<string, Schema>;
+  anyOf?: Schema[];
+  oneOf?: Schema[];
+};
 
 test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
   run,
@@ -51,10 +56,17 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
       schema.$ref
         ? resolve(spec.components.schemas[schema.$ref.split("/").at(-1) ?? ""])
         : schema;
+    const isPaginated = (schema: Schema): boolean => {
+      const resolved = resolve(schema);
+      return (
+        Boolean(resolved.properties?.pagination) ||
+        [...(resolved.anyOf ?? []), ...(resolved.oneOf ?? [])].some(isPaginated)
+      );
+    };
     const paths = Object.entries(spec.paths).filter(([, { get }]) => {
       const schema =
         get?.responses?.["200"]?.content?.["application/json"]?.schema;
-      return schema && resolve(schema).properties?.pagination;
+      return schema && isPaginated(schema);
     });
     expect(paths.map(([path]) => path)).toEqual(
       expect.arrayContaining([
@@ -64,6 +76,8 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
         "/api/catalog/teachers/{id}/sections",
         "/api/community/comments",
         "/api/workspace/exams",
+        "/api/workspace/todos",
+        "/api/catalog/sections/{jwId}/schedules",
         "/api/admin/users",
       ]),
     );
@@ -79,6 +93,7 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
     };
     const preparedPaths: Record<string, string> = {
       "/api/catalog/courses/{jwId}/sections": `/api/catalog/courses/${catalog.courses[0].jwId}/sections`,
+      "/api/catalog/sections/{jwId}/schedules": `/api/catalog/sections/${section.jwId}/schedules`,
       "/api/catalog/teachers/{id}/sections": `/api/catalog/teachers/${catalog.teachers[0].id}/sections`,
     };
     for (const [path, { get }] of paths) {

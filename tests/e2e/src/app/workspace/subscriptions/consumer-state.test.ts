@@ -256,12 +256,12 @@ for (const [domain, method] of [
               expect.arrayContaining([
                 expect.objectContaining({
                   type: "schedule",
-                  title: own.course.nameCn,
+                  title: own.course.nameEn,
                   url: `/catalog/sections/${own.section.jwId}`,
                 }),
                 expect.objectContaining({
                   type: "exam",
-                  title: own.course.nameCn,
+                  title: own.course.nameEn,
                   url: "/workspace/exams",
                 }),
                 expect.objectContaining({
@@ -275,6 +275,7 @@ for (const [domain, method] of [
               ]),
             );
             expect(JSON.stringify(body)).not.toContain(foreign.course.nameCn);
+            expect(JSON.stringify(body)).not.toContain(foreign.course.nameEn);
             expect(JSON.stringify(body)).not.toContain(
               `/catalog/sections/${foreign.section.jwId}`,
             );

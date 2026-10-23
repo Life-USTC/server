@@ -6,7 +6,7 @@ import type { RequestHandler } from "./$types";
  * Get section schedules.
  * @pathParams jwIdPathParamsSchema
  * @params sectionSchedulesQuerySchema
- * @response 200:sectionSchedulesResponseSchema
+ * @response 200:sectionSchedulesReadResponseSchema
  * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */

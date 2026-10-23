@@ -22,6 +22,7 @@ import {
 } from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 import { paginatedQuery } from "@/lib/query-pagination";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { serializeScheduleGroupTimeFields } from "@/shared/lib/schedule-serialization";
@@ -377,30 +378,41 @@ export async function getSectionSchedulesByJwId(input: {
   includeSection?: boolean;
   limit?: number;
   locale?: AppLocale;
+  pagination?: { page: number; pageSize: number };
   sectionJwId: number;
 }) {
+  const pagination = input.pagination
+    ? normalizePagination(input.pagination)
+    : undefined;
+  const dateWhere = buildScheduleDateWhere(input);
   const sectionWithSchedules = await getPrisma(
     input.locale ?? DEFAULT_LOCALE,
   ).section.findUnique({
     where: { jwId: input.sectionJwId },
     select: {
       ...sectionPublicContextSelect,
+      _count: pagination
+        ? { select: { schedules: { where: dateWhere } } }
+        : undefined,
       schedules: {
-        where: buildScheduleDateWhere(input),
+        where: dateWhere,
         include: input.includeSection
           ? sectionScheduleListInclude
           : sectionScheduleInclude,
         orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
-        // An omitted limit is bounded by the documented maximum instead
-        // of returning every meeting of the section.
-        take: input.limit ?? SECTION_SCHEDULE_MAX_LIMIT,
+        skip: pagination?.skip,
+        take: pagination?.pageSize ?? input.limit ?? SECTION_SCHEDULE_MAX_LIMIT,
       },
     },
   });
 
   if (!sectionWithSchedules) return { found: false as const };
 
-  const { schedules: rawSchedules, ...rawSection } = sectionWithSchedules;
+  const {
+    schedules: rawSchedules,
+    _count,
+    ...rawSection
+  } = sectionWithSchedules;
   const section = toSectionPublicContextDto(
     rawSection,
     input.locale ?? DEFAULT_LOCALE,
@@ -415,7 +427,21 @@ export async function getSectionSchedulesByJwId(input: {
       : toSectionScheduleEntryDto(schedule, input.locale ?? DEFAULT_LOCALE),
   );
 
-  return { found: true as const, section, schedules };
+  return {
+    found: true as const,
+    section,
+    schedules,
+    ...(pagination
+      ? {
+          pagination: buildPaginatedResponse(
+            schedules,
+            pagination.page,
+            pagination.pageSize,
+            _count.schedules,
+          ).pagination,
+        }
+      : {}),
+  };
 }
 
 export async function getSectionScheduleGroupsByJwId(input: {

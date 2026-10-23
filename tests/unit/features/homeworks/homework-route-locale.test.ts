@@ -6,19 +6,19 @@ const {
   listSubscribedHomeworkPageMock,
   requireAuthMock,
   resolveHomeworkSectionIdsMock,
-  resolveSessionUserIdMock,
+  resolveOptionalApiUserIdMock,
 } = vi.hoisted(() => ({
   listSectionHomeworkAuditLogsMock: vi.fn(),
   listSectionHomeworkPageWithViewerMock: vi.fn(),
   listSubscribedHomeworkPageMock: vi.fn(),
   requireAuthMock: vi.fn(),
   resolveHomeworkSectionIdsMock: vi.fn(),
-  resolveSessionUserIdMock: vi.fn(),
+  resolveOptionalApiUserIdMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
-  resolveSessionUserId: resolveSessionUserIdMock,
+  resolveOptionalApiUserId: resolveOptionalApiUserIdMock,
 }));
 
 vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
@@ -46,7 +46,7 @@ describe("homework REST locale 适配", () => {
   });
 
   it("将请求 locale 传递给公开作业列表读取", async () => {
-    resolveSessionUserIdMock.mockResolvedValue("viewer-1");
+    resolveOptionalApiUserIdMock.mockResolvedValue("viewer-1");
     resolveHomeworkSectionIdsMock.mockResolvedValue({
       ok: true,
       sectionIds: [12],
@@ -143,7 +143,7 @@ describe("homework REST locale 适配", () => {
   });
 
   it("去重公开 sectionIds 并拒绝越界列表与分页", async () => {
-    resolveSessionUserIdMock.mockResolvedValue(null);
+    resolveOptionalApiUserIdMock.mockResolvedValue(null);
     resolveHomeworkSectionIdsMock.mockImplementation(async (input) => ({
       ok: true,
       sectionIds: input.sectionIds,

@@ -99,13 +99,37 @@ export const schedulesQuerySchema = catalogLocaleQuerySchema.extend({
   pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
 });
 
-export const sectionSchedulesQuerySchema = catalogLocaleQuerySchema.extend({
-  dateFrom: dateQuerySchema().optional(),
-  dateTo: dateQuerySchema().optional(),
-  limit: sectionScheduleLimitSchema
-    .optional()
-    .default(SECTION_SCHEDULE_MAX_LIMIT),
-});
+export const sectionSchedulesQuerySchema = catalogLocaleQuerySchema
+  .extend({
+    dateFrom: dateQuerySchema().optional(),
+    dateTo: dateQuerySchema().optional(),
+    limit: sectionScheduleLimitSchema
+      .optional()
+      .describe(
+        "Legacy array mode only; defaults to 200 when page and pageSize are omitted.",
+      ),
+    page: integerQueryRangeSchema({
+      minimum: 1,
+      maximum: 100000,
+      message: "Invalid page",
+    }).optional(),
+    pageSize: integerQueryRangeSchema({
+      minimum: 1,
+      maximum: 100,
+      message: "Invalid pageSize",
+    }).optional(),
+  })
+  .refine(
+    (query) =>
+      query.limit === undefined ||
+      (query.page === undefined && query.pageSize === undefined),
+    { message: "Use either limit or page/pageSize", path: ["limit"] },
+  )
+  .overwrite((query) =>
+    query.page === undefined && query.pageSize === undefined
+      ? { ...query, limit: query.limit ?? SECTION_SCHEDULE_MAX_LIMIT }
+      : query,
+  );
 
 export const sectionDetailQuerySchema = catalogLocaleQuerySchema.extend({
   includeExams: booleanQuerySchema.optional(),

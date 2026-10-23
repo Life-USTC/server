@@ -102,6 +102,8 @@ export async function getSectionSchedulesRoute(
           dateFrom: parsedQuery.dateFrom,
           dateTo: parsedQuery.dateTo,
           limit: parsedQuery.limit,
+          page: parsedQuery.page,
+          pageSize: parsedQuery.pageSize,
         },
       ),
   );

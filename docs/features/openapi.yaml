@@ -21,6 +21,8 @@ requirements:
     OAuth bearer alternatives. Bearer access also requires the matching feature scope and owner permission.
     Administrator governance and sensitive account management are session-only; current OAuth-client activity
     is bearer-only; ingestion uses its dedicated service credential.
+    Public community reads may declare an anonymous alternative with a scoped viewer projection;
+    supplied bearer credentials must pass the explicit read scope and never fall back to cookies or anonymity.
   acceptance:
     given: Three isolated owners including an administrator, real signed sessions, actual signed resource-bound
       OAuth grants, and production database roles behind REST HTTP handlers.
@@ -50,7 +52,7 @@ requirements:
       name: openapi.crawler-ingestion-rest-only
 - id: openapi.security-schemes
   category: authorization
-  rule: Generated OpenAPI distinguishes scoped session-or-bearer business operations, session-only admin operations, optional-bearer MCP transport with protected tool scope checks, bearer-only client activity, ingestion-secret writes, and session-or-feed-token calendar exports. A feed endpoint does not advertise bearer access it does not accept.
+  rule: Generated OpenAPI distinguishes scoped session-or-bearer business operations, anonymous community reads with scoped viewer alternatives, session-only admin operations, optional-bearer MCP transport with protected tool scope checks, bearer-only client activity, ingestion-secret writes, and session-or-feed-token calendar exports. A feed endpoint does not advertise bearer access it does not accept.
   acceptance:
     given: Current business, admin, MCP, ingestion and calendar-feed routes declare their authentication.
     when: The real generator builds the complete document.
@@ -58,6 +60,7 @@ requirements:
     - Every authenticated operation advertises the mechanism appropriate to its route.
     - Each ordinary bearer operation supplies nonempty registered feature scopes.
     - Current subscriptions distinguish the optional calendar-feed scope from the required subscription scope.
+    - Community reads retain an empty security alternative for anonymous access alongside their explicit scoped bearer and session alternatives.
     test:
       file: tests/unit/lib/openapi/openapi-generator.test.ts
       name: openapi.security-schemes

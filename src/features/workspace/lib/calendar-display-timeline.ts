@@ -79,8 +79,12 @@ export function buildCalendarTimelineItemsForDay<
       title: todo.title,
       tone: "success" as const,
     })),
-  ].sort(
-    (left, right) =>
-      left.sort - right.sort || left.title.localeCompare(right.title),
-  );
+  ].sort(compareCalendarTimelineItems);
+}
+
+export function compareCalendarTimelineItems(
+  left: { sort: number; title: string },
+  right: { sort: number; title: string },
+) {
+  return left.sort - right.sort || left.title.localeCompare(right.title);
 }

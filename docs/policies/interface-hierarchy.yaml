@@ -255,7 +255,7 @@ requirements:
     and date filters identically and return the same date/start-time/row-ID ordered pages and totals.
     Section-specific schedule reads use the external section JW ID and return the same requested prefix.
   rationale: Numeric database IDs and public JW IDs remain distinct inputs; simultaneous selectors constrain
-    the same record. Section-specific reads expose a limit rather than paginated metadata.
+    the same record. Section-specific reads retain their limit-based prefix; REST additionally supports complete paginated reads when page or pageSize is supplied.
   acceptance:
     given: An isolated catalog has separate row/JW IDs, teachers, rooms and schedules inserted in reverse
       row-ID order with tied dates/start times, accessed through the restricted application database role.

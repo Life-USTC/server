@@ -109,7 +109,7 @@ requirements:
       name: schedule.viewer-scoped-section-projection
 - id: schedule.section-schedule-default-bound
   category: validation
-  rule: A section schedule read without an explicit limit returns at most the documented maximum of 200
+  rule: A section schedule read without explicit pagination or limit returns at most the documented maximum of 200
     meetings ordered by date, start time and ID. The schedule-groups read publishes groups with at most
     200 meetings each in the same order, without loading the surrounding section record.
   acceptance:
@@ -123,6 +123,79 @@ requirements:
     test:
       file: tests/integration/rest/sections/[jwId]/schedules/test.ts
       name: section schedules without limit return the first 200 meetings
+- id: schedule.section-rest-complete-pagination
+  category: consistency
+  applies_to:
+  - section-schedule
+  expectation:
+    kind: ordered_page
+    operation:
+      module: src/features/catalog/server/schedule-read-model.ts
+      export: getSectionSchedulesByJwId
+    model: Schedule
+    surfaces:
+    - rest
+    order:
+    - field: date
+      direction: asc
+      nulls: last
+    - field: startTime
+      direction: asc
+    - field: id
+      direction: asc
+    page_size_echoed: true
+    complete_total: true
+    exhausted_items: 0
+  acceptance:
+    given: Active and retired teaching sections each have more than 200 meetings, including known rooms and teacher participation facts.
+    when: Anonymous callers traverse the section-scoped date-filtered pages and request an exhausted page.
+    then:
+    - Every matching meeting appears exactly once in stable order, with the complete filtered total.
+    - Meetings after the first 200 retain their room, teacher participation and schedule-group context, including retired sections.
+    - Exhausted pages contain no items and retain the filtered total.
+    test:
+      file: tests/integration/rest/sections/[jwId]/schedules/test.ts
+      name: section schedule pagination retains complete retired meeting context
+- id: schedule.section-rest-page-number
+  category: validation
+  applies_to:
+  - section-schedule
+  expectation:
+    kind: numeric_input
+    surface: rest
+    operation: GET /api/catalog/sections/[jwId]/schedules
+    input: page
+    minimum: 1
+    maximum: 100000
+    integer: true
+  acceptance:
+    given: A caller requests a section-scoped schedule page.
+    when: The page number is fractional or outside its bounds.
+    then:
+    - Invalid values return 400, while exhausted valid pages remain available.
+    test:
+      file: tests/integration/rest/sections/[jwId]/schedules/test.ts
+      name: section schedule pagination validates modes and missing sections
+- id: schedule.section-rest-page-size
+  category: validation
+  applies_to:
+  - section-schedule
+  expectation:
+    kind: numeric_input
+    surface: rest
+    operation: GET /api/catalog/sections/[jwId]/schedules
+    input: pageSize
+    minimum: 1
+    maximum: 100
+    integer: true
+  acceptance:
+    given: A caller requests a section-scoped schedule page.
+    when: The page size is within or outside its bounds.
+    then:
+    - Valid sizes are echoed and invalid sizes return 400.
+    test:
+      file: tests/integration/rest/sections/[jwId]/schedules/test.ts
+      name: section schedule pagination validates modes and missing sections
 - id: schedule.graphql-teacher-participation-output
   category: behavior
   rule: Authorized workspace GraphQL schedules expose teacher identities and independent participation
@@ -288,11 +361,13 @@ capabilities:
       routes:
       - path: /api/catalog/sections/[jwId]/schedules
         notes:
-        - Returns a simplified variant of ScheduleEntry[] for the section.
+        - Returns a simplified variant of ScheduleEntry[] for the section when page and pageSize are omitted.
         - Accepts optional dateFrom/dateTo and limit query parameters to narrow results to the same window
           supported by catalog_section_schedule_list.
-        - limit accepts 1-200 and defaults to 200; an omitted limit never returns more than the documented
-          maximum.
+        - Legacy array mode accepts limit 1-200 and defaults to 200.
+        - Supplying page or pageSize returns data plus pagination metadata with the complete date-filtered total.
+          Defaults are page 1 and pageSize 20. Mixing limit with page or pageSize returns 400.
+        - Paginated direct reads retain retired sections and all room, teacher participation and schedule-group context.
         - REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale
           input.
       - path: /api/catalog/sections/[jwId]/schedule-groups
@@ -354,6 +429,9 @@ capabilities:
           tertiary: []
     requirement_refs:
     - calendar.event-card-types
+    - schedule.section-rest-complete-pagination
+    - schedule.section-rest-page-number
+    - schedule.section-rest-page-size
 rationale:
 - Schedule refers to a section's class times, locations, and week patterns.
 - A section schedule read fetches section context and its filtered, ordered, optionally bounded schedules

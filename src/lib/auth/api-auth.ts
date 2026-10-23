@@ -22,7 +22,10 @@ import {
   USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
   type UserMutationRateLimitTier,
 } from "@/lib/security/user-mutation-rate-limit";
-import { parseBearerAuthorizationHeader } from "./authorization-header";
+import {
+  hasBearerAuthorizationHeader,
+  parseBearerAuthorizationHeader,
+} from "./authorization-header";
 import { verifyAccessTokenJwt } from "./jwt-verification";
 import { hasRequestAuthSignal } from "./request-auth-signal";
 
@@ -139,6 +142,18 @@ export async function resolveSessionUserId(
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);
   return session?.user?.id ?? null;
+}
+
+/** Preserve public/session reads while rejecting invalid scoped Bearer credentials. */
+export async function resolveOptionalApiUserId(
+  request: Request,
+  bearerScope: RestBearerScopeRequirement,
+): Promise<string | null | Response> {
+  if (hasBearerAuthorizationHeader(request.headers)) {
+    const principal = await requireAuthPrincipal(request, { bearerScope });
+    return principal instanceof Response ? principal : principal.userId;
+  }
+  return resolveSessionUserId(request);
 }
 
 export async function requireAuth(

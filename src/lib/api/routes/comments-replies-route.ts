@@ -12,7 +12,7 @@ import {
   commentRepliesQuerySchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { resolveSessionUserId } from "@/lib/auth/api-auth";
+import { resolveOptionalApiUserId } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -36,11 +36,16 @@ export async function getCommentRepliesRoute(
   if (parsed instanceof Response) return parsed;
 
   try {
+    const viewerUserId = await resolveOptionalApiUserId(request, {
+      feature: "community.comment",
+      action: "read",
+    });
+    if (viewerUserId instanceof Response) return viewerUserId;
     const result = await loadCommentReplies({
       commentId: parsedParams.id,
       cursor: parsed.query.cursor,
       pageSize: parsed.pagination.pageSize,
-      viewerUserId: await resolveSessionUserId(request),
+      viewerUserId,
     });
     if (!result.ok && result.error === "not_found") return notFound();
     if (!result.ok && result.error === "forbidden") return forbidden();

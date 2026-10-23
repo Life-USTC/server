@@ -12,6 +12,20 @@ policy_refs:
 - audit
 - cases.content-security
 requirements:
+- id: comment.scoped-rest-viewer
+  category: authorization
+  rule: Comment list, focused-thread and reply-continuation REST reads preserve anonymous and session reads. A supplied Bearer token must have a valid REST audience, active grant and community.comment read or write scope; rejected credentials return 401 without falling back to a session or anonymous viewer. Valid scoped reads use ordinary visibility, anonymous-author masking, reactions, attachments and viewer action permissions, with no administrator governance override. Responses remain private and non-cacheable.
+  acceptance:
+    given: A private database has public, login-only, anonymous and owner-only softbanned comments, eleven replies, an attachment, a reaction, signed sessions and resource-bound OAuth tokens.
+    when: Read the list, focused thread and reply continuation through real HTTP with anonymous, session, scoped and invalid credentials, including mixed Bearer and Cookie identities.
+    then:
+    - Scoped reads project the Bearer actor, matching that actor's session visibility and actions while keeping anonymous identities masked.
+    - Reply continuation retains login-only replies for an authenticated reader; ordinary administrators gain no hidden-author or moderation visibility override.
+    - Empty, malformed, wrong-audience, expired, unrelated-scope and inactive-grant credentials return 401 even with a valid session cookie.
+    - Public reads remain available and every response is private, no-store.
+    test:
+      file: tests/integration/community-scoped-read-contract.test.ts
+      name: comment.scoped-rest-viewer
 - id: comment.public-permission-recovery
   category: authorization
   rule: Public course, section and teacher comment composers wait for their private viewer projection. Failed initial reads expose retry without enabling publication or assuming the viewer is anonymous. A successful retry does not publish; a rejected submission preserves the draft and committed comments.

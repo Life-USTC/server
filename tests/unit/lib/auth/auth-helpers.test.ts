@@ -76,6 +76,92 @@ describe("认证辅助函数", () => {
     expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
   });
 
+  it("显式声明 scope 的公共读取保留匿名和 session 身份", async () => {
+    const { resolveOptionalApiUserId } = await import("@/lib/auth/api-auth");
+    const bearerScope = {
+      feature: "community.comment",
+      action: "read",
+    } as const;
+    await expect(
+      resolveOptionalApiUserId(
+        new Request("https://life.example/api/community/comments"),
+        bearerScope,
+      ),
+    ).resolves.toBeNull();
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "user-from-cookie" },
+    });
+    await expect(
+      resolveOptionalApiUserId(
+        new Request("https://life.example/api/community/comments", {
+          headers: { cookie: "better-auth.session_token=session-token" },
+        }),
+        bearerScope,
+      ),
+    ).resolves.toBe("user-from-cookie");
+    expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
+    expect(hasActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["read", "write"])(
+    "公共读取以 community.comment:%s Bearer 身份覆盖 Cookie",
+    async (action) => {
+      verifyAccessTokenJwtMock.mockResolvedValue({
+        clientId: "client-id",
+        scope: new Set([`community.comment:${action}`]),
+        sub: "user-from-token",
+      });
+      const { resolveOptionalApiUserId } = await import("@/lib/auth/api-auth");
+      await expect(
+        resolveOptionalApiUserId(
+          new Request("https://life.example/api/community/comments", {
+            headers: {
+              authorization: "Bearer access-token",
+              cookie: "better-auth.session_token=session-token",
+            },
+          }),
+          { feature: "community.comment", action: "read" },
+        ),
+      ).resolves.toBe("user-from-token");
+      expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+      expect(hasActiveOAuthUserGrantMock).toHaveBeenCalledWith(
+        expect.objectContaining({ requireGrantBinding: true }),
+      );
+    },
+  );
+
+  it.each(["Bearer", "bEaReR ", "Bearer unrelated-scope"])(
+    "公共读取拒绝 %s 且不回退为 Cookie 或匿名",
+    async (authorization) => {
+      getSessionFromHeadersMock.mockResolvedValue({
+        user: { id: "user-from-cookie" },
+      });
+      verifyAccessTokenJwtMock.mockResolvedValue({
+        clientId: "client-id",
+        scope: new Set(["workspace.todo:read"]),
+        sub: "user-from-token",
+      });
+      const { resolveOptionalApiUserId } = await import("@/lib/auth/api-auth");
+      const result = await resolveOptionalApiUserId(
+        new Request("https://life.example/api/community/comments", {
+          headers: {
+            authorization,
+            cookie: "better-auth.session_token=session-token",
+          },
+        }),
+        { feature: "community.comment", action: "read" },
+      );
+      expect(result).toBeInstanceOf(Response);
+      expect((result as Response).status).toBe(401);
+      expect(await (result as Response).json()).toEqual({
+        error: "Unauthorized",
+      });
+      expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("优先使用有效的 bearer 访问令牌而非 session cookie", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",

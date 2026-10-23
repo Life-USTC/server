@@ -267,6 +267,56 @@ requirements:
     test:
       file: tests/unit/features/calendar/calendar-export-cache.test.ts
       name: calendar.feed-write-rebuild-independent
+- id: calendar.native-navigation-context
+  category: consistency
+  applies_to:
+  - personal-calendar-view
+  expectation:
+    kind: public_projection
+    operation:
+      module: src/features/calendar/server/personal-calendar-page.ts
+      export: listPersonalCalendarPage
+    response:
+      schema: personalCalendarPageSchema
+      path: data/items
+    fields:
+    - id
+    - type
+    - at
+    - endsAt
+    - title
+    - location
+    - url
+    - youngId
+    - target
+    - sectionJwId
+    - sectionCode
+    - teachers
+    - subscriptionKind
+    - priority
+    - content
+    - examMode
+    - hasTime
+    - completionRequired
+    nested_fields:
+      target:
+      - kind
+      - id
+    preserves:
+      id: true
+      target/id: true
+      sectionJwId: true
+    concealed_source_values: true
+  acceptance:
+    given: An isolated auditor has one event of each calendar type with teacher, custom location, unknown exam time and todo content.
+    when: The real scoped REST calendar returns the complete date range.
+    then:
+    - Explicit section, exam, homework, todo and activity targets retain their domain identifiers and context.
+    - Unknown source time remains marked unknown, and teacher contact or source-private values are absent.
+    - English requests localize course, teacher and room labels; custom places keep precedence and identifiers and source exam-room text remain unchanged.
+    test:
+      file: tests/integration/workspace-native-read-contract.test.ts
+      name: calendar.native-navigation-context
 capabilities:
   personal-calendar-view:
     title: Personal Calendar View
@@ -285,6 +335,8 @@ capabilities:
       routes:
       - method: GET
         path: /api/workspace/calendar/events
+        requirement_refs:
+        - calendar.native-navigation-context
     mcp:
       tools:
       - name: workspace_calendar_event_list

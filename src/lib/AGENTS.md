@@ -32,6 +32,7 @@ import {
 import {
   requireAuth,
   requireWriteAuth,
+  resolveOptionalApiUserId,
   resolveSessionUserId,
 } from "@/lib/auth/api-auth";
 import { prisma, getPrisma } from "@/lib/db/prisma";
@@ -40,7 +41,10 @@ import { parseDateInput } from "@/lib/time/parse-date-input";
 ```
 
 `requireAuth` callers must declare the accepted OAuth feature/action scope.
-Optional personalization must use `resolveSessionUserId`; it never accepts a
-Bearer token.
+Session-only personalization uses `resolveSessionUserId`; it never accepts a
+Bearer token. Public community reads with an explicit read scope use
+`resolveOptionalApiUserId`: supplied Bearer credentials must pass that scope;
+without Bearer, cookie and anonymous behavior is preserved. A rejected Bearer
+must never fall back to another identity.
 
 More detail: `components/`, `graphql/`, `mcp/`.
