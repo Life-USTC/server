@@ -92,12 +92,12 @@ for (const sample of new Map(
 ).values()) {
   test(`ui.social-sharing-metadata-1: ${sample.samplePath} ${sample.auth}`, {
     tag: `@${sample.domain}/Web`,
-  }, async ({ page, request, preferenceFlow, isolatedWorker }) => {
+  }, async ({ page, preferenceFlow, isolatedWorker }) => {
     await preferenceFlow.run(async () => {
       const db = isolatedWorker.database.owner;
       const origin = isolatedWorker.origin;
       const weather = await preferenceFlow.prepare(() =>
-        arrangeWeatherCache(request),
+        arrangeWeatherCache(origin),
       );
       const browserErrors: string[] = [];
       page.on("pageerror", (error) => browserErrors.push(error.message));
@@ -302,7 +302,7 @@ for (const sample of new Map(
       for (const snapshot of weather) {
         expect(
           await preferenceFlow.prepare(() =>
-            readWeatherCache(request, snapshot.location.key),
+            readWeatherCache(origin, snapshot.location.key),
           ),
         ).toEqual(snapshot);
       }

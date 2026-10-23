@@ -1,4 +1,3 @@
-import type { APIRequestContext } from "@playwright/test";
 import { arrangeBusTimetable } from "../../shared/bus-timetable";
 import type { TestPrismaClient } from "../../shared/prisma";
 import {
@@ -12,14 +11,13 @@ import { arrangeWeatherCache } from "./weather-cache-fixture";
 /** Arrange only the public domain read by this mobile route, in its private Worker. */
 export async function arrangeMobilePublicState(
   db: TestPrismaClient,
-  request: APIRequestContext,
   origin: string,
   path: string,
 ) {
   if (path.startsWith("/catalog/bus")) {
     await arrangeBusTimetable(db);
   } else if (path === "/catalog/weather") {
-    await arrangeWeatherCache(request);
+    await arrangeWeatherCache(origin);
   } else {
     await db.$transaction(async (tx) => {
       if (path.startsWith("/catalog/courses")) {
