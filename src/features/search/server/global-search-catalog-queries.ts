@@ -28,9 +28,15 @@ function buildGlobalSectionSearchWhere(
     retiredAt: null,
     AND: searchTerms(query).map((term) => ({
       OR: [
-        { course: { nameCn: ilike(term) } },
-        { course: { nameEn: ilike(term) } },
-        { course: { code: ilike(term) } },
+        {
+          course: {
+            OR: [
+              { nameCn: ilike(term) },
+              { nameEn: ilike(term) },
+              { code: ilike(term) },
+            ],
+          },
+        },
         { code: ilike(term) },
         {
           teachers: {
