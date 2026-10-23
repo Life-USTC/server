@@ -1,4 +1,4 @@
-import { type APIRequestContext, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
 import {
   arrangeWeatherCache,
@@ -7,12 +7,12 @@ import {
 import type { TestPrismaClient } from "../../../shared/prisma";
 
 async function assertUnchangedWeather(
-  request: APIRequestContext,
+  origin: string,
   db: TestPrismaClient,
   snapshots: Awaited<ReturnType<typeof arrangeWeatherCache>>,
 ) {
   for (const snapshot of snapshots)
-    expect(await readWeatherCache(request, snapshot.location.key)).toEqual(
+    expect(await readWeatherCache(origin, snapshot.location.key)).toEqual(
       snapshot,
     );
   expect(await db.weatherObservation.findMany()).toEqual([]);
@@ -37,7 +37,7 @@ for (const [name, query, locationKey] of [
     run,
   }) => {
     await run(async () => {
-      const snapshots = await arrangeWeatherCache(request);
+      const snapshots = await arrangeWeatherCache(isolatedWorker.origin);
       expect(
         await isolatedWorker.database.owner.weatherObservation.findMany(),
       ).toEqual([]);
@@ -56,7 +56,7 @@ for (const [name, query, locationKey] of [
       expect(typeof body.current.temperature).toBe("number");
       expect(body).toEqual(expected);
       await assertUnchangedWeather(
-        request,
+        isolatedWorker.origin,
         isolatedWorker.database.owner,
         snapshots,
       );
@@ -69,14 +69,14 @@ for (const locationKey of ["", "unknown-campus"]) {
     tag: "@Weather/REST",
   }, async ({ request, isolatedWorker, run }) => {
     await run(async () => {
-      const snapshots = await arrangeWeatherCache(request);
+      const snapshots = await arrangeWeatherCache(isolatedWorker.origin);
       const response = await request.get(
         `/api/catalog/weather?locationKey=${encodeURIComponent(locationKey)}`,
       );
       expect(response.status()).toBe(400);
       expect(await response.json()).toEqual({ error: "Invalid weather query" });
       await assertUnchangedWeather(
-        request,
+        isolatedWorker.origin,
         isolatedWorker.database.owner,
         snapshots,
       );
@@ -88,7 +88,7 @@ test("weather fixture storage restricts authorization and exact location keys", 
   tag: "@Weather/REST",
 }, async ({ request, isolatedWorker, run }) => {
   await run(async () => {
-    const snapshots = await arrangeWeatherCache(request);
+    const snapshots = await arrangeWeatherCache(isolatedWorker.origin);
     const path = "/__test/storage/weather?locationKey=ustc-main";
     const headers = { "x-test-storage-secret": "local-test-storage-observer" };
     for (const method of ["GET", "PUT"] as const) {
@@ -120,7 +120,7 @@ test("weather fixture storage restricts authorization and exact location keys", 
     expect(deletion.status()).toBe(405);
     await deletion.body();
     await assertUnchangedWeather(
-      request,
+      isolatedWorker.origin,
       isolatedWorker.database.owner,
       snapshots,
     );

@@ -8,14 +8,12 @@ test.describe("移动端页面健全性", () => {
     for (const { path, domain } of mobilePageCases("public")) {
       test(path, { tag: `@${domain}/Web` }, async ({
         page,
-        request,
         isolatedWorker,
         preferenceFlow,
       }) => {
         await preferenceFlow.prepare(() =>
           arrangeMobilePublicState(
             isolatedWorker.database.owner,
-            request,
             isolatedWorker.origin,
             path,
           ),

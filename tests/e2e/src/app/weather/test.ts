@@ -20,10 +20,12 @@ test.describe("/catalog/weather", () => {
   test("页面契约", { tag: "@Weather/Web" }, async ({
     page,
     preferenceFlow,
-    request,
+    isolatedWorker,
   }) => {
     await preferenceFlow.run(async () => {
-      await preferenceFlow.prepare(() => arrangeWeatherCache(request));
+      await preferenceFlow.prepare(() =>
+        arrangeWeatherCache(isolatedWorker.origin),
+      );
       await assertPageContract(page, {
         routePath: "/catalog/weather",
       });
