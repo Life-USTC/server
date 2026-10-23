@@ -9,14 +9,9 @@ import {
   type OrderingWatchOptions,
   PRODUCTION_BUILD_CHECK_APP,
   PRODUCTION_VERSION_MARKER_PATH,
-  pendingBuildCommits,
   shortCommit,
   watchDeploymentOrdering,
 } from "./deployment-ordering";
-import {
-  readPromotionObservation,
-  watchPromotionOrdering,
-} from "./promotion-observer";
 
 const run = promisify(execFile);
 
@@ -163,44 +158,6 @@ async function main() {
       `Main advanced to ${shortCommit(history[0])} after ${shortCommit(triggeringCommit)}; the run for the newer commit verifies the delivered version.`,
       "notice",
     );
-    return;
-  }
-
-  const observerOrigin = process.env.PROMOTION_OBSERVER_ORIGIN?.trim();
-  if (observerOrigin) {
-    const observerToken = requiredSetting("PROMOTION_OBSERVER_TOKEN");
-    const verdict = await watchPromotionOrdering(
-      {
-        readObservation: async () => {
-          const observed = await readPromotionObservation(
-            observerOrigin,
-            observerToken,
-          );
-          if (observed.status !== "settled") return observed;
-          const commits = await readHistory(depth);
-          const builds = await readBuilds(repository, token, commits);
-          return pendingBuildCommits(commits, builds).length > 0
-            ? { ...observed, status: "pending" as const }
-            : observed;
-        },
-        readLiveVersion: () => readLiveVersion(origin),
-        sleep: (seconds) =>
-          new Promise((resolve) => setTimeout(resolve, seconds * 1_000)),
-        now: () => Date.now(),
-      },
-      options,
-    );
-    if (verdict.status === "verified") {
-      await report(
-        "Serialized production promotion verified",
-        `Production serves ${shortCommit(verdict.commit)} and the promotion owner has no pending or ready newer candidate.`,
-        "notice",
-      );
-    } else {
-      const outcome = formatOrderingReport(verdict);
-      await report(outcome.title, outcome.message, outcome.level);
-      process.exitCode = 1;
-    }
     return;
   }
 
