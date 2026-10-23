@@ -55,6 +55,7 @@ export async function arrangePublicationFixture(
       "第二段正文，验证段间距与首行缩进。",
       `![Inline publication image](${imageUrl})`,
       "This paragraph follows the inline image.",
+      "| 场次 | 时间 |\n| --- | --- |\n| A | 8:30~9:30 |\n| B | 9:30~10:00 |\n| C | 10:00~10:20 |",
       `Fixture: ${prefix}`,
       `详情链接：${longUrl}`,
       '<script>throw new Error("untrusted article script")</script>',

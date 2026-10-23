@@ -109,6 +109,10 @@ test("publications.markdown-presentation", { tag: "@Publication/Web" }, async ({
         "image",
         "This paragraph follows the inline image.",
       ]);
+      for (const time of ["8:30~9:30", "9:30~10:00", "10:00~10:20"])
+        await expect(
+          body.getByRole("cell", { name: time, exact: true }),
+        ).toBeVisible();
       for (const name of [
         "Article author",
         "Article reporter",
