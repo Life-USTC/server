@@ -1,4 +1,35 @@
-import { type APIRequestContext, expect } from "@playwright/test";
+import {
+  type APIRequestContext,
+  expect,
+  request as nativeRequest,
+} from "@playwright/test";
+
+/** Keep idle observer connections out of later browser/OAuth phases. Consume
+ * responses before returning; disposing their context releases response storage. */
+export async function withCalendarObserver<T>(
+  origin: string,
+  observe: (request: APIRequestContext) => Promise<T>,
+): Promise<T> {
+  const request = await nativeRequest.newContext({ baseURL: origin });
+  let result: { value: T } | { error: unknown };
+  try {
+    result = { value: await observe(request) };
+  } catch (error) {
+    result = { error };
+  }
+  try {
+    await request.dispose();
+  } catch (error) {
+    if ("error" in result)
+      throw new AggregateError(
+        [result.error, error],
+        "Calendar observation and disposal failed",
+      );
+    throw error;
+  }
+  if ("error" in result) throw result.error;
+  return result.value;
+}
 
 export type CalendarMessage =
   | { type: "section"; sectionId: number }
@@ -48,13 +79,13 @@ function compareMessages(left: CalendarMessage, right: CalendarMessage) {
 /** Observe the real producer and native consumer without owning a page or
  * deriving the scenario's successful message plan from observed work. */
 export function createCalendarEffectObserver({
-  request,
+  origin,
   producerPath,
   account,
   sectionId,
   calendar: expectedCalendar = "present",
 }: {
-  request: APIRequestContext;
+  origin: string;
   producerPath: string;
   account: { id: string };
   sectionId?: number;
@@ -63,51 +94,55 @@ export function createCalendarEffectObserver({
   const secret = { "x-test-storage-secret": "local-test-storage-observer" };
   const consumerPath = `/__test/calendar-consumer?userId=${account.id}${sectionId === undefined ? "" : `&sectionId=${sectionId}`}`;
   async function collect(expectedMessages: number | "submitted") {
-    let snapshot:
-      | { producer: ProducerObservation; consumer: CalendarObservation }
-      | undefined;
-    await expect
-      .poll(
-        async () => {
-          const producerResponse = await request.get(producerPath, {
-            headers: secret,
-          });
-          expect(producerResponse.status()).toBe(200);
-          const producer: ProducerObservation = await producerResponse.json();
-          const consumerResponse = await request.get(consumerPath, {
-            headers: secret,
-          });
-          expect(consumerResponse.status()).toBe(200);
-          const consumer: CalendarObservation = await consumerResponse.json();
-          snapshot = { producer, consumer };
-          const submitted = producer.messages.filter(
-            ({ outcome }) => outcome === "fulfilled",
-          ).length;
-          const required =
-            expectedMessages === "submitted"
-              ? submitted
-              : Math.max(expectedMessages, submitted);
-          return (
-            producer.messages.length >= required &&
-            consumer.attempts.length >= required &&
-            consumer.attempts.every((attempt) => attempt.complete)
-          );
-        },
-        {
-          timeout: 15_000,
-          message: "Native calendar consumers complete",
-        },
-      )
-      .toBe(true);
-    if (!snapshot) throw new Error("Missing calendar effect observations");
-    return snapshot;
+    return withCalendarObserver(origin, async (request) => {
+      let snapshot:
+        | { producer: ProducerObservation; consumer: CalendarObservation }
+        | undefined;
+      await expect
+        .poll(
+          async () => {
+            const producerResponse = await request.get(producerPath, {
+              headers: secret,
+            });
+            expect(producerResponse.status()).toBe(200);
+            const producer: ProducerObservation = await producerResponse.json();
+            const consumerResponse = await request.get(consumerPath, {
+              headers: secret,
+            });
+            expect(consumerResponse.status()).toBe(200);
+            const consumer: CalendarObservation = await consumerResponse.json();
+            snapshot = { producer, consumer };
+            const submitted = producer.messages.filter(
+              ({ outcome }) => outcome === "fulfilled",
+            ).length;
+            const required =
+              expectedMessages === "submitted"
+                ? submitted
+                : Math.max(expectedMessages, submitted);
+            return (
+              producer.messages.length >= required &&
+              consumer.attempts.length >= required &&
+              consumer.attempts.every((attempt) => attempt.complete)
+            );
+          },
+          {
+            timeout: 15_000,
+            message: "Native calendar consumers complete",
+          },
+        )
+        .toBe(true);
+      if (!snapshot) throw new Error("Missing calendar effect observations");
+      return snapshot;
+    });
   }
 
   return {
     async register() {
-      const response = await request.post(consumerPath, { headers: secret });
-      await response.body();
-      expect(response.status()).toBe(201);
+      await withCalendarObserver(origin, async (request) => {
+        const response = await request.post(consumerPath, { headers: secret });
+        await response.body();
+        expect(response.status()).toBe(201);
+      });
     },
     collect,
     assert(

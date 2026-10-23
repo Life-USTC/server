@@ -94,7 +94,7 @@ export const test = adminTest.extend<{
   // so this case owns the real queue boundary instead of the message-free
   // community flow. Content and ICS rebuild stay with the REST invalidation case.
   homeworkDeletionRun: async (
-    { page, request: observer, playwright, isolatedWorker, moderation, run },
+    { page, playwright, isolatedWorker, moderation, run },
     use,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
@@ -107,7 +107,6 @@ export const test = adminTest.extend<{
             return withCalendarProtocol(
               {
                 page,
-                observer,
                 isolatedWorker,
                 createRequest: (headers) =>
                   playwright.request.newContext({

@@ -51,7 +51,7 @@ export const test = workerTest.extend<{
     await use(oauth);
   },
   calendarProtocolRun: async (
-    { page, request, playwright, isolatedWorker, run },
+    { page, playwright, isolatedWorker, run },
     use,
   ) => {
     await withBrowserWorkflow(page, async (workflow) => {
@@ -61,7 +61,6 @@ export const test = workerTest.extend<{
             withCalendarProtocol(
               {
                 page,
-                observer: request,
                 isolatedWorker,
                 createRequest: (headers) =>
                   playwright.request.newContext({

@@ -98,10 +98,7 @@ export const test = workerTest.extend<{
     work: (fixture: HomeworkAudit) => Promise<void>,
   ) => Promise<void>;
 }>({
-  homeworkRun: async (
-    { page, request: observer, playwright, isolatedWorker, run },
-    use,
-  ) => {
+  homeworkRun: async ({ page, playwright, isolatedWorker, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((action, work) =>
         workflow.run(() =>
@@ -132,7 +129,6 @@ export const test = workerTest.extend<{
             return withCalendarProtocol(
               {
                 page,
-                observer,
                 isolatedWorker,
                 runBody: workflow.body,
                 createRequest: (headers) =>

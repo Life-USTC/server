@@ -23,7 +23,7 @@ export const test = workerTest.extend<{
   memberSection: Section & { userId: string };
 }>({
   sectionRun: async (
-    { page, request: observer, playwright, isolatedWorker, section, run },
+    { page, playwright, isolatedWorker, section, run },
     use,
   ) => {
     const db = isolatedWorker.database.owner;
@@ -35,7 +35,6 @@ export const test = workerTest.extend<{
             await withCalendarProtocol(
               {
                 page,
-                observer,
                 isolatedWorker,
                 createRequest: (headers) =>
                   playwright.request.newContext({
