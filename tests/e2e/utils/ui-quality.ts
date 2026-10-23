@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 export type UiQualityIssueKind =
   | "accessibility"
@@ -201,9 +201,34 @@ export async function auditRenderedUi(page: Page): Promise<UiQualityReport> {
   });
 }
 
+export type AccessibilityAudit = {
+  violations: UiQualityIssue[];
+  /**
+   * axe reports a node as `incomplete` when a rule cannot decide on its own.
+   * `color-contrast` does that for text over a background image or gradient,
+   * text another element covers, images of text, and partially transparent
+   * foregrounds — exactly the places a contrast regression can hide. These do
+   * not fail the gate; `expectRenderedUiQuality` records them for review.
+   *
+   * Counted per rule rather than listed per node: a page can produce hundreds
+   * of undecidable nodes, and a wall of them is read by nobody.
+   */
+  incomplete: IncompleteRuleSummary[];
+};
+
+export type IncompleteRuleSummary = {
+  rule: string;
+  help: string;
+  nodes: number;
+  elements: string[];
+};
+
+/** Enough targets to locate the problem, few enough to read in a report. */
+const MAX_SUMMARY_ELEMENTS = 5;
+
 export async function auditAccessibility(
   page: Page,
-): Promise<UiQualityIssue[]> {
+): Promise<AccessibilityAudit> {
   // Bun installs Playwright's exact core dependency beside its peer copy used
   // by axe. They are the same runtime version but TypeScript treats the two
   // Page declarations as distinct module instances.
@@ -216,7 +241,7 @@ export async function auditAccessibility(
     // means a visual regression went unfixed, so prefer fixing the nodes.
     .analyze();
 
-  return results.violations
+  const violations: UiQualityIssue[] = results.violations
     .filter(
       (violation) =>
         violation.impact === "critical" || violation.impact === "serious",
@@ -228,6 +253,19 @@ export async function auditAccessibility(
         detail: `${violation.id} (${violation.impact}): ${violation.help}; ${node.html.replace(/\s+/g, " ").slice(0, 240)}`,
       })),
     );
+
+  const incomplete: IncompleteRuleSummary[] = results.incomplete.map(
+    (result) => ({
+      rule: result.id,
+      help: result.help,
+      nodes: result.nodes.length,
+      elements: result.nodes
+        .slice(0, MAX_SUMMARY_ELEMENTS)
+        .map((node) => node.target.join(" ")),
+    }),
+  );
+
+  return { violations, incomplete };
 }
 
 export async function expectRenderedUiQuality(
@@ -263,14 +301,28 @@ export async function expectRenderedUiQuality(
   // after load reports 13 contrast failures that are all gone once the
   // animation settles. Poll like the structural audit above so a transient
   // frame cannot fail the gate while a real violation still does.
+  let lastAudit: AccessibilityAudit | undefined;
   await expect
     .poll(
-      async () =>
-        unexpectedUiQualityIssues(await auditAccessibility(page), allowlist),
+      async () => {
+        lastAudit = await auditAccessibility(page);
+        return unexpectedUiQualityIssues(lastAudit.violations, allowlist);
+      },
       {
         message: "Expected no serious or critical WCAG A/AA violations",
         timeout: 10_000,
       },
     )
     .toEqual([]);
+
+  // Record what axe could not decide. Failing on these would be too noisy to
+  // live with, but leaving them unread is how a contrast regression behind a
+  // gradient stays invisible, so attach the counts to the run for review.
+  const incomplete = lastAudit?.incomplete ?? [];
+  if (incomplete.length > 0) {
+    await test.info().attach(`axe-incomplete-${new URL(page.url()).pathname}`, {
+      body: JSON.stringify(incomplete, null, 2),
+      contentType: "application/json",
+    });
+  }
 }
