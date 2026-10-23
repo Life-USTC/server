@@ -105,13 +105,13 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.5.1",
-    "@types/pg": "8.20.0",
+    "@types/pg": "8.23.1",
     "@vitest/coverage-v8": "5.0.3",
     "ajv": "^8.20.0",
     "bits-ui": "^2.19.5",
     "devalue": "6.0.3",
     "mode-watcher": "^1.1.0",
-    "pg": "8.21.0",
+    "pg": "8.23.1",
     "semantic-release": "25.0.9",
     "shadcn-svelte": "1.7.0",
     "svelte": "^5.57.2",
@@ -129,5 +129,8 @@
   "imports": {
     "#lib": "./src/lib/index.js",
     "#lib/*": "./src/lib/*"
+  },
+  "patchedDependencies": {
+    "pg-cloudflare@1.4.1": "patches/pg-cloudflare@1.4.1.patch"
   }
 }
