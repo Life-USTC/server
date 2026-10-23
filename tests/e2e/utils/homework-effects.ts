@@ -7,6 +7,7 @@ import {
   type CalendarMessage,
   createCalendarEffectObserver,
   type ProducerObservation,
+  withCalendarObserver,
 } from "./calendar-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 
@@ -87,7 +88,6 @@ export async function withHomeworkEffects(
   },
   work: (effects: HomeworkEffectContext) => Promise<void>,
 ) {
-  const request = page.request;
   const workerAsset = observeReads ? configuredWorkerAssets() : () => false;
   const db = isolatedWorker.database.owner;
   const secret = { "x-test-storage-secret": "local-test-storage-observer" };
@@ -122,7 +122,7 @@ export async function withHomeworkEffects(
   }
 
   const calendarEffects = createCalendarEffectObserver({
-    request,
+    origin: isolatedWorker.origin,
     producerPath,
     account,
     sectionId,
@@ -327,11 +327,19 @@ export async function withHomeworkEffects(
   try {
     if (calendarTokenCreated && presetCalendarToken !== undefined)
       throw new Error("A preset calendar token cannot also be newly created");
-    expect((await request.get(producerPath)).status()).toBe(404);
-    expect((await request.get(consumerPath)).status()).toBe(404);
-    expect(
-      (await request.post(producerPath, { headers: secret })).status(),
-    ).toBe(201);
+    const producer = await page.request.get(producerPath);
+    await producer.body();
+    expect(producer.status()).toBe(404);
+    const consumer = await page.request.get(consumerPath);
+    await consumer.body();
+    expect(consumer.status()).toBe(404);
+    await withCalendarObserver(isolatedWorker.origin, async (request) => {
+      const registration = await request.post(producerPath, {
+        headers: secret,
+      });
+      await registration.body();
+      expect(registration.status()).toBe(201);
+    });
     await calendarEffects.register();
     registered = true;
     if (observeReads) browserReads.start();
@@ -364,8 +372,7 @@ export async function withHomeworkEffects(
             if (!accepting)
               throw new Error("Homework request started during teardown");
             const incoming = route.request();
-            // Keep writes on the browser transport. Observer requests can
-            // leave an idle pooled socket in the separate API request client.
+            // Keep writes on the browser transport and observe their real response.
             await route.continue({
               headers: { ...incoming.headers(), ...headers },
             });
@@ -467,7 +474,6 @@ export async function withHomeworkEffects(
     const bodyResult = await actualBody;
     if (bodyResult && !bodyResult.ok && !errors.includes(bodyResult.error))
       errors.push(bodyResult.error);
-    // Context-owned page.request remains available after the page is closed.
     // Closing joins only proven retired reads; other rejections remain errors.
     // Redirect successors admitted during finalization can add route operations.
     while (
