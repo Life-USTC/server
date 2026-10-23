@@ -8,7 +8,10 @@ import type {
 } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { withBrowserWorkflow } from "./browser-workflow";
-import { createCalendarEffectObserver } from "./calendar-effects";
+import {
+  createCalendarEffectObserver,
+  withCalendarObserver,
+} from "./calendar-effects";
 import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
 
@@ -174,7 +177,6 @@ export const test = workerTest.extend<{
         return workflow.run(() =>
           run(async () => {
             const db = isolatedWorker.database.owner;
-            const request = account.request;
             const headers = {
               "x-test-storage-secret": "local-test-storage-observer",
             };
@@ -182,7 +184,7 @@ export const test = workerTest.extend<{
             const producerPath = `/__test/community-effects?id=${probeId}`;
             const consumerPath = `/__test/calendar-consumer?userId=${account.id}`;
             const calendarEffects = createCalendarEffectObserver({
-              request,
+              origin: isolatedWorker.origin,
               producerPath,
               account,
             });
@@ -258,14 +260,23 @@ export const test = workerTest.extend<{
               };
             };
             try {
-              expect((await request.get(producerPath)).status()).toBe(404);
-              expect((await request.get(consumerPath)).status()).toBe(404);
-              expect(
-                (await request.post(producerPath, { headers })).status(),
-              ).toBe(201);
-              expect(
-                (await request.post(consumerPath, { headers })).status(),
-              ).toBe(201);
+              const producer = await account.request.get(producerPath);
+              await producer.body();
+              expect(producer.status()).toBe(404);
+              const consumer = await account.request.get(consumerPath);
+              await consumer.body();
+              expect(consumer.status()).toBe(404);
+              await withCalendarObserver(
+                isolatedWorker.origin,
+                async (request) => {
+                  const registration = await request.post(producerPath, {
+                    headers,
+                  });
+                  await registration.body();
+                  expect(registration.status()).toBe(201);
+                },
+              );
+              await calendarEffects.register();
               registered = true;
               await page.route(
                 (url) =>

@@ -53,6 +53,12 @@ shared request wrapper or blanket GET policy: even a GET such as catalog link
 resolution records visits and must not be replayed. Native transport behavior
 is covered by `tests/integration/playwright-request-retry.test.ts`.
 
+Calendar observer helpers own fresh native request contexts for producer
+registration, consumer registration, each collection and removal, disposing each
+after its responses and observations finish. Keeping an observer connection idle
+through browser/OAuth work can race workerd's five-second idle close. Preserve
+single-attempt registration and propagate transport, HTTP and assertion failures.
+
 Fixtures use FUNCTION_OWNER_DATABASE_URL; the Worker uses separate restricted
 app/auth/maintenance URLs. The root recipe applies migrations with the owner
 connection and then runs the production permission script on a

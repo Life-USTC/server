@@ -12,6 +12,7 @@ import {
   type CalendarObservation,
   createCalendarEffectObserver,
   type ProducerObservation,
+  withCalendarObserver,
 } from "./calendar-effects";
 import { type HttpMcpRequest, ownHttpMcp } from "./http-mcp-lifecycle";
 import type { IsolatedWorker } from "./isolated-worker";
@@ -49,14 +50,12 @@ export type CalendarProtocol = {
 export async function withCalendarProtocol(
   {
     page,
-    observer,
     isolatedWorker,
     createRequest,
     runBody,
     verifyBrowserWrite,
   }: {
     page: Page;
-    observer: APIRequestContext;
     isolatedWorker: IsolatedWorker;
     createRequest: (
       headers: Record<string, string>,
@@ -94,10 +93,12 @@ export async function withCalendarProtocol(
   const sdk = ownHttpMcp({ origin, headers, remember });
   const sdkRequests = sdk.requests;
   try {
-    const registration = await observer.post(probePath, { headers: secret });
-    registered = registration.status() === 201;
-    await registration.body();
-    expect(registration.status()).toBe(201);
+    await withCalendarObserver(origin, async (observer) => {
+      const registration = await observer.post(probePath, { headers: secret });
+      registered = registration.status() === 201;
+      await registration.body();
+      expect(registration.status()).toBe(201);
+    });
     // Context headers also apply to its already-created page.request client.
     await page.context().setExtraHTTPHeaders(headers);
     request = await createRequest(headers);
@@ -121,7 +122,7 @@ export async function withCalendarProtocol(
                   // interrupted. The successful plan never follows actual sends.
                   calendar = {
                     observer: createCalendarEffectObserver({
-                      request: observer,
+                      origin,
                       producerPath: probePath,
                       account,
                       ...options,
@@ -223,10 +224,12 @@ export async function withCalendarProtocol(
             completed ? calendar.messages.length : "submitted",
           ));
         } else {
-          const response = await observer.get(probePath, { headers: secret });
-          await response.body();
-          expect(response.status()).toBe(200);
-          effects = await response.json();
+          effects = await withCalendarObserver(origin, async (observer) => {
+            const response = await observer.get(probePath, { headers: secret });
+            await response.body();
+            expect(response.status()).toBe(200);
+            return response.json();
+          });
         }
         observation = { effects, sdkRequests };
         if (calendar && consumer)
@@ -269,10 +272,12 @@ export async function withCalendarProtocol(
     // DELETE drains again if registration's response or GET/observation failed.
     // It must finish before independent grant, usage and state observations.
     try {
-      const response = await observer.delete(probePath, { headers: secret });
-      await response.body();
-      if (registered) expect(response.status()).toBe(204);
-      else expect([204, 404]).toContain(response.status());
+      await withCalendarObserver(origin, async (observer) => {
+        const response = await observer.delete(probePath, { headers: secret });
+        await response.body();
+        if (registered) expect(response.status()).toBe(204);
+        else expect([204, 404]).toContain(response.status());
+      });
     } catch (error) {
       remember(error);
     }

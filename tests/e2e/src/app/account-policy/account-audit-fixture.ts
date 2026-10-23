@@ -62,10 +62,7 @@ export const test = workerTest.extend<{
     });
     await use(fixture);
   },
-  accountAuditRun: async (
-    { page, request: observer, playwright, isolatedWorker, run },
-    use,
-  ) => {
+  accountAuditRun: async ({ page, playwright, isolatedWorker, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use((plan, work) =>
         workflow.run(() =>
@@ -74,7 +71,6 @@ export const test = workerTest.extend<{
             return withCalendarProtocol(
               {
                 page,
-                observer,
                 isolatedWorker,
                 runBody: workflow.body,
                 createRequest: (headers) =>
