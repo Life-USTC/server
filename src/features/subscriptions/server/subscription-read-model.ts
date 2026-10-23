@@ -25,6 +25,7 @@ export {
   listSubscribedSchedules,
   listTodaySubscribedSchedulesWithCount,
   listUpcomingSubscribedExamsWithCount,
+  type SubscribedSectionContext,
   toSubscribedScheduleEntryDto,
 } from "./subscription-schedule-exam-read-model";
 export { listSubscribedSectionPage } from "./subscription-section-page";

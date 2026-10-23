@@ -21,6 +21,7 @@ export async function listPersonalCalendarPage(
   const events = await listUserCalendarEvents(userId, {
     ...range,
     locale: input.locale,
+    sectionContext: "compact",
   });
   const items = events.map((event) => {
     const base = {

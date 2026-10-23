@@ -23,6 +23,26 @@ import {
   withSubscribedSections,
 } from "./subscription-read-model-shared";
 
+/**
+ * Viewer-scoped reads run inside RLS transactions, which Hyperdrive's query
+ * cache never stores, so every `include` edge is an uncached round trip on
+ * every request. Compact calendar consumers omit `Section.examMode`,
+ * `Section.teachLanguage` and the six `Course` lookup relations.
+ * `campus` and `openDepartment` stay: `compactSection` emits both.
+ *
+ * REST and MCP schedule DTOs also publish only Course scalars. The MCP exam
+ * list and full calendar payloads publish all eight labels, so those callers
+ * explicitly request `"full"`.
+ */
+const subscribedSectionContextInclude = {
+  course: true,
+  semester: true,
+  campus: true,
+  openDepartment: true,
+} satisfies Prisma.SectionInclude;
+
+export type SubscribedSectionContext = "compact" | "full";
+
 const subscribedScheduleInclude = {
   room: {
     include: {
@@ -38,8 +58,21 @@ const subscribedScheduleInclude = {
     },
     orderBy: { teacherId: "asc" },
   },
-  section: { include: sectionCatalogInclude },
+  section: { include: subscribedSectionContextInclude },
   scheduleGroup: true,
+} satisfies Prisma.ScheduleInclude;
+
+/**
+ * GraphQL resolves `Section.examMode/teachLanguage` and
+ * `Course.category/classify/classType/educationLevel/gradation/type` from the
+ * parent payload with the default field resolver (`src/lib/graphql/schema.ts`
+ * declares them and no `Section`/`Course` resolver overrides them), so the
+ * paginated readers that back `Workspace.schedules`/`Workspace.exams` keep the
+ * full catalog include.
+ */
+const subscribedSchedulePageInclude = {
+  ...subscribedScheduleInclude,
+  section: { include: sectionCatalogInclude },
 } satisfies Prisma.ScheduleInclude;
 
 export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
@@ -82,8 +115,17 @@ export function toSubscribedScheduleEntryDto(
 const subscribedExamInclude = {
   examBatch: true,
   examRooms: true,
+  section: { include: subscribedSectionContextInclude },
+} satisfies Prisma.ExamInclude;
+
+const subscribedExamPageInclude = {
+  ...subscribedExamInclude,
   section: { include: sectionCatalogInclude },
 } satisfies Prisma.ExamInclude;
+
+function subscribedExamContextInclude(context: SubscribedSectionContext) {
+  return context === "full" ? subscribedExamPageInclude : subscribedExamInclude;
+}
 
 const subscribedScheduleOrderBy = [
   { date: "asc" },
@@ -167,6 +209,7 @@ export async function listSubscribedSchedules(
     limit,
     sectionIds,
     semesterId,
+    sectionContext = "compact",
   }: {
     locale?: string;
     dateFrom?: Date;
@@ -175,6 +218,7 @@ export async function listSubscribedSchedules(
     limit?: number;
     sectionIds?: readonly number[];
     semesterId?: number;
+    sectionContext?: SubscribedSectionContext;
   } = {},
 ) {
   const resolvedSectionIds =
@@ -200,7 +244,10 @@ export async function listSubscribedSchedules(
 
       return localizedPrisma.schedule.findMany({
         ...query,
-        include: subscribedScheduleInclude,
+        include:
+          sectionContext === "full"
+            ? subscribedSchedulePageInclude
+            : subscribedScheduleInclude,
       });
     },
     resolvedSectionIds,
@@ -245,7 +292,7 @@ export async function listSubscribedSchedulePage(
     (skip, take) =>
       localizedPrisma.schedule.findMany({
         where,
-        include: subscribedScheduleInclude,
+        include: subscribedSchedulePageInclude,
         orderBy: subscribedScheduleOrderBy,
         skip,
         take,
@@ -369,6 +416,7 @@ export async function listSubscribedExams(
     limit,
     sectionIds,
     semesterId,
+    sectionContext = "compact",
   }: {
     locale?: string;
     dateFrom?: Date;
@@ -377,6 +425,7 @@ export async function listSubscribedExams(
     limit?: number;
     sectionIds?: readonly number[];
     semesterId?: number;
+    sectionContext?: SubscribedSectionContext;
   } = {},
 ) {
   const resolvedSectionIds =
@@ -394,7 +443,7 @@ export async function listSubscribedExams(
           section: { retiredAt: null },
           ...examDateWhere({ dateFrom, dateTo, includeDateUnknown }),
         },
-        include: subscribedExamInclude,
+        include: subscribedExamContextInclude(sectionContext),
         orderBy: subscribedExamOrderBy,
         ...(limit ? { take: limit } : {}),
       });
@@ -439,7 +488,7 @@ export async function listSubscribedExamPage(
     (skip, take) =>
       localizedPrisma.exam.findMany({
         where,
-        include: subscribedExamInclude,
+        include: subscribedExamPageInclude,
         orderBy: subscribedExamOrderBy,
         skip,
         take,

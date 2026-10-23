@@ -4,6 +4,7 @@ import {
   listSubscribedExams,
   listSubscribedHomeworks,
   listSubscribedSchedules,
+  type SubscribedSectionContext,
 } from "@/features/subscriptions/server/subscription-read-model";
 import { listDueTodoSnapshots } from "@/features/todos/server/todo-service";
 
@@ -14,6 +15,7 @@ export async function loadCalendarEventSources({
   locale,
   now = new Date(),
   sectionIds,
+  sectionContext = "full",
   userId,
   windowEnd,
   windowStart,
@@ -24,6 +26,7 @@ export async function loadCalendarEventSources({
   locale: string;
   now?: Date;
   sectionIds?: readonly number[];
+  sectionContext?: SubscribedSectionContext;
   userId: string;
   windowEnd: Date;
   windowStart: Date;
@@ -39,6 +42,7 @@ export async function loadCalendarEventSources({
       dateFrom: calendarDateStart,
       dateTo: calendarDateEnd,
       sectionIds: scopedSectionIds,
+      sectionContext,
     }),
     listSubscribedHomeworks(userId, {
       locale,
@@ -54,6 +58,7 @@ export async function loadCalendarEventSources({
       dateTo: calendarDateEnd,
       includeDateUnknown: false,
       sectionIds: scopedSectionIds,
+      sectionContext,
     }),
     listDueTodoSnapshots({
       completed: false,

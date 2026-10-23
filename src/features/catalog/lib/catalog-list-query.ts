@@ -5,6 +5,8 @@ export const CATALOG_MAX_ID = 2_147_483_647;
 export const CATALOG_SEARCH_MIN_LENGTH = 2;
 export const CATALOG_SEARCH_MAX_LENGTH = 200;
 export const CATALOG_TEXT_FILTER_MAX_LENGTH = 128;
+/** Documented maximum, and the default, for a section's schedule list. */
+export const SECTION_SCHEDULE_MAX_LIMIT = 200;
 
 export type CatalogListPath =
   | "/catalog/courses"

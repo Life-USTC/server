@@ -106,6 +106,7 @@ export function registerWorkspaceScheduleTools(server: McpServer) {
         includeDateUnknown,
         limit,
         semesterId,
+        sectionContext: "full",
       });
 
       return jsonToolResult(

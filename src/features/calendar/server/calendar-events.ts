@@ -1,3 +1,4 @@
+import type { SubscribedSectionContext } from "@/features/subscriptions/server/subscription-read-model";
 import { listSubscribedYoungCalendarEvents } from "@/features/young/server/young-calendar-service";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -24,6 +25,7 @@ export async function listUserCalendarEvents(
     dateToInclusive = false,
     eventWindowMode = "overlap",
     sectionIds,
+    sectionContext = "full",
   }: {
     locale?: string;
     dateFrom?: Date | null;
@@ -33,6 +35,7 @@ export async function listUserCalendarEvents(
     dateToInclusive?: boolean;
     eventWindowMode?: "overlap" | "start";
     sectionIds?: readonly number[];
+    sectionContext?: SubscribedSectionContext;
   } = {},
 ) {
   const {
@@ -58,6 +61,7 @@ export async function listUserCalendarEvents(
         includeWindowEnd,
         locale,
         sectionIds,
+        sectionContext,
         userId,
         windowEnd,
         windowStart,
