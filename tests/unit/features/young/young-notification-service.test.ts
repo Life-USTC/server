@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
     youngNotification: {
       deleteMany: vi.fn(),
       create: vi.fn(),
-      upsert: vi.fn(),
+      createMany: vi.fn(),
       count: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -66,6 +66,7 @@ describe("Young notification refresh and inbox", () => {
     });
     expect(mocks.tx.userYoungEventSubscription.findMany).not.toHaveBeenCalled();
     expect(mocks.tx.youngNotification.create).not.toHaveBeenCalled();
+    expect(mocks.tx.youngNotification.createMany).not.toHaveBeenCalled();
   });
   it("deduplicates reminders by subscription lifecycle and timestamp without invalidating unchanged calendars", async () => {
     mocks.tx.userYoungEventSubscription.findMany.mockResolvedValue([
@@ -80,17 +81,19 @@ describe("Young notification refresh and inbox", () => {
       },
     ]);
     await refreshYoungNotifications("owner", now);
-    expect(mocks.tx.youngNotification.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
+    expect(mocks.tx.youngNotification.createMany).toHaveBeenCalledOnce();
+    expect(mocks.tx.youngNotification.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
           userId: "owner",
           youngId: "42",
           kind: "event_start",
           dedupeKey: `sub:event_start:${event.startAt.toISOString()}`,
           expiresAt: event.startAt,
         }),
-      }),
-    );
+      ],
+      skipDuplicates: true,
+    });
     expect(mocks.invalidate).not.toHaveBeenCalled();
   });
   it("revises changed events, cleans obsolete reminders, and marks missing sources as uncertain", async () => {
@@ -149,17 +152,18 @@ describe("Young notification refresh and inbox", () => {
       .mockResolvedValueOnce(11);
     mocks.tx.youngEvent.findMany.mockResolvedValue([{ name: "A" }]);
     await refreshYoungNotifications("owner", now);
-    expect(mocks.tx.youngNotification.upsert).toHaveBeenCalledTimes(1);
-    expect(mocks.tx.youngNotification.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
+    expect(mocks.tx.youngNotification.createMany).toHaveBeenCalledOnce();
+    expect(mocks.tx.youngNotification.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
           organizerId: "club",
           kind: "organizer_digest",
           body: "11 个新活动 / new events: A …",
           dedupeKey: "organizer:club:2035-09-13T16:00:00.000Z",
         }),
-      }),
-    );
+      ],
+      skipDuplicates: true,
+    });
     expect(mocks.tx.youngEvent.count).toHaveBeenLastCalledWith({
       where: expect.objectContaining({
         createdAt: {

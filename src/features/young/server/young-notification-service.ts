@@ -1,4 +1,5 @@
 import { scheduleInvalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-invalidation";
+import type { Prisma } from "@/generated/prisma/client";
 import { withUserDbContext } from "@/lib/db/prisma";
 import {
   buildPaginatedResponse,
@@ -26,6 +27,7 @@ export async function refreshYoungNotifications(
       include: { event: true },
     });
     let calendarChanged = false;
+    const notifications: Prisma.YoungNotificationCreateManyInput[] = [];
     for (const subscription of subscriptions) {
       const event = subscription.event;
       const state = youngEventState(event);
@@ -65,24 +67,19 @@ export async function refreshYoungNotifications(
       }
       for (const candidate of candidates) {
         const dedupeKey = reminderKey(candidate.kind, candidate.at);
-        await tx.youngNotification.upsert({
-          where: { userId_dedupeKey: { userId, dedupeKey } },
-          update: {},
-          create: {
-            userId,
-            youngId: event.youngId,
-            kind: candidate.kind,
-            title: event.name,
-            body: candidate.label,
-            dedupeKey,
-            createdAt: now,
-            expiresAt:
-              candidate.end ??
-              new Date(
-                (candidate.at?.getTime() ?? now.getTime()) +
-                  24 * 60 * 60 * 1000,
-              ),
-          },
+        notifications.push({
+          userId,
+          youngId: event.youngId,
+          kind: candidate.kind,
+          title: event.name,
+          body: candidate.label,
+          dedupeKey,
+          createdAt: now,
+          expiresAt:
+            candidate.end ??
+            new Date(
+              (candidate.at?.getTime() ?? now.getTime()) + 24 * 60 * 60 * 1000,
+            ),
         });
       }
     }
@@ -114,20 +111,21 @@ export async function refreshYoungNotifications(
         take: 10,
       });
       const dedupeKey = `organizer:${follow.organizerId}:${dayStart.toISOString()}`;
-      await tx.youngNotification.upsert({
-        where: { userId_dedupeKey: { userId, dedupeKey } },
-        update: {},
-        create: {
-          userId,
-          organizerId: follow.organizerId,
-          kind: "organizer_digest",
-          title: follow.organizer.name,
-          body: `${total} 个新活动 / new events: ${events.map((event) => event.name).join(" · ")}${total > events.length ? " …" : ""}`,
-          dedupeKey,
-          createdAt: now,
-        },
+      notifications.push({
+        userId,
+        organizerId: follow.organizerId,
+        kind: "organizer_digest",
+        title: follow.organizer.name,
+        body: `${total} 个新活动 / new events: ${events.map((event) => event.name).join(" · ")}${total > events.length ? " …" : ""}`,
+        dedupeKey,
+        createdAt: now,
       });
     }
+    if (notifications.length)
+      await tx.youngNotification.createMany({
+        data: notifications,
+        skipDuplicates: true,
+      });
     return calendarChanged;
   });
   if (changed) scheduleInvalidateUserCalendarExportCache(userId);
