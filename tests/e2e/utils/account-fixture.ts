@@ -49,10 +49,7 @@ export const test = workerTest.extend<{
     });
     await use(account);
   },
-  accountRun: async (
-    { page, request, playwright, isolatedWorker, run },
-    use,
-  ) => {
+  accountRun: async ({ page, playwright, isolatedWorker, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use(({ writes, audits, verifyWrite }, work) => {
         const browserWrites = [...writes];
@@ -61,7 +58,6 @@ export const test = workerTest.extend<{
             withCalendarProtocol(
               {
                 page,
-                observer: request,
                 isolatedWorker,
                 createRequest: (headers) =>
                   playwright.request.newContext({
