@@ -26,15 +26,13 @@ import {
 /**
  * Viewer-scoped reads run inside RLS transactions, which Hyperdrive's query
  * cache never stores, so every `include` edge is an uncached round trip on
- * every request. The calendar event sources project the section through the
- * MCP calendar compactor, which does not carry `Section.examMode`,
- * `Section.teachLanguage` or the six `Course` lookup relations, so those are
- * not loaded. `campus` and `openDepartment` stay: `compactSection` emits both.
+ * every request. Compact calendar consumers omit `Section.examMode`,
+ * `Section.teachLanguage` and the six `Course` lookup relations.
+ * `campus` and `openDepartment` stay: `compactSection` emits both.
  *
- * The list tools and REST route publish the section through
- * `subscribedScheduleEntrySchema` / `subscribedExamDtoSchema`, whose `course`
- * is `subscriptionFullCourseSchema` — there the six labels are required keys,
- * not optional ones — so those callers ask for `"full"`.
+ * REST and MCP schedule DTOs also publish only Course scalars. The MCP exam
+ * list and full calendar payloads publish all eight labels, so those callers
+ * explicitly request `"full"`.
  */
 const subscribedSectionContextInclude = {
   course: true,
@@ -76,12 +74,6 @@ const subscribedSchedulePageInclude = {
   ...subscribedScheduleInclude,
   section: { include: sectionCatalogInclude },
 } satisfies Prisma.ScheduleInclude;
-
-function subscribedScheduleContextInclude(context: SubscribedSectionContext) {
-  return context === "full"
-    ? subscribedSchedulePageInclude
-    : subscribedScheduleInclude;
-}
 
 export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
   include: typeof subscribedScheduleInclude;
@@ -252,7 +244,10 @@ export async function listSubscribedSchedules(
 
       return localizedPrisma.schedule.findMany({
         ...query,
-        include: subscribedScheduleContextInclude(sectionContext),
+        include:
+          sectionContext === "full"
+            ? subscribedSchedulePageInclude
+            : subscribedScheduleInclude,
       });
     },
     resolvedSectionIds,

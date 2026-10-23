@@ -42,9 +42,8 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 /**
- * Catalog lookup relations that only the GraphQL `Section`/`Course` types
- * publish. Every other viewer-scoped consumer projects through a strict DTO
- * schema or the MCP calendar compactor, none of which carry them.
+ * Compact calendar and schedule DTO consumers omit these lookup relations.
+ * Full calendar, MCP exam and paginated GraphQL readers still publish them.
  */
 const CATALOG_LOOKUP_RELATIONS = ["examMode", "teachLanguage"] as const;
 const COURSE_LOOKUP_RELATIONS = [
@@ -111,7 +110,7 @@ describe("schedule.viewer-scoped-section-projection", () => {
     );
   });
 
-  it("loads only the published section context for DTO exam reads", async () => {
+  it("loads only the published section context for calendar exam reads", async () => {
     userSectionSubscriptionFindManyMock.mockResolvedValue([{ sectionId: 1 }]);
     examFindManyMock.mockResolvedValue([]);
     const { listSubscribedExams } = await import(
@@ -121,6 +120,37 @@ describe("schedule.viewer-scoped-section-projection", () => {
     await listSubscribedExams("user-1", { limit: 10 });
 
     expectNarrowSectionInclude(
+      sectionIncludeOf(examFindManyMock.mock.calls[0][0]),
+    );
+  });
+
+  it("keeps the catalog section relations requested by full calendars", async () => {
+    userSectionSubscriptionFindManyMock.mockResolvedValue([{ sectionId: 1 }]);
+    scheduleFindManyMock.mockResolvedValue([]);
+    const { listSubscribedSchedules } = await import(
+      "@/features/subscriptions/server/subscription-schedule-exam-read-model"
+    );
+
+    await listSubscribedSchedules("user-1", {
+      limit: 10,
+      sectionContext: "full",
+    });
+
+    expectCatalogSectionInclude(
+      sectionIncludeOf(scheduleFindManyMock.mock.calls[0][0]),
+    );
+  });
+
+  it("keeps the catalog section relations requested by the MCP exam list", async () => {
+    userSectionSubscriptionFindManyMock.mockResolvedValue([{ sectionId: 1 }]);
+    examFindManyMock.mockResolvedValue([]);
+    const { listSubscribedExams } = await import(
+      "@/features/subscriptions/server/subscription-schedule-exam-read-model"
+    );
+
+    await listSubscribedExams("user-1", { limit: 10, sectionContext: "full" });
+
+    expectCatalogSectionInclude(
       sectionIncludeOf(examFindManyMock.mock.calls[0][0]),
     );
   });

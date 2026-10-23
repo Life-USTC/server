@@ -431,7 +431,10 @@ export async function getSectionScheduleGroupsByJwId(input: {
     select: {
       scheduleGroups: {
         include: {
-          schedules: { take: SECTION_SCHEDULE_MAX_LIMIT },
+          schedules: {
+            take: SECTION_SCHEDULE_MAX_LIMIT,
+            orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
+          },
         },
         orderBy: [{ isDefault: "desc" }, { no: "asc" }],
       },

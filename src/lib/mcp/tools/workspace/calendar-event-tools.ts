@@ -44,15 +44,15 @@ export function registerCalendarEventTools(server: McpServer) {
             "Supply both dates or neither; range must be valid, ordered and at most 366 days.",
         });
       }
+      const resolvedMode = resolveMcpMode(mode);
       const events = await listUserCalendarEvents(
         getUserId(extra.http?.authInfo),
         {
           locale,
           ...range,
+          sectionContext: resolvedMode === "full" ? "full" : "compact",
         },
       );
-      const resolvedMode = resolveMcpMode(mode);
-
       return jsonToolResult(
         {
           events,
