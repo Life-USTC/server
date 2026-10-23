@@ -10,6 +10,7 @@ const routes = Object.keys(modules).map((file) =>
   file.replace("../../../../src/routes", "").replace("/+server.ts", ""),
 );
 const metadataPaths = [
+  "/.well-known/apple-app-site-association",
   "/.well-known/oauth-authorization-server/api/auth",
   "/api/auth/.well-known/openid-configuration",
   "/.well-known/openid-configuration/api/auth",
@@ -17,6 +18,6 @@ const metadataPaths = [
   "/.well-known/oauth-protected-resource/api/graphql",
 ];
 
-it("OAuth discovery route inventory contains only canonical paths", () => {
+it("Well-known discovery route inventory contains only canonical paths", () => {
   expect([...routes].sort()).toEqual([...metadataPaths].sort());
 });

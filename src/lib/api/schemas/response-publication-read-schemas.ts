@@ -152,6 +152,10 @@ export const publicPublicationDetailSchema = z.strictObject({
   canonicalUrl: z.string().url(),
   publicationType: publicationTypeSchema,
   source: publicPublicationSourceSchema,
+  renderedBodyHtml: z.string().meta({
+    description:
+      "Sanitized Markdown HTML with revision image metadata and plain-text captions in source order. Empty when bodyMarkdown is unavailable.",
+  }),
   revision: publicPublicationRevisionDetailSchema,
   alsoPublishedIn: z.array(publicPublicationSiblingSchema),
 });

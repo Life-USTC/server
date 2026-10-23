@@ -241,6 +241,27 @@
     }
   ],
   "paths": {
+    "/.well-known/apple-app-site-association": {
+      "get": {
+        "operationId": "get-.well-known-apple-app-site-association",
+        "summary": "Public Apple association for the native app's supported content routes",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/appleAppSiteAssociationResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "listHealth",
@@ -9405,6 +9426,91 @@
         }
       }
     },
+    "/api/catalog/courses/{jwId}/sections": {
+      "get": {
+        "operationId": "get-api-catalog-courses-jwId-sections",
+        "summary": "Get complete course section history, including retired offerings",
+        "tags": [
+          "catalog.courses"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "default": "zh-cn",
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedSectionHistoryResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/rooms/{code}/map": {
       "get": {
         "operationId": "catalog_rooms_map",
@@ -9630,6 +9736,91 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/sectionSchedulesReadResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/teachers/{id}/sections": {
+      "get": {
+        "operationId": "get-api-catalog-teachers-id-sections",
+        "summary": "Get complete teacher section history, including retired offerings",
+        "tags": [
+          "catalog.teachers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "default": "zh-cn",
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedSectionHistoryResponseSchema"
                 }
               }
             }
@@ -11484,6 +11675,77 @@
             }
           }
         ]
+      },
+      "appleAppSiteAssociationResponseSchema": {
+        "type": "object",
+        "properties": {
+          "applinks": {
+            "type": "object",
+            "properties": {
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "appIDs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "/": {
+                            "type": "string"
+                          },
+                          "exclude": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "/"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "appIDs",
+                    "components"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "details"
+            ],
+            "additionalProperties": false
+          },
+          "webcredentials": {
+            "type": "object",
+            "properties": {
+              "apps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "apps"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "applinks",
+          "webcredentials"
+        ],
+        "additionalProperties": false
       },
       "openApiErrorSchema": {
         "type": "object",
@@ -18501,6 +18763,10 @@
             ],
             "additionalProperties": false
           },
+          "renderedBodyHtml": {
+            "type": "string",
+            "description": "Sanitized Markdown HTML with revision image metadata and plain-text captions in source order. Empty when bodyMarkdown is unavailable."
+          },
           "revision": {
             "type": "object",
             "properties": {
@@ -18765,6 +19031,7 @@
           "canonicalUrl",
           "publicationType",
           "source",
+          "renderedBodyHtml",
           "revision",
           "alsoPublishedIn"
         ],
@@ -42166,6 +42433,300 @@
         },
         "required": [
           "subscribed"
+        ],
+        "additionalProperties": false
+      },
+      "paginatedSectionHistoryResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "jwId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "code": {
+                  "type": "string"
+                },
+                "credits": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "stdCount": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "limitCount": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "courseId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "semesterId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "campusId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "openDepartmentId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "course": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "code",
+                    "nameCn",
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
+                  ],
+                  "additionalProperties": false
+                },
+                "semester": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "campus": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "code": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "nameEn",
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
+                  ],
+                  "additionalProperties": false
+                },
+                "teachers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "jwId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "personId": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "code": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "jwId",
+                      "personId",
+                      "code",
+                      "nameCn",
+                      "nameEn",
+                      "namePrimary",
+                      "nameSecondary"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "retiredAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "jwId",
+                "code",
+                "credits",
+                "stdCount",
+                "limitCount",
+                "courseId",
+                "semesterId",
+                "campusId",
+                "openDepartmentId",
+                "course",
+                "semester",
+                "campus",
+                "teachers",
+                "retiredAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
         ],
         "additionalProperties": false
       },

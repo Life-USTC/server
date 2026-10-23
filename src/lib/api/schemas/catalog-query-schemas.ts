@@ -61,6 +61,13 @@ export const catalogLocaleQuerySchema = z.object({
   locale: z.enum(APP_LOCALES).default(DEFAULT_LOCALE),
 });
 
+export const catalogSectionHistoryQuerySchema = catalogLocaleQuerySchema.extend(
+  {
+    page: catalogPageSchema.optional(),
+    pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
+  },
+);
+
 export const sectionsQuerySchema = catalogLocaleQuerySchema.extend({
   courseId: catalogIdSchema.optional(),
   courseJwId: catalogIdSchema.optional(),

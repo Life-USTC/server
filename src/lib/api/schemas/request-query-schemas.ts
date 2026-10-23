@@ -6,6 +6,7 @@ export {
 } from "./admin-query-schemas";
 export {
   catalogLocaleQuerySchema,
+  catalogSectionHistoryQuerySchema,
   coursesQuerySchema,
   schedulesQuerySchema,
   sectionDetailQuerySchema,

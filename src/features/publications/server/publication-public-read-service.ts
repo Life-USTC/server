@@ -1,9 +1,11 @@
+import { annotatePublicationImages } from "@/features/publications/lib/publication-image-metadata";
 import type { PublicationsQuery } from "@/features/publications/lib/publication-read-request-schemas";
 import {
   PUBLICATION_SOURCE_UNIVERSITY_LEVEL,
   type PublicationSourceOrganizationLevel,
 } from "@/features/publications/lib/publication-source-levels";
 import { Prisma } from "@/generated/prisma/client";
+import { renderEmbeddedMarkdown } from "@/lib/components/markdown-preview-renderer";
 import { prisma } from "@/lib/db/prisma";
 import { normalizePagination, type PaginationInput } from "@/lib/pagination";
 import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
@@ -209,6 +211,7 @@ export type PublicPublicationDetail = {
   canonicalUrl: string;
   publicationType: "news" | "notice";
   source: PublicPublicationSource;
+  renderedBodyHtml: string;
   revision: PublicPublicationRevisionSummary & {
     images: PublicPublicationImage[];
     bodyText: string | null;
@@ -668,22 +671,27 @@ export async function getPublicPublicationById(id: string) {
 
   const revision = record.currentRevision;
   if (!revision) return null;
+  const bodyMarkdown = await readBodyMarkdown(revision);
+  const images = revision.imageSourceRefs.map((ref) => ({
+    id: ref.imageSourceId,
+    url: `/api/publications/images/${ref.imageSourceId}`,
+    altText: ref.altText,
+    title: ref.title,
+    caption: ref.caption,
+  }));
   return {
     id: publication.id,
     canonicalUrl: publication.canonicalUrl,
     publicationType: publication.publicationType,
     source: publication.source,
+    renderedBodyHtml: bodyMarkdown
+      ? annotatePublicationImages(renderEmbeddedMarkdown(bodyMarkdown), images)
+      : "",
     revision: {
       ...publication.revision,
-      images: revision.imageSourceRefs.map((ref) => ({
-        id: ref.imageSourceId,
-        url: `/api/publications/images/${ref.imageSourceId}`,
-        altText: ref.altText,
-        title: ref.title,
-        caption: ref.caption,
-      })),
+      images,
       bodyText: revision.bodyText,
-      bodyMarkdown: await readBodyMarkdown(revision),
+      bodyMarkdown,
       extractionMethod: revision.extractionMethod,
       classifierVersion: revision.classifierVersion,
       objects: publication.objects,

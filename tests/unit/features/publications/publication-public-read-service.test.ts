@@ -227,6 +227,7 @@ describe("public publication reads", () => {
       getPublicPublicationById("publication-1"),
     ).resolves.toMatchObject({
       id: "publication-1",
+      renderedBodyHtml: "",
       revision: {
         id: "revision-1",
         bodyText: "Plain body",
@@ -271,6 +272,66 @@ describe("public publication reads", () => {
       revision: { bodyText: "Plain body", bodyMarkdown: markdown },
     });
     expect(mocks.bucket.get).toHaveBeenCalledWith(object.r2Key);
+  });
+
+  it("renders annotated images in source order with tables and formulas", async () => {
+    const markdown = [
+      "Before image.",
+      `![Source alt](/api/publications/images/${secondDigest})`,
+      "After image.",
+      "| Session | Room |\n| --- | --- |\n| Workshop | East 101 |",
+      "$x^2$",
+      "[unsafe](javascript:alert(1))",
+    ].join("\n\n");
+    const object = {
+      kind: "body_markdown",
+      sha256: markdownDigest,
+      size: new TextEncoder().encode(markdown).byteLength,
+      contentType: "text/markdown",
+      r2Key: publicationObjectKey("body_markdown", markdownDigest),
+      status: "verified",
+    };
+    mocks.publicationFindFirst.mockResolvedValue(
+      publication({
+        currentRevision: revision({
+          imageSourceRefs: [
+            {
+              imageSourceId: secondDigest,
+              altText: "Revision alt",
+              title: "Revision title",
+              caption: "<script>Plain caption</script>",
+            },
+          ],
+          objectLinks: [
+            { role: "body_markdown", sortOrder: 0, altText: null, object },
+          ],
+        }),
+      }),
+    );
+    mocks.bucket.get.mockResolvedValue({
+      size: object.size,
+      body: stream(markdown),
+    });
+
+    const result = await getPublicPublicationById("publication-1");
+    expect(result?.revision.bodyMarkdown).toBe(markdown);
+    const html = result?.renderedBodyHtml ?? "";
+    expect(html).toContain(`src="/api/publications/images/${secondDigest}"`);
+    expect(html).toContain('alt="Revision alt"');
+    expect(html).toContain('title="Revision title"');
+    expect(html).toContain(
+      "<figcaption>&#x3C;script>Plain caption&#x3C;/script></figcaption>",
+    );
+    expect(html.indexOf("Before image.")).toBeLessThan(
+      html.indexOf("<figure>"),
+    );
+    expect(html.indexOf("<figure>")).toBeLessThan(html.indexOf("After image."));
+    expect(html).toContain("<table>");
+    expect(html).toContain("<td>East 101</td>");
+    expect(html).toContain('class="katex"');
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("Plain body");
   });
 
   it("requires a linked object on a current public revision before reading R2", async () => {

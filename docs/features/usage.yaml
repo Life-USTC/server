@@ -14,6 +14,20 @@ access:
   admin: Same public guides as anonymous visitors.
   agent: Usage guides are Web-only marketing and onboarding pages, not REST, GraphQL, or MCP capabilities.
 requirements:
+- id: usage.mobile-app-association
+  category: consistency
+  rule: The public Apple app-site association identifies the native app and only its supported content
+    destinations. Account authentication, administration, guides, and unsupported detail subpages stay on the Web.
+  acceptance:
+    given: An anonymous request for the Apple association document.
+    when: The request follows no redirects and reads the declared app and path components.
+    then:
+    - The document returns HTTP 200 JSON with the native application identifier.
+    - Supported catalog, community, news, and workspace entries open the app.
+    - Account, OAuth, administrative, and unsupported page paths are excluded from app routing.
+    test:
+      file: tests/integration/rest/site/apple-app-association.test.ts
+      name: usage.mobile-app-association
 - id: usage.public-cache-admission
   category: consistency
   rule: Anonymous HTML cache admission includes the mobile, Bot, MCP, and CLI usage guide routes.
