@@ -171,6 +171,5 @@ FROM (
     ('public.YoungOrganizer:SELECT'),
     ('public._ScheduleTeachers:SELECT'),
     ('public._SectionAdminClasses:SELECT'),
-    ('public._SectionTeachers:SELECT'),
-    ('public._prisma_migrations:SELECT')
+    ('public._SectionTeachers:SELECT')
 ) AS allowlist(privilege);

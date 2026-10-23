@@ -506,6 +506,92 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       });
     });
 
+    it("does not grant runtime access to unlisted relations when bootstrap is repeated", async ({
+      isolatedDatabase: { app, owner, connections },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        await owner.$executeRawUnsafe(
+          'CREATE TABLE "RuntimeGrantProbe" (id serial PRIMARY KEY, secret text)',
+        );
+        await owner.$executeRawUnsafe(
+          'CREATE VIEW "RuntimeGrantProbeView" AS SELECT secret FROM "RuntimeGrantProbe"',
+        );
+        await owner.$executeRawUnsafe(
+          'GRANT SELECT (secret) ON "RuntimeGrantProbe" TO life_ustc_runtime',
+        );
+        execFileSync(
+          "psql",
+          [
+            connections.owner,
+            "-X",
+            "--quiet",
+            "--single-transaction",
+            "--file=tests/integration/fixtures/rls-runtime-bootstrap.sql",
+          ],
+          { stdio: "pipe" },
+        );
+
+        const [permissions] = await app.$queryRaw<
+          {
+            table: boolean;
+            view: boolean;
+            column: boolean;
+            sequence: boolean;
+          }[]
+        >`
+          SELECT
+            has_table_privilege(current_user, '"RuntimeGrantProbe"', 'SELECT') AS table,
+            has_table_privilege(current_user, '"RuntimeGrantProbeView"', 'SELECT') AS view,
+            has_column_privilege(current_user, '"RuntimeGrantProbe"', 'secret', 'SELECT') AS column,
+            has_sequence_privilege(current_user, '"RuntimeGrantProbe_id_seq"', 'USAGE') AS sequence
+        `;
+        expect(permissions).toEqual({
+          table: false,
+          view: false,
+          column: false,
+          sequence: false,
+        });
+        await expect(
+          app.$queryRawUnsafe('SELECT secret FROM "RuntimeGrantProbe"'),
+        ).rejects.toThrow(/permission denied/);
+        await expect(
+          app.$queryRawUnsafe('SELECT secret FROM "RuntimeGrantProbeView"'),
+        ).rejects.toThrow(/permission denied/);
+        await expect(
+          app.$queryRawUnsafe("SELECT nextval('\"RuntimeGrantProbe_id_seq\"')"),
+        ).rejects.toThrow(/permission denied/);
+        await expect(app.course.count()).resolves.toBe(0);
+      });
+    });
+
+    it("reserves migration records and non-writer sequences for their owning roles", async ({
+      isolatedDatabase: { app },
+      nodeRuntime,
+    }) => {
+      await nodeRuntime.run(async () => {
+        await expect(
+          app.$queryRawUnsafe('SELECT id FROM "_prisma_migrations"'),
+        ).rejects.toThrow(/permission denied/);
+        for (const sequence of ["VerifiedEmail_id_seq", "Course_id_seq"]) {
+          await expect(
+            app.$queryRaw`SELECT nextval(${`public."${sequence}"`}::regclass)`,
+          ).rejects.toThrow(/permission denied/);
+        }
+        for (const sequence of [
+          "BusRouteStop_id_seq",
+          "BusScheduleVersion_id_seq",
+          "BusTrip_id_seq",
+          "SectionTeacher_id_seq",
+        ]) {
+          const [row] = await app.$queryRaw<{ value: bigint }[]>`
+            SELECT nextval(${`public."${sequence}"`}::regclass) AS value
+          `;
+          expect(row.value).toBe(1n);
+        }
+      });
+    });
+
     it("keeps runtime grants on the checked-in privilege contract", async ({
       isolatedDatabase: { app: prisma, connections },
       nodeRuntime,

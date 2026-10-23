@@ -1,45 +1,94 @@
 -- Shared app-runtime grants for catalog reads, owner RLS tables, and community writes.
--- Included by production and CI runtime bootstrap scripts.
+-- Included by production and CI runtime bootstrap scripts after revoking old grants.
+-- New relations require an explicit access decision; migration metadata and
+-- authentication tables are not part of application reads.
 
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO life_ustc_runtime;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO life_ustc_runtime;
+GRANT SELECT ON TABLE
+  "AdminClass",
+  "AuditLog",
+  "Building",
+  "BusCampus",
+  "BusRoute",
+  "BusRouteStop",
+  "BusScheduleVersion",
+  "BusTrip",
+  "BusUserPreference",
+  "Campus",
+  "CatalogLinkClick",
+  "ClassType",
+  "Comment",
+  "CommentAttachment",
+  "CommentReaction",
+  "Course",
+  "CourseAlias",
+  "CourseCategory",
+  "CourseClassify",
+  "CourseGradation",
+  "CourseType",
+  "Department",
+  "Description",
+  "DescriptionEdit",
+  "EducationLevel",
+  "Exam",
+  "ExamBatch",
+  "ExamMode",
+  "ExamRoom",
+  "FeatureOperationEvent",
+  "Homework",
+  "HomeworkCompletion",
+  "IngestionBatch",
+  "IngestionBatchObject",
+  "IngestionRun",
+  "OAuthGrantUsageDaily",
+  "Publication",
+  "PublicationEventOutbox",
+  "PublicationImageSource",
+  "PublicationObject",
+  "PublicationObjectLink",
+  "PublicationRevision",
+  "PublicationRevisionImageSource",
+  "PublicationSource",
+  "Room",
+  "RoomType",
+  "RuntimeIssueEvent",
+  "Schedule",
+  "ScheduleGroup",
+  "Section",
+  "SectionTeacher",
+  "Semester",
+  "StaticImportState",
+  "TeachLanguage",
+  "Teacher",
+  "TeacherAssignment",
+  "TeacherLessonType",
+  "TeacherTitle",
+  "Todo",
+  "Upload",
+  "UploadPending",
+  "User",
+  "UserSectionSubscription",
+  "UserSuspension",
+  "UserUstcIdentity",
+  "UserYoungEventSubscription",
+  "UserYoungOrganizerSubscription",
+  "WeatherObservation",
+  "WorkspaceLinkPin",
+  "YoungEvent",
+  "YoungNotification",
+  "YoungOrganizer",
+  "_ScheduleTeachers",
+  "_SectionAdminClasses",
+  "_SectionTeachers"
+TO life_ustc_runtime;
 
-DO $revoke_auth_tables$
-DECLARE
-  auth_table text;
-BEGIN
-  FOREACH auth_table IN ARRAY ARRAY[
-    'Account',
-    'Authenticator',
-    'DeviceCode',
-    'Jwks',
-    'OAuthAccessToken',
-    'OAuthClient',
-    'OAuthConsent',
-    'OAuthGrantUsageDaily',
-    'OAuthRefreshToken',
-    'Passkey',
-    'Session',
-    'VerificationToken',
-    'VerifiedEmail',
-    'oauthClientAssertion',
-    'oauthClientResource',
-    'oauthResource'
-  ]
-  LOOP
-    IF to_regclass(format('public.%I', auth_table)) IS NOT NULL THEN
-      EXECUTE format(
-        'REVOKE ALL ON TABLE %I FROM life_ustc_runtime',
-        auth_table
-      );
-    END IF;
-  END LOOP;
-END
-$revoke_auth_tables$;
-
--- The metrics endpoint receives sanitized aggregates through its SECURITY
--- DEFINER function and must never read the singleton cache directly.
-REVOKE ALL ON TABLE "PrometheusMetricsCache" FROM life_ustc_runtime;
+-- Only runtime writers may allocate IDs. Catalog import and auth sequences
+-- belong to their separate database identities.
+GRANT USAGE, SELECT ON SEQUENCE
+  "BusRouteStop_id_seq",
+  "BusScheduleVersion_id_seq",
+  "BusTrip_id_seq",
+  "SectionTeacher_id_seq"
+TO life_ustc_runtime;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "Todo",
@@ -138,5 +187,3 @@ GRANT INSERT, DELETE ON TABLE "BusRouteStop", "BusTrip"
 TO life_ustc_runtime;
 GRANT UPDATE ("name", "username", "profilePictures", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
 TO life_ustc_runtime;
-
-REVOKE ALL ON public."PrometheusCounter",public."PrometheusCounterEpoch" FROM life_ustc_runtime;
