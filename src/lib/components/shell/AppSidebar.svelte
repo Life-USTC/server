@@ -2,7 +2,6 @@
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import LayoutGridIcon from "@lucide/svelte/icons/layout-grid";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
@@ -13,7 +12,6 @@ import type {
 } from "#lib/shell/layout-server-data.js";
 import { cn } from "#lib/utils.js";
 import AppUserMenu from "./AppUserMenu.svelte";
-import { FEATURE_HUB_PATH } from "./navigation";
 import SettingsGlyph from "./SettingsGlyph.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
@@ -136,13 +134,14 @@ function closeMobileSidebar(): void {
               {/snippet}
             </Sidebar.MenuButton>
           {:else}
-            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
+            <Sidebar.MenuButton isActive={showActiveState(currentPathname === "/")} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
               {#snippet child({ props })}
                 <a
                   {...props}
                   id="app-logo"
                   href="/"
                   aria-label="Life@USTC"
+                  aria-current={showActiveState(currentPathname === "/") ? "page" : undefined}
                   onclick={closeMobileSidebar}
                 >
                   <img
@@ -156,17 +155,6 @@ function closeMobileSidebar(): void {
               {/snippet}
             </Sidebar.MenuButton>
           {/if}
-        </Sidebar.MenuItem>
-        <Sidebar.MenuItem>
-          {@const hubActive = showActiveState(currentPathname === FEATURE_HUB_PATH)}
-          <Sidebar.MenuButton isActive={hubActive} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? copy.nav.hub.title : undefined}>
-            {#snippet child({ props })}
-              <a {...props} href={FEATURE_HUB_PATH} aria-current={hubActive ? "page" : undefined} onclick={closeMobileSidebar}>
-                <LayoutGridIcon />
-                <span>{copy.nav.hub.title}</span>
-              </a>
-            {/snippet}
-          </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       </Sidebar.Menu>
     </Sidebar.Header>

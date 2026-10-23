@@ -263,7 +263,7 @@ test("/account/sign-in 调试用户按钮可登录", { tag: "@Account/Web" }, as
     async () => {
       await gotoAndWaitForReady(page, "/account/sign-in");
       await signInThroughDevButton(page, debugUser);
-      await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
+      await expect(page).toHaveURL(/\/(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
       await expect(page.locator("#app-logo")).toBeVisible();
       await expect(page.locator("#app-user-menu")).toBeVisible();
@@ -409,7 +409,7 @@ test("user.post-login-redirect", { tag: "@Account/Web" }, async ({
         await expect(page).toHaveURL(
           callback.startsWith("/catalog/")
             ? /\/catalog\/sections\?search=COMP#results$/
-            : /\/workspace\/overview$/,
+            : /\/$/,
         );
         const response = await page.request.get(
           "/api/auth/get-session?disableCookieCache=true",

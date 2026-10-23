@@ -44,11 +44,9 @@ test("rendering-and-cache.cacheable-public-pages-14", {
             headers,
             maxRedirects: 0,
           });
-          expect(response.status()).toBe(303);
+          expect(response.status()).toBe(index === 0 ? 200 : 303);
           expect(response.headers().location).toBe(
-            index === 0
-              ? "/workspace/overview"
-              : "/account/welcome?callbackUrl=%2F",
+            index === 0 ? undefined : "/account/welcome?callbackUrl=%2F",
           );
           expect(response.headers()["cache-control"]).toBe("private, no-store");
           expect(response.headers()["cloudflare-cdn-cache-control"]).toBe(
@@ -59,15 +57,17 @@ test("rendering-and-cache.cacheable-public-pages-14", {
             maxRedirects: 0,
           });
           expect(dataRedirect.status()).toBe(200);
-          // SvelteKit 3 includes the redirect status in the data payload.
-          expect(await dataRedirect.json()).toEqual({
-            type: "redirect",
-            status: 303,
-            location:
-              index === 0
-                ? "/workspace/overview"
-                : "/account/welcome?callbackUrl=%2F",
-          });
+          const envelope = await dataRedirect.json();
+          if (index === 0) {
+            expect(envelope.type).toBe("data");
+            expect(JSON.stringify(envelope)).not.toContain(users[0].id);
+          } else {
+            expect(envelope).toEqual({
+              type: "redirect",
+              status: 303,
+              location: "/account/welcome?callbackUrl=%2F",
+            });
+          }
           expect(dataRedirect.headers()["cache-control"]).toBe(
             "private, no-store",
           );
@@ -77,9 +77,7 @@ test("rendering-and-cache.cacheable-public-pages-14", {
           const page = await context.newPage();
           await gotoAndWaitForReady(page, "/");
           await expect(page).toHaveURL(
-            index === 0
-              ? /\/workspace\/overview$/
-              : /\/account\/welcome\?callbackUrl=%2F$/,
+            index === 0 ? /\/$/ : /\/account\/welcome\?callbackUrl=%2F$/,
           );
           await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
           await flow.closePage(page);
@@ -115,6 +113,10 @@ test("rendering-and-cache.personal-overlays-4", { tag: "@Site/Web" }, async ({
         viewer: null,
         navigation: null,
       });
+      const anonymousHome = await request.get("/_internal/home/viewer");
+      expect(anonymousHome.status()).toBe(200);
+      expectPrivate(anonymousHome);
+      expect(await anonymousHome.json()).toEqual({ signedIn: false });
       for (const [index, user] of users.entries()) {
         const context = await flow.newContext();
         try {
@@ -149,6 +151,24 @@ test("rendering-and-cache.personal-overlays-4", { tag: "@Site/Web" }, async ({
             "unreadActivityNotificationsCount",
             "userId",
           ]);
+          const home = await context.request.get(
+            "/_internal/home/viewer?snapshotAt=2026-10-23T09%3A00%3A00%2B08%3A00",
+          );
+          expect(home.status()).toBe(200);
+          expectPrivate(home);
+          const homePayload = await home.json();
+          expect(homePayload).toMatchObject({
+            signedIn: true,
+            navStats: { user: { id: user.id } },
+            calendarSubscriptionUrl: null,
+          });
+          expect(homePayload.copy).toBeUndefined();
+          expect(JSON.stringify(homePayload)).not.toContain(
+            users[1 - index].id,
+          );
+          expect(JSON.stringify(homePayload).includes("Shell task")).toBe(
+            index === 0,
+          );
           const page = await context.newPage();
           for (const path of [
             "/catalog/courses",
@@ -189,6 +209,15 @@ test("rendering-and-cache.personal-overlays-4", { tag: "@Site/Web" }, async ({
             expect(await profile.json()).toMatchObject({ id: user.id });
           });
           for (const transport of [request, context.request]) {
+            const homeDenied = await transport.get("/_internal/home/viewer", {
+              headers: { authorization },
+            });
+            expect(homeDenied.status()).toBe(401);
+            expectPrivate(homeDenied);
+            expect(await homeDenied.json()).toEqual({
+              error: "Session authentication required",
+            });
+
             const denied = await transport.get("/_internal/shell-bootstrap", {
               headers: { authorization },
             });
@@ -887,9 +916,15 @@ test("overview.public-html-viewer-independent", { tag: "@Site/Web" }, async ({
         try {
           await context.addCookies([await sessionCookie(user.id)]);
           const response = await context.request.get("/", { maxRedirects: 0 });
-          expect(response.status()).toBe(303);
-          expect(response.headers().location).toBe("/workspace/overview");
-          expect(await response.text()).not.toContain(user.id);
+          expect(response.status()).toBe(200);
+          expect(response.headers().location).toBeUndefined();
+          const html = await response.text();
+          for (const owner of users) {
+            expect(html).not.toContain(owner.id);
+            expect(html).not.toContain(owner.name);
+            expect(html).not.toContain(owner.email);
+          }
+          expect(html).not.toContain("Shell task");
         } finally {
           await flow.closeContext(context);
         }
@@ -1010,7 +1045,7 @@ test("public navigation data keeps the root projection independent of session ch
       const bootstrap = await context.request.get("/_internal/shell-bootstrap");
       expect((await bootstrap.json()).viewer.id).toBe(users[1].id);
       const workspace = await context.request.get(
-        "/workspace/overview/__data.json",
+        "/workspace/todos/__data.json",
       );
       expect(workspace.headers()["x-life-public-navigation"]).toBeUndefined();
       expect(unflatten((await workspace.json()).nodes[0].data)).toMatchObject({

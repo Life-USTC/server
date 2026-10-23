@@ -1,5 +1,3 @@
-import { semanticSectionCompatibilityHref } from "@/lib/navigation/semantic-section-redirect";
-
 /**
  * Tabs served by the dynamic `/workspace/[tab]` route.
  * Subscriptions lives at `/workspace/subscriptions` instead; see `workspaceNavTabIds`.
@@ -33,29 +31,16 @@ const legacyHomeTabIdSet = new Set<string>([
   "bus",
   "links",
 ]);
-const homeWorkspaceQueryKeys = new Set([
-  "calendarDay",
-  "calendarMonth",
-  "calendarSemester",
-  "calendarView",
-  "calendarWeek",
-  "workspaceLinkPinError",
-  "examView",
-  "homeworkView",
-  "linkView",
-  "overviewWeek",
-  "snapshotAt",
-  "todoView",
-]);
 
 /**
  * Permanent compatibility for bookmarked `?tab=` query URLs from the pre-semantic
  * workspace shell. Supported entry points:
- * - `/` anonymous: `homeTabCompatibilityRedirectHref` (catalog + workspace tabs)
- * - `/` signed-in: `workspaceRedirectHrefFromHome` after home compatibility passes
- * - `/workspace`: `workspaceTabCompatibilityRedirectHref` (308 to `/workspace/{section}`)
+ * - `/`: `homeTabCompatibilityRedirectHref` (catalog + workspace tabs), for every
+ *   visitor alike — `/` is the one home and no longer forwards a signed-in
+ *   viewer anywhere, so this redirect is viewer-independent and stays cacheable.
+ * - `/workspace`: `workspaceTabCompatibilityRedirectHref` (308 to the canonical destination)
  *
- * Unrecognized `tab` values are ignored on `/` (public home stays put) or fall back
+ * Unrecognized `tab` values are ignored on `/` (home stays put) or fall back
  * to overview on `/workspace`. There is no sunset date; redirects stay until traffic
  * metrics justify removal.
  */
@@ -69,6 +54,7 @@ function resolveLegacyWorkspaceNavTab(
 }
 
 function workspacePathForNavTab(tab: WorkspaceNavTabId) {
+  if (tab === "overview") return "/";
   return tab === WORKSPACE_SUBSCRIPTIONS_SECTION
     ? WORKSPACE_SUBSCRIPTIONS_PATH
     : `/workspace/${tab}`;
@@ -110,25 +96,7 @@ export function workspaceTabHref(
   return appendSearch(workspacePathForNavTab(id), query);
 }
 
-export function workspaceRedirectHrefFromHome(url: URL) {
-  const query = new URLSearchParams();
-  const tab = url.searchParams.get("tab");
-
-  for (const [key, value] of url.searchParams) {
-    if (homeWorkspaceQueryKeys.has(key)) {
-      query.append(key, value);
-    }
-  }
-
-  const navTab = resolveLegacyWorkspaceNavTab(tab);
-  const pathname = navTab
-    ? workspacePathForNavTab(navTab)
-    : "/workspace/overview";
-
-  return appendSearch(pathname, query);
-}
-
-export function homeTabCompatibilityRedirectHref(url: URL, _signedIn: boolean) {
+export function homeTabCompatibilityRedirectHref(url: URL) {
   const tab = url.searchParams.get("tab");
   if (!tab || !legacyHomeTabIdSet.has(tab)) return null;
 
@@ -143,11 +111,13 @@ export function workspaceTabCompatibilityRedirectHref(
   url: URL,
   method = "GET",
 ) {
-  return semanticSectionCompatibilityHref({
-    basePath: "/workspace",
-    defaultSection: "overview",
-    method,
-    resolveSection: resolveLegacyWorkspaceNavTab,
-    url,
-  });
+  if (
+    (method !== "GET" && method !== "HEAD") ||
+    url.pathname !== "/workspace"
+  ) {
+    return null;
+  }
+  const tab =
+    resolveLegacyWorkspaceNavTab(url.searchParams.get("tab")) ?? "overview";
+  return appendSearch(workspacePathForNavTab(tab), queryWithoutTab(url));
 }

@@ -210,18 +210,6 @@ function overviewStack(
 }
 </script>
 
-{#if !hasWorkspaceSubscriptions(signedData)}
-  <WorkspaceNoSubscriptionsState
-    title={subscriptionsCopy.noSubscriptions}
-    description={subscriptionsCopy.noSubscriptionsDescription}
-    actions={[
-      { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
-      { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
-      { href: workspaceTabHref("subscriptions"), label: workspaceCopy.termSelection.matchByCode, variant: "outline" },
-    ]}
-  />
-{/if}
-
 {#if signedData.overview?.calendar}
     {@const overviewCalendar = signedData.overview.calendar}
     {@const agendaDays = overviewAgendaDays(overviewCalendar, visibleYoungItems)}
@@ -278,6 +266,19 @@ function overviewStack(
             { href: workspaceTabHref("exams"), label: workspaceCopy.nav.exams.title },
           ]}
           viewAllLabel={workspaceCopy.viewAll as string}
+        />
+      {/if}
+
+      {#if !hasWorkspaceSubscriptions(signedData)}
+        <WorkspaceNoSubscriptionsState
+          class={OVERVIEW_FULL_WIDTH_CLASS}
+          title={subscriptionsCopy.noSubscriptions}
+          description={subscriptionsCopy.noSubscriptionsDescription}
+          actions={[
+            { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
+            { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
+            { href: workspaceTabHref("subscriptions"), label: workspaceCopy.termSelection.matchByCode, variant: "outline" },
+          ]}
         />
       {/if}
 

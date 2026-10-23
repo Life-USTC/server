@@ -204,7 +204,7 @@ describe("feature operation recording", () => {
   });
   it.each([
     ["/api/catalog/sections/match-codes", "POST", "catalog.section", "match"],
-    ["/workspace", "GET", "workspace.overview", "view"],
+    ["/", "GET", "workspace.overview", "view"],
     [
       "/api/workspace/homeworks/12/completion",
       "PUT",

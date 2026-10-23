@@ -731,7 +731,7 @@ surface_mappings:
   bot: 教室 <code> or a recognized bare room code
   cli: catalog room map <code>
 - capability: workspace_overview_get
-  web: /workspace/overview
+  web: /
   rest: GET /api/workspace/overview
   graphql: workspace.overview
   bot: 概览
@@ -743,7 +743,7 @@ surface_mappings:
   bot: 日程 今日/本周
   cli: workspace calendar events
 - capability: workspace_schedule_list
-  web: /workspace/overview (no dedicated schedules tab)
+  web: / (no dedicated schedules tab)
   rest: GET /api/workspace/schedules
   graphql: workspace.schedules
   bot: 课表

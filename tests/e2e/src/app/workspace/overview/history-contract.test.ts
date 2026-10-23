@@ -94,8 +94,7 @@ for (const [domain, method, feature] of [
         .addCookies([
           { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
         ]);
-      const overviewUrl =
-        "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00";
+      const overviewUrl = "/?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00";
       if (method === "Web") {
         for (const width of [1280, 390]) {
           await page.setViewportSize({ width, height: 1000 });

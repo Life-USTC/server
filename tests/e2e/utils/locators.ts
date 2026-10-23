@@ -19,7 +19,7 @@ export async function expandSidebarGroup(
   }
 }
 
-/** Expand My day (Overview / Calendar / Homework / …). */
+/** Expand My day (Calendar / Homework / …). */
 export async function expandDaySidebarGroup(page: Page): Promise<void> {
   await expandSidebarGroup(page, /^(日程|My day)$/i);
 }

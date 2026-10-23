@@ -119,6 +119,31 @@ describe("public cache policy acceptance", () => {
     }
   });
 
+  test("rendering-and-cache.cacheable-public-pages-16", () => {
+    // `/` is the one home for every visitor. Its anonymous HTML is admitted and
+    // capped at the next Shanghai midnight, because its activity list is scoped
+    // to the current Shanghai day.
+    expect(mode("/")).toBe("page");
+    const headers = publicSsrCacheHeaders(
+      "/",
+      new Date("2026-04-29T15:30:00+08:00"),
+    );
+    expect(headers["Cloudflare-CDN-Cache-Control"]).toBe(
+      "public, max-age=30600, stale-while-revalidate=0, stale-if-error=0",
+    );
+
+    // A query-bearing request reaches the load, which owns the legacy `?tab=`
+    // redirects, and a session-bearing request renders so the incomplete
+    // profile gate in hooks.server.ts still runs.
+    expect(mode("/?tab=homeworks")).toBeNull();
+    expect(
+      mode("/", { cookie: "better-auth.session_token=viewer-session" }),
+    ).toBeNull();
+
+    // The clock-driven board is read separately and is never stored.
+    expect(mode("/_internal/home/campus-now")).toBeNull();
+  });
+
   test("rendering-and-cache.cacheable-public-pages-13", () => {
     for (const path of [
       "/news",

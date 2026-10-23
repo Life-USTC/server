@@ -94,7 +94,7 @@ export function resolveHttpFeatureOperation(
       feature: CATALOG[page[1] as keyof typeof CATALOG],
       operation: "view",
     };
-  if (read && (path === "/workspace" || path === "/workspace/overview"))
+  if (read && path === "/")
     return { feature: "workspace.overview", operation: "view" };
   if (read && /^\/workspace\/subscriptions(?:\/sections)?$/.test(path))
     return { feature: "workspace.subscription", operation: "view" };

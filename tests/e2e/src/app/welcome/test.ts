@@ -205,7 +205,7 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
         .getByRole("link", { name: /进入工作区|Go to workspace/i })
         .click();
 
-      await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
+      await expect(page).toHaveURL(/\/(?:\?.*)?$/, {
         timeout: 15_000,
       });
       await expect(page.locator("#main-content")).toBeVisible();
@@ -267,7 +267,7 @@ test("/account/welcome 可选择已上传头像并保存", {
       await page
         .getByRole("link", { name: /进入工作区|Go to workspace/i })
         .click();
-      await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
+      await expect(page).toHaveURL(/\/(?:\?.*)?$/, {
         timeout: 15_000,
       });
       await expect

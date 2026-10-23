@@ -73,16 +73,18 @@ test.describe("/account/settings 设置中心", () => {
       await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
       await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);
       const appSidebar = page.getByTestId("app-sidebar");
-      const overview = appSidebar.getByRole("link", {
-        name: /^(总览|Overview)$/i,
+      const home = appSidebar.getByRole("link", {
+        name: "Life@USTC",
+        exact: true,
       });
-      await expect(overview).toBeVisible();
-      await expect(overview).toHaveAttribute("href", "/workspace/overview");
-      const featureHub = appSidebar.getByRole("link", {
-        name: /^(全部功能|All features)$/i,
-      });
-      await expect(featureHub).toBeVisible();
-      await expect(featureHub).toHaveAttribute("href", "/catalog/features");
+      await expect(home).toBeVisible();
+      await expect(home).toHaveAttribute("href", "/");
+      await expect(home).toHaveAttribute("aria-current", "page");
+      await expect(
+        appSidebar.locator(
+          'a[href="/catalog/features"], a[href="/workspace/overview"]',
+        ),
+      ).toHaveCount(0);
 
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/account/settings/danger");

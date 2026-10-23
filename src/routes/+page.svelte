@@ -1,11 +1,19 @@
 <script lang="ts">
 import PageLayout from "#lib/components/PageLayout.svelte";
-import AnonymousHomePageController from "@/features/workspace/components/AnonymousHomePageController.svelte";
+import HomePageController from "@/features/workspace/components/HomePageController.svelte";
+import { page } from "$app/state";
 import type { PageData } from "./$types";
 
-export let data: PageData;
+let { data }: { data: PageData } = $props();
+
+/**
+ * Legacy overview dates reach the private client fetch while the page load
+ * stays viewer-independent.
+ */
+const snapshotAt = $derived(page.url.searchParams.get("snapshotAt"));
+const overviewWeek = $derived(page.url.searchParams.get("overviewWeek"));
 </script>
 
 <PageLayout>
-  <AnonymousHomePageController {data} />
+  <HomePageController {data} {snapshotAt} {overviewWeek} />
 </PageLayout>

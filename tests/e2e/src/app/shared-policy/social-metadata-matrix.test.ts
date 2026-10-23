@@ -66,7 +66,9 @@ const pages = PAGE_INVENTORY.filter((entry) => entry.kind === "page").flatMap(
       entry.routeId === "/account/settings/[tab]"
         ? INVENTORY_SETTINGS_TABS.map((tab) => `/account/settings/${tab}`)
         : entry.routeId === "/workspace/[tab]"
-          ? INVENTORY_WORKSPACE_TABS.map((tab) => `/workspace/${tab}`)
+          ? INVENTORY_WORKSPACE_TABS.map((tab) =>
+              tab === "overview" ? "/" : `/workspace/${tab}`,
+            )
           : [entry.samplePath];
     return paths.map((samplePath) => ({
       ...entry,
@@ -74,7 +76,11 @@ const pages = PAGE_INVENTORY.filter((entry) => entry.kind === "page").flatMap(
       domain:
         entry.routeId === "/workspace/[tab]"
           ? WORKSPACE_TAB_DOMAINS[
-              samplePath.split("/").at(-1) as keyof typeof WORKSPACE_TAB_DOMAINS
+              samplePath === "/"
+                ? "overview"
+                : (samplePath
+                    .split("/")
+                    .at(-1) as keyof typeof WORKSPACE_TAB_DOMAINS)
             ]
           : entry.domain,
     }));
@@ -82,9 +88,9 @@ const pages = PAGE_INVENTORY.filter((entry) => entry.kind === "page").flatMap(
 );
 
 for (const sample of new Map(
-  pages.map((entry) => [entry.samplePath, entry]),
+  pages.map((entry) => [`${entry.samplePath}:${entry.auth}`, entry]),
 ).values()) {
-  test(`ui.social-sharing-metadata-1: ${sample.samplePath}`, {
+  test(`ui.social-sharing-metadata-1: ${sample.samplePath} ${sample.auth}`, {
     tag: `@${sample.domain}/Web`,
   }, async ({ page, request, preferenceFlow, isolatedWorker }) => {
     await preferenceFlow.run(async () => {

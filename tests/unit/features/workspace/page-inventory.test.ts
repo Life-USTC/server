@@ -60,7 +60,7 @@ describe("browser route inventory", () => {
     }
     const paths = mobilePageCases("authed").map(({ path }) => path);
     for (const tab of workspaceNavTabIds)
-      expect(paths).toContain(`/workspace/${tab}`);
+      expect(paths).toContain(tab === "overview" ? "/" : `/workspace/${tab}`);
     for (const tab of SETTINGS_TABS)
       expect(paths).toContain(`/account/settings/${tab}`);
   });

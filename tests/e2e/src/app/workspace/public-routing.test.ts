@@ -31,10 +31,24 @@ test("anonymous workspace canonical routing", { tag: "@Site/Web" }, async ({
         );
 
         expect(response.status()).toBe(308);
-        expect(response.headers().location).toBe(
-          "/workspace/overview?overviewWeek=next",
-        );
+        expect(response.headers().location).toBe("/?overviewWeek=next");
       }
+      await publicFlow.assertAnonymousNoEffects();
+    });
+    await test.step("旧总览书签保留查询参数并打开统一首页", async () => {
+      for (const path of [
+        "/workspace/overview?snapshotAt=2026-10-23",
+        "/?tab=overview&snapshotAt=2026-10-23",
+      ]) {
+        const response = await page.request.get(path, { maxRedirects: 0 });
+        expect(response.status()).toBe(308);
+        expect(response.headers().location).toBe("/?snapshotAt=2026-10-23");
+      }
+      const directory = await page.request.get("/catalog/features", {
+        maxRedirects: 0,
+      });
+      expect(directory.status()).toBe(301);
+      expect(directory.headers().location).toBe("/");
       await publicFlow.assertAnonymousNoEffects();
     });
     await test.step("仪表盘作业 › 未登录旧 homework tab 重定向到语义路径", async () => {

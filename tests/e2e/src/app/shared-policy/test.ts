@@ -276,7 +276,7 @@ for (const [index, locale] of locales.entries()) {
               await taskFilterTest.step(
                 `${tab}: heading, landmark and title`,
                 async () => {
-                  const route = `/workspace/${tab}`;
+                  const route = tab === "overview" ? "/" : `/workspace/${tab}`;
                   const response = await gotoAndWaitForReady(page, route);
                   expect(response?.status()).toBe(200);
                   expect(response?.headers()["content-language"]).toBe(locale);

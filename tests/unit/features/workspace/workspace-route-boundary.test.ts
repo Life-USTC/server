@@ -1,14 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { loadAnonymousHomePageMock, loadSignedWorkspacePageMock } = vi.hoisted(
-  () => ({
-    loadAnonymousHomePageMock: vi.fn(),
-    loadSignedWorkspacePageMock: vi.fn(),
-  }),
-);
+const { loadHomePageMock, loadSignedWorkspacePageMock } = vi.hoisted(() => ({
+  loadHomePageMock: vi.fn(),
+  loadSignedWorkspacePageMock: vi.fn(),
+}));
 
 vi.mock("@/features/workspace/server/anonymous-home-page-load", () => ({
-  loadAnonymousHomePage: loadAnonymousHomePageMock,
+  loadHomePage: loadHomePageMock,
 }));
 
 vi.mock("@/features/workspace/server/workspace-page-load", () => ({
@@ -36,25 +34,21 @@ function routeEvent(
   };
 }
 
-describe("anonymous home and signed workspace route boundary", () => {
+describe("home and signed workspace route boundary", () => {
   afterEach(() => {
-    loadAnonymousHomePageMock.mockReset();
+    loadHomePageMock.mockReset();
     loadSignedWorkspacePageMock.mockReset();
   });
 
-  it("loads only the public home data for anonymous visitors", async () => {
-    loadAnonymousHomePageMock.mockResolvedValue({
-      marker: "anonymous",
-      signedIn: false,
-    });
+  it("loads the public home data for anonymous visitors", async () => {
+    loadHomePageMock.mockResolvedValue({ marker: "public" });
     const homeRoute = await import("@/routes/+page.server");
     const event = routeEvent("https://example.test/");
 
     await expect(homeRoute.load(event as never)).resolves.toMatchObject({
-      marker: "anonymous",
-      signedIn: false,
+      marker: "public",
     });
-    expect(loadAnonymousHomePageMock).toHaveBeenCalledWith({
+    expect(loadHomePageMock).toHaveBeenCalledWith({
       locals: event.locals,
       request: event.request,
       url: event.url,
@@ -76,11 +70,11 @@ describe("anonymous home and signed workspace route boundary", () => {
       location: "/catalog/bus?utm_source=bookmark",
       status: 308,
     });
-    expect(loadAnonymousHomePageMock).not.toHaveBeenCalled();
+    expect(loadHomePageMock).not.toHaveBeenCalled();
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 
-  it("permanently redirects signed legacy tabs to semantic workspace paths", async () => {
+  it("permanently redirects legacy workspace tabs to semantic paths", async () => {
     const homeRoute = await import("@/routes/+page.server");
 
     await expect(
@@ -95,24 +89,37 @@ describe("anonymous home and signed workspace route boundary", () => {
         "/workspace/calendar?calendarView=week&calendarSemester=42&utm_source=bookmark",
       status: 308,
     });
-    expect(loadAnonymousHomePageMock).not.toHaveBeenCalled();
+    expect(loadHomePageMock).not.toHaveBeenCalled();
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 
-  it("redirects a signed visitor without a legacy tab to the workspace", async () => {
+  it("serves a signed visitor the identical viewer-independent home payload", async () => {
+    loadHomePageMock.mockResolvedValue({ marker: "public" });
     const homeRoute = await import("@/routes/+page.server");
+    const signed = routeEvent("https://example.test/", "user-1");
+    const anonymous = routeEvent("https://example.test/");
 
-    await expect(
-      homeRoute.load(
-        routeEvent(
-          "https://example.test/?overviewWeek=next",
-          "user-1",
-        ) as never,
-      ),
-    ).rejects.toMatchObject({
-      location: "/workspace/overview?overviewWeek=next",
-      status: 303,
+    // `/` is the one home. A signed visitor is no longer redirected into the
+    // workspace, and the load is handed nothing it could branch on, which is
+    // what keeps `/` admissible to the shared public HTML cache.
+    await expect(homeRoute.load(signed as never)).resolves.toMatchObject({
+      marker: "public",
     });
+    await expect(homeRoute.load(anonymous as never)).resolves.toMatchObject({
+      marker: "public",
+    });
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
+    expect(loadHomePageMock).toHaveBeenCalledTimes(2);
+    // The loader is handed the request context and nothing viewer-shaped on
+    // top of it; `tests/e2e/src/app/cache-policy/shell-projection.test.ts`
+    // proves the rendered HTML is identical for both visitors.
+    for (const [args] of loadHomePageMock.mock.calls) {
+      expect(Object.keys(args).toSorted()).toEqual([
+        "locals",
+        "request",
+        "url",
+      ]);
+    }
   });
 
   it("permanently redirects workspace query tabs before auth handling", async () => {
@@ -123,7 +130,7 @@ describe("anonymous home and signed workspace route boundary", () => {
         routeEvent("https://example.test/workspace?tab=overview") as never,
       ),
     ).rejects.toMatchObject({
-      location: "/workspace/overview",
+      location: "/",
       status: 308,
     });
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
@@ -137,7 +144,7 @@ describe("anonymous home and signed workspace route boundary", () => {
         routeEvent("https://example.test/workspace") as never,
       ),
     ).rejects.toMatchObject({
-      location: "/workspace/overview",
+      location: "/",
       status: 308,
     });
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
@@ -150,12 +157,12 @@ describe("anonymous home and signed workspace route boundary", () => {
 
     await expect(
       workspaceRoute.load(
-        routeEvent("https://example.test/workspace/overview", undefined, {
-          tab: "overview",
+        routeEvent("https://example.test/workspace/calendar", undefined, {
+          tab: "calendar",
         }) as never,
       ),
     ).rejects.toMatchObject({
-      location: "/account/sign-in?callbackUrl=%2Fworkspace%2Foverview",
+      location: "/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar",
       status: 303,
     });
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
@@ -205,16 +212,11 @@ describe("anonymous home and signed workspace route boundary", () => {
       },
     );
 
-    await expect(workspaceRoute.load(event as never)).resolves.toMatchObject({
-      marker: "signed",
-      signedIn: true,
+    await expect(workspaceRoute.load(event as never)).rejects.toMatchObject({
+      location: "/",
+      status: 303,
     });
-    expect(loadSignedWorkspacePageMock).toHaveBeenCalledWith({
-      locals: event.locals,
-      request: event.request,
-      tab: "overview",
-      url: event.url,
-      userId: "user-1",
-    });
+    expect(workspaceRoute.actions).toBeDefined();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 });

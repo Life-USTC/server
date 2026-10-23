@@ -46,7 +46,6 @@ export function createWorkspacePageControllerActions(input: {
   getHomeworkItems: () => HomeworkItem[];
   getHomeworkSavingById: () => Record<string, boolean>;
   getLinkReturnTo: () => string;
-  getOverviewLinkSourceItems: () => CatalogLinkItem[];
   getSelectedHomework: () => HomeworkItem | null;
   getSelectedImportSectionIds: () => number[];
   getSelectedTodo: () => TodoItem | null;
@@ -89,7 +88,6 @@ export function createWorkspacePageControllerActions(input: {
   setLinkView: Setter<LinkView>;
   setMatchedSections: Setter<MatchedSection[]>;
   setMatchingSections: Setter<boolean>;
-  setOverviewLinkSourceItems: Setter<CatalogLinkItem[]>;
   setRemovingSectionId: Setter<number | null>;
   setSelectedHomework: Setter<HomeworkItem | null>;
   setSelectedImportSectionIds: Setter<number[]>;
@@ -243,7 +241,6 @@ export function createWorkspacePageControllerActions(input: {
     getWorkspaceCopy,
     getCatalogLinkItems: input.getCatalogLinkSourceItems,
     getLinkReturnTo: input.getLinkReturnTo,
-    getOverviewLinkItems: input.getOverviewLinkSourceItems,
     getUpdatingCatalogLinkSlug: input.getUpdatingCatalogLinkSlug,
     onSuccess: (action) => {
       const workspaceCopy = getWorkspaceCopy();
@@ -259,7 +256,6 @@ export function createWorkspacePageControllerActions(input: {
     setCatalogLinkItems: input.setCatalogLinkSourceItems,
     setLinkActionError: input.setLinkActionError,
     setLinkReturnTo: input.setLinkReturnTo,
-    setOverviewLinkItems: input.setOverviewLinkSourceItems,
     setUpdatingCatalogLinkSlug: input.setUpdatingCatalogLinkSlug,
   });
 

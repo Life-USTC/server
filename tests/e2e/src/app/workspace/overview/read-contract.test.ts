@@ -359,9 +359,7 @@ for (const method of ["Web", "MCP"] as const) {
       if (method === "Web")
         for (const width of [1280, 390]) {
           await page.setViewportSize({ width, height: 1000 });
-          await page.goto(
-            "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00",
-          );
+          await page.goto("/?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00");
           const focus = page.getByTestId("workspace-overview-focus");
           await expect(focus.getByRole("link")).toBeVisible();
           await expect(focus).not.toContainText(

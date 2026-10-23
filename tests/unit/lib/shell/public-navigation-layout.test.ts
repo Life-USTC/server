@@ -18,8 +18,8 @@ async function layout(path: string) {
 }
 
 test.each([
+  "/",
   "/catalog/courses",
-  "/catalog/features",
   "/news",
   "/news/story",
   "/news/sources",
@@ -37,7 +37,7 @@ test.each([
 });
 
 test("keeps the viewer in SSR for private workspace routes", async () => {
-  const data = await layout("/workspace/overview");
+  const data = await layout("/workspace/calendar");
   expect(data).toMatchObject({
     user: { id: "private-viewer" },
     resolveViewerOnClient: false,

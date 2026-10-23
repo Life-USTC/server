@@ -1,12 +1,11 @@
-import { updateSocialMetadata } from "@/lib/social-metadata";
+import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ parent }) => {
-  const { copy, socialMetadata } = await parent();
-  return {
-    socialMetadata: updateSocialMetadata(socialMetadata, {
-      description: copy.nav.hub.description,
-      title: `${copy.nav.hub.title} - Life@USTC`,
-    }),
-  };
+/**
+ * The product directory moved to `/`, which is now the one home for every
+ * visitor. This path kept its own social metadata and may be linked
+ * externally, so it answers permanently rather than disappearing.
+ */
+export const load: PageServerLoad = async () => {
+  throw redirect(301, "/");
 };

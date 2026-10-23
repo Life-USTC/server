@@ -34,14 +34,17 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
   });
   await calendarRun(
     async ({ readHeaders }) => {
-      for (const pending of [false, true]) {
+      for (const pending of [null, "activity", "overview"] as const) {
         let releaseOld = () => {};
         let held = false;
         const release = new Promise<void>((resolve) => {
           releaseOld = resolve;
         });
         const routeOperations: Promise<void>[] = [];
-        const pattern = "**/api/workspace/calendar/events?**";
+        const pattern =
+          pending === "overview"
+            ? "**/_internal/home/viewer*"
+            : "**/api/workspace/calendar/events?**";
         const handler = (route: Route) => {
           const operation = (async () => {
             try {
@@ -53,10 +56,12 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
               if (
                 pending &&
                 !held &&
-                body.data.some(
-                  (item: { youngId: string | null }) =>
-                    item.youngId === fixtures[0].young.youngId,
-                )
+                (pending === "overview"
+                  ? body.navStats?.user.id === fixtures[0].users[0].id
+                  : body.data.some(
+                      (item: { youngId: string | null }) =>
+                        item.youngId === fixtures[0].young.youngId,
+                    ))
               ) {
                 held = true;
                 await release;
@@ -90,7 +95,7 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
               await calendar.createSignedSessionCookie(fixtures[0].users[0].id),
               { name: "NEXT_LOCALE", value: "en-us", url: calendar.origin },
             ]);
-          await page.goto(`/workspace/overview?overviewWeek=${monday}`);
+          await page.goto(`/?overviewWeek=${monday}`);
           const focus = page.getByTestId("workspace-overview-focus");
           if (pending) {
             await expect
@@ -99,10 +104,17 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
                 message: "The previous owner's real calendar response is held",
               })
               .toBe(true);
-            await expect(focus.getByRole("status")).toContainText("Loading");
-            await expect(focus).not.toContainText(
-              "Nothing is due or scheduled",
-            );
+            if (pending === "overview") {
+              await expect(
+                page.getByTestId("home-personal-loading"),
+              ).toBeVisible();
+              await expect(focus).toHaveCount(0);
+            } else {
+              await expect(focus.getByRole("status")).toContainText("Loading");
+              await expect(focus).not.toContainText(
+                "Nothing is due or scheduled",
+              );
+            }
           } else {
             await expect(focus).toContainText(fixtures[0].young.name);
           }
@@ -115,9 +127,12 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
               state.overviewOldDocument = true;
               state.overviewOwnerLeak = false;
               const observer = new MutationObserver(() => {
+                const personalText = document.querySelector(
+                  '[data-testid="home-personal-overview"]',
+                )?.textContent;
                 if (
-                  document.body.textContent?.includes(marker) &&
-                  document.body.textContent.includes(oldTitle)
+                  personalText?.includes(marker) &&
+                  personalText.includes(oldTitle)
                 )
                   state.overviewOwnerLeak = true;
               });
@@ -141,24 +156,24 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
             ]);
           await page
             .getByTestId("app-sidebar")
-            .getByRole("link", { name: "Overview", exact: true })
+            .getByRole("link", { name: "Life@USTC", exact: true })
             .filter({ visible: true })
             .click();
-          await expect(page).toHaveURL(`${calendar.origin}/workspace/overview`);
+          await expect(page).toHaveURL(`${calendar.origin}/`);
           await expect(
             page
               .getByText(fixtures[1].homework.title, { exact: true })
               .filter({ visible: true })
               .first(),
           ).toBeVisible();
-          await expect(page.locator("body")).not.toContainText(
-            fixtures[0].young.name,
-          );
+          await expect(
+            page.getByTestId("home-personal-overview"),
+          ).not.toContainText(fixtures[0].young.name);
           releaseOld();
           await expect(focus).toContainText(fixtures[1].young.name);
-          await expect(page.locator("body")).not.toContainText(
-            fixtures[0].young.name,
-          );
+          await expect(
+            page.getByTestId("home-personal-overview"),
+          ).not.toContainText(fixtures[0].young.name);
           expect(
             await page.evaluate(
               () =>
@@ -193,6 +208,13 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
         if (errors.length)
           throw new AggregateError(errors, "Overview calendar workflow failed");
       }
+      await page.context().clearCookies();
+      await page
+        .getByRole("link", { name: "Life@USTC", exact: true })
+        .filter({ visible: true })
+        .first()
+        .click();
+      await expect(page.getByTestId("home-personal-overview")).toHaveCount(0);
     },
     { accountIndex: 0, calendarTokenCreated: false },
   );

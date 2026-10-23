@@ -12,7 +12,6 @@ import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import FilesIcon from "@lucide/svelte/icons/files";
 import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
-import HouseIcon from "@lucide/svelte/icons/house";
 import LandmarkIcon from "@lucide/svelte/icons/landmark";
 import LibraryBigIcon from "@lucide/svelte/icons/library-big";
 import LinkIcon from "@lucide/svelte/icons/link";
@@ -40,8 +39,6 @@ import {
   type ShellCatalogCollection,
 } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
-
-export const FEATURE_HUB_PATH = "/catalog/features";
 
 export type ShellFeatureId = keyof LayoutCopy["nav"]["hub"]["descriptions"];
 
@@ -105,12 +102,6 @@ const GROUPS: ReadonlyArray<{
     id: "day",
     features: [
       {
-        href: "/workspace/overview",
-        icon: HouseIcon,
-        id: "overview",
-        label: (nav) => nav.overview,
-      },
-      {
         href: "/workspace/calendar",
         icon: CalendarDaysIcon,
         id: "calendar",
@@ -148,16 +139,16 @@ const GROUPS: ReadonlyArray<{
         label: (nav) => nav.subscriptions,
       },
       {
-        href: "/catalog/courses",
-        icon: BookOpenIcon,
-        id: "courses",
-        label: (nav) => nav.courses,
-      },
-      {
         href: "/catalog/sections",
         icon: RouteIcon,
         id: "sections",
         label: (nav) => nav.sections,
+      },
+      {
+        href: "/catalog/courses",
+        icon: BookOpenIcon,
+        id: "courses",
+        label: (nav) => nav.courses,
       },
       {
         href: "/catalog/teachers",
@@ -603,9 +594,6 @@ export function isShellLinkActive(link: ShellLink, current: NavigationUrl) {
 
   if (target.searchParams.size > 0) return queryLinkMatches(target, current);
 
-  if (target.pathname === "/workspace/overview") {
-    return pathname === "/workspace" || pathname === "/workspace/overview";
-  }
   if (target.pathname === "/news") {
     return pathname === "/news" || pathname.startsWith("/news/");
   }

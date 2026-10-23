@@ -15,7 +15,7 @@ async function signIn(page: Page, fixture: CalendarFixture) {
     ]);
 }
 const overviewUrl = (time = "09:30") =>
-  `/workspace/overview?snapshotAt=${encodeURIComponent(`2026-04-29T${time}:00+08:00`)}`;
+  `/?snapshotAt=${encodeURIComponent(`2026-04-29T${time}:00+08:00`)}`;
 
 test("overview.decision-page", { tag: "@Overview/Web" }, async ({
   page,
@@ -263,11 +263,28 @@ test("overview.personal-next-action-page", { tag: "@Overview/Web" }, async ({
             (focusBox?.y ?? 0) + (focusBox?.height ?? 0),
           );
         }
+        const directory = await page
+          .getByTestId("home-directory")
+          .boundingBox();
+        const personal = await page
+          .getByTestId("home-personal-overview")
+          .boundingBox();
+        expect(directory?.y).toBeGreaterThan(
+          (personal?.y ?? 0) + (personal?.height ?? 0),
+        );
+        await expect(page.getByTestId("home-section-search")).toHaveAttribute(
+          "href",
+          "/catalog/sections",
+        );
         await expect(
-          page.locator('#main-content a[href="/catalog/teachers"]'),
+          page
+            .getByTestId("home-personal-overview")
+            .locator('a[href="/catalog/teachers"]'),
         ).toHaveCount(0);
         await expect(
-          page.locator('#main-content a[href="/catalog/courses"]'),
+          page
+            .getByTestId("home-personal-overview")
+            .locator('a[href="/catalog/courses"]'),
         ).toHaveCount(0);
       }
     },

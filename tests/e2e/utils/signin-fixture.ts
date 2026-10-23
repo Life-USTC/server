@@ -94,7 +94,7 @@ export async function signInThroughDevButton(page: Page, account: User) {
   });
   await expect(button).toBeVisible();
   await button.click();
-  await expect(page).toHaveURL(/\/workspace\/overview$/);
+  await expect(page).toHaveURL((url) => url.pathname === "/" && !url.search);
   await waitForUiSettled(page);
   const response = await page.request.get(
     "/api/auth/get-session?disableCookieCache=true",

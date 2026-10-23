@@ -85,8 +85,8 @@ describe("shared functional shell navigation", () => {
             ?.features.map((feature) => feature.href),
         ).toEqual([
           ...(viewer ? ["/workspace/subscriptions"] : []),
-          "/catalog/courses",
           "/catalog/sections",
+          "/catalog/courses",
           "/catalog/teachers",
         ]);
         const activities = groups.find((group) => group.id === "activities");
@@ -126,11 +126,11 @@ describe("shared functional shell navigation", () => {
           ?.features.map((feature) => feature.label),
       ).toEqual(
         locale === "zh-cn"
-          ? ["教学班订阅", "浏览课程", "浏览教学班", "教师"]
+          ? ["教学班订阅", "浏览教学班", "浏览课程", "教师"]
           : [
               "Section subscriptions",
-              "Browse courses",
               "Browse sections",
+              "Browse courses",
               "Teachers",
             ],
       );

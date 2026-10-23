@@ -8,7 +8,6 @@ export async function submitWorkspaceLinkPinChange(input: {
   action: "pin" | "unpin";
   catalogLinkItems: CatalogLinkItem[];
   fallbackMessage: string;
-  overviewLinkItems: CatalogLinkItem[];
   returnTo: string;
   slug: string;
 }) {
@@ -23,10 +22,6 @@ export async function submitWorkspaceLinkPinChange(input: {
     return {
       catalogLinkItems: applyCatalogLinkPinnedSlugs(
         input.catalogLinkItems,
-        pinnedSlugs,
-      ),
-      overviewLinkItems: applyCatalogLinkPinnedSlugs(
-        input.overviewLinkItems,
         pinnedSlugs,
       ),
     };

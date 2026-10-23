@@ -41,7 +41,7 @@ test.describe("仪表盘", () => {
         await page.setViewportSize({ width: 1280, height: 720 });
         await gotoAndWaitForReady(page, "/");
 
-        await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
+        await expect(page).toHaveURL(/\/(?:\?.*)?$/);
         await expect(
           page.getByRole("heading", {
             level: 1,
@@ -56,13 +56,18 @@ test.describe("仪表盘", () => {
 
         // Task-oriented workspace destinations are directly reachable.
         await expandDaySidebarGroup(page);
-        for (const label of [
-          /^(总览|Overview)$/i,
-          /^(日历|Calendar)$/i,
-          /^(作业|Homework)$/i,
-        ]) {
+        for (const label of [/^(日历|Calendar)$/i, /^(作业|Homework)$/i]) {
           await expect(sidebarNavigationLink(page, label)).toBeVisible();
         }
+        await expect(
+          sidebarNavigationLink(page, /^(总览|Overview)$/i),
+        ).toHaveCount(0);
+        await expect(
+          appSidebar(page).getByRole("link", {
+            name: "Life@USTC",
+            exact: true,
+          }),
+        ).toHaveAttribute("href", "/");
 
         const overdueTitle = page
           .getByText(homeworkStates[0].title, { exact: true })
@@ -122,7 +127,7 @@ test.describe("仪表盘", () => {
             bootstrapRequestCount += 1;
           }
         });
-        await gotoAndWaitForReady(page, "/workspace/overview");
+        await gotoAndWaitForReady(page, "/workspace/homeworks");
         expect(bootstrapRequestCount).toBe(0);
 
         const bootstrapResponse = await observeAction(

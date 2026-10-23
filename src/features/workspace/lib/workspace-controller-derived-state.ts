@@ -66,7 +66,6 @@ export function buildWorkspaceControllerDerivedState(input: {
   linkSearchQuery: string;
   notAvailable: string;
   currentCatalogLinkItems: CatalogLinkItem[];
-  currentOverviewLinkItems: CatalogLinkItem[];
   currentTodoItems: TodoItem[];
   todoFilter: TodoFilter;
 }) {
@@ -84,9 +83,6 @@ export function buildWorkspaceControllerDerivedState(input: {
   const catalogLinkItems = signedData?.links
     ? input.currentCatalogLinkItems
     : [];
-  const overviewLinkItems = signedData?.overview
-    ? input.currentOverviewLinkItems
-    : [];
 
   return {
     calendarData: (signedData?.overview?.calendar ??
@@ -98,7 +94,6 @@ export function buildWorkspaceControllerDerivedState(input: {
       filterTodos(todoItems, input.todoFilter),
     ),
     homeworkItems,
-    overviewLinkItems,
     signedData,
     signedLinkGroups: signedData?.links
       ? groupCatalogLinks(

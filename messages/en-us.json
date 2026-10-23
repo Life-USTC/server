@@ -339,8 +339,8 @@
     "downloadBadgeAlt": "Download Life@USTC on the App Store",
     "appIconAlt": "Life@USTC app icon",
     "publicWorkspace": {
-      "title": "Courses, schedules, and campus life — in one place",
-      "description": "Browse the public catalog, sections, teachers, shuttle bus, and campus links anytime. Sign in to sync your schedule, homework, section subscriptions, and workspace.",
+      "title": "Overview",
+      "description": "Your day and campus updates, with teaching sections and everyday services close at hand.",
       "exploreLabel": "Keep exploring",
       "cards": {
         "signIn": {
@@ -403,6 +403,11 @@
         "title": "Sign in to sync your schedule and homework",
         "description": "Everything above is public. Sign in to sync your personal schedule, homework, exams, and section subscriptions."
       }
+    },
+    "personal": {
+      "title": "Your day",
+      "failed": "Your overview is unavailable right now",
+      "retry": "Retry"
     },
     "quickAccess": {
       "title": "Quick Access",

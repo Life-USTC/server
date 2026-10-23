@@ -6,6 +6,9 @@ import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
+  if (event.params.tab === "overview") {
+    throw redirect(308, `/${event.url.search}`);
+  }
   // Private tab data must reload when navigation refreshes the shell identity.
   await event.parent();
   if (!isWorkspaceTab(event.params.tab)) {

@@ -163,11 +163,9 @@ export async function assertPageContract(
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
     await expandDaySidebarGroup(page);
-    await expect(sidebarNavigationLink(page, /^(总览|Overview)$/i)).toBeVisible(
-      {
-        timeout: 10_000,
-      },
-    );
+    await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible({
+      timeout: 10_000,
+    });
     return;
   }
 
@@ -783,7 +781,7 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
+          name: /总览|Overview/i,
         }),
       ).toBeVisible();
       await expect(

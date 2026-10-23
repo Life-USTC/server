@@ -12,25 +12,42 @@ policy_refs:
 - cases.mcp-assistant-workflows
 - cases.semester
 access:
-  anon: The home page is a lightweight public catalog entry; bus and frequent links are independent pages
-    at /catalog/bus and /catalog/links.
-  user: Accessing the home page redirects to the personal workspace at /workspace.
-  admin: Accessing the home page redirects to the personal workspace at /workspace, with the same workspace
-    behavior as regular users.
+  anon: The home page is the one landing surface and carries the campus information and the product
+    directory; bus and frequent links are independent pages at /catalog/bus and /catalog/links.
+  user: The home page is the same page for a signed-in viewer, with their own overview hydrated on the
+    client above the campus information. It no longer redirects into the workspace.
+  admin: The home page behaves as it does for regular users, with the admin destinations added to the
+    directory once the client resolves the viewer.
   agent: Can read overview results with the same semantics as the authenticated workspace; REST and MCP
     should return consistent overview information.
 requirements:
 - id: overview.decision-page
   category: presentation
-  rule: The anonymous home page prioritizes public course, section and teacher discovery.
+  rule: The home page leads with time-sensitive campus information and the teaching-section search, and
+    places the product directory below them. The directory is reference material and must not displace the
+    section search that the destination rail leads with.
   acceptance:
     given: An anonymous visitor opens the homepage at desktop and mobile widths.
-    when: The visitor reads the public discovery entries and follows course, section and teacher links.
+    when: The visitor reads the campus information, the destination rail and the directory below them.
     then:
-    - The first three discovery entries are courses, sections and teachers, and each opens its working public search page.
+    - The campus information, notices and activities precede the directory, and the rail still leads with the teaching-section catalog.
+    - Each rail destination opens its working public search page.
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
       name: overview.decision-page
+- id: overview.legacy-preview-week
+  category: behavior
+  rule: Legacy overview links redirect to / while preserving snapshotAt and overviewWeek. The private
+    homepage projection includes the requested preview week without changing the snapshot's current-day focus.
+  acceptance:
+    given: An isolated subscriber has one class on the snapshot date and another two weeks later.
+    when: The browser follows the legacy overview route with and without the later preview week.
+    then:
+    - Both requests arrive at / with their original date parameters.
+    - The later class is included only when its preview week is requested, while the focus stays on the current class.
+    test:
+      file: tests/e2e/src/app/workspace/overview/query-window.test.ts
+      name: overview.legacy-preview-week
 - id: overview.now-next-first
   category: presentation
   rule: 'The overview focus is selected from today and the next six Shanghai calendar days: first the
@@ -148,20 +165,21 @@ requirements:
 - id: overview.public-html-viewer-independent
   category: privacy
   rule: Public homepage HTML and page data contain no viewer identity, personal counts or private workspace
-    state. Authenticated homepage requests redirect to their workspace instead of embedding private state in public discovery.
+    state. The homepage load never reads the authenticated viewer, so a signed-in request renders the same
+    public page and resolves its own overview on the client instead of embedding private state in public discovery.
   acceptance:
     given: Two isolated session owners have different task and subscription state.
     when: Their homepage requests are followed by anonymous Chinese and English HTML and decoded page-data requests with no browser JavaScript.
     then:
-    - Signed-in requests redirect without including viewer identity in the response body.
+    - Signed-in requests render the public homepage without either owner's task titles or counts in the response body.
     - Anonymous homepage HTML and page-data expose neither owner's identity or task titles and contain no personal navigation projection.
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: overview.public-html-viewer-independent
 - id: overview.personal-next-action-page
   category: presentation
-  rule: The authenticated workspace overview prioritizes the next personal learning action rather than
-    a complete catalog directory.
+  rule: The authenticated overview on / prioritizes the next personal learning action above campus information
+    and the complete catalog directory.
   acceptance:
     given: An isolated subscriber has an ongoing class and personal learning tasks.
     when: The signed overview renders on desktop and mobile.
@@ -198,18 +216,18 @@ requirements:
       name: overview.compact-operational-fields
 - id: overview.activity-owner-transition
   category: privacy
-  rule: Activity reads and rendered activity state are keyed by the authenticated owner as well as locale
-    and dates. Changing owner clears the previous owner’s activities, cancels pending requests and rejects
+  rule: The homepage overview and activity reads and rendered state are keyed by the authenticated owner as well as locale
+    and dates. Every homepage navigation refreshes the session identity. Changing owner clears the previous owner’s activities, cancels pending requests and rejects
     late results. An unresolved activity read shows loading rather than claiming the agenda is empty.
   acceptance:
-    given: Two isolated owners have different ongoing subscribed activities, and the first owner’s response
+    given: Two isolated owners have different ongoing subscribed activities, and the first owner’s overview or activity response
       is either already displayed or held after the real server has answered.
     when: Session cookies change and same-document workspace navigation loads the second owner at the same
       locale and date range, then the first owner’s held response is released.
     then:
     - The second owner triggers a fresh read and displays only their own activity; a DOM observer detects
       no frame combining the second owner’s workspace with the first owner’s activity.
-    - Pending activity reads display loading and suppress the empty-agenda claim.
+    - Pending activity reads display loading and suppress the empty-agenda claim; removing the session clears personal content.
     test:
       file: tests/e2e/src/app/workspace/overview/activity-owner.test.ts
       name: overview.activity-owner-transition
@@ -264,7 +282,7 @@ capabilities:
       - Exam
     web:
       pages:
-      - /workspace/overview
+      - /
       - /workspace/calendar
       - /workspace/subscriptions
       - /workspace/exams
@@ -362,7 +380,7 @@ capabilities:
       - Exam
     web:
       pages:
-      - /workspace/overview
+      - /
       - /workspace/calendar
       - /workspace/homeworks
       - /workspace/todos
@@ -483,5 +501,5 @@ rationale:
 - Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my next
   class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter
   counts and samples suffice.
-- The loader returns localized static copy only and performs no business-data queries.
+- The public loader reads only campus information and localized copy; the private session endpoint reuses the rich overview read model without revealing a calendar feed credential.
 - Overview uses a single vertical stack at all widths. The full week calendar belongs to Calendar; overview list rows identify each business title before time, date and context.

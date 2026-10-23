@@ -74,7 +74,7 @@ test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
               ],
             ] as const) {
               await page.goto(
-                `/workspace/overview?snapshotAt=${encodeURIComponent(time)}&overviewWeek=2026-04-27`,
+                `/?snapshotAt=${encodeURIComponent(time)}&overviewWeek=2026-04-27`,
               );
 
               const focus = page.getByTestId("workspace-overview-focus");
@@ -109,7 +109,7 @@ test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
               }
             }
             await page.goto(
-              `/workspace/overview?snapshotAt=2026-04-29T14%3A30%3A00%2B08%3A00&overviewWeek=2026-04-27`,
+              `/?snapshotAt=2026-04-29T14%3A30%3A00%2B08%3A00&overviewWeek=2026-04-27`,
             );
             await expect(
               page.locator("[data-overview-sections]"),

@@ -11,6 +11,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
   const copy = buildLayoutCopy(locals.locale);
   const resolveViewerOnClient =
     locals.publicSsr ||
+    url.pathname === "/" ||
     isViewerIndependentPublicPath(url.pathname) ||
     isPublicNavigationPath(url.pathname);
   const user = resolveViewerOnClient

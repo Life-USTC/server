@@ -91,7 +91,7 @@ export const test = workerTest.extend<{
                     const landing =
                       mobileRole === "admin"
                         ? "/admin/users"
-                        : `/workspace/overview?snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`;
+                        : `/?snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`;
                     await gotoAndWaitForReady(page, landing);
                     await expect(page).toHaveURL(
                       new URL(landing, isolatedWorker.origin).href,

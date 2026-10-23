@@ -1,7 +1,10 @@
 /** Browser route samples and mobile batches. Behavioral coverage is reviewed manually. */
 
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
-import { workspaceNavTabIds } from "@/features/workspace/lib/workspace-nav";
+import {
+  workspaceNavTabIds,
+  workspaceTabHref,
+} from "@/features/workspace/lib/workspace-nav";
 import { DEV_SEED } from "../../../../fixtures/dev-seed";
 
 export type PageAuth = "public" | "user" | "admin";
@@ -31,14 +34,6 @@ export const WORKSPACE_TAB_DOMAINS = {
   subscriptions: "Subscription",
 } as const satisfies Record<(typeof workspaceNavTabIds)[number], string>;
 export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
-  {
-    routeId: "/catalog/features",
-    domain: "Site",
-    samplePath: "/catalog/features",
-    kind: "page",
-    auth: "public",
-    mobileChecks: ["public", "authed"],
-  },
   {
     routeId: "/",
     domain: "Site",
@@ -421,16 +416,9 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     mobileChecks: ["public"],
   },
   {
-    routeId: "/workspace",
-    domain: "Overview",
-    samplePath: "/workspace",
-    kind: "redirect",
-    auth: "user",
-  },
-  {
     routeId: "/workspace/[tab]",
     domain: "Overview",
-    samplePath: "/workspace/overview",
+    samplePath: "/workspace/calendar",
     kind: "page",
     auth: "user",
     mobileChecks: ["authed"],
@@ -482,7 +470,7 @@ export function mobilePageCases(
 
   if (group === "authed") {
     for (const tab of workspaceNavTabIds) {
-      const path = `/workspace/${tab}`;
+      const path = workspaceTabHref(tab);
       if (!paths.some((entry) => entry.path === path)) {
         paths.push({ path, domain: WORKSPACE_TAB_DOMAINS[tab] });
       }

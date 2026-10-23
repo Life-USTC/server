@@ -1,26 +1,16 @@
 import { redirect } from "@sveltejs/kit";
-import {
-  homeTabCompatibilityRedirectHref,
-  workspaceRedirectHrefFromHome,
-} from "@/features/workspace/lib/workspace-nav";
-import { loadAnonymousHomePage } from "@/features/workspace/server/anonymous-home-page-load";
+import { homeTabCompatibilityRedirectHref } from "@/features/workspace/lib/workspace-nav";
+import { loadHomePage } from "@/features/workspace/server/anonymous-home-page-load";
 import type { PageServerLoad } from "./$types";
 
+/** Public content is viewer-independent; the client loads personal data separately. */
 export const load: PageServerLoad = async (event) => {
-  const signedIn = Boolean(event.locals.authUser?.id);
-  const compatibilityHref = homeTabCompatibilityRedirectHref(
-    event.url,
-    signedIn,
-  );
+  const compatibilityHref = homeTabCompatibilityRedirectHref(event.url);
   if (compatibilityHref) {
     throw redirect(308, compatibilityHref);
   }
 
-  if (event.locals.authUser?.id) {
-    throw redirect(303, workspaceRedirectHrefFromHome(event.url));
-  }
-
-  return loadAnonymousHomePage({
+  return loadHomePage({
     locals: event.locals,
     request: event.request,
     url: event.url,

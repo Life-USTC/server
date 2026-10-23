@@ -8,12 +8,15 @@ import {
   verifySemesterMatch,
 } from "./semester-presentation-fixture";
 
-for (const [domain, method] of [
-  ["Overview", "Web"],
-  ["Young", "Web"],
-  ["Young", "REST"],
+for (const [domain, method, locales, widths] of [
+  ["Overview", "Web", ["en-us"], [1280]],
+  ["Overview", "Web", ["en-us"], [390]],
+  ["Overview", "Web", ["zh-cn"], [1280]],
+  ["Overview", "Web", ["zh-cn"], [390]],
+  ["Young", "Web", ["en-us", "zh-cn"], []],
+  ["Young", "REST", ["en-us", "zh-cn"], []],
 ] as const) {
-  test(`cases.semester.no-current-semester-1 ${domain} ${method}`, {
+  test(`cases.semester.no-current-semester-1 ${domain} ${method}${domain === "Overview" ? ` ${locales[0]} ${widths[0]}` : ""}`, {
     tag: `@${domain}/${method}`,
   }, async ({ page, isolatedWorker, calendarProtocolRun }) => {
     await calendarProtocolRun(async (io) => {
@@ -35,7 +38,7 @@ for (const [domain, method] of [
       // No fixture semester covers this explicit snapshot date.
       const snapshot =
         "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00";
-      for (const locale of ["en-us", "zh-cn"]) {
+      for (const locale of locales) {
         expect(
           (
             await page.request.post("/api/account/preferences", {
@@ -44,7 +47,7 @@ for (const [domain, method] of [
           ).status(),
         ).toBe(200);
         if (domain === "Overview") {
-          for (const width of [1280, 390]) {
+          for (const width of widths) {
             await page.setViewportSize({ width, height: 1000 });
             await gotoAndWaitForReady(page, snapshot);
 
@@ -119,7 +122,9 @@ for (const [domain, method] of [
       }
       return observation.checks({
         feedTokenCreated: false,
-        requests: [["POST", "/api/account/preferences", [200, 200]]],
+        requests: [
+          ["POST", "/api/account/preferences", locales.map(() => 200)],
+        ],
       });
     });
   });
@@ -157,7 +162,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
             page,
             "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00",
           );
-          const content = page.locator("[data-shell-scroll-container]");
+          const content = page.getByTestId("workspace-overview-term-context");
           await expect(
             content.getByRole("link", {
               name: /Browse Courses|浏览课程/,

@@ -19,14 +19,12 @@ export function createWorkspaceLinkStateActions(input: {
   getWorkspaceCopy: () => LinkActionsCopy;
   getCatalogLinkItems: () => CatalogLinkItem[];
   getLinkReturnTo: () => string;
-  getOverviewLinkItems: () => CatalogLinkItem[];
   getUpdatingCatalogLinkSlug: () => string | null;
   onSuccess?: (action: "pin" | "unpin") => void;
   replaceState: (href: string) => void;
   setCatalogLinkItems: (value: CatalogLinkItem[]) => void;
   setLinkActionError: (value: string) => void;
   setLinkReturnTo: (value: string) => void;
-  setOverviewLinkItems: (value: CatalogLinkItem[]) => void;
   setUpdatingCatalogLinkSlug: (value: string | null) => void;
 }) {
   async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
@@ -39,13 +37,11 @@ export function createWorkspaceLinkStateActions(input: {
         action,
         catalogLinkItems: input.getCatalogLinkItems(),
         fallbackMessage: input.getWorkspaceCopy().linkHub.pinFailedDescription,
-        overviewLinkItems: input.getOverviewLinkItems(),
         returnTo: input.getLinkReturnTo(),
         slug,
       });
 
       input.setCatalogLinkItems(next.catalogLinkItems);
-      input.setOverviewLinkItems(next.overviewLinkItems);
       input.onSuccess?.(action);
     } catch (error) {
       input.setLinkActionError(error instanceof Error ? error.message : "");
