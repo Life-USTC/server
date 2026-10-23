@@ -94,6 +94,24 @@ export const personalCalendarItemSchema = z.strictObject({
   location: z.string().nullable(),
   url: z.string(),
   youngId: z.string().nullable(),
+  target: z
+    .strictObject({
+      kind: z.enum(["section", "exam", "homework", "todo", "young_event"]),
+      id: z.string(),
+    })
+    .optional(),
+  sectionJwId: z.number().int().nullable().optional(),
+  sectionCode: z.string().nullable().optional(),
+  teachers: z.array(z.string()).optional(),
+  subscriptionKind: z
+    .enum(["regular", "auditor", "teaching_assistant"])
+    .nullable()
+    .optional(),
+  priority: z.enum(["low", "medium", "high"]).nullable().optional(),
+  content: z.string().nullable().optional(),
+  examMode: z.string().nullable().optional(),
+  hasTime: z.boolean().optional(),
+  completionRequired: z.boolean().nullable().optional(),
 });
 export const personalCalendarPageSchema = createPaginatedSchema(
   personalCalendarItemSchema,

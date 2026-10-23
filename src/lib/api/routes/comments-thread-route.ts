@@ -8,7 +8,7 @@ import {
   parseRouteInput,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveSessionUserId } from "@/lib/auth/api-auth";
+import { resolveOptionalApiUserId } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -24,7 +24,11 @@ export async function getCommentRoute(request: Request, params: IdParams) {
   const id = parsedParams.id;
 
   try {
-    const viewerUserId = await resolveSessionUserId(request);
+    const viewerUserId = await resolveOptionalApiUserId(request, {
+      feature: "community.comment",
+      action: "read",
+    });
+    if (viewerUserId instanceof Response) return viewerUserId;
     const result = await loadFocusedCommentThread({
       commentId: id,
       viewerUserId,

@@ -143,7 +143,7 @@ and `docs/policies/rendering-and-cache.yaml` for public/private rendering.
 | Entry | Auth |
 |-------|------|
 | Pages | `event.locals.authUser`, else `buildSignInPageUrl` → `/account/sign-in?callbackUrl=…` |
-| REST | Protected routes declare `bearerScope`; optional personalization uses `resolveSessionUserId()` (cookie only) |
+| REST | Protected routes declare `bearerScope`; scoped optional viewers use `resolveOptionalApiUserId()`; session-only personalization uses `resolveSessionUserId()` |
 | GraphQL | Bearer-first; audience `/api/graphql`; cookies need trusted Origin |
 | MCP | Bearer only; audience `/api/mcp`; `getUserId(authInfo)` |
 
@@ -153,6 +153,10 @@ for suspension and download authorization requirements; enforce them through the
 Never use an ambient OAuth identity for optional personalization. Use
 `requireAuth` / `resolveApiPrincipal` with an explicit feature/action scope for
 Bearer-capable routes, and `resolveSessionUserId` for session-only reads.
+Public community reads with a declared read scope use `resolveOptionalApiUserId`:
+supplied Bearer credentials must pass that scope and cannot fall back to cookies
+or anonymous access. Without Bearer, the existing cookie/anonymous view remains.
+Declare `@anonymous` alongside `@oauthScope` and the 401 response for these routes.
 
 ## Conventions
 

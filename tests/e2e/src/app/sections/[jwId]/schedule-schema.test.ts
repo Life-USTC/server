@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import {
+  paginatedSectionSchedulesResponseSchema,
   scheduleGroupsResponseSchema,
   sectionSchedulesResponseSchema,
 } from "@/lib/api/schemas/schedule-response-schema-core";
@@ -98,20 +99,30 @@ test("section.schedule-response-schema", { tag: "@Schedule/REST" }, async ({
       const components = document.components.schemas;
       const schedulesPath = "/api/catalog/sections/{jwId}/schedules";
       const groupsPath = "/api/catalog/sections/{jwId}/schedule-groups";
+      const scheduleVariants =
+        components.sectionSchedulesReadResponseSchema.anyOf;
+      expect(scheduleVariants).toHaveLength(2);
+      const legacyScheduleSchema = scheduleVariants[0];
+      const pagedScheduleSchema = scheduleVariants[1];
+      expect(pagedScheduleSchema.type).toBe("object");
+      expect(pagedScheduleSchema.required).toEqual(["data", "pagination"]);
+      expect(pagedScheduleSchema.properties.data).toEqual(legacyScheduleSchema);
       for (const [path, name] of [
-        [schedulesPath, "sectionSchedulesResponseSchema"],
+        [schedulesPath, "sectionSchedulesReadResponseSchema"],
         [groupsPath, "scheduleGroupsResponseSchema"],
       ]) {
         expect(
           document.paths[path].get.responses["200"].content["application/json"]
             .schema,
         ).toEqual({ $ref: `#/components/schemas/${name}` });
-        expect(components[name].type).toBe("array");
-        expect(components[name].items.type).toBe("object");
-        expect(components[name].items.properties.id.type).toBe("integer");
-        expect(components[name].items.required).toContain("id");
+        const listSchema =
+          path === schedulesPath ? legacyScheduleSchema : components[name];
+        expect(listSchema.type).toBe("array");
+        expect(listSchema.items.type).toBe("object");
+        expect(listSchema.items.properties.id.type).toBe("integer");
+        expect(listSchema.items.required).toContain("id");
       }
-      const schema = components.sectionSchedulesResponseSchema.items;
+      const schema = legacyScheduleSchema.items;
       expect(
         schema.properties.teacherParticipations.items.properties.periods.type,
       ).toBe("number");
@@ -166,6 +177,23 @@ test("section.schedule-response-schema", { tag: "@Schedule/REST" }, async ({
           ],
         });
         expect(JSON.stringify(body)).not.toContain("private-schedule-");
+        const pagedResponse = await request.get(
+          `/api/catalog/sections/${fixture.section.jwId}/schedules?locale=${locale}&page=1&pageSize=1`,
+          {
+            headers: readHeaders(
+              `/api/catalog/sections/${fixture.section.jwId}/schedules`,
+            ),
+          },
+        );
+        expect(pagedResponse.status()).toBe(200);
+        const paged = await pagedResponse.json();
+        expect(paginatedSectionSchedulesResponseSchema.parse(paged)).toEqual(
+          paged,
+        );
+        expect(paged).toEqual({
+          data: body,
+          pagination: { page: 1, pageSize: 1, total: 1, totalPages: 1 },
+        });
         const groupsResponse = await request.get(
           `/api/catalog/sections/${fixture.section.jwId}/schedule-groups?locale=${locale}`,
           {
@@ -194,7 +222,7 @@ test("section.schedule-response-schema", { tag: "@Schedule/REST" }, async ({
           const effects = await response.json();
           await verifyScheduleState?.();
 
-          expect(reads).toHaveLength(5);
+          expect(reads).toHaveLength(7);
           expect(effects).toEqual({
             purges: [],
             messages: [],

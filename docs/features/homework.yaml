@@ -14,6 +14,19 @@ policy_refs:
 - homework-naming
 - cases.missing-data
 requirements:
+- id: homework.scoped-rest-viewer
+  category: authorization
+  rule: Shared section-homework list and detail REST reads remain public while projecting only the authenticated viewer's completion. A supplied Bearer token requires a valid REST audience, active grant and community.section-homework read or write scope; rejected credentials return 401 without session or anonymous fallback. Mixed credentials use the Bearer actor, reads do not alter completion records and responses remain private and non-cacheable.
+  acceptance:
+    given: A shared homework has different completion timestamps for two users with signed sessions and resource-bound OAuth tokens.
+    when: Read its canonical community list and detail through real HTTP anonymously, with a session, with scoped mixed credentials and with invalid Bearer credentials.
+    then:
+    - Anonymous responses have no completion; both routes return only the selected authenticated actor's completion and preserve its Shanghai timestamp.
+    - Empty, malformed, wrong-audience, expired, unrelated-scope and inactive-grant credentials return 401 even with a valid session cookie.
+    - Completion rows remain unchanged and every response is private, no-store.
+    test:
+      file: tests/integration/community-scoped-read-contract.test.ts
+      name: homework.scoped-rest-viewer
 - id: homework.bounded-viewer-transaction
   category: behavior
   rule: Subscribed homework pagination commits viewer-dependent state before loading public catalog and editor relations; the viewer transaction uses at most five SQL statements excluding BEGIN and COMMIT.

@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: vi.fn().mockResolvedValue({ userId: "query-owner" }),
   resolveSessionUserId: vi.fn().mockResolvedValue("query-owner"),
+  resolveOptionalApiUserId: vi.fn().mockResolvedValue("query-owner"),
 }));
 vi.mock("@/features/bus/server/bus-service", () => ({
   getNextBusDepartures: mocks.bus,
@@ -51,6 +52,7 @@ vi.mock("@/lib/api/routes/homework-route-helpers", () => ({
 }));
 vi.mock("@/lib/api/routes/todo-actions", () => ({
   listTodosAction: mocks.todos,
+  listTodoPageAction: vi.fn(),
   createTodoAction: vi.fn(),
   deleteTodoAction: vi.fn(),
   updateTodoAction: vi.fn(),

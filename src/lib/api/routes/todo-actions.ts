@@ -2,6 +2,7 @@ import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
 import {
   createTodo,
   deleteOwnedTodo,
+  listPaginatedTodoSummary,
   listTodoSummary,
   type TodoListFilters,
   updateOwnedTodo,
@@ -20,6 +21,16 @@ export async function listTodosAction(
   take?: number,
 ) {
   return jsonResponse(await listTodoSummary({ userId, take, filters }));
+}
+
+export async function listTodoPageAction(
+  userId: string,
+  filters: TodoListFilters,
+  pagination: { page: number; pageSize: number },
+) {
+  return jsonResponse(
+    await listPaginatedTodoSummary({ userId, filters, pagination }),
+  );
 }
 
 export async function createTodoAction(

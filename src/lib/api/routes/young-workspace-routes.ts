@@ -29,6 +29,7 @@ import {
   youngWorkspaceQuerySchema,
 } from "@/lib/api/schemas/young-workspace-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
+import { getRequestLocale } from "./request-locale";
 
 const privateHeaders = { "Cache-Control": "private, no-store" };
 
@@ -160,9 +161,13 @@ export async function getPersonalCalendarRoute(request: Request) {
   );
   if (query instanceof Response) return query;
   try {
-    return jsonResponse(await listPersonalCalendarPage(auth.userId, query), {
-      headers: privateHeaders,
-    });
+    return jsonResponse(
+      await listPersonalCalendarPage(auth.userId, {
+        ...query,
+        locale: getRequestLocale(request),
+      }),
+      { headers: privateHeaders },
+    );
   } catch (error) {
     if (error instanceof InvalidCalendarRangeError)
       return errorResponse(error.message, 400);

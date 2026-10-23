@@ -12,7 +12,7 @@ import {
 import { resolveHomeworkRouteSectionIds } from "@/lib/api/routes/homework-route-helpers";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { homeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { resolveSessionUserId } from "@/lib/auth/api-auth";
+import { resolveOptionalApiUserId } from "@/lib/auth/api-auth";
 
 export async function getHomeworksRoute(request: Request) {
   const parsed = parseRouteQuery(
@@ -40,7 +40,11 @@ export async function getHomeworksRoute(request: Request) {
     });
     if (sectionIdList instanceof Response) return sectionIdList;
 
-    const viewerUserId = await resolveSessionUserId(request);
+    const viewerUserId = await resolveOptionalApiUserId(request, {
+      feature: "community.section-homework",
+      action: "read",
+    });
+    if (viewerUserId instanceof Response) return viewerUserId;
     const result = await listSectionHomeworkPageWithViewer({
       includeDeleted: includeDeleted ?? false,
       locale: getRequestLocale(request),

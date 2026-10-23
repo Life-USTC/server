@@ -11,7 +11,10 @@ import type { RequestHandler } from "./$types";
  * @pathParams resourceIdPathParamsSchema
  * @response homeworkDetailResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @anonymous
+ * @oauthScope community.section-homework:read
  */
 export const GET: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => getHomeworkDetailRoute(request, { id: params.id }))(
