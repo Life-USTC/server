@@ -104,11 +104,13 @@ export async function getUpcomingDeadlinesTool(
   if (!parsedAtTime.ok) return parsedAtTime.result;
   const now = parsedAtTime.value ?? new Date();
   const dateTo = new Date(now.getTime() + dayLimit * 24 * 60 * 60 * 1000);
+  const resolvedMode = resolveMcpMode(mode);
   const events = await listUserCalendarEvents(userId, {
     locale,
     dateFrom: now,
     dateTo,
     eventWindowMode: "start",
+    sectionContext: resolvedMode === "full" ? "full" : "compact",
   });
   const deadlines = (events as Array<{ type: string }>).filter(
     (event) =>
@@ -122,6 +124,6 @@ export async function getUpcomingDeadlinesTool(
       total: deadlines.length,
       deadlines,
     },
-    { mode: resolveMcpMode(mode) },
+    { mode: resolvedMode },
   );
 }

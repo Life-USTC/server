@@ -31,6 +31,7 @@ export async function getMySevenDaysTimelineAction(
     locale,
     dateFrom: todayStart,
     dateTo: windowEnd,
+    sectionContext: resolvedMode === "full" ? "full" : "compact",
   });
 
   return jsonToolResult(

@@ -39,6 +39,228 @@ const toolTest = isolatedMcpTest.extend(
   },
 );
 
+const fullSectionTest = toolTest.extend(
+  "sectionWithLabels",
+  async ({ mcpWorkflow, calendar, isolatedDatabase, signal }) => {
+    const section = await mcpWorkflow.run(async () => {
+      const label = (nameCn: string) => ({ create: { nameCn } });
+      return await isolatedDatabase.owner.section.update({
+        where: { id: calendar.section.id },
+        data: {
+          examMode: label("闭卷"),
+          teachLanguage: label("中文"),
+          course: {
+            update: {
+              category: label("类别"),
+              classType: label("课型"),
+              classify: label("分类"),
+              educationLevel: label("培养层次"),
+              gradation: label("课程层次"),
+              type: label("类型"),
+            },
+          },
+        },
+        include: { course: true },
+      });
+    });
+    signal.throwIfAborted();
+    return section;
+  },
+);
+
+for (const kind of ["schedule", "exam"] as const) {
+  fullSectionTest(
+    `workspace_${kind}_list preserves its declared full section projection`,
+    { tags: [kind === "schedule" ? "@Schedule/MCP" : "@Exam/MCP"] },
+    async ({
+      mcpWorkflow,
+      mcpActor,
+      calendar,
+      sectionWithLabels: section,
+      expect,
+    }) =>
+      mcpWorkflow.run(async () => {
+        const result = await mcpActor.client.call<
+          Record<string, Array<{ id: number; section: { course: unknown } }>>
+        >(`workspace_${kind}_list`, {
+          dateFrom: calendarDay,
+          dateTo: throughDay,
+          mode: "full",
+          locale: "zh-cn",
+        });
+        const items = result[kind === "schedule" ? "schedules" : "exams"];
+        expect(items.map((item) => item.id)).toEqual(
+          kind === "schedule"
+            ? calendar.schedules.slice(0, 2).map((meeting) => meeting.id)
+            : [calendar.exam.id],
+        );
+        for (const item of items) {
+          expect(item.section.course).toMatchObject({
+            categoryId: section.course.categoryId,
+            classTypeId: section.course.classTypeId,
+            classifyId: section.course.classifyId,
+            educationLevelId: section.course.educationLevelId,
+            gradationId: section.course.gradationId,
+            typeId: section.course.typeId,
+          });
+          if (kind === "exam") {
+            expect(item.section).toMatchObject({
+              examMode: { nameCn: "闭卷" },
+              teachLanguage: { nameCn: "中文" },
+              course: {
+                category: { nameCn: "类别" },
+                classType: { nameCn: "课型" },
+                classify: { nameCn: "分类" },
+                educationLevel: { nameCn: "培养层次" },
+                gradation: { nameCn: "课程层次" },
+                type: { nameCn: "类型" },
+              },
+            });
+          } else {
+            // The schedule DTO publishes the six IDs, not the label relations.
+            expect(Object.keys(item.section.course as object).sort()).toEqual([
+              "categoryId",
+              "classTypeId",
+              "classifyId",
+              "code",
+              "educationLevelId",
+              "gradationId",
+              "id",
+              "jwId",
+              "nameCn",
+              "nameEn",
+              "namePrimary",
+              "nameSecondary",
+              "typeId",
+            ]);
+          }
+        }
+      }),
+  );
+}
+
+for (const tool of [
+  "workspace_calendar_event_list",
+  "workspace_calendar_timeline_get",
+  "workspace_deadline_list",
+] as const) {
+  for (const mode of ["default", "full"] as const) {
+    fullSectionTest(
+      `${tool} preserves calendar section context in ${mode} mode`,
+      { tags: ["@Calendar/MCP"] },
+      async ({ mcpWorkflow, mcpActor, calendar, sectionWithLabels, expect }) =>
+        mcpWorkflow.run(async () => {
+          const result = await mcpActor.client.call<
+            Record<
+              string,
+              Array<{
+                type: string;
+                payload: {
+                  id: number;
+                  section: { course: Record<string, unknown> };
+                };
+              }>
+            >
+          >(tool, {
+            ...(tool === "workspace_calendar_event_list"
+              ? { dateFrom: calendarDay, dateTo: throughDay }
+              : { atTime: "2026-04-29T08:00:00+08:00" }),
+            mode,
+            locale: "zh-cn",
+          });
+          const events =
+            result[tool === "workspace_deadline_list" ? "deadlines" : "events"];
+          expect(events.map((event) => event.payload.id)).toEqual(
+            tool === "workspace_deadline_list"
+              ? [calendar.exam.id]
+              : [
+                  calendar.schedules[0].id,
+                  calendar.exam.id,
+                  calendar.schedules[1].id,
+                ],
+          );
+          for (const event of events) {
+            expect(event.payload.section).toMatchObject({
+              id: sectionWithLabels.id,
+              course: {
+                jwId: sectionWithLabels.course.jwId,
+                nameCn: "MCP 测试课程",
+              },
+            });
+            if (mode === "full") {
+              expect(event.payload.section).toMatchObject({
+                examMode: { nameCn: "闭卷" },
+                teachLanguage: { nameCn: "中文" },
+                course: {
+                  category: { nameCn: "类别" },
+                  classType: { nameCn: "课型" },
+                  classify: { nameCn: "分类" },
+                  educationLevel: { nameCn: "培养层次" },
+                  gradation: { nameCn: "课程层次" },
+                  type: { nameCn: "类型" },
+                },
+              });
+            } else {
+              expect(event.payload.section).not.toHaveProperty("examMode");
+              expect(event.payload.section).not.toHaveProperty("teachLanguage");
+              for (const relation of [
+                "category",
+                "classType",
+                "classify",
+                "educationLevel",
+                "gradation",
+                "type",
+              ])
+                expect(event.payload.section.course).not.toHaveProperty(
+                  relation,
+                );
+            }
+          }
+        }),
+    );
+  }
+}
+
+for (const tool of [
+  "workspace_snapshot_get",
+  "workspace_schedule_next",
+] as const) {
+  fullSectionTest(
+    `${tool} retains full next-class lookup labels`,
+    { tags: ["@Overview/MCP"] },
+    async ({ mcpWorkflow, mcpActor, calendar, sectionWithLabels, expect }) =>
+      mcpWorkflow.run(async () => {
+        const result = await mcpActor.client.call<{ nextClass: unknown }>(
+          tool,
+          {
+            atTime: "2026-04-29T08:00:00+08:00",
+            mode: "full",
+            locale: "zh-cn",
+          },
+        );
+        expect(result.nextClass).toMatchObject({
+          type: "schedule",
+          payload: {
+            id: calendar.schedules[0].id,
+            section: {
+              id: sectionWithLabels.id,
+              examMode: { nameCn: "闭卷" },
+              teachLanguage: { nameCn: "中文" },
+              course: {
+                category: { nameCn: "类别" },
+                classType: { nameCn: "课型" },
+                classify: { nameCn: "分类" },
+                educationLevel: { nameCn: "培养层次" },
+                gradation: { nameCn: "课程层次" },
+                type: { nameCn: "类型" },
+              },
+            },
+          },
+        });
+      }),
+  );
+}
+
 describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () => {
   toolTest(
     "workspace_schedule_list 接受裸日期字符串（无时区偏移）",

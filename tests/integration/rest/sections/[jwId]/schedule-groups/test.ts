@@ -51,3 +51,50 @@ test("/api/catalog/sections/[jwId]/schedule-groups 返回默认组及课表", {
     });
   });
 });
+
+test("schedule groups retain the first 200 meetings in each group", {
+  tag: "@Schedule/REST",
+}, async ({ run, request, academic, isolatedWorker }) => {
+  await run(async () => {
+    const ids = Array.from(
+      { length: 201 },
+      (_, index) => 1_850_000_000 + index,
+    );
+    await isolatedWorker.database.owner.schedule.createMany({
+      data: ids.toReversed().map((id) => ({
+        id,
+        sectionId: academic.section.id,
+        scheduleGroupId: academic.defaultGroup.id,
+        date: new Date(`${academic.date}T00:00:00Z`),
+        weekday: 3,
+        startTime: 900,
+        endTime: 1000,
+        periods: 2,
+        weekIndex: 1,
+        startUnit: 1,
+        endUnit: 2,
+      })),
+    });
+
+    const response = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedule-groups`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as Array<{
+      id: number;
+      schedules: Array<{ id: number }>;
+    }>;
+    expect(body.map((group) => group.id)).toEqual([
+      academic.defaultGroup.id,
+      academic.otherGroup.id,
+    ]);
+    expect(body[0].schedules.map((meeting) => meeting.id)).toEqual([
+      academic.schedules[3].id,
+      academic.schedules[2].id,
+      ...ids.slice(0, 198),
+    ]);
+    expect(body[1].schedules.map((meeting) => meeting.id)).toEqual([
+      academic.schedules[1].id,
+    ]);
+  });
+});

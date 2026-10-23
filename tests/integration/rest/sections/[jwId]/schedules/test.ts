@@ -114,6 +114,45 @@ test("/api/catalog/sections/[jwId]/schedules 无效日期返回 400", {
   });
 });
 
+test("section schedules without limit return the first 200 meetings", {
+  tag: "@Schedule/REST",
+}, async ({ run, request, academic, isolatedWorker }) => {
+  await run(async () => {
+    const ids = Array.from(
+      { length: 201 },
+      (_, index) => 1_850_000_000 + index,
+    );
+    await isolatedWorker.database.owner.schedule.createMany({
+      data: ids.toReversed().map((id) => ({
+        id,
+        sectionId: academic.section.id,
+        scheduleGroupId: academic.defaultGroup.id,
+        date: new Date(`${academic.date}T00:00:00Z`),
+        weekday: 3,
+        startTime: 900,
+        endTime: 1000,
+        periods: 2,
+        weekIndex: 1,
+        startUnit: 1,
+        endUnit: 2,
+      })),
+    });
+
+    for (const query of ["", "?limit=200"]) {
+      const response = await request.get(
+        `/api/catalog/sections/${academic.section.jwId}/schedules${query}`,
+      );
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as Array<{ id: number }>;
+      expect(body.map((meeting) => meeting.id)).toEqual([
+        academic.schedules[3].id,
+        academic.schedules[2].id,
+        ...ids.slice(0, 198),
+      ]);
+    }
+  });
+});
+
 test("/api/catalog/sections/[jwId]/schedules 无效 limit 返回 400", {
   tag: "@Schedule/REST",
 }, async ({ run, request, academic }) => {

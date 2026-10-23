@@ -89,6 +89,40 @@ requirements:
     test:
       file: tests/integration/mcp/catalog/schedule-public-contract.test.ts
       name: schedule.teacher-participation-output
+- id: schedule.viewer-scoped-section-projection
+  category: consistency
+  rule: Viewer-scoped schedule and exam reads load only the section context their payload publishes.
+    Schedule DTO and explicitly compact calendar readers load course, semester, campus and openDepartment.
+    Full calendar payloads, the MCP exam list and paginated readers keep the catalog lookup relations
+    their schemas and GraphQL Section and Course types expose. Calendar reads preserve full context
+    unless their consumer explicitly requests compact context.
+  acceptance:
+    given: A user subscribes to a section whose course and section carry every catalog lookup relation.
+    when: The actual read models serve schedule DTOs, calendar sources, the MCP exam list and paginated
+      GraphQL schedule/exam pages.
+    then:
+    - Schedule DTO and compact calendar reads request course, semester, campus and openDepartment, and omit
+      examMode, teachLanguage and the six course lookup relations.
+    - Full calendar payloads, the MCP exam list and paginated GraphQL reads retain every catalog lookup relation.
+    test:
+      file: tests/unit/features/subscriptions/subscription-list-query-shape.test.ts
+      name: schedule.viewer-scoped-section-projection
+- id: schedule.section-schedule-default-bound
+  category: validation
+  rule: A section schedule read without an explicit limit returns at most the documented maximum of 200
+    meetings ordered by date, start time and ID. The schedule-groups read publishes groups with at most
+    200 meetings each in the same order, without loading the surrounding section record.
+  acceptance:
+    given: A section has more meetings than the documented section schedule maximum.
+    when: The actual read models serve a section schedule request that omits limit and a schedule-groups
+      request.
+    then:
+    - The schedule query is bounded by the documented maximum instead of returning every meeting.
+    - The schedule-groups query selects groups only and returns the first 200 meetings of each group
+      in the same chronological order.
+    test:
+      file: tests/integration/rest/sections/[jwId]/schedules/test.ts
+      name: section schedules without limit return the first 200 meetings
 - id: schedule.graphql-teacher-participation-output
   category: behavior
   rule: Authorized workspace GraphQL schedules expose teacher identities and independent participation
@@ -257,11 +291,15 @@ capabilities:
         - Returns a simplified variant of ScheduleEntry[] for the section.
         - Accepts optional dateFrom/dateTo and limit query parameters to narrow results to the same window
           supported by catalog_section_schedule_list.
+        - limit accepts 1-200 and defaults to 200; an omitted limit never returns more than the documented
+          maximum.
         - REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale
           input.
       - path: /api/catalog/sections/[jwId]/schedule-groups
         notes:
         - Returns schedule groups with schedules, not separate aggregated period summaries.
+        - Carries no section record of its own, and bounds each group's schedules by the same 200-meeting
+          maximum.
         - REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale
           input.
     mcp:
