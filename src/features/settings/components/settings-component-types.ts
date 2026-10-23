@@ -89,6 +89,31 @@ export type SettingsCopy = {
       lastFeature: string;
     };
     security: {
+      sessions: {
+        title: string;
+        description: string;
+        loading: string;
+        loadError: string;
+        reauthenticateDescription: string;
+        reauthenticate: string;
+        retry: string;
+        revokeError: string;
+        revoked: string;
+        empty: string;
+        unknownDevice: string;
+        current: string;
+        createdAt: string;
+        expiresAt: string;
+        revokeOne: string;
+        revokeOthers: string;
+        revokeAll: string;
+        confirmTitle: string;
+        confirmOne: string;
+        confirmCurrent: string;
+        confirmOthers: string;
+        confirmAll: string;
+        confirm: string;
+      };
       title: string;
       description: string;
       calendarTokenDescription: string;

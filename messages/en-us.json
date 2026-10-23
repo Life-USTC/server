@@ -1598,6 +1598,31 @@
         "success": "Successful",
         "denied": "Denied",
         "failure": "Failed"
+      },
+      "sessions": {
+        "title": "Active sessions",
+        "description": "Review signed-in browsers and devices. Revoking a session signs that device out. Dates use Shanghai time.",
+        "loading": "Loading sessions",
+        "loadError": "Unable to load sessions",
+        "reauthenticateDescription": "Sign in again to review your active sessions.",
+        "reauthenticate": "Sign in again",
+        "retry": "Retry",
+        "revokeError": "Unable to revoke the selected sessions",
+        "revoked": "Sessions revoked",
+        "empty": "No active sessions",
+        "unknownDevice": "Unknown device",
+        "current": "Current session",
+        "createdAt": "Signed in {time}",
+        "expiresAt": "Expires {time}",
+        "revokeOne": "Revoke session",
+        "revokeOthers": "Revoke other sessions",
+        "revokeAll": "Revoke all sessions",
+        "confirmTitle": "Revoke sessions?",
+        "confirmOne": "This device will be signed out. Your current session will stay signed in.",
+        "confirmCurrent": "This is your current session. You will return to sign-in.",
+        "confirmOthers": "All your other devices will be signed out. Your current session will stay signed in.",
+        "confirmAll": "Every session will be revoked, including this one. You will return to sign-in.",
+        "confirm": "Confirm revocation"
       }
     },
     "authorizations": {

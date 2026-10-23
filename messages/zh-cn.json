@@ -1235,6 +1235,31 @@
         "success": "成功",
         "denied": "已拒绝",
         "failure": "失败"
+      },
+      "sessions": {
+        "title": "登录会话",
+        "description": "查看已登录的浏览器和设备。撤销会话将退出对应设备，时间使用上海时区。",
+        "loading": "正在加载会话",
+        "loadError": "无法加载会话",
+        "reauthenticateDescription": "请重新登录后查看有效会话。",
+        "reauthenticate": "重新登录",
+        "retry": "重试",
+        "revokeError": "无法撤销所选会话",
+        "revoked": "会话已撤销",
+        "empty": "暂无有效会话",
+        "unknownDevice": "未知设备",
+        "current": "当前会话",
+        "createdAt": "登录于 {time}",
+        "expiresAt": "到期于 {time}",
+        "revokeOne": "撤销会话",
+        "revokeOthers": "撤销其他会话",
+        "revokeAll": "撤销全部会话",
+        "confirmTitle": "撤销会话？",
+        "confirmOne": "该设备将退出登录，当前会话保持登录。",
+        "confirmCurrent": "这是当前会话。撤销后将返回登录页。",
+        "confirmOthers": "其他所有设备将退出登录，当前会话保持登录。",
+        "confirmAll": "包括当前会话在内的全部会话都将撤销，随后返回登录页。",
+        "confirm": "确认撤销"
       }
     },
     "authorizations": {

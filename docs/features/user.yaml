@@ -580,6 +580,57 @@ requirements:
     test:
       file: tests/integration/user-profile-contributions.test.ts
       name: user.private-workspace-profile-exclusion
+- id: user.session-list-web
+  category: presentation
+  rule: The account security page lists the signed-in owner's active sessions with a current-session
+    marker, browser and operating-system family, creation time and expiry time. Session tokens are
+    never rendered. Loading and failed reads disable revocation until a successful retry supplies the list.
+  applies_to:
+  - settings
+  acceptance:
+    given: An owner has a current session and another active session, and an unrelated user has a session.
+    when: The owner opens security settings and retries a failed session-list request.
+    then:
+    - Only the owner's active sessions appear with the current session marked.
+    - Loading and failed reads provide no enabled revocation action; retry restores the real list.
+    - Device labels and dates are visible, while raw user agents and session tokens are absent.
+    test:
+      file: tests/e2e/src/app/settings/security/sessions.test.ts
+      name: session list failure retries without enabling mutations
+- id: user.session-list-reauthentication-web
+  category: presentation
+  rule: The session list retains Better Auth's recent-login requirement. SESSION_NOT_FRESH provides
+    a reauthentication link returning to account security settings instead of a retry loop.
+  applies_to:
+  - settings
+  acceptance:
+    given: The signed-in owner's session is older than the configured recent-login window.
+    when: The owner opens account security settings.
+    then:
+    - No session list or enabled revocation action is shown, including when a successful revocation triggers the expired read.
+    - The reauthentication link opens sign-in with reauth=1 and security settings as the callback.
+    test:
+      file: tests/e2e/src/app/settings/security/sessions.test.ts
+      name: stale session list offers reauthentication
+- id: user.session-revocation-web
+  category: behavior
+  rule: Security settings provides confirmed single-session, other-session and all-session revocation
+    through the existing session APIs. Success refreshes the list; revoking the current session or
+    every session returns to sign-in with security settings as the callback. A failed mutation retains
+    the list and exposes an explicit retry without claiming success.
+  applies_to:
+  - settings
+  acceptance:
+    given: An owner has a current session and two other sessions, and an unrelated user's session exists.
+    when: The owner cancels and confirms each supported revocation action in independently prepared scenarios.
+    then:
+    - Cancel changes no sessions; confirming removes only the selected owned sessions.
+    - Single-other and revoke-other keep the current session and refresh the visible list.
+    - Revoke-current and revoke-all return to sign-in and preserve the unrelated user's session.
+    - Failed revocation keeps the selected session visible and an explicit retry can complete it.
+    test:
+      file: tests/e2e/src/app/settings/security/sessions.test.ts
+      name: revoke one other session retries and refreshes the list
 - id: user.session-revocation-valid-session
   category: authorization
   rule: Session revocation requires a valid authoritative session and does not require a recent sign-in.
@@ -930,6 +981,7 @@ capabilities:
     links:
       models:
       - User
+      - Session
     presentation:
       kind: fields
       views:
@@ -951,6 +1003,15 @@ capabilities:
           tertiary:
           - passkey.id
           - account.id
+        web-sessions:
+          primary:
+          - session.device
+          - session.isCurrent
+          secondary:
+          - session.createdAt
+          - session.expiresAt
+          tertiary:
+          - session.id
         web-security:
           primary:
           - event.action
@@ -981,6 +1042,7 @@ capabilities:
           - authorization.clientId
           - authorization.consentId
       items:
+      - Active owner sessions with current-session identification and confirmed single, other, and all-session revocation
       - user passkeys with add, rename, and delete controls
       - Fresh-session and WebAuthn support states for passkey registration
       - Disconnect control reflects whether another supported sign-in method remains
@@ -992,6 +1054,9 @@ capabilities:
       - Navigation links to sections and comment guide
       - Visually separated danger region and account deletion confirmation interface
     requirement_refs:
+    - user.session-list-web
+    - user.session-list-reauthentication-web
+    - user.session-revocation-web
     - user.session-revocation-valid-session
     - user.session-revocation-ownership
     - user.session-revocation-origin

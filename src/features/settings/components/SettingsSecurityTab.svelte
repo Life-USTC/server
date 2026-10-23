@@ -9,6 +9,7 @@ import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { groupSecurityActivity } from "@/features/settings/lib/security-activity-groups";
+import SettingsSessionsPanel from "./SettingsSessionsPanel.svelte";
 import type {
   SettingsCopy,
   SettingsSecurityActivity,
@@ -47,6 +48,8 @@ function activityTimeLabel(group: (typeof groupedActivity)[number]) {
   return `${oldest} – ${newest}`;
 }
 </script>
+
+<SettingsSessionsPanel {copy} {locale} />
 
 <section aria-labelledby="calendar-token-title" class="grid gap-3 border-y py-4">
   <div class="grid gap-1">
