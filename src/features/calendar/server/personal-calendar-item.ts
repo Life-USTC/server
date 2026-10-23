@@ -1,5 +1,7 @@
 import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
 import type { TodoPriority } from "@/generated/prisma/client";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { localizedNamePrimary } from "@/lib/localized-name";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import type { listUserCalendarEvents } from "./calendar-events";
 
@@ -104,6 +106,7 @@ export function todoCalendarItem(todo: {
 export function personalCalendarItem(
   event: CalendarEvent,
   kinds: SubscriptionKinds,
+  locale: string = DEFAULT_LOCALE,
 ): PersonalCalendarItem {
   const base = {
     ...emptyContext(),
@@ -131,17 +134,26 @@ export function personalCalendarItem(
       return {
         ...base,
         id: `schedule-${event.payload.id}-${event.at}`,
-        title: event.payload.section.course.nameCn,
+        title: localizedNamePrimary(
+          locale,
+          event.payload.section.course.nameCn,
+          event.payload.section.course.nameEn,
+        ),
         location:
           event.payload.customPlace?.trim() ||
-          event.payload.room?.nameCn ||
-          null,
+          (event.payload.room
+            ? localizedNamePrimary(
+                locale,
+                event.payload.room.nameCn,
+                event.payload.room.nameEn,
+              ) || null
+            : null),
         url: `/catalog/sections/${event.payload.section.jwId}`,
         target: { kind: "section", id: String(event.payload.section.jwId) },
         sectionJwId: event.payload.section.jwId,
         sectionCode: event.payload.section.code,
-        teachers: event.payload.teacherParticipations.map(
-          ({ teacher }) => teacher.nameCn,
+        teachers: event.payload.teacherParticipations.map(({ teacher }) =>
+          localizedNamePrimary(locale, teacher.nameCn, teacher.nameEn),
         ),
         subscriptionKind: kinds.get(event.payload.sectionId) ?? null,
         hasTime: event.payload.startTime !== null,
@@ -150,7 +162,11 @@ export function personalCalendarItem(
       return {
         ...base,
         id: `exam-${event.payload.id}`,
-        title: event.payload.section.course.nameCn,
+        title: localizedNamePrimary(
+          locale,
+          event.payload.section.course.nameCn,
+          event.payload.section.course.nameEn,
+        ),
         location:
           event.payload.examRooms
             .map((room) => room.room)

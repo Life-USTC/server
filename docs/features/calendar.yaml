@@ -313,6 +313,7 @@ requirements:
     then:
     - Explicit section, exam, homework, todo and activity targets retain their domain identifiers and context.
     - Unknown source time remains marked unknown, and teacher contact or source-private values are absent.
+    - English requests localize course, teacher and room labels; custom places keep precedence and identifiers and source exam-room text remain unchanged.
     test:
       file: tests/integration/workspace-native-read-contract.test.ts
       name: calendar.native-navigation-context

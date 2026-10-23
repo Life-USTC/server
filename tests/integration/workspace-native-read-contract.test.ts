@@ -202,6 +202,9 @@ test(
         },
       });
       const teacher = await db.teacher.findFirstOrThrow();
+      const course = await db.course.findUniqueOrThrow({
+        where: { id: historical.courseId },
+      });
       const schedule = await db.schedule.create({
         data: {
           sectionId: historical.id,
@@ -389,6 +392,16 @@ test(
       expect(JSON.stringify(body)).not.toMatch(
         /calendarFeed|subscriptionUrl|Foreign private|Done TA|Past TA|Exact TA|Unsubscribed homework/,
       );
+      const english = await r.read(overviewPath.replace("zh-cn", "en-us"));
+      expect(english.focus).toMatchObject({
+        title: course.nameEn,
+        teachers: [teacher.nameEn],
+        location: "Native Lab",
+        sectionCode: historical.code,
+      });
+      expect(
+        english.upcoming.find((row: { type: string }) => row.type === "exam"),
+      ).toMatchObject({ title: course.nameEn, examMode: "闭卷" });
       const other = await r.read(overviewPath, {
         authorization: await r.bearer(r.other),
       });
@@ -441,6 +454,20 @@ test(
     protocolRuntime.run(async () => {
       const section = await db.section.findFirstOrThrow();
       const teacher = await db.teacher.findFirstOrThrow();
+      const course = await db.course.findUniqueOrThrow({
+        where: { id: section.courseId },
+      });
+      const room = await db.room.create({
+        data: {
+          jwId: section.jwId,
+          code: "native-lecture-room",
+          nameCn: "原生教室",
+          nameEn: "Native Lecture Room",
+          virtual: false,
+          seats: 30,
+          seatsForSection: 30,
+        },
+      });
       await db.userSectionSubscription.create({
         data: { userId: r.owner.id, sectionId: section.id, kind: "auditor" },
       });
@@ -455,7 +482,7 @@ test(
           isDefault: true,
         },
       });
-      await db.schedule.create({
+      const schedule = await db.schedule.create({
         data: {
           sectionId: section.id,
           scheduleGroupId: group.id,
@@ -468,6 +495,7 @@ test(
           startUnit: 1,
           endUnit: 2,
           customPlace: "Custom room",
+          roomId: room.id,
           teacherParticipations: { create: { teacherId: teacher.id } },
         },
       });
@@ -575,5 +603,38 @@ test(
         "youngId",
       ]);
       expect(JSON.stringify(result)).not.toContain(teacher.email);
+      const englishPath =
+        "/api/workspace/calendar/events?dateFrom=2035-09-15&dateTo=2035-09-15&pageSize=100";
+      const englishHeaders = {
+        authorization: await r.bearer(),
+        "accept-language": "en-US,en;q=0.9",
+      };
+      const english = await r.read(englishPath, englishHeaders);
+      expect(
+        english.data.find((row: { type: string }) => row.type === "schedule"),
+      ).toMatchObject({
+        title: course.nameEn,
+        teachers: [teacher.nameEn],
+        location: "Custom room",
+        sectionCode: section.code,
+      });
+      expect(
+        english.data.find((row: { type: string }) => row.type === "exam"),
+      ).toMatchObject({
+        title: course.nameEn,
+        location: "Room A",
+      });
+      await db.schedule.update({
+        where: { id: schedule.id },
+        data: { customPlace: null },
+      });
+      const roomFallback = await r.read(englishPath, englishHeaders);
+      expect(
+        roomFallback.data.find(
+          (row: { type: string }) => row.type === "schedule",
+        ),
+      ).toMatchObject({
+        location: "Native Lecture Room",
+      });
     }),
 );

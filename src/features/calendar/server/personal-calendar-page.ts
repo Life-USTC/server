@@ -28,7 +28,9 @@ export async function listPersonalCalendarPage(
     }),
     getUserSubscriptionKinds(userId),
   ]);
-  const items = events.map((event) => personalCalendarItem(event, kinds));
+  const items = events.map((event) =>
+    personalCalendarItem(event, kinds, input.locale),
+  );
   const { page, pageSize, skip } = normalizePagination(input);
   return buildPaginatedResponse(
     items.slice(skip, skip + pageSize),

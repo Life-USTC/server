@@ -59,7 +59,7 @@ export async function getActionableOverview(
         .filter(
           (event) => event.type !== "todo_due" && event.type !== "homework_due",
         )
-        .map((event) => personalCalendarItem(event, kinds)),
+        .map((event) => personalCalendarItem(event, kinds, locale)),
       pendingDeadlines: [
         ...homeworks
           .filter((homework) => isHomeworkPendingForViewer(homework, atTime))

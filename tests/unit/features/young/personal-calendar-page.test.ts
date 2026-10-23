@@ -171,6 +171,67 @@ describe("complete personal calendar page contract", () => {
     expect(list).not.toHaveBeenCalled();
     expect(kinds).not.toHaveBeenCalled();
   });
+  it("localizes flattened course, teacher and room names while retaining source text", async () => {
+    const section = {
+      jwId: 2,
+      code: "MATH",
+      course: { nameCn: "数学", nameEn: "Mathematics" },
+    };
+    list.mockResolvedValue([
+      {
+        type: "schedule",
+        at,
+        endsAt,
+        payload: {
+          id: 1,
+          sectionId: 2,
+          startTime: 1000,
+          customPlace: null,
+          teacherParticipations: [
+            { teacher: { nameCn: "教师", nameEn: "Teacher" } },
+            { teacher: { nameCn: "未译教师", nameEn: " " } },
+          ],
+          room: { nameCn: "教室", nameEn: "Lecture room" },
+          section,
+        },
+      },
+      {
+        type: "exam",
+        at,
+        endsAt,
+        payload: {
+          id: 3,
+          sectionId: 2,
+          startTime: null,
+          examMode: "闭卷",
+          examRooms: [{ room: "原始考场" }],
+          section,
+        },
+      },
+    ]);
+    const english = await listPersonalCalendarPage("owner", {
+      locale: "en-us",
+    });
+    expect(english.data[0]).toMatchObject({
+      title: "Mathematics",
+      teachers: ["Teacher", "未译教师"],
+      location: "Lecture room",
+      sectionCode: "MATH",
+    });
+    expect(english.data[1]).toMatchObject({
+      title: "Mathematics",
+      location: "原始考场",
+      examMode: "闭卷",
+    });
+    const chinese = await listPersonalCalendarPage("owner", {
+      locale: "zh-cn",
+    });
+    expect(chinese.data[0]).toMatchObject({
+      title: "数学",
+      teachers: ["教师", "未译教师"],
+      location: "教室",
+    });
+  });
   it("does not silently discard a source absent from the response contract", async () => {
     list.mockResolvedValue([{ type: "unsupported", at, endsAt }]);
     await expect(listPersonalCalendarPage("owner")).rejects.toThrow(

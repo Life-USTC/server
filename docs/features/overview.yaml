@@ -313,6 +313,7 @@ requirements:
     - The response uses the shared seven-day action ordering and complete deadline groups, retaining undated pending work and historical context.
     - TA homework due exactly at the anchor or earlier and completed work are excluded, while future and undated TA work remain.
     - Only the declared projection is returned, without account data, a calendar feed credential or the other owner's state.
+    - English requests localize course and teacher labels while preserving section codes, custom places and source exam-mode text.
     test:
       file: tests/integration/workspace-native-read-contract.test.ts
       name: overview.native-actionable-projection
