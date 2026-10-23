@@ -248,6 +248,7 @@ test("cases.account.account-deletion-2", { tag: "@Account/Web" }, async ({
           .getByRole("link", { name: /^(登录|Sign in)$/i }),
       ).toBeVisible();
       await expect(page.locator("#app-user-menu")).toHaveCount(0);
+      await expect(page.getByTestId("home-personal-overview")).toHaveCount(0);
       const session = await page.request.get("/api/auth/get-session");
       expect(await session.json()).toBeNull();
       expect(await db.user.count({ where: { id: user.id } })).toBe(0);

@@ -157,7 +157,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
             page,
             "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00",
           );
-          const content = page.locator("[data-shell-scroll-container]");
+          const content = page.getByTestId("workspace-overview-term-context");
           await expect(
             content.getByRole("link", {
               name: /Browse Courses|浏览课程/,

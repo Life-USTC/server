@@ -371,7 +371,7 @@ test("interface-hierarchy.transport-specific-exceptions-4", async () => {
   const routes = await pageRoutes();
   for (const tab of workspaceNavTabIds) {
     const href = workspaceTabHref(tab);
-    expect(href).toBe(`/workspace/${tab}`);
+    expect(href).toBe(tab === "overview" ? "/" : `/workspace/${tab}`);
     expect(
       routes.some((route) => matchesPage(route, href)),
       href,

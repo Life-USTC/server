@@ -956,9 +956,7 @@ for (const routePath of [
       await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
       await expandDaySidebarGroup(page);
-      await expect(
-        sidebarNavigationLink(page, /^(总览|Overview)$/i),
-      ).toBeVisible();
+      await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible();
     });
   });
 }

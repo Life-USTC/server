@@ -1,5 +1,3 @@
-import { semanticSectionCompatibilityHref } from "@/lib/navigation/semantic-section-redirect";
-
 /**
  * Tabs served by the dynamic `/workspace/[tab]` route.
  * Subscriptions lives at `/workspace/subscriptions` instead; see `workspaceNavTabIds`.
@@ -40,7 +38,7 @@ const legacyHomeTabIdSet = new Set<string>([
  * - `/`: `homeTabCompatibilityRedirectHref` (catalog + workspace tabs), for every
  *   visitor alike — `/` is the one home and no longer forwards a signed-in
  *   viewer anywhere, so this redirect is viewer-independent and stays cacheable.
- * - `/workspace`: `workspaceTabCompatibilityRedirectHref` (308 to `/workspace/{section}`)
+ * - `/workspace`: `workspaceTabCompatibilityRedirectHref` (308 to the canonical destination)
  *
  * Unrecognized `tab` values are ignored on `/` (home stays put) or fall back
  * to overview on `/workspace`. There is no sunset date; redirects stay until traffic
@@ -56,6 +54,7 @@ function resolveLegacyWorkspaceNavTab(
 }
 
 function workspacePathForNavTab(tab: WorkspaceNavTabId) {
+  if (tab === "overview") return "/";
   return tab === WORKSPACE_SUBSCRIPTIONS_SECTION
     ? WORKSPACE_SUBSCRIPTIONS_PATH
     : `/workspace/${tab}`;
@@ -112,11 +111,13 @@ export function workspaceTabCompatibilityRedirectHref(
   url: URL,
   method = "GET",
 ) {
-  return semanticSectionCompatibilityHref({
-    basePath: "/workspace",
-    defaultSection: "overview",
-    method,
-    resolveSection: resolveLegacyWorkspaceNavTab,
-    url,
-  });
+  if (
+    (method !== "GET" && method !== "HEAD") ||
+    url.pathname !== "/workspace"
+  ) {
+    return null;
+  }
+  const tab =
+    resolveLegacyWorkspaceNavTab(url.searchParams.get("tab")) ?? "overview";
+  return appendSearch(workspacePathForNavTab(tab), queryWithoutTab(url));
 }

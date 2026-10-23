@@ -26,6 +26,7 @@ export async function loadHomePage({ locals }: WorkspacePageLoadEvent) {
     homeCopy,
     information,
     locale,
+    mainContentLabel: homeCopy.homepage.publicWorkspace.title,
   };
 
   logAppEvent("info", "workspace.load.finish", {

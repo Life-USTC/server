@@ -1,5 +1,4 @@
 <script lang="ts">
-import LayoutGridIcon from "@lucide/svelte/icons/layout-grid";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -11,7 +10,6 @@ import type {
 } from "#lib/shell/layout-server-data.js";
 import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import GlobalSearchTrigger from "./GlobalSearchTrigger.svelte";
-import { FEATURE_HUB_PATH } from "./navigation";
 
 export let closeMenus: () => void;
 export let copy: LayoutCopy;
@@ -81,9 +79,6 @@ export let hideSignIn = false;
 
     <div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
       {#if !focused}
-        <Button href={FEATURE_HUB_PATH} variant="ghost" size="icon" class="size-11" aria-label={copy.nav.hub.title} title={copy.nav.hub.title}>
-          <LayoutGridIcon />
-        </Button>
         <div class="md:hidden">
           <GlobalSearchTrigger
             copy={copy.globalSearch}

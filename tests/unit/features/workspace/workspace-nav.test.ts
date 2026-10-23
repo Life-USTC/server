@@ -89,15 +89,13 @@ describe("workspaceTabCompatibilityRedirectHref", () => {
       workspaceTabCompatibilityRedirectHref(
         new URL("https://example.test/workspace?overviewWeek=next"),
       ),
-    ).toBe("/workspace/overview?overviewWeek=next");
+    ).toBe("/?overviewWeek=next");
 
     const url = new URL(
       "https://example.test/workspace?tab=unknown&todoView=list",
     );
 
-    expect(workspaceTabCompatibilityRedirectHref(url)).toBe(
-      "/workspace/overview?todoView=list",
-    );
+    expect(workspaceTabCompatibilityRedirectHref(url)).toBe("/?todoView=list");
   });
 
   it("does not redirect mutations or semantic child routes", () => {

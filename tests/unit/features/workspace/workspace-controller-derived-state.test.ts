@@ -87,7 +87,6 @@ describe("仪表盘控制器派生状态", () => {
 
       const result = buildWorkspaceControllerDerivedState({
         currentCatalogLinkItems: currentLinks,
-        currentOverviewLinkItems: currentLinks.slice(0, 1),
         currentTodoItems: [],
         catalogLinkGroupLabels,
         data: signedWorkspaceData(loadedLinks),
@@ -185,7 +184,6 @@ describe("仪表盘控制器派生状态", () => {
         linkSearchQuery: "",
         notAvailable: "N/A",
         currentCatalogLinkItems: [],
-        currentOverviewLinkItems: [],
         currentTodoItems: [completed],
         todoFilter,
       });

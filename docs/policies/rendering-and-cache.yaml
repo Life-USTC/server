@@ -254,7 +254,7 @@ requirements:
   rule: / is admitted to the shared public HTML cache. Its server render contains neither viewer identity nor
     anything that depends on the clock beyond the current Asia/Shanghai date, so its stored lifetime is capped
     at the next Shanghai midnight. The viewer's own overview and the minute-by-minute shuttle board and weather
-    are read by the client from /api/workspace/overview and /_internal/home/campus-now, neither of which is
+    are read by the client from /_internal/home/viewer and /_internal/home/campus-now, neither of which is
     stored. A query-bearing root request stays dynamic so the legacy tab redirects keep working, and
     /catalog/features answers 301 to / rather than rendering a second directory.
   acceptance:
@@ -380,17 +380,19 @@ requirements:
 - id: rendering-and-cache.personal-overlays-12
   category: privacy
   topic: personal-overlays
-  rule: After one successful shell bootstrap, link and history navigations reuse that result, including an
+  rule: Outside the homepage, after resolving the shell from current workspace SSR or a successful bootstrap, link and history navigations reuse that result, including an
     anonymous null viewer. The first load, a failed bootstrap, and programmatic navigations still request
-    /_internal/shell-bootstrap. A workspace SSR shell that already has its viewer does not request it.
+    /_internal/shell-bootstrap. Matching viewer and navigation data from the current workspace SSR page
+    suppress that request; a previous page's cached navigation does not suppress a programmatic refresh.
+    Homepage navigation refreshes the session identity for its private overview, as verified by overview.activity-owner-transition.
   acceptance:
     given: An unresolved shell, a resolved anonymous shell, a resolved signed-in shell, and workspace SSR
       without a viewer.
     when: The shell decides whether a mount, link, history, or programmatic navigation requests bootstrap.
     then:
     - The first load and a failed anonymous result request bootstrap. Later link and history navigations do not.
-    - A programmatic navigation requests bootstrap again so sign-in can replace the anonymous shell.
-    - A complete signed-in shell does not request bootstrap, and workspace SSR without a viewer does not either.
+    - A programmatic navigation without current-page navigation data requests bootstrap again so sign-in or account deletion can replace the previous shell identity.
+    - Matching current workspace SSR data suppresses bootstrap, and workspace SSR without a viewer does not request it either.
     test:
       file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
       name: rendering-and-cache.personal-overlays-12

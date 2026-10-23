@@ -35,7 +35,7 @@ test("anonymous landing and keyboard access", { tag: "@Site/Web" }, async ({
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
+          name: /总览|Overview/i,
         }),
       ).toBeVisible();
       const main = page.locator("#main-content");
@@ -62,7 +62,7 @@ test("anonymous landing and keyboard access", { tag: "@Site/Web" }, async ({
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
+          name: /总览|Overview/i,
         }),
       ).toBeVisible();
       await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
@@ -403,7 +403,6 @@ shellTest(
         });
 
         for (const name of [
-          /^(总览|Overview)$/i,
           /^(日历|Calendar)$/i,
           /^(作业|Homework)$/i,
           /^(待办|Todos)$/i,
@@ -412,6 +411,13 @@ shellTest(
         ]) {
           await expect(navigation.getByRole("link", { name })).toBeVisible();
         }
+
+        await expect(
+          navigation.getByRole("link", { name: /^(总览|Overview)$/i }),
+        ).toHaveCount(0);
+        await expect(
+          sidebar.getByRole("link", { name: "Life@USTC", exact: true }),
+        ).toHaveAttribute("href", "/");
 
         await expect(
           navigation.getByRole("link", { name: /^(工作区|Workspace)$/i }),
@@ -643,7 +649,7 @@ shellTest(
 
         // The empty overview exposes a real course discovery link outside the collapsed group.
         await navigation
-          .getByRole("link", { name: /^(总览|Overview)$/i })
+          .getByRole("link", { name: "Life@USTC", exact: true })
           .click();
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
         await page
@@ -960,7 +966,7 @@ shellTest(
           where: { userId: account.id },
         }),
       ).toEqual([]);
-      const content = page.locator("[data-shell-scroll-container]");
+      const content = page.getByTestId("home-personal-overview");
       await expect(content).toBeVisible();
 
       await expect(

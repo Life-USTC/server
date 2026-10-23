@@ -37,6 +37,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     ["unknown", "overview", cn ? "总览" : "Overview"],
   ] as const) {
     const start = tab === null ? "/workspace" : `/workspace?tab=${tab}`;
+    const destination = route === "overview" ? "/" : `/workspace/${route}`;
     test(`ui.workspace-page-identity-4: ${locale} ${start}`, {
       tag: `@${{ overview: "Overview", calendar: "Calendar", homeworks: "Homework", todos: "Todo", exams: "Exam" }[route]}/Web`,
     }, async ({ page, isolatedWorker, navigationRun }) => {
@@ -45,9 +46,11 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         const redirect = await page.request.get(start, { maxRedirects: 0 });
         expect(redirect.status()).toBe(308);
         await redirect.body();
-        expect(redirect.headers().location).toBe(`/workspace/${route}`);
+        expect(redirect.headers().location).toBe(destination);
         await gotoAndWaitForReady(page, start);
-        await expect(page).toHaveURL(new RegExp(`/workspace/${route}$`));
+        await expect(page).toHaveURL(
+          (url) => url.pathname === destination && !url.search,
+        );
         await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
         await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
         await expect(page.getByRole("main")).toHaveAccessibleName(name);

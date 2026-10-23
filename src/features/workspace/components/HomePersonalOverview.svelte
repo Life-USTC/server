@@ -1,82 +1,88 @@
 <script lang="ts">
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Item from "#lib/components/ui/item/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { getShellViewer } from "#lib/shell/shell-viewer.js";
+import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";
+import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
+import {
+  applyCatalogLinkPinnedSlugs,
+  currentCatalogLinkReturnTo,
+  submitWorkspaceLinkPinRequest,
+} from "@/features/workspace/lib/workspace-link-pin-client";
+import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
+import type { AppLocale } from "@/i18n/config";
+import { HOME_VIEWER_PATH } from "@/lib/navigation/internal-routes";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { browser } from "$app/env";
-
-/**
- * The viewer's own overview on `/`.
- *
- * `/` is cached and its server load is viewer-independent, so this band cannot
- * be server-rendered: it reads the compact overview from the existing
- * `/api/workspace/overview` endpoint once the shell has resolved the viewer on
- * the client. A signed-in landing is therefore a cached shell plus one async
- * fetch rather than the full workspace SSR it used to be.
- *
- * The band reserves its own height while loading and keeps that height when the
- * data lands, so the campus information and directory below it do not jump.
- */
-type CompactOverview = {
-  counts: {
-    todaySchedules: number;
-    pendingHomeworks: number;
-    upcomingExams: number;
-    todos: { pending: number };
-  };
-};
+import OverviewTab from "./OverviewTab.svelte";
+import type { OverviewSignedData } from "./overview-tab-types";
 
 let {
   copy,
+  locale,
   snapshotAt = null,
+  overviewWeek = null,
 }: {
-  copy: {
-    failed: string;
-    retry: string;
-    title: string;
-    counts: {
-      todaySchedules: string;
-      pendingHomeworks: string;
-      pendingTodos: string;
-      upcomingExams: string;
-    };
-    viewAll: string;
-  };
-  /** Mirrors the workspace `?snapshotAt=` deep link onto the API's `atTime`. */
+  copy: { failed: string; retry: string; title: string };
+  locale: AppLocale;
   snapshotAt?: string | null;
+  overviewWeek?: string | null;
 } = $props();
 
 const shellViewer = getShellViewer();
 const viewer = $derived($shellViewer.viewer);
-
-let overview = $state<CompactOverview | null>(null);
+const workspacePageCopy = $derived(getWorkspacePageCopy(locale));
+let overview = $state<OverviewSignedData | null>(null);
 let failed = $state(false);
-let loadedFor = $state("");
-let controller: AbortController | undefined;
+let retry = $state(0);
+let pinError = $state<string | null>(null);
+let updatingCatalogLinkSlug = $state<string | null>(null);
+const overviewLinkItems = $derived(overview?.overview?.overviewLinks ?? []);
 
-async function load(ownerId: string, atTime: string | null) {
-  controller?.abort();
-  const current = new AbortController();
-  controller = current;
-  failed = false;
+const { calendarTimelineItemsForDay } = createWorkspaceCalendarDisplayActions({
+  getCommonCourseLabel: () => workspacePageCopy.common.courses,
+  getEventLabels: () => ({
+    ...workspacePageCopy.CalendarEventCard,
+    noCompletionRequired: workspacePageCopy.homeworks.noCompletionRequired,
+  }),
+  getTodoPriorityLabel: (priority) =>
+    workspacePageCopy.todos.priority[priority as "low" | "medium" | "high"],
+  getWeekNumberTemplate: () => workspacePageCopy.sectionDetail.weekNumber,
+  tabHref: workspaceTabHref,
+});
+
+async function load(
+  ownerId: string,
+  atTime: string | null,
+  previewWeek: string | null,
+  requestLocale: AppLocale,
+  controller: AbortController,
+) {
   try {
     const query = new URLSearchParams();
-    if (atTime) query.set("atTime", atTime);
+    if (atTime) query.set("snapshotAt", atTime);
+    if (previewWeek) query.set("overviewWeek", previewWeek);
     const search = query.toString();
     const response = await fetch(
-      `/api/workspace/overview${search ? `?${search}` : ""}`,
-      { headers: { accept: "application/json" }, signal: current.signal },
+      `${HOME_VIEWER_PATH}${search ? `?${search}` : ""}`,
+      {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+        signal: controller.signal,
+      },
     );
     if (!response.ok) throw new Error(`overview ${response.status}`);
-    const body = (await response.json()) as CompactOverview;
-    if (current.signal.aborted) return;
-    // A viewer change between request and response must not show the previous
-    // owner's counts.
-    if ($shellViewer.viewer?.id !== ownerId) return;
-    overview = body;
+    const body = (await response.json()) as OverviewSignedData;
+    if (controller.signal.aborted || $shellViewer.viewer?.id !== ownerId)
+      return;
+    if (!body.signedIn || body.navStats?.user.id !== ownerId) {
+      failed = true;
+      return;
+    }
+    overview = { ...body, copy: getWorkspacePageCopy(requestLocale) };
   } catch {
-    if (!current.signal.aborted && $shellViewer.viewer?.id === ownerId) {
+    if (!controller.signal.aborted && $shellViewer.viewer?.id === ownerId) {
       failed = true;
     }
   }
@@ -84,117 +90,93 @@ async function load(ownerId: string, atTime: string | null) {
 
 $effect(() => {
   const ownerId = viewer?.id;
-  if (!browser || !ownerId) {
-    if (!ownerId) {
-      overview = null;
-      loadedFor = "";
-    }
-    return;
-  }
-  const key = `${ownerId}:${snapshotAt ?? ""}`;
-  if (key === loadedFor) return;
-  loadedFor = key;
+  const atTime = snapshotAt;
+  const previewWeek = overviewWeek;
+  const requestLocale = locale;
+  void retry;
   overview = null;
-  void load(ownerId, snapshotAt);
+  failed = false;
+  pinError = null;
+  updatingCatalogLinkSlug = null;
+  if (!browser || !ownerId) return;
+  const controller = new AbortController();
+  void load(ownerId, atTime, previewWeek, requestLocale, controller);
+  return () => controller.abort();
 });
 
-const tiles = $derived(
-  overview
-    ? ([
-        {
-          href: "/workspace/calendar",
-          label: copy.counts.todaySchedules,
-          value: overview.counts.todaySchedules,
-        },
-        {
-          href: "/workspace/homeworks",
-          label: copy.counts.pendingHomeworks,
-          value: overview.counts.pendingHomeworks,
-        },
-        {
-          href: "/workspace/todos",
-          label: copy.counts.pendingTodos,
-          value: overview.counts.todos.pending,
-        },
-        {
-          href: "/workspace/exams",
-          label: copy.counts.upcomingExams,
-          value: overview.counts.upcomingExams,
-        },
-      ] as const)
-    : [],
-);
+async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
+  const ownerId = viewer?.id;
+  if (!ownerId || updatingCatalogLinkSlug) return;
+  updatingCatalogLinkSlug = slug;
+  pinError = null;
+  try {
+    const pinnedSlugs = await submitWorkspaceLinkPinRequest({
+      action,
+      fallbackMessage: workspacePageCopy.workspace.linkHub.pinFailedDescription,
+      returnTo: currentCatalogLinkReturnTo(),
+      slug,
+    });
+    if ($shellViewer.viewer?.id !== ownerId || !overview?.overview) return;
+    overview = {
+      ...overview,
+      overview: {
+        ...overview.overview,
+        overviewLinks: applyCatalogLinkPinnedSlugs(
+          overviewLinkItems,
+          pinnedSlugs,
+        ),
+      },
+    };
+  } catch (error) {
+    if ($shellViewer.viewer?.id === ownerId) {
+      pinError = error instanceof Error ? error.message : copy.failed;
+    }
+  } finally {
+    if ($shellViewer.viewer?.id === ownerId) updatingCatalogLinkSlug = null;
+  }
+}
 </script>
 
-<!--
-  Rendered only once the shell knows there is a viewer, so an anonymous visitor
-  never pays a band of skeletons for content they will not get.
--->
-{#if $shellViewer.status === "loading" || viewer}
-  <!--
-    `aria-busy` rather than a live region, matching the shell's viewer
-    skeletons: a background refresh must not re-announce the band.
-  -->
+{#if viewer}
   <section
+    aria-label={copy.title}
     aria-busy={!overview && !failed}
-    class="grid min-w-0 content-start gap-3"
+    class="grid min-w-0 content-start gap-4"
     data-testid="home-personal-overview"
   >
-    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-      <h2 class="font-semibold text-base tracking-tight">{copy.title}</h2>
-      {#if overview}
-        <Button
-          class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
-          href="/workspace/calendar"
-          size="sm"
-          variant="link"
-        >
-          {copy.viewAll}
-          <ChevronRightIcon class="size-4" aria-hidden="true" />
-        </Button>
-      {/if}
-    </div>
-
-    <!--
-      One row of four at every width, so the band is the same height loading,
-      loaded and failed, and nothing below it moves when the fetch lands.
-    -->
     {#if failed}
-      <div class="grid min-h-20 content-center justify-items-start gap-2 rounded-lg border p-4">
-        <p role="alert" class="text-muted-foreground text-sm">{copy.failed}</p>
-        <Button variant="outline" size="sm" onclick={() => { loadedFor = ""; }}>
+      <Alert.Root>
+        <Alert.Description>{copy.failed}</Alert.Description>
+        <Button variant="outline" size="sm" onclick={() => { retry += 1; }}>
           {copy.retry}
         </Button>
-      </div>
+      </Alert.Root>
+    {:else if overview && overview.navStats.user.id === viewer.id}
+      {#if pinError}
+        <Alert.Root variant="destructive">
+          <Alert.Description>{pinError}</Alert.Description>
+        </Alert.Root>
+      {/if}
+      <OverviewTab
+        workspaceCopy={workspacePageCopy.workspace}
+        subscriptionsCopy={workspacePageCopy.subscriptions}
+        signedData={overview}
+        {locale}
+        {workspaceTabHref}
+        {submitWorkspaceLinkPin}
+        {linkIconLabel}
+        {calendarTimelineItemsForDay}
+        {overviewLinkItems}
+        {updatingCatalogLinkSlug}
+      />
     {:else}
-      <div class="grid min-h-20 grid-cols-4 items-stretch gap-2">
-        {#if overview}
-          {#each tiles as tile (tile.href)}
-            <Item.Root size="sm" class="h-full items-start rounded-lg border p-3">
-              {#snippet child({ props })}
-                <a href={tile.href} {...props}>
-                  <Item.Content class="min-w-0 gap-0.5">
-                    <span class="font-semibold text-2xl tabular-nums tracking-tight">
-                      {tile.value}
-                    </span>
-                    <Item.Description class="text-xs">{tile.label}</Item.Description>
-                  </Item.Content>
-                </a>
-              {/snippet}
-            </Item.Root>
-          {/each}
-        {:else}
-          {#each [0, 1, 2, 3] as placeholder (placeholder)}
-            <div
-              aria-hidden="true"
-              class="grid h-full content-start gap-2 rounded-lg border p-3"
-              data-testid="home-personal-loading"
-            >
-              <Skeleton class="h-7 w-8 rounded" />
-              <Skeleton class="h-3 w-14 rounded" />
-            </div>
-          {/each}
-        {/if}
+      <div aria-hidden="true" class="grid gap-4" data-testid="home-personal-loading">
+        <Skeleton class="h-6 w-24" />
+        <Skeleton class="h-20 w-full" />
+        <div class="grid gap-4 lg:grid-cols-2">
+          <Skeleton class="h-32 w-full" />
+          <Skeleton class="h-32 w-full" />
+        </div>
       </div>
     {/if}
   </section>

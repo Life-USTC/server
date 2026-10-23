@@ -169,7 +169,6 @@ test("ui.workspace-footer-policy-2", { tag: "@Site/Web" }, async ({
       ).toBeVisible();
       await signIn(page, isolatedWorker, shellUser.id);
       for (const path of [
-        "/workspace/overview",
         "/workspace/calendar",
         "/workspace/homeworks",
         "/workspace/todos",
@@ -242,7 +241,7 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           ),
         ).toHaveCount(0);
         const destinations = [
-          ["Overview", "/workspace/overview"],
+          ["Life@USTC", "/"],
           ["Calendar", "/workspace/calendar"],
           ["Homework", "/workspace/homeworks"],
           ["Todos", "/workspace/todos"],

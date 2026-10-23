@@ -5,6 +5,7 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 const labels = {
   "en-us": {
     title: "All features",
+    homeTitle: "Overview",
     search: "Search features",
     clear: "Clear search",
     empty: "No features match your search.",
@@ -20,6 +21,7 @@ const labels = {
   },
   "zh-cn": {
     title: "全部功能",
+    homeTitle: "总览",
     search: "搜索功能",
     clear: "清除搜索",
     empty: "没有匹配的功能。",
@@ -50,7 +52,6 @@ const publicPaths = [
   "/usage/cli",
 ];
 const userPaths = [
-  "/workspace/overview",
   "/workspace/calendar",
   "/workspace/homeworks",
   "/workspace/todos",
@@ -115,9 +116,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         const main = page.locator("#main-content");
         const hub = page.locator("[data-feature-hub]");
         await expect(main.getByRole("heading", { level: 1 })).toHaveText(
-          copy.title,
+          copy.homeTitle,
         );
-        await expect(page).toHaveTitle(`${copy.title} - Life@USTC`);
+        await expect(page).toHaveTitle(`${copy.homeTitle} - Life@USTC`);
         await expect
           .poll(async () =>
             (
@@ -146,7 +147,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           page
             .locator("[data-shell-topbar]")
             .getByRole("link", { name: copy.title, exact: true }),
-        ).toBeVisible();
+        ).toHaveCount(0);
         const groupNames = [
           ...(role === "anonymous" ? [] : [copy.day]),
           copy.courses,
@@ -156,7 +157,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           copy.apps,
           ...(role === "admin" ? [copy.admin] : []),
         ];
-        await expect(hub.locator("section > h2")).toHaveText(groupNames);
+        await expect(hub.locator("section > h3")).toHaveText(groupNames);
         const courses = hub.getByRole("region", {
           name: copy.courses,
           exact: true,
@@ -167,14 +168,14 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           locale === "zh-cn"
             ? [
                 ...(role === "anonymous" ? [] : ["教学班订阅"]),
-                "浏览课程",
                 "浏览教学班",
+                "浏览课程",
                 "教师",
               ]
             : [
                 ...(role === "anonymous" ? [] : ["Section subscriptions"]),
-                "Browse courses",
                 "Browse sections",
+                "Browse courses",
                 "Teachers",
               ],
         );
@@ -215,8 +216,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             copy.courses,
             [
               ...(role === "anonymous" ? [] : ["/workspace/subscriptions"]),
-              "/catalog/courses",
               "/catalog/sections",
+              "/catalog/courses",
               "/catalog/teachers",
             ],
           ],
@@ -262,7 +263,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         else expect(links).toEqual(desktopLinks);
         await expect(
           navigation.locator('[aria-current="page"]'),
-        ).toHaveAttribute("href", "/catalog/features");
+        ).toHaveAttribute("href", "/");
         await expect(
           navigation.locator('a[href="/terms"], a[href="/privacy"]'),
         ).toHaveCount(0);
@@ -309,17 +310,18 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         await hub.locator('a[href="/catalog/courses"]').click();
         await expect(page).toHaveURL(/\/catalog\/courses$/);
         await page
-          .locator("[data-shell-topbar]")
-          .getByRole("link", { name: copy.title, exact: true })
+          .getByRole("link", { name: "Life@USTC", exact: true })
+          .filter({ visible: true })
+          .first()
           .click();
-        await expect(page).toHaveURL(/\/catalog\/features$/);
+        await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
       }
       expect(errors).toEqual([]);
     });
   }
 }
 
-test("feature hub and brand stay reachable through the tablet range", {
+test("home and navigation stay reachable through the tablet range", {
   tag: "@Site/Web",
 }, async ({ page }) => {
   for (const width of [768, 900, 1023]) {
@@ -329,7 +331,7 @@ test("feature hub and brand stay reachable through the tablet range", {
     await expect(topbar.locator("[data-shell-brand]")).toBeVisible();
     const menu = topbar.locator('[data-sidebar="trigger"]');
     await expect(menu).toBeVisible();
-    await expect(topbar.locator('a[href="/catalog/features"]')).toBeVisible();
+    await expect(topbar.locator('a[href="/catalog/features"]')).toHaveCount(0);
     await menu.focus();
     await page.keyboard.press("Enter");
     await expect(menu).toHaveAttribute("aria-expanded", "true");
@@ -357,7 +359,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
       const topbar = page.locator("[data-shell-topbar]");
       await expect(
         topbar.getByRole("link", { name: labels[locale].title, exact: true }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expect(topbar.locator('a[href="/account/sign-in"]')).toBeVisible();
     }
   });

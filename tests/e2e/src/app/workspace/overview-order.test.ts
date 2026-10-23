@@ -17,8 +17,7 @@ test("overview.card-order", { tag: "@Overview/Web" }, async ({
     "workspace-overview-upcoming",
     "workspace-overview-links",
   ];
-  const overviewUrl =
-    "/workspace/overview?snapshotAt=2026-09-28T09%3A30%3A00%2B08%3A00";
+  const overviewUrl = "/?snapshotAt=2026-09-28T09%3A30%3A00%2B08%3A00";
   const actor = await preferenceFlow.prepare(async () => {
     const actor = await isolatedWorker.createActor();
     await isolatedWorker.database.owner.$transaction(async (db) => {
@@ -274,7 +273,7 @@ test("overview.omit-empty-bands", { tag: "@Overview/Web" }, async ({
         await page.setViewportSize({ width, height: 1000 });
         await gotoAndWaitForReady(
           page,
-          "/workspace/overview?snapshotAt=2026-09-28T09%3A30%3A00%2B08%3A00",
+          "/?snapshotAt=2026-09-28T09%3A30%3A00%2B08%3A00",
         );
         const focus = page.getByTestId("workspace-overview-focus");
         await expect(focus.getByRole("status")).toHaveCount(0);

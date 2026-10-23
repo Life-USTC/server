@@ -280,7 +280,7 @@ test("user.welcome-completion-resume", { tag: "@Account/Web" }, async ({
       await expect(page).toHaveURL(
         callback === target
           ? /\/account\/settings\/profile\?from=welcome#profile$/
-          : /\/workspace\/overview$/,
+          : /\/$/,
       );
     }
     return async () => {

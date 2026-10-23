@@ -130,7 +130,7 @@ describe("home and signed workspace route boundary", () => {
         routeEvent("https://example.test/workspace?tab=overview") as never,
       ),
     ).rejects.toMatchObject({
-      location: "/workspace/overview",
+      location: "/",
       status: 308,
     });
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
@@ -144,7 +144,7 @@ describe("home and signed workspace route boundary", () => {
         routeEvent("https://example.test/workspace") as never,
       ),
     ).rejects.toMatchObject({
-      location: "/workspace/overview",
+      location: "/",
       status: 308,
     });
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
@@ -157,12 +157,12 @@ describe("home and signed workspace route boundary", () => {
 
     await expect(
       workspaceRoute.load(
-        routeEvent("https://example.test/workspace/overview", undefined, {
-          tab: "overview",
+        routeEvent("https://example.test/workspace/calendar", undefined, {
+          tab: "calendar",
         }) as never,
       ),
     ).rejects.toMatchObject({
-      location: "/account/sign-in?callbackUrl=%2Fworkspace%2Foverview",
+      location: "/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar",
       status: 303,
     });
     expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
@@ -212,16 +212,11 @@ describe("home and signed workspace route boundary", () => {
       },
     );
 
-    await expect(workspaceRoute.load(event as never)).resolves.toMatchObject({
-      marker: "signed",
-      signedIn: true,
+    await expect(workspaceRoute.load(event as never)).rejects.toMatchObject({
+      location: "/",
+      status: 303,
     });
-    expect(loadSignedWorkspacePageMock).toHaveBeenCalledWith({
-      locals: event.locals,
-      request: event.request,
-      tab: "overview",
-      url: event.url,
-      userId: "user-1",
-    });
+    expect(workspaceRoute.actions).toBeDefined();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 });

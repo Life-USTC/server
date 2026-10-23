@@ -261,8 +261,7 @@ async function state(db: Database) {
 
 /** Uncached, real dev-button sign-in to the original requested destination. */
 export async function signInPrivateDebugUser(page: Page, callbackPath: string) {
-  const destination =
-    callbackPath === "/workspace" ? "/workspace/overview" : callbackPath;
+  const destination = callbackPath === "/workspace" ? "/" : callbackPath;
   await gotoAndWaitForReady(
     page,
     `/account/sign-in?callbackUrl=${encodeURIComponent(callbackPath)}`,

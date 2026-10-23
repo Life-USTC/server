@@ -236,11 +236,16 @@ async function resolveClientShell(
     routePage.data,
     viewerUser?.id,
   );
-  if (serverNavigation) workspaceNavigation = serverNavigation;
+  if (serverNavigation) {
+    workspaceNavigation = serverNavigation;
+    shellResolved = true;
+  }
+  // Home HTML has no viewer; returning home must resolve the current session.
   if (
+    routePage.url.pathname !== "/" &&
     !shouldRequestClientShellBootstrap({
       navigationType,
-      navigationUserId: workspaceNavigation?.userId,
+      navigationUserId: serverNavigation?.userId,
       resolveViewerOnClient: data.resolveViewerOnClient,
       shellResolved,
       viewerUserId: viewerUser?.id,

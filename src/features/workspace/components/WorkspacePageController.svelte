@@ -41,7 +41,6 @@ import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import { createWorkspacePageControllerActions } from "@/features/workspace/lib/workspace-page-controller-actions";
 import { page as routePage } from "$app/state";
-import SignedWorkspaceOverviewBranch from "./SignedWorkspaceOverviewBranch.svelte";
 import SignedWorkspacePublicTabs from "./SignedWorkspacePublicTabs.svelte";
 import SignedWorkspaceSubscriptionsBranch from "./SignedWorkspaceSubscriptionsBranch.svelte";
 import SignedWorkspaceTaskTabs from "./SignedWorkspaceTaskTabs.svelte";
@@ -111,11 +110,6 @@ let {
 } = $state(createWorkspaceControllerDefaultState());
 let catalogLinkSourceItems: CatalogLinkItem[] = $derived(
   isSignedWorkspaceData(data) ? (data.links?.catalogLinks ?? []) : [],
-);
-let overviewLinkSourceItems: CatalogLinkItem[] = $derived(
-  isSignedWorkspaceData(data)
-    ? (data.overview?.overviewLinks.slice(0, 4) ?? [])
-    : [],
 );
 let todoSourceItems: TodoItem[] = $derived(
   isSignedWorkspaceData(data) ? (data.todos ?? []) : [],
@@ -202,7 +196,6 @@ const {
   getHomeworkItems: () => homeworkItems,
   getHomeworkSavingById: () => homeworkSavingById,
   getLinkReturnTo: () => linkReturnTo,
-  getOverviewLinkSourceItems: () => overviewLinkSourceItems,
   getSelectedHomework: () => selectedHomework,
   getSelectedImportSectionIds: () => selectedImportSectionIds,
   getSelectedTodo: () => selectedTodo,
@@ -312,9 +305,6 @@ const {
   setMatchingSections: (v) => {
     isMatchingSections = v;
   },
-  setOverviewLinkSourceItems: (v) => {
-    overviewLinkSourceItems = v;
-  },
   setRemovingSectionId: (v) => {
     removingSectionId = v;
   },
@@ -368,7 +358,6 @@ let derivedState = $derived(
     linkSearchQuery,
     notAvailable: workspaceCopy.notAvailable,
     currentCatalogLinkItems: catalogLinkSourceItems,
-    currentOverviewLinkItems: overviewLinkSourceItems,
     currentTodoItems: todoSourceItems,
     todoFilter,
   }),
@@ -385,7 +374,6 @@ let filteredTodos = $derived(derivedState.filteredTodos);
 let examRows = $derived(derivedState.examRows);
 let filteredExamRows = $derived(derivedState.filteredExamRows);
 let catalogLinkItems = $derived(derivedState.catalogLinkItems);
-let overviewLinkItems = $derived(derivedState.overviewLinkItems);
 let signedLinkGroups = $derived(derivedState.signedLinkGroups);
 let calendarData = $derived(derivedState.calendarData);
 untrack(() =>
@@ -415,20 +403,7 @@ onMount(mount);
   {/if}
 
   {#if signedData}
-    {#if signedData.tab === "overview"}
-      <SignedWorkspaceOverviewBranch
-        calendarTimelineItemsForDay={calendarTimelineItemsForDay}
-        workspaceCopy={workspaceCopy}
-        workspaceTabHref={workspaceTabHref}
-        data={data}
-        linkIconLabel={linkIconLabel}
-        overviewLinkItems={overviewLinkItems}
-        subscriptionsCopy={subscriptionsCopy}
-        signedData={signedData}
-        submitWorkspaceLinkPin={submitWorkspaceLinkPin}
-        updatingCatalogLinkSlug={updatingCatalogLinkSlug}
-      />
-    {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
+    {#if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
       <SignedWorkspaceTaskTabs
         activeTab={signedData.tab}
         applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}

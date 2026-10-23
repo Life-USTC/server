@@ -14,6 +14,9 @@ export const SHELL_BOOTSTRAP_PATH = `${INTERNAL_ROUTE_PREFIX}/shell-bootstrap`;
 /** Supplements public `/`, whose cached HTML omits the minute-by-minute board. */
 export const HOME_CAMPUS_NOW_PATH = `${INTERNAL_ROUTE_PREFIX}/home/campus-now`;
 
+/** Supplements `/` with the authenticated viewer's rich overview. */
+export const HOME_VIEWER_PATH = `${INTERNAL_ROUTE_PREFIX}/home/viewer`;
+
 /** Supplements public `/catalog/links`. */
 export const CATALOG_LINKS_VIEWER_PATH = `${INTERNAL_ROUTE_PREFIX}/catalog/links/viewer`;
 
@@ -24,6 +27,10 @@ export function sectionViewerPath(jwId: number | string) {
 
 /** Internal viewer endpoint and the public page whose personal overlay it feeds. */
 export const INTERNAL_VIEWER_ROUTES = [
+  {
+    internal: HOME_VIEWER_PATH,
+    publicPage: "/",
+  },
   {
     internal: HOME_CAMPUS_NOW_PATH,
     publicPage: "/",
