@@ -3,6 +3,7 @@ import {
   CATALOG_MAX_PAGE,
   CATALOG_SEARCH_MAX_LENGTH,
   CATALOG_SEARCH_MIN_LENGTH,
+  SECTION_SCHEDULE_MAX_LIMIT,
 } from "@/features/catalog/lib/catalog-list-query";
 import { APP_LOCALES, DEFAULT_LOCALE } from "@/i18n/config";
 import {
@@ -52,8 +53,8 @@ const weekdayQuerySchema = integerQueryRangeSchema({
 
 const sectionScheduleLimitSchema = integerQueryRangeSchema({
   minimum: 1,
-  maximum: 200,
-  message: "Limit must be between 1 and 200",
+  maximum: SECTION_SCHEDULE_MAX_LIMIT,
+  message: `Limit must be between 1 and ${SECTION_SCHEDULE_MAX_LIMIT}`,
 });
 
 export const catalogLocaleQuerySchema = z.object({
@@ -94,7 +95,9 @@ export const schedulesQuerySchema = catalogLocaleQuerySchema.extend({
 export const sectionSchedulesQuerySchema = catalogLocaleQuerySchema.extend({
   dateFrom: dateQuerySchema().optional(),
   dateTo: dateQuerySchema().optional(),
-  limit: sectionScheduleLimitSchema.optional(),
+  limit: sectionScheduleLimitSchema
+    .optional()
+    .default(SECTION_SCHEDULE_MAX_LIMIT),
 });
 
 export const sectionDetailQuerySchema = catalogLocaleQuerySchema.extend({

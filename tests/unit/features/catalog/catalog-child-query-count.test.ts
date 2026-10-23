@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SECTION_SCHEDULE_MAX_LIMIT } from "@/features/catalog/lib/catalog-list-query";
 
 const { examFindManyMock, scheduleFindManyMock, sectionFindUniqueMock } =
   vi.hoisted(() => ({
@@ -96,6 +97,43 @@ describe("catalog child-record query count", () => {
       }),
     });
     expect(scheduleFindManyMock).not.toHaveBeenCalled();
+  });
+
+  it("schedule.section-schedule-default-bound bounds an omitted limit", async () => {
+    sectionFindUniqueMock.mockResolvedValue({
+      id: 1,
+      jwId: 101,
+      code: "CS101.01",
+      course: { jwId: 11, code: "CS101", nameCn: "课程", nameEn: null },
+      semester: { jwId: 22, code: "2026S", nameCn: "春" },
+      schedules: [],
+    });
+    const { getSectionSchedulesByJwId } = await import(
+      "@/features/catalog/server/schedule-read-model"
+    );
+
+    await getSectionSchedulesByJwId({ sectionJwId: 101 });
+
+    expect(sectionFindUniqueMock.mock.calls[0]?.[0].select.schedules.take).toBe(
+      SECTION_SCHEDULE_MAX_LIMIT,
+    );
+  });
+
+  it("schedule.section-schedule-default-bound scopes the schedule-groups read", async () => {
+    sectionFindUniqueMock.mockResolvedValue({ scheduleGroups: [] });
+    const { getSectionScheduleGroupsByJwId } = await import(
+      "@/features/catalog/server/schedule-read-model"
+    );
+
+    await getSectionScheduleGroupsByJwId({ sectionJwId: 101 });
+
+    const args = sectionFindUniqueMock.mock.calls[0]?.[0];
+    expect(args).not.toHaveProperty("include");
+    expect(Object.keys(args.select)).toEqual(["scheduleGroups"]);
+    expect(args.select.scheduleGroups.include.schedules.take).toBe(
+      SECTION_SCHEDULE_MAX_LIMIT,
+    );
+    expect(sectionFindUniqueMock).toHaveBeenCalledOnce();
   });
 
   it("keeps compact schedule items when includeSection is omitted", async () => {

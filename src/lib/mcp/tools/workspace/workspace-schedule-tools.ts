@@ -60,6 +60,7 @@ export function registerWorkspaceScheduleTools(server: McpServer) {
         weekday,
         limit,
         semesterId,
+        sectionContext: "full",
       });
 
       return jsonToolResult(
@@ -106,6 +107,7 @@ export function registerWorkspaceScheduleTools(server: McpServer) {
         includeDateUnknown,
         limit,
         semesterId,
+        sectionContext: "full",
       });
 
       return jsonToolResult(
