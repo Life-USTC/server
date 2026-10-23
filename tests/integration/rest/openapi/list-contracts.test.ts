@@ -59,7 +59,9 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
     expect(paths.map(([path]) => path)).toEqual(
       expect.arrayContaining([
         "/api/catalog/courses",
+        "/api/catalog/courses/{jwId}/sections",
         "/api/catalog/sections",
+        "/api/catalog/teachers/{id}/sections",
         "/api/community/comments",
         "/api/workspace/exams",
         "/api/admin/users",
@@ -68,13 +70,20 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
     let nonempty = 0;
     const preparedTotals: Record<string, number> = {
       "/api/catalog/courses": 2,
+      "/api/catalog/courses/{jwId}/sections": 1,
       "/api/catalog/sections": 2,
+      "/api/catalog/teachers/{id}/sections": 1,
       "/api/community/comments": 2,
       "/api/workspace/todos": 2,
       "/api/admin/users": 1,
     };
+    const preparedPaths: Record<string, string> = {
+      "/api/catalog/courses/{jwId}/sections": `/api/catalog/courses/${catalog.courses[0].jwId}/sections`,
+      "/api/catalog/teachers/{id}/sections": `/api/catalog/teachers/${catalog.teachers[0].id}/sections`,
+    };
     for (const [path, { get }] of paths) {
       const query = new URLSearchParams({ page: "1", pageSize: "1" });
+      const requestPath = preparedPaths[path] ?? path;
       if (path === "/api/community/comments") {
         query.set("targetType", "section");
         query.set("sectionJwId", String(section.jwId));
@@ -84,13 +93,15 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
       for (const parameter of get?.parameters ?? [])
         if (parameter.required)
           expect(
-            query.has(parameter.name),
+            query.has(parameter.name) ||
+              (path.includes(`{${parameter.name}}`) &&
+                !requestPath.includes(`{${parameter.name}}`)),
             `${path} requires a fixture for ${parameter.name}`,
           ).toBe(true);
       let total: number | undefined;
       for (const page of [1, 2]) {
         query.set("page", String(page));
-        const response = await request.get(`${path}?${query}`);
+        const response = await request.get(`${requestPath}?${query}`);
         expect(response.status(), path).toBe(200);
         const body = await response.json();
         expect(Array.isArray(body.data), path).toBe(true);

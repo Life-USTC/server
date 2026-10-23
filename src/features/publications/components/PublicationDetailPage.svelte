@@ -120,7 +120,7 @@ const articleInformation = $derived(
   {/snippet}
 
     <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
-      <RenderedMarkdown class="publication-body min-w-0 text-base" html={data.renderedBodyHtml} emptyLabel={copy.noBody} />
+      <RenderedMarkdown class="publication-body min-w-0 text-base" html={data.publication.renderedBodyHtml} emptyLabel={copy.noBody} />
     {#if attachments.length > 0}
       <Separator />
         <section class="grid min-w-0 gap-3" aria-label={copy.attachments}>

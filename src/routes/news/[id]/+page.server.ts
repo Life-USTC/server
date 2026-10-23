@@ -1,6 +1,4 @@
 import { error } from "@sveltejs/kit";
-import { renderEmbeddedMarkdown } from "#lib/components/markdown-preview-renderer.js";
-import { annotatePublicationImages } from "@/features/publications/lib/publication-image-metadata";
 import { getPublicationPageCopy } from "@/features/publications/server/publication-page-copy";
 import { getPublicPublicationById } from "@/features/publications/server/publication-public-read-service";
 import { updateSocialMetadata } from "@/lib/social-metadata";
@@ -18,12 +16,6 @@ export const load: PageServerLoad = async (event) => {
 
   return {
     publication,
-    renderedBodyHtml: publication.revision.bodyMarkdown
-      ? annotatePublicationImages(
-          renderEmbeddedMarkdown(publication.revision.bodyMarkdown),
-          publication.revision.images,
-        )
-      : "",
     copy,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
       description: publication.revision.summary ?? copy.pageDescription,

@@ -40,7 +40,6 @@ export type PublicationSourceSummary = PublicPublicationSourceSummary;
 
 export type PublicationDetailPageData = {
   publication: PublicPublicationDetail;
-  renderedBodyHtml: string;
 };
 
 export type PublicationObject = PublicPublicationObject;

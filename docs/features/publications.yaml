@@ -127,6 +127,22 @@ requirements:
     test:
       file: tests/integration/publication-object-contracts.test.ts
       name: publications.publication-markdown
+- id: publications.server-rendered-markdown
+  category: presentation
+  rule: Public detail returns renderedBodyHtml from the shared sanitized Markdown renderer and revision image
+    annotation. Web and native readers use this same result, preserving source block order, captions, tables
+    and formulas. The field is empty when bodyMarkdown is unavailable; lists do not include rendered bodies.
+  acceptance:
+    given: A current publication has verified Markdown with an inline image, revision metadata, a table and a formula;
+      another publication has bodyText but no Markdown.
+    when: Read the actual public detail and list routes over HTTP.
+    then:
+    - Detail retains bodyMarkdown and returns sanitized HTML with the inline image and plain-text caption in source order.
+    - Tables and formulas are rendered, and unavailable Markdown produces an empty renderedBodyHtml without using bodyText.
+    - List rows do not include rendered bodies.
+    test:
+      file: tests/integration/rest/publications/read.test.ts
+      name: publication detail returns canonical rendered Markdown over HTTP
 - id: publications.markdown-presentation
   category: presentation
   rule: The public Web detail annotates sanitized Markdown with plain-text image captions and revision

@@ -182,6 +182,21 @@ requirements:
     test:
       file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
       name: teacher.history-page-default
+- id: teacher.section-history-pagination
+  category: consistency
+  rule: The teacher-scoped Section history REST endpoint returns every active and retired offering
+    through bounded pages, with localized public Section identity and retiredAt state. It uses the
+    Teacher resource ID and does not alter global Section discovery.
+  acceptance:
+    given: A teacher has more than 20 offerings including a retired record, with unrelated catalog data.
+    when: Anonymous callers read every history page and vary locale, invalid pagination and parent ID.
+    then:
+    - Every related offering appears exactly once with stable newest-semester order and exact totals.
+    - Retired state is explicit; unrelated offerings and private Teacher contacts are absent.
+    - URL locale controls public output; bad pagination returns 400 and a missing teacher returns 404.
+    test:
+      file: tests/integration/rest/catalog/section-history.test.ts
+      name: teacher.section-history-pagination
 capabilities:
   teacher-list:
     title: Teacher List & Filter
@@ -264,6 +279,9 @@ capabilities:
         notes:
         - sections is a newest-first preview capped at 20 records; _count.sections is the complete historical
           total.
+      - path: /api/catalog/teachers/[id]/sections
+        notes:
+        - Complete active and retired history; pageSize is bounded to 100 and page defaults to 1.
     graphql:
       queries:
       - name: teacher

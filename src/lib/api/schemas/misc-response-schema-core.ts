@@ -7,6 +7,20 @@ import {
 } from "./academic-response-schema-core";
 import { dateTimeSchema } from "./response-schema-primitives";
 
+export const appleAppSiteAssociationResponseSchema = z.object({
+  applinks: z.object({
+    details: z.array(
+      z.object({
+        appIDs: z.array(z.string()),
+        components: z.array(
+          z.object({ "/": z.string(), exclude: z.boolean().optional() }),
+        ),
+      }),
+    ),
+  }),
+  webcredentials: z.object({ apps: z.array(z.string()) }),
+});
+
 export const viewerContextSchema = z.object({
   userId: z.string().nullable(),
   name: z.string().nullable(),
