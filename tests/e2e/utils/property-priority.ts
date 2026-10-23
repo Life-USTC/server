@@ -40,7 +40,8 @@ async function assertVisibleField(
   field: VisiblePriorityField,
   options: { timeout?: number },
 ) {
-  await field.locator.scrollIntoViewIfNeeded(options);
+  // Scroll readiness uses the action timeout, independently of assertion timeouts.
+  await field.locator.scrollIntoViewIfNeeded();
   await expect(field.locator).toBeVisible(options);
   await expect
     .poll(

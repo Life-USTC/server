@@ -78,8 +78,8 @@ test("priority fields reject transparent and hidden elements through their ances
             },
             { ancestor, style },
           );
-          // setContent has settled: fail fast for this intentional defect, while
-          // real-page assertions retain their normal readiness timeout.
+          // Fail fast for the intentional visibility defect; scroll preparation
+          // retains the normal action timeout.
           await expect(
             assertPriorityView(check(), { timeout: 100 }),
           ).rejects.toMatchObject({
@@ -99,6 +99,48 @@ test("priority fields reject transparent and hidden elements through their ances
       }
     }
   }
+});
+
+test("priority field scroll preparation can outlast the paint assertion timeout", {
+  tag: "@Infrastructure/Web",
+}, async ({ page }) => {
+  await page.setContent(
+    '<main><h1>Public task</h1><div id="due">Tomorrow 12:30</div><span id="priority" style="opacity:0">High</span></main>',
+  );
+  await page.locator("#due").evaluate(async (element) => {
+    const animation = element.animate(
+      [{ transform: "translateX(0)" }, { transform: "translateX(100px)" }],
+      { duration: 1_000 },
+    );
+    await animation.ready;
+  });
+  await expect(
+    assertPriorityView(
+      {
+        scope: page.locator("main"),
+        identity: page.getByRole("heading"),
+        primary: {
+          "todo.dueAt": {
+            locator: page.locator("#due"),
+            expected: "Tomorrow 12:30",
+          },
+        },
+        secondary: {
+          "todo.priority": {
+            locator: page.locator("#priority"),
+            expected: "High",
+          },
+        },
+        tertiary: {},
+      },
+      { timeout: 100 },
+    ),
+  ).rejects.toMatchObject({
+    message: expect.stringMatching(
+      /expected field must be visibly painted, including its ancestors[\s\S]*Received:[\s\S]*false/,
+    ),
+    matcherResult: { name: "toBe" },
+  });
 });
 
 test("internal-field absence checks displayed form values without exposing hidden controls", {
