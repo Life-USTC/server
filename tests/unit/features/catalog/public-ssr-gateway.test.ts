@@ -3,6 +3,7 @@ import { resolveCatalogListPublicSsrMode } from "@/features/catalog/lib/catalog-
 import {
   buildPublicNotFoundHtml,
   isLegacyCalendarSubscriptionFeedRequest,
+  isViewerIndependentPublicPath,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS,
@@ -259,6 +260,41 @@ describe("public SSR gateway", () => {
     expect(resolvePublicSsrMode(request(path))).toBeNull();
   });
 
+  test("admits the anonymous home page but still renders for a session", () => {
+    expect(resolvePublicSsrMode(request("/"))).toBe("page");
+    // Not viewer-independent on purpose: a stored copy served to a
+    // session-bearing request would skip the incomplete-profile redirect to
+    // /account/welcome in hooks.server.ts.
+    expect(isViewerIndependentPublicPath("/")).toBe(false);
+    expect(
+      resolvePublicSsrMode(
+        new Request("https://life-ustc.test/", {
+          headers: { accept: "text/html", cookie: "better-auth.session=token" },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("keeps a query-bearing home request dynamic for ?tab= compatibility", () => {
+    // The legacy `?tab=` 308 lives in `/`'s load, so a query-bearing request
+    // must reach it rather than being answered from cache.
+    expect(resolvePublicSsrMode(request("/?tab=homeworks"))).toBeNull();
+  });
+
+  test("caps the home page at the next Shanghai midnight", () => {
+    // Its activity list is scoped to the current Shanghai day, so a stored
+    // copy must not outlive that day. The clock-driven shuttle board and
+    // weather are not in this HTML at all.
+    const headers = publicSsrCacheHeaders(
+      "/",
+      new Date("2026-04-29T15:30:00+08:00"),
+    );
+    const untilMidnight = 8 * 3_600 + 30 * 60;
+    expect(headers["Cloudflare-CDN-Cache-Control"]).toBe(
+      `public, max-age=${untilMidnight}, stale-while-revalidate=0, stale-if-error=0`,
+    );
+  });
+
   test("caches a canonical anonymous catalog detail HEAD request", () => {
     expect(
       resolvePublicSsrMode(
@@ -271,7 +307,6 @@ describe("public SSR gateway", () => {
   });
 
   test.each([
-    "/",
     "/_internal/shell-bootstrap",
     "/account/sign-in/",
     "/admin",

@@ -54,7 +54,7 @@ export type PublicSsrRouteResolver = (
 ) => PublicSsrMode | null | undefined;
 
 const STATIC_PUBLIC_PATHS = new Set([
-  "/catalog/features",
+  "/",
   "/account/sign-in",
   "/guides/markdown-support",
   "/api-docs",
@@ -67,7 +67,6 @@ const STATIC_PUBLIC_PATHS = new Set([
 ]);
 const STATIC_PUBLIC_ROOTS = ["/api/docs"];
 const DIRECT_REQUEST_PATHS = new Set([
-  "/",
   "/error",
   "/llms.txt",
   "/metrics",
@@ -88,12 +87,25 @@ const PUBLIC_CATALOG_PATHS = new Set([
 const YOUNG_PUBLIC_PATH =
   /^\/catalog\/young-events(?:\/(?:organizers(?:\/[^/]+)?|[^/]+))?$/;
 
+/**
+ * `/` is excluded alongside `/account/sign-in` even though both are in
+ * `STATIC_PUBLIC_PATHS`. `/`'s page load is viewer-independent and its
+ * anonymous HTML is fully cacheable, but serving that stored copy to a request
+ * that carries a session would answer at the edge and never reach
+ * `hooks.server.ts`, which is where an incomplete profile is redirected to
+ * `/account/welcome` (`rendering-and-cache.cacheable-public-pages-14`). A
+ * session-bearing request therefore still renders, and that render is cheap:
+ * `/` reads only notices and activities, never the workspace overview.
+ */
+const VIEWER_DEPENDENT_STATIC_PATHS = new Set(["/", "/account/sign-in"]);
+
 export function isViewerIndependentPublicPath(pathname: string) {
   return (
     PUBLIC_CATALOG_PATHS.has(pathname) ||
     isCanonicalCatalogDetailPath(pathname) ||
     YOUNG_PUBLIC_PATH.test(pathname) ||
-    (pathname !== "/account/sign-in" && STATIC_PUBLIC_PATHS.has(pathname)) ||
+    (!VIEWER_DEPENDENT_STATIC_PATHS.has(pathname) &&
+      STATIC_PUBLIC_PATHS.has(pathname)) ||
     STATIC_PUBLIC_ROOTS.some((root) => matchesPathRoot(pathname, root))
   );
 }
@@ -105,7 +117,16 @@ export function publicSsrCacheHeaders(
   renderStartedAt = now,
 ) {
   const youngPage = YOUNG_PUBLIC_PATH.test(pathname);
-  if (!youngPage && !pathname.startsWith("/catalog/sections/")) {
+  /**
+   * `/` server-renders nothing that depends on the clock beyond the Shanghai
+   * calendar date — its activity list is scoped to today, and its shuttle
+   * board and weather are fetched by the client from
+   * `HOME_CAMPUS_NOW_PATH`. So it takes the full lifetime like any other
+   * cacheable page, capped at the next Shanghai midnight so the stored copy
+   * cannot outlive the day its activities were selected for.
+   */
+  const dayScopedPage = pathname === "/" || youngPage;
+  if (!dayScopedPage && !pathname.startsWith("/catalog/sections/")) {
     return {
       "Cache-Control": PUBLIC_SSR_BROWSER_CACHE_CONTROL,
       "Cloudflare-CDN-Cache-Control": PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,

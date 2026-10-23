@@ -404,6 +404,18 @@
         "description": "以上信息无需登录即可查看。登录后可同步个人课表、作业、考试与教学班订阅。"
       }
     },
+    "personal": {
+      "title": "你的今天",
+      "viewAll": "打开工作区",
+      "failed": "个人概览暂不可用",
+      "retry": "重试",
+      "counts": {
+        "todaySchedules": "今日课程",
+        "pendingHomeworks": "待交作业",
+        "pendingTodos": "待办事项",
+        "upcomingExams": "即将考试"
+      }
+    },
     "quickAccess": {
       "title": "快速访问",
       "openWorkspace": {

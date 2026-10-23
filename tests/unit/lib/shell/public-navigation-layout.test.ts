@@ -19,7 +19,6 @@ async function layout(path: string) {
 
 test.each([
   "/catalog/courses",
-  "/catalog/features",
   "/news",
   "/news/story",
   "/news/sources",

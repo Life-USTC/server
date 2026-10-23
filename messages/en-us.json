@@ -404,6 +404,18 @@
         "description": "Everything above is public. Sign in to sync your personal schedule, homework, exams, and section subscriptions."
       }
     },
+    "personal": {
+      "title": "Your day",
+      "viewAll": "Open workspace",
+      "failed": "Your overview is unavailable right now",
+      "retry": "Retry",
+      "counts": {
+        "todaySchedules": "Classes today",
+        "pendingHomeworks": "Homework due",
+        "pendingTodos": "Todos",
+        "upcomingExams": "Exams ahead"
+      }
+    },
     "quickAccess": {
       "title": "Quick Access",
       "openWorkspace": {

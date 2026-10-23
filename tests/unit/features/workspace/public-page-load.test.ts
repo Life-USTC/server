@@ -54,10 +54,17 @@ vi.mock("@/lib/log/app-logger", () => ({
 }));
 
 import { loadPublicLinksPage } from "@/features/catalog-links/server/public-links-page-load";
-import { loadAnonymousHomePage } from "@/features/workspace/server/anonymous-home-page-load";
+import { loadHomePage } from "@/features/workspace/server/anonymous-home-page-load";
+import { loadHomeCampusNow } from "@/features/workspace/server/anonymous-home-sections";
 import { loadPublicBusPage } from "@/features/workspace/server/public-bus-page-load";
+import { getAnonymousHomePageCopy } from "@/lib/shell/page-copy";
 
 const url = new URL("https://example.test/");
+const campusNowInput = {
+  copy: getAnonymousHomePageCopy("en-us"),
+  locale: "en-us" as const,
+  requestId: "request-1",
+};
 const event = {
   locals: {
     locale: "en-us" as const,
@@ -85,21 +92,7 @@ describe("public page loaders", () => {
     listYoungEventsMock.mockResolvedValue({ data: [] });
   });
 
-  it("loads the public information sections for the anonymous home page", async () => {
-    readWeatherCacheMock.mockResolvedValue({
-      current: { condition: { text: "Clear" }, temperature: 18.4 },
-    });
-    getNextDeparturesFromHubCampusMock.mockResolvedValue({
-      departures: [
-        {
-          departureTime: "18:40",
-          destinationCampus: { id: 2, namePrimary: "West" },
-          minutesUntilDeparture: 12,
-          tripId: 7,
-        },
-      ],
-      originCampus: { id: 1, namePrimary: "East" },
-    });
+  it("loads the editorial information sections for the home page", async () => {
     listPublicationsMock.mockResolvedValue({
       data: [
         {
@@ -121,35 +114,15 @@ describe("public page loaders", () => {
       ],
     });
 
-    const result = await loadAnonymousHomePage(event);
+    const result = await loadHomePage(event);
 
-    expect(result).toMatchObject({ locale: "en-us", signedIn: false });
-    // A snapshot without a forecast still produces a usable tile; the wide
-    // layout simply has no range or trend to reveal.
-    expect(result.information.weather).toEqual([
-      {
-        condition: "Clear",
-        hourly: [],
-        locationKey: "ustc-main",
-        rangeLabel: null,
-        temperature: "18°",
-      },
-      {
-        condition: "Clear",
-        hourly: [],
-        locationKey: "ustc-gaoxin",
-        rangeLabel: null,
-        temperature: "18°",
-      },
-    ]);
-    expect(result.information.bus?.departures).toEqual([
-      {
-        departureTime: "18:40",
-        destination: "West",
-        key: "7-2",
-        relativeLabel: "in 12 min",
-      },
-    ]);
+    expect(result).toMatchObject({ locale: "en-us" });
+    // `/` is cached, so the clock-driven shuttle board and weather are not in
+    // the server render at all; they are read separately by the client.
+    expect(result.information).not.toHaveProperty("bus");
+    expect(result.information).not.toHaveProperty("weather");
+    expect(getNextDeparturesFromHubCampusMock).not.toHaveBeenCalled();
+    expect(readWeatherCacheMock).not.toHaveBeenCalled();
     expect(result.information.notices).toEqual([
       {
         dateLabel: null,
@@ -189,11 +162,11 @@ describe("public page loaders", () => {
         ],
       });
 
-      const result = await loadAnonymousHomePage(event);
+      const result = await loadHomeCampusNow(campusNowInput);
 
       // The day that matches the Shanghai date wins over the first entry, and
       // only hours still ahead of the request clock are shipped.
-      expect(result.information.weather?.[0]).toEqual({
+      expect(result.weather?.[0]).toEqual({
         condition: "Clear",
         hourly: [
           { key: "2026-04-29T05:00:00Z", label: "13:00", temperature: "19°" },
@@ -209,7 +182,7 @@ describe("public page loaders", () => {
     }
   });
 
-  it("degrades one failing section without blanking the anonymous home page", async () => {
+  it("degrades one failing section without blanking the home page", async () => {
     readWeatherCacheMock.mockRejectedValue(new Error("weather upstream down"));
     getWeatherSnapshotMock.mockRejectedValue(
       new Error("weather upstream down"),
@@ -224,9 +197,10 @@ describe("public page loaders", () => {
       ],
     });
 
-    const result = await loadAnonymousHomePage(event);
+    const campusNow = await loadHomeCampusNow(campusNowInput);
+    const result = await loadHomePage(event);
 
-    expect(result.information.weather).toBeNull();
+    expect(campusNow.weather).toBeNull();
     expect(result.information.notices).toHaveLength(1);
     expect(logAppEventMock).toHaveBeenCalledWith(
       "warn",

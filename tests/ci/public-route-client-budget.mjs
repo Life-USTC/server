@@ -8,8 +8,13 @@ import { manifest } from "../../.svelte-kit/output/server/manifest.js";
 // entry/payload chunk), which raises request counts by 2-3 per route and `/`
 // by ~3.5 kB gzip while shrinking the heavy catalog detail pages by ~35%.
 // Request and byte budgets below track that new baseline with slim headroom.
+// `/` absorbed the product directory that `/catalog/features` used to render
+// (its search field, filter toolbar and empty state), so its initial client
+// payload grew ~4 kB gzip. The directory sits below the campus information and
+// is a candidate for a deferred hydration boundary if this needs to come back
+// down; the request count did not move.
 const budgets = {
-  "/": { gzipBytes: 203_000, requests: 73 },
+  "/": { gzipBytes: 210_000, requests: 73 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   "/news": { gzipBytes: 232_000, requests: 93 },
