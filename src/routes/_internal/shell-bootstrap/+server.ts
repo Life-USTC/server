@@ -1,3 +1,7 @@
+import {
+  getDemoNavigation,
+  getDemoView,
+} from "@/features/demo/server/demo-todos";
 import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
 import {
   privateSessionJson,
@@ -11,6 +15,13 @@ import type { RequestHandler } from "./$types";
 export const GET: RequestHandler = async ({ locals, request }) => {
   const rejected = rejectBearerOnSessionRoute(request);
   if (rejected) return rejected;
+  if (locals.demo) {
+    return privateSessionJson({
+      demo: getDemoView(locals.demo, locals.locale),
+      viewer: null,
+      navigation: getDemoNavigation(locals.demo),
+    } satisfies ShellBootstrapPayload);
+  }
 
   const viewer = layoutUserSummary(locals.authUser);
   if (!viewer) {

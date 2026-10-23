@@ -29,6 +29,8 @@ export let viewerLoading = false;
 export let signedIn = false;
 /** Hide the Sign in control when the visitor is already on the sign-in route. */
 export let hideSignIn = false;
+export let unavailableReason: string | undefined = undefined;
+export let homeHref = "/";
 </script>
 
 <header
@@ -53,7 +55,7 @@ export let hideSignIn = false;
         ? ''
         : 'lg:hidden'}"
       data-shell-brand
-      href="/"
+      href={homeHref}
       title="Life@USTC"
     >
       <img
@@ -68,6 +70,7 @@ export let hideSignIn = false;
     {#if !focused}
       <div class="hidden min-w-0 flex-1 justify-center px-4 md:flex">
         <GlobalSearchTrigger
+          disabledReason={unavailableReason}
           copy={copy.globalSearch}
           onOpen={onOpenGlobalSearch}
           shortcutLabel={globalSearchShortcutLabel}
@@ -81,6 +84,7 @@ export let hideSignIn = false;
       {#if !focused}
         <div class="md:hidden">
           <GlobalSearchTrigger
+            disabledReason={unavailableReason}
             copy={copy.globalSearch}
             onOpen={onOpenGlobalSearch}
             shortcutLabel={globalSearchShortcutLabel}

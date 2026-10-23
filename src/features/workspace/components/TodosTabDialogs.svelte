@@ -38,8 +38,10 @@ export let toggleTodoCompletion: (
   todo: WorkspaceTodoItem,
 ) => void | Promise<void>;
 export let updateTodoAction: SubmitFunction;
+export let readOnlyReason: string | undefined = undefined;
 </script>
 
+{#if !readOnlyReason}
 <TodoCreateDialog
   commentsCopy={commentsCopy}
   createTodoAction={createTodoAction}
@@ -53,8 +55,10 @@ export let updateTodoAction: SubmitFunction;
   todoPriorityOptions={todoPriorityOptions}
   todosCopy={todosCopy}
 />
+{/if}
 
 <TodoDetailDialog
+  {readOnlyReason}
   deleteTodo={(todo) => deleteTodo(todo)}
   fmtDate={fmtDate}
   isDueOverdue={isDueOverdue}
@@ -73,6 +77,7 @@ export let updateTodoAction: SubmitFunction;
   }}
 />
 
+{#if !readOnlyReason}
 <TodoEditDialog
   commentsCopy={commentsCopy}
   datetimeLocalValue={datetimeLocalValue}
@@ -87,3 +92,4 @@ export let updateTodoAction: SubmitFunction;
   todosCopy={todosCopy}
   updateTodoAction={updateTodoAction}
 />
+{/if}

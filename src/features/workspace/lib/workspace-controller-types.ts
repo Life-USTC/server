@@ -4,6 +4,7 @@ import type {
   CatalogLinkIcon,
 } from "@/features/catalog-links/lib/catalog-links";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
@@ -603,6 +604,7 @@ export type WorkspaceNavStats = WorkspaceRecord & {
 };
 
 export type WorkspacePageData = WorkspaceRecord & {
+  demo?: DemoView | null;
   bus?: WorkspaceBusData | null;
   calendarSubscriptionUrl?: string | null;
   copy: WorkspaceRootCopy;

@@ -28,6 +28,7 @@ export let commentsCopy: CommentsCopy;
 export let todoPriorityOptions: WorkspaceTodoPriorityOption[];
 export let locale: string;
 export let referenceDate: Date | string;
+export let readOnlyReason: string | undefined = undefined;
 
 export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
 export let toggleTodoCompletion: TodoCompletionToggle;
@@ -75,6 +76,7 @@ function clearTodoFilter() {
 
 <section class="grid gap-4">
   <TodosTabToolbar
+    {readOnlyReason}
     bind:createTodoError
     bind:showCreateTodo
     todoFilter={todoFilter}
@@ -93,6 +95,7 @@ function clearTodoFilter() {
   <WorkspaceCollection>
     {#snippet mobile()}
       <TodosCardsView
+        {readOnlyReason}
         filteredTodos={filteredTodos}
         hasTodoItems={hasTodoItems}
         onClearFilter={clearTodoFilter}
@@ -108,6 +111,7 @@ function clearTodoFilter() {
     {/snippet}
     {#snippet desktop()}
       <TodosListView
+        {readOnlyReason}
         filteredTodos={filteredTodos}
         hasTodoItems={hasTodoItems}
         onClearFilter={clearTodoFilter}
@@ -123,6 +127,7 @@ function clearTodoFilter() {
   </WorkspaceCollection>
 
   <TodosTabDialogs
+    {readOnlyReason}
     commentsCopy={commentsCopy}
     createTodoAction={createTodoAction}
     bind:createTodoError

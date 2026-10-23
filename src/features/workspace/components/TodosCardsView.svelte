@@ -31,6 +31,7 @@ export let todoSavingById: Record<string, boolean>;
 export let todosCopy: WorkspaceTodosCopy;
 export let todoStatus: TodoAction;
 export let toggleTodoCompletion: TodoCompletionToggle;
+export let readOnlyReason: string | undefined = undefined;
 </script>
 
 <div class="min-w-0" data-testid="workspace-todos-cards">
@@ -73,7 +74,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
           <Item.Actions class="shrink-0 self-start">
             <TableIconButton
               className="size-11"
-              disabled={todoSavingById[todo.id]}
+              disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
               label={todoSavingById[todo.id]
                 ? todosCopy.saving
                 : todoActionLabel(todo)}
@@ -94,6 +95,8 @@ export let toggleTodoCompletion: TodoCompletionToggle;
                   <Button
                     {...props}
                     aria-label={todosCopy.editAriaLabel}
+                    disabled={Boolean(readOnlyReason)}
+                    title={readOnlyReason}
                     class="size-11"
                     size="icon"
                     type="button"
@@ -105,7 +108,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end">
                 <DropdownMenu.Group>
-                  <DropdownMenu.Item onSelect={() => openTodoEditor(todo)}>
+                  <DropdownMenu.Item disabled={Boolean(readOnlyReason)} onSelect={() => openTodoEditor(todo)}>
                     <Pencil />
                     {todosCopy.editTitle}
                   </DropdownMenu.Item>

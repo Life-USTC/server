@@ -16,6 +16,7 @@ import {
   normalizeCatalogListQuery,
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
+import { setDemoPrivateHeaders } from "./features/demo/server/demo-request-boundary";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
 import { runWeatherCronSnapshot } from "./features/weather/server/weather-cron";
 import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
@@ -25,6 +26,7 @@ import {
   setCloudflareRequestContext,
 } from "./lib/adapters/cloudflare-runtime";
 import { handleAuditLogWriteBatch } from "./lib/audit/audit-log-queue";
+import { isDemoRequest } from "./lib/auth/demo-request-signal";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
   handlePublicSsrCachePurgeRequest,
@@ -538,6 +540,19 @@ export default {
               new URL(request.url).pathname,
             ),
           });
+          if (isDemoRequest(request)) {
+            edgeObservation.completed = true;
+            // Route demo requests before cache purge, redirects, shared cache,
+            // and persistent request observations. The hook owns admission.
+            return app
+              .fetch(directRequest(request, requestId), env, context)
+              .then((response) => {
+                const privateResponse = new Response(response.body, response);
+                setDemoPrivateHeaders(privateResponse.headers);
+                privateResponse.headers.set("x-request-id", requestId);
+                return privateResponse;
+              });
+          }
           return runWithObservability(() => {
             identifyObservedRequest(requestId);
             return observeHttpFeature(request, requestId, () =>

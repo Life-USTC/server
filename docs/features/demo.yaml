@@ -1,6 +1,6 @@
 kind: feature
 id: demo
-name: Production Demo
+name: Read-only Demo
 areas:
 - platform
 policy_refs:
@@ -9,51 +9,178 @@ policy_refs:
 - permission-ui
 - rendering-and-cache
 access:
-  anon: Demo mode is not shipped as a public product surface yet.
+  anon: An explicit demo gate enables entry from the existing sign-in page; the gate is unset by default.
   user: Ordinary signed-in sessions are never converted to demo mode.
   admin: Admin capabilities are never simulated.
-  agent: Demo mode is unavailable to OAuth and MCP clients.
+  agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
-- id: demo.planned-only
-  category: behavior
-  rule: Demo mode has no public authentication entry point or supported REST, GraphQL, or MCP capability.
-  rationale: Demo mode is an unshipped product experiment. A future design requires a separate product
-    decision before any public surface is added.
+- id: demo.entry-gate
+  category: authorization
+  rule: Only an explicitly enabled deployment offers demo entry. Entry and exit require same-origin POST
+    with an Origin header and fixed redirect destinations; encoded control aliases are rejected. Entry
+    rejects existing real credentials and demo cookies. Exit clears only the demo cookie, including invalid
+    or mixed cookies, without resolving or changing any real session.
+  rationale: The first complete path is for isolated acceptance. The production binding stays unset until
+    the wider ordinary-user demo boundary is complete.
   acceptance:
-    given: The current authentication endpoint registry, generated REST paths, executable GraphQL schema,
-      and live MCP tool list.
-    when: The supported surfaces are enumerated and a demo authentication request is submitted.
+    given: Disabled and enabled deployments, and anonymous, real-session and demo callers.
+    when: Callers submit entry and exit requests, including missing or foreign origins and encoded paths.
     then:
-    - No demo operation is registered on any supported API surface.
-    - The authentication request returns 404 without establishing a session.
+    - Only enabled same-origin anonymous entry establishes a demo cookie.
+    - Rejected requests create no real users or sessions and issue no demo cookie.
+    - Exit preserves real account state and redirects to sign-in.
     test:
-      file: tests/integration/demo-unavailable.test.ts
-      name: demo.planned-only
+      file: tests/integration/rest/demo/test.ts
+      name: demo entry is explicit, same-origin and separate from real sessions
+- id: demo.identity
+  category: privacy
+  rule: A demo identity is a separately signed, purpose-bound cookie with a fifteen-minute lifetime and
+    supported fixture version, never a real user ID or session. Tampered, expired, future-issued, duplicate,
+    unsupported-version and mixed credentials fail closed before real authentication. An invalid unmixed
+    cookie on a top-level Todos HTML request is cleared with a fixed sign-in redirect; API and page-data
+    requests remain unauthorized. No demo identity reaches a real-user data adapter.
+  acceptance:
+    given: Valid, forged, expired, duplicate, unsupported-version and mixed credentials.
+    when: Actual demo requests and ordinary principal resolution run.
+    then:
+    - Only a valid independent identity reads fixtures; real account identifiers are never accepted from demo inputs.
+    - Invalid API requests are unauthorized and a failed HTML refresh can return safely to sign-in.
+    - Normal authenticated requests retain their own principal and permissions.
+    test:
+      file: tests/unit/features/demo/demo-session.test.ts
+      name: fails closed for old fixture versions and account claims even with a valid signature
 - id: demo.no-live-writes
   category: authorization
-  rule: Ordinary authenticated sessions cannot be converted into demo principals, and public inputs cannot
-    impersonate a real user through a demo identity.
-  rationale: Any future demo must isolate simulated state from durable business data; no such write capability
-    is currently supported.
+  rule: Public demo flags, victim IDs and unsigned legacy inputs cannot impersonate a real user or change
+    an authoritative session's owner.
   acceptance:
-    given: A signed authoritative session and a different real user, plus unsigned forged demo inputs.
-    when: Production principal resolution receives demo flags and victim identities in query parameters,
-      JSON, cookies, and headers.
+    given: A signed authoritative session, a different real user and unsigned forged demo inputs.
+    when: Ordinary principal resolution receives those fields in query parameters, JSON, cookies and headers.
     then:
-    - The signed request remains the original session principal; the unsigned request has no principal.
-    - The authoritative session owner is unchanged and no victim session is created.
+    - The signed request retains its session principal and the unsigned request has no principal.
+    - The session owner is unchanged and no victim session is created.
     test:
       file: tests/integration/demo-identity-boundary.test.ts
       name: demo.no-live-writes
+- id: demo.read-only-boundary
+  category: authorization
+  applies_to:
+  - demo-todos
+  expectation:
+    kind: authorization
+    surface: service
+    operation: resolveDemoBoundary
+    cases:
+    - id: valid-demo-business-write
+      authenticated: false
+      suspended: false
+      role: user
+      relationship: other
+      outcome: forbidden
+    - id: valid-demo-unsupported-read
+      authenticated: false
+      suspended: false
+      role: user
+      relationship: other
+      outcome: forbidden
+    denied_effects:
+    - durable business or authentication data
+    - persistent telemetry or audit records
+    - database reads under a real user
+    - rate limiting, object storage, calendar queues and invalidation
+    - OAuth and outbound requests
+  rationale: Demo possession is not real-user authentication. The allowlist comprises Todos HTML/page-data,
+    its existing GET API, shell bootstrap and same-origin locale-cookie updates. Entry and exit are cookie
+    controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
+    private exports, administrator routes, GraphQL and MCP.
+  acceptance:
+    given: A signed demo and unrelated real private data in an isolated actual Worker.
+    when: The caller submits business mutations, unsupported reads, guessed real IDs and protocol requests.
+    then:
+    - Unsupported requests are forbidden before real authentication or business adapters run.
+    - Independent database snapshots and native side-effect observations remain unchanged.
+    test:
+      file: tests/integration/rest/demo/test.ts
+      name: demo requests cannot reach durable data or external side effects
+- id: demo.todos-projection
+  category: consistency
+  rule: The existing Todos page, its same-origin GET API and shell navigation share version todos-v1,
+    reference time 2026-09-24T09:00:00+08:00 and one deterministic sample dataset. Locale changes presentation
+    consistently; filters, ordering, counts and pagination retain the existing Todo response shapes.
+    Existing desktop/mobile lists and detail views remain usable. Add, edit, completion and delete controls
+    are disabled with a visible read-only explanation; unimplemented destinations and search are disabled.
+  acceptance:
+    given: A demo entered from the ordinary sign-in page in either supported locale.
+    when: The existing Todos page, detail, completion filters, API and language controls are used.
+    then:
+    - Page, API, detail and navigation show matching fixed samples and two pending tasks.
+    - Business mutation controls explain that the demo is read-only.
+    - Entry and exit use the existing app shell rather than a separate workbench.
+    test:
+      file: tests/e2e/src/app/demo/test.ts
+      name: 'demo.todos: read-only browsing zh-cn 1280'
+- id: demo.cache-isolation
+  category: privacy
+  rule: Demo cookie presence, including invalid cookies, bypasses shared HTML admission before cache hits
+    and never marks page data reusable as public navigation. Responses and failures are private, no-store
+    for browser and CDN. Entry and exit reload the document; shell/controller identity changes discard pending
+    old identity responses and selected private details. Refresh, locale navigation and history must not restore
+    another identity's state.
+  acceptance:
+    given: A real account response is delayed while a demo identity is entered or exited.
+    when: The response resolves, the page reloads, or browser history and locale controls are used.
+    then:
+    - No real account detail or shell can overwrite the demo projection.
+    - Invalid-cookie responses never enter shared caches or acquire public navigation attestations.
+    test:
+      file: tests/e2e/src/app/demo/test.ts
+      name: 'demo.session: late real-account responses cannot restore the previous viewer'
 capabilities:
   demo-bootstrap:
-    title: Demo Bootstrap
+    title: Demo Entry and Exit
     auth: anon
-    web: planned
+    web:
+      pages:
+      - /account/sign-in
     rest: unavailable
     graphql: unavailable
     mcp: unavailable
     presentation:
-      kind: unavailable
+      kind: interaction
       items:
-      - Demo mode unavailable
+      - Enter the read-only demo from sign-in when enabled
+      - Return to sign-in through the demo exit control
+      requirement_refs:
+      - demo.entry-gate
+  demo-todos:
+    title: Read-only Demo Todos
+    description: An enabled deployment and a valid independent demo cookie expose fixtures through the
+      existing Todos API. The todo contract owns ordinary account permissions; demo supplies no independent
+      OAuth or agent identity.
+    auth: anon
+    web:
+      pages:
+      - /workspace/todos
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/todos
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - todo.title
+          - todo.dueAt
+          - todo.completed
+          secondary:
+          - todo.priority
+          - todo.content
+          - demo.referenceNow
+          tertiary:
+          - todo.id
+      requirement_refs:
+      - demo.todos-projection

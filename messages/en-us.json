@@ -2138,6 +2138,15 @@
     "schedule": "Schedule",
     "textbooks": "Textbooks"
   },
+  "demo": {
+    "enter": "Enter demo",
+    "description": "Browse read-only sample todos without creating an account.",
+    "displayName": "Demo account · Read only",
+    "readOnlyReason": "Browse and filter sample todos. Adding, completing, editing and deleting are disabled.",
+    "exit": "Exit demo",
+    "unavailableReason": "Other features are not available in this demo yet.",
+    "referenceTime": "Sample time (Shanghai)"
+  },
   "signIn": {
     "title": "Sign In",
     "description": "Choose a provider to sign in to your account",

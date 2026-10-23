@@ -8,6 +8,7 @@ export type ShellGlyph =
   | "danger";
 
 export type ShellLink = {
+  disabledReason?: string;
   ariaLabel?: string;
   badge?: number | null;
   glyph?: ShellGlyph;

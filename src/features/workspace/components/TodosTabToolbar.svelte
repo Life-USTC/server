@@ -10,6 +10,7 @@ export let showCreateTodo: boolean;
 export let todoFilter: TodoFilter;
 export let onTodoFilterChange: (value: TodoFilter) => void;
 export let todosCopy: WorkspaceTodosCopy;
+export let readOnlyReason: string | undefined = undefined;
 </script>
 
 <WorkspaceTaskToolbar
@@ -21,6 +22,7 @@ export let todosCopy: WorkspaceTodosCopy;
   filterAllLabel={String(todosCopy.filterAll)}
   addButtonLabel={String(todosCopy.addButton)}
   addTestId="workspace-todos-add"
+  addDisabledReason={readOnlyReason}
   onAdd={() => {
     createTodoError = "";
     showCreateTodo = true;

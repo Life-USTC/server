@@ -31,6 +31,7 @@ let {
   currentPathname,
   dockAboveFooter = false,
   footerLinks = [],
+  homeHref = "/",
   isActiveLink,
   isAncestorLink,
   navGroups,
@@ -49,6 +50,7 @@ let {
   dockAboveFooter?: boolean;
   /** Legal/help links for catalog detail chrome (public footer omitted there). */
   footerLinks?: ShellLink[];
+  homeHref?: string;
   isActiveLink: (link: ShellLink) => boolean;
   isAncestorLink: (link: ShellLink) => boolean;
   navGroups: ShellNavGroup[];
@@ -139,7 +141,7 @@ function closeMobileSidebar(): void {
                 <a
                   {...props}
                   id="app-logo"
-                  href="/"
+                  href={homeHref}
                   aria-label="Life@USTC"
                   aria-current={showActiveState(currentPathname === "/") ? "page" : undefined}
                   onclick={closeMobileSidebar}
@@ -207,7 +209,26 @@ function closeMobileSidebar(): void {
               <Sidebar.GroupContent>
                 <Sidebar.Menu>
                   {#each group.links as link}
-                    {#if link.items && link.items.length > 0}
+                    {#if link.disabledReason}
+                      <Sidebar.MenuItem>
+                        <Sidebar.MenuButton
+                          aria-describedby="demo-unavailable"
+                          title={link.disabledReason}
+                        >
+                          {#snippet child({ props })}
+                            <button {...props} disabled type="button">
+                              {#if link.glyph}
+                                <SettingsGlyph name={link.glyph} />
+                              {:else if link.icon}
+                                {@const Icon = link.icon}
+                                <Icon />
+                              {/if}
+                              <span>{link.label}</span>
+                            </button>
+                          {/snippet}
+                        </Sidebar.MenuButton>
+                      </Sidebar.MenuItem>
+                    {:else if link.items && link.items.length > 0}
                       {@const childActive = hasActiveChild(link)}
                       {@const ownActive = isActiveLink(link) && !childActive}
                       {@const active = showActiveState(ownActive)}

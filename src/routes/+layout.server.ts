@@ -1,3 +1,4 @@
+import { getDemoView } from "@/features/demo/server/demo-todos";
 import { isViewerIndependentPublicPath } from "@/lib/cloudflare/public-ssr-gateway";
 import {
   buildLayoutCopy,
@@ -19,6 +20,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
     : layoutUserSummary(locals.authUser);
 
   return {
+    demo: locals.demo ? getDemoView(locals.demo, locals.locale) : null,
     locale: locals.locale,
     copy,
     socialMetadata: buildSocialMetadata({

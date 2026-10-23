@@ -1,4 +1,6 @@
 import { type Cookies, fail, redirect } from "@sveltejs/kit";
+import { isDemoEnabled } from "@/features/demo/server/demo-session";
+import { getDemoCopy } from "@/features/demo/server/demo-todos";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
 import {
   resolveSignInCallbackUrl,
@@ -46,7 +48,12 @@ export async function loadSignInPage({
   const copy = signInMessages[locals.locale];
   const names = providerNames(locals.locale);
   const debugAuthAllowed = allowDebugAuth();
+  const demoCopy = getDemoCopy(locals.locale);
   return {
+    demoEnabled:
+      isDemoEnabled() &&
+      !hasRequestAuthSignal(request.headers) &&
+      !request.headers.has("authorization"),
     callbackUrl,
     reauthentication,
     error: url.searchParams.get("error"),
@@ -57,6 +64,8 @@ export async function loadSignInPage({
       debug: id === DEV_DEBUG_PROVIDER_ID || id === DEV_ADMIN_PROVIDER_ID,
     })),
     copy: {
+      demoEnter: demoCopy.enter,
+      demoDescription: demoCopy.description,
       title: copy.title,
       description: copy.description,
       devDebugHint: debugAuthAllowed ? copy.devDebugHint : "",

@@ -1,6 +1,11 @@
-import { getTodosRoute, postTodoRoute } from "@/lib/api/routes/todos";
+import {
+  getDemoTodosRoute,
+  getTodosRoute,
+  postTodoRoute,
+} from "@/lib/api/routes/todos";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * List todos.
@@ -10,7 +15,10 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 401:openApiErrorSchema
  * @oauthScope workspace.todo:read
  */
-export const GET = svelteRequestHandler(observedApiRoute(getTodosRoute));
+export const GET: RequestHandler = (event) =>
+  event.locals.demo
+    ? getDemoTodosRoute(event.request, event.locals.locale)
+    : svelteRequestHandler(observedApiRoute(getTodosRoute))(event);
 /**
  * Create a todo.
  * @body todoCreateRequestSchema
